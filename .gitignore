@@ -1,0 +1,33 @@
+# local env files
+# .env
+# .env.local
+# .env.test
+# .env.prod
+
+# Editor directories and files
+.idea
+.git
+.svn
+.vscode
+.project
+.github-no-read
+
+
+.DS_Store
+node_modules
+/dist
+backend/target
+frontend/.next
+frontend/out
+frontend/node_modules
+desktop/node_modules
+desktop/dist
+
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+/orionmall-*/target
