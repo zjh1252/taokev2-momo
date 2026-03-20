@@ -39,7 +39,7 @@
 | 上传材料 | 资质证明文件、授课案例文件、合作企业证明文件（支持 DOCX/PDF/PPT/JPG/PNG 多格式） |
 | 审核流程 | 后台客服审核 → 审核结果短信/平台消息通知 |
 | 企业实名 | 必须完成企业实名认证（营业执照与企查查/天眼查人工校验） |
-| 草稿保留 | 未完成的入驻申请草稿保留 **48 小时**，超时自动删除 |
+| 草稿保留 | 未完成的入驻申请草稿保留 **15 天**，超时自动删除 |
 | 高校区分 | `org_type` 区分高校与非高校：高校联系方式可对外公布；非高校机构允许显示名称但不允许展示联系方式，甲方不可直接对接非高校机构 |
 
 #### 2.1.2 资质升级
@@ -60,10 +60,12 @@
 
 | 要素 | 说明 |
 |------|------|
-| 添加讲师 | 机构可添加旗下讲师，建立机构-讲师绑定关系 |
+| 添加讲师 | 填写讲师基本信息（姓名、擅长领域等），邀请讲师认证 |
+| 讲师确认绑定 | 邀请已有讲师需讲师确认后，绑定关系才生效 |
 | 讲师信息 | 完善讲师的姓名、头衔、擅长领域、从业经历、授课案例等 |
 | 标签管理 | 机构可为旗下讲师添加标签，支持分类管理（按领域、等级等维度） |
 | 多格式上传 | 讲师资料支持 DOCX/PDF/PPT/JPG/PNG 多格式上传 |
+| 授权编辑 | 仅在讲师授权下可编辑讲师部分信息（如报价、展示简介） |
 | 自定义字段 | 支持客服自定义核心字段同步（字段长度≤8字） |
 
 ### 2.3 版权课管理
@@ -167,9 +169,12 @@
 | `contact_name` | varchar(50) | | 联系人姓名 |
 | `contact_phone` | varchar(30) | | 联系电话 |
 | `contact_email` | varchar(150) | | 联系邮箱 |
-| `province_code` | varchar(10) | | 省份编码 |
-| `city_code` | varchar(10) | | 城市编码 |
-| `address` | varchar(300) | | 详细办公地址 |
+| post_code | int(10) | 否 | 0 | 邮编 |
+| province_id | int(10) | 否 | 0 | 省份 |
+| city_id | int(10) | 否 | 0 | 城市 |
+| district_id | int(10) | 否 | 0 | 区县 |
+| town_id | int(10) | 否 | 0 | 乡镇 |
+| address | varchar(200) | 否 | "" | 详细地址 |
 | `teacher_team_intro` | text | | 师资团队介绍（富文本） |
 | `status` | tinyint | NOT NULL, DEFAULT 0 | 入驻状态：0=草稿, 1=待审核, 2=审核通过, 3=审核驳回, 4=已冻结 |
 | `reject_reason` | varchar(500) | | 审核驳回原因 |
@@ -180,7 +185,7 @@
 | `deal_count` | int | NOT NULL, DEFAULT 0 | 累计成单量（冗余统计字段） |
 | `review_score` | decimal(3,2) | NOT NULL, DEFAULT 0.00 | 综合评分（冗余统计字段） |
 | `review_count` | int | NOT NULL, DEFAULT 0 | 评价总数（冗余统计字段） |
-| `draft_expire_at` | datetime | | 草稿过期时间（创建后 48 小时） |
+| `draft_expire_at` | datetime | | 草稿过期时间（创建后 15 天） |
 | `verified_at` | datetime | | 审核通过时间 |
 | `created_at` | datetime | NOT NULL | 创建时间 |
 | `updated_at` | datetime | NOT NULL | 更新时间 |
@@ -227,21 +232,25 @@
 
 ### 4.3 organization_trainers（机构-讲师关系表）
 
-> 管理机构旗下讲师绑定关系，一个讲师可属于多个机构。
+> 管理机构旗下讲师绑定关系，支持邀请已有讲师与代创建影子讲师；同一讲师在同一时间仅可归属一个机构。
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | `id` | int | PK, AUTO_INCREMENT | 主键 |
 | `org_id` | int | NOT NULL | 关联机构 ID |
-| `trainer_id` | int | NOT NULL | 关联讲师 ID（讲师表主键） |
+| `trainer_id` | int | NOT NULL | 关联讲师用户 ID（`users.id`） |
 | `display_name` | varchar(100) | | 在该机构下的展示名称（为空则用讲师原名） |
 | `title` | varchar(200) | | 在该机构下的头衔 |
 | `specialty` | varchar(500) | | 擅长领域描述 |
 | `category` | varchar(100) | | 机构内部分类（如按领域/等级） |
 | `tags` | varchar(500) | | 标签，逗号分隔 |
 | `sort_order` | int | NOT NULL, DEFAULT 0 | 排序序号（越小越靠前） |
-| `status` | tinyint | NOT NULL, DEFAULT 1 | 状态：0=已解绑, 1=正常 |
+| `status` | tinyint | NOT NULL, DEFAULT 0 | 绑定状态：0=待讲师确认, 1=已绑定, 2=讲师拒绝, 3=已解绑 |
+| `authorization` | tinyint | NOT NULL, DEFAULT 0 | 授权级别：0=仅查看, 1=可编辑部分信息（如报价/简介） |
+| `cooperation_proof_url` | varchar(500) | | 合作证明文件 URL |
 | `bound_at` | datetime | | 绑定时间 |
+| `confirmed_at` | datetime | | 讲师确认绑定时间 |
+| `unbound_at` | datetime | | 解绑时间 |
 | `created_at` | datetime | NOT NULL | 创建时间 |
 | `updated_at` | datetime | NOT NULL | 更新时间 |
 
@@ -250,110 +259,11 @@
 | 索引名 | 字段 | 类型 |
 |--------|------|------|
 | `idx_ot_org_id` | `org_id` | 普通 |
-| `idx_ot_trainer_id` | `trainer_id` | 普通 |
-| `idx_ot_org_trainer` | `org_id, trainer_id` | UNIQUE |
+| `idx_ot_trainer_id` | `trainer_id` | UNIQUE |
 | `idx_ot_status` | `status` | 普通 |
 
-### 4.4 organization_cooperation_cases（机构合作案例表）
 
-> 存储机构的合作案例与授课成果，展示在机构主页。
 
-| 字段名 | 类型 | 约束 | 说明 |
-|--------|------|------|------|
-| `id` | int | PK, AUTO_INCREMENT | 主键 |
-| `org_id` | int | NOT NULL | 关联机构 ID |
-| `title` | varchar(200) | NOT NULL | 案例标题 |
-| `client_company` | varchar(200) | | 合作企业名称 |
-| `training_field` | varchar(100) | | 培训领域 |
-| `description` | text | | 案例描述（富文本） |
-| `cover_url` | varchar(500) | | 案例封面图 URL |
-| `review_status` | tinyint | NOT NULL, DEFAULT 0 | 审核状态：0=待审核, 1=审核通过, 2=审核驳回 |
-| `reviewer_id` | int | | 审核人 ID |
-| `reviewed_at` | datetime | | 审核时间 |
-| `reject_reason` | varchar(500) | | 驳回原因 |
-| `sort_order` | int | NOT NULL, DEFAULT 0 | 排序序号 |
-| `is_visible` | tinyint | NOT NULL, DEFAULT 1 | 是否展示：0=隐藏, 1=展示 |
-| `created_at` | datetime | NOT NULL | 创建时间 |
-| `updated_at` | datetime | NOT NULL | 更新时间 |
-
-**索引：**
-
-| 索引名 | 字段 | 类型 |
-|--------|------|------|
-| `idx_case_org_id` | `org_id` | 普通 |
-| `idx_case_review_status` | `review_status` | 普通 |
-
-### 4.5 organization_review_stats（机构课程评分统计表）
-
-> 机构维度的评分统计（定时任务或事件驱动聚合）。
-
-| 字段名 | 类型 | 约束 | 说明 |
-|--------|------|------|------|
-| `id` | int | PK, AUTO_INCREMENT | 主键 |
-| `org_id` | int | NOT NULL | 关联机构 ID |
-| `overall_score` | decimal(3,2) | NOT NULL, DEFAULT 0.00 | 综合评分 |
-| `quality_score` | decimal(3,2) | NOT NULL, DEFAULT 0.00 | 课程质量评分 |
-| `service_score` | decimal(3,2) | NOT NULL, DEFAULT 0.00 | 服务质量评分 |
-| `venue_score` | decimal(3,2) | NOT NULL, DEFAULT 0.00 | 场地评分 |
-| `good_count` | int | NOT NULL, DEFAULT 0 | 好评数 |
-| `medium_count` | int | NOT NULL, DEFAULT 0 | 中评数 |
-| `bad_count` | int | NOT NULL, DEFAULT 0 | 差评数 |
-| `total_count` | int | NOT NULL, DEFAULT 0 | 评价总数 |
-| `good_rate` | decimal(5,2) | NOT NULL, DEFAULT 0.00 | 好评率（百分比） |
-| `created_at` | datetime | NOT NULL | 创建时间 |
-| `updated_at` | datetime | NOT NULL | 更新时间 |
-
-**索引：**
-
-| 索引名 | 字段 | 类型 |
-|--------|------|------|
-| `idx_rs_org_id` | `org_id` | UNIQUE |
-
-### 4.6 organization_settlements（机构结算记录表）
-
-> 记录机构的收益结算与提现申请。
-
-| 字段名 | 类型 | 约束 | 说明 |
-|--------|------|------|------|
-| `id` | int | PK, AUTO_INCREMENT | 主键 |
-| `org_id` | int | NOT NULL | 关联机构 ID |
-| `settlement_no` | varchar(64) | NOT NULL | 结算单号 |
-| `settlement_type` | tinyint | NOT NULL | 结算类型：1=在线课收益, 2=公开课收益, 3=内训课收益 |
-| `amount` | decimal(12,2) | NOT NULL | 结算金额 |
-| `status` | tinyint | NOT NULL, DEFAULT 0 | 状态：0=待审核, 1=审核通过, 2=已打款, 3=审核驳回 |
-| `bank_account_name` | varchar(200) | | 收款账户名称 |
-| `bank_account_no` | varchar(50) | | 收款银行账号 |
-| `bank_name` | varchar(200) | | 开户银行名称 |
-| `reviewer_id` | int | | 审核人 ID |
-| `reviewed_at` | datetime | | 审核时间 |
-| `paid_at` | datetime | | 打款时间 |
-| `reject_reason` | varchar(500) | | 驳回原因 |
-| `remark` | varchar(500) | | 备注 |
-| `created_at` | datetime | NOT NULL | 创建时间 |
-| `updated_at` | datetime | NOT NULL | 更新时间 |
-
-**索引：**
-
-| 索引名 | 字段 | 类型 |
-|--------|------|------|
-| `idx_settle_org_id` | `org_id` | 普通 |
-| `idx_settle_no` | `settlement_no` | UNIQUE |
-| `idx_settle_status` | `status` | 普通 |
-| `idx_settle_created` | `created_at` | 普通 |
-
----
-
-## 5. 旧表映射参考
-
-| 旧表 | 新表 | 说明 |
-|------|------|------|
-| `tk_member`（groupid=3） | `users` + `organizations` | 旧系统机构复用 member 表（groupid=3），新系统拆分为用户表 + 机构专属表 |
-| `tk_member_org` | `organization_trainers` | 旧系统的机构成员信息，新系统通过机构-讲师关系表管理 |
-| `tk_company_course_score` | `organization_review_stats` | 机构课程评分统计 |
-| `tk_company_demand` | 归入统一的咨询/需求模块 | 机构咨询信息，不再单独建机构需求表 |
-| `tk_company_recommend` | 归入统一的推荐/运营模块 | 机构推荐记录 |
-
----
 
 ## 6. 接口契约（REST API）
 
@@ -380,8 +290,11 @@
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/api/v1/organizations/{id}/trainers` | 获取机构旗下讲师列表（分页） |
-| POST | `/api/v1/organizations/{id}/trainers` | 添加讲师到机构 |
+| POST | `/api/v1/organizations/{id}/trainers/invite` | 邀请已有讲师绑定机构 |
+| POST | `/api/v1/organizations/{id}/trainers/shadow` | 代创建影子讲师并建立绑定关系 |
+| POST | `/api/v1/organizations/trainers/claim` | 影子讲师认领账号（链接+手机号验证） |
 | PUT | `/api/v1/organizations/{orgId}/trainers/{trainerId}` | 编辑机构下讲师信息 |
+| PUT | `/api/v1/organizations/{orgId}/trainers/{trainerId}/authorization` | 设置机构对讲师的可编辑授权 |
 | DELETE | `/api/v1/organizations/{orgId}/trainers/{trainerId}` | 解绑讲师 |
 
 ### 6.4 合作案例管理
@@ -442,16 +355,20 @@
 ### 7.1 入驻与审核
 
 1. 一个用户只能创建一个机构（`user_id` 唯一约束）
-2. 入驻草稿超过 48 小时未提交审核，系统定时任务自动删除（`status=0` 且 `draft_expire_at < now()`）
+2. 入驻草稿超过 15 天未提交审核，系统定时任务自动删除（`status=0` 且 `draft_expire_at < now()`）
 3. 审核驳回后可重新编辑并再次提交
 4. 企业实名认证是入驻前置条件
 5. 高校机构（`org_type=1`）联系方式默认公开（`is_contact_public=1`），非高校机构强制为 0
 
 ### 7.2 师资团队
 
-1. 同一讲师可被多个机构绑定（多对多关系，但关系表保证 `org_id + trainer_id` 唯一）
-2. 机构可在讲师授权范围内编辑讲师部分信息
-3. 解绑讲师为逻辑删除（`status=0`），保留历史数据
+1. 同一讲师在同一时间仅可绑定一个机构（`trainer_id` 唯一约束）
+2. 机构添加讲师支持两种模式：邀请已有讲师（`status=0` 待确认）与代创建影子讲师（`status=4` 待认领）
+3. 邀请模式需讲师确认后生效（`status=1`），拒绝则置为 `status=2`
+4. 影子讲师完成认领后自动转为正式用户并将绑定状态更新为 `status=1`
+5. 影子讲师自创建起 14 天内未认领，系统定时任务自动删除影子账号及对应 `organization_trainers` 绑定记录
+6. 机构仅在讲师授权为 `authorization=1` 时可编辑报价等敏感字段
+7. 解绑讲师为逻辑删除（`status=3`），再次绑定需复用原关系记录并更新 `org_id` 与 `status`，不新增重复关系行
 
 ### 7.3 公开课状态
 

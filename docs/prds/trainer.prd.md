@@ -45,13 +45,14 @@
 #### 2.2.2 基础信息编辑
 
 - 可编辑字段：头像、姓名、头衔、从业经历、核心擅长领域
-- **报价范围**：讲师可编辑、仅自己与后台客服可见，不展示在前台
 - 授课案例上传/修改：需标注企业名称与培训效果，案例经后台客服审核后展示
 
-#### 2.2.3 咨询对接（分阶段实现）
+[//]: # (#### 2.2.3 咨询对接（分阶段实现）)
 
-- **第一阶段**：仅保留留言功能，由平台运营人员实时响应和对接，不直通讲师
-- **第二阶段**：对信得过的专家开放直达通道（虚拟号码通话），初期由人工介入协调
+[//]: # ()
+[//]: # (- **第一阶段**：仅保留留言功能，由平台运营人员实时响应和对接，不直通讲师)
+
+[//]: # (- **第二阶段**：对信得过的专家开放直达通道（虚拟号码通话），初期由人工介入协调)
 
 #### 2.2.4 自动萃取讲师案例
 
@@ -63,34 +64,41 @@
 #### 2.2.5 主页数据展示
 
 - 展示指标：曝光量、咨询量、课程销量、用户评价星级
-- 支持按时间维度（周/月/年）查看数据趋势
 
-### 2.3 AI 课件美化与生成（外接，仅 PC 端）
+[//]: # (### 2.3 AI 课件美化与生成（外接，仅 PC 端）)
 
-#### 2.3.1 AI 课件生成
+[//]: # ()
+[//]: # (#### 2.3.1 AI 课件生成)
 
-- 输入课程主题、课纲，上传已有素材
-- AI 自动生成课程大纲，大纲可编辑修改
-- 确认大纲后选择 PPT 模板（支持上传自有模板），AI 生成 PPT 课件
-- 生成后可在线修改编辑，支持导出
+[//]: # ()
+[//]: # (- 输入课程主题、课纲，上传已有素材)
 
-#### 2.3.2 PPT 美化
+[//]: # (- AI 自动生成课程大纲，大纲可编辑修改)
 
-- 上传已有 PPT 课件，AI 自动优化页面布局、配色风格
-- 美化后可在线预览、修改，支持导出
+[//]: # (- 确认大纲后选择 PPT 模板（支持上传自有模板），AI 生成 PPT 课件)
+
+[//]: # (- 生成后可在线修改编辑，支持导出)
+
+[//]: # ()
+[//]: # (#### 2.3.2 PPT 美化)
+
+[//]: # ()
+[//]: # (- 上传已有 PPT 课件，AI 自动优化页面布局、配色风格)
+
+[//]: # (- 美化后可在线预览、修改，支持导出)
 
 ### 2.4 版权课管理
 
 - 上传版权课信息：课程名称、定价、课程大纲、适用人群、版权证书、课程封面
 - 版权课经后台客服审核通过后，在个人主页单独展示"版权课"板块，标注版权标识
-- **定价由平台统一定义，讲师不可自行修改**
+- 允许讲师对版权课定价，但需要后台客服审核后再发布
 
 ### 2.5 课程管理
 
 #### 2.5.1 在线课发布
 
 - 填写：课程名称、定价、课程简介、适用人群、课程目录、课程封面
-- 支持分章节发布，设置免费试听章节（1-5 分钟）
+- 支持分章节发布(免费试听原则后期再定义）
 - 讲师前台支持单个视频上传（大小要求另行约定），批量视频由后台客服统一上传
 - 发布后经后台客服审核上线
 
@@ -104,7 +112,7 @@
 
 - 填写：课程名称、课程简介、核心模块、适配行业、适配企业规模、授课时长、课程封面
 - 上传讲师个人资质及过往企业内训案例
-- **允许讲师填写定价**
+- 允许讲师填写定价
 - 不开放直接报名与交付入口，仅作为企业预约咨询的展示依据
 - 发布后经后台客服审核上线，审核重点核查讲师资质、案例真实性及内容合规性
 
@@ -157,12 +165,31 @@
 | gender | tinyint | 否 | 0 | 性别：0=未知，1=男，2=女 |
 | phone | varchar(20) | 是 | — | 联系电话 |
 | email | varchar(200) | 否 | '' | 电子邮箱 |
-| province_code | varchar(20) | 否 | NULL | 省份编码 |
-| city_code | varchar(20) | 否 | NULL | 城市编码 |
-| expertise_ids | varchar(500) | 否 | '' | 核心擅长领域 ID 列表，逗号分隔，关联分类表 |
+| post_code | int(10) | 否 | 0 | 邮编 |
+| province_id | int(10) | 否 | 0 | 省份 |
+| city_id | int(10) | 否 | 0 | 城市 |
+| district_id | int(10) | 否 | 0 | 区县 |
+| town_id | int(10) | 否 | 0 | 乡镇 |
+| address | varchar(200) | 否 | "" | 详细地址 |
+| school_name | varchar(200) | 是 | — | 学校名称 |
+| major | varchar(100) | 否 | '' | 所学专业 |
+| degree | varchar(50) | 否 | '' | 学历/学位 |
+| start_date | date | 是 | — | 入学日期 |
+| end_date | date | 否 | NULL | 毕业日期（NULL 表示在读） |
+| is_graduated | tinyint | 否 | 1 | 是否毕业：0=否，1=是 |
+| company_name | varchar(200) | 是 | — | 单位名称 |
+| position | varchar(100) | 否 | '' | 职务 |
+| start_date | date | 是 | — | 开始日期 |
+| end_date | date | 否 | NULL | 结束日期（NULL 表示至今） |
+| job_description | text | 否 | NULL | 工作描述 |
 | expertise_tags | varchar(500) | 否 | '' | 讲师自选/新增标签，逗号分隔 |
 | experience_years | int | 否 | 0 | 从业年限 |
 | teaching_years | int | 否 | 0 | 培训年限 |
+| honor_name | varchar(200) | 是 | — | 荣誉名称 |
+| honor_image | varchar(500) | 否 | '' | 荣誉证书/图片 URL |
+| issuing_authority | varchar(200) | 否 | '' | 颁发机构 |
+| issued_at | date | 否 | NULL | 获得日期 |
+| description | text | 否 | NULL | 荣誉描述 |
 | intro | longtext | 否 | NULL | 个人简介（富文本，支持美化格式） |
 | background | text | 否 | NULL | 从业经历/背景 |
 | good_at | text | 否 | NULL | 专长描述 |
@@ -185,7 +212,7 @@
 | view_count | int | 否 | 0 | 累计曝光量 |
 | consultation_count | int | 否 | 0 | 累计咨询量 |
 | comment_count | int | 否 | 0 | 累计评论数 |
-| draft_expired_at | datetime | 否 | NULL | 草稿过期时间（入驻申请草稿 48 小时有效） |
+| draft_expired_at | datetime | 否 | NULL | 草稿过期时间 |
 | approved_at | datetime | 否 | NULL | 审核通过时间 |
 | created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间 |
 | updated_at | datetime | 是 | CURRENT_TIMESTAMP | 更新时间 |
@@ -266,42 +293,27 @@
 
 ---
 
-### 3.4 trainer_case_images — 授课案例图片表
+### 3.4 trainer_case_files — 授课案例文件表
 
-> 每个案例可关联多张图片，支持自动萃取的授课现场照片。
-
-| 字段名 | 类型 | 必填 | 默认值 | 说明 |
-|---|---|---|---|---|
-| id | int | 是 | 自增 | 主键 |
-| case_id | int | 是 | — | 关联 trainer_cases.id |
-| image_url | varchar(500) | 是 | — | 图片 URL |
-| thumbnail_url | varchar(500) | 否 | '' | 缩略图 URL |
-| width | int | 否 | 0 | 图片宽度（px） |
-| height | int | 否 | 0 | 图片高度（px） |
-| is_auto_extracted | tinyint | 否 | 0 | 是否系统自动萃取：0=否，1=是 |
-| sort_order | int | 否 | 0 | 排序值 |
-| created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间 |
-| updated_at | datetime | 是 | CURRENT_TIMESTAMP | 更新时间 |
-
-**索引设计：**
-- `idx_case_id` (case_id) — 按案例查询
-
----
-
-### 3.5 trainer_highlights — 讲师精彩片段表
-
-> 讲师上传的授课精彩短视频，用于个人宣传，需后台审核。
+> 讲师的授课案例的图片和视频
 
 | 字段名 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|
 | id | int | 是 | 自增 | 主键 |
 | trainer_id | int | 是 | — | 关联 trainers.id |
+| case_id | int | 是 | — | 关联 trainer_cases.id |
 | title | varchar(200) | 是 | — | 片段标题 |
 | description | varchar(500) | 否 | '' | 片段描述 |
+| image_url | varchar(500) | 是 | — | 图片 URL |
+| thumbnail_url | varchar(500) | 否 | '' | 缩略图 URL |
+| width | int | 否 | 0 | 图片宽度（px） |
+| height | int | 否 | 0 | 图片高度（px） |
+| sort_order | int | 否 | 0 | 排序值 |
 | video_url | varchar(500) | 是 | — | 视频文件 URL |
 | cover_image | varchar(500) | 否 | '' | 视频封面图 URL |
 | duration | int | 否 | 0 | 视频时长（秒） |
 | file_size | bigint | 否 | 0 | 文件大小（字节） |
+| is_auto_extracted | tinyint | 否 | 0 | 是否系统自动萃取：0=否，1=是 |
 | sort_order | int | 否 | 0 | 排序值，值越大越靠前 |
 | status | tinyint | 是 | 0 | 审核状态：0=待审核，1=审核通过，2=审核驳回 |
 | reject_reason | varchar(500) | 否 | '' | 驳回原因 |
@@ -313,227 +325,31 @@
 
 **索引设计：**
 - `idx_trainer_id` (trainer_id) — 按讲师查询
-- `idx_status` (status) — 审核状态筛选
+- `idx_case_id` (case_id) — 按案例查询
+- - `idx_status` (status) — 审核状态筛选
 - `idx_sort_order` (sort_order) — 排序
 
 ---
 
-### 3.6 trainer_work_experiences — 讲师工作经历表
 
-> 记录讲师的从业经历。
 
-| 字段名 | 类型 | 必填 | 默认值 | 说明 |
-|---|---|---|---|---|
-| id | int | 是 | 自增 | 主键 |
-| trainer_id | int | 是 | — | 关联 trainers.id |
-| company_name | varchar(200) | 是 | — | 单位名称 |
-| position | varchar(100) | 否 | '' | 职务 |
-| start_date | date | 是 | — | 开始日期 |
-| end_date | date | 否 | NULL | 结束日期（NULL 表示至今） |
-| description | text | 否 | NULL | 工作描述 |
-| sort_order | int | 否 | 0 | 排序值 |
+### 3.5 trainer_categories — 讲师的培训领域分类表
+
+讲师指定培训领域分类，用于快速按领域匹配需求。
+
+| 字段名 | 类型 | 是否必填 | 默认值 | 说明 |
+|--------|------|----------|--------|------|
+| id | int | 是 | 自增主键 | 主键 |
+| trainer_id | int | 是 | — | 关联 trainer.id |
+| category_id | int | 是 | — | 培训领域分类 ID（关联全局分类表） |
+| sort_order | int | 是 | 0 | 排序值 |
 | created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间 |
-| updated_at | datetime | 是 | CURRENT_TIMESTAMP | 更新时间 |
+| updated_at | datetime | 是 | CURRENT_TIMESTAMP ON UPDATE | 更新时间 |
 
 **索引设计：**
-- `idx_trainer_id` (trainer_id) — 按讲师查询
+- `idx_trainer_id` — trainer_id 普通索引
+- `idx_category_id` — category_id 普通索引
 
----
-
-### 3.7 trainer_education — 讲师教育经历表
-
-> 记录讲师的教育背景。
-
-| 字段名 | 类型 | 必填 | 默认值 | 说明 |
-|---|---|---|---|---|
-| id | int | 是 | 自增 | 主键 |
-| trainer_id | int | 是 | — | 关联 trainers.id |
-| school_name | varchar(200) | 是 | — | 学校名称 |
-| major | varchar(100) | 否 | '' | 所学专业 |
-| degree | varchar(50) | 否 | '' | 学历/学位 |
-| start_date | date | 是 | — | 入学日期 |
-| end_date | date | 否 | NULL | 毕业日期（NULL 表示在读） |
-| is_graduated | tinyint | 否 | 1 | 是否毕业：0=否，1=是 |
-| diploma_image | varchar(500) | 否 | '' | 文凭照片 URL |
-| sort_order | int | 否 | 0 | 排序值 |
-| created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间 |
-| updated_at | datetime | 是 | CURRENT_TIMESTAMP | 更新时间 |
-
-**索引设计：**
-- `idx_trainer_id` (trainer_id) — 按讲师查询
-
----
-
-### 3.8 trainer_honors — 讲师荣誉奖项表
-
-> 记录讲师获得的荣誉与奖项。
-
-| 字段名 | 类型 | 必填 | 默认值 | 说明 |
-|---|---|---|---|---|
-| id | int | 是 | 自增 | 主键 |
-| trainer_id | int | 是 | — | 关联 trainers.id |
-| honor_name | varchar(200) | 是 | — | 荣誉名称 |
-| honor_image | varchar(500) | 否 | '' | 荣誉证书/图片 URL |
-| issuing_authority | varchar(200) | 否 | '' | 颁发机构 |
-| issued_at | date | 否 | NULL | 获得日期 |
-| description | text | 否 | NULL | 荣誉描述 |
-| sort_order | int | 否 | 0 | 排序值 |
-| created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间 |
-| updated_at | datetime | 是 | CURRENT_TIMESTAMP | 更新时间 |
-
-**索引设计：**
-- `idx_trainer_id` (trainer_id) — 按讲师查询
-
----
-
-### 3.9 trainer_stats_daily — 讲师数据统计日表
-
-> 按天记录讲师的核心运营数据，用于数据趋势分析。
-
-| 字段名 | 类型 | 必填 | 默认值 | 说明 |
-|---|---|---|---|---|
-| id | int | 是 | 自增 | 主键 |
-| trainer_id | int | 是 | — | 关联 trainers.id |
-| stat_date | date | 是 | — | 统计日期 |
-| view_count | int | 否 | 0 | 当日曝光量 |
-| consultation_count | int | 否 | 0 | 当日咨询量 |
-| course_sales_count | int | 否 | 0 | 当日课程销量 |
-| revenue | decimal(12,2) | 否 | 0.00 | 当日收益金额 |
-| created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间 |
-| updated_at | datetime | 是 | CURRENT_TIMESTAMP | 更新时间 |
-
-**索引设计：**
-- `idx_trainer_date` (trainer_id, stat_date) — 唯一索引，按讲师+日期查询
-- `idx_stat_date` (stat_date) — 按日期范围查询
-
----
-
-## 4. ER 关系说明
-
-```mermaid
-erDiagram
-    users ||--o| trainers : "一个用户可成为一个讲师"
-    trainers ||--o{ trainer_certifications : "一个讲师有多个资质认证"
-    trainers ||--o{ trainer_cases : "一个讲师有多个授课案例"
-    trainers ||--o{ trainer_highlights : "一个讲师有多个精彩片段"
-    trainers ||--o{ trainer_work_experiences : "一个讲师有多段工作经历"
-    trainers ||--o{ trainer_education : "一个讲师有多段教育经历"
-    trainers ||--o{ trainer_honors : "一个讲师有多个荣誉奖项"
-    trainers ||--o{ trainer_stats_daily : "一个讲师有多条日统计数据"
-    trainer_cases ||--o{ trainer_case_images : "一个案例有多张图片"
-
-    trainers {
-        int id PK "主键"
-        int user_id FK "关联 users.id"
-        varchar name "讲师姓名"
-        varchar avatar "头像"
-        varchar title "头衔"
-        tinyint gender "性别"
-        varchar phone "联系电话"
-        varchar expertise_ids "擅长领域ID"
-        varchar expertise_tags "讲师标签"
-        int experience_years "从业年限"
-        int teaching_years "培训年限"
-        longtext intro "个人简介(富文本)"
-        text background "从业经历"
-        text good_at "专长描述"
-        decimal quote_min "报价最低"
-        decimal quote_max "报价最高"
-        tinyint cert_level "认证等级"
-        tinyint status "状态"
-        tinyint is_signed "是否签约"
-        tinyint is_trusted "是否信得过专家"
-        tinyint has_copyright_course "是否有版权课"
-        int exposure_weight "曝光权重"
-        decimal score "综合评分"
-        int view_count "曝光量"
-        int consultation_count "咨询量"
-    }
-
-    trainer_certifications {
-        int id PK "主键"
-        int trainer_id FK "关联 trainers.id"
-        tinyint cert_type "认证类型"
-        varchar cert_name "证书名称"
-        varchar cert_no "证书编号"
-        varchar cert_image "证书图片"
-        varchar issuing_authority "颁发机构"
-        tinyint is_upgrade "是否升级认证"
-        tinyint status "审核状态"
-    }
-
-    trainer_cases {
-        int id PK "主键"
-        int trainer_id FK "关联 trainers.id"
-        varchar case_title "案例标题"
-        varchar enterprise_name "企业名称"
-        varchar industry "行业"
-        varchar training_topic "培训主题"
-        text training_effect "培训效果"
-        tinyint is_auto_extracted "是否自动萃取"
-        int sort_order "排序"
-        tinyint status "审核状态"
-    }
-
-    trainer_case_images {
-        int id PK "主键"
-        int case_id FK "关联 trainer_cases.id"
-        varchar image_url "图片URL"
-        varchar thumbnail_url "缩略图"
-        int width "宽度"
-        int height "高度"
-        tinyint is_auto_extracted "是否自动萃取"
-    }
-
-    trainer_highlights {
-        int id PK "主键"
-        int trainer_id FK "关联 trainers.id"
-        varchar title "片段标题"
-        varchar video_url "视频URL"
-        varchar cover_image "封面图"
-        int duration "时长(秒)"
-        int sort_order "排序"
-        tinyint status "审核状态"
-        int view_count "播放次数"
-    }
-
-    trainer_work_experiences {
-        int id PK "主键"
-        int trainer_id FK "关联 trainers.id"
-        varchar company_name "单位名称"
-        varchar position "职务"
-        date start_date "开始日期"
-        date end_date "结束日期"
-    }
-
-    trainer_education {
-        int id PK "主键"
-        int trainer_id FK "关联 trainers.id"
-        varchar school_name "学校名称"
-        varchar major "专业"
-        varchar degree "学历"
-        date start_date "入学日期"
-        date end_date "毕业日期"
-    }
-
-    trainer_honors {
-        int id PK "主键"
-        int trainer_id FK "关联 trainers.id"
-        varchar honor_name "荣誉名称"
-        varchar honor_image "证书图片"
-        varchar issuing_authority "颁发机构"
-    }
-
-    trainer_stats_daily {
-        int id PK "主键"
-        int trainer_id FK "关联 trainers.id"
-        date stat_date "统计日期"
-        int view_count "曝光量"
-        int consultation_count "咨询量"
-        int course_sales_count "销量"
-        decimal revenue "收益"
-    }
-```
 
 ---
 
@@ -571,7 +387,7 @@ erDiagram
   4. 向讲师推送提示消息"是否添加至案例库"
   5. 讲师确认后，自动创建 `trainer_case_images` 记录（`is_auto_extracted=1`），并同步至个人主页
 
-### 5.4 精彩片段管理规则
+### 5.4 授课案例管理规则
 
 - 片段仅用于讲师宣传展示，不涉及付费课程内容
 - 上传后必须经后台客服审核方可展示
@@ -636,47 +452,3 @@ erDiagram
 
 ---
 
-## 7. 参考旧表
-
-以下为旧系统中与讲师模块相关的数据表，供迁移与字段对照参考：
-
-| 旧表名 | 说明 | 新表映射 |
-|---|---|---|
-| `tk_member` | 用户主表（`groupid=9` 为讲师），含姓名、擅长领域、省市、公司、简介、评分、点击数、评论数、是否推荐、是否签约等 | `trainers`（拆分讲师专属字段） + `users`（通用用户字段） |
-| `tk_member_ext` | 用户扩展表，含手机、报价、行业背景、授课风格、培训年限、资格证书、主打课程、典型案例、擅长课题等 | `trainers`（报价、培训年限、授课风格等） |
-| `tk_member_auth` | 认证标识表，含讲师认证、实名认证、质量认证、金牌讲师、信得过等标识 | `trainers.cert_level` + `trainer_certifications` |
-| `tk_member_authinfo` | 认证详情表，含身份证、银行卡、公司认证等材料 | `trainer_certifications`（证书类材料） |
-| `tk_member_quality` | 质量三包记录表 | `trainers.cert_level`（认证等级体系替代） |
-| `tk_member_work` | 工作经历表 | `trainer_work_experiences` |
-| `tk_member_education` | 教育经历表 | `trainer_education` |
-| `tk_member_honor` | 荣誉表 | `trainer_honors` |
-| `tk_member_product` | 讲师产品/课程表 | 课程模块独立（`courses` 等表） |
-| `tk_member_comment` | 评论表 | 评价模块独立（`reviews` 等表） |
-| `tk_member_access_log` | 访问日志表 | `trainer_stats_daily`（聚合统计） |
-| `tk_member_intro_ext` | 业务介绍扩展表 | `trainers.intro`（富文本简介） |
-| `tk_member_style` | 讲师风格表 | `trainers.teaching_style` |
-
-### 旧表关键字段对照
-
-```
-tk_member.realname        → trainers.name
-tk_member.cid             → trainers.expertise_ids
-tk_member.province/city   → trainers.province_code / city_code
-tk_member.company         → trainer_work_experiences.company_name
-tk_member.intro           → trainers.intro
-tk_member.goodat          → trainers.good_at
-tk_member.score           → trainers.score
-tk_member.clicknum        → trainers.view_count
-tk_member.commentnum      → trainers.comment_count
-tk_member.isrec           → trainers.is_recommended
-tk_member.issign          → trainers.is_signed
-tk_member_ext.price       → trainers.quote_min / quote_max
-tk_member_ext.trade       → trainers.expertise_ids (行业背景)
-tk_member_ext.teaching_experience → trainers.teaching_years
-tk_member_ext.teaching_methods    → trainers.teaching_style
-tk_member_ext.classic_case        → trainer_cases
-tk_member_ext.credential          → trainer_certifications
-tk_member_auth.istrainer          → trainers.cert_level
-tk_member_auth.isqc               → trainers.cert_level
-tk_member_auth.is_xdg             → trainers.is_trusted
-```

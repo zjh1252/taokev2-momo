@@ -4,7 +4,7 @@
 
 ### 1.1 核心定位
 
-讲师经纪人（Agent）是平台的**培训资源中介与讲师运营者**角色。核心职责是维护多个讲师资源、对接培训需求、为甲方推荐匹配讲师，是连接甲方与讲师的桥梁，注重供需匹配效率与成单率。
+讲师经纪人（Agent）是平台的**培训资源中介与讲师运营者**角色。核心职责是维护多个讲师资源、对接培训需求、为乙方推荐匹配讲师，是连接乙方与讲师的桥梁，注重供需匹配效率与成单率。
 
 ### 1.2 平台核心价值
 
@@ -27,8 +27,8 @@
 | 入驻申请 | 经纪人自主提交入驻申请，填写个人/公司名称（必填）、联系信息（手机号、邮箱）、从业经历、核心运营领域，上传资质证明（行业认证、合作讲师证明等） |
 | 后台审核 | 由后台客服审核申请材料的资质真实性与信息完整性，支持「通过 / 驳回」操作，驳回需填写具体原因 |
 | 审核通知 | 审核结果通过短信 + 平台站内消息通知经纪人 |
-| 草稿保留 | 未完成的入驻申请草稿保留 **48 小时**，超时自动删除 |
-| 经纪人类型 | 区分个人经纪人与公司经纪人（type 字段），二者入驻流程一致 |
+| 草稿保留 | 未完成的入驻申请草稿保留 **30 天**，超时后自动**物理删除** |
+<!-- | 经纪人类型 | 区分个人经纪人与公司经纪人（type 字段），二者入驻流程一致。<br>**【一期限制说明】：当前仅支持单账号管理，暂不支持公司子员工账号体系（RBAC），公司多业务员需共用该主账号。** | -->
 
 ### 2.2 讲师资源库管理
 
@@ -36,7 +36,7 @@
 
 | 功能点 | 说明 |
 |--------|------|
-| 添加讲师 | 经纪人添加旗下合作讲师，填写讲师基本信息（姓名、擅长领域等） |
+| 添加讲师 | 经纪人添加旗下合作讲师，填写讲师基本信息（姓名、擅长领域等），邀请讲师认证 |
 | 标签管理 | 允许经纪人为旗下合作讲师打标签，便于分类检索 |
 | 合作证明 | 上传合作证明文件（如签约合同），支持多格式 |
 | 讲师确认绑定 | 讲师需确认绑定关系后，绑定才正式生效 |
@@ -65,14 +65,14 @@
 | 功能点 | 说明 |
 |--------|------|
 | 数据指标 | 查看旗下每个讲师的曝光量、点赞量、评价详情 |
-| 时间维度 | 按时间维度（周/月/年）查看数据趋势，辅助优化运营策略 |
+<!-- | 时间维度 | 按时间维度（周/月/年）查看数据趋势，辅助优化运营策略 | -->
 
-### 2.3 运营数据统计
+<!-- ### 2.3 运营数据统计
 
 | 功能点 | 说明 |
 |--------|------|
 | 统计指标 | 查看讲师推荐量、收藏量、评价量等核心数据 |
-| 分析维度 | 按时间维度、培训领域维度分析数据 |
+| 分析维度 | 按时间维度、培训领域维度分析数据 | -->
 
 ---
 
@@ -87,7 +87,7 @@
 | id | int | 是 | 自增主键 | 主键 |
 | user_id | int | 是 | — | 关联 users 表用户 ID |
 | company_name | varchar(255) | 是 | — | 公司名称/个人名称 |
-| type | tinyint | 是 | 1 | 经纪人类型：1=个人, 2=公司 |
+<!-- | type | tinyint | 是 | 1 | 经纪人类型：1=个人, 2=公司 | -->
 | contact_name | varchar(100) | 否 | '' | 联系人姓名 |
 | mobile | varchar(20) | 是 | — | 联系手机号 |
 | email | varchar(255) | 否 | '' | 联系邮箱 |
@@ -103,7 +103,7 @@
 | reject_reason | varchar(500) | 否 | '' | 审核驳回原因 |
 | reviewed_at | datetime | 否 | NULL | 审核时间 |
 | reviewed_by | int | 否 | NULL | 审核人（后台客服 user_id） |
-| draft_expired_at | datetime | 否 | NULL | 草稿过期时间（创建后 48 小时） |
+| draft_expired_at | datetime | 否 | NULL | 草稿过期时间（创建后 30 天） |
 | created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间 |
 | updated_at | datetime | 是 | CURRENT_TIMESTAMP ON UPDATE | 更新时间 |
 
@@ -122,11 +122,12 @@
 |--------|------|----------|--------|------|
 | id | int | 是 | 自增主键 | 主键 |
 | agent_id | int | 是 | — | 经纪人 ID（关联 agents.id） |
-| trainer_id | int | 是 | — | 讲师用户 ID（关联 users.id） |
-| status | tinyint | 是 | 0 | 绑定状态：0=待讲师确认, 1=已绑定, 2=讲师拒绝, 3=已解绑 |
+| trainer_id | int | 是 | — | 讲师用户 ID（关联 users.id，支持影子账号 ID） |
+| status | tinyint | 是 | 0 | 绑定状态：0=待讲师确认, 1=已绑定, 2=讲师拒绝, 3=已解绑, 4=影子状态(待认领) |
 | authorization | tinyint | 是 | 0 | 授权级别：0=仅查看, 1=可编辑部分信息（如报价） |
 | cooperation_proof_url | varchar(500) | 否 | '' | 合作证明文件 URL（如签约合同扫描件） |
 | tags | varchar(500) | 否 | '' | 经纪人为讲师打的标签，逗号分隔 |
+
 | trainer_level | tinyint | 否 | 0 | 讲师等级：0=普通, 1=资深, 2=专家, 3=大咖 |
 | sort_order | int | 是 | 0 | 经纪人自定义排序值（越小越靠前） |
 | confirmed_at | datetime | 否 | NULL | 讲师确认绑定时间 |
@@ -142,23 +143,23 @@
 
 ---
 
-### 3.3 agent_trainer_categories — 经纪人旗下讲师的培训领域分类表
+### 3.3 trainer_categories — 经纪人旗下讲师的培训领域分类表
 
 经纪人为旗下讲师指定培训领域分类，用于快速按领域匹配需求。
 
 | 字段名 | 类型 | 是否必填 | 默认值 | 说明 |
 |--------|------|----------|--------|------|
 | id | int | 是 | 自增主键 | 主键 |
-| agent_trainer_id | int | 是 | — | 关联 agent_trainers.id |
+| trainer_id | int | 是 | — | 关联 trainer.id |
 | category_id | int | 是 | — | 培训领域分类 ID（关联全局分类表） |
 | sort_order | int | 是 | 0 | 排序值 |
 | created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间 |
 | updated_at | datetime | 是 | CURRENT_TIMESTAMP ON UPDATE | 更新时间 |
 
 **索引设计：**
-- `idx_atc_agent_trainer_id` — agent_trainer_id 普通索引
-- `idx_atc_category_id` — category_id 普通索引
-- `idx_atc_agent_trainer_category` — (agent_trainer_id, category_id) 唯一索引
+- `idx_trainer_id` — trainer_id 普通索引
+- `idx_category_id` — category_id 普通索引
+
 
 ---
 
@@ -191,133 +192,13 @@
 
 ---
 
-### 3.5 agent_categories — 经纪人核心运营领域分类表
-
-记录经纪人自身擅长/运营的培训领域分类。
-
-| 字段名 | 类型 | 是否必填 | 默认值 | 说明 |
-|--------|------|----------|--------|------|
-| id | int | 是 | 自增主键 | 主键 |
-| agent_id | int | 是 | — | 经纪人 ID（关联 agents.id） |
-| category_id | int | 是 | — | 培训领域分类 ID（关联全局分类表） |
-| created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间 |
-| updated_at | datetime | 是 | CURRENT_TIMESTAMP ON UPDATE | 更新时间 |
-
-**索引设计：**
-- `idx_ac_agent_id` — agent_id 普通索引
-- `idx_ac_agent_category` — (agent_id, category_id) 唯一索引
-
----
-
-## 4. ER 关系说明
-
-```mermaid
-erDiagram
-    users ||--o| agents : "一个用户可成为一个经纪人"
-    agents ||--o{ agent_categories : "经纪人有多个运营领域"
-    agents ||--o{ agent_trainers : "经纪人绑定多个讲师"
-    users ||--o{ agent_trainers : "讲师被多个经纪人绑定"
-    agent_trainers ||--o{ agent_trainer_categories : "绑定关系有多个培训领域分类"
-    agent_trainers ||--o{ agent_trainer_files : "绑定关系下有多个资料文件"
-    agents ||--o{ agent_trainer_files : "经纪人上传多个文件"
-    categories ||--o{ agent_categories : "分类被经纪人引用"
-    categories ||--o{ agent_trainer_categories : "分类被讲师绑定引用"
-
-    users {
-        int id PK "用户主键"
-        varchar username "用户名"
-        varchar phone "手机号"
-    }
-
-    agents {
-        int id PK "主键"
-        int user_id FK "关联用户"
-        varchar company_name "公司/个人名称"
-        tinyint type "类型: 1个人 2公司"
-        varchar contact_name "联系人"
-        varchar mobile "手机号"
-        varchar email "邮箱"
-        varchar province_code "省份编码"
-        varchar city_code "城市编码"
-        varchar address "详细地址"
-        varchar industry "所属行业"
-        varchar core_field "核心运营领域"
-        text experience "从业经历"
-        text intro "简介"
-        json qualification_files "资质证明文件"
-        tinyint status "状态"
-        varchar reject_reason "驳回原因"
-        datetime reviewed_at "审核时间"
-        int reviewed_by "审核人"
-        datetime draft_expired_at "草稿过期时间"
-        datetime created_at "创建时间"
-        datetime updated_at "更新时间"
-    }
-
-    agent_trainers {
-        int id PK "主键"
-        int agent_id FK "经纪人ID"
-        int trainer_id FK "讲师用户ID"
-        tinyint status "绑定状态"
-        tinyint authorization "授权级别"
-        varchar cooperation_proof_url "合作证明URL"
-        varchar tags "标签"
-        tinyint trainer_level "讲师等级"
-        int sort_order "排序值"
-        datetime confirmed_at "确认时间"
-        datetime unbound_at "解绑时间"
-        datetime created_at "创建时间"
-        datetime updated_at "更新时间"
-    }
-
-    agent_trainer_categories {
-        int id PK "主键"
-        int agent_trainer_id FK "绑定关系ID"
-        int category_id FK "分类ID"
-        int sort_order "排序值"
-        datetime created_at "创建时间"
-        datetime updated_at "更新时间"
-    }
-
-    agent_trainer_files {
-        int id PK "主键"
-        int agent_id FK "经纪人ID"
-        int trainer_id FK "讲师用户ID"
-        int agent_trainer_id FK "绑定关系ID"
-        varchar file_name "文件名"
-        varchar file_url "文件URL"
-        varchar file_type "文件类型"
-        bigint file_size "文件大小"
-        varchar file_category "文件分类"
-        varchar custom_field_name "自定义字段名"
-        varchar description "描述"
-        int sort_order "排序值"
-        datetime created_at "创建时间"
-        datetime updated_at "更新时间"
-    }
-
-    agent_categories {
-        int id PK "主键"
-        int agent_id FK "经纪人ID"
-        int category_id FK "分类ID"
-        datetime created_at "创建时间"
-        datetime updated_at "更新时间"
-    }
-
-    categories {
-        int id PK "主键"
-        varchar name "分类名称"
-    }
-```
-
----
 
 ## 5. 业务逻辑与规则
 
 ### 5.1 入驻申请流程
 
 1. 用户注册并登录后，在经纪人入驻页面填写申请信息。
-2. 表单可分步填写，中途离开自动保存为**草稿**（status=0），草稿有效期 48 小时，超时由定时任务自动删除。
+2. 表单可分步填写，中途离开自动保存为**草稿**（status=0），草稿有效期 **30 天**，超时由定时任务自动进行**物理删除**。
 3. 提交申请后状态变为**待审核**（status=1）。
 4. 后台客服审核：
    - 通过 → status=2，短信 + 站内消息通知经纪人，经纪人账号激活经纪人角色权限。
@@ -326,16 +207,22 @@ erDiagram
 
 ### 5.2 讲师绑定流程
 
-1. 经纪人在资源库中发起「添加讲师」，填写讲师基本信息，上传合作证明文件。
-2. 系统创建 agent_trainers 记录，status=0（待讲师确认）。
-3. 讲师收到绑定邀请通知（站内消息）。
-4. 讲师操作：
-   - **确认** → status=1，记录 confirmed_at，绑定生效。
-   - **拒绝** → status=2，经纪人收到拒绝通知。
-5. 绑定后经纪人可查看讲师课程/资质信息。
-6. 经纪人仅在讲师设置 authorization=1 后方可编辑讲师报价等有限字段。
-7. 任何一方可发起**解绑**操作 → status=3，记录 unbound_at。
-8. 同一经纪人与同一讲师之间仅允许一条有效绑定记录（唯一索引约束，解绑后如需重新绑定则更新原记录状态）。
+1. 经纪人在资源库中发起「添加讲师」，支持两种模式：
+   - **邀请已有讲师**：通过手机号等检索平台已有讲师，发起绑定邀请并上传合作证明。
+   - **代创建（影子讲师）**：录入新讲师基本信息（姓名、手机号等），系统自动在 `users` 表创建影子账号，并立即生成绑定记录。
+2. 绑定状态扭转：
+   - **邀请模式**：创建 `agent_trainers` 记录，`status=0`（待讲师确认）。讲师收到站内信邀请。讲师确认后 `status=1`（已绑定），拒绝则 `status=2`。
+   - **代创建模式**：创建 `agent_trainers` 记录，`status=4`（影子状态/待认领）。此状态下，经纪人可**立即**将该讲师用于业务推荐和资源展示。
+3. 影子讲师认领（针对代创建模式）：
+   - 经纪人将专属邀请链接发送给影子讲师。
+   - 讲师点击链接，使用预留手机号进行验证。
+   - 验证通过后，补充必要信息/密码，影子账号转为正式用户账号。
+   - 系统自动将 `agent_trainers` 状态更新为 `status=1`（已绑定），记录 `confirmed_at`。
+   - 影子讲师自创建起 14 天内未认领，系统定时任务自动删除影子账号及对应 `agent_trainers` 绑定记录。
+4. 绑定后经纪人可查看讲师课程/资质信息。
+5. 经纪人仅在讲师设置 authorization=1 后方可编辑讲师报价等有限字段（注：影子状态下，由于账号由经纪人代建，经纪人默认拥有编辑权限）。
+6. 任何一方可发起**解绑**操作 → status=3，记录 unbound_at。
+7. 同一经纪人与同一讲师之间仅允许一条有效绑定记录（唯一索引约束，解绑后如需重新绑定则更新原记录状态）。
 
 ### 5.3 文件上传规则
 
@@ -367,8 +254,15 @@ erDiagram
 
 ### 5.7 草稿清理策略
 
-1. 草稿记录在创建时设置 draft_expired_at = created_at + 48 小时。
-2. 定时任务每小时扫描一次，将超过 draft_expired_at 且 status=0 的记录物理删除。
+1. 草稿记录在创建时设置 draft_expired_at = created_at + 30 天。
+2. 定时任务每天扫描一次，将超过 draft_expired_at 且 status=0 的记录进行**物理删除**。
+3. 影子讲师创建时设置 shadow_expired_at = created_at + 14 天；超过期限且未认领（status=4）时，定时任务自动删除影子账号及绑定关系。
+
+### 5.8 公司账号体系说明（一期边界）
+
+1. **单账号机制**：当前重构一期针对公司型经纪人，暂不支持企业子账号（RBAC）体系分配与业务员资源隔离。
+2. **资源共享**：一家公司的多名业务员目前需共用一个账号密码登录平台，讲师资源与客户对接进度在公司内部完全公开共享，无法区分讲师/资源具体由哪位业务员添加。
+3. **后续迭代评估**：鉴于旧系统曾存在 `parent_id`（上级代理/主子账号关系），如果现有业务强依赖“业务员业绩独立核算”或“内部讲师资源隔离”，需与业务方确认当前共用账号方案是否满足基本诉求。若不满足，需在后续版本专项迭代「企业子账号体系」。
 
 ---
 
@@ -376,7 +270,7 @@ erDiagram
 
 | 依赖模块 | 关系说明 |
 |----------|----------|
-| **用户模块（users）** | agents.user_id → users.id，经纪人必须先注册为平台用户；agent_trainers.trainer_id → users.id，讲师也是用户 |
+| **用户模块（users）** | agents.user_id → users.id，经纪人必须先注册为平台用户；agent_trainers.trainer_id → users.id，讲师也是用户（包含代创建的影子账号） |
 | **分类模块（categories）** | agent_categories.category_id、agent_trainer_categories.category_id 引用全局培训领域分类表 |
 | **讲师模块（trainers）** | 经纪人绑定的讲师需已通过讲师入驻认证；经纪人可查看讲师的课程、资质等信息 |
 | **消息通知模块** | 入驻审核结果通知、讲师绑定邀请/确认/拒绝通知，均通过消息通知模块发送（短信 + 站内消息） |
@@ -386,7 +280,7 @@ erDiagram
 
 ---
 
-## 7. 参考旧表
+<!-- ## 7. 参考旧表
 
 以下为旧系统中经纪人相关的数据表，供重构时对照参考。新表在旧表基础上进行了以下主要改进：
 
@@ -397,6 +291,7 @@ erDiagram
 - 新增文件管理表 `agent_trainer_files`，支持多格式文件上传
 - 合并旧 `tk_agent_trainer_order` 排序功能到 `agent_trainers.sort_order` 字段
 - 合并旧 `tk_agent_trainer_cate` 排序功能到 `agent_trainer_categories.sort_order` 字段
+- 暂不迁移旧表 `tk_agent_info` 中的 `parent_id` 字段（因一期明确不支持公司子员工账号与上下级代理体系）。
 
 ### 旧表结构
 
@@ -489,4 +384,4 @@ CREATE TABLE `tk_agent_trainer_order` (
 | tk_agent_cate | agent_categories | 经纪人自身运营领域，改为引用全局 categories 表，不再独立维护分类名称 |
 | tk_agent_trainer_cate | agent_trainer_categories | 讲师的培训领域分类，改为引用全局 categories 表 |
 | tk_agent_trainer_order | agent_trainers.sort_order | 合并到绑定关系表的 sort_order 字段，不再单独建表 |
-| —（新增） | agent_trainer_files | 新增文件管理表，支持多格式文件上传（DOCX/PDF/PPT/JPG/PNG） |
+| —（新增） | agent_trainer_files | 新增文件管理表，支持多格式文件上传（DOCX/PDF/PPT/JPG/PNG） | -->
