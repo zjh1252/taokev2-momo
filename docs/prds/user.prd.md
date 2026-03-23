@@ -2,7 +2,7 @@
 
 > 模块编码：`user`  
 > 版本：v1.0  
-> 最后更新：2026-03-19
+> 最后更新：2026-03-23
 
 ---
 
@@ -183,8 +183,12 @@
 | `real_name` | varchar(64) | YES | NULL | 真实姓名 |
 | `avatar_url` | varchar(512) | YES | NULL | 头像 URL |
 | `gender` | tinyint | NO | 0 | 性别：0=未知，1=男，2=女 |
-| `province` | varchar(64) | YES | NULL | 省份 |
-| `city` | varchar(64) | YES | NULL | 城市 |
+| post_code | int(10) | 否 | 0 | 邮编 |
+| province_id | int(10) | 否 | 0 | 省份 |
+| city_id | int(10) | 否 | 0 | 城市 |
+| district_id | int(10) | 否 | 0 | 区县 |
+| town_id | int(10) | 否 | 0 | 乡镇 |
+| address | varchar(200) | 否 | "" | 详细地址 |
 | `status` | tinyint | NO | 1 | 账号状态：1=正常，2=冻结，3=注销 |
 | `freeze_reason` | varchar(255) | YES | NULL | 冻结原因 |
 | `last_login_at` | datetime | YES | NULL | 最近登录时间 |
@@ -203,7 +207,7 @@
 
 ### 3.2 用户角色表 `user_roles`
 
-> 一个用户可拥有多个角色（如某人既是 C 端买家也完成了讲师入驻），故使用独立关联表。
+> 一个用户可拥有多个角色（如某人既是 C 端买家也可以作为B端客户），故使用独立关联表。
 
 | 字段名 | 类型 | 允许 NULL | 默认值 | 说明 |
 |--------|------|-----------|--------|------|
@@ -238,26 +242,29 @@
 
 ### 3.3 企业信息表 `enterprises`
 
-> 存储 B 端企业甲方的企业相关信息，与 `users` 一对一关联。
+> 存储 B 端企业甲方的企业相关信息，与 `users` 【一对一关联OR一对多关联？】。
 
-| 字段名 | 类型 | 允许 NULL | 默认值 | 说明 |
-|--------|------|-----------|--------|------|
-| `id` | int | NO | AUTO_INCREMENT | 主键 |
-| `user_id` | int | NO | — | 用户 ID，关联 `users.id`，唯一 |
-| `company_name` | varchar(128) | YES | NULL | 企业名称 |
-| `industry` | varchar(64) | YES | NULL | 所属行业 |
-| `company_size` | varchar(32) | YES | NULL | 企业规模（如"50-200 人""500 人以上"） |
-| `contact_name` | varchar(64) | YES | NULL | 联系人姓名 |
-| `contact_phone` | varchar(20) | YES | NULL | 联系电话 |
-| `province` | varchar(64) | YES | NULL | 企业所在省份 |
-| `city` | varchar(64) | YES | NULL | 企业所在城市 |
-| `address` | varchar(255) | YES | NULL | 详细地址 |
+| 字段名 | 类型 | 允许 NULL | 默认值 | 说明                                   |
+|--------|------|-----------|--------|--------------------------------------|
+| `id` | int | NO | AUTO_INCREMENT | 主键                                   |
+| `user_id` | int | NO | — | 用户 ID，关联 `users.id`，唯一               |
+| `company_name` | varchar(128) | YES | NULL | 企业名称                                 |
+| `industry` | varchar(64) | YES | NULL | 所属行业                                 |
+| `company_size` | varchar(32) | YES | NULL | 企业规模（如"50-200 人""500 人以上"）           |
+| `contact_name` | varchar(64) | YES | NULL | 联系人姓名                                |
+| `contact_phone` | varchar(20) | YES | NULL | 联系电话                                 |
+| post_code | int(10) | 否 | 0 | 企业所在邮编                               |
+| province_id | int(10) | 否 | 0 | 企业所在省份                               |
+| city_id | int(10) | 否 | 0 | 企业所在城市                               |
+| district_id | int(10) | 否 | 0 | 企业所在区县                               |
+| town_id | int(10) | 否 | 0 | 企业所在乡镇                               |
+| address | varchar(200) | 否 | "" | 企业详细地址                               |
 | `training_tags` | varchar(512) | YES | NULL | 培训需求标签，JSON 数组格式，如 `["销售培训","AI赋能"]` |
-| `created_at` | datetime | NO | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NO | CURRENT_TIMESTAMP ON UPDATE | 更新时间 |
+| `created_at` | datetime | NO | CURRENT_TIMESTAMP | 创建时间                                 |
+| `updated_at` | datetime | NO | CURRENT_TIMESTAMP ON UPDATE | 更新时间                                 |
 
 **索引：**
-- `UNIQUE idx_user_id (user_id)` — 一个用户只有一条企业信息
+- `UNIQUE idx_user_id (user_id)` — 一个用户只有一条企业信息【一个企业可以有多个用户信息】
 - `idx_company_name (company_name)` — 按企业名称检索
 - `idx_industry (industry)` — 按行业筛选
 
@@ -426,164 +433,20 @@
 
 ---
 
-## 4. ER 关系说明
 
-### 4.1 ER 图
-
-```mermaid
-erDiagram
-    users ||--o{ user_roles : "拥有角色"
-    users ||--o| enterprises : "企业信息"
-    users ||--o| individual_buyer_profiles : "个人档案"
-    users ||--o{ user_oauth_bindings : "第三方绑定"
-    users ||--o{ user_sessions : "登录会话"
-    users ||--o{ user_operation_logs : "操作日志"
-    users ||--o{ user_tags : "用户标签"
-    users ||--o{ user_drafts : "草稿"
-    users ||--o{ verification_codes : "验证码"
-
-    users {
-        int id PK
-        varchar phone UK
-        varchar email UK
-        varchar password_hash
-        varchar nickname
-        varchar real_name
-        varchar avatar_url
-        tinyint gender
-        varchar province
-        varchar city
-        tinyint status
-        varchar freeze_reason
-        datetime last_login_at
-        varchar last_login_ip
-        tinyint reg_origin
-        datetime created_at
-        datetime updated_at
-    }
-
-    user_roles {
-        int id PK
-        int user_id FK
-        varchar role
-        tinyint status
-        datetime approved_at
-        int approved_by
-        datetime created_at
-        datetime updated_at
-    }
-
-    enterprises {
-        int id PK
-        int user_id FK
-        varchar company_name
-        varchar industry
-        varchar company_size
-        varchar contact_name
-        varchar contact_phone
-        varchar province
-        varchar city
-        varchar address
-        varchar training_tags
-        datetime created_at
-        datetime updated_at
-    }
-
-    individual_buyer_profiles {
-        int id PK
-        int user_id FK
-        varchar occupation
-        varchar learning_tags
-        datetime created_at
-        datetime updated_at
-    }
-
-    user_oauth_bindings {
-        int id PK
-        int user_id FK
-        varchar provider
-        varchar open_id
-        varchar union_id
-        varchar oauth_nickname
-        varchar oauth_avatar_url
-        datetime bound_at
-        datetime created_at
-        datetime updated_at
-    }
-
-    user_sessions {
-        int id PK
-        int user_id FK
-        varchar session_token
-        varchar device_name
-        varchar device_type
-        varchar login_ip
-        varchar login_city
-        tinyint is_active
-        datetime login_at
-        datetime logout_at
-        datetime expires_at
-        datetime created_at
-        datetime updated_at
-    }
-
-    user_operation_logs {
-        int id PK
-        int user_id FK
-        int operator_id
-        varchar action
-        varchar action_detail
-        varchar ip
-        varchar user_agent
-        tinyint result
-        datetime created_at
-    }
-
-    user_tags {
-        int id PK
-        int user_id FK
-        varchar tag_key
-        varchar tag_value
-        tinyint source
-        datetime created_at
-        datetime updated_at
-    }
-
-    user_drafts {
-        int id PK
-        int user_id FK
-        varchar draft_key
-        json draft_data
-        varchar client_fingerprint
-        datetime expires_at
-        datetime created_at
-        datetime updated_at
-    }
-
-    verification_codes {
-        int id PK
-        varchar target
-        varchar code
-        varchar type
-        tinyint is_used
-        datetime expires_at
-        varchar ip
-        datetime created_at
-    }
-```
 
 ### 4.2 关系说明
 
-| 关系 | 类型 | 说明 |
-|------|------|------|
-| `users` → `user_roles` | 一对多 | 一个用户可拥有多个角色（如既是企业甲方又是讲师） |
-| `users` → `enterprises` | 一对零或一 | 仅企业甲方角色的用户有企业信息 |
-| `users` → `individual_buyer_profiles` | 一对零或一 | 仅个人甲方角色的用户有个人档案 |
-| `users` → `user_oauth_bindings` | 一对多 | 一个用户可绑定多个第三方平台（微信+支付宝） |
-| `users` → `user_sessions` | 一对多 | 一个用户可有多个活跃会话（多设备登录） |
-| `users` → `user_operation_logs` | 一对多 | 一个用户有多条操作日志 |
-| `users` → `user_tags` | 一对多 | 一个用户可有多个标签 |
-| `users` → `user_drafts` | 一对多 | 一个用户可有多份草稿 |
+| 关系 | 类型 | 说明                        |
+|------|------|---------------------------|
+| `users` → `user_roles` | 一对多 | 一个用户可拥有多个角色（如既是企业甲方又是C端用） |
+| `users` → `enterprises` | 一对零或一 | 仅企业甲方角色的用户有企业信息           |
+| `users` → `individual_buyer_profiles` | 一对零或一 | 仅个人甲方角色的用户有个人档案           |
+| `users` → `user_oauth_bindings` | 一对多 | 一个用户可绑定多个第三方平台（微信+支付宝）    |
+| `users` → `user_sessions` | 一对多 | 一个用户可有多个活跃会话（多设备登录）       |
+| `users` → `user_operation_logs` | 一对多 | 一个用户有多条操作日志               |
+| `users` → `user_tags` | 一对多 | 一个用户可有多个标签                |
+| `users` → `user_drafts` | 一对多 | 一个用户可有多份草稿                |
 
 > **注意：** 数据库层面不建外键，所有关联关系在代码逻辑中维护。
 
@@ -698,48 +561,3 @@ erDiagram
 
 ---
 
-## 7. 参考旧表
-
-### 7.1 旧表到新表的映射关系
-
-| 旧表 | 新表 | 说明 |
-|------|------|------|
-| `tk_member` | `users` + `user_roles` | 旧表 `groupid` 拆分为独立的角色表；用户基础信息迁入 `users` |
-| `tk_member` (company 相关字段) | `enterprises` | 旧表中 `company`、`company_simple`、`companyintro`、`trade` 等企业字段迁入独立企业表 |
-| `tk_member_ext` | `users` + `enterprises` + `individual_buyer_profiles` | 旧扩展表字段按角色拆分到对应表 |
-| `tk_member_auth` | `user_roles` (status 字段) | 旧认证表的各类认证状态整合到角色审核状态中 |
-| `tk_member_authinfo` | 各角色模块的审核申请表 | 认证详细信息按角色拆分到讲师/机构等模块 |
-| `tk_member_account` | 账户财务模块 | 余额相关迁至独立模块 |
-| `tk_member_openid_bind` | `user_oauth_bindings` | 第三方绑定直接对应 |
-| `tk_member_login_exception` | `user_operation_logs` | 登录异常合并到操作日志中 |
-| `tk_member_data` | 各模块分散存储 | 旧表积分/金币等迁至财务模块，资料完整度等迁至对应角色模块 |
-
-### 7.2 旧 groupid 到新角色的映射
-
-| 旧 groupid | 旧含义 | 新角色编码 |
-|------------|--------|------------|
-| 3 | 机构 | `ORGANIZATION` |
-| 4 | 培训管理者 | `ENTERPRISE_BUYER` |
-| 7 | 学习爱好者 | `INDIVIDUAL_BUYER` |
-| 9 | 讲师 | `TRAINER` |
-| _(无)_ | 讲师经纪人 | `AGENT`（新增角色） |
-| _(无)_ | 前台客服 | `FRONTEND_CS`（新增角色） |
-| _(无)_ | 后台客服 | `BACKEND_CS`（新增角色） |
-| _(无)_ | 超级管理员 | `SUPER_ADMIN`（新增角色） |
-
-### 7.3 关键变更点
-
-1. **角色模型重构**：旧系统以 `groupid` 整数区分用户类型，新系统使用独立的 `user_roles` 表，支持一个用户拥有多个角色
-2. **企业信息独立**：旧系统企业信息混在 `tk_member` 和 `tk_member_ext` 中，新系统拆分为独立的 `enterprises` 表
-3. **讲师/机构详情分离**：旧系统所有角色信息堆在 `tk_member` + `tk_member_ext`，新系统将讲师、经纪人、机构各自独立为单独模块
-4. **时间字段规范化**：旧系统使用 `int` 时间戳，新系统统一使用 `datetime`
-5. **软删除移除**：旧系统用 `is_del` 做软删除，新系统使用 `status` 状态字段（注销状态）代替，避免 `is_del` 带来的查询复杂度
-6. **密码加密升级**：旧系统密码存储方式不明确，新系统统一使用 BCrypt
-7. **新增功能**：草稿暂存、用户标签体系、第三方登录(微信/支付宝)、操作日志、会话管理 均为新增
-
-### 7.4 数据迁移注意事项
-
-- 旧 `tk_member.password` 需要做加密方式转换或强制用户重置密码
-- 旧 `tk_member_openid_bind.opentype` 值（qq/sina）在新系统中不再支持，仅保留 WECHAT/ALIPAY
-- 旧系统的 `parentid`（父账号关系）在新系统中不再保留，企业多账号各自独立
-- 旧 `regtime`/`logintime` 为 `int` 时间戳，迁移时需转换为 `datetime`
