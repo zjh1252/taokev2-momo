@@ -1,0 +1,111 @@
+package com.taoke.common.exception;
+
+import com.taoke.common.response.ApiResponse;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import java.util.stream.Collectors;
+
+/**
+ * 全局异常处理器
+ * <p>
+ * 捕获所有异常，统一转换为 ApiResponse + 对应的 HTTP 状态码。
+ */
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    /**
+     * 业务异常 — 由 Service 层主动抛出
+     */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
+        ErrorCode ec = e.getErrorCode();
+        log.warn("业务异常: code={}, message={}", ec.getCode(), e.getMessage());
+        return ResponseEntity
+                .status(ec.getHttpStatus())
+                .body(ApiResponse.error(ec.getCode(), e.getMessage()));
+    }
+
+    /**
+     * @RequestBody 参数校验失败（@Valid + @NotBlank 等注解触发）
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException e) {
+        String msg = e.getBindingResult().getFieldErrors().stream()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .collect(Collectors.joining("; "));
+        log.warn("参数校验失败: {}", msg);
+        return ResponseEntity
+                .status(ErrorCode.PARAM_INVALID.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.PARAM_INVALID.getCode(), msg));
+    }
+
+    /**
+     * @RequestParam / @PathVariable 约束校验失败
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException e) {
+        String msg = e.getConstraintViolations().stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining("; "));
+        log.warn("约束校验失败: {}", msg);
+        return ResponseEntity
+                .status(ErrorCode.PARAM_INVALID.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.PARAM_INVALID.getCode(), msg));
+    }
+
+    /**
+     * 缺少必填请求参数
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingParam(MissingServletRequestParameterException e) {
+        String msg = "缺少必填参数: " + e.getParameterName();
+        log.warn(msg);
+        return ResponseEntity
+                .status(ErrorCode.PARAM_INVALID.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.PARAM_INVALID.getCode(), msg));
+    }
+
+    /**
+     * 参数类型不匹配
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        String msg = "参数类型错误: " + e.getName();
+        log.warn(msg);
+        return ResponseEntity
+                .status(ErrorCode.PARAM_INVALID.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.PARAM_INVALID.getCode(), msg));
+    }
+
+    /**
+     * 资源不存在（Spring 6 的静态资源 404）
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResource(NoResourceFoundException e) {
+        return ResponseEntity
+                .status(ErrorCode.NOT_FOUND.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.NOT_FOUND));
+    }
+
+    /**
+     * 兜底 — 未预料的异常
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleAll(Exception e) {
+        log.error("未处理异常: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(ErrorCode.INTERNAL_ERROR.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.INTERNAL_ERROR));
+    }
+
+}

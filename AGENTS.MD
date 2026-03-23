@@ -12,13 +12,12 @@
 
 ## 技术栈
 - 后端技术栈:
-
   - 运行环境：
-    - JDK：OpenJDK 17
+    - JDK：OpenJDK 21
     - Maven：3.x
     - MySQL：8.4.7
   - Spring 相关：
-    - Spring Boot：3.5.7
+    - Spring Boot：3.5.13
     - Spring MVC：仅作为 REST API，不使用视图层（无 Thymeleaf/JSP 等）
     - Spring Data JPA：作为 ORM 层（不使用 MyBatis）
     - Spring Transaction：声明式事务管理
@@ -36,7 +35,7 @@
     - Lombok：简化实体与 DTO 代码
 
 - 前端技术栈:
-  - nextjs ^14 + tailwind + shadcn-ui
+  - nextjs ^16 + tailwind + shadcn-ui
   - i18n 采用 next-intl ^4.8
   - 主题参考 themes 目录下
   - 低耦合,模块化
@@ -45,6 +44,8 @@
 - 后端项目: /backend
 - 前端项目: /frontend
 - 文档目录: /docs
+  - 项目概述: /docs/01-项目概述.md
+  - 架构设计: /docs/02-架构设计.md
 - 需求文档目录: /docs/prds
 
 ## 编码规范
