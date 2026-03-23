@@ -138,18 +138,18 @@
 
 > 存储 AI 智能匹配为需求推荐的讲师/机构及匹配分数。
 
-| 字段名 | 类型 | 必填 | 默认值 | 说明 |
-|---|---|---|---|---|
-| id | int | 是 | 自增 | 主键 |
-| demand_id | int | 是 | — | 关联 demands.id |
-| trainer_id | int | 否 | NULL | 推荐讲师 ID，关联 trainers.id |
-| organization_id | int | 否 | NULL | 推荐机构 ID，关联 organizations.id |
-| match_score | decimal(5,2) | 是 | 0.00 | 匹配分数（0.00-100.00） |
+| 字段名 | 类型 | 必填 | 默认值 | 说明                                                                                      |
+|---|---|---|---|-----------------------------------------------------------------------------------------|
+| id | int | 是 | 自增 | 主键                                                                                      |
+| demand_id | int | 是 | — | 关联 demands.id                                                                           |
+| trainer_id | int | 否 | NULL | 推荐讲师 ID，关联 trainers.id                                                                  |
+| organization_id | int | 否 | NULL | 【推荐机构 ID】，关联 organizations.id                                                           |
+| match_score | decimal(5,2) | 是 | 0.00 | 匹配分数（0.00-100.00）                                                                       |
 | match_reasons | json | 否 | NULL | 匹配理由（JSON 格式，含各维度得分与说明），示例：`[{"dimension":"行业匹配","score":92,"reason":"讲师在制造业有8年授课经验"}]` |
-| is_manual | tinyint | 否 | 0 | 是否人工推荐：0=AI 推荐, 1=客服手动添加 |
-| sort_order | int | 否 | 0 | 展示排序（AI 推荐按分数自动排序，人工可调整） |
-| status | tinyint | 否 | 1 | 状态：1=有效, 0=已移除（客服手动删除） |
-| created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间 |
+| is_manual | tinyint | 否 | 0 | 是否人工推荐：0=AI 推荐, 1=客服手动添加                                                                |
+| sort_order | int | 否 | 0 | 展示排序（AI 推荐按分数自动排序，人工可调整）                                                                |
+| status | tinyint | 否 | 1 | 状态：1=有效, 0=已移除（客服手动删除）                                                                  |
+| created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间                                                                                    |
 
 **索引设计：**
 
@@ -212,81 +212,6 @@
 
 ---
 
-## 4. ER 关系说明
-
-```mermaid
-erDiagram
-    users ||--o{ demands : "用户发布多个需求"
-    enterprises ||--o{ demands : "企业关联多个需求"
-    demands ||--o{ demand_matches : "一个需求有多个匹配结果"
-    demands ||--o{ demand_follow_ups : "一个需求有多条跟进记录"
-    trainers ||--o{ demand_matches : "讲师被匹配到多个需求"
-    organizations ||--o{ demand_matches : "机构被匹配到多个需求"
-    cases ||--o{ demands : "案例触发定制需求"
-
-    demands {
-        int id PK "主键"
-        int user_id FK "提交人"
-        int enterprise_id FK "企业 ID"
-        varchar demand_type "需求类型"
-        varchar title "标题"
-        varchar training_topic "培训主题"
-        int trainee_count "培训人数"
-        decimal budget_min "预算最低"
-        decimal budget_max "预算最高"
-        date expected_start_date "期望开始"
-        varchar format "培训形式"
-        text description "详细描述"
-        int source_case_id FK "来源案例"
-        int source_course_id FK "来源课程"
-        tinyint status "状态"
-        int assigned_cs_id FK "指派客服"
-        tinyint external_sync_status "同步状态"
-        int external_sync_retries "重试次数"
-        datetime external_sync_at "同步时间"
-        varchar external_ref_id "外部关联 ID"
-        datetime created_at "创建时间"
-        datetime updated_at "更新时间"
-    }
-
-    demand_matches {
-        int id PK "主键"
-        int demand_id FK "关联需求"
-        int trainer_id FK "推荐讲师"
-        int organization_id FK "推荐机构"
-        decimal match_score "匹配分数"
-        json match_reasons "匹配理由"
-        tinyint is_manual "是否人工推荐"
-        int sort_order "排序"
-        tinyint status "状态"
-        datetime created_at "创建时间"
-    }
-
-    demand_follow_ups {
-        int id PK "主键"
-        int demand_id FK "关联需求"
-        int operator_id FK "操作人"
-        varchar action "操作类型"
-        text content "操作内容"
-        tinyint old_status "变更前状态"
-        tinyint new_status "变更后状态"
-        datetime created_at "操作时间"
-    }
-
-    ai_match_dimensions {
-        int id PK "主键"
-        varchar dimension_key "维度编码"
-        varchar dimension_name "维度名称"
-        varchar description "维度说明"
-        decimal weight_percentage "权重百分比"
-        tinyint is_active "是否启用"
-        int sort_order "排序"
-        datetime created_at "创建时间"
-        datetime updated_at "更新时间"
-    }
-```
-
----
 
 ## 5. 业务逻辑与规则
 
@@ -401,49 +326,3 @@ erDiagram
 
 ---
 
-## 7. 参考旧表
-
-### 7.1 旧表到新表的映射关系
-
-| 旧表 | 新表 | 说明 |
-|------|------|------|
-| `tk_company_demand` | `demands` | 旧企业咨询表，字段较简单，仅含公司名/联系方式/内容；新系统扩展为完整的需求模型，增加需求类型、预算、培训形式、同步状态等字段 |
-| `tk_tenders` | `demands` | 旧招标表（约 80+ 字段，含大量招投标业务逻辑），新系统简化为需求发布模型，招投标流程改为 AI 匹配 + 客服跟进模式 |
-| `tk_bid` | `demand_matches` + `demand_follow_ups` | 旧投标表的投标方案/讲师推荐功能映射到 AI 匹配结果；旧表审核/评价/状态追踪映射到需求跟进记录 |
-| `tk_bid_attachment` | 归入文件存储模块 | 旧投标附件独立存储，新系统统一使用文件存储服务 |
-| `tk_bid_comments` | `demand_follow_ups` | 旧投标留言/评论合并到需求跟进记录 |
-| —（新增） | `ai_match_dimensions` | AI 匹配维度配置为全新功能，旧系统无对应表 |
-
-### 7.2 旧表关键字段对照
-
-```
-tk_company_demand.company_name → demands.title (或通过 enterprise_id 关联企业名称)
-tk_company_demand.content      → demands.description
-tk_company_demand.user_id      → demands.user_id
-tk_company_demand.createtime   → demands.created_at (int → datetime)
-
-tk_tenders.title               → demands.title
-tk_tenders.uid                 → demands.user_id
-tk_tenders.cate_id             → 通过 AI 匹配维度自动关联
-tk_tenders.budget              → demands.budget_min / demands.budget_max
-tk_tenders.student_total       → demands.trainee_count
-tk_tenders.training_way        → demands.format
-tk_tenders.training_start_time → demands.expected_start_date (int → date)
-tk_tenders.status              → demands.status (状态体系重构)
-tk_tenders.crmId               → demands.external_ref_id
-
-tk_bid.tid                     → demand_matches.demand_id
-tk_bid.uid                     → demand_matches.trainer_id (通过用户关联讲师)
-tk_bid.price                   → 移除（不再有投标报价概念）
-tk_bid.status                  → demand_matches.status (简化为有效/已移除)
-```
-
-### 7.3 关键变更点
-
-1. **业务模型重构**：旧系统采用复杂的「招标 → 投标 → 评审 → 中标」流程（tk_tenders 约 80+ 字段），新系统简化为「需求发布 → AI 匹配 → 客服跟进 → 完成」轻量模式，降低企业操作门槛
-2. **需求入口统一**：旧系统企业咨询（tk_company_demand）和招标需求（tk_tenders）分散在不同表和流程中，新系统统一为 `demands` 表，通过 `demand_type` 区分来源
-3. **智能匹配替代招投标**：旧系统依赖讲师/机构主动投标，新系统引入 AI 智能匹配，主动为企业推荐最佳资源
-4. **外部系统同步**：新增实时同步至外部业务系统的能力（含重试与告警机制），旧系统仅部分需求手动同步至 CRM
-5. **跟进链路可追溯**：新增 `demand_follow_ups` 表记录完整的需求处理链路，旧系统跟进记录分散在多个表中
-6. **匹配维度可配置**：新增 `ai_match_dimensions` 表支持后台动态调整匹配策略，旧系统无此能力
-7. **时间字段规范化**：旧系统 `createtime`/`updatetime` 为 `int` 时间戳，新系统统一使用 `datetime`
