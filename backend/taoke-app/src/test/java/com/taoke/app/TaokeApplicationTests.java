@@ -1,0 +1,13 @@
+package com.taoke.app;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class TaokeApplicationTests {
+
+    @Test
+    void contextLoads() {
+    }
+
+}
