@@ -14,12 +14,12 @@
 
 ### 1.2 四种课程类型定位
 
-| 课程类型 | 编码 | 定位 | 交易方式 |
-|---------|------|------|---------|
-| 在线课 | `ONLINE` | 线上录播课程，面向 C 端个人学员为主 | 在线购买，平台直接交付 |
-| 线下公开课 | `OPEN` | 线下面授，开放报名，多城市多场次排课 | 在线报名/支付，线下参训 |
+| 课程类型 | 编码 | 定位 | 交易方式                    |
+|---------|------|------|-------------------------|
+| 在线课 | `ONLINE` | 线上录播课程，面向 C 端个人学员为主 | 在线购买，平台直接交付             |
+| 线下公开课 | `OPEN` | 线下面授，开放报名，多城市多场次排课 | 在线报名/咨询，线下参训            |
 | 内训课 | `INTERNAL` | 企业定制化内训，与特定讲师强绑定 | 不支持平台直接交易，仅咨询/预约，客服线下结算 |
-| 版权课 | `COPYRIGHT` | 讲师/机构的版权自有课程，平台认证展示 | 平台统一定价，企业合作对接 |
+| 版权课 | `COPYRIGHT` | 讲师/机构的版权自有课程，平台认证展示 | 允许讲师、机构定价，企业合作对接        |
 
 ### 1.3 核心业务目标
 
@@ -28,7 +28,7 @@
 - 在线课提供完整的学习体验：试听、购买、播放、进度同步、笔记、单设备限制
 - 公开课支持多城市多场次排课、报名管理、名额控制、状态流转
 - 内训课仅作展示与咨询入口，所有对接通过后台客服完成
-- 版权课通过审核后获得版权标识，定价由平台控制
+- 版权课通过审核后获得版权标识，定价允许讲师修改，后台客服审核
 - 所有课程类型均需后台客服审核后方可上线
 
 ### 1.4 典型用户行为路径
@@ -36,7 +36,7 @@
 ```
 讲师/机构发布课程 → 后台客服审核 → 课程上线展示
   ├─ 在线课：用户浏览/试听 → 购买 → 学习（进度/笔记同步）
-  ├─ 公开课：用户浏览 → 报名（单人/多人）→ 支付 → 线下参训
+  ├─ 公开课：用户浏览 → 报名（单人/多人）→ 客服对接 → 线下参训
   ├─ 内训课：企业浏览 → 在线咨询/预约 → 客服对接 → 线下结算
   └─ 版权课：企业浏览 → 咨询 → 平台定价合作
 ```
@@ -51,7 +51,7 @@
 
 - 讲师/机构填写：课程名称、定价、课程简介、适用人群、课程目录（章节结构）、课程封面
 - 支持分章节发布，每个章节关联一个视频
-- 设置免费试听章节（时长限制 1-5 分钟）；试听方式待定：按时间截取 OR 按章节数指定（TBD）
+- 设置免费试听章节或课程，试听方式待定：按时间截取 OR 按章节数指定（TBD）
 - 视频上传方式：
   - **讲师/机构前台**：支持单个视频上传（文件大小限制待定）
   - **后台客服**：支持批量视频上传
@@ -60,7 +60,7 @@
 
 #### 2.1.2 课程学习
 
-- 用户购买后解锁全部课程内容，**有效期 1 年**
+- 用户购买后解锁全部课程内容
 - 视频**不支持下载**，仅支持在线播放
 - 播放功能：倍速播放、暂停/继续、进度自动保存
 - 学习进度实时同步至用户账号，支持断点续播
@@ -242,7 +242,7 @@
 |--------|------|-----------|--------|------|
 | `id` | int | NO | AUTO_INCREMENT | 主键 |
 | `title` | varchar(200) | NO | — | 课程名称 |
-| `type` | varchar(20) | NO | — | 课程类型：`ONLINE`=在线课，`OPEN`=线下公开课，`INTERNAL`=内训课，`COPYRIGHT`=版权课 |
+| `type` | char(16) | NO | — | 课程类型：`ONLINE`=在线课，`OPEN`=线下公开课，`INTERNAL`=内训课，`COPYRIGHT`=版权课 |
 | `publisher_id` | int | NO | — | 发布者 ID（讲师 ID 或机构 ID） |
 | `publisher_type` | varchar(20) | NO | — | 发布者类型：`TRAINER`=讲师，`ORGANIZATION`=机构 |
 | `category_id` | int | YES | NULL | 一级分类 ID，关联分类表 |
@@ -381,10 +381,11 @@
 |--------|------|-----------|--------|------|
 | `id` | int | NO | AUTO_INCREMENT | 主键 |
 | `course_id` | int | NO | — | 关联 courses.id（type=OPEN） |
-| `province_code` | varchar(20) | YES | NULL | 省份编码 |
-| `city_code` | varchar(20) | YES | NULL | 城市编码 |
-| `city_name` | varchar(50) | YES | NULL | 城市名称（冗余，用于列表展示） |
-| `venue` | varchar(200) | YES | NULL | 上课场地/地址 |
+| `province_id` | int(10) | 否 | 0 | 省份 |
+| `city_id` | int(10) | 否 | 0 | 城市 |
+| `district_id` | int(10) | 否 | 0 | 区县 |
+| `town_id` | int(10) | 否 | 0 | 乡镇 |
+| `address` | varchar(200) | 否 | "" | 详细地址 |
 | `begin_date` | datetime | NO | — | 开课日期时间 |
 | `end_date` | datetime | YES | NULL | 结课日期时间 |
 | `quota` | int | YES | NULL | 名额上限（NULL 表示不限） |
@@ -392,7 +393,6 @@
 | `registration_deadline` | datetime | YES | NULL | 报名截止时间 |
 | `schedule_status` | varchar(20) | NO | 'ENROLLING' | 排课状态：`ENROLLING`=招生中，`CONFIRMED`=确认开课，`CANCELLED`=已取消 |
 | `cancel_reason` | varchar(500) | YES | NULL | 取消原因 |
-| `price_override` | decimal(10,2) | YES | NULL | 本场次独立定价（为 NULL 时取课程主表价格） |
 | `trainer_id` | int | YES | NULL | 本场次授课讲师 ID（可能与课程主表讲师不同） |
 | `sort_order` | int | NO | 0 | 排序值 |
 | `created_at` | datetime | NO | CURRENT_TIMESTAMP | 创建时间 |
@@ -502,7 +502,6 @@
 | `review_remark` | varchar(500) | YES | NULL | 审核备注 |
 | `reviewer_id` | int | YES | NULL | 审核人 ID |
 | `reviewed_at` | datetime | YES | NULL | 审核时间 |
-| `is_internal_copyright` | tinyint | NO | 0 | 是否内训版权课（在内训课板块置顶）：0=否，1=是 |
 | `badge_type` | varchar(20) | YES | 'STANDARD' | 版权标识类型：`STANDARD`=标准版权，`PREMIUM`=精品版权 |
 | `platform_price` | decimal(10,2) | YES | NULL | 平台统一定价（覆盖主表 price） |
 | `price_change_status` | tinyint | YES | NULL | 调价申请状态：NULL=无申请，0=待审批，1=已通过，2=已驳回 |
@@ -545,28 +544,8 @@
 
 ---
 
-### 3.10 course_notes — 课程笔记表
 
-> 用户在学习在线课时记录的笔记，关联课程和章节。
-
-| 字段名 | 类型 | 允许 NULL | 默认值 | 说明 |
-|--------|------|-----------|--------|------|
-| `id` | int | NO | AUTO_INCREMENT | 主键 |
-| `user_id` | int | NO | — | 用户 ID |
-| `course_id` | int | NO | — | 关联 courses.id |
-| `chapter_id` | int | YES | NULL | 关联 course_chapters.id（可为空表示课程级笔记） |
-| `video_timestamp` | int | YES | NULL | 视频时间戳（秒），记录笔记时的播放位置 |
-| `content` | text | NO | — | 笔记内容 |
-| `created_at` | datetime | NO | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NO | CURRENT_TIMESTAMP | 更新时间 |
-
-**索引设计：**
-- `idx_user_course` (user_id, course_id) — 查询用户某门课的笔记
-- `idx_user_chapter` (user_id, chapter_id) — 查询用户某章节的笔记
-
----
-
-### 3.11 course_reviews — 课程评价表
+### 3.10 course_reviews — 课程评价表
 
 > 用户对课程的评价记录。在线课/公开课为购买后评价，内训课为企业完成培训后反馈。
 
@@ -574,7 +553,6 @@
 |--------|------|-----------|--------|------|
 | `id` | int | NO | AUTO_INCREMENT | 主键 |
 | `course_id` | int | NO | — | 关联 courses.id |
-| `schedule_id` | int | YES | NULL | 关联 course_schedules.id（公开课场次评价） |
 | `user_id` | int | NO | — | 评价人用户 ID |
 | `order_id` | int | YES | NULL | 关联订单 ID（在线课/公开课） |
 | `reservation_id` | int | YES | NULL | 关联预约 ID（内训课） |
@@ -604,7 +582,7 @@
 
 ---
 
-### 3.12 course_images — 课程图片表
+### 3.11 course_images — 课程图片表
 
 > 课程详情页的图片素材（轮播图、内容图等），与封面图 `cover_url` 独立。
 
@@ -641,269 +619,7 @@
 
 ---
 
-### 3.14 course_stats_daily — 课程数据统计日表
 
-> 按天记录课程核心运营数据，用于数据趋势分析。
-
-| 字段名 | 类型 | 允许 NULL | 默认值 | 说明 |
-|--------|------|-----------|--------|------|
-| `id` | int | NO | AUTO_INCREMENT | 主键 |
-| `course_id` | int | NO | — | 关联 courses.id |
-| `stat_date` | date | NO | — | 统计日期 |
-| `view_count` | int | NO | 0 | 当日曝光量 |
-| `play_count` | int | NO | 0 | 当日播放量（在线课） |
-| `enrollment_count` | int | NO | 0 | 当日报名/购买量 |
-| `consultation_count` | int | NO | 0 | 当日咨询量（内训课） |
-| `sales_count` | int | NO | 0 | 当日销量 |
-| `revenue` | decimal(12,2) | NO | 0.00 | 当日收益金额 |
-| `created_at` | datetime | NO | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NO | CURRENT_TIMESTAMP | 更新时间 |
-
-**索引设计：**
-- `UNIQUE idx_course_date` (course_id, stat_date) — 一门课程一天一条
-- `idx_stat_date` (stat_date) — 按日期范围查询
-
----
-
-### 3.15 course_discount_rules — 课程折扣规则表
-
-> 存储在线课充值折扣、多课折扣以及公开课团报折扣的配置。
-
-| 字段名 | 类型 | 允许 NULL | 默认值 | 说明 |
-|--------|------|-----------|--------|------|
-| `id` | int | NO | AUTO_INCREMENT | 主键 |
-| `rule_name` | varchar(100) | NO | — | 规则名称 |
-| `rule_type` | varchar(30) | NO | — | 规则类型：`RECHARGE`=充值折扣，`MULTI_COURSE`=多课折扣，`GROUP_ENROLL`=团报折扣 |
-| `applicable_course_type` | varchar(20) | NO | — | 适用课程类型：`ONLINE`/`OPEN`/`ALL` |
-| `threshold_amount` | decimal(10,2) | YES | NULL | 阈值金额（充值折扣的充值额度） |
-| `threshold_count` | int | YES | NULL | 阈值数量（多课折扣的课程数量 / 团报折扣的人数） |
-| `discount_type` | varchar(20) | NO | — | 折扣方式：`PERCENT`=百分比折扣，`FIXED`=固定减免 |
-| `discount_value` | decimal(10,2) | NO | — | 折扣值（百分比时为 0.95 表示 95 折；固定减免时为金额） |
-| `is_active` | tinyint | NO | 1 | 是否启用：0=停用，1=启用 |
-| `priority` | int | NO | 0 | 优先级（多规则冲突时，值越大优先级越高） |
-| `start_at` | datetime | YES | NULL | 生效开始时间 |
-| `end_at` | datetime | YES | NULL | 生效结束时间（NULL 表示长期有效） |
-| `created_by` | int | YES | NULL | 创建人（后台管理员 ID） |
-| `created_at` | datetime | NO | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NO | CURRENT_TIMESTAMP | 更新时间 |
-
-**索引设计：**
-- `idx_rule_type` (rule_type, is_active) — 按规则类型查询有效规则
-- `idx_applicable_type` (applicable_course_type) — 按适用课程类型筛选
-
----
-
-## 4. ER 关系说明
-
-### 4.1 ER 图
-
-```mermaid
-erDiagram
-    courses ||--o{ course_chapters : "一门课程有多个章节"
-    courses ||--o{ course_videos : "一门课程有多个视频"
-    courses ||--o{ course_materials : "一门课程有多份资料"
-    courses ||--o{ course_schedules : "一门公开课有多个排课场次"
-    courses ||--o{ course_registrations : "一门课程有多个报名记录"
-    courses ||--o{ course_reservations : "一门内训课有多个预约记录"
-    courses ||--o| course_copyright_info : "版权课有一条专项信息"
-    courses ||--o{ course_learning_progress : "一门课程有多条学习进度"
-    courses ||--o{ course_notes : "一门课程有多条笔记"
-    courses ||--o{ course_reviews : "一门课程有多条评价"
-    courses ||--o{ course_images : "一门课程有多张图片"
-    courses ||--o{ course_favorites : "一门课程被多人收藏"
-    courses ||--o{ course_stats_daily : "一门课程有多条日统计"
-    course_chapters ||--o| course_videos : "一个章节关联一个视频"
-    course_schedules ||--o{ course_registrations : "一个场次有多个报名"
-
-    courses {
-        int id PK "主键"
-        varchar title "课程名称"
-        varchar type "课程类型 ONLINE/OPEN/INTERNAL/COPYRIGHT"
-        int publisher_id "发布者ID"
-        varchar publisher_type "发布者类型 TRAINER/ORGANIZATION"
-        int category_id "一级分类ID"
-        int sub_category_id "二级分类ID"
-        varchar cover_url "封面图URL"
-        longtext intro "课程简介"
-        longtext syllabus "课程大纲"
-        text audience "适用人群"
-        decimal price "价格"
-        decimal original_price "原价"
-        int duration "课程时长"
-        int trainer_id "关联讲师ID"
-        tinyint status "课程状态"
-        tinyint is_free "是否免费"
-        int view_count "浏览量"
-        int enrollment_count "报名量"
-        int sales_count "销量"
-        decimal score "评分"
-    }
-
-    course_chapters {
-        int id PK "主键"
-        int course_id FK "关联 courses.id"
-        int parent_id "父章节ID 0=顶级"
-        varchar title "章节标题"
-        int sort_order "排序"
-        tinyint is_free_trial "是否免费试听"
-        int video_id "关联视频ID"
-        int duration "时长(秒)"
-    }
-
-    course_videos {
-        int id PK "主键"
-        int course_id FK "关联 courses.id"
-        varchar title "视频标题"
-        varchar video_url "视频URL"
-        int duration "时长(秒)"
-        bigint file_size "文件大小"
-        tinyint transcode_status "转码状态"
-    }
-
-    course_materials {
-        int id PK "主键"
-        int course_id FK "关联 courses.id"
-        varchar title "资料标题"
-        varchar file_url "文件URL"
-        varchar file_type "文件类型"
-        tinyint is_free "是否免费"
-    }
-
-    course_schedules {
-        int id PK "主键"
-        int course_id FK "关联 courses.id"
-        varchar city_name "城市"
-        varchar venue "场地"
-        datetime begin_date "开课时间"
-        datetime end_date "结课时间"
-        int quota "名额上限"
-        int enrolled_count "已报名人数"
-        varchar schedule_status "排课状态"
-    }
-
-    course_registrations {
-        int id PK "主键"
-        int course_id FK "关联 courses.id"
-        int schedule_id FK "关联 course_schedules.id"
-        int user_id FK "报名用户ID"
-        varchar group_no "团报批次号"
-        varchar attendee_name "参训人姓名"
-        varchar attendee_phone "参训人电话"
-        tinyint status "报名状态"
-        tinyint payment_status "支付状态"
-    }
-
-    course_reservations {
-        int id PK "主键"
-        int course_id FK "关联 courses.id"
-        int trainer_id FK "关联讲师ID"
-        int user_id FK "预约用户ID"
-        varchar enterprise_name "企业名称"
-        varchar contact_name "联系人"
-        varchar contact_phone "联系电话"
-        text demand_detail "需求详情"
-        tinyint status "服务状态"
-        tinyint sync_status "同步状态"
-    }
-
-    course_copyright_info {
-        int id PK "主键"
-        int course_id FK "关联 courses.id"
-        varchar copyright_cert_url "版权证书"
-        varchar copyright_holder "版权持有人"
-        tinyint review_status "版权审核状态"
-        tinyint is_internal_copyright "是否内训版权课"
-        decimal platform_price "平台定价"
-    }
-
-    course_learning_progress {
-        int id PK "主键"
-        int user_id FK "用户ID"
-        int course_id FK "关联 courses.id"
-        int chapter_id FK "关联章节ID"
-        int progress_seconds "播放进度(秒)"
-        decimal progress_percent "进度百分比"
-        tinyint is_completed "是否学完"
-    }
-
-    course_notes {
-        int id PK "主键"
-        int user_id FK "用户ID"
-        int course_id FK "关联 courses.id"
-        int chapter_id FK "章节ID"
-        int video_timestamp "视频时间戳"
-        text content "笔记内容"
-    }
-
-    course_reviews {
-        int id PK "主键"
-        int course_id FK "关联 courses.id"
-        int user_id FK "评价人ID"
-        decimal overall_score "综合评分"
-        text content "评价内容"
-        varchar image_urls "评价图片"
-        text reply_content "回复内容"
-        tinyint status "审核状态"
-    }
-
-    course_images {
-        int id PK "主键"
-        int course_id FK "关联 courses.id"
-        varchar image_url "图片URL"
-        varchar image_type "图片类型"
-        int sort_order "排序"
-    }
-
-    course_favorites {
-        int id PK "主键"
-        int user_id FK "用户ID"
-        int course_id FK "关联 courses.id"
-    }
-
-    course_stats_daily {
-        int id PK "主键"
-        int course_id FK "关联 courses.id"
-        date stat_date "统计日期"
-        int view_count "曝光量"
-        int play_count "播放量"
-        int enrollment_count "报名量"
-        decimal revenue "收益"
-    }
-
-    course_discount_rules {
-        int id PK "主键"
-        varchar rule_name "规则名称"
-        varchar rule_type "规则类型"
-        varchar applicable_course_type "适用课程类型"
-        decimal threshold_amount "阈值金额"
-        int threshold_count "阈值数量"
-        decimal discount_value "折扣值"
-        tinyint is_active "是否启用"
-    }
-```
-
-### 4.2 关系说明
-
-| 关系 | 类型 | 说明 |
-|------|------|------|
-| `courses` → `course_chapters` | 一对多 | 一门课程有多个章节（两级结构：章 → 节） |
-| `courses` → `course_videos` | 一对多 | 一门课程有多个视频文件 |
-| `course_chapters` → `course_videos` | 多对一（可选） | 在线课的叶子章节关联一个视频 |
-| `courses` → `course_materials` | 一对多 | 一门课程有多份配套资料 |
-| `courses` → `course_schedules` | 一对多 | 一门公开课有多个排课场次 |
-| `course_schedules` → `course_registrations` | 一对多 | 一个场次有多条报名记录 |
-| `courses` → `course_reservations` | 一对多 | 一门内训课有多条企业预约 |
-| `courses` → `course_copyright_info` | 一对零或一 | 版权课有一条版权专项信息 |
-| `courses` → `course_learning_progress` | 一对多 | 一门在线课有多个用户的学习进度 |
-| `courses` → `course_notes` | 一对多 | 一门课程有多条用户笔记 |
-| `courses` → `course_reviews` | 一对多 | 一门课程有多条评价 |
-| `courses` → `course_images` | 一对多 | 一门课程有多张图片 |
-| `courses` → `course_favorites` | 一对多 | 一门课程被多个用户收藏 |
-| `courses` → `course_stats_daily` | 一对多 | 一门课程有多条日统计数据 |
-
-> **注意：** 数据库层面不建外键，所有关联关系在代码逻辑中维护。
-
----
 
 ## 5. 业务逻辑与规则
 
@@ -1052,68 +768,3 @@ erDiagram
 | **搜索模块 (search)** | 课程 → 搜索 | 课程标题、关键词、分类等信息同步至搜索引擎，支持模糊搜索与排序 |
 
 ---
-
-## 7. 参考旧表
-
-### 7.1 旧表到新表的映射关系
-
-| 旧表 | 新表 | 说明 |
-|------|------|------|
-| `tk_course` | `courses` + `course_schedules` | 旧表 `type` (1=公开课, 2=内训课) 映射新表 `courses.type`；旧表单行包含排课信息（省/市/地址/时间），新表拆分至 `course_schedules` 支持多场次 |
-| `tk_courseinfo` | `courses` | 旧表存储课程描述信息（分类/类型/时长/讲师/机构/审核状态等），合并至新表主表 |
-| `tk_coursedata` | `courses` (intro/syllabus/audience/highlights) | 旧表存储课程概述/受众/收益/大纲/特色等富文本内容，合并至新表对应字段 |
-| `tk_course_pic` | `course_images` | 课程图片一对一映射 |
-| `tk_course_video` | `course_videos` | 课程视频一对一映射，新表增加转码管理字段 |
-| `tk_course_comment` | `course_reviews` | 课程评价映射，新表增加多维度评分字段 |
-| `tk_course_comment_reply` | `course_reviews.reply_content` | 评价回复合并至评价表 reply 字段 |
-| `tk_course_fav` | `course_favorites` | 课程收藏一对一映射 |
-| `tk_course_key_word` | `courses.keywords` | 旧表独立存储关键字匹配规则，新系统简化为主表 keywords 字段 |
-| `tk_course_signup` | `course_registrations` | 报名信息映射，新表增加团报/渠道/支付状态等字段 |
-| `tk_course_relation` | `courses.category_id` / `sub_category_id` | 旧表课程-分类多对多关联，新系统简化为主表直接存储分类 ID |
-| `tk_coursetj` | `courses.is_recommended` + `sort_order` | 旧表推荐课程配置，新系统通过主表推荐标记和排序字段实现 |
-| `tk_course_order` | 订单模块（独立） | 课程订单迁至独立订单模块 |
-| `tk_course_order_course` | 订单模块（独立） | 订单-课程关联迁至独立订单模块 |
-| `tk_course_order_pay` | 订单模块（独立） | 支付信息迁至独立订单模块 |
-| `tk_course_price_config` | `course_discount_rules` | 旧表讲师内训课定价倍率配置，新系统通过折扣规则表实现 |
-| `tk_coursecomment_content` | `course_reviews` | 旧表课中/课后详细评分项合并至新评价表多维度评分字段 |
-| `tk_coursecomment_demand` | `course_reviews` | 旧表课前服务评价合并至新评价表 |
-
-### 7.2 关键字段对照
-
-```
-tk_course.id            → courses.id
-tk_course.uid           → courses.publisher_id (publisher_type 需根据旧 groupid 判断)
-tk_course.type          → courses.type (旧 1=公开课→OPEN, 旧 2=内训课→INTERNAL)
-tk_course.title         → courses.title
-tk_course.price         → courses.price
-tk_course.special_price → courses.original_price (逻辑反转：旧特价=新现价，旧原价=新划线价)
-tk_course.province/city → course_schedules.province_code / city_code
-tk_course.address       → course_schedules.venue
-tk_course.begin/finish  → course_schedules.begin_date / end_date (int 时间戳→datetime)
-tk_course.hit           → courses.view_count
-tk_course.comments      → courses.comment_count
-tk_course.states        → courses.status (旧 0=未审核→1, 旧 1=已审核→2)
-tk_course.isopen        → courses.status (旧 isopen=1 且 states=1 → 新 status=2)
-tk_course.class_status  → course_schedules.schedule_status (旧 1=确定开班→CONFIRMED, 旧 -1=已取消→CANCELLED)
-tk_courseinfo.cid       → courses.category_id
-tk_courseinfo.subcid    → courses.sub_category_id
-tk_courseinfo.toff      → courses.duration
-tk_courseinfo.organid   → courses.publisher_id (publisher_type=ORGANIZATION)
-tk_courseinfo.lecturerid→ courses.trainer_id
-tk_coursedata.overview   → courses.intro
-tk_coursedata.outline    → courses.syllabus
-tk_coursedata.audiences  → courses.audience
-tk_coursedata.income     → courses.highlights
-```
-
-### 7.3 关键变更点
-
-1. **课程类型扩展**：旧系统仅有公开课和内训课两种类型，新系统扩展为四种（在线课、线下公开课、内训课、版权课），通过 `type` 枚举统一管理
-2. **多场次排课**：旧系统课程表中直接存储单次排课信息（省/市/地址/时间），新系统拆分独立 `course_schedules` 表，支持一门课多城市多场次排课
-3. **课程详情合并**：旧系统 `tk_course` + `tk_courseinfo` + `tk_coursedata` 三表分散存储，新系统合并为 `courses` 一张主表
-4. **发布者双主体**：旧系统通过 `uid` + `organid` 分别关联，新系统统一使用 `publisher_id` + `publisher_type` 支持讲师/机构双主体
-5. **新增在线学习体系**：学习进度（`course_learning_progress`）、课程笔记（`course_notes`）、视频管理（`course_videos`）、课程资料（`course_materials`）均为全新功能
-6. **版权课独立管理**：新增 `course_copyright_info` 表，支持版权认证、平台定价控制
-7. **时间字段规范化**：旧系统使用 `int` 时间戳，新系统统一使用 `datetime`
-8. **订单模块独立**：旧系统课程订单混在课程模块内（`tk_course_order_*` 系列表），新系统将订单拆至独立模块
-9. **评价体系升级**：旧系统多表分散评价（`tk_course_comment` + `tk_coursecomment_content` + `tk_coursecomment_demand`），新系统合并为 `course_reviews` 一张表，支持多维度评分
