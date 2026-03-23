@@ -2,7 +2,7 @@
 
 > 模块编码：`review`
 > 版本：v1.0
-> 最后更新：2026-03-19
+> 最后更新：2026-03-23
 
 ---
 
@@ -123,7 +123,7 @@
 - 讲师/机构可对已审核通过的评价进行回复
 - 每条评价仅允许回复一次（不支持追加回复）
 - 回复内容最多 500 字
-- 回复提交后即时展示，无需审核
+- 回复提交后需由后台客服审核通过
 
 #### 2.3.3 评价申诉
 
@@ -425,105 +425,7 @@
 
 ---
 
-## 4. ER 关系说明
 
-```mermaid
-erDiagram
-    users ||--o{ reviews : "用户发布评价"
-    reviews ||--o{ review_images : "一条评价多张图片"
-    reviews ||--o{ review_dimension_scores : "一条评价多个维度评分"
-    reviews ||--o| review_replies : "一条评价至多一条回复"
-    reviews ||--o| review_appeals : "一条评价至多一次申诉"
-    users ||--o{ feedbacks : "用户提交反馈"
-    feedbacks ||--o{ feedback_images : "一条反馈多张图片"
-    feedbacks ||--o{ feedback_replies : "一条反馈多轮回复"
-
-    reviews {
-        int id PK "主键"
-        int user_id FK "评价人"
-        varchar target_type "对象类型"
-        int target_id "对象ID"
-        int order_id "关联订单"
-        decimal star_rating "总体星级"
-        varchar content "评价内容"
-        tinyint is_anonymous "是否匿名"
-        varchar status "评价状态"
-        int reviewed_by "审核人"
-        datetime reviewed_at "审核时间"
-        varchar source_type "来源类型"
-    }
-
-    review_images {
-        int id PK "主键"
-        int review_id FK "关联评价"
-        varchar image_url "图片URL"
-        int sort_order "排序"
-    }
-
-    review_dimension_scores {
-        int id PK "主键"
-        int review_id FK "关联评价"
-        varchar dimension "评分维度"
-        decimal score "维度评分"
-    }
-
-    review_replies {
-        int id PK "主键"
-        int review_id FK "关联评价"
-        int user_id FK "回复人"
-        varchar content "回复内容"
-    }
-
-    review_appeals {
-        int id PK "主键"
-        int review_id FK "关联评价"
-        int user_id FK "申诉人"
-        varchar reason "申诉理由"
-        varchar evidence_urls "证据材料"
-        varchar status "申诉状态"
-        int handled_by "处理人"
-        varchar result "处理结果"
-    }
-
-    review_stats {
-        int id PK "主键"
-        varchar target_type "对象类型"
-        int target_id "对象ID"
-        int total_count "评价总数"
-        decimal average_rating "综合平均分"
-        int five_star_count "5星数"
-        int four_star_count "4星数"
-        int three_star_count "3星数"
-        int two_star_count "2星数"
-        int one_star_count "1星数"
-        decimal good_rate "好评率"
-    }
-
-    feedbacks {
-        int id PK "主键"
-        int user_id FK "反馈人"
-        varchar type "反馈类型"
-        varchar description "问题描述"
-        varchar status "反馈状态"
-        int handled_by "处理人"
-    }
-
-    feedback_images {
-        int id PK "主键"
-        int feedback_id FK "关联反馈"
-        varchar image_url "图片URL"
-        int sort_order "排序"
-    }
-
-    feedback_replies {
-        int id PK "主键"
-        int feedback_id FK "关联反馈"
-        int user_id FK "回复人"
-        varchar content "回复内容"
-    }
-```
-
----
 
 ## 5. 业务逻辑与规则
 
@@ -659,91 +561,7 @@ erDiagram
 
 ---
 
-## 7. 参考旧表
 
-### 7.1 旧表到新表的映射关系
-
-| 旧表 | 新表 | 说明 |
-|------|------|------|
-| `tk_course_comment` | `reviews` + `review_dimension_scores` | 旧表为课程评价主表（含 quality/yard/service 等多维度评分），约 80+ 字段严重冗余；新系统拆分为评价主表 + 独立维度评分表 |
-| `tk_course_comment_reply` | `review_replies` | 旧表评价解释/回复，字段精简对应 |
-| `tk_comment_course` | `reviews` + `review_dimension_scores` | 旧表为另一套课程评价表（含 c_classmatch/c_teacherlevel/c_service 维度评分、学员信息、追加评论等），合并入统一评价体系 |
-| `tk_comment_course_info` | `review_stats`（课程维度） | 旧表按课程聚合评分统计，合并入统一统计表 |
-| `tk_comment_course_company` | `review_stats`（讲师/机构维度） | 旧表按机构/讲师聚合评分统计，合并入统一统计表 |
-| `tk_comment_support` | —（暂不迁移） | 旧表评论点赞/支持功能，新系统一期暂不支持评价点赞 |
-| `tk_big_course_score` | `review_stats`（课程维度） | 旧表大课程综合评分（含好评率、各维度总分），合并入统一统计表 |
-| `tk_company_course_score` | `review_stats`（机构维度） | 旧表机构课程综合评分（含周/月/半年维度统计），合并入统一统计表 |
-| `tk_comment_touser` | `reviews`（target_type=TRAINER/ORGANIZATION） | 旧表为对用户（学习爱好者/培训管理者）的评价，合并入统一评价体系 |
-| `tk_comment_user_info` | `review_stats` | 旧表用户评价详细统计（好评/差评/周/月数据），合并入统一统计表 |
-
-### 7.2 关键字段对照
-
-```
-tk_course_comment.order_id          → reviews.order_id
-tk_course_comment.course_id         → reviews.target_id (target_type=COURSE)
-tk_course_comment.company_id        → reviews.target_id (target_type=ORGANIZATION)
-tk_course_comment.rank              → reviews.star_rating（旧表 -1/0/1 差中好 → 新表 1.0-5.0 星级）
-tk_course_comment.content           → reviews.content
-tk_course_comment.quality           → review_dimension_scores (dimension=QUALITY)
-tk_course_comment.yard              → review_dimension_scores (dimension=ENVIRONMENT)
-tk_course_comment.service           → review_dimension_scores (dimension=SERVICE)
-tk_course_comment.userid            → reviews.user_id
-tk_course_comment.is_show           → reviews.status（旧 is_show=1 → APPROVED，is_show=0 → HIDDEN）
-tk_course_comment.createtime        → reviews.created_at（int 时间戳 → datetime）
-
-tk_comment_course.c_classmatch      → review_dimension_scores (dimension=QUALITY)
-tk_comment_course.c_teacherlevel    → review_dimension_scores (dimension=TEACHER)
-tk_comment_course.c_service         → review_dimension_scores (dimension=SERVICE)
-tk_comment_course.c_all_av          → review_stats.average_rating
-tk_comment_course.from_userid       → reviews.user_id
-tk_comment_course.to_userid         → reviews.target_id
-tk_comment_course.comment           → reviews.content
-tk_comment_course.status            → reviews.status（旧 0=待审核 → PENDING，1=通过 → APPROVED，-1=驳回 → DELETED）
-tk_comment_course.is_anonymous      → reviews.is_anonymous
-tk_comment_course.comment_type      → reviews.source_type + reviews.target_type（拆分为来源类型与对象类型）
-
-tk_course_comment_reply.comment_id  → review_replies.review_id
-tk_course_comment_reply.explain     → review_replies.content
-tk_course_comment_reply.company_id  → review_replies.user_id（机构管理员 user_id）
-
-tk_comment_course_company.user_id   → review_stats.target_id (target_type=TRAINER/ORGANIZATION)
-tk_comment_course_company.comment_total → review_stats.total_count
-tk_comment_course_company.c_all_av  → review_stats.average_rating
-
-tk_big_course_score.good_rate       → review_stats.good_rate
-tk_big_course_score.good_num        → review_stats.five_star_count + four_star_count
-tk_big_course_score.colligation_score → review_stats.average_rating
-tk_big_course_score.comment_num     → review_stats.total_count
-
-tk_company_course_score.good_rate   → review_stats.good_rate
-tk_company_course_score.good_num    → review_stats.five_star_count + four_star_count
-tk_company_course_score.colligation_score → review_stats.average_rating
-```
-
-### 7.3 关键变更点
-
-1. **统一评价模型**：旧系统有 `tk_course_comment`、`tk_comment_course`、`tk_comment_touser` 等多套评价表，字段大量重复；新系统统一为 `reviews` + `review_dimension_scores`，通过 `target_type` 区分评价对象
-2. **维度评分独立**：旧系统将评分维度（quality/yard/service/classmatch/teacherlevel 等）作为主表字段硬编码；新系统拆分为独立的 `review_dimension_scores` 表，支持灵活扩展评分维度
-3. **统计表归一**：旧系统 `tk_comment_course_info`、`tk_comment_course_company`、`tk_big_course_score`、`tk_company_course_score` 等多张统计表按不同维度存储；新系统统一为 `review_stats`，通过 `target_type + target_id` 区分
-4. **去除冗余字段**：旧表中大量冗余的用户信息（username、company_name 等）、课程信息（course_title 等）不再冗余存储，查询时 JOIN 或批量查询获取
-5. **追加评论移除**：旧系统支持追加评论（add_comment）与追加解释（add_explain），新系统简化为一次性评价 + 一次回复
-6. **评价点赞暂缓**：旧系统 `tk_comment_support` 评论点赞功能，新系统一期暂不实现
-7. **时间字段规范化**：旧系统使用 `int` 时间戳（createtime/updatetime），新系统统一使用 `datetime`
-8. **状态字段规范化**：旧系统状态用 tinyint（0/1/-1），新系统使用语义化字符串枚举（PENDING/APPROVED/HIDDEN/DELETED）
-9. **新增评价申诉**：`review_appeals` 为全新功能，旧系统无对应表
-10. **新增问题反馈**：`feedbacks` 体系为全新功能，旧系统无独立的问题反馈通道
-
-### 7.4 数据迁移注意事项
-
-- 旧系统多套评价表（`tk_course_comment`、`tk_comment_course`）需合并去重后导入 `reviews`，需建立 `comment_type` 到 `target_type + source_type` 的映射规则
-- 旧系统评分为整数（tinyint 1-5），新系统为 decimal(2,1) 支持半星，迁移时直接转为 x.0
-- 旧系统 `rank`（-1/0/1 差中好）需转换为星级评分：差评→2.0，中评→3.0，好评→5.0（具体规则可调整）
-- 旧系统 `createtime` 为 int 时间戳，迁移时需转换为 datetime
-- 旧系统 `is_del=1` 的记录迁移为 `status=DELETED`
-- 旧系统 `is_show=0` 的记录迁移为 `status=HIDDEN`
-- 旧系统各统计表数据迁移后需全量重算以保证数据一致性
-
----
 
 ## 附录 A: 状态枚举汇总
 
