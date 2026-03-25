@@ -16,7 +16,8 @@
 
 - 展示高质量的企业培训案例，以量化成果增强说服力，促进企业合作意向
 - 支持按行业、培训领域等维度筛选案例，帮助企业快速找到贴合自身场景的参考方案
-- 在案例详情中关联执行讲师/机构，形成「案例 → 讲师/机构」的引流闭环
+<!-- - 在案例详情中关联执行讲师/机构，形成「案例 → 讲师/机构」的引流闭环 -->
+- 在案例详情中关联平台客服，形成「案例 → 客服」的引流闭环
 - 通过「定制类似方案」入口承接企业的定制化培训需求，推动需求转化
 
 ### 1.3 典型用户行为路径
@@ -46,7 +47,8 @@
 | 功能点 | 说明 |
 |--------|------|
 | 完整内容 | 展示完整培训方案（solution_summary）、培训过程（training_process）、量化成果（quantified_results）、富文本详情（content） |
-| 执行方信息 | 展示执行讲师/机构信息，支持跳转至讲师/机构主页 |
+<!-- | 执行方信息 | 展示执行讲师/机构信息，支持跳转至讲师/机构主页 | -->
+| 执行方信息 | 展示执行讲师信息，支持跳转至讲师主页 |
 | 案例图片 | 展示案例相关图片（授课现场、合影等），支持大图预览 |
 | 自动萃取图片 | 系统自动从案例富文本或上传资料中识别带人物形象的图片（与讲师案例萃取逻辑一致），需满足基础尺寸要求（具体尺寸待后续确定） |
 | 收藏功能 | 登录用户可收藏案例，收藏状态实时同步；未登录点击收藏引导登录 |
@@ -65,16 +67,17 @@
 |--------|------|
 | 触发条件 | 企业账号登录后方可操作，未登录用户点击引导登录 |
 | 提交内容 | 企业填写定制需求描述（培训主题、期望效果、预算范围等） |
-| 需求流转 | 需求提交后，平台推送至匹配讲师 + 后台客服工作台 |
+<!-- | 需求流转 | 需求提交后，平台推送至匹配讲师 + 后台客服工作台 | -->
+| 需求流转 | 需求提交后，平台推送至后台客服 |
 | 实时同步 | 需求数据实时同步至客服工作台 + 外部业务系统 |
 | 响应方式 | 由平台运营人员实时响应和对接，不直通讲师 |
 
-#### 2.3.3 第二阶段：专家直达
+<!-- #### 2.3.3 第二阶段：专家直达
 
 | 功能点 | 说明 |
 |--------|------|
 | 开放范围 | 仅对标记为「信得过专家」（trainers.is_trusted=1）的讲师开放直达通道 |
-| 对接方式 | 虚拟号码通话，初期由人工介入协调 |
+| 对接方式 | 虚拟号码通话，初期由人工介入协调 | -->
 
 ---
 
@@ -87,7 +90,8 @@
 | 字段名 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|
 | id | int | 是 | 自增 | 主键 |
-| trainer_id | int | 否 | NULL | 执行讲师 ID，关联 trainers.id（可为空，如机构独立执行） |
+<!-- | trainer_id | int | 否 | NULL | 执行讲师 ID，关联 trainers.id（可为空，如机构独立执行） | -->
+| trainer_id | int | 是 | — | 执行讲师 ID，关联 trainers.id |
 | organization_id | int | 否 | NULL | 执行机构 ID，关联 organizations.id（可为空） |
 | title | varchar(200) | 是 | — | 案例标题 |
 | partner_company | varchar(200) | 是 | — | 合作企业名称 |
@@ -96,14 +100,19 @@
 | solution_summary | text | 否 | NULL | 培训方案摘要 |
 | training_process | text | 否 | NULL | 培训过程描述 |
 | quantified_results | text | 否 | NULL | 量化成果描述 |
-| content | longtext | 否 | NULL | 案例详情（富文本） |
-| cover_image | varchar(500) | 否 | '' | 封面图 URL |
+<!-- | content | longtext | 否 | NULL | 案例详情（富文本） |
+| cover_image | varchar(500) | 否 | '' | 封面图 URL | -->
+| content | longtext | 是 | — | 案例详情（富文本） |
+| cover_image | varchar(500) | 是 | '' | 封面图 URL |
 | status | tinyint | 是 | 0 | 状态：0=草稿(DRAFT), 1=待审核(PENDING), 2=审核通过(APPROVED), 3=审核驳回(REJECTED), 4=已下线(OFFLINE) |
 | reject_reason | varchar(500) | 否 | '' | 审核驳回原因 |
 | is_recommended | tinyint | 否 | 0 | 是否推荐：0=否, 1=是 |
-| click_count | int | 否 | 0 | 点击量 |
+<!-- | click_count | int | 否 | 0 | 点击量 |
 | collection_count | int | 否 | 0 | 收藏数（冗余计数） |
-| share_count | int | 否 | 0 | 分享数（冗余计数） |
+| share_count | int | 否 | 0 | 分享数（冗余计数） | -->
+| click_count | int | 是 | 0 | 点击量 |
+| collection_count | int | 是 | 0 | 收藏数（冗余计数） |
+| share_count | int | 是 | 0 | 分享数（冗余计数） |
 | sort_order | int | 否 | 0 | 自定义排序值，值越大越靠前 |
 | reviewer_id | int | 否 | NULL | 审核人 ID |
 | reviewed_at | datetime | 否 | NULL | 审核时间 |
@@ -153,14 +162,16 @@
 
 ### 3.3 case_trainers — 案例关联讲师表
 
-> 一个案例可关联多位讲师（主讲、协讲等角色），支持展示案例的讲师团队。
+<!-- > 一个案例可关联多位讲师（主讲、协讲等角色），支持展示案例的讲师团队。 -->
+> 一个案例仅关联一位讲师，用于维护案例主讲关系。
 
 | 字段名 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|
 | id | int | 是 | 自增 | 主键 |
 | case_id | int | 是 | — | 关联 cases.id |
 | trainer_id | int | 是 | — | 关联 trainers.id |
-| role | varchar(20) | 是 | 'MAIN' | 讲师角色：MAIN=主讲, ASSISTANT=协讲 |
+<!-- | role | varchar(20) | 是 | 'MAIN' | 讲师角色：MAIN=主讲, ASSISTANT=协讲 | -->
+| role | varchar(20) | 是 | 'MAIN' | 讲师角色：仅 MAIN=主讲 |
 | sort_order | int | 否 | 0 | 排序值 |
 | created_at | datetime | 是 | CURRENT_TIMESTAMP | 创建时间 |
 | updated_at | datetime | 是 | CURRENT_TIMESTAMP | 更新时间 |
@@ -171,10 +182,10 @@
 |--------|------|------|
 | `idx_case_trainers_case_id` | `case_id` | 普通 |
 | `idx_case_trainers_trainer_id` | `trainer_id` | 普通 |
-| `idx_case_trainers_case_trainer` | `case_id, trainer_id` | UNIQUE |
+| `idx_case_trainers_case_id_unique` | `case_id` | UNIQUE |
 
 ---
-
+<!-- 
 ## 4. ER 关系说明
 
 ```mermaid
@@ -236,7 +247,7 @@ erDiagram
     }
 ```
 
----
+--- -->
 
 ## 5. 业务逻辑与规则
 
@@ -248,6 +259,8 @@ erDiagram
         → 后台客服审核
             → 通过(status=2)：案例上线，前台可见
             → 驳回(status=3)：填写驳回原因，可修改后重新提交
+    → 已上线案例(status=2)可编辑，编辑后需重新提交审核(status=1)
+    → 重新审核通过后覆盖线上内容；若审核驳回则保持原线上内容并记录驳回原因
     → 审核通过后 → 管理员可操作下线(status=4)
 ```
 
@@ -258,6 +271,7 @@ erDiagram
 [待审核](1) --审核通过--> [审核通过](2)
 [待审核](1) --审核驳回--> [审核驳回](3)
 [审核驳回](3) --修改后重新提交--> [待审核](1)
+[审核通过](2) --编辑并重新提交--> [待审核](1)
 [审核通过](2) --管理员下线--> [已下线](4)
 [已下线](4) --管理员重新上线--> [审核通过](2)
 ```
@@ -281,21 +295,35 @@ erDiagram
 ### 5.5 浏览量防刷策略
 
 - 同一登录用户对同一案例，30 分钟内重复访问不重复计数
-- 未登录用户按 IP + User-Agent 指纹去重，30 分钟内不重复计数
+<!-- - 未登录用户按 IP + User-Agent 指纹去重，30 分钟内不重复计数 -->
+- 未登录用户按 `device_id（Cookie / LocalStorage） + IP + User-Agent` 联合去重，30 分钟内不重复计数
+- 若 `device_id` 缺失（禁用 Cookie/存储等），降级按 `IP + User-Agent` 去重
 - `click_count` 通过事件驱动异步更新，不阻塞页面请求
 
 ### 5.6 案例列表排序规则
 
-1. 推荐案例（`is_recommended=1`）优先展示
+<!-- 1. 推荐案例（`is_recommended=1`）优先展示
 2. 同级别按 `sort_order` 降序
-3. 同排序值按 `updated_at` 降序
+3. 同排序值按 `updated_at` 降序 -->
+1. 默认排序唯一公式：`ORDER BY is_recommended DESC, sort_order DESC, updated_at DESC`
+2. 点击量排序公式：`ORDER BY click_count DESC, is_recommended DESC, sort_order DESC, updated_at DESC`
+3. 除“按点击量排序”外，所有案例列表接口统一使用默认排序公式，不再使用“推荐权重”口径
 
-### 5.7 案例与讲师/机构关联规则
+<!-- ### 5.7 案例与讲师/机构关联规则
 
 - 一个案例可关联一个执行讲师（`trainer_id`）和/或一个执行机构（`organization_id`），也可都不关联（平台自建案例）
 - 通过 `case_trainers` 表支持一个案例关联多位参与讲师（主讲 + 协讲），`trainer_id` 为主要执行讲师的冗余字段
 - 案例详情页展示关联讲师/机构信息时，仅展示状态正常（审核通过）的讲师/机构
-- 讲师/机构被禁用时，不影响案例本身的展示状态，但隐藏讲师/机构跳转链接
+- 讲师/机构被禁用时，不影响案例本身的展示状态，但隐藏讲师/机构跳转链接 -->
+
+### 5.7 案例与讲师/机构关联规则
+
+- 一个案例必须关联一个执行讲师（`trainer_id`）
+- 一个案例在 `case_trainers` 中仅允许 1 条讲师记录，且 `role=MAIN`
+- `cases.trainer_id` 必须在 `case_trainers` 中存在对应记录（同一 `case_id` + `trainer_id`）
+- 编辑案例时，必须同步维护 `cases` 与 `case_trainers` 两张表
+- 一个案例可关联一个机构（`organization_id`），也可不关联
+
 
 ### 5.8 案例定制需求流转
 
@@ -311,7 +339,7 @@ erDiagram
 
 | 依赖模块 | 关系说明 |
 |----------|----------|
-| **讲师模块 (trainers)** | `cases.trainer_id → trainers.id`，案例关联执行讲师；`case_trainers.trainer_id → trainers.id`，案例关联多位参与讲师 |
+| **讲师模块 (trainers)** | `cases.trainer_id → trainers.id`，案例关联执行讲师；`case_trainers.trainer_id → trainers.id`，维护案例主讲映射关系 |
 | **机构模块 (organizations)** | `cases.organization_id → organizations.id`，案例关联执行机构 |
 | **分类模块 (categories)** | `cases.training_field_id` 和 `cases.industry_id` 关联分类表，用于按领域/行业筛选 |
 | **培训需求模块 (demands)** | 案例详情「定制类似方案」入口创建需求记录，`demands.demand_type=CASE_CUSTOM` |
@@ -324,7 +352,7 @@ erDiagram
 
 ---
 
-## 7. 参考旧表
+<!-- ## 7. 参考旧表
 
 ### 7.1 旧表到新表的映射关系
 
@@ -360,4 +388,4 @@ tk_case_pic.isdefault  → 通过 sort_order 实现默认图排序
 3. **审核流程新增**：旧系统仅有 `isopen` 开关，新系统引入完整的草稿 → 审核 → 上线 → 下线状态流转
 4. **图片管理增强**：新增自动萃取标记、图片尺寸记录、缩略图支持
 5. **互动功能新增**：收藏、分享、定制需求入口为全新功能
-6. **时间字段规范化**：旧系统 `createtime` 为 `int` 时间戳，新系统统一使用 `datetime`
+6. **时间字段规范化**：旧系统 `createtime` 为 `int` 时间戳，新系统统一使用 `datetime` -->

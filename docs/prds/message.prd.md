@@ -2,7 +2,7 @@
 
 > 模块编码：`message`  
 > 版本：v1.0  
-> 最后更新：2026-03-19
+> 最后更新：2026-03-23
 
 ---
 
@@ -75,27 +75,27 @@
 
 | 触发事件 | 事件编码 | SMS | WECHAT | PLATFORM | 说明 |
 |----------|---------|:---:|:------:|:--------:|------|
-| 讲师/机构入驻审核通过 | `ENTRY_REVIEW_APPROVED` | ✅ | — | ✅ | 审核通过通知 |
-| 讲师/机构入驻审核驳回 | `ENTRY_REVIEW_REJECTED` | ✅ | — | ✅ | 审核驳回通知，附驳回原因 |
-| 公开课开课提醒 | `COURSE_OPENING_REMINDER` | — | ✅ | ✅ | 开课前 N 天提醒已报名用户 |
-| 公开课信息变更 | `COURSE_INFO_CHANGED` | — | ✅ | ✅ | 通知已报名用户课程时间/地点/讲师变更 |
-| 公开课确认开课 | `COURSE_CONFIRMED` | — | ✅ | ✅ | 通知已预约用户课程已确认开课 |
-| 公开课已取消 | `COURSE_CANCELLED` | ✅ | ✅ | ✅ | 通知已预约/已报名用户课程取消 |
-| 支付成功 | `PAYMENT_SUCCESS` | — | ✅ | ✅ | 订单支付完成确认 |
-| 退款状态更新 | `REFUND_STATUS_UPDATED` | — | ✅ | ✅ | 退款审核通过/驳回/到账通知 |
-| 提现成功 | `WITHDRAWAL_SUCCESS` | ✅ | ✅ | ✅ | 提现打款到账通知 |
-| 需求同步失败告警 | `DEMAND_SYNC_FAILED` | ✅ | — | ✅ | 通知前后台客服，需人工介入 |
-| 版权课审核结果 | `COPYRIGHT_REVIEW_RESULT` | ✅ | — | ✅ | 版权课审核通过/驳回通知 |
-| 增值工具付费成功 | `TOOL_PAYMENT_SUCCESS` | — | ✅ | ✅ | 增值工具开通成功 |
-| 增值工具付费失败 | `TOOL_PAYMENT_FAILED` | — | — | ✅ | 付费失败提示 |
-| 充值折扣到账 | `RECHARGE_DISCOUNT_ARRIVED` | — | ✅ | ✅ | 充值成功，余额与折扣已生效 |
-| 报名确认 | `REGISTRATION_CONFIRMED` | — | ✅ | ✅ | 公开课报名成功确认 |
-| 草稿即将过期 | `DRAFT_EXPIRING` | — | — | ✅ | 草稿 48 小时即将到期提醒 |
-| 客服消息未读超时 | `CS_MESSAGE_UNREAD_TIMEOUT` | ✅ | — | ✅ | 客服 5 分钟未读消息告警 |
-| 远程登录告警 | `REMOTE_LOGIN_ALERT` | ✅ | — | ✅ | 异地登录安全提醒 |
-| 课程审核结果 | `COURSE_REVIEW_RESULT` | ✅ | — | ✅ | 课程审核通过/驳回通知 |
-| 需求处理进度 | `DEMAND_PROGRESS_UPDATED` | — | — | ✅ | 需求状态变更通知企业用户 |
-| 发票开具完成 | `INVOICE_ISSUED` | — | ✅ | ✅ | 发票已开具，可下载 |
+| 讲师/机构入驻审核通过 | `ENTRY_REVIEW_APPROVED` |  ✅  | — | ✅ | 审核通过通知 |
+| 讲师/机构入驻审核驳回 | `ENTRY_REVIEW_REJECTED` |  ✅  | — | ✅ | 审核驳回通知，附驳回原因 |
+| 公开课开课提醒 | `COURSE_OPENING_REMINDER` |  ✅  | ✅ | ✅ | 开课前 N 天提醒已报名用户 |
+| 公开课信息变更 | `COURSE_INFO_CHANGED` |  ✅  | ✅ | ✅ | 通知已报名用户课程时间/地点/讲师变更 |
+| 公开课确认开课 | `COURSE_CONFIRMED` |  ✅  | ✅ | ✅ | 通知已预约用户课程已确认开课 |
+| 公开课已取消 | `COURSE_CANCELLED` |  ✅  | ✅ | ✅ | 通知已预约/已报名用户课程取消 |
+| 支付成功 | `PAYMENT_SUCCESS` |  ✅   | ✅ | ✅ | 订单支付完成确认 |
+| 退款状态更新 | `REFUND_STATUS_UPDATED` |  —  | ✅ | ✅ | 退款审核通过/驳回/到账通知 |
+| 提现成功 | `WITHDRAWAL_SUCCESS` |  ✅  | ✅ | ✅ | 提现打款到账通知 |
+| 需求同步失败告警 | `DEMAND_SYNC_FAILED` |  ✅  | — | ✅ | 通知前后台客服，需人工介入 |
+| 版权课审核结果 | `COPYRIGHT_REVIEW_RESULT` |  ✅  | — | ✅ | 版权课审核通过/驳回通知 |
+| 增值工具付费成功 | `TOOL_PAYMENT_SUCCESS` |  —  | ✅ | ✅ | 增值工具开通成功 |
+| 增值工具付费失败 | `TOOL_PAYMENT_FAILED` |  —  | — | ✅ | 付费失败提示 |
+| 充值折扣到账 | `RECHARGE_DISCOUNT_ARRIVED` |  —  | ✅ | ✅ | 充值成功，余额与折扣已生效 |
+| 报名确认 | `REGISTRATION_CONFIRMED` |  —  | ✅ | ✅ | 公开课报名成功确认 |
+| 草稿即将过期 | `DRAFT_EXPIRING` |  —  | — | ✅ | 草稿 48 小时即将到期提醒 |
+| 客服消息未读超时 | `CS_MESSAGE_UNREAD_TIMEOUT` |  ✅  | — | ✅ | 客服 5 分钟未读消息告警 |
+| 远程登录告警 | `REMOTE_LOGIN_ALERT` |  ✅  | — | ✅ | 异地登录安全提醒 |
+| 课程审核结果 | `COURSE_REVIEW_RESULT` |  ✅  | — | ✅ | 课程审核通过/驳回通知 |
+| 需求处理进度 | `DEMAND_PROGRESS_UPDATED` |  —  | — | ✅ | 需求状态变更通知企业用户 |
+| 发票开具完成 | `INVOICE_ISSUED` |  —  | ✅ | ✅ | 发票已开具，可下载 |
 
 ### 2.2 站内消息（用户端）
 
@@ -313,92 +313,6 @@
 
 ---
 
-## 4. ER 关系说明
-
-### 4.1 ER 图
-
-```mermaid
-erDiagram
-    notification_templates ||--o{ notifications : "模板生成站内消息"
-    notification_templates ||--o{ sms_send_logs : "模板生成短信记录"
-    notification_templates ||--o{ wechat_send_logs : "模板生成微信消息记录"
-    users ||--o{ notifications : "用户接收站内消息"
-    users ||--o{ notification_configs : "用户配置通知偏好"
-    users ||--o{ sms_send_logs : "用户关联短信记录"
-    users ||--o{ wechat_send_logs : "用户关联微信记录"
-
-    notification_templates {
-        int id PK "主键"
-        varchar template_code UK "模板编码"
-        varchar template_name "模板名称"
-        varchar channel "通道 SMS/WECHAT/PLATFORM"
-        varchar trigger_event "触发事件编码"
-        text content_template "内容模板"
-        varchar title_template "标题模板"
-        varchar sms_sign "短信签名"
-        varchar sms_vendor_template_id "运营商模板ID"
-        varchar wechat_template_id "微信模板ID"
-        varchar variables "模板变量列表"
-        varchar related_type "关联业务类型"
-        tinyint is_force "是否强制发送"
-        tinyint is_active "是否启用"
-        datetime created_at "创建时间"
-        datetime updated_at "更新时间"
-    }
-
-    notifications {
-        int id PK "主键"
-        int user_id FK "接收用户ID"
-        int template_id FK "关联模板ID"
-        varchar channel "通道"
-        varchar title "标题"
-        text content "内容"
-        tinyint is_read "是否已读"
-        datetime read_at "阅读时间"
-        tinyint is_deleted "是否删除"
-        varchar related_type "关联业务类型"
-        int related_id "关联业务ID"
-        varchar sender_type "发送者类型"
-        datetime created_at "创建时间"
-    }
-
-    notification_configs {
-        int id PK "主键"
-        int user_id FK "用户ID"
-        varchar channel "通知通道"
-        varchar event_type "事件类型"
-        tinyint is_enabled "是否启用"
-        datetime created_at "创建时间"
-        datetime updated_at "更新时间"
-    }
-
-    sms_send_logs {
-        int id PK "主键"
-        int user_id FK "用户ID"
-        varchar phone "手机号"
-        varchar template_code "模板编码"
-        varchar content "短信内容"
-        varchar status "发送状态"
-        varchar vendor_msg_id "运营商消息ID"
-        int retry_count "重试次数"
-        datetime sent_at "发送时间"
-        datetime created_at "创建时间"
-    }
-
-    wechat_send_logs {
-        int id PK "主键"
-        int user_id FK "用户ID"
-        varchar openid "微信openid"
-        varchar template_code "模板编码"
-        varchar wechat_template_id "微信模板ID"
-        json data "模板数据"
-        varchar status "发送状态"
-        varchar vendor_msg_id "微信消息ID"
-        int retry_count "重试次数"
-        datetime sent_at "发送时间"
-        datetime created_at "创建时间"
-    }
-```
 
 ### 4.2 关系说明
 
@@ -560,48 +474,3 @@ erDiagram
 
 ---
 
-## 7. 参考旧表
-
-### 7.1 旧表到新表的映射关系
-
-| 旧表 | 新表 | 说明 |
-|------|------|------|
-| `tk_announce` | `notifications` | 旧公告/通知表，字段简单（id, uid, type, title, content, status, ctime），新系统扩展为完整的站内消息模型，增加模板关联、业务关联跳转、逻辑删除、发送者信息等 |
-| —（新增） | `notification_templates` | 通知模板为全新功能，旧系统无统一模板管理 |
-| —（新增） | `notification_configs` | 用户通知偏好为全新功能，旧系统无此能力 |
-| —（新增） | `sms_send_logs` | 短信发送日志为全新功能，旧系统短信发送无日志记录 |
-| —（新增） | `wechat_send_logs` | 微信发送日志为全新功能，旧系统无微信模板消息功能 |
-
-### 7.2 关键字段对照
-
-```
-tk_announce.id        → notifications.id
-tk_announce.uid       → notifications.user_id
-tk_announce.type      → notifications.related_type（旧类型枚举需重新映射）
-tk_announce.title     → notifications.title
-tk_announce.content   → notifications.content
-tk_announce.status    → notifications.is_read（旧 status 表示已读/未读，映射为 0/1）
-tk_announce.ctime     → notifications.created_at（int 时间戳 → datetime）
-```
-
-### 7.3 关键变更点
-
-1. **统一模板管理**：旧系统消息内容硬编码在业务代码中，新系统引入 `notification_templates` 表统一管理模板，支持后台动态配置，无需改代码即可调整通知内容
-2. **多通道支持**：旧系统仅有站内消息（`tk_announce`），新系统扩展为 SMS + 微信 + 站内消息三通道，通过统一事件驱动自动路由
-3. **用户通知偏好**：旧系统无通知偏好设置，新系统允许用户按事件×通道维度自定义通知开关
-4. **发送日志与追踪**：旧系统无短信和微信的发送日志，新系统完整记录每条外发消息的状态、运营商/微信响应、失败原因与重试次数
-5. **事件驱动架构**：旧系统消息发送耦合在业务代码中，新系统通过 RabbitMQ 事件总线解耦，各业务模块发布事件，消息模块统一消费并分发
-6. **失败重试机制**：新增短信和微信发送失败的自动重试策略（指数退避），旧系统发送失败后无重试
-7. **消息关联跳转**：新增 `related_type` + `related_id`，站内消息可直接跳转到关联业务详情页，提升用户体验
-8. **强制通知机制**：新增 `is_force` 标识，安全类和资金类通知强制发送，不受用户偏好影响
-9. **时间字段规范化**：旧 `ctime` 为 `int` 时间戳，新系统统一使用 `datetime`
-10. **逻辑删除**：旧系统 `tk_announce` 删除为物理删除，新系统改为逻辑删除（`is_deleted`），保留数据用于审计统计
-
-### 7.4 数据迁移注意事项
-
-- 旧 `tk_announce.status` 中表示已读/未读的值需映射为 `notifications.is_read`（具体映射值需确认旧系统枚举定义）
-- 旧 `tk_announce.type` 需建立与新 `related_type` 枚举的映射关系
-- 旧 `tk_announce.ctime`（int 时间戳）转换为 `datetime` 格式
-- 旧表中无 `template_id` 关联，迁移后的历史消息 `template_id` 设为 NULL
-- 旧表中无 `related_id`，迁移时尝试从 `content` 中解析关联业务 ID，无法解析则设为 NULL
-- 迁移后所有历史消息的 `is_deleted` 设为 0，`sender_type` 设为 `SYSTEM`
