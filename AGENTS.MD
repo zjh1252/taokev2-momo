@@ -73,7 +73,10 @@
 
 
 ## 禁止读取
-- /README.md
+- /docs/ai-prd-exports
+- /docs/tmp
+- /tmp
+
 
 ## 已知存在的坑
 - 
