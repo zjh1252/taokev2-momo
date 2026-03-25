@@ -24,11 +24,11 @@
 
 | 功能点 | 说明 |
 |--------|------|
-| 入驻申请 | 经纪人自主提交入驻申请，填写个人/公司名称（必填）、联系信息（手机号、邮箱）、从业经历、核心运营领域，上传资质证明（行业认证、合作讲师证明等） |
+| 入驻申请 | 经纪人自主提交入驻申请，填写个人名称及联系信息（手机号、邮箱）、从业经历、核心运营领域；可选填写所属公司。未填写公司则按个人经纪人入驻。上传资质证明（行业认证、合作讲师证明等） |
 | 后台审核 | 由后台客服审核申请材料的资质真实性与信息完整性，支持「通过 / 驳回」操作，驳回需填写具体原因 |
 | 审核通知 | 审核结果通过短信 + 平台站内消息通知经纪人 |
 | 草稿保留 | 未完成的入驻申请草稿保留 **30 天**，超时后自动**物理删除** |
-<!-- | 经纪人类型 | 区分个人经纪人与公司经纪人（type 字段），二者入驻流程一致。<br>**【一期限制说明】：当前仅支持单账号管理，暂不支持公司子员工账号体系（RBAC），公司多业务员需共用该主账号。** | -->
+| 个人中心公司维护 | 经纪人可在个人中心新增所属公司或修改当前公司；若提交绑定到已有公司，需该公司管理员审核确认后生效 |
 
 ### 2.2 讲师资源库管理
 
@@ -123,7 +123,7 @@
 | id | int | 是 | 自增主键 | 主键 |
 | agent_id | int | 是 | — | 经纪人 ID（关联 agents.id） |
 | trainer_id | int | 是 | — | 讲师用户 ID（关联 users.id，支持影子账号 ID） |
-| status | tinyint | 是 | 0 | 绑定状态：0=待讲师确认, 1=已绑定, 2=讲师拒绝, 3=已解绑, 4=影子状态(待认领) |
+| status | tinyint | 是 | 0 | 绑定状态：0=待讲师确认, 1=已绑定, 2=讲师拒绝, 3=已解绑 |
 | authorization | tinyint | 是 | 0 | 授权级别：0=仅查看, 1=可编辑部分信息（如报价） |
 | cooperation_proof_url | varchar(500) | 否 | '' | 合作证明文件 URL（如签约合同扫描件） |
 | tags | varchar(500) | 否 | '' | 经纪人为讲师打的标签，逗号分隔 |
@@ -197,30 +197,31 @@
 
 ### 5.1 入驻申请流程
 
-1. 用户注册并登录后，在经纪人入驻页面填写申请信息。
-2. 表单可分步填写，中途离开自动保存为**草稿**（status=0），草稿有效期 **30 天**，超时由定时任务自动进行**物理删除**。
-3. 提交申请后状态变为**待审核**（status=1）。
-4. 后台客服审核：
+1. 用户注册并登录后，在经纪人入驻页面填写申请信息；可在注册阶段直接填写所属公司。
+2. 若未填写所属公司，则默认作为个人经纪人入驻。
+3. 表单可分步填写，中途离开自动保存为**草稿**（status=0），草稿有效期 **30 天**，超时由定时任务自动进行**物理删除**。
+4. 提交申请后状态变为**待审核**（status=1）。
+5. 后台客服审核：
    - 通过 → status=2，短信 + 站内消息通知经纪人，经纪人账号激活经纪人角色权限。
    - 驳回 → status=3，写入 reject_reason，短信 + 站内消息通知经纪人，经纪人可修改后重新提交。
-5. 一个用户仅可关联一条经纪人记录（user_id 唯一索引）。
+6. 一个用户仅可关联一条经纪人记录（user_id 唯一索引）。
 
 ### 5.2 讲师绑定流程
 
 1. 经纪人在资源库中发起「添加讲师」，支持两种模式：
    - **邀请已有讲师**：通过手机号等检索平台已有讲师，发起绑定邀请并上传合作证明。
-   - **代创建（影子讲师）**：录入新讲师基本信息（姓名、手机号等），系统自动在 `users` 表创建影子账号，并立即生成绑定记录。
+   - **代创建讲师**：录入新讲师基本信息（姓名、手机号等），系统自动在 `users` 表创建账号，并立即生成绑定记录。
 2. 绑定状态扭转：
    - **邀请模式**：创建 `agent_trainers` 记录，`status=0`（待讲师确认）。讲师收到站内信邀请。讲师确认后 `status=1`（已绑定），拒绝则 `status=2`。
-   - **代创建模式**：创建 `agent_trainers` 记录，`status=4`（影子状态/待认领）。此状态下，经纪人可**立即**将该讲师用于业务推荐和资源展示。
-3. 影子讲师认领（针对代创建模式）：
-   - 经纪人将专属邀请链接发送给影子讲师。
+   - **代创建模式**：创建 `agent_trainers` 记录，`status=4`（待认领）。
+3. 代创讲师认领（针对代创建模式）：
+   - 经纪人将专属邀请链接发送给代创讲师。
    - 讲师点击链接，使用预留手机号进行验证。
-   - 验证通过后，补充必要信息/密码，影子账号转为正式用户账号。
+   - 验证通过后，补充必要信息/密码，账号转为正式用户账号。
    - 系统自动将 `agent_trainers` 状态更新为 `status=1`（已绑定），记录 `confirmed_at`。
-   - 影子讲师自创建起 14 天内未认领，系统定时任务自动删除影子账号及对应 `agent_trainers` 绑定记录。
+   - 代创讲师自创建起 14 天内未认领，系统定时任务自动删除代创账号及对应 `agent_trainers` 绑定记录。
 4. 绑定后经纪人可查看讲师课程/资质信息。
-5. 经纪人仅在讲师设置 authorization=1 后方可编辑讲师报价等有限字段（注：影子状态下，由于账号由经纪人代建，经纪人默认拥有编辑权限）。
+5. 经纪人仅在讲师设置 authorization=1 后方可编辑讲师报价等有限字段（注：代创建状态下，由于账号由经纪人代建，经纪人默认拥有编辑权限）。
 6. 任何一方可发起**解绑**操作 → status=3，记录 unbound_at。
 7. 同一经纪人与同一讲师之间仅允许一条有效绑定记录（唯一索引约束，解绑后如需重新绑定则更新原记录状态）。
 
@@ -256,13 +257,22 @@
 
 1. 草稿记录在创建时设置 draft_expired_at = created_at + 30 天。
 2. 定时任务每天扫描一次，将超过 draft_expired_at 且 status=0 的记录进行**物理删除**。
-3. 影子讲师创建时设置 shadow_expired_at = created_at + 14 天；超过期限且未认领（status=4）时，定时任务自动删除影子账号及绑定关系。
+3. 代创讲师创建时设置 expired_at = created_at + 14 天；超过期限且未认领（status=4）时，定时任务自动删除代创账号及绑定关系。
 
-### 5.8 公司账号体系说明（一期边界）
+### 5.8 经纪人公司关联与权限规则
 
-1. **单账号机制**：当前重构一期针对公司型经纪人，暂不支持企业子账号（RBAC）体系分配与业务员资源隔离。
-2. **资源共享**：一家公司的多名业务员目前需共用一个账号密码登录平台，讲师资源与客户对接进度在公司内部完全公开共享，无法区分讲师/资源具体由哪位业务员添加。
-3. **后续迭代评估**：鉴于旧系统曾存在 `parent_id`（上级代理/主子账号关系），如果现有业务强依赖“业务员业绩独立核算”或“内部讲师资源隔离”，需与业务方确认当前共用账号方案是否满足基本诉求。若不满足，需在后续版本专项迭代「企业子账号体系」。
+1. 经纪人可在入驻阶段填写所属公司；也可在个人中心后续新增所属公司或修改所属公司。
+2. 未填写或未绑定公司的经纪人按个人经纪人规则运行。
+3. 若目标公司当前尚无已关联经纪人，则第一个完成关联的经纪人自动成为该公司的公司管理员。
+4. 若目标公司已有公司管理员，经纪人提交绑定申请后需由该公司管理员审核确认，确认通过后方可完成公司绑定。
+5. 公司管理员拥有公司信息维护权限，包括公司基础资料更新与对外展示信息维护。
+6. 同公司其他经纪人为普通成员，默认不具备公司信息修改权限，仅可在自身业务范围内使用公司主体开展经纪业务。
+7. 公司管理员可将管理员身份转让给同公司内其他经纪人；转让成功后：
+   - 原管理员降级为普通成员；
+   - 新管理员立即获得公司信息维护权限；
+   - 全程记录操作日志，便于审计追溯。
+8. 任一时点公司仅允许存在 1 名公司管理员，不允许并存多管理员。
+9. 若公司当前仅剩 1 名经纪人，则不允许执行管理员转让操作。
 
 ---
 
@@ -270,7 +280,7 @@
 
 | 依赖模块 | 关系说明 |
 |----------|----------|
-| **用户模块（users）** | agents.user_id → users.id，经纪人必须先注册为平台用户；agent_trainers.trainer_id → users.id，讲师也是用户（包含代创建的影子账号） |
+| **用户模块（users）** | agents.user_id → users.id，经纪人必须先注册为平台用户；agent_trainers.trainer_id → users.id，讲师也是用户（包含代创建的账号） |
 | **分类模块（categories）** | agent_categories.category_id、agent_trainer_categories.category_id 引用全局培训领域分类表 |
 | **讲师模块（trainers）** | 经纪人绑定的讲师需已通过讲师入驻认证；经纪人可查看讲师的课程、资质等信息 |
 | **消息通知模块** | 入驻审核结果通知、讲师绑定邀请/确认/拒绝通知，均通过消息通知模块发送（短信 + 站内消息） |
@@ -279,109 +289,3 @@
 | **数据统计模块** | 讲师曝光量、点赞量、评价量等数据来源于平台公共统计服务 |
 
 ---
-
-<!-- ## 7. 参考旧表
-
-以下为旧系统中经纪人相关的数据表，供重构时对照参考。新表在旧表基础上进行了以下主要改进：
-
-- 统一时间字段为 `datetime` 类型（旧表使用 `int` 时间戳）
-- 统一主键为 `id` 且 `int` 自增
-- 所有表增加 `created_at` / `updated_at` 字段
-- 地区字段由 `int` 改为 `varchar` 编码（适配标准行政区划编码）
-- 新增文件管理表 `agent_trainer_files`，支持多格式文件上传
-- 合并旧 `tk_agent_trainer_order` 排序功能到 `agent_trainers.sort_order` 字段
-- 合并旧 `tk_agent_trainer_cate` 排序功能到 `agent_trainer_categories.sort_order` 字段
-- 暂不迁移旧表 `tk_agent_info` 中的 `parent_id` 字段（因一期明确不支持公司子员工账号与上下级代理体系）。
-
-### 旧表结构
-
-#### tk_agent_info（经纪信息表）
-
-```sql
-CREATE TABLE `tk_agent_info` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `uid` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '用户 UID',
-  `show_name` varchar(255) NOT NULL DEFAULT '' COMMENT '真实姓名/公司名',
-  `gender` tinyint(1) DEFAULT '0' COMMENT '性别 1=男，2=女，0=未知',
-  `signature` varchar(255) NOT NULL DEFAULT '' COMMENT '签名',
-  `cate` varchar(50) NOT NULL DEFAULT '' COMMENT '领域（大分类）',
-  `subcate` varchar(50) NOT NULL DEFAULT '' COMMENT '子领域',
-  `province` int(5) unsigned NOT NULL DEFAULT '0' COMMENT '省份',
-  `city` int(5) unsigned NOT NULL DEFAULT '0' COMMENT '城市',
-  `email` varchar(255) NOT NULL DEFAULT '' COMMENT '邮箱',
-  `mobile` varchar(50) NOT NULL DEFAULT '' COMMENT '手机号',
-  `intro` text NOT NULL COMMENT '介绍',
-  `type` tinyint(1) unsigned NOT NULL DEFAULT '0' COMMENT '个人(1)，公司(2)',
-  `parent_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '上级代理 ID',
-  `isopen` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否允许自动加入',
-  `createtime` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '创建时间戳',
-  `updatetime` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '更新时间戳',
-  PRIMARY KEY (`id`)
-) COMMENT='经纪信息表';
-```
-
-#### tk_agent_trainer（经纪人-讲师关系表）
-
-```sql
-CREATE TABLE `tk_agent_trainer` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `agent_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '代理 ID',
-  `trainer_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '讲师 ID',
-  `status` tinyint(11) unsigned NOT NULL DEFAULT '0' COMMENT '状态: 0 未知；1 正常；2 申请中；3 已解除；4 已申请通过但不显示',
-  `sort` int(11) NOT NULL DEFAULT '0' COMMENT '排序',
-  `createtime` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '创建时间戳',
-  `updatetime` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '更新时间戳',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `agent_id` (`agent_id`,`trainer_id`)
-) COMMENT='经纪人-讲师关系表';
-```
-
-#### tk_agent_cate（代理讲师分类）
-
-```sql
-CREATE TABLE `tk_agent_cate` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `agent_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '代理 ID',
-  `cate_name` varchar(100) NOT NULL DEFAULT '' COMMENT '分类名称',
-  `createtime` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '创建时间',
-  `updatetime` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '更新时间',
-  `sort` smallint(5) unsigned NOT NULL DEFAULT '0' COMMENT '排序',
-  `disabled` tinyint(11) unsigned NOT NULL DEFAULT '0' COMMENT '是否禁用: 0 未禁用；1 已禁用',
-  PRIMARY KEY (`id`)
-) COMMENT='代理讲师分类';
-```
-
-#### tk_agent_trainer_cate（代理讲师分类排序）
-
-```sql
-CREATE TABLE `tk_agent_trainer_cate` (
-  `agent_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '代理 ID',
-  `agent_cate_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT 'tk_agent_cate 表 id',
-  `trainer_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '讲师 ID',
-  `sort` smallint(11) unsigned NOT NULL DEFAULT '9999' COMMENT '顺序',
-  `updatetime` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '创建时间',
-  PRIMARY KEY (`agent_cate_id`,`trainer_id`)
-) COMMENT='代理讲师分类排序';
-```
-
-#### tk_agent_trainer_order（门户讲师排序）
-
-```sql
-CREATE TABLE `tk_agent_trainer_order` (
-  `agent_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '门户 ID',
-  `trainer_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '讲师 ID',
-  `order_num` smallint(10) unsigned NOT NULL DEFAULT '0' COMMENT '顺序',
-  PRIMARY KEY (`agent_id`,`trainer_id`)
-) COMMENT='门户讲师排序';
-```
-
-### 新旧表映射关系
-
-| 旧表 | 新表 | 说明 |
-|------|------|------|
-| tk_agent_info | agents | 经纪人主表，新增审核流程字段、草稿过期时间、资质文件JSON、地区编码改为 varchar |
-| tk_agent_trainer | agent_trainers | 绑定关系表，新增授权级别、讲师等级、确认/解绑时间；排序字段合并自 tk_agent_trainer_order |
-| tk_agent_cate | agent_categories | 经纪人自身运营领域，改为引用全局 categories 表，不再独立维护分类名称 |
-| tk_agent_trainer_cate | agent_trainer_categories | 讲师的培训领域分类，改为引用全局 categories 表 |
-| tk_agent_trainer_order | agent_trainers.sort_order | 合并到绑定关系表的 sort_order 字段，不再单独建表 |
-| —（新增） | agent_trainer_files | 新增文件管理表，支持多格式文件上传（DOCX/PDF/PPT/JPG/PNG） | -->
