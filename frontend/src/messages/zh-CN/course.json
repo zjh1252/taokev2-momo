@@ -1,0 +1,19 @@
+{
+  "list": {
+    "title": "全部课程",
+    "subtitle": "为企业团队精选的专业培训课程",
+    "empty": "暂无课程",
+    "meta": {
+      "title": "课程列表 — 淘课网",
+      "description": "浏览企业培训精品课程"
+    }
+  },
+  "detail": {
+    "enroll": "立即报名",
+    "duration": "共 {hours} 课时",
+    "instructor": "讲师",
+    "meta": {
+      "suffix": "淘课网"
+    }
+  }
+}

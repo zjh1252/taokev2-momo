@@ -36,7 +36,7 @@
 
 - 前端技术栈:
   - nextjs ^16 + tailwind + shadcn-ui
-  - i18n 采用 next-intl ^4.8
+  - i18n 采用 next-intl
   - 主题参考 themes 目录下
   - 低耦合,模块化
 

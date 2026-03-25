@@ -1,0 +1,15 @@
+{
+  "site": {
+    "title": "淘课网 — 企业培训采购平台",
+    "description": "连接培训需求方与资源供给方"
+  },
+  "save": "保存",
+  "cancel": "取消",
+  "confirm": "确认",
+  "delete": "删除",
+  "loading": "加载中...",
+  "saving": "保存中...",
+  "footer": {
+    "copyright": "© 2026 淘课网 版权所有"
+  }
+}

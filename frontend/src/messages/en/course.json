@@ -1,0 +1,19 @@
+{
+  "list": {
+    "title": "All Courses",
+    "subtitle": "Professional training courses for enterprise teams",
+    "empty": "No courses available",
+    "meta": {
+      "title": "Courses — TaoKe",
+      "description": "Browse enterprise training courses"
+    }
+  },
+  "detail": {
+    "enroll": "Enroll Now",
+    "duration": "{hours} hours",
+    "instructor": "Instructor",
+    "meta": {
+      "suffix": "TaoKe"
+    }
+  }
+}
