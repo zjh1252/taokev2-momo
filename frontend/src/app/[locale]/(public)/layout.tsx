@@ -5,7 +5,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   return (
     <>
       <AppHeader />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 bg-[var(--page-bg)]">{children}</main>
       <AppFooter />
     </>
   );

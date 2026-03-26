@@ -1,0 +1,15 @@
+{
+  "site": {
+    "title": "淘課網 — 企業培訓採購平台",
+    "description": "連接培訓需求方與資源供給方"
+  },
+  "save": "儲存",
+  "cancel": "取消",
+  "confirm": "確認",
+  "delete": "刪除",
+  "loading": "載入中...",
+  "saving": "儲存中...",
+  "footer": {
+    "copyright": "© 2026 淘課網 版權所有"
+  }
+}

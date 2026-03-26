@@ -1,11 +1,27 @@
 {
   "home": "首页",
+  "experts": "专家",
+  "publicCourses": "公开课",
+  "internalCourses": "内训课",
+  "onlineCourses": "在线课",
+  "institutions": "机构",
   "courses": "课程",
   "instructors": "讲师",
   "articles": "文章",
   "cases": "案例",
   "login": "登录",
   "register": "注册",
+  "userCenter": "用户中心",
   "myCourses": "我的课程",
-  "dashboard": "控制台"
+  "dashboard": "控制台",
+  "search": {
+    "placeholder": "关键词搜索...",
+    "category": "培训讲师"
+  },
+  "product": {
+    "label": "培训宝",
+    "enterprise": "企业培训",
+    "learning": "学习管理",
+    "reports": "数据报表"
+  }
 }

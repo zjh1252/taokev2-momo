@@ -2,6 +2,11 @@
 
 export const ROUTES = {
   HOME: '/',
+  EXPERTS: '/experts',
+  PUBLIC_COURSES: '/public-courses',
+  INTERNAL_COURSES: '/internal-courses',
+  ONLINE_COURSES: '/online-courses',
+  INSTITUTIONS: '/institutions',
   COURSES: '/courses',
   INSTRUCTORS: '/instructors',
   ARTICLES: '/articles',

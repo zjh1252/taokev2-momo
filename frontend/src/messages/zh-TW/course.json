@@ -1,0 +1,19 @@
+{
+  "list": {
+    "title": "全部課程",
+    "subtitle": "為企業團隊精選的專業培訓課程",
+    "empty": "暫無課程",
+    "meta": {
+      "title": "課程列表 — 淘課網",
+      "description": "瀏覽企業培訓精品課程"
+    }
+  },
+  "detail": {
+    "enroll": "立即報名",
+    "duration": "共 {hours} 課時",
+    "instructor": "講師",
+    "meta": {
+      "suffix": "淘課網"
+    }
+  }
+}

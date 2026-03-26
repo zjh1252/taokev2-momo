@@ -1,11 +1,27 @@
 {
   "home": "Home",
+  "experts": "Experts",
+  "publicCourses": "Open Courses",
+  "internalCourses": "In-House Training",
+  "onlineCourses": "Online Courses",
+  "institutions": "Institutions",
   "courses": "Courses",
   "instructors": "Instructors",
   "articles": "Articles",
   "cases": "Cases",
   "login": "Login",
   "register": "Register",
+  "userCenter": "User Center",
   "myCourses": "My Courses",
-  "dashboard": "Dashboard"
+  "dashboard": "Dashboard",
+  "search": {
+    "placeholder": "Search...",
+    "category": "Trainers"
+  },
+  "product": {
+    "label": "TrainPro",
+    "enterprise": "Enterprise Training",
+    "learning": "Learning Management",
+    "reports": "Analytics"
+  }
 }

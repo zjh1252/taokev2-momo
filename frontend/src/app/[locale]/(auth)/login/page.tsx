@@ -1,14 +1,11 @@
-'use client';
+import { getTranslations } from 'next-intl/server';
+import { LoginForm } from '@/modules/auth/components/LoginForm';
 
-import { useTranslations } from 'next-intl';
+export async function generateMetadata() {
+  const t = await getTranslations('auth');
+  return { title: t('login.title') };
+}
 
 export default function LoginPage() {
-  const t = useTranslations('auth');
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-center">{t('login.title')}</h1>
-      {/* TODO: 登录表单 */}
-    </div>
-  );
+  return <LoginForm />;
 }

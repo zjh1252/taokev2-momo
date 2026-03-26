@@ -1,0 +1,20 @@
+/* 淘课网品牌主题 — primary red */
+
+:root {
+  /* 品牌主色 — 覆盖 shadcn 默认 primary */
+  --primary: oklch(0.49 0.22 27);
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* 扩展品牌色 */
+  --primary-container: oklch(0.43 0.19 25);
+
+  /* 首页背景 */
+  --page-bg: #f7f9fc;
+}
+
+.dark {
+  --primary: oklch(0.60 0.22 27);
+  --primary-foreground: oklch(0.985 0 0);
+  --primary-container: oklch(0.50 0.19 25);
+  --page-bg: #0f1115;
+}

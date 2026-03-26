@@ -1,6 +1,8 @@
 import { getRequestConfig } from 'next-intl/server';
 import { routing } from './routing';
 
+const namespaces = ['common', 'nav', 'auth', 'course', 'user', 'home'];
+
 export default getRequestConfig(async ({ requestLocale }) => {
   let locale = await requestLocale;
 
@@ -9,14 +11,14 @@ export default getRequestConfig(async ({ requestLocale }) => {
   }
 
   const loadMessages = async (loc: string) => {
-    const [common, nav, auth, course, user] = await Promise.all([
-      import(`../messages/${loc}/common.json`).then(m => m.default).catch(() => ({})),
-      import(`../messages/${loc}/nav.json`).then(m => m.default).catch(() => ({})),
-      import(`../messages/${loc}/auth.json`).then(m => m.default).catch(() => ({})),
-      import(`../messages/${loc}/course.json`).then(m => m.default).catch(() => ({})),
-      import(`../messages/${loc}/user.json`).then(m => m.default).catch(() => ({})),
-    ]);
-    return { common, nav, auth, course, user };
+    const results = await Promise.all(
+      namespaces.map((ns) =>
+        import(`../messages/${loc}/${ns}.json`)
+          .then((m) => [ns, m.default] as const)
+          .catch(() => [ns, {}] as const),
+      ),
+    );
+    return Object.fromEntries(results);
   };
 
   const messages = await loadMessages(locale);
