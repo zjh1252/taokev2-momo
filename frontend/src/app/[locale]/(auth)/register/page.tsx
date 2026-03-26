@@ -1,14 +1,11 @@
-'use client';
+import { getTranslations } from 'next-intl/server';
+import { RegisterForm } from '@/modules/auth/components/RegisterForm';
 
-import { useTranslations } from 'next-intl';
+export async function generateMetadata() {
+  const t = await getTranslations('auth');
+  return { title: t('register.title') };
+}
 
 export default function RegisterPage() {
-  const t = useTranslations('auth');
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-center">{t('register.title')}</h1>
-      {/* TODO: 注册表单 */}
-    </div>
-  );
+  return <RegisterForm />;
 }
