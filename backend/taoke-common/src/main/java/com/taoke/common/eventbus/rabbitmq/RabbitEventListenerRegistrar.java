@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taoke.common.eventbus.DomainEvent;
 import com.taoke.common.eventbus.DomainEventListener;
 import com.taoke.common.eventbus.EventBusProperties;
+import com.taoke.common.eventbus.TopicResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -19,15 +20,19 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 扫描 {@link DomainEventListener} 注解，自动注册 RabbitMQ 队列与消费者。
  * <p>
+ * Topic 由方法参数类型通过 {@link TopicResolver} 自动推导，启动时校验 topic 唯一性。
+ * <p>
  * 启动流程：
  * <ol>
  *   <li>BeanPostProcessor 阶段：扫描所有 Bean 的方法，收集 {@code @DomainEventListener} 元数据</li>
- *   <li>SmartInitializingSingleton 阶段：所有 Bean 就绪后，创建 Queue → 绑定 Exchange → 注册 MessageListener</li>
+ *   <li>SmartInitializingSingleton 阶段：校验 topic 唯一性 → 创建 Queue → 绑定 Exchange → 注册 MessageListener</li>
  * </ol>
  *
  * @author Fangxinxin
@@ -47,14 +52,23 @@ public class RabbitEventListenerRegistrar implements BeanPostProcessor, SmartIni
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         for (Method method : bean.getClass().getDeclaredMethods()) {
             DomainEventListener annotation = method.getAnnotation(DomainEventListener.class);
-            if (annotation != null) {
-                validateListenerMethod(method);
-                listenerMetas.add(new ListenerMeta(bean, method, annotation.topic()));
-                log.debug("发现事件监听器: {}.{}() → topic={}", bean.getClass().getSimpleName(), method.getName(), annotation.topic());
+            if (annotation == null) {
+                continue;
             }
+
+            validateListenerMethod(method);
+
+            Class<? extends DomainEvent> eventType =
+                    (Class<? extends DomainEvent>) method.getParameterTypes()[0];
+            String topic = TopicResolver.resolve(eventType);
+
+            listenerMetas.add(new ListenerMeta(bean, method, eventType, topic));
+            log.debug("发现事件监听器: {}.{}() → topic={}, eventType={}",
+                    bean.getClass().getSimpleName(), method.getName(), topic, eventType.getSimpleName());
         }
         return bean;
     }
@@ -65,6 +79,8 @@ public class RabbitEventListenerRegistrar implements BeanPostProcessor, SmartIni
             log.info("未发现 @DomainEventListener 注解，跳过事件消费者注册");
             return;
         }
+
+        validateTopicUniqueness();
 
         ConnectionFactory connectionFactory = applicationContext.getBean(ConnectionFactory.class);
         AmqpAdmin amqpAdmin = applicationContext.getBean(AmqpAdmin.class);
@@ -85,8 +101,7 @@ public class RabbitEventListenerRegistrar implements BeanPostProcessor, SmartIni
             container.setQueueNames(queueName);
             container.setMessageListener(message -> {
                 try {
-                    Class<?> eventType = meta.method.getParameterTypes()[0];
-                    Object event = objectMapper.readValue(message.getBody(), eventType);
+                    Object event = objectMapper.readValue(message.getBody(), meta.eventType);
                     meta.method.invoke(meta.bean, event);
                 } catch (Exception e) {
                     log.error("事件消费失败: topic={}, method={}.{}()", meta.topic,
@@ -95,8 +110,26 @@ public class RabbitEventListenerRegistrar implements BeanPostProcessor, SmartIni
             });
             container.start();
 
-            log.info("注册事件消费者: queue={}, topic={}, handler={}.{}()",
-                    queueName, meta.topic, meta.bean.getClass().getSimpleName(), meta.method.getName());
+            log.info("注册事件消费者: queue={}, topic={}, eventType={}, handler={}.{}()",
+                    queueName, meta.topic, meta.eventType.getSimpleName(),
+                    meta.bean.getClass().getSimpleName(), meta.method.getName());
+        }
+    }
+
+    /**
+     * 启动时校验：不同事件类解析出的 topic 不能重复（同一 topic 允许多个消费者）
+     */
+    private void validateTopicUniqueness() {
+        Map<String, String> topicToClass = new HashMap<>();
+        for (ListenerMeta meta : listenerMetas) {
+            String existing = topicToClass.get(meta.topic);
+            String currentClass = meta.eventType.getName();
+            if (existing != null && !existing.equals(currentClass)) {
+                throw new IllegalStateException(String.format(
+                        "事件 topic 冲突！topic='%s' 同时由 [%s] 和 [%s] 解析得到，请重命名其中一个事件类",
+                        meta.topic, existing, currentClass));
+            }
+            topicToClass.put(meta.topic, currentClass);
         }
     }
 
@@ -111,6 +144,6 @@ public class RabbitEventListenerRegistrar implements BeanPostProcessor, SmartIni
         }
     }
 
-    private record ListenerMeta(Object bean, Method method, String topic) {
+    private record ListenerMeta(Object bean, Method method, Class<? extends DomainEvent> eventType, String topic) {
     }
 }
