@@ -1,6 +1,8 @@
 package com.taoke.user.controller;
 
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
+import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.assistant.AssistantRequest;
 import com.taoke.user.dto.assistant.AssistantResponse;
@@ -26,12 +28,14 @@ public class AssistantController {
     private final AssistantService assistantService;
 
     @Operation(summary = "获取助理档案")
+    @RequireRole(BusinessRole.Code.ASSISTANT)
     @GetMapping("/assistants/me")
     public ApiResponse<AssistantResponse> get() {
         return ApiResponse.ok(assistantService.getByUserId(SecurityUtils.getRequiredUserId()));
     }
 
     @Operation(summary = "保存助理档案（有则更新、无则创建）")
+    @RequireRole(BusinessRole.Code.ASSISTANT)
     @PutMapping("/assistants/me")
     public ApiResponse<AssistantResponse> save(@Valid @RequestBody AssistantRequest request) {
         return ApiResponse.ok(assistantService.save(SecurityUtils.getRequiredUserId(), request));

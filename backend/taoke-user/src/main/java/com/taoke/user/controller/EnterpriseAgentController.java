@@ -1,6 +1,8 @@
 package com.taoke.user.controller;
 
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
+import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.enterpriseagent.EnterpriseAgentRequest;
 import com.taoke.user.dto.enterpriseagent.EnterpriseAgentResponse;
@@ -26,12 +28,14 @@ public class EnterpriseAgentController {
     private final EnterpriseAgentService enterpriseAgentService;
 
     @Operation(summary = "获取专家经纪公司信息")
+    @RequireRole(BusinessRole.Code.ENTERPRISE_AGENT)
     @GetMapping("/enterprise-agents/me")
     public ApiResponse<EnterpriseAgentResponse> get() {
         return ApiResponse.ok(enterpriseAgentService.getByUserId(SecurityUtils.getRequiredUserId()));
     }
 
     @Operation(summary = "保存专家经纪公司信息（有则更新、无则创建）")
+    @RequireRole(BusinessRole.Code.ENTERPRISE_AGENT)
     @PutMapping("/enterprise-agents/me")
     public ApiResponse<EnterpriseAgentResponse> save(@Valid @RequestBody EnterpriseAgentRequest request) {
         return ApiResponse.ok(enterpriseAgentService.save(SecurityUtils.getRequiredUserId(), request));

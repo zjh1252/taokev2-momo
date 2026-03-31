@@ -1,6 +1,8 @@
 package com.taoke.user.controller;
 
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
+import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.agent.AgentRequest;
 import com.taoke.user.dto.agent.AgentResponse;
@@ -26,12 +28,14 @@ public class AgentController {
     private final AgentService agentService;
 
     @Operation(summary = "获取经纪人档案")
+    @RequireRole(BusinessRole.Code.AGENT)
     @GetMapping("/agents/me")
     public ApiResponse<AgentResponse> get() {
         return ApiResponse.ok(agentService.getByUserId(SecurityUtils.getRequiredUserId()));
     }
 
     @Operation(summary = "保存经纪人档案（有则更新、无则创建）")
+    @RequireRole(BusinessRole.Code.AGENT)
     @PutMapping("/agents/me")
     public ApiResponse<AgentResponse> save(@Valid @RequestBody AgentRequest request) {
         return ApiResponse.ok(agentService.save(SecurityUtils.getRequiredUserId(), request));

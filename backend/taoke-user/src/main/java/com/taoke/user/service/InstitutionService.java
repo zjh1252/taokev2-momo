@@ -1,14 +1,12 @@
 package com.taoke.user.service;
 
-import com.taoke.common.exception.BusinessException;
-import com.taoke.common.exception.ErrorCode;
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.user.dto.institution.InstitutionRequest;
 import com.taoke.user.dto.institution.InstitutionResponse;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.mapper.InstitutionMapper;
 import com.taoke.user.repository.InstitutionRepository;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
-import com.taoke.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,12 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class InstitutionService {
 
     private final InstitutionRepository institutionRepository;
-    private final UserRoleRepository userRoleRepository;
     private final InstitutionMapper institutionMapper;
     private final RoleApplyService roleApplyService;
 
     public InstitutionResponse getByUserId(Integer userId) {
-        checkRole(userId);
         Institution ent = institutionRepository.findByUserId(userId).orElse(null);
         return ent == null ? null : institutionMapper.toResponse(ent);
     }
@@ -39,7 +35,6 @@ public class InstitutionService {
      */
     @Transactional
     public InstitutionResponse save(Integer userId, InstitutionRequest request) {
-        checkRole(userId);
         return institutionMapper.toResponse(saveOrUpdateExtension(userId, request));
     }
 
@@ -48,7 +43,7 @@ public class InstitutionService {
      */
     @Transactional
     public void apply(Integer userId, InstitutionRequest request) {
-        roleApplyService.apply(userId, "INSTITUTION");
+        roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION);
         saveOrUpdateExtension(userId, request);
     }
 
@@ -56,7 +51,7 @@ public class InstitutionService {
      * 查询当前用户的 INSTITUTION 角色申请状态
      */
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
-        return roleApplyService.getStatus(userId, "INSTITUTION");
+        return roleApplyService.getStatus(userId, BusinessRole.Code.INSTITUTION);
     }
 
     private Institution saveOrUpdateExtension(Integer userId, InstitutionRequest request) {
@@ -82,11 +77,5 @@ public class InstitutionService {
         if (request.getAddress() != null) ent.setAddress(request.getAddress());
 
         return institutionRepository.save(ent);
-    }
-
-    private void checkRole(Integer userId) {
-        if (!userRoleRepository.existsByUserIdAndRoleAndStatus(userId, "INSTITUTION", 1)) {
-            throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "需要 INSTITUTION 角色");
-        }
     }
 }

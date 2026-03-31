@@ -1,14 +1,12 @@
 package com.taoke.user.service;
 
-import com.taoke.common.exception.BusinessException;
-import com.taoke.common.exception.ErrorCode;
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.user.dto.agent.AgentRequest;
 import com.taoke.user.dto.agent.AgentResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.Agent;
 import com.taoke.user.mapper.AgentMapper;
 import com.taoke.user.repository.AgentRepository;
-import com.taoke.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,12 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class AgentService {
 
     private final AgentRepository agentRepository;
-    private final UserRoleRepository userRoleRepository;
     private final AgentMapper agentMapper;
     private final RoleApplyService roleApplyService;
 
     public AgentResponse getByUserId(Integer userId) {
-        checkRole(userId);
         Agent agent = agentRepository.findByUserId(userId).orElse(null);
         return agent == null ? null : agentMapper.toResponse(agent);
     }
@@ -39,7 +35,6 @@ public class AgentService {
      */
     @Transactional
     public AgentResponse save(Integer userId, AgentRequest request) {
-        checkRole(userId);
         return agentMapper.toResponse(saveOrUpdateExtension(userId, request));
     }
 
@@ -48,12 +43,12 @@ public class AgentService {
      */
     @Transactional
     public void apply(Integer userId, AgentRequest request) {
-        roleApplyService.apply(userId, "AGENT");
+        roleApplyService.apply(userId, BusinessRole.Code.AGENT);
         saveOrUpdateExtension(userId, request);
     }
 
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
-        return roleApplyService.getStatus(userId, "AGENT");
+        return roleApplyService.getStatus(userId, BusinessRole.Code.AGENT);
     }
 
     private Agent saveOrUpdateExtension(Integer userId, AgentRequest request) {
@@ -68,11 +63,5 @@ public class AgentService {
         if (request.getServiceCityIds() != null) agent.setServiceCityIds(request.getServiceCityIds());
 
         return agentRepository.save(agent);
-    }
-
-    private void checkRole(Integer userId) {
-        if (!userRoleRepository.existsByUserIdAndRoleAndStatus(userId, "AGENT", 1)) {
-            throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "需要 AGENT 角色");
-        }
     }
 }

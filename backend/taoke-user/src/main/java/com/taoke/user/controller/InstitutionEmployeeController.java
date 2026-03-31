@@ -1,6 +1,8 @@
 package com.taoke.user.controller;
 
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
+import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.institutionemployee.InstitutionEmployeeRequest;
 import com.taoke.user.dto.institutionemployee.InstitutionEmployeeResponse;
@@ -26,12 +28,14 @@ public class InstitutionEmployeeController {
     private final InstitutionEmployeeService institutionEmployeeService;
 
     @Operation(summary = "获取机构员工信息")
+    @RequireRole(BusinessRole.Code.INSTITUTION_EMPLOYEE)
     @GetMapping("/institution-employees/me")
     public ApiResponse<InstitutionEmployeeResponse> get() {
         return ApiResponse.ok(institutionEmployeeService.getByUserId(SecurityUtils.getRequiredUserId()));
     }
 
     @Operation(summary = "保存机构员工信息（有则更新、无则创建）")
+    @RequireRole(BusinessRole.Code.INSTITUTION_EMPLOYEE)
     @PutMapping("/institution-employees/me")
     public ApiResponse<InstitutionEmployeeResponse> save(@Valid @RequestBody InstitutionEmployeeRequest request) {
         return ApiResponse.ok(institutionEmployeeService.save(SecurityUtils.getRequiredUserId(), request));

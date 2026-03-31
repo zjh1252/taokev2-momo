@@ -1,13 +1,10 @@
 package com.taoke.user.service;
 
-import com.taoke.common.exception.BusinessException;
-import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerRequest;
 import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerResponse;
 import com.taoke.user.entity.EnterpriseBuyer;
 import com.taoke.user.mapper.EnterpriseBuyerMapper;
 import com.taoke.user.repository.EnterpriseBuyerRepository;
-import com.taoke.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,11 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class EnterpriseBuyerService {
 
     private final EnterpriseBuyerRepository enterpriseBuyerRepository;
-    private final UserRoleRepository userRoleRepository;
     private final EnterpriseBuyerMapper enterpriseBuyerMapper;
 
     public EnterpriseBuyerResponse getByUserId(Integer userId) {
-        checkRole(userId);
         EnterpriseBuyer ent = enterpriseBuyerRepository.findByUserId(userId).orElse(null);
         if (ent == null) {
             return null;
@@ -40,7 +35,6 @@ public class EnterpriseBuyerService {
      */
     @Transactional
     public EnterpriseBuyerResponse save(Integer userId, EnterpriseBuyerRequest request) {
-        checkRole(userId);
         EnterpriseBuyer ent = enterpriseBuyerRepository.findByUserId(userId).orElseGet(() -> {
             EnterpriseBuyer e = new EnterpriseBuyer();
             e.setUserId(userId);
@@ -62,11 +56,5 @@ public class EnterpriseBuyerService {
 
         ent = enterpriseBuyerRepository.save(ent);
         return enterpriseBuyerMapper.toResponse(ent);
-    }
-
-    private void checkRole(Integer userId) {
-        if (!userRoleRepository.existsByUserIdAndRoleAndStatus(userId, "ENTERPRISE_BUYER", 1)) {
-            throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "需要 ENTERPRISE_BUYER 角色");
-        }
     }
 }

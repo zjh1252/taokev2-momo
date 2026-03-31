@@ -1,14 +1,12 @@
 package com.taoke.user.service;
 
-import com.taoke.common.exception.BusinessException;
-import com.taoke.common.exception.ErrorCode;
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.user.dto.assistant.AssistantRequest;
 import com.taoke.user.dto.assistant.AssistantResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.Assistant;
 import com.taoke.user.mapper.AssistantMapper;
 import com.taoke.user.repository.AssistantRepository;
-import com.taoke.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,12 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class AssistantService {
 
     private final AssistantRepository assistantRepository;
-    private final UserRoleRepository userRoleRepository;
     private final AssistantMapper assistantMapper;
     private final RoleApplyService roleApplyService;
 
     public AssistantResponse getByUserId(Integer userId) {
-        checkRole(userId);
         Assistant assistant = assistantRepository.findByUserId(userId).orElse(null);
         return assistant == null ? null : assistantMapper.toResponse(assistant);
     }
@@ -39,7 +35,6 @@ public class AssistantService {
      */
     @Transactional
     public AssistantResponse save(Integer userId, AssistantRequest request) {
-        checkRole(userId);
         return assistantMapper.toResponse(saveOrUpdateExtension(userId, request));
     }
 
@@ -48,12 +43,12 @@ public class AssistantService {
      */
     @Transactional
     public void apply(Integer userId, AssistantRequest request) {
-        roleApplyService.apply(userId, "ASSISTANT");
+        roleApplyService.apply(userId, BusinessRole.Code.ASSISTANT);
         saveOrUpdateExtension(userId, request);
     }
 
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
-        return roleApplyService.getStatus(userId, "ASSISTANT");
+        return roleApplyService.getStatus(userId, BusinessRole.Code.ASSISTANT);
     }
 
     private Assistant saveOrUpdateExtension(Integer userId, AssistantRequest request) {
@@ -67,11 +62,5 @@ public class AssistantService {
         if (request.getAuthScope() != null) assistant.setAuthScope(request.getAuthScope());
 
         return assistantRepository.save(assistant);
-    }
-
-    private void checkRole(Integer userId) {
-        if (!userRoleRepository.existsByUserIdAndRoleAndStatus(userId, "ASSISTANT", 1)) {
-            throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "需要 ASSISTANT 角色");
-        }
     }
 }

@@ -1,5 +1,6 @@
 package com.taoke.user.security;
 
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.user.entity.User;
 import com.taoke.user.entity.UserRole;
 import com.taoke.user.repository.PermissionRepository;
@@ -41,7 +42,7 @@ public class SecurityUserService {
 
         // SUPER_ADMIN 拥有所有权限，不需要查询权限表
         Set<String> permissions;
-        if (businessRoles.contains("SUPER_ADMIN")) {
+        if (businessRoles.contains(BusinessRole.Code.SUPER_ADMIN)) {
             permissions = Collections.emptySet();
         } else {
             permissions = permissionRepository.findPermissionCodesByUserId(userId);

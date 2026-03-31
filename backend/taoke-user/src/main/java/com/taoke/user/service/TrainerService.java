@@ -1,14 +1,12 @@
 package com.taoke.user.service;
 
-import com.taoke.common.exception.BusinessException;
-import com.taoke.common.exception.ErrorCode;
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.user.dto.trainer.TrainerRequest;
 import com.taoke.user.dto.trainer.TrainerResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.mapper.TrainerMapper;
 import com.taoke.user.repository.TrainerRepository;
-import com.taoke.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,12 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class TrainerService {
 
     private final TrainerRepository trainerRepository;
-    private final UserRoleRepository userRoleRepository;
     private final TrainerMapper trainerMapper;
     private final RoleApplyService roleApplyService;
 
     public TrainerResponse getByUserId(Integer userId) {
-        checkRole(userId);
         Trainer trainer = trainerRepository.findByUserId(userId).orElse(null);
         return trainer == null ? null : trainerMapper.toResponse(trainer);
     }
@@ -39,7 +35,6 @@ public class TrainerService {
      */
     @Transactional
     public TrainerResponse save(Integer userId, TrainerRequest request) {
-        checkRole(userId);
         return trainerMapper.toResponse(saveOrUpdateExtension(userId, request));
     }
 
@@ -48,12 +43,12 @@ public class TrainerService {
      */
     @Transactional
     public void apply(Integer userId, TrainerRequest request) {
-        roleApplyService.apply(userId, "TRAINER");
+        roleApplyService.apply(userId, BusinessRole.Code.TRAINER);
         saveOrUpdateExtension(userId, request);
     }
 
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
-        return roleApplyService.getStatus(userId, "TRAINER");
+        return roleApplyService.getStatus(userId, BusinessRole.Code.TRAINER);
     }
 
     private Trainer saveOrUpdateExtension(Integer userId, TrainerRequest request) {
@@ -74,11 +69,5 @@ public class TrainerService {
         if (request.getContactPreference() != null) trainer.setContactPreference(request.getContactPreference());
 
         return trainerRepository.save(trainer);
-    }
-
-    private void checkRole(Integer userId) {
-        if (!userRoleRepository.existsByUserIdAndRoleAndStatus(userId, "TRAINER", 1)) {
-            throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "需要 TRAINER 角色");
-        }
     }
 }

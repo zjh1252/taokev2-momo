@@ -1,5 +1,6 @@
 package com.taoke.user.security;
 
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.security.UserPrincipal;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
@@ -68,7 +69,7 @@ public class SecurityUser implements UserDetails, UserPrincipal {
     }
 
     public boolean isSuperAdmin() {
-        return businessRoles.contains("SUPER_ADMIN");
+        return businessRoles.contains(BusinessRole.Code.SUPER_ADMIN);
     }
 
     public boolean hasBusinessRole(String role) {

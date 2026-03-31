@@ -33,4 +33,23 @@ public enum BusinessRole {
     SUPER_ADMIN("超级管理员");
 
     private final String label;
+
+    /**
+     * 编译期字符串常量，可用于注解参数（如 {@code @RequireRole(BusinessRole.Code.TRAINER)}）。
+     */
+    public static final class Code {
+        public static final String ENTERPRISE_BUYER = "ENTERPRISE_BUYER";
+        public static final String BUYER = "BUYER";
+        public static final String TRAINER = "TRAINER";
+        public static final String AGENT = "AGENT";
+        public static final String ASSISTANT = "ASSISTANT";
+        public static final String ENTERPRISE_AGENT = "ENTERPRISE_AGENT";
+        public static final String INSTITUTION = "INSTITUTION";
+        public static final String INSTITUTION_EMPLOYEE = "INSTITUTION_EMPLOYEE";
+        public static final String PLATFORM_AUDITOR = "PLATFORM_AUDITOR";
+        public static final String PLATFORM_CS = "PLATFORM_CS";
+        public static final String SUPER_ADMIN = "SUPER_ADMIN";
+
+        private Code() {}
+    }
 }

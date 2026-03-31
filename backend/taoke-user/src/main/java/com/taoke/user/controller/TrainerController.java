@@ -1,6 +1,8 @@
 package com.taoke.user.controller;
 
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
+import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.trainer.TrainerRequest;
 import com.taoke.user.dto.trainer.TrainerResponse;
@@ -26,12 +28,14 @@ public class TrainerController {
     private final TrainerService trainerService;
 
     @Operation(summary = "获取专家档案")
+    @RequireRole(BusinessRole.Code.TRAINER)
     @GetMapping("/trainers/me")
     public ApiResponse<TrainerResponse> get() {
         return ApiResponse.ok(trainerService.getByUserId(SecurityUtils.getRequiredUserId()));
     }
 
     @Operation(summary = "保存专家档案（有则更新、无则创建）")
+    @RequireRole(BusinessRole.Code.TRAINER)
     @PutMapping("/trainers/me")
     public ApiResponse<TrainerResponse> save(@Valid @RequestBody TrainerRequest request) {
         return ApiResponse.ok(trainerService.save(SecurityUtils.getRequiredUserId(), request));
