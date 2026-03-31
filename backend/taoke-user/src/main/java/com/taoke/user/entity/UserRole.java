@@ -36,4 +36,8 @@ public class UserRole extends BaseEntity {
 
     @Column(name = "approved_by")
     private Integer approvedBy;
+
+    /** 驳回原因 */
+    @Column(name = "reject_reason", length = 512)
+    private String rejectReason;
 }

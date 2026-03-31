@@ -1,5 +1,6 @@
 package com.taoke.user.service;
 
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.dto.auth.*;
@@ -76,7 +77,7 @@ public class AuthService {
 
             UserRole buyerRole = new UserRole();
             buyerRole.setUserId(user.getId());
-            buyerRole.setRole("BUYER");
+            buyerRole.setRole(BusinessRole.Code.BUYER);
             buyerRole.setStatus(1);
             buyerRole.setApprovedAt(LocalDateTime.now());
             userRoleRepository.save(buyerRole);
@@ -104,7 +105,7 @@ public class AuthService {
 
         UserRole buyerRole = new UserRole();
         buyerRole.setUserId(user.getId());
-        buyerRole.setRole("BUYER");
+        buyerRole.setRole(BusinessRole.Code.BUYER);
         buyerRole.setStatus(1);
         buyerRole.setApprovedAt(LocalDateTime.now());
         userRoleRepository.save(buyerRole);

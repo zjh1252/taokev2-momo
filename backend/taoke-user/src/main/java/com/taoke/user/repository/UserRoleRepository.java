@@ -4,6 +4,7 @@ import com.taoke.user.entity.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 用户业务角色关联持久化。
@@ -18,4 +19,8 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Integer> {
     List<UserRole> findByUserId(Integer userId);
 
     boolean existsByUserIdAndRole(Integer userId, String role);
+
+    boolean existsByUserIdAndRoleAndStatus(Integer userId, String role, Integer status);
+
+    Optional<UserRole> findByUserIdAndRole(Integer userId, String role);
 }

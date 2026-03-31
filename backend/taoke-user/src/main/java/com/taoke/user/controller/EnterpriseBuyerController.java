@@ -1,6 +1,8 @@
 package com.taoke.user.controller;
 
+import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
+import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerRequest;
 import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerResponse;
@@ -25,12 +27,14 @@ public class EnterpriseBuyerController {
     private final EnterpriseBuyerService enterpriseBuyerService;
 
     @Operation(summary = "获取企业培训采购方信息")
+    @RequireRole(BusinessRole.Code.ENTERPRISE_BUYER)
     @GetMapping("/enterprise-buyers/me")
     public ApiResponse<EnterpriseBuyerResponse> get() {
         return ApiResponse.ok(enterpriseBuyerService.getByUserId(SecurityUtils.getRequiredUserId()));
     }
 
     @Operation(summary = "保存企业培训采购方信息（有则更新、无则创建）")
+    @RequireRole(BusinessRole.Code.ENTERPRISE_BUYER)
     @PutMapping("/enterprise-buyers/me")
     public ApiResponse<EnterpriseBuyerResponse> save(@Valid @RequestBody EnterpriseBuyerRequest request) {
         return ApiResponse.ok(enterpriseBuyerService.save(SecurityUtils.getRequiredUserId(), request));
