@@ -85,6 +85,7 @@
   - API规划上，路由不需要有/api前缀，ingress自动发现直接到具体资源
 - Controller 规范：
   - 路由写法：不使用类级 `@RequestMapping` 前缀拼接，每个方法注解上直接写完整资源路径，方便全局搜索定位路由。比如： @PutMapping("/users/me/password")
+
 - 前端
   - 
 - 单元测试

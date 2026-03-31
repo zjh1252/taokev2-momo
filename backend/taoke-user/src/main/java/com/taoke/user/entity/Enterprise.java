@@ -14,7 +14,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "sys_enterprises")
+@Table(name = "user_enterprises")
 public class Enterprise extends BaseEntity {
 
     @Column(name = "user_id", nullable = false, unique = true)
