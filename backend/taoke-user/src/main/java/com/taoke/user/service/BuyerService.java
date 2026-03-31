@@ -55,7 +55,7 @@ public class BuyerService {
     }
 
     private void checkRole(Integer userId) {
-        if (!userRoleRepository.existsByUserIdAndRole(userId, "BUYER")) {
+        if (!userRoleRepository.existsByUserIdAndRoleAndStatus(userId, "BUYER", 1)) {
             throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "需要 BUYER 角色");
         }
     }

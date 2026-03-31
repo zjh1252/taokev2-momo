@@ -7,6 +7,7 @@ import com.taoke.user.dto.enterpriseagent.EnterpriseAgentResponse;
 import com.taoke.user.entity.EnterpriseAgent;
 import com.taoke.user.mapper.EnterpriseAgentMapper;
 import com.taoke.user.repository.EnterpriseAgentRepository;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,14 +26,12 @@ public class EnterpriseAgentService {
     private final EnterpriseAgentRepository enterpriseAgentRepository;
     private final UserRoleRepository userRoleRepository;
     private final EnterpriseAgentMapper enterpriseAgentMapper;
+    private final RoleApplyService roleApplyService;
 
     public EnterpriseAgentResponse getByUserId(Integer userId) {
         checkRole(userId);
         EnterpriseAgent ent = enterpriseAgentRepository.findByUserId(userId).orElse(null);
-        if (ent == null) {
-            return null;
-        }
-        return enterpriseAgentMapper.toResponse(ent);
+        return ent == null ? null : enterpriseAgentMapper.toResponse(ent);
     }
 
     /**
@@ -41,6 +40,26 @@ public class EnterpriseAgentService {
     @Transactional
     public EnterpriseAgentResponse save(Integer userId, EnterpriseAgentRequest request) {
         checkRole(userId);
+        return enterpriseAgentMapper.toResponse(saveOrUpdateExtension(userId, request));
+    }
+
+    /**
+     * 申请 ENTERPRISE_AGENT 角色并保存扩展信息
+     */
+    @Transactional
+    public void apply(Integer userId, EnterpriseAgentRequest request) {
+        roleApplyService.apply(userId, "ENTERPRISE_AGENT");
+        saveOrUpdateExtension(userId, request);
+    }
+
+    /**
+     * 查询当前用户的 ENTERPRISE_AGENT 角色申请状态
+     */
+    public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
+        return roleApplyService.getStatus(userId, "ENTERPRISE_AGENT");
+    }
+
+    private EnterpriseAgent saveOrUpdateExtension(Integer userId, EnterpriseAgentRequest request) {
         EnterpriseAgent ent = enterpriseAgentRepository.findByUserId(userId).orElseGet(() -> {
             EnterpriseAgent e = new EnterpriseAgent();
             e.setUserId(userId);
@@ -62,12 +81,11 @@ public class EnterpriseAgentService {
         if (request.getAddress() != null) ent.setAddress(request.getAddress());
         if (request.getQualificationDocUrl() != null) ent.setQualificationDocUrl(request.getQualificationDocUrl());
 
-        ent = enterpriseAgentRepository.save(ent);
-        return enterpriseAgentMapper.toResponse(ent);
+        return enterpriseAgentRepository.save(ent);
     }
 
     private void checkRole(Integer userId) {
-        if (!userRoleRepository.existsByUserIdAndRole(userId, "ENTERPRISE_AGENT")) {
+        if (!userRoleRepository.existsByUserIdAndRoleAndStatus(userId, "ENTERPRISE_AGENT", 1)) {
             throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "需要 ENTERPRISE_AGENT 角色");
         }
     }

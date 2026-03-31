@@ -4,6 +4,7 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.dto.trainer.TrainerRequest;
 import com.taoke.user.dto.trainer.TrainerResponse;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.mapper.TrainerMapper;
 import com.taoke.user.repository.TrainerRepository;
@@ -25,22 +26,37 @@ public class TrainerService {
     private final TrainerRepository trainerRepository;
     private final UserRoleRepository userRoleRepository;
     private final TrainerMapper trainerMapper;
+    private final RoleApplyService roleApplyService;
 
     public TrainerResponse getByUserId(Integer userId) {
         checkRole(userId);
         Trainer trainer = trainerRepository.findByUserId(userId).orElse(null);
-        if (trainer == null) {
-            return null;
-        }
-        return trainerMapper.toResponse(trainer);
+        return trainer == null ? null : trainerMapper.toResponse(trainer);
     }
 
     /**
-     * 保存专家档案（有则更新、无则创建）
+     * 保存专家档案（有则更新、无则创建，要求角色已生效）
      */
     @Transactional
     public TrainerResponse save(Integer userId, TrainerRequest request) {
         checkRole(userId);
+        return trainerMapper.toResponse(saveOrUpdateExtension(userId, request));
+    }
+
+    /**
+     * 申请成为专家 — 提交扩展信息并创建待审核角色记录
+     */
+    @Transactional
+    public void apply(Integer userId, TrainerRequest request) {
+        roleApplyService.apply(userId, "TRAINER");
+        saveOrUpdateExtension(userId, request);
+    }
+
+    public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
+        return roleApplyService.getStatus(userId, "TRAINER");
+    }
+
+    private Trainer saveOrUpdateExtension(Integer userId, TrainerRequest request) {
         Trainer trainer = trainerRepository.findByUserId(userId).orElseGet(() -> {
             Trainer t = new Trainer();
             t.setUserId(userId);
@@ -57,12 +73,11 @@ public class TrainerService {
         if (request.getServiceCityIds() != null) trainer.setServiceCityIds(request.getServiceCityIds());
         if (request.getContactPreference() != null) trainer.setContactPreference(request.getContactPreference());
 
-        trainer = trainerRepository.save(trainer);
-        return trainerMapper.toResponse(trainer);
+        return trainerRepository.save(trainer);
     }
 
     private void checkRole(Integer userId) {
-        if (!userRoleRepository.existsByUserIdAndRole(userId, "TRAINER")) {
+        if (!userRoleRepository.existsByUserIdAndRoleAndStatus(userId, "TRAINER", 1)) {
             throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "需要 TRAINER 角色");
         }
     }

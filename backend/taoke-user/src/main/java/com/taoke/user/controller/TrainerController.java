@@ -4,6 +4,7 @@ import com.taoke.common.response.ApiResponse;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.trainer.TrainerRequest;
 import com.taoke.user.dto.trainer.TrainerResponse;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.service.TrainerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,5 +35,18 @@ public class TrainerController {
     @PutMapping("/trainers/me")
     public ApiResponse<TrainerResponse> save(@Valid @RequestBody TrainerRequest request) {
         return ApiResponse.ok(trainerService.save(SecurityUtils.getRequiredUserId(), request));
+    }
+
+    @Operation(summary = "申请成为专家")
+    @PostMapping("/trainers/apply")
+    public ApiResponse<Void> apply(@Valid @RequestBody TrainerRequest request) {
+        trainerService.apply(SecurityUtils.getRequiredUserId(), request);
+        return ApiResponse.ok(null);
+    }
+
+    @Operation(summary = "查看专家入驻申请状态")
+    @GetMapping("/trainers/apply/status")
+    public ApiResponse<RoleApplicationStatusResponse> getApplyStatus() {
+        return ApiResponse.ok(trainerService.getApplyStatus(SecurityUtils.getRequiredUserId()));
     }
 }

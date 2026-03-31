@@ -43,6 +43,9 @@ public enum ErrorCode {
     ROLE_NOT_MATCH(403, 10010, "当前角色无此操作权限"),
     OLD_PASSWORD_INCORRECT(400, 10011, "旧密码不正确"),
     PASSWORD_NOT_SET(400, 10012, "尚未设置密码，请使用验证码登录"),
+    ROLE_APPLICATION_PENDING(400, 10013, "已有进行中的申请，请等待审核"),
+    ROLE_ALREADY_ACTIVE(400, 10014, "已拥有该角色"),
+    ROLE_DISABLED(403, 10015, "角色已被禁用，请联系管理员"),
 
     /* ==================== 权限 101xx ==================== */
     UNAUTHORIZED(401, 10101, "请先登录"),

@@ -7,6 +7,7 @@ import com.taoke.user.dto.institution.InstitutionResponse;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.mapper.InstitutionMapper;
 import com.taoke.user.repository.InstitutionRepository;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,14 +26,12 @@ public class InstitutionService {
     private final InstitutionRepository institutionRepository;
     private final UserRoleRepository userRoleRepository;
     private final InstitutionMapper institutionMapper;
+    private final RoleApplyService roleApplyService;
 
     public InstitutionResponse getByUserId(Integer userId) {
         checkRole(userId);
         Institution ent = institutionRepository.findByUserId(userId).orElse(null);
-        if (ent == null) {
-            return null;
-        }
-        return institutionMapper.toResponse(ent);
+        return ent == null ? null : institutionMapper.toResponse(ent);
     }
 
     /**
@@ -41,6 +40,26 @@ public class InstitutionService {
     @Transactional
     public InstitutionResponse save(Integer userId, InstitutionRequest request) {
         checkRole(userId);
+        return institutionMapper.toResponse(saveOrUpdateExtension(userId, request));
+    }
+
+    /**
+     * 申请 INSTITUTION 角色并保存扩展信息
+     */
+    @Transactional
+    public void apply(Integer userId, InstitutionRequest request) {
+        roleApplyService.apply(userId, "INSTITUTION");
+        saveOrUpdateExtension(userId, request);
+    }
+
+    /**
+     * 查询当前用户的 INSTITUTION 角色申请状态
+     */
+    public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
+        return roleApplyService.getStatus(userId, "INSTITUTION");
+    }
+
+    private Institution saveOrUpdateExtension(Integer userId, InstitutionRequest request) {
         Institution ent = institutionRepository.findByUserId(userId).orElseGet(() -> {
             Institution e = new Institution();
             e.setUserId(userId);
@@ -62,12 +81,11 @@ public class InstitutionService {
         if (request.getTownId() != null) ent.setTownId(request.getTownId());
         if (request.getAddress() != null) ent.setAddress(request.getAddress());
 
-        ent = institutionRepository.save(ent);
-        return institutionMapper.toResponse(ent);
+        return institutionRepository.save(ent);
     }
 
     private void checkRole(Integer userId) {
-        if (!userRoleRepository.existsByUserIdAndRole(userId, "INSTITUTION")) {
+        if (!userRoleRepository.existsByUserIdAndRoleAndStatus(userId, "INSTITUTION", 1)) {
             throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "需要 INSTITUTION 角色");
         }
     }

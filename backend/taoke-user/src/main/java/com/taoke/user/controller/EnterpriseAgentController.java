@@ -4,6 +4,7 @@ import com.taoke.common.response.ApiResponse;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.enterpriseagent.EnterpriseAgentRequest;
 import com.taoke.user.dto.enterpriseagent.EnterpriseAgentResponse;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.service.EnterpriseAgentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,5 +35,18 @@ public class EnterpriseAgentController {
     @PutMapping("/enterprise-agents/me")
     public ApiResponse<EnterpriseAgentResponse> save(@Valid @RequestBody EnterpriseAgentRequest request) {
         return ApiResponse.ok(enterpriseAgentService.save(SecurityUtils.getRequiredUserId(), request));
+    }
+
+    @Operation(summary = "申请成为专家经纪公司")
+    @PostMapping("/enterprise-agents/apply")
+    public ApiResponse<Void> apply(@Valid @RequestBody EnterpriseAgentRequest request) {
+        enterpriseAgentService.apply(SecurityUtils.getRequiredUserId(), request);
+        return ApiResponse.ok(null);
+    }
+
+    @Operation(summary = "查看经纪公司入驻申请状态")
+    @GetMapping("/enterprise-agents/apply/status")
+    public ApiResponse<RoleApplicationStatusResponse> getApplyStatus() {
+        return ApiResponse.ok(enterpriseAgentService.getApplyStatus(SecurityUtils.getRequiredUserId()));
     }
 }

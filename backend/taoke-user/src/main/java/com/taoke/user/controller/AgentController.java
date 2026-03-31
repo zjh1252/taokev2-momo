@@ -4,6 +4,7 @@ import com.taoke.common.response.ApiResponse;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.agent.AgentRequest;
 import com.taoke.user.dto.agent.AgentResponse;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.service.AgentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,5 +35,18 @@ public class AgentController {
     @PutMapping("/agents/me")
     public ApiResponse<AgentResponse> save(@Valid @RequestBody AgentRequest request) {
         return ApiResponse.ok(agentService.save(SecurityUtils.getRequiredUserId(), request));
+    }
+
+    @Operation(summary = "申请成为专家经纪人")
+    @PostMapping("/agents/apply")
+    public ApiResponse<Void> apply(@Valid @RequestBody AgentRequest request) {
+        agentService.apply(SecurityUtils.getRequiredUserId(), request);
+        return ApiResponse.ok(null);
+    }
+
+    @Operation(summary = "查看经纪人入驻申请状态")
+    @GetMapping("/agents/apply/status")
+    public ApiResponse<RoleApplicationStatusResponse> getApplyStatus() {
+        return ApiResponse.ok(agentService.getApplyStatus(SecurityUtils.getRequiredUserId()));
     }
 }

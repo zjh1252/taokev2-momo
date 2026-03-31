@@ -4,6 +4,7 @@ import com.taoke.common.response.ApiResponse;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.assistant.AssistantRequest;
 import com.taoke.user.dto.assistant.AssistantResponse;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.service.AssistantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,5 +35,18 @@ public class AssistantController {
     @PutMapping("/assistants/me")
     public ApiResponse<AssistantResponse> save(@Valid @RequestBody AssistantRequest request) {
         return ApiResponse.ok(assistantService.save(SecurityUtils.getRequiredUserId(), request));
+    }
+
+    @Operation(summary = "申请成为专家助理")
+    @PostMapping("/assistants/apply")
+    public ApiResponse<Void> apply(@Valid @RequestBody AssistantRequest request) {
+        assistantService.apply(SecurityUtils.getRequiredUserId(), request);
+        return ApiResponse.ok(null);
+    }
+
+    @Operation(summary = "查看助理入驻申请状态")
+    @GetMapping("/assistants/apply/status")
+    public ApiResponse<RoleApplicationStatusResponse> getApplyStatus() {
+        return ApiResponse.ok(assistantService.getApplyStatus(SecurityUtils.getRequiredUserId()));
     }
 }
