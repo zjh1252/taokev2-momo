@@ -9,7 +9,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 /**
- * 角色-权限关联实体
+ * 角色与权限关联实体。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Getter
 @Setter

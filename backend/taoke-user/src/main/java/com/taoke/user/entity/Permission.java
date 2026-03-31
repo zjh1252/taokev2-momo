@@ -6,7 +6,10 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 权限节点实体 — 树形结构，按"功能模块 + 操作类型"定义
+ * 权限节点实体，树形；按功能模块与操作类型定义。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Getter
 @Setter

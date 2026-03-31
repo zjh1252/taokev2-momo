@@ -6,7 +6,10 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 用户-RBAC 角色分配实体
+ * 用户与 RBAC 角色分配实体。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Getter
 @Setter

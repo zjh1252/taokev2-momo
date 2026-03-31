@@ -4,7 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
- * Token 刷新请求
+ * Token 刷新请求。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Data
 public class RefreshTokenRequest {

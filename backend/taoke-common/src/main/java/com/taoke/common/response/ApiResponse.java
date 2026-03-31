@@ -19,6 +19,8 @@ import lombok.NoArgsConstructor;
  * 本类只负责 body 部分。
  *
  * @param <T> 业务数据类型
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Data
 @NoArgsConstructor

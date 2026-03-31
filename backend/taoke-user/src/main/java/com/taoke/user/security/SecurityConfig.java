@@ -16,7 +16,10 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Spring Security 配置 — 无状态 JWT + 自定义动态授权。
+ * Spring Security：无状态 JWT 与自定义动态授权。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Configuration
 @EnableWebSecurity

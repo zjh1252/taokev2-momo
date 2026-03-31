@@ -22,8 +22,10 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * JWT 认证过滤器 — 从请求头中提取并验证 Access Token，
- * 将用户身份写入 SecurityContext。
+ * JWT 认证过滤器：解析 Access Token 并写入 SecurityContext。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Slf4j
 @Component

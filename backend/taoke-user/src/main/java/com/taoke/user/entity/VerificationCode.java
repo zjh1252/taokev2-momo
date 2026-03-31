@@ -9,7 +9,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 /**
- * 短信/邮件验证码实体
+ * 短信或邮件验证码实体。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Getter
 @Setter

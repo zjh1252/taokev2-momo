@@ -11,7 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 认证控制器 — 注册、登录、Token 刷新
+ * 认证接口：注册、登录、刷新 Token。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Tag(name = "认证", description = "注册/登录/Token 刷新")
 @RestController

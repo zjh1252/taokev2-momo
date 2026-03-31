@@ -10,10 +10,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 /**
- * 所有业务实体的基类
- * <p>
- * 提供 id（自增主键）、created_at、updated_at 三个公共字段，
- * 由 JPA Auditing 自动填充时间。
+ * 所有业务实体的基类，提供 id、created_at、updated_at，由 JPA Auditing 自动填充。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Getter
 @Setter

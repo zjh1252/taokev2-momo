@@ -4,9 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 平台业务角色枚举 — 对应 user_roles.role 字段。
- * <p>
- * 共 8 个业务角色 + 3 个运营角色 = 11 个角色。
+ * 平台业务角色枚举，对应 user_roles.role（含业务方与运营方共 11 种）。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Getter
 @AllArgsConstructor

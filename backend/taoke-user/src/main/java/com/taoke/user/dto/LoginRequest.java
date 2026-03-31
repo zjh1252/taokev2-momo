@@ -4,7 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
- * 手机号 + 密码登录请求
+ * 手机号与密码登录请求。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Data
 public class LoginRequest {

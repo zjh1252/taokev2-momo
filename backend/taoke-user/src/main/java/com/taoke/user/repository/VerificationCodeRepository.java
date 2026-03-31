@@ -6,6 +6,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+/**
+ * 验证码记录持久化。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
+ */
 public interface VerificationCodeRepository extends JpaRepository<VerificationCode, Integer> {
 
     /**

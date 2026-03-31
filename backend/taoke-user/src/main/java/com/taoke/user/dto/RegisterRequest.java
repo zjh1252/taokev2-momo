@@ -5,7 +5,10 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
- * 用户注册请求
+ * 用户注册请求。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Data
 public class RegisterRequest {

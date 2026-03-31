@@ -11,7 +11,7 @@ import lombok.Getter;
  *   <li>0       — 成功</li>
  *   <li>100xx   — 用户/认证</li>
  *   <li>101xx   — 权限</li>
- *   <li>200xx   — 讲师/经纪人/机构（供给方）</li>
+ *   <li>200xx   — 专家/经纪人/机构（供给方）</li>
  *   <li>300xx   — 课程</li>
  *   <li>400xx   — 订单/支付</li>
  *   <li>500xx   — 评价/互动</li>
@@ -19,6 +19,9 @@ import lombok.Getter;
  *   <li>900xx   — 通用/系统级</li>
  * </ul>
  * 各业务模块在开发时按需在此枚举中追加错误码。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Getter
 @AllArgsConstructor

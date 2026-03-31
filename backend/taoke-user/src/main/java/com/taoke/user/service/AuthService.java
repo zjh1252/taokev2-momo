@@ -25,7 +25,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 认证服务 — 注册、密码登录、验证码登录、Token 刷新
+ * 认证服务：注册、密码/验证码登录、刷新 Token。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Slf4j
 @Service
@@ -43,9 +46,6 @@ public class AuthService {
     @Value("${taoke.jwt.access-token-expire-ms:7200000}")
     private long accessTokenExpireMs;
 
-    /**
-     * 手机号 + 密码登录
-     */
     public TokenResponse loginByPassword(LoginRequest request) {
         User user = userRepository.findByPhone(request.getPhone())
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
@@ -60,7 +60,10 @@ public class AuthService {
     }
 
     /**
-     * 手机号 + 验证码登录（未注册用户自动创建账号）
+     * 验证码登录；未注册手机号自动开户并赋予默认 BUYER 角色。
+     *
+     * @param request 手机号与验证码
+     * @return 访问令牌与刷新令牌
      */
     @Transactional
     public TokenResponse loginBySms(SmsLoginRequest request) {
@@ -88,9 +91,6 @@ public class AuthService {
         return generateTokens(user);
     }
 
-    /**
-     * 注册（手机号 + 验证码 + 密码）
-     */
     @Transactional
     public TokenResponse register(RegisterRequest request) {
         if (userRepository.existsByPhone(request.getPhone())) {
@@ -118,9 +118,6 @@ public class AuthService {
         return generateTokens(user);
     }
 
-    /**
-     * 刷新 Token
-     */
     public TokenResponse refreshToken(RefreshTokenRequest request) {
         String refreshToken = request.getRefreshToken();
 

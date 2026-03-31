@@ -12,7 +12,10 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * JWT 工具类 — Access Token + Refresh Token 双令牌机制
+ * JWT 工具类，支持 Access Token 与 Refresh Token 双令牌。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Component
 public class JwtUtils {
@@ -30,9 +33,6 @@ public class JwtUtils {
         this.refreshTokenExpireMs = refreshTokenExpireMs;
     }
 
-    /**
-     * 生成 Access Token
-     */
     public String generateAccessToken(Integer userId, Set<String> businessRoles) {
         return Jwts.builder()
                 .id(UUID.randomUUID().toString())
@@ -45,9 +45,6 @@ public class JwtUtils {
                 .compact();
     }
 
-    /**
-     * 生成 Refresh Token
-     */
     public String generateRefreshToken(Integer userId) {
         return Jwts.builder()
                 .id(UUID.randomUUID().toString())
@@ -59,9 +56,6 @@ public class JwtUtils {
                 .compact();
     }
 
-    /**
-     * 解析并验证 Token，返回 Claims
-     */
     public Claims parseToken(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)
@@ -70,23 +64,14 @@ public class JwtUtils {
                 .getPayload();
     }
 
-    /**
-     * 从 Token 中提取用户 ID
-     */
     public Integer getUserId(String token) {
         return Integer.parseInt(parseToken(token).getSubject());
     }
 
-    /**
-     * 判断是否为 Access Token
-     */
     public boolean isAccessToken(String token) {
         return "access".equals(parseToken(token).get("type", String.class));
     }
 
-    /**
-     * 判断 Token 是否有效（未过期、签名正确）
-     */
     public boolean isValid(String token) {
         try {
             parseToken(token);

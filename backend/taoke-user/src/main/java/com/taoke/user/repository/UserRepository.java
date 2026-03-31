@@ -5,6 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
+/**
+ * 用户实体持久化。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
+ */
 public interface UserRepository extends JpaRepository<User, Integer> {
 
     Optional<User> findByPhone(String phone);

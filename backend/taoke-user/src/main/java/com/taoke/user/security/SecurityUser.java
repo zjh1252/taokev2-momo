@@ -10,7 +10,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Spring Security 用户主体，持有业务角色和 RBAC 权限。
+ * Spring Security 用户主体，承载业务角色与 RBAC 权限。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Getter
 public class SecurityUser implements UserDetails {

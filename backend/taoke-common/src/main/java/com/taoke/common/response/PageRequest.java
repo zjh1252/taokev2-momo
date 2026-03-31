@@ -5,9 +5,10 @@ import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 /**
- * 通用分页请求参数
- * <p>
- * Controller 中作为 @ModelAttribute 或 @RequestBody 嵌套字段使用。
+ * 通用分页请求参数，可在 Controller 中作为 @ModelAttribute 或 @RequestBody 嵌套字段使用。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Data
 public class PageRequest {
@@ -21,9 +22,6 @@ public class PageRequest {
     @Max(value = 100, message = "每页条数最大为 100")
     private int size = 20;
 
-    /**
-     * 转换为 Spring Data 的 Pageable（zero-based page）
-     */
     public org.springframework.data.domain.PageRequest toPageable() {
         return org.springframework.data.domain.PageRequest.of(page - 1, size);
     }

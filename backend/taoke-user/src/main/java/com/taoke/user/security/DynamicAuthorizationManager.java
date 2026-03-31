@@ -17,15 +17,20 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 import java.util.function.Supplier;
 
 /**
- * 动态授权管理器 — 基于 @Public / @RequireRole / @RequirePermission 注解进行权限判定。
+ * 动态授权管理器 — 基于 @Public / @RequireRole / @RequirePermission 注解进行权限判定
  * <p>
  * 判定优先级：
- * 1. @Public → 放行
- * 2. 未认证 → 拒绝
- * 3. SUPER_ADMIN → 放行
- * 4. @RequireRole → 校验业务角色
- * 5. @RequirePermission → 校验 RBAC 权限
- * 6. 已认证但无注解 → 放行（登录即可访问）
+ * <ol>
+ *   <li>@Public → 放行</li>
+ *   <li>未认证 → 拒绝</li>
+ *   <li>SUPER_ADMIN → 放行</li>
+ *   <li>@RequireRole → 校验业务角色</li>
+ *   <li>@RequirePermission → 校验 RBAC 权限</li>
+ *   <li>已认证但无注解 → 放行（登录即可访问）</li>
+ * </ol>
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Slf4j
 @Component
@@ -40,6 +45,7 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
     @Override
     public AuthorizationDecision check(Supplier<Authentication> authenticationSupplier,
                                        RequestAuthorizationContext context) {
+        // 判定优先级：1.@Public 放行 2.未认证拒绝 3.SUPER_ADMIN 放行 4.@RequireRole 5.@RequirePermission 6.已认证无注解放行
         HttpServletRequest request = context.getRequest();
 
         HandlerMethod handlerMethod = resolveHandlerMethod(request);

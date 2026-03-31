@@ -7,6 +7,12 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * 权限定义及按用户解析权限编码。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
+ */
 public interface PermissionRepository extends JpaRepository<Permission, Integer> {
 
     /**

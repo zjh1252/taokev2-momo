@@ -14,7 +14,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 加载用户安全主体信息（业务角色 + RBAC 权限），供 JwtAuthenticationFilter 使用。
+ * 加载 SecurityUser（业务角色与 RBAC 权限），供 JWT 认证链使用。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Service
 @RequiredArgsConstructor
@@ -24,9 +27,6 @@ public class SecurityUserService {
     private final UserRoleRepository userRoleRepository;
     private final PermissionRepository permissionRepository;
 
-    /**
-     * 根据用户 ID 构建 SecurityUser
-     */
     public SecurityUser loadByUserId(Integer userId) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
@@ -57,9 +57,6 @@ public class SecurityUserService {
         );
     }
 
-    /**
-     * 根据手机号构建 SecurityUser（登录时使用）
-     */
     public SecurityUser loadByPhone(String phone) {
         User user = userRepository.findByPhone(phone).orElse(null);
         if (user == null) {

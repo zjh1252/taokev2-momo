@@ -4,7 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 /**
- * 认证成功返回的令牌对
+ * 认证成功返回的访问令牌与刷新令牌。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Data
 @AllArgsConstructor

@@ -6,7 +6,10 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * RBAC 角色定义实体 — Layer 2: 权限授权层
+ * RBAC 角色定义实体（权限授权层）。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Getter
 @Setter

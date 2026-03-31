@@ -8,7 +8,10 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * 用户业务角色实体 — Layer 1: 业务身份层
+ * 用户业务角色实体（业务身份层）。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Getter
 @Setter
