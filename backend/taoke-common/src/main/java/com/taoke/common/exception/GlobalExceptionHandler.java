@@ -18,6 +18,9 @@ import java.util.stream.Collectors;
  * 全局异常处理器
  * <p>
  * 捕获所有异常，统一转换为 ApiResponse + 对应的 HTTP 状态码。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Slf4j
 @RestControllerAdvice
@@ -63,9 +66,6 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ErrorCode.PARAM_INVALID.getCode(), msg));
     }
 
-    /**
-     * 缺少必填请求参数
-     */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponse<Void>> handleMissingParam(MissingServletRequestParameterException e) {
         String msg = "缺少必填参数: " + e.getParameterName();
@@ -75,9 +75,6 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ErrorCode.PARAM_INVALID.getCode(), msg));
     }
 
-    /**
-     * 参数类型不匹配
-     */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
         String msg = "参数类型错误: " + e.getName();

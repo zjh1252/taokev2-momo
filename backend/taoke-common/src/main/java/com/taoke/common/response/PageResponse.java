@@ -14,6 +14,8 @@ import java.util.function.Function;
  * 将 Spring Data 的 Page 转换为前端友好的结构，避免前端直接依赖 Spring 分页对象。
  *
  * @param <T> 列表元素类型
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Data
 @NoArgsConstructor

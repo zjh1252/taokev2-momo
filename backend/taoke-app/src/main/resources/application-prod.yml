@@ -1,0 +1,29 @@
+# ============================================================
+# 生产环境配置 — 通过环境变量或配置中心注入实际值
+# ============================================================
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/taokev2?useSSL=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:taoke}
+    password: ${DB_PASSWORD:}
+    hikari:
+      minimum-idle: 10
+      maximum-pool-size: 50
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+      timeout: 3000ms
+
+taoke:
+  jwt:
+    secret: ${JWT_SECRET:}
+
+logging:
+  level:
+    com.taoke: info
+    org.springframework.security: warn

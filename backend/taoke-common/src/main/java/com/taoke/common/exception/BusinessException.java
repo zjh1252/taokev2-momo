@@ -11,6 +11,9 @@ import lombok.Getter;
  *   throw new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND);
  *   throw new BusinessException(ErrorCode.PARAM_INVALID, "手机号不能为空");
  * </pre>
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 11:00
  */
 @Getter
 public class BusinessException extends RuntimeException {
@@ -22,7 +25,6 @@ public class BusinessException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    /** 覆盖默认提示信息 */
     public BusinessException(ErrorCode errorCode, String message) {
         super(message);
         this.errorCode = errorCode;
