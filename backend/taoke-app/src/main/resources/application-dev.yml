@@ -23,6 +23,13 @@ spring:
       database: 0
       timeout: 3000ms
 
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+
   jpa:
     show-sql: true
 

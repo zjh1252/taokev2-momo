@@ -36,6 +36,8 @@ taoke:
   sms:
     code-length: 6
     expire-minutes: 5
+  event:
+    exchange: taoke.events
   upload:
     base-dir: uploads
     max-file-size: 10485760
