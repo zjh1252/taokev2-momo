@@ -1,5 +1,6 @@
 package com.taoke.user.security;
 
+import com.taoke.common.security.UserPrincipal;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -16,7 +17,7 @@ import java.util.stream.Collectors;
  * @date 2026-03-31 11:00
  */
 @Getter
-public class SecurityUser implements UserDetails {
+public class SecurityUser implements UserDetails, UserPrincipal {
 
     private final Integer userId;
     private final String phone;
