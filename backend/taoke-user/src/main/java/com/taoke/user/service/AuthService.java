@@ -2,16 +2,13 @@ package com.taoke.user.service;
 
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
-import com.taoke.user.dto.*;
+import com.taoke.user.dto.auth.*;
 import com.taoke.user.entity.User;
 import com.taoke.user.entity.UserRole;
-import com.taoke.user.entity.VerificationCode;
 import com.taoke.user.repository.UserRepository;
 import com.taoke.user.repository.UserRoleRepository;
-import com.taoke.user.repository.VerificationCodeRepository;
 import com.taoke.user.security.JwtUtils;
 import com.taoke.user.security.PermissionCacheService;
-import com.taoke.user.security.SecurityUser;
 import com.taoke.user.security.SecurityUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +22,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 认证服务：注册、密码/验证码登录、刷新 Token。
+ * 认证服务：注册、密码/验证码登录、刷新 Token、重置密码。
  *
  * @author Fangxinxin
  * @date 2026-03-31 11:00
@@ -37,7 +34,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
-    private final VerificationCodeRepository verificationCodeRepository;
+    private final VerificationCodeService verificationCodeService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final SecurityUserService securityUserService;
@@ -67,18 +64,16 @@ public class AuthService {
      */
     @Transactional
     public TokenResponse loginBySms(SmsLoginRequest request) {
-        verifyCode(request.getPhone(), request.getCode(), "LOGIN");
+        verificationCodeService.verifyCode(request.getPhone(), request.getCode(), "LOGIN");
 
         User user = userRepository.findByPhone(request.getPhone()).orElse(null);
         if (user == null) {
-            // 自动注册
             user = new User();
             user.setPhone(request.getPhone());
             user.setStatus(1);
             user.setRegOrigin(1);
             user = userRepository.save(user);
 
-            // 默认分配 BUYER 角色
             UserRole buyerRole = new UserRole();
             buyerRole.setUserId(user.getId());
             buyerRole.setRole("BUYER");
@@ -97,7 +92,7 @@ public class AuthService {
             throw new BusinessException(ErrorCode.ACCOUNT_EXISTS);
         }
 
-        verifyCode(request.getPhone(), request.getCode(), "REGISTER");
+        verificationCodeService.verifyCode(request.getPhone(), request.getCode(), "REGISTER");
 
         User user = new User();
         user.setPhone(request.getPhone());
@@ -107,7 +102,6 @@ public class AuthService {
         user.setRegOrigin(1);
         user = userRepository.save(user);
 
-        // 默认分配 BUYER 角色
         UserRole buyerRole = new UserRole();
         buyerRole.setUserId(user.getId());
         buyerRole.setRole("BUYER");
@@ -137,8 +131,22 @@ public class AuthService {
         return generateTokens(user);
     }
 
+    /**
+     * 忘记密码 — 通过手机验证码重置密码
+     */
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        verificationCodeService.verifyCode(request.getPhone(), request.getCode(), "RESET_PASSWORD");
+
+        User user = userRepository.findByPhone(request.getPhone())
+                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        checkAccountStatus(user);
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
     private TokenResponse generateTokens(User user) {
-        // 更新最近登录时间
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
 
@@ -150,7 +158,6 @@ public class AuthService {
         String accessToken = jwtUtils.generateAccessToken(user.getId(), businessRoles);
         String refreshToken = jwtUtils.generateRefreshToken(user.getId());
 
-        // 清除缓存，确保新令牌使用最新权限
         permissionCacheService.evict(user.getId());
 
         return new TokenResponse(accessToken, refreshToken, accessTokenExpireMs / 1000);
@@ -164,20 +171,5 @@ public class AuthService {
         if (user.getStatus() == 3) {
             throw new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, "该账号已注销");
         }
-    }
-
-    private void verifyCode(String phone, String code, String type) {
-        VerificationCode vc = verificationCodeRepository
-                .findFirstByTargetAndTypeAndIsUsedAndExpiresAtAfterOrderByCreatedAtDesc(
-                        phone, type, 0, LocalDateTime.now())
-                .orElseThrow(() -> new BusinessException(ErrorCode.CAPTCHA_EXPIRED));
-
-        if (!vc.getCode().equals(code)) {
-            throw new BusinessException(ErrorCode.CAPTCHA_INCORRECT);
-        }
-
-        // 标记已使用
-        vc.setIsUsed(1);
-        verificationCodeRepository.save(vc);
     }
 }

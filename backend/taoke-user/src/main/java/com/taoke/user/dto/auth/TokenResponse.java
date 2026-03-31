@@ -1,4 +1,4 @@
-package com.taoke.user.dto;
+package com.taoke.user.dto.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

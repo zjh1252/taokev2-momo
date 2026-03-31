@@ -33,6 +33,9 @@ taoke:
   jwt:
     access-token-expire-ms: 7200000
     refresh-token-expire-ms: 604800000
+  sms:
+    code-length: 6
+    expire-minutes: 5
 
 # Springdoc OpenAPI
 springdoc:

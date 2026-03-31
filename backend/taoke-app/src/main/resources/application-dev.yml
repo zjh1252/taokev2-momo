@@ -29,6 +29,8 @@ spring:
 taoke:
   jwt:
     secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
+  sms:
+    provider: mock
 
 logging:
   level:

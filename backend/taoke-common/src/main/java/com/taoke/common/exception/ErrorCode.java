@@ -38,6 +38,11 @@ public enum ErrorCode {
     ACCOUNT_NOT_FOUND(404, 10005, "账号不存在"),
     PASSWORD_INCORRECT(400, 10006, "密码不正确"),
     ACCOUNT_FROZEN(403, 10007, "账号已被冻结"),
+    CAPTCHA_RATE_LIMIT(429, 10008, "验证码发送过于频繁，请稍后再试"),
+    PHONE_ALREADY_BOUND(400, 10009, "该手机号已被其他账号绑定"),
+    ROLE_NOT_MATCH(403, 10010, "当前角色无此操作权限"),
+    OLD_PASSWORD_INCORRECT(400, 10011, "旧密码不正确"),
+    PASSWORD_NOT_SET(400, 10012, "尚未设置密码，请使用验证码登录"),
 
     /* ==================== 权限 101xx ==================== */
     UNAUTHORIZED(401, 10101, "请先登录"),

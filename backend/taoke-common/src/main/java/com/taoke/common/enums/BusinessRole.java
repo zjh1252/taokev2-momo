@@ -24,8 +24,8 @@ public enum BusinessRole {
     ENTERPRISE_AGENT("专家经纪公司"),
 
     // ── 供给方（乙方）──
-    ORGANIZATION("机构"),
-    ORGANIZATION_EMPLOYEE("机构员工"),
+    INSTITUTION("机构"),
+    INSTITUTION_EMPLOYEE("机构员工"),
 
     // ── 运营方 ──
     PLATFORM_AUDITOR("平台审核员"),
