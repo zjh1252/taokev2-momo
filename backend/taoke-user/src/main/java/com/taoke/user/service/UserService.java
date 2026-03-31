@@ -8,6 +8,7 @@ import com.taoke.user.dto.user.UpdateProfileRequest;
 import com.taoke.user.dto.user.UserProfileResponse;
 import com.taoke.user.entity.User;
 import com.taoke.user.entity.UserRole;
+import com.taoke.user.mapper.UserMapper;
 import com.taoke.user.repository.UserRepository;
 import com.taoke.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,38 +32,16 @@ public class UserService {
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
     private final VerificationCodeService verificationCodeService;
+    private final UserMapper userMapper;
 
     public UserProfileResponse getProfile(Integer userId) {
         User user = findUser(userId);
 
-        UserProfileResponse resp = new UserProfileResponse();
-        resp.setId(user.getId());
-        resp.setPhone(user.getPhone());
-        resp.setEmail(user.getEmail());
-        resp.setNickname(user.getNickname());
-        resp.setRealName(user.getRealName());
-        resp.setAvatarUrl(user.getAvatarUrl());
-        resp.setGender(user.getGender());
-        resp.setPostCode(user.getPostCode());
-        resp.setProvinceId(user.getProvinceId());
-        resp.setCityId(user.getCityId());
-        resp.setDistrictId(user.getDistrictId());
-        resp.setTownId(user.getTownId());
-        resp.setAddress(user.getAddress());
-        resp.setStatus(user.getStatus());
-        resp.setLastLoginAt(user.getLastLoginAt());
-        resp.setCreatedAt(user.getCreatedAt());
+        UserProfileResponse resp = userMapper.toProfileResponse(user);
         resp.setHasPassword(user.getPasswordHash() != null && !user.getPasswordHash().isEmpty());
 
         List<UserRole> userRoles = userRoleRepository.findByUserId(userId);
-        List<UserProfileResponse.RoleInfo> roleInfos = userRoles.stream().map(ur -> {
-            UserProfileResponse.RoleInfo ri = new UserProfileResponse.RoleInfo();
-            ri.setRole(ur.getRole());
-            ri.setStatus(ur.getStatus());
-            ri.setApprovedAt(ur.getApprovedAt());
-            return ri;
-        }).toList();
-        resp.setRoles(roleInfos);
+        resp.setRoles(userRoles.stream().map(userMapper::toRoleInfo).toList());
 
         return resp;
     }

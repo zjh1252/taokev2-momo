@@ -5,6 +5,7 @@ import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.dto.enterprise.EnterpriseInfoRequest;
 import com.taoke.user.dto.enterprise.EnterpriseInfoResponse;
 import com.taoke.user.entity.Enterprise;
+import com.taoke.user.mapper.EnterpriseMapper;
 import com.taoke.user.repository.EnterpriseRepository;
 import com.taoke.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class EnterpriseService {
 
     private final EnterpriseRepository enterpriseRepository;
     private final UserRoleRepository userRoleRepository;
+    private final EnterpriseMapper enterpriseMapper;
 
     public EnterpriseInfoResponse getByUserId(Integer userId) {
         checkRole(userId);
@@ -30,7 +32,7 @@ public class EnterpriseService {
         if (ent == null) {
             return null;
         }
-        return toResponse(ent);
+        return enterpriseMapper.toResponse(ent);
     }
 
     /**
@@ -59,32 +61,12 @@ public class EnterpriseService {
         if (request.getTrainingTags() != null) ent.setTrainingTags(request.getTrainingTags());
 
         ent = enterpriseRepository.save(ent);
-        return toResponse(ent);
+        return enterpriseMapper.toResponse(ent);
     }
 
     private void checkRole(Integer userId) {
         if (!userRoleRepository.existsByUserIdAndRole(userId, "ENTERPRISE_BUYER")) {
             throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "需要 ENTERPRISE_BUYER 角色");
         }
-    }
-
-    private EnterpriseInfoResponse toResponse(Enterprise ent) {
-        EnterpriseInfoResponse resp = new EnterpriseInfoResponse();
-        resp.setId(ent.getId());
-        resp.setCompanyName(ent.getCompanyName());
-        resp.setIndustry(ent.getIndustry());
-        resp.setCompanySize(ent.getCompanySize());
-        resp.setContactName(ent.getContactName());
-        resp.setContactPhone(ent.getContactPhone());
-        resp.setPostCode(ent.getPostCode());
-        resp.setProvinceId(ent.getProvinceId());
-        resp.setCityId(ent.getCityId());
-        resp.setDistrictId(ent.getDistrictId());
-        resp.setTownId(ent.getTownId());
-        resp.setAddress(ent.getAddress());
-        resp.setTrainingTags(ent.getTrainingTags());
-        resp.setCreatedAt(ent.getCreatedAt());
-        resp.setUpdatedAt(ent.getUpdatedAt());
-        return resp;
     }
 }

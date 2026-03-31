@@ -5,6 +5,7 @@ import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.dto.buyer.BuyerRequest;
 import com.taoke.user.dto.buyer.BuyerResponse;
 import com.taoke.user.entity.Buyer;
+import com.taoke.user.mapper.BuyerMapper;
 import com.taoke.user.repository.BuyerRepository;
 import com.taoke.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class BuyerService {
 
     private final BuyerRepository buyerRepository;
     private final UserRoleRepository userRoleRepository;
+    private final BuyerMapper buyerMapper;
 
     public BuyerResponse getByUserId(Integer userId) {
         checkRole(userId);
@@ -30,7 +32,7 @@ public class BuyerService {
         if (buyer == null) {
             return null;
         }
-        return toResponse(buyer);
+        return buyerMapper.toResponse(buyer);
     }
 
     /**
@@ -49,22 +51,12 @@ public class BuyerService {
         if (request.getLearningTags() != null) buyer.setLearningTags(request.getLearningTags());
 
         buyer = buyerRepository.save(buyer);
-        return toResponse(buyer);
+        return buyerMapper.toResponse(buyer);
     }
 
     private void checkRole(Integer userId) {
         if (!userRoleRepository.existsByUserIdAndRole(userId, "BUYER")) {
             throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "需要 BUYER 角色");
         }
-    }
-
-    private BuyerResponse toResponse(Buyer buyer) {
-        BuyerResponse resp = new BuyerResponse();
-        resp.setId(buyer.getId());
-        resp.setOccupation(buyer.getOccupation());
-        resp.setLearningTags(buyer.getLearningTags());
-        resp.setCreatedAt(buyer.getCreatedAt());
-        resp.setUpdatedAt(buyer.getUpdatedAt());
-        return resp;
     }
 }
