@@ -26,11 +26,21 @@ spring:
   jpa:
     show-sql: true
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 taoke:
   jwt:
     secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
   sms:
     provider: mock
+  storage:
+    provider: local
+    base-dir: ./storage
+    public-domain:
 
 logging:
   level:

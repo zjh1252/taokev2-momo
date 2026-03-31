@@ -56,6 +56,12 @@ public enum ErrorCode {
     PARAM_INVALID(400, 90001, "参数校验失败"),
     NOT_FOUND(404, 90002, "资源不存在"),
     DUPLICATE_REQUEST(409, 90003, "重复请求"),
+
+    /* ==================== 文件上传 900xx ==================== */
+    FILE_UPLOAD_FAILED(500, 90010, "文件上传失败"),
+    INVALID_FILE_TYPE(400, 90011, "不支持的文件类型"),
+    FILE_TOO_LARGE(400, 90012, "文件大小超出限制"),
+
     INTERNAL_ERROR(500, 99999, "系统繁忙，请稍后再试");
 
     /** HTTP 状态码（控制 ResponseEntity 的 status） */
