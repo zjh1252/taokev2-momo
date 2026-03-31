@@ -11,7 +11,7 @@ import java.util.UUID;
  * <p>
  * <b>自动填充字段</b>：eventId、timestamp、eventType、operatorId。<br>
  * <b>业务上下文</b>：aggregateType、aggregateId 由子类通过构造器传入。<br>
- * <b>Topic</b>：由 {@link TopicResolver} 从包名 + 类名自动推导，无需手动定义。
+ * <b>Topic</b>：由 {@link TopicResolver#resolve} 在发布/消费时自动推导，事件本身不关心路由。
  * <p>
  * 子类示例：
  * <pre>{@code
@@ -65,13 +65,6 @@ public abstract class DomainEvent {
         this.aggregateType = aggregateType;
         this.aggregateId = aggregateId;
         this.operatorId = resolveOperatorId();
-    }
-
-    /**
-     * 事件 topic — 由 {@link TopicResolver} 从包名 + 类名自动推导。
-     */
-    public String getTopic() {
-        return TopicResolver.resolve(this.getClass());
     }
 
     /**

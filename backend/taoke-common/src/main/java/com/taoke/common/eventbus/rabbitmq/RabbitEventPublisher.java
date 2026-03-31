@@ -3,6 +3,7 @@ package com.taoke.common.eventbus.rabbitmq;
 import com.taoke.common.eventbus.DomainEvent;
 import com.taoke.common.eventbus.EventBusProperties;
 import com.taoke.common.eventbus.EventPublisher;
+import com.taoke.common.eventbus.TopicResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -28,7 +29,7 @@ public class RabbitEventPublisher implements EventPublisher {
 
     @Override
     public void publish(DomainEvent event) {
-        String topic = event.getTopic();
+        String topic = TopicResolver.resolve(event.getClass());
         log.info("发布领域事件: topic={}, eventId={}", topic, event.getEventId());
         rabbitTemplate.convertAndSend(properties.getExchange(), topic, event);
     }
