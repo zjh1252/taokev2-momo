@@ -31,6 +31,4 @@ build/
 
 ### VS Code ###
 .vscode/
-/tmp
-/frontend/tmp
-/backend/tmp
+tmp
