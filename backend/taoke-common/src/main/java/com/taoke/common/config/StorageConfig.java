@@ -1,5 +1,7 @@
-package com.taoke.common.storage;
+package com.taoke.common.config;
 
+import com.taoke.common.storage.StorageProperties;
+import com.taoke.common.storage.StorageService;
 import com.taoke.common.storage.provider.AliOssStorageService;
 import com.taoke.common.storage.provider.LocalStorageService;
 import org.springframework.context.annotation.Bean;
