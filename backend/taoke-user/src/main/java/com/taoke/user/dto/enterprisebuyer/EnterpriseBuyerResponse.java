@@ -1,17 +1,17 @@
-package com.taoke.user.dto.enterprise;
+package com.taoke.user.dto.enterprisebuyer;
 
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 /**
- * 企业信息返回
+ * 企业培训采购方信息返回
  *
  * @author Fangxinxin
  * @date 2026-03-31 14:00
  */
 @Data
-public class EnterpriseInfoResponse {
+public class EnterpriseBuyerResponse {
 
     private Integer id;
     private String companyName;

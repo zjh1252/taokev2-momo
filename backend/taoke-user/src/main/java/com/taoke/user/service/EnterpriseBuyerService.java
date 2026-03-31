@@ -2,47 +2,47 @@ package com.taoke.user.service;
 
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
-import com.taoke.user.dto.enterprise.EnterpriseInfoRequest;
-import com.taoke.user.dto.enterprise.EnterpriseInfoResponse;
-import com.taoke.user.entity.Enterprise;
-import com.taoke.user.mapper.EnterpriseMapper;
-import com.taoke.user.repository.EnterpriseRepository;
+import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerRequest;
+import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerResponse;
+import com.taoke.user.entity.EnterpriseBuyer;
+import com.taoke.user.mapper.EnterpriseBuyerMapper;
+import com.taoke.user.repository.EnterpriseBuyerRepository;
 import com.taoke.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 企业信息服务 — ENTERPRISE_BUYER 角色扩展信息管理。
+ * 企业培训采购方信息服务 — ENTERPRISE_BUYER 角色扩展信息管理。
  *
  * @author Fangxinxin
  * @date 2026-03-31 14:00
  */
 @Service
 @RequiredArgsConstructor
-public class EnterpriseService {
+public class EnterpriseBuyerService {
 
-    private final EnterpriseRepository enterpriseRepository;
+    private final EnterpriseBuyerRepository enterpriseBuyerRepository;
     private final UserRoleRepository userRoleRepository;
-    private final EnterpriseMapper enterpriseMapper;
+    private final EnterpriseBuyerMapper enterpriseBuyerMapper;
 
-    public EnterpriseInfoResponse getByUserId(Integer userId) {
+    public EnterpriseBuyerResponse getByUserId(Integer userId) {
         checkRole(userId);
-        Enterprise ent = enterpriseRepository.findByUserId(userId).orElse(null);
+        EnterpriseBuyer ent = enterpriseBuyerRepository.findByUserId(userId).orElse(null);
         if (ent == null) {
             return null;
         }
-        return enterpriseMapper.toResponse(ent);
+        return enterpriseBuyerMapper.toResponse(ent);
     }
 
     /**
-     * 保存企业信息（有则更新、无则创建）
+     * 保存企业培训采购方信息（有则更新、无则创建）
      */
     @Transactional
-    public EnterpriseInfoResponse save(Integer userId, EnterpriseInfoRequest request) {
+    public EnterpriseBuyerResponse save(Integer userId, EnterpriseBuyerRequest request) {
         checkRole(userId);
-        Enterprise ent = enterpriseRepository.findByUserId(userId).orElseGet(() -> {
-            Enterprise e = new Enterprise();
+        EnterpriseBuyer ent = enterpriseBuyerRepository.findByUserId(userId).orElseGet(() -> {
+            EnterpriseBuyer e = new EnterpriseBuyer();
             e.setUserId(userId);
             return e;
         });
@@ -60,8 +60,8 @@ public class EnterpriseService {
         if (request.getAddress() != null) ent.setAddress(request.getAddress());
         if (request.getTrainingTags() != null) ent.setTrainingTags(request.getTrainingTags());
 
-        ent = enterpriseRepository.save(ent);
-        return enterpriseMapper.toResponse(ent);
+        ent = enterpriseBuyerRepository.save(ent);
+        return enterpriseBuyerMapper.toResponse(ent);
     }
 
     private void checkRole(Integer userId) {

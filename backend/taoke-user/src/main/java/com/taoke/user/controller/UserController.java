@@ -4,14 +4,14 @@ import com.taoke.common.response.ApiResponse;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.buyer.BuyerRequest;
 import com.taoke.user.dto.buyer.BuyerResponse;
-import com.taoke.user.dto.enterprise.EnterpriseInfoRequest;
-import com.taoke.user.dto.enterprise.EnterpriseInfoResponse;
+import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerRequest;
+import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerResponse;
 import com.taoke.user.dto.user.ChangePasswordRequest;
 import com.taoke.user.dto.user.ChangePhoneRequest;
 import com.taoke.user.dto.user.UpdateProfileRequest;
 import com.taoke.user.dto.user.UserProfileResponse;
 import com.taoke.user.service.BuyerService;
-import com.taoke.user.service.EnterpriseService;
+import com.taoke.user.service.EnterpriseBuyerService;
 import com.taoke.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
-    private final EnterpriseService enterpriseService;
+    private final EnterpriseBuyerService enterpriseBuyerService;
     private final BuyerService buyerService;
 
     /* ======================== 基本信息 ======================== */
@@ -67,18 +67,18 @@ public class UserController {
         return ApiResponse.ok(null);
     }
 
-    /* ======================== 企业信息（ENTERPRISE_BUYER） ======================== */
+    /* ======================== 企业培训采购方信息（ENTERPRISE_BUYER） ======================== */
 
-    @Operation(summary = "获取企业信息")
+    @Operation(summary = "获取企业培训采购方信息")
     @GetMapping("/users/me/enterprise")
-    public ApiResponse<EnterpriseInfoResponse> getEnterprise() {
-        return ApiResponse.ok(enterpriseService.getByUserId(SecurityUtils.getRequiredUserId()));
+    public ApiResponse<EnterpriseBuyerResponse> getEnterpriseBuyer() {
+        return ApiResponse.ok(enterpriseBuyerService.getByUserId(SecurityUtils.getRequiredUserId()));
     }
 
-    @Operation(summary = "保存企业信息（有则更新、无则创建）")
+    @Operation(summary = "保存企业培训采购方信息（有则更新、无则创建）")
     @PutMapping("/users/me/enterprise")
-    public ApiResponse<EnterpriseInfoResponse> saveEnterprise(@Valid @RequestBody EnterpriseInfoRequest request) {
-        return ApiResponse.ok(enterpriseService.save(SecurityUtils.getRequiredUserId(), request));
+    public ApiResponse<EnterpriseBuyerResponse> saveEnterpriseBuyer(@Valid @RequestBody EnterpriseBuyerRequest request) {
+        return ApiResponse.ok(enterpriseBuyerService.save(SecurityUtils.getRequiredUserId(), request));
     }
 
     /* ======================== 学员档案（BUYER） ======================== */

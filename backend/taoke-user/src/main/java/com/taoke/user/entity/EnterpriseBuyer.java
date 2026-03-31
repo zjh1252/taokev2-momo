@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 企业信息实体 — ENTERPRISE_BUYER 角色扩展信息。
+ * 企业培训采购方扩展信息实体 — ENTERPRISE_BUYER 角色扩展信息。
  *
  * @author Fangxinxin
  * @date 2026-03-31 14:00
@@ -14,8 +14,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "user_enterprises")
-public class Enterprise extends BaseEntity {
+@Table(name = "user_enterprise_buyers")
+public class EnterpriseBuyer extends BaseEntity {
 
     @Column(name = "user_id", nullable = false, unique = true)
     private Integer userId;

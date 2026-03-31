@@ -1,16 +1,16 @@
-package com.taoke.user.dto.enterprise;
+package com.taoke.user.dto.enterprisebuyer;
 
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 保存企业信息请求
+ * 保存企业培训采购方信息请求
  *
  * @author Fangxinxin
  * @date 2026-03-31 14:00
  */
 @Data
-public class EnterpriseInfoRequest {
+public class EnterpriseBuyerRequest {
 
     @Size(max = 128, message = "企业名称不超过128个字符")
     private String companyName;
