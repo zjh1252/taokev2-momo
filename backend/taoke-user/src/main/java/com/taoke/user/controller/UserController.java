@@ -2,15 +2,15 @@ package com.taoke.user.controller;
 
 import com.taoke.common.response.ApiResponse;
 import com.taoke.common.security.SecurityUtils;
-import com.taoke.user.dto.buyer.BuyerProfileRequest;
-import com.taoke.user.dto.buyer.BuyerProfileResponse;
+import com.taoke.user.dto.buyer.BuyerRequest;
+import com.taoke.user.dto.buyer.BuyerResponse;
 import com.taoke.user.dto.enterprise.EnterpriseInfoRequest;
 import com.taoke.user.dto.enterprise.EnterpriseInfoResponse;
 import com.taoke.user.dto.user.ChangePasswordRequest;
 import com.taoke.user.dto.user.ChangePhoneRequest;
 import com.taoke.user.dto.user.UpdateProfileRequest;
 import com.taoke.user.dto.user.UserProfileResponse;
-import com.taoke.user.service.BuyerProfileService;
+import com.taoke.user.service.BuyerService;
 import com.taoke.user.service.EnterpriseService;
 import com.taoke.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,7 +32,7 @@ public class UserController {
 
     private final UserService userService;
     private final EnterpriseService enterpriseService;
-    private final BuyerProfileService buyerProfileService;
+    private final BuyerService buyerService;
 
     /* ======================== 基本信息 ======================== */
 
@@ -84,14 +84,14 @@ public class UserController {
     /* ======================== 学员档案（BUYER） ======================== */
 
     @Operation(summary = "获取学员档案")
-    @GetMapping("/users/me/buyer-profile")
-    public ApiResponse<BuyerProfileResponse> getBuyerProfile() {
-        return ApiResponse.ok(buyerProfileService.getByUserId(SecurityUtils.getRequiredUserId()));
+    @GetMapping("/users/me/buyer")
+    public ApiResponse<BuyerResponse> getBuyer() {
+        return ApiResponse.ok(buyerService.getByUserId(SecurityUtils.getRequiredUserId()));
     }
 
     @Operation(summary = "保存学员档案（有则更新、无则创建）")
-    @PutMapping("/users/me/buyer-profile")
-    public ApiResponse<BuyerProfileResponse> saveBuyerProfile(@Valid @RequestBody BuyerProfileRequest request) {
-        return ApiResponse.ok(buyerProfileService.save(SecurityUtils.getRequiredUserId(), request));
+    @PutMapping("/users/me/buyer")
+    public ApiResponse<BuyerResponse> saveBuyer(@Valid @RequestBody BuyerRequest request) {
+        return ApiResponse.ok(buyerService.save(SecurityUtils.getRequiredUserId(), request));
     }
 }

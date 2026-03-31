@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * @date 2026-03-31 14:00
  */
 @Data
-public class BuyerProfileResponse {
+public class BuyerResponse {
 
     private Integer id;
     private String occupation;

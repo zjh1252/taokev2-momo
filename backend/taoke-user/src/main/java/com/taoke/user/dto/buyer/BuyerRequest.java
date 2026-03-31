@@ -10,7 +10,7 @@ import lombok.Data;
  * @date 2026-03-31 14:00
  */
 @Data
-public class BuyerProfileRequest {
+public class BuyerRequest {
 
     @Size(max = 64, message = "职业不超过64个字符")
     private String occupation;
