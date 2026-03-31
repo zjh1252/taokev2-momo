@@ -48,6 +48,9 @@ taoke:
     provider: local
     base-dir: ./storage
     public-domain:
+  cors:
+    allowed-origins: '*'
+    allow-credentials: false
 
 logging:
   level:

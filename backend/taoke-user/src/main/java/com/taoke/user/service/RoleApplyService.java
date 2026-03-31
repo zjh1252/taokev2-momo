@@ -1,6 +1,8 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.common.eventbus.EventPublisher;
+import com.taoke.common.events.user.ApplyPassedEvent;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
@@ -26,6 +28,7 @@ import java.util.Map;
 public class RoleApplyService {
 
     private final UserRoleRepository userRoleRepository;
+    private final EventPublisher eventPublisher;
 
     private static final Map<Integer, String> STATUS_TEXT = Map.of(
             1, "生效",
@@ -73,6 +76,30 @@ public class RoleApplyService {
             case 4 -> throw new BusinessException(ErrorCode.ROLE_DISABLED);
             default -> throw new BusinessException(ErrorCode.INTERNAL_ERROR, "未知的角色状态: " + userRole.getStatus());
         }
+    }
+
+    /**
+     * 审核通过角色申请（管理端调用）。
+     * <p>
+     * 状态流转：status=2（待审核）→ status=1（生效），并发布 {@link ApplyPassedEvent}。
+     *
+     * @param userId   目标用户 ID
+     * @param roleCode 角色编码
+     */
+    @Transactional
+    public void approve(Integer userId, String roleCode) {
+        UserRole userRole = userRoleRepository.findByUserIdAndRole(userId, roleCode)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "未找到角色申请记录"));
+
+        if (userRole.getStatus() != 2) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "当前状态不可审核: " + STATUS_TEXT.getOrDefault(userRole.getStatus(), "未知"));
+        }
+
+        userRole.setStatus(1);
+        userRoleRepository.save(userRole);
+
+        // 发布领域事件
+        eventPublisher.publish(new ApplyPassedEvent(roleCode, userId));
     }
 
     /**

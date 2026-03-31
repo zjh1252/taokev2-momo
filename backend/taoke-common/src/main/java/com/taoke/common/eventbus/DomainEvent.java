@@ -15,11 +15,12 @@ import java.util.UUID;
  * <p>
  * 子类示例：
  * <pre>{@code
- * public class RoleApprovedEvent extends DomainEvent {
- *     @Getter
- *     private final String role;
+ * public class ApplyPassedEvent extends DomainEvent {
+ *     @Getter private String role;
  *
- *     public RoleApprovedEvent(Integer userId, String role) {
+ *     protected ApplyPassedEvent() {}
+ *
+ *     public ApplyPassedEvent(Integer userId, String role) {
  *         super("UserRole", String.valueOf(userId));
  *         this.role = role;
  *     }
@@ -35,28 +36,43 @@ public abstract class DomainEvent {
     // ==================== 自动填充（框架层） ====================
 
     /** 事件唯一 ID，用于幂等判断与链路追踪 */
-    private final String eventId;
+    private String eventId;
 
     /** 事件发生时间（UTC），避免时区问题 */
-    private final Instant timestamp;
+    private Instant timestamp;
 
-    /** 事件类型标识，取自类简名（如 RoleApprovedEvent） */
-    private final String eventType;
+    /** 事件类型标识，取自类简名（如 ApplyPassedEvent） */
+    private String eventType;
 
     /** 操作者用户 ID，自动从 SecurityContext 获取；系统事件为 null */
-    private final Integer operatorId;
+    private Integer operatorId;
 
     // ==================== 业务上下文（子类传入） ====================
 
     /** 聚合类型（如 User、Order、Course） */
-    private final String aggregateType;
+    private String aggregateType;
 
     /** 聚合根 ID（字符串化，兼容各类 ID 类型） */
-    private final String aggregateId;
+    private String aggregateId;
+
+    /** Jackson 反序列化用，子类也需提供 protected 无参构造器 */
+    protected DomainEvent() {
+    }
 
     /**
-     * @param aggregateType 聚合类型
-     * @param aggregateId   聚合根 ID
+     * 仅聚合 ID（aggregateType 留空，适用于聚合类型可从 topic 推断的场景）
+     *
+     * @param aggregateId 聚合根 ID
+     */
+    protected DomainEvent(String aggregateId) {
+        this(null, aggregateId);
+    }
+
+    /**
+     * 完整构造器
+     *
+     * @param aggregateType 聚合类型（如 User、Order），无聚合场景传 null
+     * @param aggregateId   聚合根 ID，无聚合场景传 null
      */
     protected DomainEvent(String aggregateType, String aggregateId) {
         this.eventId = UUID.randomUUID().toString();
