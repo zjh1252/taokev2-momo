@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "认证", description = "注册/登录/Token 刷新/验证码")
 @RestController
-@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -35,35 +34,35 @@ public class AuthController {
 
     @Public
     @Operation(summary = "手机号 + 密码登录")
-    @PostMapping("/login")
+    @PostMapping("/auth/login")
     public ApiResponse<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.ok(authService.loginByPassword(request));
     }
 
     @Public
     @Operation(summary = "手机号 + 验证码登录（未注册自动注册）")
-    @PostMapping("/login/sms")
+    @PostMapping("/auth/login/sms")
     public ApiResponse<TokenResponse> loginBySms(@Valid @RequestBody SmsLoginRequest request) {
         return ApiResponse.ok(authService.loginBySms(request));
     }
 
     @Public
     @Operation(summary = "注册")
-    @PostMapping("/register")
+    @PostMapping("/auth/register")
     public ApiResponse<TokenResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ApiResponse.ok(authService.register(request));
     }
 
     @Public
     @Operation(summary = "刷新 Token")
-    @PostMapping("/refresh")
+    @PostMapping("/auth/refresh")
     public ApiResponse<TokenResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         return ApiResponse.ok(authService.refreshToken(request));
     }
 
     @Public
     @Operation(summary = "发送验证码")
-    @PostMapping("/send-code")
+    @PostMapping("/auth/send-code")
     public ApiResponse<Void> sendCode(@Valid @RequestBody SendCodeRequest request, HttpServletRequest httpRequest) {
         String ip = getClientIp(httpRequest);
         verificationCodeService.sendCode(request.getTarget(), request.getType(), request.getSendType(), ip);
@@ -72,7 +71,7 @@ public class AuthController {
 
     @Public
     @Operation(summary = "忘记密码-重置密码")
-    @PostMapping("/reset-password")
+    @PostMapping("/auth/reset-password")
     public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ApiResponse.ok(null);
@@ -86,7 +85,6 @@ public class AuthController {
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
-        // X-Forwarded-For 可能包含多个 IP，取第一个
         if (ip != null && ip.contains(",")) {
             ip = ip.split(",")[0].trim();
         }
@@ -100,7 +98,6 @@ public class AuthController {
      */
     @Profile("dev")
     @RestController
-    @RequestMapping("/auth/mock")
     @Tag(name = "Mock-开发调试", description = "仅 dev 环境可用")
     static class MockCodeController {
 
@@ -112,7 +109,7 @@ public class AuthController {
 
         @Public
         @Operation(summary = "查询 Mock 验证码（仅 dev 环境）")
-        @GetMapping("/code")
+        @GetMapping("/auth/mock/code")
         public ApiResponse<String> getMockCode(@RequestParam String phone) {
             if (!(smsProvider instanceof MockSmsProvider mockProvider)) {
                 throw new BusinessException(ErrorCode.PARAM_INVALID, "当前非 mock 模式");

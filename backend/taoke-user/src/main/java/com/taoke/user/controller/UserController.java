@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "用户自服务", description = "当前登录用户的个人信息管理")
 @RestController
-@RequestMapping("/users/me")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -38,13 +37,13 @@ public class UserController {
     /* ======================== 基本信息 ======================== */
 
     @Operation(summary = "获取当前用户信息")
-    @GetMapping
+    @GetMapping("/users/me")
     public ApiResponse<UserProfileResponse> getProfile() {
         return ApiResponse.ok(userService.getProfile(SecurityUtils.getRequiredUserId()));
     }
 
     @Operation(summary = "修改个人基本资料")
-    @PutMapping
+    @PutMapping("/users/me")
     public ApiResponse<Void> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         userService.updateProfile(SecurityUtils.getRequiredUserId(), request);
         return ApiResponse.ok(null);
@@ -53,7 +52,7 @@ public class UserController {
     /* ======================== 密码管理 ======================== */
 
     @Operation(summary = "修改密码")
-    @PutMapping("/password")
+    @PutMapping("/users/me/password")
     public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         userService.changePassword(SecurityUtils.getRequiredUserId(), request);
         return ApiResponse.ok(null);
@@ -62,7 +61,7 @@ public class UserController {
     /* ======================== 手机号变更 ======================== */
 
     @Operation(summary = "变更手机号（双验证码校验）")
-    @PutMapping("/phone")
+    @PutMapping("/users/me/phone")
     public ApiResponse<Void> changePhone(@Valid @RequestBody ChangePhoneRequest request) {
         userService.changePhone(SecurityUtils.getRequiredUserId(), request);
         return ApiResponse.ok(null);
@@ -71,13 +70,13 @@ public class UserController {
     /* ======================== 企业信息（ENTERPRISE_BUYER） ======================== */
 
     @Operation(summary = "获取企业信息")
-    @GetMapping("/enterprise")
+    @GetMapping("/users/me/enterprise")
     public ApiResponse<EnterpriseInfoResponse> getEnterprise() {
         return ApiResponse.ok(enterpriseService.getByUserId(SecurityUtils.getRequiredUserId()));
     }
 
     @Operation(summary = "保存企业信息（有则更新、无则创建）")
-    @PutMapping("/enterprise")
+    @PutMapping("/users/me/enterprise")
     public ApiResponse<EnterpriseInfoResponse> saveEnterprise(@Valid @RequestBody EnterpriseInfoRequest request) {
         return ApiResponse.ok(enterpriseService.save(SecurityUtils.getRequiredUserId(), request));
     }
@@ -85,13 +84,13 @@ public class UserController {
     /* ======================== 学员档案（BUYER） ======================== */
 
     @Operation(summary = "获取学员档案")
-    @GetMapping("/buyer-profile")
+    @GetMapping("/users/me/buyer-profile")
     public ApiResponse<BuyerProfileResponse> getBuyerProfile() {
         return ApiResponse.ok(buyerProfileService.getByUserId(SecurityUtils.getRequiredUserId()));
     }
 
     @Operation(summary = "保存学员档案（有则更新、无则创建）")
-    @PutMapping("/buyer-profile")
+    @PutMapping("/users/me/buyer-profile")
     public ApiResponse<BuyerProfileResponse> saveBuyerProfile(@Valid @RequestBody BuyerProfileRequest request) {
         return ApiResponse.ok(buyerProfileService.save(SecurityUtils.getRequiredUserId(), request));
     }
