@@ -25,3 +25,19 @@
 - `taoke-common/pom.xml` 新增 `spring-boot-starter-amqp`（optional）
 - YAML 配置：`spring.rabbitmq.*`（dev 连接信息）、`taoke.event.exchange`（Topic Exchange 名称）
 
+## 2026-03-19 23:00
+- 事件总线迭代优化：
+  - `TopicResolver` — 从包名（`events.{module}`）+ 类名自动推导 topic，无需手动定义 TOPIC 常量；启动时校验 topic 唯一性
+  - `DomainEvent` 基类重构 — 去掉 `abstract getTopic()`（topic 解析职责移至 `TopicResolver`）；字段扩充为 eventId / timestamp(Instant UTC) / eventType / operatorId(自动 SecurityContext) / aggregateType / aggregateId；构造器多态（无参-Jackson / 单参-仅 aggregateId / 双参-完整）
+  - `@DomainEventListener` 简化 — 去掉 `topic` 属性，从方法参数类型自动推导
+- 事件 Demo 完整闭环：
+  - 事件定义：`taoke-common/events/user/ApplyPassedEvent`
+  - 发布：`RoleApplyService.approve()` 审核通过后发布事件
+  - 消费：`taoke-user/eventlistener/UserEventListener.onApplyPassed()`
+- 全局配置整理：
+  - `JacksonConfig` 删除 — YAML `spring.jackson.*` 已足够，AMQP `Jackson2JsonMessageConverter(objectMapper)` 回归 `RabbitEventConfig`（注入全局 ObjectMapper）
+  - `RedisConfig`（taoke-common）— `RedisTemplate` JSON 序列化替代 JDK 二进制，`@ConditionalOnClass`
+  - `AsyncConfig`（taoke-common）— 自定义线程池（core=4, max=16, queue=256, CallerRunsPolicy），异步异常全局日志
+  - `CorsFilter`（taoke-app/filter）— YAML 配置化跨域，dev 全放开 / prod 限定域名
+  - `taoke-common/pom.xml` 新增 `spring-boot-starter-data-redis`（optional）
+
