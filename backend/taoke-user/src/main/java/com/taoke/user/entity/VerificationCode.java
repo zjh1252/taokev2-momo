@@ -35,7 +35,7 @@ public class VerificationCode {
     @Column(name = "send_type", nullable = false, length = 10)
     private String sendType;
 
-    @Column(name = "is_used", nullable = false)
+    @Column(name = "is_used", nullable = false, columnDefinition = "tinyint")
     private Integer isUsed = 0;
 
     @Column(name = "expires_at", nullable = false)

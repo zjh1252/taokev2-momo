@@ -24,10 +24,10 @@ public class Role extends BaseEntity {
     private String description;
 
     /** 是否系统内置：1=是（不可删除），0=否 */
-    @Column(name = "is_system", nullable = false)
+    @Column(name = "is_system", nullable = false, columnDefinition = "tinyint")
     private Integer isSystem = 0;
 
     /** 是否启用：1=启用，0=停用 */
-    @Column(name = "is_active", nullable = false)
+    @Column(name = "is_active", nullable = false, columnDefinition = "tinyint")
     private Integer isActive = 1;
 }

@@ -34,7 +34,7 @@ public class User extends BaseEntity {
     @Column(name = "avatar_url", length = 512)
     private String avatarUrl;
 
-    @Column(name = "gender", nullable = false)
+    @Column(name = "gender", nullable = false, columnDefinition = "tinyint")
     private Integer gender = 0;
 
     @Column(name = "post_code", nullable = false, length = 10)
@@ -55,7 +55,7 @@ public class User extends BaseEntity {
     @Column(name = "address", nullable = false, length = 200)
     private String address = "";
 
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "tinyint")
     private Integer status = 1;
 
     @Column(name = "freeze_reason", length = 255)
@@ -67,6 +67,6 @@ public class User extends BaseEntity {
     @Column(name = "last_login_ip", length = 45)
     private String lastLoginIp;
 
-    @Column(name = "reg_origin", nullable = false)
+    @Column(name = "reg_origin", nullable = false, columnDefinition = "tinyint")
     private Integer regOrigin = 1;
 }

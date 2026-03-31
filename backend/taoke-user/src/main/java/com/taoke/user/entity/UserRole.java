@@ -25,7 +25,7 @@ public class UserRole extends BaseEntity {
     private String role;
 
     /** 角色状态：1=生效，2=待审核，3=审核驳回，4=已禁用 */
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "tinyint")
     private Integer status = 1;
 
     @Column(name = "approved_at")
