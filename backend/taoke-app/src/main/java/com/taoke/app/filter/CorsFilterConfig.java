@@ -18,7 +18,7 @@ import java.util.List;
  * @date 2026-03-19
  */
 @Configuration
-public class CorsFilter {
+public class CorsFilterConfig {
 
     @Value("${taoke.cors.allowed-origins:*}")
     private List<String> allowedOrigins;
