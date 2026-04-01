@@ -52,3 +52,18 @@
   - 新建 `controller/`、`service/`（接口）、`service/impl/`（实现）、`repository/` 包
   - upload 6 个文件迁移：UploadController → controller/，FileUploadService/Impl → service/ + service/impl/，FileUploadResponse → dto/，FileUploadProperties → config/，UploadBizType → enums/
   - region 6 个文件按分层创建，删除旧的 upload/ 和 region/ 包
+
+## 2026-04-01 21:30
+- 后端启动问题修复：
+  - `Region` 实体 `code`/`parentCode` 字段改用 `columnDefinition = "CHAR(36)"`，匹配数据库 CHAR 类型，解决 Hibernate schema-validation 报错
+  - RabbitMQ 开关完善：新增 `NoOpEventPublisher`（`@ConditionalOnProperty havingValue="false", matchIfMissing=true`），当事件总线关闭时兜底，避免 `EventPublisher` 注入失败
+  - `DynamicAuthorizationManager` 构造器对 `RequestMappingHandlerMapping` 加 `@Lazy`，解决 Security 与 WebMvc 启动顺序循环依赖
+- Frontend `modules/` → `features/` 目录重构（19 个文件）：
+  - `features/auth/` — components（LoginForm、RegisterForm）+ api（types.ts、service.ts）
+  - `features/home/` — components（8 个组件 + index.ts）+ data/mock.ts + types.ts
+  - `features/course/` — api（types.ts、service.ts）
+  - `features/user/` — api（types.ts、service.ts）
+  - `lib/api/` 3 个文件迁入各 feature 的 api/service.ts，import 改为相对路径
+  - 3 个 page 文件 import 路径从 `@/modules/` 更新为 `@/features/`
+  - 旧 `modules/` 和 `lib/api/` 目录已删除
+- Next.js 16 适配：`middleware.ts` 重命名为 `proxy.ts`（Next.js 16 约定变更）
