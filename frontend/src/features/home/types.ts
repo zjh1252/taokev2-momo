@@ -12,12 +12,13 @@ export interface Expert {
   title: string;
   avatar: string;
   bio: string;
-  rating: number;
-  /** 统计标签，如 "128+ 内训案例" */
-  statLabel: string;
-  /** 统计类型，用于匹配 i18n key */
-  statType: 'cases' | 'publicSessions' | 'servedOrgs' | 'companiesServed';
-  statCount: number;
+  tags: string[];
+  /** 主推专家使用大图 */
+  coverImage?: string;
+  /** 副标题（如"战略咨询导师"） */
+  subtitle?: string;
+  /** 专家等级/徽章（如"首席专家"） */
+  badge?: string;
 }
 
 export interface CaseStudy {
@@ -26,9 +27,7 @@ export interface CaseStudy {
   title: string;
   description: string;
   image: string;
-  /** 服务讲师 */
-  instructorName?: string;
-  featured?: boolean;
+  tags: string[];
 }
 
 export interface InternalCourse {
@@ -38,7 +37,7 @@ export interface InternalCourse {
   image: string;
   instructorName: string;
   instructorAvatar: string;
-  successCaseCount: number;
+  instructorDesc: string;
 }
 
 export interface PublicCourse {

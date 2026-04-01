@@ -8,14 +8,21 @@ interface CoursesSectionProps {
   courses: InternalCourse[];
 }
 
+/**
+ * 热门内训课 — 2 列横向图文卡片（左图右文），共 6 张
+ */
 export function CoursesSection({ courses }: CoursesSectionProps) {
   const t = useTranslations('home');
 
   return (
     <section>
-      <SectionHeader title={t('courses.sectionTitle')} />
+      <SectionHeader
+        title={t('courses.sectionTitle')}
+        viewMoreHref="/internal-courses"
+        viewMoreText={t('experts.viewMore')}
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {courses.map((course) => (
           <CourseCard key={course.id} course={course} />
         ))}
@@ -25,48 +32,38 @@ export function CoursesSection({ courses }: CoursesSectionProps) {
 }
 
 function CourseCard({ course }: { course: InternalCourse }) {
-  const t = useTranslations('home');
-
   return (
     <Link
       href={`/courses/${course.id}`}
-      className="group bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow"
+      className="bg-white rounded-lg overflow-hidden flex group border border-slate-100 hover:border-primary transition-all shadow-sm h-40"
     >
-      {/* 封面 */}
-      <div className="relative h-40 bg-muted">
+      {/* 左侧封面 */}
+      <div className="w-1/3 overflow-hidden">
         <Image
           src={course.image}
           alt={course.title}
-          fill
-          className="object-cover"
+          width={240}
+          height={160}
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
         />
       </div>
 
-      {/* 内容 */}
-      <div className="p-4">
-        <h4 className="font-bold text-foreground text-sm leading-snug line-clamp-2 mb-1">
+      {/* 右侧内容 */}
+      <div className="p-5 flex flex-col flex-1">
+        <h4 className="font-bold text-base mb-2 line-clamp-2 text-slate-800 group-hover:text-primary transition-colors">
           {course.title}
         </h4>
-        <p className="text-muted-foreground text-xs mb-3">{course.subtitle}</p>
-
-        <div className="flex items-center justify-between">
-          {/* 讲师 */}
-          <div className="flex items-center gap-2">
-            <Image
-              src={course.instructorAvatar}
-              alt={course.instructorName}
-              width={24}
-              height={24}
-              className="rounded-full"
-            />
-            <span className="text-xs text-muted-foreground">
-              {course.instructorName}
-            </span>
-          </div>
-
-          {/* 成功案例数 */}
-          <span className="text-xs text-primary font-medium">
-            {t('courses.successCases', { count: course.successCaseCount })}
+        <p className="text-[13px] text-slate-500 mb-4">{course.subtitle}</p>
+        <div className="mt-auto flex items-center gap-2">
+          <Image
+            src={course.instructorAvatar}
+            alt={course.instructorName}
+            width={24}
+            height={24}
+            className="rounded-full object-cover"
+          />
+          <span className="text-[13px] text-slate-500">
+            {course.instructorName} • {course.instructorDesc}
           </span>
         </div>
       </div>

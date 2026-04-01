@@ -8,18 +8,14 @@
     "allCategories": "All Categories"
   },
   "aiMatch": {
-    "title": "Precision Matching Starts with Your Needs",
-    "description": "Big data engine with real-time filtering — respond to your training needs within 1 hour",
-    "ctaPublish": "Post Requirements, AI Matches Training Resources",
-    "ctaService": "Smart Support"
+    "title": "AI Smart Training Resource Matching",
+    "description": "Big data engine with real-time filtering — instantly match the best trainers and courses for you",
+    "ctaPublish": "Post Requirements",
+    "ctaService": "Smart Support, AI Training Resource Matching"
   },
   "experts": {
     "sectionTitle": "Recommended Experts",
-    "viewMore": "View More",
-    "cases": "{count}+ training cases",
-    "publicSessions": "{count}+ open sessions",
-    "servedOrgs": "{count}+ organizations served",
-    "companiesServed": "{count}+ companies coached"
+    "viewMore": "View More"
   },
   "cases": {
     "sectionTitle": "Expert Cases",
@@ -27,14 +23,11 @@
     "serviceInstructor": "Instructor: {name}"
   },
   "courses": {
-    "sectionTitle": "Popular In-House Training",
-    "customSolution": "Custom Solution",
-    "offlineTeaching": "On-site Training",
-    "successCases": "{count}+ successful cases"
+    "sectionTitle": "Popular In-House Training"
   },
   "publicCourses": {
     "sectionTitle": "Offline Open Courses",
-    "viewMore": "View More >",
+    "viewMore": "View More",
     "loadMore": "Load More Courses",
     "consult": "Consult",
     "viewDetail": "View Details",
@@ -48,27 +41,27 @@
     "durationDays": "{count} days"
   },
   "aiEngagement": {
-    "badge": "AI Smart Matching Engine v2.0",
-    "title": "Haven't found the right course?\nTry AI Smart Matching",
-    "description": "Based on 50,000+ real training data, just enter your pain points or talent needs — AI locks the best match in 3 seconds.",
-    "cta": "Try AI Matching Now"
+    "badge": "AI Smart Customer Service v2.0",
+    "title": "Any training questions? Ask AI Customer Service anytime",
+    "description": "24/7 online support for course consulting, expert recommendations, needs analysis and after-sales support — instant response to every question.",
+    "cta": "Chat with AI Customer Service"
   },
   "footer": {
-    "companyIntro": "TaoKe is China's leading provider of corporate training, open courses, and enterprise university solutions, dedicated to empowering talent development through precision expert matching.",
+    "companyIntro": "TaoKe partners with tens of thousands of excellent trainers and training institutions nationwide, providing targeted, interactive management training services to enterprises, including training needs diagnosis, course procurement, and training materials download.",
     "aboutUs": "About Us",
-    "aboutCompany": "Company",
+    "aboutCompany": "About TaoKe",
     "joinUs": "Careers",
     "contactUs": "Contact Us",
-    "business": "Business",
+    "business": "Business Services",
     "instructorJoin": "Become an Instructor",
     "institutionJoin": "Partner with Us",
-    "partners": "Partners",
+    "partners": "Business Cooperation",
     "helpCenter": "Help Center",
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "faq": "FAQ",
-    "copyright": "© 2026 Taoketang Executive Training All rights reserved.",
-    "icp": "ICP License No. 12345678",
+    "copyright": "Copyright(C) 2006-2024 TAOKE.com All Rights Reserved.",
+    "icp": "ICP License No. 05034964",
     "license": "Value-added Telecom Business License"
   }
 }

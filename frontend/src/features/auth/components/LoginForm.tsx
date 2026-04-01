@@ -2,23 +2,43 @@
 
 import { useState, useCallback, useEffect, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
-import { ArrowRight, MessageCircle, Fingerprint } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowRight, MessageCircle, Fingerprint, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { storage } from '@/lib/storage';
+import { useAuth } from '@/lib/auth/auth-context';
+import { TOKEN_KEY } from '@/lib/auth/constants';
+import { sendCode, smsLogin, getMockCode } from '../api/service';
 
 const PHONE_LENGTH = 11;
 const CODE_LENGTH = 6;
 const COUNTDOWN_SECONDS = 60;
 
+/**
+ * 登录/注册表单 — 短信验证码登录，未注册自动创建账号
+ *
+ * @author Fangxinxin
+ * @date 2026-04-01 17:30
+ */
 export function LoginForm() {
   const t = useTranslations('auth.login');
+  const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const canSendCode = phone.length === PHONE_LENGTH && countdown === 0;
-  const canSubmit = phone.length === PHONE_LENGTH && code.length === CODE_LENGTH && agreed;
+  const canSendCode = phone.length === PHONE_LENGTH && countdown === 0 && !sendingCode;
+  const canSubmit =
+    phone.length === PHONE_LENGTH &&
+    code.length === CODE_LENGTH &&
+    agreed &&
+    !submitting;
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -26,16 +46,53 @@ export function LoginForm() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
-  const handleSendCode = useCallback(() => {
+  const handleSendCode = useCallback(async () => {
     if (!canSendCode) return;
-    // TODO: 调用发送验证码接口
-    setCountdown(COUNTDOWN_SECONDS);
-  }, [canSendCode]);
+    setError('');
+    setSendingCode(true);
+    try {
+      await sendCode(phone);
+      setCountdown(COUNTDOWN_SECONDS);
 
-  const handleSubmit = (e: FormEvent) => {
+      // 开发环境自动获取 Mock 验证码
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const res = await getMockCode(phone);
+          if (res.data) {
+            setCode(res.data);
+          }
+        } catch {
+          // Mock 接口失败不影响正常流程
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '发送验证码失败');
+    } finally {
+      setSendingCode(false);
+    }
+  }, [canSendCode, phone]);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    // TODO: 调用登录/注册接口
+    setError('');
+    setSubmitting(true);
+    try {
+      const res = await smsLogin(phone, code);
+      const token = res.data;
+      storage.set(TOKEN_KEY, {
+        accessToken: token.accessToken,
+        refreshToken: token.refreshToken,
+        expiresIn: token.expiresIn,
+        tokenType: token.tokenType,
+      });
+      await refreshUser();
+      router.push('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '登录失败，请重试');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -44,6 +101,13 @@ export function LoginForm() {
         <h2 className="font-heading font-bold text-2xl mb-2">{t('title')}</h2>
         <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
       </div>
+
+      {/* 错误提示 */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 手机号 */}
@@ -85,13 +149,16 @@ export function LoginForm() {
               onClick={handleSendCode}
               disabled={!canSendCode}
               className={cn(
-                'h-12 px-6 whitespace-nowrap font-bold text-sm rounded-xl transition-colors',
+                'h-12 px-6 whitespace-nowrap font-bold text-sm rounded-xl transition-colors flex items-center gap-2',
                 canSendCode
                   ? 'text-primary hover:bg-primary/5 cursor-pointer'
                   : 'text-muted-foreground cursor-not-allowed',
               )}
             >
-              {countdown > 0 ? t('codeSent', { seconds: countdown }) : t('getCode')}
+              {sendingCode && <Loader2 className="size-4 animate-spin" />}
+              {countdown > 0
+                ? t('codeSent', { seconds: countdown })
+                : t('getCode')}
             </button>
           </div>
         </div>
@@ -107,11 +174,18 @@ export function LoginForm() {
               className="size-4 rounded border-border text-primary focus:ring-primary/20 focus:ring-offset-0 transition-all"
             />
           </div>
-          <label htmlFor="agreement" className="text-xs text-muted-foreground leading-relaxed">
+          <label
+            htmlFor="agreement"
+            className="text-xs text-muted-foreground leading-relaxed"
+          >
             {t('agreement')}
-            <a href="#" className="text-primary font-semibold hover:underline">{t('termsLink')}</a>
+            <a href="#" className="text-primary font-semibold hover:underline">
+              {t('termsLink')}
+            </a>
             {t('and')}
-            <a href="#" className="text-primary font-semibold hover:underline">{t('privacyLink')}</a>
+            <a href="#" className="text-primary font-semibold hover:underline">
+              {t('privacyLink')}
+            </a>
           </label>
         </div>
 
@@ -126,8 +200,14 @@ export function LoginForm() {
               : 'opacity-60 cursor-not-allowed',
           )}
         >
-          <span>{t('submit')}</span>
-          <ArrowRight className="size-4" />
+          {submitting ? (
+            <Loader2 className="size-5 animate-spin" />
+          ) : (
+            <>
+              <span>{t('submit')}</span>
+              <ArrowRight className="size-4" />
+            </>
+          )}
         </button>
       </form>
 

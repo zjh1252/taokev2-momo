@@ -8,33 +8,26 @@
     "allCategories": "全部分类"
   },
   "aiMatch": {
-    "title": "精准匹配，从需求开始",
-    "description": "大数据引擎实时筛选，最快 1 小时内响应您的培训需求",
-    "ctaPublish": "发布需求，AI智能匹配培训资源",
-    "ctaService": "智能客服"
+    "title": "AI 智能匹配培训资源",
+    "description": "大数据引擎实时筛选，极速匹配最适合您的讲师与课程",
+    "ctaPublish": "发布需求",
+    "ctaService": "智能客服，AI智能匹配培训资源"
   },
   "experts": {
     "sectionTitle": "推荐专家",
-    "viewMore": "查看更多",
-    "cases": "{count}+ 内训案例",
-    "publicSessions": "{count}+ 场公开课",
-    "servedOrgs": "{count}+ 服务机构",
-    "companiesServed": "{count}+ 企业陪跑"
+    "viewMore": "查看更多"
   },
   "cases": {
     "sectionTitle": "专家案例",
-    "readMore": "阅读完整案例",
+    "readMore": "阅读全文",
     "serviceInstructor": "服务讲师：{name}"
   },
   "courses": {
-    "sectionTitle": "热门内训课",
-    "customSolution": "定制化方案",
-    "offlineTeaching": "线下授课",
-    "successCases": "{count}+场成功案例"
+    "sectionTitle": "热门内训课"
   },
   "publicCourses": {
     "sectionTitle": "线下公开课",
-    "viewMore": "查看更多 >",
+    "viewMore": "查看更多",
     "loadMore": "加载更多课程",
     "consult": "咨询预约",
     "viewDetail": "查看详情",
@@ -48,27 +41,27 @@
     "durationDays": "{count}天"
   },
   "aiEngagement": {
-    "badge": "AI 智能匹配引擎 v2.0",
-    "title": "还没找到心仪的课程？\n试试 AI 智能匹配",
-    "description": "基于 50,000+ 真实培训数据，只需输入企业痛点或人才需求，AI 3秒内为您锁定最匹配的专家与方案。",
-    "cta": "立即体验 AI 匹配"
+    "badge": "AI 智能客服助手 v2.0",
+    "title": "有任何培训疑问？随时咨询 AI 智能客服",
+    "description": "7x24小时在线解答，为您提供课程咨询、专家推荐、需求分析及售后支持，极速响应您的每一个问题。",
+    "cta": "立即唤起 AI 客服"
   },
   "footer": {
-    "companyIntro": "淘课网是中国领先的企业内训、公开课及企业大学解决方案服务商，致力于通过精准的专家资源匹配，助力企业人才发展与数字化转型。",
+    "companyIntro": "淘课网联合全国数万优秀培训师和培训机构,给企业提供有针对性的、互动的、积聚人脉的管理培训服务.包括提供培训需求诊断、培训课程采购、培训资料下载等服务！",
     "aboutUs": "关于我们",
-    "aboutCompany": "公司简介",
-    "joinUs": "加入我们",
+    "aboutCompany": "关于淘课",
+    "joinUs": "招聘英才",
     "contactUs": "联系我们",
-    "business": "商务合作",
+    "business": "商务服务",
     "instructorJoin": "讲师入驻",
     "institutionJoin": "机构加盟",
-    "partners": "合作伙伴",
+    "partners": "商务合作",
     "helpCenter": "帮助中心",
-    "terms": "服务协议",
-    "privacy": "隐私政策",
+    "terms": "服务条款",
+    "privacy": "隐私保护",
     "faq": "常见问题",
-    "copyright": "© 2026 Taoketang Executive Training All rights reserved.",
-    "icp": "沪ICP备12345678号",
+    "copyright": "Copyright(C) 2006-2024 TAOKE.com All Rights Reserved.",
+    "icp": "沪ICP备05034964号",
     "license": "增值电信业务经营许可证"
   }
 }
