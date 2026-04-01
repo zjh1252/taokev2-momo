@@ -22,7 +22,7 @@ import lombok.Setter;
 public class Region extends BaseEntity {
 
     /** 行政区划编码（如 110000000000 表示北京市） */
-    @Column(name = "code", nullable = false, length = 36, unique = true)
+    @Column(name = "code", nullable = false, columnDefinition = "CHAR(36)", unique = true)
     private String code;
 
     /** 地区名称 */
@@ -30,7 +30,7 @@ public class Region extends BaseEntity {
     private String name;
 
     /** 父级区划编码，顶级省份的 parentCode 为 "0" */
-    @Column(name = "parent_code", nullable = false, length = 36)
+    @Column(name = "parent_code", nullable = false, columnDefinition = "CHAR(36)")
     private String parentCode;
 
     /** 层级：1=省/直辖市，2=市，3=区/县，4=街道/乡镇 */
