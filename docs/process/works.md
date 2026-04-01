@@ -67,3 +67,13 @@
   - 3 个 page 文件 import 路径从 `@/modules/` 更新为 `@/features/`
   - 旧 `modules/` 和 `lib/api/` 目录已删除
 - Next.js 16 适配：`middleware.ts` 重命名为 `proxy.ts`（Next.js 16 约定变更）
+
+## 2026-04-01 20:25
+- 从 taoke.com 抓取 15 位人力资源类专家种子数据并入库
+  - 下载 15 张专家头像到 `frontend/public/statics/images/trainers/`，以 taoke ID 命名
+  - 编写 Flyway V10 迁移 SQL（`V10__seed_trainer_data.sql`），共约 75 条语句：
+    - `sys_users`：15 条虚拟用户（phone: `13266660001`~`13266660015`，avatar_url 指向本地路径）
+    - `sys_user_roles`：15 条 TRAINER 角色分配
+    - `user_trainers`：15 条专家主表记录（含省市 ID 映射，直辖市取"市辖区"条目）
+    - `trainer_expertise_categories`：29 条擅长领域关联（人力资源/领导力/培训发展/经营战略/职业素养/质量管理/国学心理学）
+  - SQL 使用 `SELECT id WHERE phone=...` 变量方式获取 user_id/trainer_id，不依赖硬编码自增 ID
