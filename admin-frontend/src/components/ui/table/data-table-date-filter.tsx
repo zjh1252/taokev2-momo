@@ -124,7 +124,7 @@ export function DataTableDateFilter<TData>({
       if (!getIsDateRange(selectedDates)) return null;
 
       const hasSelectedDates = selectedDates.from || selectedDates.to;
-      const dateText = hasSelectedDates ? formatDateRange(selectedDates) : 'Select date range';
+      const dateText = hasSelectedDates ? formatDateRange(selectedDates) : '选择日期范围';
 
       return (
         <span className='flex items-center gap-2'>
@@ -145,7 +145,7 @@ export function DataTableDateFilter<TData>({
     if (getIsDateRange(selectedDates)) return null;
 
     const hasSelectedDate = selectedDates.length > 0;
-    const dateText = hasSelectedDate ? formatDate(selectedDates[0]) : 'Select date';
+    const dateText = hasSelectedDate ? formatDate(selectedDates[0]) : '选择日期';
 
     return (
       <span className='flex items-center gap-2'>
@@ -167,7 +167,7 @@ export function DataTableDateFilter<TData>({
           {hasValue ? (
             <button
               type='button'
-              aria-label={`Clear ${title} filter`}
+              aria-label={`清除${title}筛选`}
               onClick={onReset}
               className='focus-visible:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-1 focus-visible:outline-none'
             >

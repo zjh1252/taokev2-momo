@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/select';
 
 import { Icons } from '../icons';
-import { Kbd } from '@/components/ui/kbd';
 import { THEMES } from './theme.config';
 
 export function ThemeSelector() {
@@ -22,32 +21,29 @@ export function ThemeSelector() {
   return (
     <div className='flex items-center gap-2'>
       <Label htmlFor='theme-selector' className='sr-only'>
-        Theme
+        主题
       </Label>
       <Select value={activeTheme} onValueChange={setActiveTheme}>
         <SelectTrigger
           id='theme-selector'
-          className='justify-start *:data-[slot=select-value]:w-24'
+          className='w-auto justify-start gap-1'
         >
-          <span className='text-muted-foreground hidden sm:block'>
+          <span className='text-muted-foreground'>
             <Icons.palette />
           </span>
-          <span className='text-muted-foreground block sm:hidden'>Theme</span>
-          <SelectValue placeholder='Select a theme' />
-          <Kbd>T T</Kbd>
+          <span className='text-muted-foreground text-xs'>主题</span>
+          <SelectValue placeholder='选择主题' />
         </SelectTrigger>
         <SelectContent align='end'>
           {THEMES.length > 0 && (
-            <>
-              <SelectGroup>
-                <SelectLabel>themes</SelectLabel>
-                {THEMES.map((theme) => (
-                  <SelectItem key={theme.name} value={theme.value}>
-                    {theme.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </>
+            <SelectGroup>
+              <SelectLabel>主题</SelectLabel>
+              {THEMES.map((theme) => (
+                <SelectItem key={theme.name} value={theme.value}>
+                  {theme.name}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           )}
         </SelectContent>
       </Select>

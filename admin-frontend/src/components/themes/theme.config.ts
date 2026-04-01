@@ -6,11 +6,11 @@ export const DEFAULT_THEME = 'vercel';
 
 export const THEMES = [
   {
-    name: 'Vercel',
+    name: '素茉莉',
     value: 'vercel'
   },
   {
-    name: 'WhatsApp',
+    name: '薄荷奶绿',
     value: 'whatsapp'
   }
   // { name: 'Claude', value: 'claude' },

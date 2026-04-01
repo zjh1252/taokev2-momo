@@ -1,7 +1,6 @@
 import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Heading } from '../ui/heading';
-import type { InfobarContent } from '@/components/ui/infobar';
 
 function PageSkeleton() {
   return (
@@ -26,7 +25,6 @@ export default function PageContainer({
   accessFallback,
   pageTitle,
   pageDescription,
-  infoContent,
   pageHeaderAction
 }: {
   children: React.ReactNode;
@@ -36,7 +34,6 @@ export default function PageContainer({
   accessFallback?: React.ReactNode;
   pageTitle?: string;
   pageDescription?: string;
-  infoContent?: InfobarContent;
   pageHeaderAction?: React.ReactNode;
 }) {
   if (!access) {
@@ -44,7 +41,7 @@ export default function PageContainer({
       <div className='flex flex-1 items-center justify-center p-4 md:px-6'>
         {accessFallback ?? (
           <div className='text-muted-foreground text-center text-lg'>
-            You do not have access to this page.
+            您没有权限访问此页面
           </div>
         )}
       </div>
@@ -62,7 +59,6 @@ export default function PageContainer({
           <Heading
             title={pageTitle ?? ''}
             description={pageDescription ?? ''}
-            infoContent={infoContent}
           />
           {pageHeaderAction && <div className='shrink-0'>{pageHeaderAction}</div>}
         </div>
