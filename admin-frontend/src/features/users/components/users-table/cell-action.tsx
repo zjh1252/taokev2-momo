@@ -8,56 +8,64 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { deleteUserMutation } from '../../api/mutations';
+import { updateUserStatusMutation } from '../../api/mutations';
 import type { User } from '../../api/types';
 import { Icons } from '@/components/icons';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { UserFormSheet } from '../user-form-sheet';
 
 interface CellActionProps {
   data: User;
 }
 
 export function CellAction({ data }: CellActionProps) {
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const deleteMutation = useMutation({
-    ...deleteUserMutation,
+  const isFrozen = data.status === 2;
+  const nextStatus = isFrozen ? 1 : 2;
+  const actionLabel = isFrozen ? '解冻' : '冻结';
+
+  const statusMutation = useMutation({
+    ...updateUserStatusMutation,
     onSuccess: () => {
-      toast.success('User deleted successfully');
-      setDeleteOpen(false);
+      toast.success(`${actionLabel}成功`);
+      setConfirmOpen(false);
     },
     onError: () => {
-      toast.error('Failed to delete user');
+      toast.error(`${actionLabel}失败`);
     }
   });
 
   return (
     <>
       <AlertModal
-        isOpen={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        onConfirm={() => deleteMutation.mutate(data.id)}
-        loading={deleteMutation.isPending}
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() =>
+          statusMutation.mutate({
+            id: data.id,
+            payload: { status: nextStatus }
+          })
+        }
+        loading={statusMutation.isPending}
       />
-      <UserFormSheet user={data} open={editOpen} onOpenChange={setEditOpen} />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant='ghost' className='h-8 w-8 p-0'>
-            <span className='sr-only'>Open menu</span>
+            <span className='sr-only'>打开菜单</span>
             <Icons.ellipsis className='h-4 w-4' />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            <Icons.edit className='mr-2 h-4 w-4' /> Update
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDeleteOpen(true)}>
-            <Icons.trash className='mr-2 h-4 w-4' /> Delete
+          <DropdownMenuLabel>操作</DropdownMenuLabel>
+          <DropdownMenuItem onClick={() => setConfirmOpen(true)}>
+            {isFrozen ? (
+              <Icons.check className='mr-2 h-4 w-4' />
+            ) : (
+              <Icons.close className='mr-2 h-4 w-4' />
+            )}
+            {actionLabel}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

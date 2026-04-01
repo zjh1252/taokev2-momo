@@ -73,8 +73,11 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
             return new AuthorizationDecision(true);
         }
 
-        // 4. @RequireRole → 校验业务角色（满足其一即可）
+        // 4. @RequireRole → 校验业务角色（满足其一即可），方法级优先，其次类级
         RequireRole requireRole = handlerMethod.getMethodAnnotation(RequireRole.class);
+        if (requireRole == null) {
+            requireRole = handlerMethod.getBeanType().getAnnotation(RequireRole.class);
+        }
         if (requireRole != null) {
             for (String role : requireRole.value()) {
                 if (securityUser.hasBusinessRole(role)) {

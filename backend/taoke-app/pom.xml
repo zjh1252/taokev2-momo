@@ -33,6 +33,10 @@
             <groupId>com.taoke</groupId>
             <artifactId>taoke-content</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.taoke</groupId>
+            <artifactId>taoke-admin</artifactId>
+        </dependency>
 
         <!-- ========== 基础设施依赖（仅启动入口需要） ========== -->
         <!-- 数据库 -->

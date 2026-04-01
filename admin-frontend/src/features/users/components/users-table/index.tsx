@@ -5,35 +5,32 @@ import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
 import { useDataTable } from '@/hooks/use-data-table';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
-import { getSortingStateParser } from '@/lib/parsers';
 import { usersQueryOptions } from '../../api/queries';
 import { columns } from './columns';
-
-const columnIds = columns.map((c) => c.id).filter(Boolean) as string[];
 
 export function UsersTable() {
   const [params] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
-    name: parseAsString,
-    role: parseAsString,
-    sort: getSortingStateParser(columnIds).withDefault([])
+    nickname: parseAsString,
+    status: parseAsString
   });
 
   const filters = {
     page: params.page,
     limit: params.perPage,
-    ...(params.name && { search: params.name }),
-    ...(params.role && { roles: params.role }),
-    ...(params.sort.length > 0 && { sort: JSON.stringify(params.sort) })
+    ...(params.nickname && { search: params.nickname }),
+    ...(params.status && { status: params.status })
   };
 
-  const { data } = useSuspenseQuery(usersQueryOptions(filters));
+  const { data: resp } = useSuspenseQuery(usersQueryOptions(filters));
 
-  const pageCount = Math.ceil(data.total_users / params.perPage);
+  const list = resp.data?.list ?? [];
+  const total = resp.data?.total ?? 0;
+  const pageCount = Math.ceil(total / params.perPage);
 
   const { table } = useDataTable({
-    data: data.users,
+    data: list,
     columns,
     pageCount,
     shallow: true,

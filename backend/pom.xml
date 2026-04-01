@@ -24,6 +24,7 @@
         <module>taoke-supply</module>
         <module>taoke-course</module>
         <module>taoke-content</module>
+        <module>taoke-admin</module>
         <module>taoke-app</module>
     </modules>
 
@@ -84,6 +85,11 @@
             <dependency>
                 <groupId>com.taoke</groupId>
                 <artifactId>taoke-content</artifactId>
+                <version>${taoke.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.taoke</groupId>
+                <artifactId>taoke-admin</artifactId>
                 <version>${taoke.version}</version>
             </dependency>
 

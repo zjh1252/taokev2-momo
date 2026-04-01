@@ -12,162 +12,90 @@ import {
   SheetTitle
 } from '@/components/ui/sheet';
 import { Icons } from '@/components/icons';
-import { useMutation } from '@tanstack/react-query';
-import { createUserMutation, updateUserMutation } from '../api/mutations';
-import type { User } from '../api/types';
 import { toast } from 'sonner';
 import * as z from 'zod';
-import { userSchema, type UserFormValues } from '../schemas/user';
-import { ROLE_OPTIONS } from './users-table/options';
 
-const STATUS_OPTIONS = [
-  { value: 'Active', label: 'Active' },
-  { value: 'Inactive', label: 'Inactive' },
-  { value: 'Invited', label: 'Invited' }
-];
+// TODO: 对接后端创建用户接口后启用
+const userFormSchema = z.object({
+  phone: z.string().min(11, '请输入正确的手机号'),
+  nickname: z.string().min(1, '请输入昵称'),
+  realName: z.string().optional()
+});
+
+type UserFormValues = z.infer<typeof userFormSchema>;
 
 interface UserFormSheetProps {
-  user?: User;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) {
-  const isEdit = !!user;
-
-  const createMutation = useMutation({
-    ...createUserMutation,
-    onSuccess: () => {
-      toast.success('User created successfully');
-      onOpenChange(false);
-      form.reset();
-    },
-    onError: () => toast.error('Failed to create user')
-  });
-
-  const updateMutation = useMutation({
-    ...updateUserMutation,
-    onSuccess: () => {
-      toast.success('User updated successfully');
-      onOpenChange(false);
-    },
-    onError: () => toast.error('Failed to update user')
-  });
-
+export function UserFormSheet({ open, onOpenChange }: UserFormSheetProps) {
   const form = useAppForm({
     defaultValues: {
-      first_name: user?.first_name ?? '',
-      last_name: user?.last_name ?? '',
-      email: user?.email ?? '',
-      phone: user?.phone ?? '',
-      role: user?.role ?? '',
-      status: user?.status ?? 'Active'
+      phone: '',
+      nickname: '',
+      realName: ''
     } as UserFormValues,
     validators: {
-      onSubmit: userSchema
+      onSubmit: userFormSchema
     },
     onSubmit: async ({ value }) => {
-      if (isEdit) {
-        await updateMutation.mutateAsync({ id: user.id, values: value });
-      } else {
-        await createMutation.mutateAsync(value);
-      }
+      // TODO: 对接后端创建用户接口
+      console.log('create user payload:', value);
+      toast.info('创建用户功能暂未开放');
     }
   });
 
-  const { FormTextField, FormSelectField } = useFormFields<UserFormValues>();
-
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const { FormTextField } = useFormFields<UserFormValues>();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className='flex flex-col'>
         <SheetHeader>
-          <SheetTitle>{isEdit ? 'Edit User' : 'New User'}</SheetTitle>
-          <SheetDescription>
-            {isEdit
-              ? 'Update the user details below.'
-              : 'Fill in the details to create a new user.'}
-          </SheetDescription>
+          <SheetTitle>新建用户</SheetTitle>
+          <SheetDescription>填写用户信息完成创建</SheetDescription>
         </SheetHeader>
 
         <div className='flex-1 overflow-auto'>
           <form.AppForm>
             <form.Form id='user-form-sheet' className='space-y-4'>
-              <div className='grid grid-cols-2 gap-4'>
-                <FormTextField
-                  name='first_name'
-                  label='First Name'
-                  required
-                  placeholder='John'
-                  validators={{
-                    onBlur: z.string().min(2, 'First name must be at least 2 characters')
-                  }}
-                />
-                <FormTextField
-                  name='last_name'
-                  label='Last Name'
-                  required
-                  placeholder='Doe'
-                  validators={{
-                    onBlur: z.string().min(2, 'Last name must be at least 2 characters')
-                  }}
-                />
-              </div>
-
-              <FormTextField
-                name='email'
-                label='Email'
-                required
-                type='email'
-                placeholder='john@example.com'
-                validators={{
-                  onBlur: z.string().email('Please enter a valid email')
-                }}
-              />
-
               <FormTextField
                 name='phone'
-                label='Phone'
+                label='手机号'
                 required
-                type='tel'
-                placeholder='(555) 123-4567'
+                placeholder='13800000000'
                 validators={{
-                  onBlur: z.string().min(1, 'Phone number is required')
+                  onBlur: z.string().min(11, '请输入正确的手机号')
                 }}
               />
-
-              <FormSelectField
-                name='role'
-                label='Role'
+              <FormTextField
+                name='nickname'
+                label='昵称'
                 required
-                options={ROLE_OPTIONS}
-                placeholder='Select role'
+                placeholder='请输入昵称'
                 validators={{
-                  onBlur: z.string().min(1, 'Please select a role')
+                  onBlur: z.string().min(1, '请输入昵称')
                 }}
               />
-
-              <FormSelectField
-                name='status'
-                label='Status'
-                required
-                options={STATUS_OPTIONS}
-                placeholder='Select status'
-                validators={{
-                  onBlur: z.string().min(1, 'Please select a status')
-                }}
+              <FormTextField
+                name='realName'
+                label='真实姓名'
+                placeholder='可选'
               />
             </form.Form>
           </form.AppForm>
         </div>
 
         <SheetFooter>
-          <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>
-            Cancel
+          <Button
+            type='button'
+            variant='outline'
+            onClick={() => onOpenChange(false)}
+          >
+            取消
           </Button>
-          <Button type='submit' form='user-form-sheet' isLoading={isPending}>
-            <Icons.check /> {isEdit ? 'Update User' : 'Create User'}
+          <Button type='submit' form='user-form-sheet'>
+            <Icons.check /> 创建用户
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -181,7 +109,7 @@ export function UserFormSheetTrigger() {
   return (
     <>
       <Button onClick={() => setOpen(true)}>
-        <Icons.add className='mr-2 h-4 w-4' /> Add User
+        <Icons.add className='mr-2 h-4 w-4' /> 新建用户
       </Button>
       <UserFormSheet open={open} onOpenChange={setOpen} />
     </>

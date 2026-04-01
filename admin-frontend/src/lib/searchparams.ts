@@ -8,14 +8,15 @@ import {
 export const searchParams = {
   page: parseAsInteger.withDefault(1),
   perPage: parseAsInteger.withDefault(10),
+  // 用户管理
+  nickname: parseAsString,
+  status: parseAsString,
+  // 产品（暂保留）
   name: parseAsString,
   gender: parseAsString,
   category: parseAsString,
   role: parseAsString,
   sort: parseAsString
-  // advanced filter
-  // filters: getFiltersStateParser().withDefault([]),
-  // joinOperator: parseAsStringEnum(['and', 'or']).withDefault('and')
 };
 
 export const searchParamsCache = createSearchParamsCache(searchParams);

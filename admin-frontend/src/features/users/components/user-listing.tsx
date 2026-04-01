@@ -1,27 +1,29 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { getQueryClient } from '@/lib/query-client';
 import { searchParamsCache } from '@/lib/searchparams';
-import { usersQueryOptions } from '../api/queries';
+import { userKeys } from '../api/queries';
+import { getUsersFromServer } from '../api/server-service';
 import { UsersTable } from './users-table';
 
 export default function UserListingPage() {
   const page = searchParamsCache.get('page');
-  const search = searchParamsCache.get('name');
+  const search = searchParamsCache.get('nickname');
   const pageLimit = searchParamsCache.get('perPage');
-  const roles = searchParamsCache.get('role');
-  const sort = searchParamsCache.get('sort');
+  const status = searchParamsCache.get('status');
 
   const filters = {
     page,
     limit: pageLimit,
     ...(search && { search }),
-    ...(roles && { roles }),
-    ...(sort && { sort })
+    ...(status && { status })
   };
 
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery(usersQueryOptions(filters));
+  void queryClient.prefetchQuery({
+    queryKey: userKeys.list(filters),
+    queryFn: () => getUsersFromServer(filters)
+  });
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
