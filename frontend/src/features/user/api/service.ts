@@ -1,7 +1,12 @@
-// 用户相关接口
+import { apiGet } from '@/lib/http/client';
+import type { UserProfileResponse, ApiResult } from './types';
 
-import type { User } from './types';
-
-// TODO: 获取当前用户信息、用户资料等
-
-// TODO: 更新资料、修改密码等
+/**
+ * 获取当前登录用户个人资料
+ * GET /users/me（需要 Authorization header）
+ */
+export function getMyProfile(accessToken: string) {
+  return apiGet<ApiResult<UserProfileResponse>>('/users/me', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}

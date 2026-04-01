@@ -1,12 +1,18 @@
 import { GraduationCap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 
 /**
  * 认证页面左右分栏布局
- * 左侧：品牌面板（渐变背景 + Logo + 标语）
+ * <p>
+ * 左侧：品牌面板（渐变背景 + 背景图 + Logo + 标语）<br/>
  * 右侧：表单内容区（由子页面填充）
+ * </p>
+ *
+ * @author Fangxinxin
+ * @date 2026-04-01 17:40
  */
 export function AuthLayoutWrapper({ children }: { children: React.ReactNode }) {
   const t = useTranslations('auth');
@@ -55,6 +61,17 @@ export function AuthLayoutWrapper({ children }: { children: React.ReactNode }) {
             <div className="h-1 w-4 bg-white/20 rounded-full" />
             <div className="h-1 w-4 bg-white/20 rounded-full" />
           </div>
+
+          {/* 背景图遮罩 */}
+          <div className="absolute inset-0 z-0 opacity-20 mix-blend-overlay">
+            <Image
+              src="/statics/images/auth-bg.jpg"
+              alt=""
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
         </section>
 
         {/* 右侧表单区 */}
@@ -78,10 +95,16 @@ export function AuthLayoutWrapper({ children }: { children: React.ReactNode }) {
             {t('footer.copyright')}
           </p>
           <div className="flex gap-6 pointer-events-auto">
-            <a href="#" className="text-[10px] text-muted-foreground/40 font-medium tracking-widest uppercase hover:text-primary transition-colors">
+            <a
+              href="#"
+              className="text-[10px] text-muted-foreground/40 font-medium tracking-widest uppercase hover:text-primary transition-colors"
+            >
               {t('footer.help')}
             </a>
-            <a href="#" className="text-[10px] text-muted-foreground/40 font-medium tracking-widest uppercase hover:text-primary transition-colors">
+            <a
+              href="#"
+              className="text-[10px] text-muted-foreground/40 font-medium tracking-widest uppercase hover:text-primary transition-colors"
+            >
               {t('footer.privacy')}
             </a>
           </div>

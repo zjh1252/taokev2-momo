@@ -33,7 +33,7 @@ export function SearchBar() {
       <input
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
-        className="bg-transparent border-none focus:ring-0 focus:outline-none text-xs w-[140px] px-2"
+        className="bg-transparent border-none focus:ring-0 focus:outline-none text-xs w-full min-w-[120px] px-2"
         placeholder={t('placeholder')}
         type="text"
       />

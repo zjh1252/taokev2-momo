@@ -1,49 +1,42 @@
-import { Bot, Brain, Sparkles } from 'lucide-react';
+import { Headphones } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
 
+/**
+ * AI 智能客服助手 Banner — 暗色渐变背景 + 标题 + 描述 + 按钮
+ */
 export function AiEngagementBanner() {
   const t = useTranslations('home');
 
-  const titleParts = t('aiEngagement.title').split('\n');
-
   return (
-    <section className="bg-gradient-to-r from-[#200502] via-[#0d161d] to-[#410502] rounded-lg p-10 flex items-center justify-between shadow-2xl overflow-hidden relative border border-white/5">
-      {/* 背景装饰 */}
-      <Brain className="absolute right-10 top-1/2 -translate-y-1/2 size-64 text-white/[0.03]" />
-
-      <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-8">
-        <div className="max-w-xl">
-          {/* 徽章 */}
-          <span className="inline-flex items-center gap-1.5 bg-white/10 text-white/80 text-xs font-medium px-3 py-1 rounded-full mb-4 border border-white/10">
-            <Bot className="size-3.5" />
-            {t('aiEngagement.badge')}
-          </span>
-
-          {/* 标题 */}
-          <h2 className="text-2xl md:text-3xl font-black text-white leading-snug mb-3">
-            {titleParts.map((part, i) => (
-              <span key={i}>
-                {part}
-                {i < titleParts.length - 1 && <br />}
-              </span>
-            ))}
-          </h2>
-
-          {/* 描述 */}
-          <p className="text-white/60 text-sm leading-relaxed">
-            {t('aiEngagement.description')}
-          </p>
+    <section className="bg-gradient-to-r from-[#200502] via-[#0d161d] to-[#410502] rounded-lg px-10 py-6 flex items-center justify-between shadow-2xl overflow-hidden relative border border-white/5">
+      {/* 左侧文案 */}
+      <div className="relative z-10 max-w-2xl">
+        <div className="inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-white/70 text-[10px] mb-3">
+          <Headphones className="size-3.5" />
+          {t('aiEngagement.badge')}
         </div>
+        <h2 className="text-white text-2xl font-black mb-2 leading-tight">
+          {t('aiEngagement.title')}
+        </h2>
+        <p className="text-white/60 text-sm leading-relaxed max-w-lg">
+          {t('aiEngagement.description')}
+        </p>
+      </div>
 
-        {/* CTA */}
-        <Link
-          href="/ai-match"
-          className="bg-primary text-primary-foreground font-bold px-8 py-3.5 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 shrink-0"
+      {/* 右侧按钮 */}
+      <div className="relative z-10">
+        <button
+          type="button"
+          className="bg-primary text-white font-black px-6 py-3 rounded-lg hover:scale-105 active:scale-95 transition-all shadow-xl shadow-red-500/20 text-base flex items-center gap-2"
         >
-          <Sparkles className="size-5" />
+          <Headphones className="size-5" />
           {t('aiEngagement.cta')}
-        </Link>
+        </button>
+      </div>
+
+      {/* 背景装饰 */}
+      <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
+        <Headphones className="size-[150px] text-white" />
       </div>
     </section>
   );

@@ -3,7 +3,7 @@
   "experts": "专家",
   "publicCourses": "公开课",
   "internalCourses": "内训课",
-  "onlineCourses": "在线课",
+  "onlineCourses": "录播课",
   "institutions": "机构",
   "courses": "课程",
   "instructors": "讲师",
@@ -11,9 +11,12 @@
   "cases": "案例",
   "login": "登录",
   "register": "注册",
+  "loginRegister": "登录/注册",
   "userCenter": "用户中心",
   "myCourses": "我的课程",
   "dashboard": "控制台",
+  "myPage": "我的主页",
+  "logout": "登出",
   "search": {
     "placeholder": "关键词搜索...",
     "category": "培训讲师"

@@ -17,5 +17,6 @@ export const ROUTES = {
   PROFILE: '/profile',
   MY_COURSES: '/my-courses',
   MY_ORDERS: '/my-orders',
+  MY_PAGE: '/my-page',
   CERTIFICATES: '/certificates',
 } as const;

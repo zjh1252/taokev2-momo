@@ -11,9 +11,12 @@
   "cases": "Cases",
   "login": "Login",
   "register": "Register",
+  "loginRegister": "Login / Register",
   "userCenter": "User Center",
   "myCourses": "My Courses",
   "dashboard": "Dashboard",
+  "myPage": "My Page",
+  "logout": "Logout",
   "search": {
     "placeholder": "Search...",
     "category": "Trainers"
