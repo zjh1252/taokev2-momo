@@ -7,7 +7,7 @@ import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.trainer.TrainerRequest;
 import com.taoke.user.dto.trainer.TrainerResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
-import com.taoke.user.service.TrainerService;
+import com.taoke.user.api.TrainerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

@@ -1,0 +1,77 @@
+package com.taoke.user.service;
+
+import com.taoke.common.enums.BusinessRole;
+import com.taoke.user.api.RoleApplyService;
+import com.taoke.user.dto.institution.InstitutionRequest;
+import com.taoke.user.dto.institution.InstitutionResponse;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
+import com.taoke.user.entity.Institution;
+import com.taoke.user.mapper.InstitutionMapper;
+import com.taoke.user.repository.InstitutionRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * 机构信息服务 — INSTITUTION 角色扩展信息管理。
+ *
+ * @author Fangxinxin
+ * @date 2026-03-31 16:00
+ */
+@Service
+@RequiredArgsConstructor
+public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionService {
+
+    private final InstitutionRepository institutionRepository;
+    private final InstitutionMapper institutionMapper;
+    private final RoleApplyService roleApplyService;
+
+    @Override
+    public InstitutionResponse getByUserId(Integer userId) {
+        Institution ent = institutionRepository.findByUserId(userId).orElse(null);
+        return ent == null ? null : institutionMapper.toResponse(ent);
+    }
+
+    @Override
+    @Transactional
+    public InstitutionResponse save(Integer userId, InstitutionRequest request) {
+        return institutionMapper.toResponse(saveOrUpdateExtension(userId, request));
+    }
+
+    @Override
+    @Transactional
+    public void apply(Integer userId, InstitutionRequest request) {
+        roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION);
+        saveOrUpdateExtension(userId, request);
+    }
+
+    @Override
+    public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
+        return roleApplyService.getStatus(userId, BusinessRole.Code.INSTITUTION);
+    }
+
+    private Institution saveOrUpdateExtension(Integer userId, InstitutionRequest request) {
+        Institution ent = institutionRepository.findByUserId(userId).orElseGet(() -> {
+            Institution e = new Institution();
+            e.setUserId(userId);
+            return e;
+        });
+
+        if (request.getOrgName() != null) ent.setOrgName(request.getOrgName());
+        if (request.getOrgType() != null) ent.setOrgType(request.getOrgType());
+        if (request.getLicenseNo() != null) ent.setLicenseNo(request.getLicenseNo());
+        if (request.getBio() != null) ent.setBio(request.getBio());
+        if (request.getHomepageConfig() != null) ent.setHomepageConfig(request.getHomepageConfig());
+        if (request.getContactName() != null) ent.setContactName(request.getContactName());
+        if (request.getContactPhone() != null) ent.setContactPhone(request.getContactPhone());
+        if (request.getShowContact() != null) ent.setShowContact(request.getShowContact());
+        if (request.getPostCode() != null) ent.setPostCode(request.getPostCode());
+        if (request.getProvinceId() != null) ent.setProvinceId(request.getProvinceId());
+        if (request.getCityId() != null) ent.setCityId(request.getCityId());
+        if (request.getDistrictId() != null) ent.setDistrictId(request.getDistrictId());
+        if (request.getTownId() != null) ent.setTownId(request.getTownId());
+        if (request.getAddress() != null) ent.setAddress(request.getAddress());
+
+        return institutionRepository.save(ent);
+    }
+}

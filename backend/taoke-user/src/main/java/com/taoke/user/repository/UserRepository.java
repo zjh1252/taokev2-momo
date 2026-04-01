@@ -2,6 +2,7 @@ package com.taoke.user.repository;
 
 import com.taoke.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
 
@@ -11,7 +12,7 @@ import java.util.Optional;
  * @author Fangxinxin
  * @date 2026-03-31 11:00
  */
-public interface UserRepository extends JpaRepository<User, Integer> {
+public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecificationExecutor<User> {
 
     Optional<User> findByPhone(String phone);
 

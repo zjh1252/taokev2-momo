@@ -23,15 +23,11 @@
         </dependency>
         <dependency>
             <groupId>com.taoke</groupId>
-            <artifactId>taoke-supply</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.taoke</groupId>
             <artifactId>taoke-course</artifactId>
         </dependency>
         <dependency>
             <groupId>com.taoke</groupId>
-            <artifactId>taoke-content</artifactId>
+            <artifactId>taoke-admin</artifactId>
         </dependency>
 
         <!-- ========== 基础设施依赖（仅启动入口需要） ========== -->

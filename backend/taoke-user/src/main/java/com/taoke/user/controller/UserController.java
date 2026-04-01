@@ -6,7 +6,7 @@ import com.taoke.user.dto.user.ChangePasswordRequest;
 import com.taoke.user.dto.user.ChangePhoneRequest;
 import com.taoke.user.dto.user.UpdateProfileRequest;
 import com.taoke.user.dto.user.UserProfileResponse;
-import com.taoke.user.service.UserService;
+import com.taoke.user.api.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

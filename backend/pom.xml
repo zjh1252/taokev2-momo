@@ -21,9 +21,8 @@
     <modules>
         <module>taoke-common</module>
         <module>taoke-user</module>
-        <module>taoke-supply</module>
         <module>taoke-course</module>
-        <module>taoke-content</module>
+        <module>taoke-admin</module>
         <module>taoke-app</module>
     </modules>
 
@@ -73,17 +72,12 @@
             </dependency>
             <dependency>
                 <groupId>com.taoke</groupId>
-                <artifactId>taoke-supply</artifactId>
-                <version>${taoke.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.taoke</groupId>
                 <artifactId>taoke-course</artifactId>
                 <version>${taoke.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.taoke</groupId>
-                <artifactId>taoke-content</artifactId>
+                <artifactId>taoke-admin</artifactId>
                 <version>${taoke.version}</version>
             </dependency>
 

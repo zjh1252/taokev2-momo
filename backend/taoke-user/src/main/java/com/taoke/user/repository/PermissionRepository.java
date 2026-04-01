@@ -27,4 +27,8 @@ public interface PermissionRepository extends JpaRepository<Permission, Integer>
     Set<String> findPermissionCodesByUserId(Integer userId);
 
     List<Permission> findByModule(String module);
+
+    boolean existsByPermissionCode(String permissionCode);
+
+    List<Permission> findAllByOrderBySortOrderAsc();
 }

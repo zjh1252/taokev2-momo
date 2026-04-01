@@ -14,7 +14,7 @@ import java.lang.annotation.*;
  * @author Fangxinxin
  * @date 2026-03-31 11:00
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface RequireRole {

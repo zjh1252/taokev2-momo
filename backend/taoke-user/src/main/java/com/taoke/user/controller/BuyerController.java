@@ -1,6 +1,6 @@
 package com.taoke.user.controller;
 
-import com.taoke.user.service.BuyerService;
+import com.taoke.user.api.BuyerService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
