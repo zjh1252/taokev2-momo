@@ -1,6 +1,7 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.assistant.AssistantRequest;
 import com.taoke.user.dto.assistant.AssistantResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
@@ -19,12 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-public class AssistantService {
+public class AssistantServiceImpl implements com.taoke.user.api.AssistantService {
 
     private final AssistantRepository assistantRepository;
     private final AssistantMapper assistantMapper;
     private final RoleApplyService roleApplyService;
 
+    @Override
     public AssistantResponse getByUserId(Integer userId) {
         Assistant assistant = assistantRepository.findByUserId(userId).orElse(null);
         return assistant == null ? null : assistantMapper.toResponse(assistant);
@@ -33,6 +35,7 @@ public class AssistantService {
     /**
      * 保存专家助理档案（有则更新、无则创建，要求角色已生效）
      */
+    @Override
     @Transactional
     public AssistantResponse save(Integer userId, AssistantRequest request) {
         return assistantMapper.toResponse(saveOrUpdateExtension(userId, request));
@@ -41,12 +44,14 @@ public class AssistantService {
     /**
      * 申请成为专家助理 — 提交扩展信息并创建待审核角色记录
      */
+    @Override
     @Transactional
     public void apply(Integer userId, AssistantRequest request) {
         roleApplyService.apply(userId, BusinessRole.Code.ASSISTANT);
         saveOrUpdateExtension(userId, request);
     }
 
+    @Override
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
         return roleApplyService.getStatus(userId, BusinessRole.Code.ASSISTANT);
     }

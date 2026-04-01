@@ -1,12 +1,13 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.institutionemployee.InstitutionEmployeeRequest;
 import com.taoke.user.dto.institutionemployee.InstitutionEmployeeResponse;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.InstitutionEmployee;
 import com.taoke.user.mapper.InstitutionEmployeeMapper;
 import com.taoke.user.repository.InstitutionEmployeeRepository;
-import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,37 +20,32 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-public class InstitutionEmployeeService {
+public class InstitutionEmployeeServiceImpl implements com.taoke.user.api.InstitutionEmployeeService {
 
     private final InstitutionEmployeeRepository institutionEmployeeRepository;
     private final InstitutionEmployeeMapper institutionEmployeeMapper;
     private final RoleApplyService roleApplyService;
 
+    @Override
     public InstitutionEmployeeResponse getByUserId(Integer userId) {
         InstitutionEmployee ent = institutionEmployeeRepository.findByUserId(userId).orElse(null);
         return ent == null ? null : institutionEmployeeMapper.toResponse(ent);
     }
 
-    /**
-     * 保存机构员工信息（有则更新、无则创建）
-     */
+    @Override
     @Transactional
     public InstitutionEmployeeResponse save(Integer userId, InstitutionEmployeeRequest request) {
         return institutionEmployeeMapper.toResponse(saveOrUpdateExtension(userId, request));
     }
 
-    /**
-     * 申请 INSTITUTION_EMPLOYEE 角色并保存扩展信息
-     */
+    @Override
     @Transactional
     public void apply(Integer userId, InstitutionEmployeeRequest request) {
         roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION_EMPLOYEE);
         saveOrUpdateExtension(userId, request);
     }
 
-    /**
-     * 查询当前用户的 INSTITUTION_EMPLOYEE 角色申请状态
-     */
+    @Override
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
         return roleApplyService.getStatus(userId, BusinessRole.Code.INSTITUTION_EMPLOYEE);
     }

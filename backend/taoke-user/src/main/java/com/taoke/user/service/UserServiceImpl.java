@@ -2,6 +2,8 @@ package com.taoke.user.service;
 
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.user.api.UserService;
+import com.taoke.user.api.VerificationCodeService;
 import com.taoke.user.dto.user.ChangePasswordRequest;
 import com.taoke.user.dto.user.ChangePhoneRequest;
 import com.taoke.user.dto.user.UpdateProfileRequest;
@@ -26,7 +28,7 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
@@ -34,6 +36,7 @@ public class UserService {
     private final VerificationCodeService verificationCodeService;
     private final UserMapper userMapper;
 
+    @Override
     public UserProfileResponse getProfile(Integer userId) {
         User user = findUser(userId);
 
@@ -47,6 +50,7 @@ public class UserService {
     }
 
     @Transactional
+    @Override
     public void updateProfile(Integer userId, UpdateProfileRequest request) {
         User user = findUser(userId);
 
@@ -88,6 +92,7 @@ public class UserService {
      * 否则必须提供正确的旧密码。
      */
     @Transactional
+    @Override
     public void changePassword(Integer userId, ChangePasswordRequest request) {
         User user = findUser(userId);
         boolean hasPassword = user.getPasswordHash() != null && !user.getPasswordHash().isEmpty();
@@ -111,6 +116,7 @@ public class UserService {
      * 先校验旧手机验证码，再校验新手机验证码，最后更新手机号。
      */
     @Transactional
+    @Override
     public void changePhone(Integer userId, ChangePhoneRequest request) {
         User user = findUser(userId);
 
@@ -126,6 +132,15 @@ public class UserService {
         verificationCodeService.verifyCode(request.getNewPhone(), request.getNewPhoneCode(), "CHANGE_PHONE");
 
         user.setPhone(request.getNewPhone());
+        userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public void updateStatus(Integer userId, Integer status, String freezeReason) {
+        User user = findUser(userId);
+        user.setStatus(status);
+        user.setFreezeReason(freezeReason);
         userRepository.save(user);
     }
 

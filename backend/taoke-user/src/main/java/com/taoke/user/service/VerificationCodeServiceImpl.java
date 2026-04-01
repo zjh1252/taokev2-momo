@@ -2,6 +2,7 @@ package com.taoke.user.service;
 
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.user.api.VerificationCodeService;
 import com.taoke.user.entity.VerificationCode;
 import com.taoke.user.repository.VerificationCodeRepository;
 import com.taoke.user.sms.SmsProperties;
@@ -31,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class VerificationCodeService {
+public class VerificationCodeServiceImpl implements VerificationCodeService {
 
     private static final String RATE_LIMIT_PREFIX = "taoke:sms:limit:";
 
@@ -48,6 +49,7 @@ public class VerificationCodeService {
      * @param sendType 渠道（SMS / EMAIL）
      * @param ip       请求 IP（用于频率限制）
      */
+    @Override
     public void sendCode(String target, String type, String sendType, String ip) {
         checkRateLimit(target, ip);
 
@@ -83,6 +85,7 @@ public class VerificationCodeService {
      * @param code   用户输入的验证码
      * @param type   用途
      */
+    @Override
     public void verifyCode(String target, String code, String type) {
         VerificationCode vc = verificationCodeRepository
                 .findFirstByTargetAndTypeAndIsUsedAndExpiresAtAfterOrderByCreatedAtDesc(

@@ -5,6 +5,7 @@ import com.taoke.common.eventbus.EventPublisher;
 import com.taoke.common.events.user.ApplyPassedEvent;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.UserRole;
 import com.taoke.user.repository.UserRoleRepository;
@@ -25,7 +26,7 @@ import java.util.Map;
  */
 @Service
 @RequiredArgsConstructor
-public class RoleApplyService {
+public class RoleApplyServiceImpl implements RoleApplyService {
 
     private final UserRoleRepository userRoleRepository;
     private final EventPublisher eventPublisher;
@@ -53,6 +54,7 @@ public class RoleApplyService {
      * @param roleCode 角色编码（如 TRAINER）
      */
     @Transactional
+    @Override
     public void apply(Integer userId, String roleCode) {
         UserRole userRole = userRoleRepository.findByUserIdAndRole(userId, roleCode).orElse(null);
 
@@ -87,6 +89,7 @@ public class RoleApplyService {
      * @param roleCode 角色编码
      */
     @Transactional
+    @Override
     public void approve(Integer userId, String roleCode) {
         UserRole userRole = userRoleRepository.findByUserIdAndRole(userId, roleCode)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "未找到角色申请记录"));
@@ -109,6 +112,7 @@ public class RoleApplyService {
      * @param roleCode 角色编码
      * @return 申请状态；如果从未申请过则返回 null
      */
+    @Override
     public RoleApplicationStatusResponse getStatus(Integer userId, String roleCode) {
         UserRole userRole = userRoleRepository.findByUserIdAndRole(userId, roleCode).orElse(null);
         if (userRole == null) {

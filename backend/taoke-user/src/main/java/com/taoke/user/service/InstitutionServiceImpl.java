@@ -1,12 +1,13 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.institution.InstitutionRequest;
 import com.taoke.user.dto.institution.InstitutionResponse;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.mapper.InstitutionMapper;
 import com.taoke.user.repository.InstitutionRepository;
-import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,37 +20,32 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-public class InstitutionService {
+public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionService {
 
     private final InstitutionRepository institutionRepository;
     private final InstitutionMapper institutionMapper;
     private final RoleApplyService roleApplyService;
 
+    @Override
     public InstitutionResponse getByUserId(Integer userId) {
         Institution ent = institutionRepository.findByUserId(userId).orElse(null);
         return ent == null ? null : institutionMapper.toResponse(ent);
     }
 
-    /**
-     * 保存机构信息（有则更新、无则创建）
-     */
+    @Override
     @Transactional
     public InstitutionResponse save(Integer userId, InstitutionRequest request) {
         return institutionMapper.toResponse(saveOrUpdateExtension(userId, request));
     }
 
-    /**
-     * 申请 INSTITUTION 角色并保存扩展信息
-     */
+    @Override
     @Transactional
     public void apply(Integer userId, InstitutionRequest request) {
         roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION);
         saveOrUpdateExtension(userId, request);
     }
 
-    /**
-     * 查询当前用户的 INSTITUTION 角色申请状态
-     */
+    @Override
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
         return roleApplyService.getStatus(userId, BusinessRole.Code.INSTITUTION);
     }

@@ -2,13 +2,10 @@ package com.taoke.admin.service;
 
 import com.taoke.admin.dto.PermissionVO;
 import com.taoke.admin.dto.SavePermissionRequest;
-import com.taoke.common.exception.BusinessException;
-import com.taoke.common.exception.ErrorCode;
+import com.taoke.user.api.PermissionService;
 import com.taoke.user.entity.Permission;
-import com.taoke.user.repository.PermissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,19 +13,21 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 后台 — 权限管理服务。
+ * 后台 — 权限管理编排服务（薄层）。
+ * <p>
+ * 领域操作委托给 {@link PermissionService}，仅处理 VO 映射与树形组装。
  */
 @Service
 @RequiredArgsConstructor
 public class AdminPermissionService {
 
-    private final PermissionRepository permissionRepository;
+    private final PermissionService permissionService;
 
     /**
      * 获取权限树（按 parentId 组装成树形结构）
      */
     public List<PermissionVO> getPermissionTree() {
-        List<Permission> all = permissionRepository.findAllByOrderBySortOrderAsc();
+        List<Permission> all = permissionService.findAllOrdered();
         List<PermissionVO> voList = all.stream().map(this::toVO).toList();
 
         Map<Integer, List<PermissionVO>> childrenMap = voList.stream()
@@ -46,42 +45,25 @@ public class AdminPermissionService {
      * 获取所有权限（平铺列表）
      */
     public List<PermissionVO> listAll() {
-        return permissionRepository.findAllByOrderBySortOrderAsc().stream()
+        return permissionService.findAllOrdered().stream()
                 .map(this::toVO)
                 .toList();
     }
 
-    @Transactional
     public PermissionVO create(SavePermissionRequest request) {
-        if (permissionRepository.existsByPermissionCode(request.getPermissionCode())) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "权限编码已存在");
-        }
         Permission entity = new Permission();
         applyRequest(entity, request);
-        permissionRepository.save(entity);
-        return toVO(entity);
+        return toVO(permissionService.create(entity));
     }
 
-    @Transactional
     public PermissionVO update(Integer id, SavePermissionRequest request) {
-        Permission entity = permissionRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "权限不存在"));
-        // 编码变更时检查唯一性
-        if (!entity.getPermissionCode().equals(request.getPermissionCode())
-                && permissionRepository.existsByPermissionCode(request.getPermissionCode())) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "权限编码已存在");
-        }
-        applyRequest(entity, request);
-        permissionRepository.save(entity);
-        return toVO(entity);
+        Permission updated = new Permission();
+        applyRequest(updated, request);
+        return toVO(permissionService.update(id, updated));
     }
 
-    @Transactional
     public void delete(Integer id) {
-        if (!permissionRepository.existsById(id)) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "权限不存在");
-        }
-        permissionRepository.deleteById(id);
+        permissionService.delete(id);
     }
 
     /* ==================== 内部方法 ==================== */

@@ -1,6 +1,8 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.user.api.AgentService;
+import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.agent.AgentRequest;
 import com.taoke.user.dto.agent.AgentResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
@@ -19,12 +21,13 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-public class AgentService {
+public class AgentServiceImpl implements AgentService {
 
     private final AgentRepository agentRepository;
     private final AgentMapper agentMapper;
     private final RoleApplyService roleApplyService;
 
+    @Override
     public AgentResponse getByUserId(Integer userId) {
         Agent agent = agentRepository.findByUserId(userId).orElse(null);
         return agent == null ? null : agentMapper.toResponse(agent);
@@ -34,6 +37,7 @@ public class AgentService {
      * 保存专家经纪人档案（有则更新、无则创建，要求角色已生效）
      */
     @Transactional
+    @Override
     public AgentResponse save(Integer userId, AgentRequest request) {
         return agentMapper.toResponse(saveOrUpdateExtension(userId, request));
     }
@@ -42,11 +46,13 @@ public class AgentService {
      * 申请成为专家经纪人 — 提交扩展信息并创建待审核角色记录
      */
     @Transactional
+    @Override
     public void apply(Integer userId, AgentRequest request) {
         roleApplyService.apply(userId, BusinessRole.Code.AGENT);
         saveOrUpdateExtension(userId, request);
     }
 
+    @Override
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
         return roleApplyService.getStatus(userId, BusinessRole.Code.AGENT);
     }

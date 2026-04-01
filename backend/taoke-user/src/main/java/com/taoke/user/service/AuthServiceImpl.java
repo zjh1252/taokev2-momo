@@ -3,6 +3,8 @@ package com.taoke.user.service;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.user.api.AuthService;
+import com.taoke.user.api.VerificationCodeService;
 import com.taoke.user.dto.auth.*;
 import com.taoke.user.entity.User;
 import com.taoke.user.entity.UserRole;
@@ -31,7 +33,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
@@ -44,6 +46,7 @@ public class AuthService {
     @Value("${taoke.jwt.access-token-expire-ms:7200000}")
     private long accessTokenExpireMs;
 
+    @Override
     public TokenResponse loginByPassword(LoginRequest request) {
         User user = userRepository.findByPhone(request.getPhone())
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
@@ -64,6 +67,7 @@ public class AuthService {
      * @return 访问令牌与刷新令牌
      */
     @Transactional
+    @Override
     public TokenResponse loginBySms(SmsLoginRequest request) {
         verificationCodeService.verifyCode(request.getPhone(), request.getCode(), "LOGIN");
 
@@ -88,6 +92,7 @@ public class AuthService {
     }
 
     @Transactional
+    @Override
     public TokenResponse register(RegisterRequest request) {
         if (userRepository.existsByPhone(request.getPhone())) {
             throw new BusinessException(ErrorCode.ACCOUNT_EXISTS);
@@ -113,6 +118,7 @@ public class AuthService {
         return generateTokens(user);
     }
 
+    @Override
     public TokenResponse refreshToken(RefreshTokenRequest request) {
         String refreshToken = request.getRefreshToken();
 
@@ -136,6 +142,7 @@ public class AuthService {
      * 忘记密码 — 通过手机验证码重置密码
      */
     @Transactional
+    @Override
     public void resetPassword(ResetPasswordRequest request) {
         verificationCodeService.verifyCode(request.getPhone(), request.getCode(), "RESET_PASSWORD");
 

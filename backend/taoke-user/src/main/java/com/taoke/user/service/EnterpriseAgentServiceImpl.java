@@ -1,12 +1,13 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.enterpriseagent.EnterpriseAgentRequest;
 import com.taoke.user.dto.enterpriseagent.EnterpriseAgentResponse;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.EnterpriseAgent;
 import com.taoke.user.mapper.EnterpriseAgentMapper;
 import com.taoke.user.repository.EnterpriseAgentRepository;
-import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,37 +20,32 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-public class EnterpriseAgentService {
+public class EnterpriseAgentServiceImpl implements com.taoke.user.api.EnterpriseAgentService {
 
     private final EnterpriseAgentRepository enterpriseAgentRepository;
     private final EnterpriseAgentMapper enterpriseAgentMapper;
     private final RoleApplyService roleApplyService;
 
+    @Override
     public EnterpriseAgentResponse getByUserId(Integer userId) {
         EnterpriseAgent ent = enterpriseAgentRepository.findByUserId(userId).orElse(null);
         return ent == null ? null : enterpriseAgentMapper.toResponse(ent);
     }
 
-    /**
-     * 保存专家经纪公司信息（有则更新、无则创建）
-     */
+    @Override
     @Transactional
     public EnterpriseAgentResponse save(Integer userId, EnterpriseAgentRequest request) {
         return enterpriseAgentMapper.toResponse(saveOrUpdateExtension(userId, request));
     }
 
-    /**
-     * 申请 ENTERPRISE_AGENT 角色并保存扩展信息
-     */
+    @Override
     @Transactional
     public void apply(Integer userId, EnterpriseAgentRequest request) {
         roleApplyService.apply(userId, BusinessRole.Code.ENTERPRISE_AGENT);
         saveOrUpdateExtension(userId, request);
     }
 
-    /**
-     * 查询当前用户的 ENTERPRISE_AGENT 角色申请状态
-     */
+    @Override
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
         return roleApplyService.getStatus(userId, BusinessRole.Code.ENTERPRISE_AGENT);
     }

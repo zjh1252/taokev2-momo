@@ -1,6 +1,8 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.user.api.RoleApplyService;
+import com.taoke.user.api.TrainerService;
 import com.taoke.user.dto.trainer.TrainerRequest;
 import com.taoke.user.dto.trainer.TrainerResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
@@ -19,12 +21,13 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-public class TrainerService {
+public class TrainerServiceImpl implements TrainerService {
 
     private final TrainerRepository trainerRepository;
     private final TrainerMapper trainerMapper;
     private final RoleApplyService roleApplyService;
 
+    @Override
     public TrainerResponse getByUserId(Integer userId) {
         Trainer trainer = trainerRepository.findByUserId(userId).orElse(null);
         return trainer == null ? null : trainerMapper.toResponse(trainer);
@@ -34,6 +37,7 @@ public class TrainerService {
      * 保存专家档案（有则更新、无则创建，要求角色已生效）
      */
     @Transactional
+    @Override
     public TrainerResponse save(Integer userId, TrainerRequest request) {
         return trainerMapper.toResponse(saveOrUpdateExtension(userId, request));
     }
@@ -42,11 +46,13 @@ public class TrainerService {
      * 申请成为专家 — 提交扩展信息并创建待审核角色记录
      */
     @Transactional
+    @Override
     public void apply(Integer userId, TrainerRequest request) {
         roleApplyService.apply(userId, BusinessRole.Code.TRAINER);
         saveOrUpdateExtension(userId, request);
     }
 
+    @Override
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
         return roleApplyService.getStatus(userId, BusinessRole.Code.TRAINER);
     }

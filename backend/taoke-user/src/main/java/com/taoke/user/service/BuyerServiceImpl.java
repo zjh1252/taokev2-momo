@@ -17,11 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-public class BuyerService {
+public class BuyerServiceImpl implements com.taoke.user.api.BuyerService {
 
     private final BuyerRepository buyerRepository;
     private final BuyerMapper buyerMapper;
 
+    @Override
     public BuyerResponse getByUserId(Integer userId) {
         Buyer buyer = buyerRepository.findByUserId(userId).orElse(null);
         if (buyer == null) {
@@ -30,9 +31,7 @@ public class BuyerService {
         return buyerMapper.toResponse(buyer);
     }
 
-    /**
-     * 保存学员档案（有则更新、无则创建）
-     */
+    @Override
     @Transactional
     public BuyerResponse save(Integer userId, BuyerRequest request) {
         Buyer buyer = buyerRepository.findByUserId(userId).orElseGet(() -> {

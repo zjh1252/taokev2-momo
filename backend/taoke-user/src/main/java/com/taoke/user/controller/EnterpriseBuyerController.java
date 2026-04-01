@@ -6,7 +6,7 @@ import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerRequest;
 import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerResponse;
-import com.taoke.user.service.EnterpriseBuyerService;
+import com.taoke.user.api.EnterpriseBuyerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

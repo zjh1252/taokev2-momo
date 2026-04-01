@@ -17,11 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-public class EnterpriseBuyerService {
+public class EnterpriseBuyerServiceImpl implements com.taoke.user.api.EnterpriseBuyerService {
 
     private final EnterpriseBuyerRepository enterpriseBuyerRepository;
     private final EnterpriseBuyerMapper enterpriseBuyerMapper;
 
+    @Override
     public EnterpriseBuyerResponse getByUserId(Integer userId) {
         EnterpriseBuyer ent = enterpriseBuyerRepository.findByUserId(userId).orElse(null);
         if (ent == null) {
@@ -30,9 +31,7 @@ public class EnterpriseBuyerService {
         return enterpriseBuyerMapper.toResponse(ent);
     }
 
-    /**
-     * 保存企业培训采购方信息（有则更新、无则创建）
-     */
+    @Override
     @Transactional
     public EnterpriseBuyerResponse save(Integer userId, EnterpriseBuyerRequest request) {
         EnterpriseBuyer ent = enterpriseBuyerRepository.findByUserId(userId).orElseGet(() -> {
