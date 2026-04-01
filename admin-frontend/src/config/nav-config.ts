@@ -1,14 +1,13 @@
 import { NavGroup } from '@/types';
 
 /**
- * Navigation configuration with RBAC support
+ * 后台管理系统侧边栏导航配置
  *
- * This configuration is used for both the sidebar navigation and Cmd+K bar.
- * Items are organized into groups, each rendered with a SidebarGroupLabel.
+ * 按业务模块分组，每个 NavGroup 渲染为一个 SidebarGroupLabel。
  */
 export const navGroups: NavGroup[] = [
   {
-    label: 'Overview',
+    label: '总览',
     items: [
       {
         title: 'Dashboard',
@@ -17,20 +16,53 @@ export const navGroups: NavGroup[] = [
         isActive: false,
         shortcut: ['d', 'd'],
         items: []
-      },
+      }
+    ]
+  },
+  {
+    label: '用户管理',
+    items: [
       {
-        title: 'Product',
-        url: '/dashboard/product',
-        icon: 'product',
-        shortcut: ['p', 'p'],
-        isActive: false,
-        items: []
-      },
-      {
-        title: 'Users',
+        title: '用户列表',
         url: '/dashboard/users',
         icon: 'teams',
         shortcut: ['u', 'u'],
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
+    label: '课程管理',
+    items: [
+      {
+        title: '课程列表',
+        url: '/dashboard/courses',
+        icon: 'product',
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
+    label: '专家管理',
+    items: [
+      {
+        title: '专家列表',
+        url: '/dashboard/trainers',
+        icon: 'user',
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
+    label: '系统设置',
+    items: [
+      {
+        title: '系统配置',
+        url: '/dashboard/settings',
+        icon: 'settings',
         isActive: false,
         items: []
       }
