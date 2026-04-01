@@ -1,6 +1,6 @@
 // 用户相关接口
 
-import type { User } from '@/modules/user/types/user';
+import type { User } from './types';
 
 // TODO: 获取当前用户信息、用户资料等
 

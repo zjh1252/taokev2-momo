@@ -7,14 +7,14 @@ import {
   CoursesSection,
   PublicCoursesSection,
   AiEngagementBanner,
-} from '@/modules/home/components';
+} from '@/features/home/components';
 import {
   heroCategories,
   featuredExperts,
   featuredCases,
   popularInternalCourses,
   upcomingPublicCourses,
-} from '@/modules/home/data/mock';
+} from '@/features/home/data/mock';
 
 export async function generateMetadata() {
   const t = await getTranslations('common');

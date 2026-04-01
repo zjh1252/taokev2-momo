@@ -7,19 +7,21 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
  * 事件总线 RabbitMQ 配置 — Topic Exchange + JSON 消息序列化。
  * <p>
- * 仅在 classpath 存在 RabbitMQ 时激活，实现中间件可插拔。
+ * 仅在 classpath 存在 RabbitMQ 且配置 {@code taoke.event.enabled=true} 时激活。
  *
  * @author Fangxinxin
  * @date 2026-03-19
  */
 @Configuration
 @ConditionalOnClass(RabbitTemplate.class)
+@ConditionalOnProperty(name = "taoke.event.enabled", havingValue = "true")
 public class RabbitEventConfig {
 
     @Bean

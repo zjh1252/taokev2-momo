@@ -41,3 +41,14 @@
   - `CorsFilter`（taoke-app/filter）— YAML 配置化跨域，dev 全放开 / prod 限定域名
   - `taoke-common/pom.xml` 新增 `spring-boot-starter-data-redis`（optional）
 
+## 2026-04-01 17:30
+- 新增行政区划（common_regions）功能模块（`taoke-common`）
+  - `Region` JPA 实体，映射 common_regions 表（code/name/parentCode/level 四级结构）
+  - `RegionRepository`：按 parentCode 查子级、按 code 精确查、模糊搜索、existsByParentCode
+  - `RegionService` 接口 + `RegionServiceImpl` 实现，含 ConcurrentHashMap 本地缓存
+  - `RegionController`：三个 `@Public` GET 接口（`/regions/children`、`/regions/{code}`、`/regions/search`）
+  - `RegionVO`、`RegionDetailVO` 响应 DTO
+- `taoke-common` 包结构重构：从功能聚合包（upload/、region/）统一为按层分包
+  - 新建 `controller/`、`service/`（接口）、`service/impl/`（实现）、`repository/` 包
+  - upload 6 个文件迁移：UploadController → controller/，FileUploadService/Impl → service/ + service/impl/，FileUploadResponse → dto/，FileUploadProperties → config/，UploadBizType → enums/
+  - region 6 个文件按分层创建，删除旧的 upload/ 和 region/ 包
