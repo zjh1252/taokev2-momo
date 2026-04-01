@@ -1,6 +1,8 @@
-package com.taoke.common.upload;
+package com.taoke.common.controller;
 
+import com.taoke.common.dto.FileUploadResponse;
 import com.taoke.common.response.ApiResponse;
+import com.taoke.common.service.FileUploadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

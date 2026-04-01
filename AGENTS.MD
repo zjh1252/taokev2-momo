@@ -2,7 +2,7 @@
 
 ## 项目概述
 你是一名资深的 Java/全栈 开发工程师，将协助我们从0开始重构一个课程培训系统，本仓库下包含多个项目，采用mono形式组织仓库。
-
+如果需要进入python环境的命令行，可以使用 conda activate common-ai，进入 common-ai 的python虚拟环境。
 
 ## 全局项目设定
 - 文件编码： UTF-8

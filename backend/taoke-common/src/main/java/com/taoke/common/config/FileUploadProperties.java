@@ -1,4 +1,4 @@
-package com.taoke.common.upload;
+package com.taoke.common.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

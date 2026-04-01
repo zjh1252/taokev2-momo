@@ -15,6 +15,9 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "taoke.event")
 public class EventBusProperties {
 
+    /** 是否启用事件总线（RabbitMQ），默认关闭 */
+    private boolean enabled = false;
+
     /** Topic Exchange 名称 */
     private String exchange = "taoke.events";
 }

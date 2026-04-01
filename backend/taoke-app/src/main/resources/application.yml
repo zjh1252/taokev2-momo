@@ -37,6 +37,7 @@ taoke:
     code-length: 6
     expire-minutes: 5
   event:
+    enabled: false
     exchange: taoke.events
   upload:
     base-dir: uploads

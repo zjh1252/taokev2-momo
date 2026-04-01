@@ -14,6 +14,8 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
+import org.springframework.context.annotation.Lazy;
+
 import java.util.function.Supplier;
 
 /**
@@ -38,7 +40,7 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
 
     private final RequestMappingHandlerMapping handlerMapping;
 
-    public DynamicAuthorizationManager(RequestMappingHandlerMapping handlerMapping) {
+    public DynamicAuthorizationManager(@Lazy RequestMappingHandlerMapping handlerMapping) {
         this.handlerMapping = handlerMapping;
     }
 

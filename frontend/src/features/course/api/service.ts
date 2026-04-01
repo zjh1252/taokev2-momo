@@ -1,7 +1,7 @@
 // 课程相关接口
 
 import { apiGet } from '@/lib/http/client';
-import type { Course } from '@/modules/course/types/course';
+import type { Course } from './types';
 
 // TODO: 实现课程列表查询
 export async function getCourseList(): Promise<Course[]> {

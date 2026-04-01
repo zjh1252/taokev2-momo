@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import { RegisterForm } from '@/modules/auth/components/RegisterForm';
+import { RegisterForm } from '@/features/auth/components/RegisterForm';
 
 export async function generateMetadata() {
   const t = await getTranslations('auth');
