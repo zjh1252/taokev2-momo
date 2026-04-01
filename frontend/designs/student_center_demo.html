@@ -53,7 +53,7 @@
                     <a href="#" class="hover:text-white/80 transition-colors">专家</a>
                     <a href="#" class="hover:text-white/80 transition-colors">公开课</a>
                     <a href="#" class="hover:text-white/80 transition-colors">内训课</a>
-                    <a href="#" class="hover:text-white/80 transition-colors">在线课</a>
+                    <a href="#" class="hover:text-white/80 transition-colors">录播课</a>
                     <a href="#" class="hover:text-white/80 transition-colors">机构</a>
                 </nav>
             </div>
@@ -69,7 +69,7 @@
 
     <!-- 面包屑导航 -->
     <div class="max-w-[1200px] w-full mx-auto px-4 py-4 text-sm text-gray-500">
-        你的位置：<a href="#" class="hover:text-primary transition-colors">首页</a> > <span class="text-gray-800 font-medium">我的淘课网</span>
+        你的位置：<span class="text-gray-800 font-medium">我的淘课网</span>
     </div>
 
     <!-- 主体内容区 -->
@@ -96,6 +96,10 @@
                         <span class="material-symbols-outlined text-[20px]">receipt_long</span>
                         我的订单
                     </a>
+                    <a href="#" data-target="page-demands" class="nav-item flex items-center gap-3 px-6 py-3.5 text-gray-600 hover:bg-slate-50 hover:text-primary transition-colors border-l-4 border-transparent">
+                        <span class="material-symbols-outlined text-[20px]">assignment</span>
+                        我的需求
+                    </a>
                     <a href="#" data-target="page-favorites" class="nav-item flex items-center gap-3 px-6 py-3.5 text-gray-600 hover:bg-slate-50 hover:text-primary transition-colors border-l-4 border-transparent">
                         <span class="material-symbols-outlined text-[20px]">favorite</span>
                         我的收藏
@@ -107,7 +111,7 @@
                     
                     <!-- 淘课联盟 (带下拉悬浮子菜单) -->
                     <div class="relative">
-                        <button type="button" data-submenu="submenu-alliance" aria-expanded="false" class="menu-toggle w-full flex items-center justify-between px-6 py-3.5 text-gray-600 hover:bg-slate-50 hover:text-primary transition-colors border-l-4 border-transparent border-t border-slate-100 mt-2 pt-4">
+                        <button type="button" data-submenu="submenu-alliance" aria-expanded="false" class="menu-toggle w-full flex items-center justify-between px-6 py-3.5 text-gray-600 hover:bg-slate-50 hover:text-primary transition-colors border-l-4 border-transparent border-t border-slate-100">
                             <div class="flex items-center gap-3">
                                 <span class="material-symbols-outlined text-[20px]">handshake</span>
                                 淘课联盟
@@ -120,11 +124,6 @@
                             <a href="#" data-target="page-alliance-721" class="nav-item pl-[52px] pr-6 py-2.5 text-[13px] text-gray-500 hover:text-primary hover:bg-red-50/50 transition-colors border-l-4 border-transparent">721讲师合作</a>
                         </div>
                     </div>
-
-                    <a href="#" data-target="page-wealth" class="nav-item flex items-center gap-3 px-6 py-3.5 text-gray-600 hover:bg-slate-50 hover:text-primary transition-colors border-l-4 border-transparent">
-                        <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
-                        我的财富
-                    </a>
                     
                     <!-- 我的账号 (带下拉悬浮子菜单) -->
                     <div class="relative">
@@ -184,11 +183,7 @@
                 <div class="lg:border-l border-slate-100 lg:pl-8 flex flex-col items-start lg:items-end w-full lg:w-auto">
                     <div class="flex gap-12">
                         <div class="flex flex-col items-center">
-                            <div class="text-sm text-gray-500 mb-1">现金券</div>
-                            <div class="text-2xl font-bold text-primary font-mono">0</div>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="text-sm text-gray-500 mb-1">满意</div>
+                            <div class="text-sm text-gray-500 mb-1">消息</div>
                             <div class="text-2xl font-bold text-primary font-mono">0</div>
                         </div>
                     </div>
@@ -268,7 +263,7 @@
                     <div class="group cursor-pointer border border-slate-100 rounded-lg overflow-hidden hover:shadow-lg transition-all">
                         <div class="aspect-[16/10] bg-slate-800 relative overflow-hidden">
                             <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400&h=250" class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" alt="Course Cover">
-                            <div class="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded">在线课</div>
+                            <div class="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded">录播课</div>
                             <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 <span class="material-symbols-outlined text-white text-4xl drop-shadow-md">play_circle</span>
                             </div>
@@ -292,7 +287,7 @@
                             <h3 class="font-medium text-gray-800 line-clamp-2 mb-2 group-hover:text-primary transition-colors text-sm h-10">2024企业战略规划与绩效落地研修班</h3>
                             <div class="text-xs text-gray-500 mb-3">开课城市：上海 | 04月15日</div>
                             <div class="flex justify-between items-center mt-auto">
-                                <span class="text-primary font-bold">¥ 3,980.00</span>
+                                <span class="text-primary font-bold">面议</span>
                                 <span class="text-[10px] bg-red-50 text-primary px-1.5 py-0.5 rounded border border-red-100">报名成功</span>
                             </div>
                         </div>
@@ -310,8 +305,8 @@
             <div id="page-learning" class="page-content flex-col gap-6">
                 <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
                     <div class="px-6 border-b border-slate-200 flex gap-8">
-                        <button data-tab-group="learning" data-tab-target="learning-online" class="tab-btn py-4 text-primary font-bold border-b-2 border-primary text-[15px]">在线课</button>
-                        <button data-tab-group="learning" data-tab-target="learning-offline" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">线下公开课</button>
+                        <button data-tab-group="learning" data-tab-target="learning-online" class="tab-btn py-4 text-primary font-bold border-b-2 border-primary text-[15px]">录播课</button>
+                        <button data-tab-group="learning" data-tab-target="learning-offline" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">公开课</button>
                     </div>
                     <div id="learning-online" class="tab-panel p-6">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -383,11 +378,19 @@
             <!-- PAGE 3: 我的订单 -->
             <div id="page-orders" class="page-content flex-col gap-6">
                 <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
-                    <div class="px-6 border-b border-slate-200 flex gap-8">
-                        <button data-tab-group="orders" data-tab-target="orders-all" class="tab-btn py-4 text-primary font-bold border-b-2 border-primary text-[15px]">全部订单</button>
-                        <button data-tab-group="orders" data-tab-target="orders-pending" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">待支付 <span class="text-primary text-xs ml-1">1</span></button>
-                        <button data-tab-group="orders" data-tab-target="orders-done" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">已完成</button>
-                        <button data-tab-group="orders" data-tab-target="orders-cancel" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">已取消</button>
+                    <div class="px-6 border-b border-slate-200 flex justify-between items-center">
+                        <div class="flex gap-8">
+                            <button data-tab-group="orders" data-tab-target="orders-all" class="tab-btn py-4 text-primary font-bold border-b-2 border-primary text-[15px]">全部订单</button>
+                            <button data-tab-group="orders" data-tab-target="orders-pending" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">待支付 <span class="text-primary text-xs ml-1">1</span></button>
+                            <button data-tab-group="orders" data-tab-target="orders-done" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">已完成</button>
+                            <button data-tab-group="orders" data-tab-target="orders-cancel" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">已过期</button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="relative">
+                                <input type="text" placeholder="输入订单号搜索" class="border border-slate-300 rounded-md pl-3 pr-8 py-1.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-48">
+                                <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-[18px] cursor-pointer hover:text-primary">search</span>
+                            </div>
+                        </div>
                     </div>
                     <div id="orders-all" class="tab-panel p-6 flex flex-col gap-4">
                         <div class="border border-slate-200 rounded-lg overflow-hidden">
@@ -432,47 +435,176 @@
                     </div>
                     <div id="orders-cancel" class="tab-panel hidden p-6">
                         <div class="border border-slate-200 rounded-lg p-4">
-                            <div class="font-medium">企业战略规划公开课（已取消）</div>
-                            <div class="text-xs text-gray-500 mt-1">订单号：TK20240211003 · 取消原因：超时未支付</div>
+                            <div class="font-medium">企业战略规划公开课（已过期）</div>
+                            <div class="text-xs text-gray-500 mt-1">订单号：TK20240211003 · 过期原因：超时未支付</div>
                         </div>
                     </div>
                 </section>
             </div> <!-- End of page-orders -->
 
+            <!-- PAGE: 我的需求 -->
+            <div id="page-demands" class="page-content flex-col gap-6">
+                <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
+                    <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                        <h2 class="font-bold text-gray-800">我的需求</h2>
+                        <button class="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded text-sm transition-colors flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[16px]">add</span>
+                            发布新需求
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center gap-4 mb-6 text-sm">
+                            <button class="text-primary font-bold">全部需求 (2)</button>
+                            <span class="text-gray-300">|</span>
+                            <button class="text-gray-500 hover:text-primary">处理中 (1)</button>
+                            <span class="text-gray-300">|</span>
+                            <button class="text-gray-500 hover:text-primary">已完成 (1)</button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- 需求项 1 -->
+                            <div class="border border-slate-200 rounded-lg p-4 hover:border-primary/30 transition-colors">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-bold text-gray-800 text-[15px]">寻找资深的高级销售培训讲师</h3>
+                                    <span class="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded text-xs">处理中</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3 line-clamp-2">我们需要一位在IT行业有10年以上销售管理经验的讲师，针对我们的销售团队进行为期2天的内训。重点在于大客户销售技巧和客情关系维护...</p>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <div class="flex gap-4">
+                                        <span>预算：<span class="text-primary font-medium">10,000 - 20,000元</span></span>
+                                        <span>发布时间：2024-03-25</span>
+                                    </div>
+                                    <div class="flex gap-3">
+                                        <button class="text-gray-500 hover:text-primary">查看详情</button>
+                                        <button class="text-gray-500 hover:text-primary">修改需求</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 需求项 2 -->
+                            <div class="border border-slate-200 rounded-lg p-4 hover:border-primary/30 transition-colors bg-slate-50/50">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-bold text-gray-800 text-[15px]">企业中层管理能力提升内训</h3>
+                                    <span class="px-2 py-0.5 bg-green-50 text-green-600 border border-green-100 rounded text-xs">已完成</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3 line-clamp-2">针对公司新晋升的20名中层干部，需要提升他们的团队管理、目标拆解和跨部门沟通能力。已与平台客服沟通确认方案。</p>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <div class="flex gap-4">
+                                        <span>预算：<span class="text-gray-800 font-medium">面议</span></span>
+                                        <span>发布时间：2024-02-10</span>
+                                    </div>
+                                    <div class="flex gap-3">
+                                        <button class="text-gray-500 hover:text-primary">查看详情</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div> <!-- End of page-demands -->
+
             <div id="page-messages" class="page-content flex-col gap-6">
                 <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
                     <div class="px-6 border-b border-slate-200 flex gap-8">
-                        <button data-tab-group="messages" data-tab-target="messages-all" class="tab-btn py-4 text-primary font-bold border-b-2 border-primary text-[15px]">全部消息</button>
-                        <button data-tab-group="messages" data-tab-target="messages-system" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">系统通知</button>
-                        <button data-tab-group="messages" data-tab-target="messages-course" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">课程通知</button>
-                        <button data-tab-group="messages" data-tab-target="messages-social" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">互动消息</button>
+                        <button data-tab-group="messages" data-tab-target="messages-received" class="tab-btn py-4 text-primary font-bold border-b-2 border-primary text-[15px]">收到消息</button>
+                        <button data-tab-group="messages" data-tab-target="messages-sent" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">已发消息</button>
                     </div>
-                    <div id="messages-all" class="tab-panel p-6 space-y-3">
-                        <div class="border border-red-100 bg-red-50/40 rounded-lg p-4">
-                            <div class="font-medium text-gray-900">课程开课提醒：公开课《绩效落地实战》将于 04-15 开课</div>
-                            <div class="text-xs text-gray-500 mt-1">2026-03-30 10:20</div>
+                    
+                    <div id="messages-received" class="tab-panel p-6 flex flex-col">
+                        <div class="flex items-center gap-4 mb-4">
+                            <label class="inline-flex items-center gap-2 cursor-pointer text-sm text-gray-600 hover:text-primary transition-colors">
+                                <input type="checkbox" class="w-4 h-4 border-gray-300 rounded text-primary focus:ring-primary">
+                                <span>全选</span>
+                            </label>
+                            <button class="text-sm border border-slate-200 rounded px-3 py-1.5 hover:border-red-200 hover:text-primary transition-colors flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">delete</span>
+                                删除
+                            </button>
                         </div>
-                        <div class="border border-slate-200 rounded-lg p-4">
-                            <div class="font-medium text-gray-800">系统消息：您的账号安全评分已更新</div>
-                            <div class="text-xs text-gray-500 mt-1">2026-03-28 16:05</div>
+                        
+                        <div class="border border-slate-200 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-slate-50 text-gray-600 border-b border-slate-200">
+                                    <tr>
+                                        <th class="w-12 px-4 py-3 text-center"></th>
+                                        <th class="w-32 px-4 py-3 font-medium">发信人</th>
+                                        <th class="px-4 py-3 font-medium">标题</th>
+                                        <th class="w-24 px-4 py-3 font-medium">状态</th>
+                                        <th class="w-40 px-4 py-3 font-medium">发送时间</th>
+                                        <th class="w-20 px-4 py-3 font-medium text-center">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <tr class="hover:bg-slate-50 transition-colors group">
+                                        <td class="px-4 py-4 text-center">
+                                            <input type="checkbox" class="w-4 h-4 border-gray-300 rounded text-primary focus:ring-primary">
+                                        </td>
+                                        <td class="px-4 py-4 text-gray-800">淘课网</td>
+                                        <td class="px-4 py-4">
+                                            <a href="#" class="text-gray-800 hover:text-primary transition-colors font-medium">欢迎你加入 淘课</a>
+                                        </td>
+                                        <td class="px-4 py-4">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-primary border border-red-100">未读</span>
+                                        </td>
+                                        <td class="px-4 py-4 text-gray-500">2026-03-30 14:33</td>
+                                        <td class="px-4 py-4 text-center">
+                                            <a href="#" class="text-gray-500 hover:text-primary transition-colors text-xs flex items-center justify-center gap-1">
+                                                <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                                查看
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    <div id="messages-system" class="tab-panel hidden p-6 space-y-3">
-                        <div class="border border-slate-200 rounded-lg p-4">
-                            <div class="font-medium text-gray-900">系统消息：账号安全评分已更新</div>
-                            <div class="text-xs text-gray-500 mt-1">建议绑定手机号并完成实名认证。</div>
+                    
+                    <div id="messages-sent" class="tab-panel hidden p-6 flex flex-col">
+                        <div class="flex items-center gap-4 mb-4">
+                            <label class="inline-flex items-center gap-2 cursor-pointer text-sm text-gray-600 hover:text-primary transition-colors">
+                                <input type="checkbox" class="w-4 h-4 border-gray-300 rounded text-primary focus:ring-primary">
+                                <span>全选</span>
+                            </label>
+                            <button class="text-sm border border-slate-200 rounded px-3 py-1.5 hover:border-red-200 hover:text-primary transition-colors flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">delete</span>
+                                删除
+                            </button>
                         </div>
-                    </div>
-                    <div id="messages-course" class="tab-panel hidden p-6 space-y-3">
-                        <div class="border border-slate-200 rounded-lg p-4">
-                            <div class="font-medium text-gray-900">课程通知：你的课程《AI办公效率提升全景课》新增第 8 章</div>
-                            <div class="text-xs text-gray-500 mt-1">点击进入课程继续学习。</div>
-                        </div>
-                    </div>
-                    <div id="messages-social" class="tab-panel hidden p-6 space-y-3">
-                        <div class="border border-slate-200 rounded-lg p-4">
-                            <div class="font-medium text-gray-900">互动消息：讲师回复了你的评价</div>
-                            <div class="text-xs text-gray-500 mt-1">“感谢认可，欢迎继续学习进阶课程。”</div>
+                        
+                        <div class="border border-slate-200 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-slate-50 text-gray-600 border-b border-slate-200">
+                                    <tr>
+                                        <th class="w-12 px-4 py-3 text-center"></th>
+                                        <th class="w-32 px-4 py-3 font-medium">收信人</th>
+                                        <th class="px-4 py-3 font-medium">标题</th>
+                                        <th class="w-24 px-4 py-3 font-medium">状态</th>
+                                        <th class="w-40 px-4 py-3 font-medium">发送时间</th>
+                                        <th class="w-20 px-4 py-3 font-medium text-center">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <tr class="hover:bg-slate-50 transition-colors group">
+                                        <td class="px-4 py-4 text-center">
+                                            <input type="checkbox" class="w-4 h-4 border-gray-300 rounded text-primary focus:ring-primary">
+                                        </td>
+                                        <td class="px-4 py-4 text-gray-800">培训机构A</td>
+                                        <td class="px-4 py-4">
+                                            <a href="#" class="text-gray-800 hover:text-primary transition-colors">课程咨询资料已发送</a>
+                                        </td>
+                                        <td class="px-4 py-4">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-100">已发</span>
+                                        </td>
+                                        <td class="px-4 py-4 text-gray-500">2026-03-30 09:12</td>
+                                        <td class="px-4 py-4 text-center">
+                                            <a href="#" class="text-gray-500 hover:text-primary transition-colors text-xs flex items-center justify-center gap-1">
+                                                <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                                查看
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </section>
@@ -480,18 +612,26 @@
 
             <div id="page-favorites" class="page-content flex-col gap-6">
                 <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
-                    <div class="px-6 border-b border-slate-200 flex gap-8">
-                        <button data-tab-group="favorites" data-tab-target="favorites-course" class="tab-btn py-4 text-primary font-bold border-b-2 border-primary text-[15px]">课程</button>
-                        <button data-tab-group="favorites" data-tab-target="favorites-trainer" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">讲师</button>
-                        <button data-tab-group="favorites" data-tab-target="favorites-org" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">机构</button>
-                        <button data-tab-group="favorites" data-tab-target="favorites-case" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">案例</button>
+                    <div class="px-6 border-b border-slate-200 flex justify-between items-center">
+                        <div class="flex gap-8">
+                            <button data-tab-group="favorites" data-tab-target="favorites-course" class="tab-btn py-4 text-primary font-bold border-b-2 border-primary text-[15px]">课程</button>
+                            <button data-tab-group="favorites" data-tab-target="favorites-trainer" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">讲师</button>
+                            <button data-tab-group="favorites" data-tab-target="favorites-org" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">机构</button>
+                            <button data-tab-group="favorites" data-tab-target="favorites-case" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">案例</button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="relative">
+                                <input type="text" placeholder="输入关键字搜索" class="border border-slate-300 rounded-md pl-3 pr-8 py-1.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-48">
+                                <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-[18px] cursor-pointer hover:text-primary">search</span>
+                            </div>
+                        </div>
                     </div>
                     <div id="favorites-course" class="tab-panel p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="favorite-card border border-slate-200 rounded-lg p-4 flex gap-3">
                             <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=220&h=140" class="w-[120px] h-[76px] rounded object-cover" alt="收藏课程">
                             <div class="flex-1">
                                 <div class="font-medium">AI办公效率提升全景课</div>
-                                <div class="text-xs text-gray-500 mt-1">讲师：刘晨 · 在线课</div>
+                                <div class="text-xs text-gray-500 mt-1">讲师：刘晨 · 录播课</div>
                                 <div class="text-xs text-gray-500 mt-1">¥299.00 · 2,354人学习</div>
                             </div>
                             <div class="mt-3 flex justify-end">
@@ -502,7 +642,7 @@
                             <img src="https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=220&h=140" class="w-[120px] h-[76px] rounded object-cover" alt="收藏课程">
                             <div class="flex-1">
                                 <div class="font-medium">高绩效团队管理实战</div>
-                                <div class="text-xs text-gray-500 mt-1">讲师：赵明 · 在线课</div>
+                                <div class="text-xs text-gray-500 mt-1">讲师：赵明 · 录播课</div>
                                 <div class="text-xs text-gray-500 mt-1">¥399.00 · 1,128人学习</div>
                             </div>
                             <div class="mt-3 flex justify-end">
@@ -551,7 +691,6 @@
                     <div class="px-6 border-b border-slate-200 flex gap-8">
                         <button data-tab-group="reviews" data-tab-target="reviews-mine" class="tab-btn py-4 text-primary font-bold border-b-2 border-primary text-[15px]">我的评价</button>
                         <button data-tab-group="reviews" data-tab-target="reviews-pending" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">待评价</button>
-                        <button data-tab-group="reviews" data-tab-target="reviews-appeal" class="tab-btn py-4 text-gray-500 font-medium text-[15px]">申诉记录</button>
                     </div>
                     <div id="reviews-mine" class="tab-panel p-6 space-y-4">
                         <div class="border border-slate-200 rounded-lg p-4">
@@ -570,86 +709,309 @@
                             <button class="text-xs bg-primary text-white px-3 py-1.5 rounded">去评价</button>
                         </div>
                     </div>
-                    <div id="reviews-appeal" class="tab-panel hidden p-6 space-y-4">
-                        <div class="border border-slate-200 rounded-lg p-4">
-                            <div class="text-sm text-gray-700">申诉单：AP20260330001</div>
-                            <div class="text-xs text-gray-500 mt-1">状态：处理中</div>
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            <div id="page-wealth" class="page-content flex-col gap-6">
-                <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
-                    <div class="p-6 border-b border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="border border-red-100 bg-red-50/30 rounded-lg p-4">
-                            <div class="text-sm text-gray-500">可用余额</div>
-                            <div class="text-2xl font-bold text-primary mt-1">¥0.00</div>
-                        </div>
-                        <div class="border border-slate-200 rounded-lg p-4">
-                            <div class="text-sm text-gray-500">现金券</div>
-                            <div class="text-2xl font-bold mt-1">0</div>
-                        </div>
-                        <div class="flex items-center">
-                            <button class="w-full bg-primary hover:bg-primary-hover text-white py-2 rounded">去充值</button>
-                        </div>
-                    </div>
-                    <div class="p-6">
-                        <div class="font-medium mb-3">流水明细</div>
-                        <div class="text-sm text-gray-500">暂无记录</div>
-                    </div>
                 </section>
             </div>
 
             <div id="page-alliance-ambassador" class="page-content flex-col gap-6">
                 <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
-                    <div class="p-6 bg-gradient-to-r from-red-500 to-rose-400 text-white">
-                        <div class="text-xl font-bold">推广大使</div>
-                        <div class="text-sm opacity-90 mt-1">分享课程获取推广收益，打造你的学习影响力。</div>
+                    <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
+                        <h2 class="font-bold text-gray-800">培训宝推广大使</h2>
+                        <a href="#" class="text-[#0066cc] text-sm hover:underline">(查看协议)</a>
                     </div>
-                    <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="border border-slate-200 rounded-lg p-4"><div class="text-sm text-gray-500">累计邀请</div><div class="text-2xl font-bold mt-1">0</div></div>
-                        <div class="border border-slate-200 rounded-lg p-4"><div class="text-sm text-gray-500">有效转化</div><div class="text-2xl font-bold mt-1">0</div></div>
-                        <div class="border border-slate-200 rounded-lg p-4"><div class="text-sm text-gray-500">预估收益</div><div class="text-2xl font-bold text-primary mt-1">¥0.00</div></div>
+                    <div class="p-8 max-w-4xl mx-auto flex flex-col items-center">
+                        <h1 class="text-2xl font-bold text-gray-900 mb-8">培训宝大使协议</h1>
+                        
+                        <div class="w-full flex justify-between text-sm font-bold text-gray-800 mb-6 px-4">
+                            <span>甲方：TPC_WXQDSE20260330</span>
+                            <span>乙方：上海淘课企业管理咨询有限公司</span>
+                        </div>
+                        
+                        <div class="space-y-4 text-sm text-gray-700 leading-loose text-justify px-4 w-full">
+                            <p>1. 甲方自愿申请成为乙方的培训宝大使，兼职向企业培训经理等推广介绍培训宝，引导他们也注册成为培训宝会员（这些会员后称甲方所介绍会员），让他们也使用培训宝提升工作效率、累积培训经验档案、赢得领导绩效认同等。</p>
+                            <p>2. 甲方所介绍会员自注册之日始1年内若有采购培训宝各收费功能，甲方可获得培训宝采购全额*10%的奖金。多邀多买多得，上不封顶。</p>
+                            <p>3. 对所获奖金，甲方每月可申请提现一次，乙方按甲方要求转账到甲方指定银行账户。</p>
+                            <p>4. 甲方清楚并接受：在网站所显示的奖金全额为税前收益，甲方提现需要缴纳劳务个税，个税在甲方提现时由乙方公司代为扣缴。</p>
+                            <p>5. 甲方承诺以合法方式推广乙方的服务，不损害乙方声誉，不以权谋私。以权谋私的采购，乙方不给甲方奖金。</p>
+                            <p>6. 本大使活动与淘课（含培训宝、培训人社区和淘课网）其它活动奖励若有重合，甲方只享有本活动的奖励。</p>
+                            <p>7. 甲方在签约成为大使之前可能也介绍了一些会员：若这些会员在双方签约之时还没有采购培训宝，签约之后发生的采购也适用本协议奖金机制；若这些会员在双方签约之时已有采购培训宝，这些会员的采购与甲方无关。</p>
+                            <p>8. 双方是否合作、甲方获得奖金等合作信息，双方均有保密责任，不得泄露。</p>
+                            <p>9. 本协议自甲方提出申请并通过乙方审核之刻生效。生效之日起1年内，甲方可按协议推广培训宝获得奖金。协议生效满1年后，甲方再新增所介绍会员无奖金，但继续享受协议有效期内所介绍会员的奖金回报，直至甲方所介绍会员全部注册满了1年为止。</p>
+                        </div>
+                        
+                        <button class="mt-10 bg-[#cc0000] hover:bg-[#b30000] text-white font-bold text-[15px] px-8 py-3 rounded shadow-sm transition-colors">
+                            本人同意上述协议并自愿申请成为推广大使
+                        </button>
                     </div>
                 </section>
             </div>
 
             <div id="page-alliance-partner" class="page-content flex-col gap-6">
-                <section class="bg-white rounded-lg shadow-sm border border-slate-200 min-h-[500px] p-6">
-                    <div class="text-xl font-bold text-gray-900">培训合伙人</div>
-                    <div class="text-sm text-gray-500 mt-2">查看合伙人权益、申请进度、客户成单跟踪。</div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
-                        <div class="border border-slate-200 rounded-lg p-4"><div class="text-sm text-gray-500">线索数</div><div class="text-2xl font-bold mt-1">12</div></div>
-                        <div class="border border-slate-200 rounded-lg p-4"><div class="text-sm text-gray-500">已签约</div><div class="text-2xl font-bold mt-1">3</div></div>
-                        <div class="border border-slate-200 rounded-lg p-4"><div class="text-sm text-gray-500">预计分成</div><div class="text-2xl font-bold text-primary mt-1">¥6,800</div></div>
+                <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
+                    <!-- Top header -->
+                    <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center">
+                        <h2 class="font-bold text-gray-800">培训合伙人</h2>
                     </div>
-                    <div class="mt-5 border border-slate-200 rounded-lg overflow-hidden">
-                        <div class="bg-slate-50 px-4 py-3 text-sm font-medium">成单跟踪</div>
-                        <div class="p-4 text-sm text-gray-600">线索 A · 阶段：方案沟通中 · 跟进人：王顾问</div>
+                    
+                    <div class="p-8 max-w-4xl mx-auto flex flex-col items-center">
+                        <h1 class="text-2xl font-bold text-gray-900 mb-8">淘课联盟培训合伙人合作协议</h1>
+                        
+                        <div class="w-full flex justify-between text-sm font-bold text-gray-800 mb-4 px-4">
+                            <span>甲方：TPC_WXQDSE20260330</span>
+                            <span>乙方：上海淘课企业管理咨询有限公司</span>
+                        </div>
+                        
+                        <!-- Scrollable text area -->
+                        <div class="w-full border border-gray-300 p-6 text-[13px] text-gray-700 leading-loose h-[320px] overflow-y-auto mb-8 bg-white custom-scrollbar">
+                            <p class="mb-4">甲乙双方本着自愿、平等、互利的原则，经充分协商，就协力服务企业客户订立本合同。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">一、合作要点</p>
+                            <p>1.1 甲方参与乙方发起的培训机构联盟，乙方向甲方开放产品等资源，支持甲方服务好客户，赢得更多合同收入；</p>
+                            <p class="pl-4">（1）开放培训宝产品：用好培训宝，甲方可增进客情，更可持久留住客户；</p>
+                            <p class="pl-4">（2）开放师资类产品：含乙方研发的和乙方整合的产品，甲方多一个产品多一份收入，也节省自己寻找师资的成本；</p>
+                            <p class="pl-4">（3）开放录播课平台：客户直接采购乙方平台上的录播课，甲方也可分成；</p>
+                            <p class="pl-4">（4）开放公开课平台：客户直接采购乙方平台上的公开课，甲方也可分成；</p>
+                            <p class="pl-4">（5）开放客户资源：在征得客户同意的情况下，乙方介绍甲方跟进服务乙方网站的无主客户（无主客户指还没被任何合伙人保护的客户，客户保护详见第六条）。</p>
+                            <p>1.2 对同一客户，乙方只与一位联盟成员（即培训机构联盟中的培训机构）合作跟进服务；</p>
+                            <p>1.3 甲方缴纳一次性加盟费用980元，获赠980元/年的培训宝高级会员套餐。该会员权限仅限甲方自己使用，甲方不得转赠任何第三方。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">二、乙方产品</p>
+                            <p>2.1 非课酬产品：产品成本与师资课酬无关的产品。比如：培训宝、公开课、录播课。</p>
+                            <p>2.2 课酬类产品：产品成本即师资课酬的产品。比如：培训培训管理者（TTM）内训课、企业执行力提升（EES）、企业文化建设（BEC）、企业内训师金种子（EGS）、淘课网师资课程（淘课网上有上万讲师，乙方会精选最具性价比的优秀讲师供应给甲方）。</p>
+                            <p class="pl-4">说明1：乙方的产品清单（含产品名称、产品成本（即进货价）、建议销售价等）由乙方不定期以邮件形式发布给甲方，同时乙方负责日常帮助甲方按需匹配高性价比师资。</p>
+                            <p class="pl-4">说明2：为更好服务客户，对培训宝和TTM之外的乙方自主品牌产品，如EGS、BEC，在正式邮件征得乙方书面许可后，甲方可在许可范围内将其宣传为甲方产品，但甲方不能实际盗版，应合法合规，否则由此引发的责任由甲方承担，给乙方造成损失的，甲方应予以赔偿。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">三、利益分配</p>
+                            <p>3.1 原则：甲方预付产品成本，享有100%的项目利润。</p>
+                            <p class="pl-4">甲方应该在合同交付前向乙方预付产品成本，以便乙方协调师资预留档期、开始备课等。在甲方按时预付产品成本的正常情况下，项目利润甲乙双方按10:0分成，即甲方分100%。若甲方不能预付产品成本，项目利润甲乙双方按8:2分成，即甲方分80%。</p>
+                            <p>3.2 项目利润定义</p>
+                            <p class="pl-4">（1）课酬类产品：项目利润=合同收入-产品成本-营业税等各种税款-后勤等其它成本。</p>
+                            <p class="pl-8">其它成本如聘请甲方执行经理做助教的成本、获得无主客户需求的成本，不同项目不一，甲方有权决定是否需要这些需求或服务，若不需要就不存在这些成本。</p>
+                            <p class="pl-4">（2）非课酬产品：项目利润=销售收入*分成比例。培训宝、录播课、总裁班及认证课、一般公开课、TTM公开课的分成比例分别是10%、10%、5%、10%、20%。</p>
+                            <p>3.3 税负</p>
+                            <p class="pl-4">（1）对非课酬产品，各负各税。</p>
+                            <p class="pl-4">（2）对课酬类产品，乙方报给甲方的是税后的成本价，相关个税由甲方负责缴纳。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">四、定价原则</p>
+                            <p>甲方需遵守乙方规定的产品定价政策。产品政策包括产品成本（或称成本价）、最低价、建议报价、预付比例等信息。有最低价的产品，甲方与客户的成交价必须等于或高于最低价。有预付比例的产品，甲方应设法让客户预付，以维护产品品质形象。只有成本价的产品（一般是淘课网师资产品），甲方自行掌握销售价格。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">五、费用结算</p>
+                            <p>5.1 协议签订后3个工作日内，甲方把一次性加盟费付给乙方。</p>
+                            <p>5.2 对课酬类产品，甲方负责收客户的钱，给乙方支付产品成本。</p>
+                            <p class="pl-4">（1）甲方负责与客户签订合同，给客户出具发票，让客户支付款项（支付给甲方）；</p>
+                            <p class="pl-4">（2）为确保师资档期和准备交付等工作，甲方在项目进展到要预留师资档期或启动交付时要按预付比例支付给乙方预付费。</p>
+                            <p class="pl-4">（3）双方在客户合同完全交付后的下个月15日结算。</p>
+                            <p class="pl-4">（4）若因客户选择了其它供应商等情况要取消师资档期预订，乙方在甲方提供客户的书面说明（含邮件说明）后的下个月15日把甲方预付的费用100%返还给甲方，同时安抚档期受损的讲师。</p>
+                            <p class="pl-4">（5）若因乙方及乙方师资原因导致质量事故，乙方在事故认定后的下个月15日把甲方预付的费用100%返还给甲方。</p>
+                            <p>5.3 对非课酬产品，乙方负责收客户的钱，在到款后下个月15日与甲方结算。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">六、客户保护</p>
+                            <p>6.1 保护方式：甲方受保护的客户（后续简称甲方客户）所产生的培训需求，乙方只分配给甲方，也只支持甲方成交。如果客户文字形式明确提出不希望由甲方提供服务，或甲方自己不希望服务该客户，乙方有权另外分配。</p>
+                            <p>6.2 对尚未被保护的客户，甲方获取保护权的方式有以下几种情形：</p>
+                            <p class="pl-4">（1）让客户采购乙方产品：只要甲方在过去12个月内与客户成交的乙方课酬类产品进货金额月均>=1000元，乙方给予甲方客户保护。比如，甲方在2016/5/1从乙方进货10000元卖给某客户，甲方将获得该客户2016/5/1始10个月的保护期，后续再进货再延长。</p>
+                            <p class="pl-4">（2）让客户使用培训宝：甲方引导客户扫描甲方专属的培训宝推广二维码，客户一旦注册，乙方给予甲方2个月保护期；客户注册后2个月内，客户若有采购价格>=980元的培训宝产品，乙方给予从注册之日起1年保护期； 1年保护期满之日或之前，客户若继续采购价格>=980元的培训宝产品，乙方给予保护期延长1年。</p>
+                            <p class="pl-4">（3）因进货多获赠：协议生效后半年内，甲方每从乙方进货1万元，获赠1家无主客户（乙方负责先征得客户同意），并从获赠之日起给予甲方该客户6个月的保护期。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">七、双方权利与义务</p>
+                            <p>7.1 乙方负责培训宝系统的维护和更新升级，并不断研发和供应有市场也有竞争力的产品。</p>
+                            <p>7.2 乙方有权更新产品清单，但要邮件、电话、QQ、微信等组合切实通知到甲方，且不影响甲方已报价且已向乙方报备的项目，对这些项目，双方按老清单合作。</p>
+                            <p>7.3 只要甲方能邀约到场客户数>=20，乙方有义务应甲方请求协助组织活动，帮助甲方影响客户乃至成交客户，且不收取活动分享嘉宾出场费，只需要甲方负责嘉宾实际差旅费用。</p>
+                            <p>7.4 为帮助甲方更好理解客户需求、掌握产品卖法、提升专业能力、提高成交效率等，乙方会例行组织各种形式的培训，甲方自愿参加，不用支付培训费，只需共担场地、茶水、资料费用，费用标准是半天50元/人、1天100元/人、2天的200元/人。</p>
+                            <p>7.5 双方应按时支付对方所得，每延期1日，需要每日给对方支付万分之五的滞纳金。</p>
+                            <p>7.6 乙方产品、课程信息以及用户信息的所有权利（包括知识产权）均为乙方所有。甲方应遵守乙方的保密制度，保护乙方的知识产权，不得泄漏公司的经营策略、文档资料、客户信息、程序代码等商业秘密和重要信息，更不得复制乙方知识产权课程。合作关系终止时，归属乙方的文档资料、客户信息、程序代码等，甲方必须全部归还或删除或销毁，不得留存。</p>
+                            <p>7.7 甲方在销售乙方产品或服务时应合法合规，遵守乙方产品的价格体系，不得有虚假宣传、转授权等任何有损乙方利益的行为。若由于甲方违法违规行为，造成乙方等各方损失，甲方需承担相应损失赔偿等责任。</p>
+                            <p>7.8 乙方需要严格执行客户保护政策，不能支持任何第三方与甲方客户成交任何培训需求，乙方自己与甲方客户成交等同是甲方成交（即同样给甲方核算销售利润）。若因乙方违规成交造成甲方损失的，乙方至少赔偿成交金额的100%。</p>
+                            <p>7.9 合作关系终止后，甲方不得再以乙方的名义从事任何商业活动，不得利用在与乙方合作期间所掌握的客户信息、商业信息等资源开展不正当竞争。</p>
+                            <p>7.10 上述知识产权条款持续有效，不因合作关系的终止而终止。甲方若有泄露乙方商业机密，乙方除了终止与甲方的合作，还将视情况追究甲方责任。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">八、合作期限</p>
+                            <p>合作期3年，从签订日起3年。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">九、其他</p>
+                            <p>9.1、本协议壹式贰份，甲、乙双方各执壹份，具有同等法律效力。本协议自甲、乙双方签字并盖章之日起生效，传真件、扫描件有效。</p>
+                            <p>9.2、本协议未尽事宜，双方另行友好协商解决，可签订补充协议作为本合同补充条款。本协议的附件和补充协议与本协议具有同等法律效力。</p>
+                            <p>9.3、与本协议相关的一切事宜均适用于中华人民共和国的法律。因本协议引起的或与本协议有关的任何争议，双方协商解决，协商不成提请上海市仲裁委员会仲裁。</p>
+                        </div>
+                        
+                        <!-- Form -->
+                        <div class="w-full max-w-xl">
+                            <div class="flex items-center mb-6">
+                                <span class="w-24 text-right pr-6 text-sm text-gray-700">你的身份</span>
+                                <label class="flex items-center gap-1.5 text-sm text-[#0066cc] cursor-pointer">
+                                    <input type="radio" name="identity" checked class="w-3.5 h-3.5 text-[#0066cc] focus:ring-[#0066cc]">
+                                    公司
+                                </label>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-6 text-sm text-gray-700">联系人名字</span>
+                                    <input type="text" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-6 text-sm text-gray-700">公司名称</span>
+                                    <input type="text" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-6 text-sm text-gray-700">公司电话</span>
+                                    <input type="text" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-6 text-sm text-gray-700">公司邮箱</span>
+                                    <input type="text" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-6 text-sm text-gray-700">公司所在地</span>
+                                    <div class="flex gap-2 flex-1">
+                                        <select class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm text-gray-800 bg-white">
+                                            <option>请选择省份</option>
+                                        </select>
+                                        <select class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm text-gray-800 bg-white">
+                                            <option>请选择城市</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-6 text-sm text-gray-700">公司法人</span>
+                                    <input type="text" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-6 text-sm text-gray-700">法人身份证</span>
+                                    <input type="text" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-6 text-sm text-gray-700">联系人QQ</span>
+                                    <input type="text" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc]">
+                                </div>
+                            </div>
+                            
+                            <div class="mt-10 text-center">
+                                <button class="bg-[#cc0000] hover:bg-[#b30000] text-white font-bold text-[15px] px-8 py-3 rounded shadow-sm transition-colors">
+                                    本人同意上述协议并申请成为淘课培训合伙人
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>
 
             <div id="page-alliance-721" class="page-content flex-col gap-6">
-                <section class="bg-white rounded-lg shadow-sm border border-slate-200 min-h-[500px] p-6">
-                    <div class="text-xl font-bold text-gray-900">721讲师合作</div>
-                    <div class="text-sm text-gray-500 mt-2">提交资料并申请合作，平台将进行资质评估。</div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-                        <label class="text-sm">
-                            <span class="block text-gray-600 mb-1">擅长领域</span>
-                            <input class="w-full border border-slate-300 rounded px-3 py-2" value="销售管理 / 团队建设" />
-                        </label>
-                        <label class="text-sm">
-                            <span class="block text-gray-600 mb-1">从业年限</span>
-                            <input class="w-full border border-slate-300 rounded px-3 py-2" value="8年" />
-                        </label>
-                        <label class="text-sm md:col-span-2">
-                            <span class="block text-gray-600 mb-1">代表案例</span>
-                            <textarea class="w-full border border-slate-300 rounded px-3 py-2 h-24">某零售企业管理体系升级项目（培训后团队绩效提升15%）</textarea>
-                        </label>
+                <section class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
+                    <!-- Top header -->
+                    <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center">
+                        <h2 class="font-bold text-gray-800">721讲师合作</h2>
                     </div>
-                    <button class="mt-4 bg-primary text-white px-4 py-2 rounded hover:bg-primary-hover">提交合作申请</button>
+                    
+                    <div class="p-8 max-w-4xl mx-auto flex flex-col items-center">
+                        <h1 class="text-2xl font-bold text-gray-900 mb-8">淘课721讲师合作协议</h1>
+                        
+                        <div class="w-full flex justify-between text-sm font-bold text-gray-800 mb-4 px-4">
+                            <span>甲方：</span>
+                            <span>乙方：上海淘课企业管理咨询有限公司</span>
+                        </div>
+                        
+                        <!-- Scrollable text area -->
+                        <div class="w-full border border-gray-300 p-6 text-[13px] text-gray-700 leading-loose h-[320px] overflow-y-auto mb-8 bg-white custom-scrollbar">
+                            <p class="mb-4">根据相关法律法规，甲乙双方就甲方成为淘课合作讲师事宜，在平等、互信的基础上，达成如下合作协议：</p>
+                            
+                            <p class="font-bold mb-2 mt-4">一、要点</p>
+                            <p>1. 乙方为甲方拓展各种形式的推广渠道（统称乙方渠道）。</p>
+                            <p>2. 甲方到乙方网站注册，发布讲师介绍、课程介绍（含课程知识考题），完善学历、工作经历、授课案例等信息，承诺“质量五包”（详见四.3条），提升真实、靠谱的专家形象。</p>
+                            <p>3. 乙方与甲方沟通，核实甲方所发布的履历、案例等信息。若审核通过，乙方给甲方打上“五包”标签，提升甲方形象。</p>
+                            <p>4. 对需要培训721齐全（课堂中学习1 交流中学习2 实践中学习7）的客户，甲乙双方协力满足客户需求，让客户学员训后切实执行课堂知识，提高培训落地性。其中，乙方负责培训中训后的OMO 721运营（含课程知识考题IT化、课后行动IT化、训后行动跟踪提醒），甲方负责课程知识考题和课后行动计划，负责在课堂讲解训后行动，负责点评训后作业。对认同721理念且提供了主打课程的典型课后行动计划的甲方，乙方审核通过后，给甲方打上“721”标签，提升甲方的品质形象。</p>
+                            <p>5. 有“五包”、“721”标签的讲师在淘课网享有排名优先，优先被客户查找到。</p>
+                            <p>6. 对甲方擅长主题的客户需求，甲乙双方协力与客户沟通具体需求、出具课程方案等，赢得客户合同。</p>
+                            <p>7. 甲乙双方协力做好合同交付。乙方负责培训运营，甲方负责按时保质出场，赢得客户满意和付款。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">二、期限</p>
+                            <p>服务期限3年，自 年 月 日起，到 年 月 日止。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">三、结算</p>
+                            <p>1. 甲方出场授课课酬为 元/天，每合作满一年可调整一次，由双方友好协商确定。甲方保证与乙方合作的课酬是与任何渠道合作的最低课酬（即不高于与任何渠道的合作课酬）。若甲方给任一渠道的课酬低于给乙方的课酬，则视为甲方失信和违约，乙方有权中止合作。</p>
+                            <p>2. 对给客户实施721齐全的项目，甲方课酬在原课酬基础增加10%。</p>
+                            <p>3. 乙方在收到客户全款后10个工作日内与甲方结算课酬。若因客户原因导致乙方未收到或未全额收到客户款项，乙方应及时通知甲方并协商解决办法。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">四、双方权利与义务</p>
+                            <p>1. 甲方保证所提供的学历、工作经历、授课案例等信息真实有效，不侵犯任何第三方的合法权益。</p>
+                            <p>2. 甲方在乙方渠道及相关活动中，应维护乙方的品牌形象和声誉。</p>
+                            <p>3. 甲方承诺“质量五包”：包真实履历、包真实案例、包满意度评估、包不满意退款、包不私下接单。</p>
+                            <p>4. 乙方应积极为甲方提供推广机会，努力提升甲方在目标客户中的知名度。</p>
+                            <p>5. 乙方应按照协议约定及时与甲方结算课酬。</p>
+                            <p>6. 双方应保守在合作过程中知悉的对方商业机密，未经对方书面同意，不得向任何第三方泄露。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">五、违约责任</p>
+                            <p>1. 任何一方违反本协议的约定，应向守约方承担违约责任，赔偿守约方因此遭受的实际损失。</p>
+                            <p>2. 若甲方违反“包不私下接单”的承诺，乙方有权立即解除本协议，甲方应退还已收取的全部课酬，并向乙方支付违约金。</p>
+                            <p>3. 若乙方未按协议约定及时结算课酬，每逾期一日，应向甲方支付应付未付款项万分之五的违约金。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">六、争议解决</p>
+                            <p>因本协议引起的或与本协议有关的任何争议，双方应友好协商解决；协商不成的，任何一方均可向乙方所在地人民法院提起诉讼。</p>
+                            
+                            <p class="font-bold mb-2 mt-4">七、附则</p>
+                            <p>1. 本协议一式两份，双方各执一份，具有同等法律效力。</p>
+                            <p>2. 本协议自双方签字盖章之日起生效。</p>
+                            <p>3. 本协议未尽事宜，双方可签订补充协议。补充协议与本协议具有同等法律效力。</p>
+                        </div>
+                        
+                        <!-- Form -->
+                        <div class="w-full max-w-xl">
+                            <div class="space-y-4">
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-4 text-sm text-gray-700"><span class="text-red-500 mr-1">*</span>讲师姓名</span>
+                                    <input type="text" placeholder="请输入" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-4 text-sm text-gray-700"><span class="text-red-500 mr-1">*</span>身份证号</span>
+                                    <input type="text" placeholder="请输入" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-4 text-sm text-gray-700"><span class="text-red-500 mr-1">*</span>合作年限</span>
+                                    <select class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm text-gray-800 bg-white">
+                                        <option>3年</option>
+                                        <option>2年</option>
+                                        <option>1年</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-4 text-sm text-gray-700"><span class="text-red-500 mr-1">*</span>课酬(元/天)</span>
+                                    <input type="text" placeholder="请输入" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-4 text-sm text-gray-700"><span class="text-red-500 mr-1">*</span>地址</span>
+                                    <input type="text" placeholder="请输入" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-4 text-sm text-gray-700"><span class="text-red-500 mr-1">*</span>手机号</span>
+                                    <input type="text" placeholder="请输入" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-4 text-sm text-gray-700"><span class="text-red-500 mr-1">*</span>微信</span>
+                                    <input type="text" placeholder="请输入" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-4 text-sm text-gray-700"><span class="text-red-500 mr-1">*</span>Email</span>
+                                    <input type="text" placeholder="请输入" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-4 text-sm text-gray-700"><span class="text-red-500 mr-1">*</span>开户银行</span>
+                                    <input type="text" placeholder="请输入" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm">
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-24 text-right pr-4 text-sm text-gray-700"><span class="text-red-500 mr-1">*</span>账号</span>
+                                    <input type="text" placeholder="请输入" class="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm">
+                                </div>
+                                <div class="flex items-start mt-4">
+                                    <span class="w-24 text-right pr-4 text-sm text-gray-700 pt-2"><span class="text-red-500 mr-1">*</span>签字</span>
+                                    <div class="flex-1 border border-gray-300 h-32 bg-white"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-8 text-center w-full flex justify-end pl-24">
+                                <button class="w-full bg-[#f44336] hover:bg-[#d32f2f] text-white font-bold text-[15px] py-3 shadow-sm transition-colors">
+                                    保存并预览
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </section>
             </div>
 
@@ -766,57 +1128,108 @@
     </main>
 
     <!-- 底部版权信息 (完全还原原版) -->
-    <footer class="bg-white border-t border-slate-200 mt-auto py-10 text-center text-[13px] text-gray-600">
-        <div class="max-w-[1200px] mx-auto px-4 flex flex-col items-center gap-4">
+    <footer class="mt-10 bg-[#141414] py-16 text-[#A0A0A0]">
+        <div class="max-w-[1400px] mx-auto px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
+                <!-- 列 1: 品牌简介 -->
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-10 h-10 bg-primary rounded flex items-center justify-center text-white font-bold text-xl">淘</div>
+                            <span class="text-2xl font-black tracking-tighter text-white font-headline">淘课网</span>
+                        </div>
+                        <p class="text-white text-[15px] font-medium tracking-wide">领先的企业培训采购平台</p>
+                    </div>
+                    <div class="w-10 h-0.5 bg-primary"></div>
+                    <p class="text-[13px] leading-6">
+                        淘课网联合全国数万优秀培训师和培训机构,给企业提供有针对性的、互动的、积聚人脉的管理培训服务.包括提供培训需求诊断、培训课程采购、培训资料下载等服务！
+                    </p>
+                </div>
+
+                <!-- 列 2: 网站导航 -->
+                <div class="flex flex-col gap-5">
+                    <h3 class="text-white font-bold text-[16px]">网站导航</h3>
+                    <ul class="flex flex-col gap-3 text-[13px]">
+                        <li><a href="#" class="hover:text-white transition-colors">淘课网首页</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">淘课百科</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">《快乐培训》期刊</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">DISC性格测评</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">使用帮助</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">站点地图</a></li>
+                    </ul>
+                </div>
+
+                <!-- 列 3: 关于我们 & 商务合作 -->
+                <div class="flex flex-col gap-8">
+                    <div class="flex flex-col gap-5">
+                        <h3 class="text-white font-bold text-[16px]">关于我们</h3>
+                        <ul class="flex flex-col gap-3 text-[13px]">
+                            <li><a href="#" class="hover:text-white transition-colors">关于淘课</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">联系我们</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">招聘英才</a></li>
+                        </ul>
+                    </div>
+                    <div class="flex flex-col gap-5">
+                        <h3 class="text-white font-bold text-[16px]">商务服务</h3>
+                        <ul class="flex flex-col gap-3 text-[13px]">
+                            <li><a href="#" class="hover:text-white transition-colors">商务合作</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">广告服务</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 列 4: 法律与条款 -->
+                <div class="flex flex-col gap-5">
+                    <h3 class="text-white font-bold text-[16px]">法律声明</h3>
+                    <ul class="flex flex-col gap-3 text-[13px]">
+                        <li><a href="#" class="hover:text-white transition-colors">服务条款</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">法律声明</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">隐私保护</a></li>
+                    </ul>
+                </div>
+
+                <!-- 列 5: 联系我们 & 二维码 -->
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex flex-col gap-5 w-full">
+                            <h3 class="text-white font-bold text-[16px]">联系我们</h3>
+                            <ul class="flex flex-col gap-4 text-[13px]">
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-[#07C160] transition-colors"><span class="material-symbols-outlined text-[16px] text-white">chat</span></div>
+                                    <span>微信公众号</span>
+                                </li>
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-white transition-colors"><span class="material-symbols-outlined text-[16px] text-white group-hover:text-black">music_note</span></div>
+                                    <span>官方抖音号</span>
+                                </li>
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-[#FF2442] transition-colors"><span class="text-white text-[10px] font-bold">小红书</span></div>
+                                    <span>官方小红书</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <!-- 二维码 -->
+                        <div class="shrink-0 bg-white p-2 rounded-md mt-10">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://taoke.com" alt="二维码" class="w-24 h-24" />
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <div class="text-white text-[24px] font-bold font-headline mb-3">400-169-7929</div>
+                    </div>
+                </div>
+            </div>
             
-            <!-- 第一排：关联矩阵 -->
-            <div class="flex flex-wrap justify-center gap-2">
-                <a href="#" class="hover:text-primary transition-colors">淘课网</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">淘课百科</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">《快乐培训》期刊</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">DISC性格测评</a>
-            </div>
-
-            <!-- 第二排：服务导航 -->
-            <div class="flex flex-wrap justify-center gap-2 mt-2">
-                <a href="#" class="hover:text-primary transition-colors">关于我们</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">商务合作</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">服务条款</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">法律声明</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">隐私保护</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">广告服务</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">招聘英才</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">站点地图</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">联系我们</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="hover:text-primary transition-colors">使用帮助</a>
-            </div>
-
-            <!-- 第三排：版权声明与国徽 -->
-            <div class="flex flex-col items-center gap-2 mt-4 relative">
-                <p>上海淘课企业管理咨询有限公司 版权所有 沪ICP备05034964号</p>
-                <div class="flex items-center justify-center gap-4">
-                    <p>Copyright(C) 2006-2024 TAOKE.com All Rights Reserved.</p>
-                </div>
-                <!-- 模拟工商图标位置 (相对版权信息绝对定位，居右) -->
-                <div class="mt-4 sm:mt-0 sm:absolute sm:-right-[100px] sm:top-[-10px] flex flex-col items-center">
-                    <!-- 采用盾牌图标模拟国徽 -->
-                    <img src="https://img.alicdn.com/tfs/TB1..50QpXXXXX7XpXXXXXXXXXX-40-40.png" alt="上海工商" class="w-8 h-8 opacity-80 grayscale">
-                    <span class="text-[11px] text-gray-500 mt-1">上海工商</span>
+            <div class="mt-12 pt-6 border-t border-[#333] text-center text-[12px] text-[#888] flex flex-col md:flex-row justify-center items-center gap-4">
+                <span>Copyright(C) 2006-2024 TAOKE.com All Rights Reserved.</span>
+                <a href="#" class="hover:text-white transition-colors">上海淘课企业管理咨询有限公司 版权所有</a>
+                <a href="#" class="hover:text-white transition-colors">沪ICP备05034964号</a>
+                <div class="flex items-center gap-1 ml-4 cursor-pointer hover:text-white transition-colors">
+                    <img src="https://img.alicdn.com/tfs/TB1..50QpXXXXX7XpXXXXXXXXXX-40-40.png" alt="上海工商" class="w-4 h-4 opacity-70 grayscale">
+                    <span>上海工商</span>
                 </div>
             </div>
-
         </div>
     </footer>
 
