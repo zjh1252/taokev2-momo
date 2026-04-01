@@ -1,20 +1,26 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.common.exception.BusinessException;
+import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.api.TrainerService;
-import com.taoke.user.dto.trainer.TrainerRequest;
-import com.taoke.user.dto.trainer.TrainerResponse;
+import com.taoke.user.dto.trainer.*;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
-import com.taoke.user.entity.Trainer;
+import com.taoke.user.entity.*;
 import com.taoke.user.mapper.TrainerMapper;
-import com.taoke.user.repository.TrainerRepository;
+import com.taoke.user.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
- * 专家档案服务 — TRAINER 角色扩展信息管理。
+ * 专家档案服务 — 主表 CRUD + 子表整体替换式保存。
+ * <p>
+ * 查询详情时采用显式分步加载（主表 → 四张子表各一条 SQL），避免 N+1。
+ * </p>
  *
  * @author Fangxinxin
  * @date 2026-03-31 18:00
@@ -24,32 +30,48 @@ import org.springframework.transaction.annotation.Transactional;
 public class TrainerServiceImpl implements TrainerService {
 
     private final TrainerRepository trainerRepository;
+    private final TrainerEducationRepository educationRepository;
+    private final TrainerWorkExperienceRepository workExperienceRepository;
+    private final TrainerHonorRepository honorRepository;
+    private final TrainerCategoryRepository categoryRepository;
     private final TrainerMapper trainerMapper;
     private final RoleApplyService roleApplyService;
 
     @Override
     public TrainerResponse getByUserId(Integer userId) {
         Trainer trainer = trainerRepository.findByUserId(userId).orElse(null);
-        return trainer == null ? null : trainerMapper.toResponse(trainer);
+        if (trainer == null) {
+            return null;
+        }
+        return assembleFullResponse(trainer);
     }
 
-    /**
-     * 保存专家档案（有则更新、无则创建，要求角色已生效）
-     */
+    @Override
+    public TrainerPublicResponse getPublicProfile(Integer trainerId) {
+        Trainer trainer = trainerRepository.findById(trainerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "专家不存在"));
+
+        // 仅展示审核通过的专家
+        if (trainer.getStatus() != 2) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "专家不存在");
+        }
+
+        TrainerPublicResponse response = trainerMapper.toPublicResponse(trainer);
+        fillSubTableData(response, trainerId);
+        return response;
+    }
+
     @Transactional
     @Override
     public TrainerResponse save(Integer userId, TrainerRequest request) {
-        return trainerMapper.toResponse(saveOrUpdateExtension(userId, request));
+        return assembleFullResponse(saveOrUpdateMainTable(userId, request));
     }
 
-    /**
-     * 申请成为专家 — 提交扩展信息并创建待审核角色记录
-     */
     @Transactional
     @Override
     public void apply(Integer userId, TrainerRequest request) {
         roleApplyService.apply(userId, BusinessRole.Code.TRAINER);
-        saveOrUpdateExtension(userId, request);
+        saveOrUpdateMainTable(userId, request);
     }
 
     @Override
@@ -57,23 +79,137 @@ public class TrainerServiceImpl implements TrainerService {
         return roleApplyService.getStatus(userId, BusinessRole.Code.TRAINER);
     }
 
-    private Trainer saveOrUpdateExtension(Integer userId, TrainerRequest request) {
+    // ==================== 子表整体替换式保存 ====================
+
+    @Transactional
+    @Override
+    public List<TrainerEducationDTO> saveEducations(Integer userId, List<TrainerEducationDTO> dtos) {
+        Integer trainerId = getRequiredTrainerId(userId);
+        educationRepository.deleteByTrainerId(trainerId);
+        List<TrainerEducation> entities = dtos.stream().map(dto -> {
+            TrainerEducation entity = trainerMapper.toEducationEntity(dto);
+            entity.setTrainerId(trainerId);
+            return entity;
+        }).toList();
+        return trainerMapper.toEducationDTOList(educationRepository.saveAll(entities));
+    }
+
+    @Transactional
+    @Override
+    public List<TrainerWorkExperienceDTO> saveWorkExperiences(Integer userId, List<TrainerWorkExperienceDTO> dtos) {
+        Integer trainerId = getRequiredTrainerId(userId);
+        workExperienceRepository.deleteByTrainerId(trainerId);
+        List<TrainerWorkExperience> entities = dtos.stream().map(dto -> {
+            TrainerWorkExperience entity = trainerMapper.toWorkExperienceEntity(dto);
+            entity.setTrainerId(trainerId);
+            return entity;
+        }).toList();
+        return trainerMapper.toWorkExperienceDTOList(workExperienceRepository.saveAll(entities));
+    }
+
+    @Transactional
+    @Override
+    public List<TrainerHonorDTO> saveHonors(Integer userId, List<TrainerHonorDTO> dtos) {
+        Integer trainerId = getRequiredTrainerId(userId);
+        honorRepository.deleteByTrainerId(trainerId);
+        List<TrainerHonor> entities = dtos.stream().map(dto -> {
+            TrainerHonor entity = trainerMapper.toHonorEntity(dto);
+            entity.setTrainerId(trainerId);
+            return entity;
+        }).toList();
+        return trainerMapper.toHonorDTOList(honorRepository.saveAll(entities));
+    }
+
+    @Transactional
+    @Override
+    public List<TrainerCategoryDTO> saveCategories(Integer userId, List<TrainerCategoryDTO> dtos) {
+        Integer trainerId = getRequiredTrainerId(userId);
+        categoryRepository.deleteByTrainerId(trainerId);
+        List<TrainerCategory> entities = dtos.stream().map(dto -> {
+            TrainerCategory entity = trainerMapper.toCategoryEntity(dto);
+            entity.setTrainerId(trainerId);
+            return entity;
+        }).toList();
+        return trainerMapper.toCategoryDTOList(categoryRepository.saveAll(entities));
+    }
+
+    // ==================== 内部方法 ====================
+
+    /** 获取当前用户的 trainerId，不存在则抛异常 */
+    private Integer getRequiredTrainerId(Integer userId) {
+        return trainerRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "请先创建专家档案"))
+                .getId();
+    }
+
+    /** 主表保存或更新 */
+    private Trainer saveOrUpdateMainTable(Integer userId, TrainerRequest req) {
         Trainer trainer = trainerRepository.findByUserId(userId).orElseGet(() -> {
             Trainer t = new Trainer();
             t.setUserId(userId);
             return t;
         });
 
-        if (request.getTitle() != null) trainer.setTitle(request.getTitle());
-        if (request.getBio() != null) trainer.setBio(request.getBio());
-        if (request.getSpecialties() != null) trainer.setSpecialties(request.getSpecialties());
-        if (request.getExperienceYears() != null) trainer.setExperienceYears(request.getExperienceYears());
-        if (request.getEducation() != null) trainer.setEducation(request.getEducation());
-        if (request.getQualificationLevel() != null) trainer.setQualificationLevel(request.getQualificationLevel());
-        if (request.getHomepageConfig() != null) trainer.setHomepageConfig(request.getHomepageConfig());
-        if (request.getServiceCityIds() != null) trainer.setServiceCityIds(request.getServiceCityIds());
-        if (request.getContactPreference() != null) trainer.setContactPreference(request.getContactPreference());
+        if (req.getName() != null) trainer.setName(req.getName());
+        if (req.getAvatar() != null) trainer.setAvatar(req.getAvatar());
+        if (req.getTitle() != null) trainer.setTitle(req.getTitle());
+        if (req.getGender() != null) trainer.setGender(req.getGender());
+        if (req.getPhone() != null) trainer.setPhone(req.getPhone());
+        if (req.getEmail() != null) trainer.setEmail(req.getEmail());
+        if (req.getPostCode() != null) trainer.setPostCode(req.getPostCode());
+        if (req.getProvinceId() != null) trainer.setProvinceId(req.getProvinceId());
+        if (req.getCityId() != null) trainer.setCityId(req.getCityId());
+        if (req.getDistrictId() != null) trainer.setDistrictId(req.getDistrictId());
+        if (req.getTownId() != null) trainer.setTownId(req.getTownId());
+        if (req.getAddress() != null) trainer.setAddress(req.getAddress());
+        if (req.getBio() != null) trainer.setBio(req.getBio());
+        if (req.getIntro() != null) trainer.setIntro(req.getIntro());
+        if (req.getBackground() != null) trainer.setBackground(req.getBackground());
+        if (req.getGoodAt() != null) trainer.setGoodAt(req.getGoodAt());
+        if (req.getSpecialties() != null) trainer.setSpecialties(req.getSpecialties());
+        if (req.getExpertiseTags() != null) trainer.setExpertiseTags(req.getExpertiseTags());
+        if (req.getTeachingStyle() != null) trainer.setTeachingStyle(req.getTeachingStyle());
+        if (req.getExperienceYears() != null) trainer.setExperienceYears(req.getExperienceYears());
+        if (req.getTeachingYears() != null) trainer.setTeachingYears(req.getTeachingYears());
+        if (req.getServiceCityIds() != null) trainer.setServiceCityIds(req.getServiceCityIds());
+        if (req.getQuoteMin() != null) trainer.setQuoteMin(req.getQuoteMin());
+        if (req.getQuoteMax() != null) trainer.setQuoteMax(req.getQuoteMax());
+        if (req.getQuoteUnit() != null) trainer.setQuoteUnit(req.getQuoteUnit());
+        if (req.getQuoteRemark() != null) trainer.setQuoteRemark(req.getQuoteRemark());
+        if (req.getBackgroundImage() != null) trainer.setBackgroundImage(req.getBackgroundImage());
 
         return trainerRepository.save(trainer);
+    }
+
+    /**
+     * 组装完整的 TrainerResponse（主表 + 四张子表）
+     * <p>分步查询，避免 N+1</p>
+     */
+    private TrainerResponse assembleFullResponse(Trainer trainer) {
+        TrainerResponse response = trainerMapper.toResponse(trainer);
+        Integer trainerId = trainer.getId();
+
+        response.setEducations(
+                trainerMapper.toEducationDTOList(educationRepository.findByTrainerIdOrderBySortOrder(trainerId)));
+        response.setWorkExperiences(
+                trainerMapper.toWorkExperienceDTOList(workExperienceRepository.findByTrainerIdOrderBySortOrder(trainerId)));
+        response.setHonors(
+                trainerMapper.toHonorDTOList(honorRepository.findByTrainerIdOrderBySortOrder(trainerId)));
+        response.setCategories(
+                trainerMapper.toCategoryDTOList(categoryRepository.findByTrainerIdOrderBySortOrder(trainerId)));
+
+        return response;
+    }
+
+    /** 为公开响应填充子表数据 */
+    private void fillSubTableData(TrainerPublicResponse response, Integer trainerId) {
+        response.setEducations(
+                trainerMapper.toEducationDTOList(educationRepository.findByTrainerIdOrderBySortOrder(trainerId)));
+        response.setWorkExperiences(
+                trainerMapper.toWorkExperienceDTOList(workExperienceRepository.findByTrainerIdOrderBySortOrder(trainerId)));
+        response.setHonors(
+                trainerMapper.toHonorDTOList(honorRepository.findByTrainerIdOrderBySortOrder(trainerId)));
+        response.setCategories(
+                trainerMapper.toCategoryDTOList(categoryRepository.findByTrainerIdOrderBySortOrder(trainerId)));
     }
 }
