@@ -1,5 +1,7 @@
-package com.taoke.common.upload;
+package com.taoke.common.service;
 
+import com.taoke.common.dto.FileUploadResponse;
+import com.taoke.common.enums.UploadBizType;
 import org.springframework.web.multipart.MultipartFile;
 
 /**

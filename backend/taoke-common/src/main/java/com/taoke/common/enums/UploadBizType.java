@@ -1,4 +1,4 @@
-package com.taoke.common.upload;
+package com.taoke.common.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
