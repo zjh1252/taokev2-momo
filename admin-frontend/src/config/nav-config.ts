@@ -57,6 +57,25 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
+    label: '权限设置',
+    items: [
+      {
+        title: '角色管理',
+        url: '/dashboard/roles',
+        icon: 'lock',
+        isActive: false,
+        items: []
+      },
+      {
+        title: '权限管理',
+        url: '/dashboard/permissions',
+        icon: 'permission',
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
     label: '系统设置',
     items: [
       {

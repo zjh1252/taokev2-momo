@@ -13,7 +13,10 @@ const SEGMENT_LABELS: Record<string, string> = {
   overview: '总览',
   users: '用户管理',
   product: '课程管理',
-  notifications: '通知'
+  notifications: '通知',
+  roles: '角色管理',
+  permissions: '权限管理',
+  settings: '系统设置'
 };
 
 const routeMapping: Record<string, BreadcrumbItem[]> = {

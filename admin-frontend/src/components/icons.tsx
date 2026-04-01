@@ -50,6 +50,7 @@ import {
   IconLayoutSidebar,
   IconLoader2,
   IconLock,
+  IconLockAccess,
   IconLogin,
   IconLogout,
   IconMessage,
@@ -192,6 +193,7 @@ export const Icons = {
   sparkles: IconSparkles,
   badgeCheck: IconRosetteDiscountCheck,
   lock: IconLock,
+  permission: IconLockAccess,
 
   // Data / Charts
   trendingDown: IconTrendingDown,
