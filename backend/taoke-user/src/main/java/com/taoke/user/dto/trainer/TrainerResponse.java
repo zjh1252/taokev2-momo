@@ -84,5 +84,6 @@ public class TrainerResponse {
     private List<TrainerEducationDTO> educations;
     private List<TrainerWorkExperienceDTO> workExperiences;
     private List<TrainerHonorDTO> honors;
-    private List<TrainerCategoryDTO> categories;
+    private List<CategoryRefDTO> expertiseCategories;
+    private List<CategoryRefDTO> industryCategories;
 }

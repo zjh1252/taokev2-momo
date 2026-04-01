@@ -58,5 +58,10 @@ public interface TrainerService {
     /**
      * 保存培训领域分类
      */
-    List<TrainerCategoryDTO> saveCategories(Integer userId, List<TrainerCategoryDTO> dtos);
+    List<CategoryRefDTO> saveExpertiseCategories(Integer userId, List<CategoryRefDTO> dtos);
+
+    /**
+     * 保存擅长行业分类
+     */
+    List<CategoryRefDTO> saveIndustryCategories(Integer userId, List<CategoryRefDTO> dtos);
 }

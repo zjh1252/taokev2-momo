@@ -3,6 +3,7 @@ package com.taoke.user.service;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.common.service.CategoryService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.dto.trainer.*;
@@ -14,12 +15,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 专家档案服务 — 主表 CRUD + 子表整体替换式保存。
  * <p>
- * 查询详情时采用显式分步加载（主表 → 四张子表各一条 SQL），避免 N+1。
+ * 查询详情时采用显式分步加载（主表 → 各子表各一条 SQL），避免 N+1。
+ * 分类关联输出时通过 CategoryService 批量回填 categoryName。
  * </p>
  *
  * @author Fangxinxin
@@ -33,9 +37,11 @@ public class TrainerServiceImpl implements TrainerService {
     private final TrainerEducationRepository educationRepository;
     private final TrainerWorkExperienceRepository workExperienceRepository;
     private final TrainerHonorRepository honorRepository;
-    private final TrainerCategoryRepository categoryRepository;
+    private final TrainerExpertiseCategoryRepository expertiseCategoryRepository;
+    private final TrainerIndustryCategoryRepository industryCategoryRepository;
     private final TrainerMapper trainerMapper;
     private final RoleApplyService roleApplyService;
+    private final CategoryService categoryService;
 
     @Override
     public TrainerResponse getByUserId(Integer userId) {
@@ -51,7 +57,6 @@ public class TrainerServiceImpl implements TrainerService {
         Trainer trainer = trainerRepository.findById(trainerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "专家不存在"));
 
-        // 仅展示审核通过的专家
         if (trainer.getStatus() != 2) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "专家不存在");
         }
@@ -122,15 +127,34 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Transactional
     @Override
-    public List<TrainerCategoryDTO> saveCategories(Integer userId, List<TrainerCategoryDTO> dtos) {
+    public List<CategoryRefDTO> saveExpertiseCategories(Integer userId, List<CategoryRefDTO> dtos) {
         Integer trainerId = getRequiredTrainerId(userId);
-        categoryRepository.deleteByTrainerId(trainerId);
-        List<TrainerCategory> entities = dtos.stream().map(dto -> {
-            TrainerCategory entity = trainerMapper.toCategoryEntity(dto);
+        expertiseCategoryRepository.deleteByTrainerId(trainerId);
+        List<TrainerExpertiseCategory> entities = dtos.stream().map(dto -> {
+            TrainerExpertiseCategory entity = trainerMapper.toExpertiseCategoryEntity(dto);
             entity.setTrainerId(trainerId);
             return entity;
         }).toList();
-        return trainerMapper.toCategoryDTOList(categoryRepository.saveAll(entities));
+        List<CategoryRefDTO> result = trainerMapper.toExpertiseCategoryDTOList(
+                expertiseCategoryRepository.saveAll(entities));
+        fillCategoryNames(result);
+        return result;
+    }
+
+    @Transactional
+    @Override
+    public List<CategoryRefDTO> saveIndustryCategories(Integer userId, List<CategoryRefDTO> dtos) {
+        Integer trainerId = getRequiredTrainerId(userId);
+        industryCategoryRepository.deleteByTrainerId(trainerId);
+        List<TrainerIndustryCategory> entities = dtos.stream().map(dto -> {
+            TrainerIndustryCategory entity = trainerMapper.toIndustryCategoryEntity(dto);
+            entity.setTrainerId(trainerId);
+            return entity;
+        }).toList();
+        List<CategoryRefDTO> result = trainerMapper.toIndustryCategoryDTOList(
+                industryCategoryRepository.saveAll(entities));
+        fillCategoryNames(result);
+        return result;
     }
 
     // ==================== 内部方法 ====================
@@ -182,8 +206,8 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     /**
-     * 组装完整的 TrainerResponse（主表 + 四张子表）
-     * <p>分步查询，避免 N+1</p>
+     * 组装完整的 TrainerResponse（主表 + 五张子表）
+     * <p>分步查询，避免 N+1；分类关联回填 categoryName</p>
      */
     private TrainerResponse assembleFullResponse(Trainer trainer) {
         TrainerResponse response = trainerMapper.toResponse(trainer);
@@ -195,8 +219,17 @@ public class TrainerServiceImpl implements TrainerService {
                 trainerMapper.toWorkExperienceDTOList(workExperienceRepository.findByTrainerIdOrderBySortOrder(trainerId)));
         response.setHonors(
                 trainerMapper.toHonorDTOList(honorRepository.findByTrainerIdOrderBySortOrder(trainerId)));
-        response.setCategories(
-                trainerMapper.toCategoryDTOList(categoryRepository.findByTrainerIdOrderBySortOrder(trainerId)));
+
+        List<CategoryRefDTO> expertiseList = trainerMapper.toExpertiseCategoryDTOList(
+                expertiseCategoryRepository.findByTrainerIdOrderBySortOrder(trainerId));
+        List<CategoryRefDTO> industryList = trainerMapper.toIndustryCategoryDTOList(
+                industryCategoryRepository.findByTrainerIdOrderBySortOrder(trainerId));
+
+        // 批量回填分类名称（两种关联合并一次查）
+        fillCategoryNames(expertiseList, industryList);
+
+        response.setExpertiseCategories(expertiseList);
+        response.setIndustryCategories(industryList);
 
         return response;
     }
@@ -209,7 +242,33 @@ public class TrainerServiceImpl implements TrainerService {
                 trainerMapper.toWorkExperienceDTOList(workExperienceRepository.findByTrainerIdOrderBySortOrder(trainerId)));
         response.setHonors(
                 trainerMapper.toHonorDTOList(honorRepository.findByTrainerIdOrderBySortOrder(trainerId)));
-        response.setCategories(
-                trainerMapper.toCategoryDTOList(categoryRepository.findByTrainerIdOrderBySortOrder(trainerId)));
+
+        List<CategoryRefDTO> expertiseList = trainerMapper.toExpertiseCategoryDTOList(
+                expertiseCategoryRepository.findByTrainerIdOrderBySortOrder(trainerId));
+        List<CategoryRefDTO> industryList = trainerMapper.toIndustryCategoryDTOList(
+                industryCategoryRepository.findByTrainerIdOrderBySortOrder(trainerId));
+
+        fillCategoryNames(expertiseList, industryList);
+
+        response.setExpertiseCategories(expertiseList);
+        response.setIndustryCategories(industryList);
+    }
+
+    /** 批量回填多个列表的 categoryName */
+    @SafeVarargs
+    private void fillCategoryNames(List<CategoryRefDTO>... lists) {
+        Set<Integer> allIds = Stream.of(lists)
+                .flatMap(Collection::stream)
+                .map(CategoryRefDTO::getCategoryId)
+                .collect(Collectors.toSet());
+
+        if (allIds.isEmpty()) return;
+
+        Map<Integer, String> nameMap = categoryService.getNameMap(allIds);
+        for (List<CategoryRefDTO> list : lists) {
+            for (CategoryRefDTO dto : list) {
+                dto.setCategoryName(nameMap.get(dto.getCategoryId()));
+            }
+        }
     }
 }

@@ -125,17 +125,35 @@ public class TrainerController {
 
     @Operation(summary = "获取本人培训领域分类列表")
     @RequireRole(BusinessRole.Code.TRAINER)
-    @GetMapping("/trainers/me/categories")
-    public ApiResponse<List<TrainerCategoryDTO>> getCategories() {
+    @GetMapping("/trainers/me/expertise-categories")
+    public ApiResponse<List<CategoryRefDTO>> getExpertiseCategories() {
         TrainerResponse resp = trainerService.getByUserId(SecurityUtils.getRequiredUserId());
-        return ApiResponse.ok(resp != null ? resp.getCategories() : List.of());
+        return ApiResponse.ok(resp != null ? resp.getExpertiseCategories() : List.of());
     }
 
     @Operation(summary = "整体保存本人培训领域分类（全量替换）")
     @RequireRole(BusinessRole.Code.TRAINER)
-    @PutMapping("/trainers/me/categories")
-    public ApiResponse<List<TrainerCategoryDTO>> saveCategories(
-            @Valid @RequestBody List<TrainerCategoryDTO> categories) {
-        return ApiResponse.ok(trainerService.saveCategories(SecurityUtils.getRequiredUserId(), categories));
+    @PutMapping("/trainers/me/expertise-categories")
+    public ApiResponse<List<CategoryRefDTO>> saveExpertiseCategories(
+            @Valid @RequestBody List<CategoryRefDTO> categories) {
+        return ApiResponse.ok(trainerService.saveExpertiseCategories(SecurityUtils.getRequiredUserId(), categories));
+    }
+
+    // ==================== 擅长行业分类 ====================
+
+    @Operation(summary = "获取本人擅长行业分类列表")
+    @RequireRole(BusinessRole.Code.TRAINER)
+    @GetMapping("/trainers/me/industry-categories")
+    public ApiResponse<List<CategoryRefDTO>> getIndustryCategories() {
+        TrainerResponse resp = trainerService.getByUserId(SecurityUtils.getRequiredUserId());
+        return ApiResponse.ok(resp != null ? resp.getIndustryCategories() : List.of());
+    }
+
+    @Operation(summary = "整体保存本人擅长行业分类（全量替换）")
+    @RequireRole(BusinessRole.Code.TRAINER)
+    @PutMapping("/trainers/me/industry-categories")
+    public ApiResponse<List<CategoryRefDTO>> saveIndustryCategories(
+            @Valid @RequestBody List<CategoryRefDTO> categories) {
+        return ApiResponse.ok(trainerService.saveIndustryCategories(SecurityUtils.getRequiredUserId(), categories));
     }
 }

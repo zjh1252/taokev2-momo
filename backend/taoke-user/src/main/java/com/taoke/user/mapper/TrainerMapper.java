@@ -22,14 +22,16 @@ public interface TrainerMapper {
     @Mapping(target = "educations", ignore = true)
     @Mapping(target = "workExperiences", ignore = true)
     @Mapping(target = "honors", ignore = true)
-    @Mapping(target = "categories", ignore = true)
+    @Mapping(target = "expertiseCategories", ignore = true)
+    @Mapping(target = "industryCategories", ignore = true)
     TrainerResponse toResponse(Trainer trainer);
 
     /** 公开返回（不含报价），子表由 Service 层组装 */
     @Mapping(target = "educations", ignore = true)
     @Mapping(target = "workExperiences", ignore = true)
     @Mapping(target = "honors", ignore = true)
-    @Mapping(target = "categories", ignore = true)
+    @Mapping(target = "expertiseCategories", ignore = true)
+    @Mapping(target = "industryCategories", ignore = true)
     TrainerPublicResponse toPublicResponse(Trainer trainer);
 
     // ==================== 教育经历 ====================
@@ -65,14 +67,27 @@ public interface TrainerMapper {
     @Mapping(target = "updatedAt", ignore = true)
     TrainerHonor toHonorEntity(TrainerHonorDTO dto);
 
-    // ==================== 培训领域分类 ====================
+    // ==================== 培训领域关联 ====================
 
-    TrainerCategoryDTO toCategoryDTO(TrainerCategory entity);
+    @Mapping(target = "categoryName", ignore = true)
+    CategoryRefDTO toExpertiseCategoryDTO(TrainerExpertiseCategory entity);
 
-    List<TrainerCategoryDTO> toCategoryDTOList(List<TrainerCategory> entities);
+    List<CategoryRefDTO> toExpertiseCategoryDTOList(List<TrainerExpertiseCategory> entities);
 
     @Mapping(target = "trainerId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    TrainerCategory toCategoryEntity(TrainerCategoryDTO dto);
+    TrainerExpertiseCategory toExpertiseCategoryEntity(CategoryRefDTO dto);
+
+    // ==================== 擅长行业关联 ====================
+
+    @Mapping(target = "categoryName", ignore = true)
+    CategoryRefDTO toIndustryCategoryDTO(TrainerIndustryCategory entity);
+
+    List<CategoryRefDTO> toIndustryCategoryDTOList(List<TrainerIndustryCategory> entities);
+
+    @Mapping(target = "trainerId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    TrainerIndustryCategory toIndustryCategoryEntity(CategoryRefDTO dto);
 }

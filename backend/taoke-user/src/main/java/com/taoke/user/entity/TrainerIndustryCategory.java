@@ -6,21 +6,21 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 专家培训领域分类关联实体
+ * 专家-擅长行业关联实体
  *
  * @author Fangxinxin
- * @date 2026-04-01 23:30
+ * @date 2026-04-01 23:55
  */
 @Getter
 @Setter
 @Entity
-@Table(name = "trainer_categories")
-public class TrainerCategory extends BaseEntity {
+@Table(name = "trainer_industry_categories")
+public class TrainerIndustryCategory extends BaseEntity {
 
     @Column(name = "trainer_id", nullable = false)
     private Integer trainerId;
 
-    /** 培训领域分类 ID（关联全局分类表） */
+    /** 关联 sys_categories.id（type = TRAINER_INDUSTRY） */
     @Column(name = "category_id", nullable = false)
     private Integer categoryId;
 
