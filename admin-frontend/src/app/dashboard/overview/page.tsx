@@ -21,9 +21,12 @@ export default function OverviewPage() {
         <div className='*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs md:grid-cols-2 lg:grid-cols-4'>
           <Card className='@container/card'>
             <CardHeader>
-              <CardDescription>总收入</CardDescription>
+              <CardDescription className='flex items-center gap-1'>
+                <Icons.teams className='size-4' />
+                用户总数
+              </CardDescription>
               <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                ¥12,500.00
+                1,250
               </CardTitle>
               <CardAction>
                 <Badge variant='outline'>
@@ -34,9 +37,9 @@ export default function OverviewPage() {
             </CardHeader>
             <CardFooter className='flex-col items-start gap-1.5 text-sm'>
               <div className='line-clamp-1 flex gap-2 font-medium'>
-                本月持续增长 <Icons.trendingUp className='size-4' />
+                本月新增用户数 <Icons.trendingUp className='size-4' />
               </div>
-              <div className='text-muted-foreground'>近 6 个月访客数据</div>
+              <div className='text-muted-foreground'>近 6 个月新增数据</div>
             </CardFooter>
           </Card>
         </div>
