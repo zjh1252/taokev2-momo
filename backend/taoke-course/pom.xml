@@ -24,10 +24,6 @@
             <groupId>com.taoke</groupId>
             <artifactId>taoke-user</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.taoke</groupId>
-            <artifactId>taoke-supply</artifactId>
-        </dependency>
     </dependencies>
 
 </project>

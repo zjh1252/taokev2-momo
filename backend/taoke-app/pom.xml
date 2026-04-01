@@ -23,15 +23,7 @@
         </dependency>
         <dependency>
             <groupId>com.taoke</groupId>
-            <artifactId>taoke-supply</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.taoke</groupId>
             <artifactId>taoke-course</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.taoke</groupId>
-            <artifactId>taoke-content</artifactId>
         </dependency>
         <dependency>
             <groupId>com.taoke</groupId>

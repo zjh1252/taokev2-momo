@@ -42,7 +42,13 @@
 
 ## 目录结构
 - 后端项目: /backend
-- 前端项目: /frontend
+  - /backend/taoke-common — 公共基础层（工具、DTO、事件总线、安全注解、文件上传）
+  - /backend/taoke-user — 用户域（认证、权限、RBAC、各角色档案、专家/经纪人/机构等供给侧）
+  - /backend/taoke-course — 课程域（课程管理、订单、支付、需求、案例、评价、CMS、消息）
+  - /backend/taoke-admin — 后台管理编排层（Admin API，薄编排，调用 user/course 的 api 接口）
+  - /backend/taoke-app — 启动入口（聚合所有模块、Flyway 迁移、全局配置）
+- 管理后台前端: /admin-frontend
+- C端前端项目: /frontend
 - 文档目录: /docs
   - 项目概述: /docs/01-项目概述.md
   - 架构设计: /docs/02-架构设计.md
