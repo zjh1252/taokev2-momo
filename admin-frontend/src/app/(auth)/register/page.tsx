@@ -8,15 +8,8 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
 import { registerMutation, sendCodeMutation } from '@/features/auth/api/mutations';
+import { useAuthOwl } from '../auth-owl-context';
 
 const COUNTDOWN_SECONDS = 60;
 
@@ -28,6 +21,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>(null);
+  const { setFocusTarget } = useAuthOwl();
 
   useEffect(() => {
     return () => {
@@ -113,85 +107,101 @@ export default function RegisterPage() {
   };
 
   return (
-    <Card>
-      <CardHeader className='text-center'>
-        <CardTitle className='text-2xl'>注册</CardTitle>
-        <CardDescription>创建新账号以使用管理后台</CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className='space-y-4'>
-          <div className='space-y-2'>
-            <Label htmlFor='phone'>手机号</Label>
+    <div>
+      <div className='mb-8'>
+        <h2 className='text-2xl font-bold tracking-tight'>注册</h2>
+        <p className='text-muted-foreground mt-1 text-sm'>
+          创建新账号以使用管理后台
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className='space-y-5'>
+        <div className='space-y-2'>
+          <Label htmlFor='phone'>手机号</Label>
+          <Input
+            id='phone'
+            type='tel'
+            placeholder='请输入手机号'
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            onFocus={() => setFocusTarget('phone')}
+            onBlur={() => setFocusTarget('none')}
+            maxLength={11}
+            autoComplete='tel'
+            className='h-11 focus-visible:ring-primary/30'
+          />
+        </div>
+        <div className='space-y-2'>
+          <Label htmlFor='code'>验证码</Label>
+          <div className='flex gap-2'>
             <Input
-              id='phone'
-              type='tel'
-              placeholder='请输入手机号'
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              maxLength={11}
-              autoComplete='tel'
+              id='code'
+              type='text'
+              placeholder='请输入验证码'
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              onFocus={() => setFocusTarget('code')}
+              onBlur={() => setFocusTarget('none')}
+              maxLength={6}
+              autoComplete='one-time-code'
+              className='h-11 flex-1 focus-visible:ring-primary/30'
             />
+            <Button
+              type='button'
+              variant='outline'
+              onClick={handleSendCode}
+              disabled={countdown > 0 || sendCodeMut.isPending}
+              isLoading={sendCodeMut.isPending}
+              className='h-11 shrink-0'
+            >
+              {countdown > 0 ? `${countdown}s` : '获取验证码'}
+            </Button>
           </div>
-          <div className='space-y-2'>
-            <Label htmlFor='code'>验证码</Label>
-            <div className='flex gap-2'>
-              <Input
-                id='code'
-                type='text'
-                placeholder='请输入验证码'
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                maxLength={6}
-                autoComplete='one-time-code'
-                className='flex-1'
-              />
-              <Button
-                type='button'
-                variant='outline'
-                onClick={handleSendCode}
-                disabled={countdown > 0 || sendCodeMut.isPending}
-                isLoading={sendCodeMut.isPending}
-                className='shrink-0'
-              >
-                {countdown > 0 ? `${countdown}s` : '获取验证码'}
-              </Button>
-            </div>
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor='password'>密码</Label>
-            <Input
-              id='password'
-              type='password'
-              placeholder='至少 6 位'
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete='new-password'
-            />
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor='confirmPassword'>确认密码</Label>
-            <Input
-              id='confirmPassword'
-              type='password'
-              placeholder='再次输入密码'
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              autoComplete='new-password'
-            />
-          </div>
-        </CardContent>
-        <CardFooter className='flex flex-col gap-3'>
-          <Button type='submit' className='w-full' isLoading={registerMut.isPending}>
-            注册
-          </Button>
-          <p className='text-muted-foreground text-sm'>
-            已有账号？{' '}
-            <Link href='/login' className='text-primary hover:underline'>
-              去登录
-            </Link>
-          </p>
-        </CardFooter>
+        </div>
+        <div className='space-y-2'>
+          <Label htmlFor='password'>密码</Label>
+          <Input
+            id='password'
+            type='password'
+            placeholder='至少 6 位'
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onFocus={() => setFocusTarget('password')}
+            onBlur={() => setFocusTarget('none')}
+            autoComplete='new-password'
+            className='h-11 focus-visible:ring-primary/30'
+          />
+        </div>
+        <div className='space-y-2'>
+          <Label htmlFor='confirmPassword'>确认密码</Label>
+          <Input
+            id='confirmPassword'
+            type='password'
+            placeholder='再次输入密码'
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            onFocus={() => setFocusTarget('confirm')}
+            onBlur={() => setFocusTarget('none')}
+            autoComplete='new-password'
+            className='h-11 focus-visible:ring-primary/30'
+          />
+        </div>
+
+        <Button
+          type='submit'
+          className='h-11 w-full text-base'
+          isLoading={registerMut.isPending}
+        >
+          注册
+        </Button>
       </form>
-    </Card>
+
+      <p className='text-muted-foreground mt-6 text-center text-sm'>
+        已有账号？{' '}
+        <Link href='/login' className='text-primary font-medium hover:underline'>
+          去登录
+        </Link>
+      </p>
+    </div>
   );
 }

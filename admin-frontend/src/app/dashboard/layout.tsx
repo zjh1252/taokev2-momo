@@ -6,8 +6,8 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
-  title: '淘课后台管理系统',
-  description: '淘课后台管理系统',
+  title: '淘课网管理后台',
+  description: '淘课网管理后台',
   robots: {
     index: false,
     follow: false

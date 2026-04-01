@@ -8,20 +8,14 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
 import { loginMutation } from '@/features/auth/api/mutations';
+import { useAuthOwl } from '../auth-owl-context';
 
 export default function LoginPage() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const { setFocusTarget } = useAuthOwl();
 
   const { mutate, isPending } = useMutation({
     ...loginMutation,
@@ -48,49 +42,56 @@ export default function LoginPage() {
   };
 
   return (
-    <Card>
-      <CardHeader className='text-center'>
-        <CardTitle className='text-2xl'>登录</CardTitle>
-        <CardDescription>使用手机号和密码登录管理后台</CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className='space-y-4'>
-          <div className='space-y-2'>
-            <Label htmlFor='phone'>手机号</Label>
-            <Input
-              id='phone'
-              type='tel'
-              placeholder='请输入手机号'
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              maxLength={11}
-              autoComplete='tel'
-            />
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor='password'>密码</Label>
-            <Input
-              id='password'
-              type='password'
-              placeholder='请输入密码'
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete='current-password'
-            />
-          </div>
-        </CardContent>
-        <CardFooter className='flex flex-col gap-3'>
-          <Button type='submit' className='w-full' isLoading={isPending}>
-            登录
-          </Button>
-          <p className='text-muted-foreground text-sm'>
-            还没有账号？{' '}
-            <Link href='/register' className='text-primary hover:underline'>
-              立即注册
-            </Link>
-          </p>
-        </CardFooter>
+    <div>
+      <div className='mb-8'>
+        <h2 className='text-2xl font-bold tracking-tight'>登录</h2>
+        <p className='text-muted-foreground mt-1 text-sm'>
+          使用手机号和密码登录管理后台
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className='space-y-5'>
+        <div className='space-y-2'>
+          <Label htmlFor='phone'>手机号</Label>
+          <Input
+            id='phone'
+            type='tel'
+            placeholder='请输入手机号'
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            onFocus={() => setFocusTarget('phone')}
+            onBlur={() => setFocusTarget('none')}
+            maxLength={11}
+            autoComplete='tel'
+            className='h-11 focus-visible:ring-primary/30'
+          />
+        </div>
+        <div className='space-y-2'>
+          <Label htmlFor='password'>密码</Label>
+          <Input
+            id='password'
+            type='password'
+            placeholder='请输入密码'
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onFocus={() => setFocusTarget('password')}
+            onBlur={() => setFocusTarget('none')}
+            autoComplete='current-password'
+            className='h-11 focus-visible:ring-primary/30'
+          />
+        </div>
+
+        <Button type='submit' className='h-11 w-full text-base' isLoading={isPending}>
+          登录
+        </Button>
       </form>
-    </Card>
+
+      <p className='text-muted-foreground mt-6 text-center text-sm'>
+        还没有账号？{' '}
+        <Link href='/register' className='text-primary font-medium hover:underline'>
+          立即注册
+        </Link>
+      </p>
+    </div>
   );
 }
