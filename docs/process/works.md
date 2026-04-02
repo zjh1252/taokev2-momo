@@ -68,6 +68,35 @@
   - 旧 `modules/` 和 `lib/api/` 目录已删除
 - Next.js 16 适配：`middleware.ts` 重命名为 `proxy.ts`（Next.js 16 约定变更）
 
+## 2026-04-02 11:30
+- 角色体系完善
+  - Flyway V12：`sys_roles` 增加 `role_type` 字段（BUSINESS/PLATFORM），种子化 8 个业务角色
+  - 新增 `RoleType` 枚举（`taoke-common`），替代硬编码字符串
+  - `Role` 实体增加 `roleType` 字段，`AdminRoleController` 支持 `?type=` 过滤
+  - `RoleRepository` 增加 `findByRoleType` 方法
+- 后台用户管理 — 授权平台角色
+  - 后端 `AdminUserController` 新增 `GET/PUT /admin/users/{id}/roles` 接口
+  - 通过 `sys_roles.role_type` 动态判断平台角色（非硬编码），仅操作平台角色不影响业务角色
+  - 前端新增 `AssignRolesDialog` 组件，仅展示平台管理角色供勾选
+  - 新增 BFF 路由 `/api/users/[id]/roles`
+- 分类管理（后台 CRUD）
+  - `CategoryService` 补充写方法：`createCategory`、`updateCategory`、`deleteCategory`、`getFullTree`
+  - `CategoryRepository` 增加 `existsByParentId`
+  - `TrainerExpertise/IndustryCategoryRepository` 增加 `existsByCategoryId` 用于删除引用检查
+  - 新增 `AdminCategoryController`（编排层）：树查询、增删改、删除时跨模块引用检查
+  - 前端新增 `features/categories/` 模块（API + 组件）
+  - `CategoryTreeTable` 树形表格：展开收起、可见性 Switch、增删改
+  - `CategoryFormDialog` 新增/编辑分类弹窗
+  - 侧边栏"分类管理"可折叠菜单，含课程分类、专家擅长领域、专家擅长行业子菜单
+  - 动态路由 `/dashboard/categories/[type]` 共用同一页面
+  - 优化侧边栏子菜单自动激活检测
+- 课程分类数据入库
+  - `CategoryType` 枚举新增 `COURSE_CATEGORY`
+  - Flyway V13：种子化 27 个课程一级分类（来源 taoke.com/opencourse）
+- 修复 `rolesQueryOptions` 的 `queryFn` 透传 context 对象导致 URL 拼接为 `[object Object]` 的 bug
+- 清理重复配置文件：删除 `application.yaml` 和 `application-dev.yaml`（旧版），保留 `.yml`（完整版）
+- `application.yml` 补充 `flyway.encoding: UTF-8`
+
 ## 2026-04-01 20:25
 - 从 taoke.com 抓取 15 位人力资源类专家种子数据并入库
   - 下载 15 张专家头像到 `frontend/public/statics/images/trainers/`，以 taoke ID 命名
