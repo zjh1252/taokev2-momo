@@ -7,6 +7,7 @@ import com.taoke.user.entity.Trainer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -98,6 +99,11 @@ public interface TrainerService {
      * 根据 userId 列表批量查询专家档案
      */
     List<Trainer> findByUserIds(List<Integer> userIds);
+
+    /**
+     * 根据专家 ID 列表批量查询专家档案（用于课程等模块回填讲师名称）
+     */
+    List<Trainer> findByIds(Collection<Integer> ids);
 
     /**
      * 检查是否有专家关联了指定的擅长领域分类
