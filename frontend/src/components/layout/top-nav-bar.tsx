@@ -1,6 +1,7 @@
 'use client';
 
 import { UserAuthArea } from './header-auth';
+import { NotificationBell } from '@/features/notification/components/NotificationBell';
 
 /** 集团产品矩阵链接 */
 const GROUP_LINKS = [
@@ -41,8 +42,10 @@ export function TopNavBar() {
           ))}
         </div>
 
-        {/* 右侧：用户认证区域 */}
-        <div className="flex items-center text-slate-500">
+        {/* 右侧：通知 + 用户认证区域 */}
+        <div className="flex items-center gap-3 text-slate-500">
+          <NotificationBell />
+          <span className="text-slate-300">|</span>
           <UserAuthArea />
         </div>
       </div>

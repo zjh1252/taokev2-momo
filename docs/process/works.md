@@ -97,6 +97,26 @@
 - 清理重复配置文件：删除 `application.yaml` 和 `application-dev.yaml`（旧版），保留 `.yml`（完整版）
 - `application.yml` 补充 `flyway.encoding: UTF-8`
 
+## 2026-04-02 15:30
+- 前端专家路由重命名：`/experts` → `/trainers`，全站链接、导航、i18n key 同步更新，旧路由保留重定向
+- 后台管理 — 专家管理
+  - 侧边栏"专家管理"拆分为父菜单，子菜单：专家列表、专家申请
+  - 后端 `AdminTrainerController`：`GET /admin/trainers`（专家列表）、`GET /admin/trainers/applications`（申请列表）、`PUT .../approve`、`PUT .../reject`
+  - `AdminTrainerService`：三段式分页查询 + 批量组装、审批/驳回委托 `RoleApplyService`
+  - `RoleApplyService` 新增 `reject()` 方法（状态 → 已驳回 + 记录原因）
+  - `UserEventListener` 增强：审核通过时自动更新 Trainer 状态与 approvedAt
+  - 前端专家列表表格 + 申请管理表格（含审批/驳回弹窗）
+- 站内信通知模块
+  - Flyway V14：`sys_notifications` 表 + 索引
+  - `NotificationType` 枚举（taoke-common）：SYSTEM / APPLY_RESULT / ORDER / COMMENT
+  - `Notification` 实体 + `NotificationRepository`（分页查、未读计数、批量标已读）
+  - `NotificationService` 接口 + 实现：send / sendBatch / listByUser / countUnread / markRead / markAllRead
+  - C端 API：`GET /notifications`、`GET /notifications/unread-count`、`PUT /{id}/read`、`PUT /read-all`
+  - 新增 `ApplyRejectedEvent` 领域事件，`RoleApplyServiceImpl.reject()` 发布驳回事件
+  - `UserEventListener` 增强：审核通过/驳回 → 自动创建站内通知
+  - Admin API：`POST /admin/notifications/broadcast` 广播系统公告
+  - C端前端：导航栏铃铛 + 未读红点（30s 轮询）+ 下拉通知面板
+
 ## 2026-04-01 20:25
 - 从 taoke.com 抓取 15 位人力资源类专家种子数据并入库
   - 下载 15 张专家头像到 `frontend/public/statics/images/trainers/`，以 taoke ID 命名

@@ -3,6 +3,7 @@ package com.taoke.user.service;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.eventbus.EventPublisher;
 import com.taoke.common.events.user.ApplyPassedEvent;
+import com.taoke.common.events.user.ApplyRejectedEvent;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.RoleApplyService;
@@ -128,6 +129,8 @@ public class RoleApplyServiceImpl implements RoleApplyService {
         userRole.setStatus(3);
         userRole.setRejectReason(reason);
         userRoleRepository.save(userRole);
+
+        eventPublisher.publish(new ApplyRejectedEvent(roleCode, userId, reason));
     }
 
     /**
