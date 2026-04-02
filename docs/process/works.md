@@ -135,6 +135,33 @@
   - `send-notification-form.tsx`：X/Search/Send/Users/UserCheck/Globe → 对应 @tabler 图标
 - 架构文档补充图标库说明：C端 lucide-react，管理后台 @tabler/icons-react
 
+## 2026-04-02 23:50
+- 课程模块后端完成 + 前端课程页面实现
+  - 后端：设计并实现 `taoke-course` 模块
+    - Flyway V16：创建 `courses` 和 `course_plans` 表
+    - Flyway V17：`courses.type` 默认值改为 `INTERNAL`
+    - `CourseType`（INTERNAL/OPEN_OFFLINE/OPEN_ONLINE）、`CourseStatus`（DRAFT→PENDING→PUBLISHED/REJECTED/UNPUBLISHED）枚举
+    - `Course`/`CoursePlan` 实体、Repository、MapStruct Mapper
+    - `SaveCourseRequest`/`CoursePlanDTO`/`CourseDetailVO`/`CourseListItemVO` DTO
+    - `CourseService` API + `CourseServiceImpl`：发布者 CRUD、状态流转、公开接口、后台管理
+    - `PublicCourseController`（`GET /courses` + `GET /courses/{id}`）：新增 `isOpen` 参数，`true`=公开课、`false`=内训课
+    - `CourseController`（C 端发布者 CRUD，需 TRAINER/INSTITUTION 角色）
+    - `AdminCourseController`（后台审核、上下架、主打切换）
+    - `ErrorCode` 新增 4 个课程错误码（300xx 段）
+    - `TrainerService` 新增 `findByIds` 方法，支持按 trainer_id 批量查讲师
+  - 前端：课程路由重命名 + 列表/详情页实现
+    - 路由变更：`/internal-courses` → `/innercourses`，`/public-courses` → `/opencourses`
+    - `features/course/api/types.ts`：全新类型定义对齐后端 DTO
+    - `features/course/api/service.ts`：`getCourseList`（支持 isOpen）、`getCourseDetail`、`getCourseCategoryTree`
+    - 内训课列表页（`/innercourses`）：`InnerCourseListSection` + `InnerCourseCard` + `InnerCourseFilters`
+    - 内训课详情页（`/innercourses/[id]`）：复用 `CourseHero` + `CourseSidebar` + `CourseDetailTabs`
+    - 公开课列表页（`/opencourses`）：`OpenCourseListSection` + `OpenCourseCard` + `OpenCourseFilters`
+    - 公开课详情页（`/opencourses/[id]`）：复用详情组件 + `CoursePlanTable`（开课计划表格）
+    - 首页 `CoursesSection`/`PublicCoursesSection` 链接路径同步更新
+    - `zh-CN/course.json` + `en/course.json` i18n 文案补充
+    - 删除旧 `courses/page.tsx` 占位页
+  - Flyway V18：插入 20 门种子课程（13 内训课 + 5 线下公开课 + 2 线上公开课）+ 16 条开课计划
+
 ## 2026-04-01 20:25
 - 从 taoke.com 抓取 15 位人力资源类专家种子数据并入库
   - 下载 15 张专家头像到 `frontend/public/statics/images/trainers/`，以 taoke ID 命名
