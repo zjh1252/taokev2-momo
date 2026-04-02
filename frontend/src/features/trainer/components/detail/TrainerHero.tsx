@@ -1,0 +1,185 @@
+import Image from 'next/image';
+import { Star, StarHalf, MessageSquare } from 'lucide-react';
+import type { TrainerDetail } from '../../types';
+
+interface TrainerHeroProps {
+  trainer: TrainerDetail;
+}
+
+function StarRating({ score }: { score: number }) {
+  const fullStars = Math.floor(score);
+  const hasHalf = score - fullStars >= 0.25;
+  return (
+    <div className="flex text-[#8A6D3B] text-[22px]">
+      {Array.from({ length: fullStars }).map((_, i) => (
+        <Star key={i} className="size-5 fill-current" />
+      ))}
+      {hasHalf && <StarHalf className="size-5 fill-current" />}
+    </div>
+  );
+}
+
+export function TrainerHero({ trainer }: TrainerHeroProps) {
+  const expertiseTags = trainer.expertiseTags?.split(',').filter(Boolean) ?? [];
+
+  return (
+    <section className="bg-white rounded-xl border border-slate-200 shadow-sm relative z-10 w-full mb-6 mt-6">
+      <div className="p-6 lg:p-8 flex flex-col xl:flex-row gap-8 relative">
+        {/* 左侧：头像与操作按钮 */}
+        <div className="w-full xl:w-[220px] flex flex-col items-center shrink-0 relative">
+          <div className="relative group">
+            <Image
+              src={trainer.avatar || '/statics/images/expert-main.jpg'}
+              alt={trainer.name}
+              width={190}
+              height={230}
+              className="w-[190px] h-[230px] object-cover border-[6px] border-white shadow-md rounded-sm transition-transform duration-300 group-hover:scale-[1.02]"
+            />
+            {trainer.isTrusted === 1 && (
+              <div
+                className="absolute -bottom-3 -right-6 border-[2px] border-primary text-primary px-3 py-1 font-black text-lg tracking-[0.2em] -rotate-[15deg] bg-white/95 shadow-sm whitespace-nowrap opacity-90 backdrop-blur-sm"
+                style={{ borderStyle: 'dashed', borderRadius: '4px' }}
+              >
+                信得过
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 mt-6 w-[190px]">
+            <button className="w-full px-4 py-2.5 bg-primary text-white rounded flex items-center justify-center gap-1.5 hover:bg-primary/90 font-medium transition-colors whitespace-nowrap">
+              <MessageSquare className="size-5" /> 给专家留言
+            </button>
+            <div className="flex items-center gap-3 w-full justify-between">
+              <button className="flex-1 py-2 border border-slate-200 rounded text-slate-600 hover:text-primary hover:border-primary font-medium bg-white transition-all text-[13px] text-center">
+                收藏讲师
+              </button>
+              <button className="flex-1 py-2 border border-slate-200 rounded text-slate-600 hover:text-primary hover:border-primary font-medium bg-white transition-all text-[13px] text-center">
+                加入对比
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 右侧：信息与操作 */}
+        <div className="flex-1 pt-1 flex flex-col gap-4">
+          <div className="flex flex-col xl:flex-row justify-between gap-8 h-full">
+            <div className="flex flex-col gap-5 flex-1 mt-6">
+              <div className="flex flex-col md:flex-row md:items-baseline gap-3 md:gap-4">
+                <h1 className="text-[36px] leading-none font-extrabold text-slate-900 tracking-tight">
+                  {trainer.name}
+                </h1>
+                <span className="text-[18px] text-slate-600 font-medium">{trainer.title}</span>
+              </div>
+
+              <div className="mt-2 space-y-4">
+                {/* 擅长领域 */}
+                {trainer.expertiseCategories.length > 0 && (
+                  <div className="flex items-center gap-4">
+                    <span className="text-[14px] text-slate-600 w-[65px] font-medium shrink-0">
+                      擅长领域:
+                    </span>
+                    <div className="flex flex-wrap gap-2.5 flex-1">
+                      {trainer.expertiseCategories.map((cat, i) => (
+                        <span
+                          key={cat.categoryId}
+                          className={`px-3.5 py-1 rounded-full text-[13px] font-medium ${
+                            i === 0
+                              ? 'border border-primary text-primary'
+                              : 'border border-slate-200 text-slate-600 bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer'
+                          }`}
+                        >
+                          {cat.categoryName}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 擅长行业 */}
+                {trainer.industryCategories.length > 0 && (
+                  <div className="flex items-center gap-4">
+                    <span className="text-[14px] text-slate-600 w-[65px] font-medium shrink-0">
+                      擅长行业:
+                    </span>
+                    <div className="flex flex-wrap gap-2.5">
+                      {trainer.industryCategories.map((cat) => (
+                        <span
+                          key={cat.categoryId}
+                          className="px-3.5 py-1 rounded-full border border-slate-200 text-slate-600 text-[13px] bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer"
+                        >
+                          {cat.categoryName}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 自定义标签 */}
+                {expertiseTags.length > 0 && (
+                  <div className="flex items-center gap-4">
+                    <span className="text-[14px] text-slate-600 w-[65px] font-medium shrink-0">
+                      关键标签:
+                    </span>
+                    <div className="flex flex-wrap gap-2.5">
+                      {expertiseTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="px-3.5 py-1 rounded-full border border-slate-200 text-slate-600 text-[13px] bg-slate-50"
+                        >
+                          {tag.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 数据展示卡片 */}
+          <div className="mt-auto bg-[#F4F7FE] rounded-xl px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-6 w-full">
+            <div className="flex items-center gap-3">
+              <StarRating score={trainer.score || 0} />
+              <span className="text-[#002B5B] font-bold text-[22px]">
+                {trainer.score?.toFixed(1) || '0.0'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-8 text-[#002B5B] mr-auto md:mr-0 md:ml-4">
+              <div className="flex flex-col">
+                <span className="text-[12px] text-slate-500 font-medium mb-1">累计咨询</span>
+                <span className="font-bold text-[18px] leading-none">
+                  {trainer.consultationCount || 0}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[12px] text-slate-500 font-medium mb-1">累计曝光</span>
+                <span className="font-bold text-[18px] leading-none">
+                  {trainer.viewCount ? `${(trainer.viewCount / 1000).toFixed(1)}k+` : '0'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2 flex-1">
+              {trainer.isTrusted === 1 && (
+                <span className="px-3 py-1 text-[12px] bg-white border border-primary/40 text-primary rounded-full shadow-sm">
+                  信得过
+                </span>
+              )}
+              {trainer.isSigned === 1 && (
+                <span className="px-3 py-1 text-[12px] bg-white border border-primary/40 text-primary rounded-full shadow-sm">
+                  签约
+                </span>
+              )}
+              {trainer.hasCopyrightCourse === 1 && (
+                <span className="px-3 py-1 text-[12px] bg-white border border-primary/40 text-primary rounded-full shadow-sm">
+                  版权课
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

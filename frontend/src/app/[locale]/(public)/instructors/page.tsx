@@ -1,12 +1,8 @@
-import { getTranslations } from 'next-intl/server';
+import { redirect } from 'next/navigation';
 
-export default async function InstructorsPage() {
-  const t = await getTranslations('nav');
-
-  return (
-    <div className="container mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold">{t('instructors')}</h1>
-      {/* TODO: 讲师列表 */}
-    </div>
-  );
+/**
+ * 旧路由 /instructors → 重定向到 /experts
+ */
+export default function InstructorsPage() {
+  redirect('/experts');
 }

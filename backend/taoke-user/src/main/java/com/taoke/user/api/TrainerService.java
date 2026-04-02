@@ -1,5 +1,6 @@
 package com.taoke.user.api;
 
+import com.taoke.common.response.PageResponse;
 import com.taoke.user.dto.trainer.*;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 
@@ -17,6 +18,24 @@ public interface TrainerService {
      * 按用户 ID 查询专家完整档案（含子表数据和报价信息）
      */
     TrainerResponse getByUserId(Integer userId);
+
+    /**
+     * 公开列表分页查询（支持按分类、关键词筛选）
+     *
+     * @param page                 页码（从 1 开始）
+     * @param size                 每页条数
+     * @param expertiseCategoryId  擅长领域分类 ID（可选）
+     * @param industryCategoryId   擅长行业分类 ID（可选）
+     * @param provinceId           省份 ID（可选）
+     * @param keyword              搜索关键词（可选，匹配 name / title / expertiseTags）
+     * @param sort                 排序方式：default / score
+     */
+    PageResponse<TrainerListItemResponse> listPublic(int page, int size,
+                                                     Integer expertiseCategoryId,
+                                                     Integer industryCategoryId,
+                                                     Integer provinceId,
+                                                     String keyword,
+                                                     String sort);
 
     /**
      * 按专家 ID 查询公开档案（不含报价敏感字段）

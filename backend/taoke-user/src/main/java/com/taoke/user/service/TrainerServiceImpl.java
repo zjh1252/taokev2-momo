@@ -3,6 +3,7 @@ package com.taoke.user.service;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.common.response.PageResponse;
 import com.taoke.common.service.CategoryService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.api.TrainerService;
@@ -11,11 +12,19 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.*;
 import com.taoke.user.mapper.TrainerMapper;
 import com.taoke.user.repository.*;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -50,6 +59,113 @@ public class TrainerServiceImpl implements TrainerService {
             return null;
         }
         return assembleFullResponse(trainer);
+    }
+
+    @Override
+    public PageResponse<TrainerListItemResponse> listPublic(int page, int size,
+                                                            Integer expertiseCategoryId,
+                                                            Integer industryCategoryId,
+                                                            Integer provinceId,
+                                                            String keyword,
+                                                            String sort) {
+        // 构建排序
+        Sort jpaSort = "score".equals(sort)
+                ? Sort.by(Sort.Direction.DESC, "score").and(Sort.by(Sort.Direction.DESC, "id"))
+                : Sort.by(Sort.Direction.DESC, "sortOrder")
+                      .and(Sort.by(Sort.Direction.DESC, "score"))
+                      .and(Sort.by(Sort.Direction.DESC, "id"));
+
+        PageRequest pageable = PageRequest.of(page - 1, size, jpaSort);
+
+        // 第一段：查分页 ID（带动态条件）
+        Specification<Trainer> spec = buildListSpec(expertiseCategoryId, industryCategoryId, provinceId, keyword);
+        Page<Trainer> trainerPage = trainerRepository.findAll(spec, pageable);
+
+        if (trainerPage.isEmpty()) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+
+        List<Integer> trainerIds = trainerPage.getContent().stream().map(Trainer::getId).toList();
+
+        // 第二段：回表查主表（已在 trainerPage.getContent() 中）
+        Map<Integer, Trainer> trainerMap = trainerPage.getContent().stream()
+                .collect(Collectors.toMap(Trainer::getId, Function.identity()));
+
+        // 第三段：批量查擅长领域分类
+        List<TrainerExpertiseCategory> allExpertise =
+                expertiseCategoryRepository.findByTrainerIdInOrderBySortOrder(trainerIds);
+        Map<Integer, List<TrainerExpertiseCategory>> expertiseMap = allExpertise.stream()
+                .collect(Collectors.groupingBy(TrainerExpertiseCategory::getTrainerId));
+
+        // 批量获取分类名称
+        Set<Integer> categoryIds = allExpertise.stream()
+                .map(TrainerExpertiseCategory::getCategoryId)
+                .collect(Collectors.toSet());
+        Map<Integer, String> nameMap = categoryIds.isEmpty()
+                ? Map.of()
+                : categoryService.getNameMap(categoryIds);
+
+        // 组装结果，保持 ID 原始顺序
+        List<TrainerListItemResponse> items = trainerIds.stream().map(id -> {
+            Trainer t = trainerMap.get(id);
+            TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
+
+            List<CategoryRefDTO> catRefs = expertiseMap.getOrDefault(id, List.of()).stream().map(ec -> {
+                CategoryRefDTO dto = new CategoryRefDTO();
+                dto.setId(ec.getId());
+                dto.setCategoryId(ec.getCategoryId());
+                dto.setSortOrder(ec.getSortOrder());
+                dto.setCategoryName(nameMap.get(ec.getCategoryId()));
+                return dto;
+            }).toList();
+            item.setExpertiseCategories(catRefs);
+
+            return item;
+        }).toList();
+
+        return PageResponse.of(items, trainerPage.getTotalElements(), page, size);
+    }
+
+    /** 构建列表查询的动态条件 */
+    private Specification<Trainer> buildListSpec(Integer expertiseCategoryId,
+                                                 Integer industryCategoryId,
+                                                 Integer provinceId,
+                                                 String keyword) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("status"), 2));
+
+            if (provinceId != null) {
+                predicates.add(cb.equal(root.get("provinceId"), provinceId));
+            }
+
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.trim() + "%";
+                predicates.add(cb.or(
+                        cb.like(root.get("name"), pattern),
+                        cb.like(root.get("title"), pattern),
+                        cb.like(root.get("expertiseTags"), pattern)
+                ));
+            }
+
+            if (expertiseCategoryId != null) {
+                Subquery<Integer> sub = query.subquery(Integer.class);
+                Root<TrainerExpertiseCategory> ecRoot = sub.from(TrainerExpertiseCategory.class);
+                sub.select(ecRoot.get("trainerId"))
+                   .where(cb.equal(ecRoot.get("categoryId"), expertiseCategoryId));
+                predicates.add(root.get("id").in(sub));
+            }
+
+            if (industryCategoryId != null) {
+                Subquery<Integer> sub = query.subquery(Integer.class);
+                Root<TrainerIndustryCategory> icRoot = sub.from(TrainerIndustryCategory.class);
+                sub.select(icRoot.get("trainerId"))
+                   .where(cb.equal(icRoot.get("categoryId"), industryCategoryId));
+                predicates.add(root.get("id").in(sub));
+            }
+
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     @Override

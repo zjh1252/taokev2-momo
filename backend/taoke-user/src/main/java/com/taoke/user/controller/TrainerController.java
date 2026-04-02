@@ -2,6 +2,7 @@ package com.taoke.user.controller;
 
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
+import com.taoke.common.response.PageResponse;
 import com.taoke.common.security.Public;
 import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
@@ -59,6 +60,21 @@ public class TrainerController {
     }
 
     // ==================== 公开接口 ====================
+
+    @Public
+    @Operation(summary = "专家公开列表（分页 + 筛选）")
+    @GetMapping("/trainers")
+    public ApiResponse<PageResponse<TrainerListItemResponse>> list(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(required = false) Integer expertiseCategoryId,
+            @RequestParam(required = false) Integer industryCategoryId,
+            @RequestParam(required = false) Integer provinceId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "default") String sort) {
+        return ApiResponse.ok(trainerService.listPublic(page, size,
+                expertiseCategoryId, industryCategoryId, provinceId, keyword, sort));
+    }
 
     @Public
     @Operation(summary = "专家公开详情页（不含报价信息）")

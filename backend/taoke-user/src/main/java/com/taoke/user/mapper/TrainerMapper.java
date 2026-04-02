@@ -34,6 +34,10 @@ public interface TrainerMapper {
     @Mapping(target = "industryCategories", ignore = true)
     TrainerPublicResponse toPublicResponse(Trainer trainer);
 
+    /** 列表项（轻量化），分类由 Service 层组装 */
+    @Mapping(target = "expertiseCategories", ignore = true)
+    TrainerListItemResponse toListItemResponse(Trainer trainer);
+
     // ==================== 教育经历 ====================
 
     TrainerEducationDTO toEducationDTO(TrainerEducation entity);
