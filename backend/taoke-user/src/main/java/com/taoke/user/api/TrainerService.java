@@ -3,6 +3,9 @@ package com.taoke.user.api;
 import com.taoke.common.response.PageResponse;
 import com.taoke.user.dto.trainer.*;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
+import com.taoke.user.entity.Trainer;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -83,4 +86,26 @@ public interface TrainerService {
      * 保存擅长行业分类
      */
     List<CategoryRefDTO> saveIndustryCategories(Integer userId, List<CategoryRefDTO> dtos);
+
+    // ==================== 后台管理查询 ====================
+
+    /**
+     * 后台分页搜索专家（支持姓名/头衔/手机号模糊匹配 + 状态筛选）
+     */
+    Page<Trainer> searchForAdmin(String search, Integer status, Pageable pageable);
+
+    /**
+     * 根据 userId 列表批量查询专家档案
+     */
+    List<Trainer> findByUserIds(List<Integer> userIds);
+
+    /**
+     * 检查是否有专家关联了指定的擅长领域分类
+     */
+    boolean hasExpertiseCategoryReference(Integer categoryId);
+
+    /**
+     * 检查是否有专家关联了指定的擅长行业分类
+     */
+    boolean hasIndustryCategoryReference(Integer categoryId);
 }

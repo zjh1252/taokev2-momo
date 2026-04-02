@@ -73,4 +73,12 @@ public interface RoleService {
      * @param permissionIds  权限 ID 列表
      */
     void assignPermissions(Integer roleId, List<Integer> permissionIds);
+
+    /**
+     * 按角色类型查询角色列表
+     *
+     * @param roleType 角色类型（如 PLATFORM、BUSINESS）
+     * @return 角色列表
+     */
+    List<Role> findByRoleType(String roleType);
 }

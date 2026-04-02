@@ -4,18 +4,16 @@ import com.taoke.admin.dto.*;
 import com.taoke.common.dto.PageResult;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.user.api.RoleApplyService;
+import com.taoke.user.api.TrainerService;
+import com.taoke.user.api.UserRoleService;
+import com.taoke.user.api.UserService;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.User;
 import com.taoke.user.entity.UserRole;
-import com.taoke.user.repository.TrainerRepository;
-import com.taoke.user.repository.UserRepository;
-import com.taoke.user.repository.UserRoleRepository;
-import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -24,6 +22,8 @@ import java.util.stream.Collectors;
 
 /**
  * 后台专家管理编排服务 — 专家列表 + 申请审核。
+ * <p>
+ * 通过 {@code api/} 契约接口访问 taoke-user 能力，不直接依赖 Repository。
  *
  * @author Fangxinxin
  * @date 2026-04-02 10:00
@@ -32,22 +32,21 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminTrainerService {
 
-    private final TrainerRepository trainerRepository;
-    private final UserRoleRepository userRoleRepository;
-    private final UserRepository userRepository;
+    private final TrainerService trainerService;
+    private final UserService userService;
+    private final UserRoleService userRoleService;
     private final RoleApplyService roleApplyService;
 
     /**
      * 分页查询专家列表（三段式：条件分页 → 回表 → 组装）
      */
     public PageResult<AdminTrainerVO> listTrainers(AdminTrainerQuery query) {
-        Specification<Trainer> spec = buildTrainerSpec(query);
         PageRequest pageable = PageRequest.of(
                 query.getPage() - 1, query.getSize(),
                 Sort.by(Sort.Direction.DESC, "id")
         );
 
-        Page<Trainer> page = trainerRepository.findAll(spec, pageable);
+        Page<Trainer> page = trainerService.searchForAdmin(query.getSearch(), query.getStatus(), pageable);
         List<Trainer> trainers = page.getContent();
 
         if (trainers.isEmpty()) {
@@ -62,16 +61,16 @@ public class AdminTrainerService {
      * 分页查询专家申请列表（三段式：UserRole 分页 → 批量查用户+专家 → 组装）
      */
     public PageResult<AdminTrainerApplicationVO> listApplications(AdminTrainerApplicationQuery query) {
-        Page<UserRole> rolePage;
         PageRequest pageable = PageRequest.of(
                 query.getPage() - 1, query.getSize(),
                 Sort.by(Sort.Direction.DESC, "id")
         );
 
+        Page<UserRole> rolePage;
         if (query.getStatus() != null) {
-            rolePage = userRoleRepository.findByRoleAndStatus(BusinessRole.Code.TRAINER, query.getStatus(), pageable);
+            rolePage = userRoleService.findByRoleAndStatus(BusinessRole.Code.TRAINER, query.getStatus(), pageable);
         } else {
-            rolePage = userRoleRepository.findByRole(BusinessRole.Code.TRAINER, pageable);
+            rolePage = userRoleService.findByRole(BusinessRole.Code.TRAINER, pageable);
         }
 
         List<UserRole> userRoles = rolePage.getContent();
@@ -79,13 +78,11 @@ public class AdminTrainerService {
             return PageResult.of(rolePage.getTotalElements(), query.getPage(), query.getSize(), List.of());
         }
 
-        // 批量查用户和专家档案
         List<Integer> userIds = userRoles.stream().map(UserRole::getUserId).distinct().toList();
-        Map<Integer, User> userMap = userRepository.findAllById(userIds).stream()
+        Map<Integer, User> userMap = userService.findAllByIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));
-        Map<Integer, Trainer> trainerMap = trainerRepository.findAll(
-                (root, cq, cb) -> root.get("userId").in(userIds)
-        ).stream().collect(Collectors.toMap(Trainer::getUserId, Function.identity()));
+        Map<Integer, Trainer> trainerMap = trainerService.findByUserIds(userIds).stream()
+                .collect(Collectors.toMap(Trainer::getUserId, Function.identity()));
 
         List<AdminTrainerApplicationVO> voList = userRoles.stream().map(ur -> {
             AdminTrainerApplicationVO vo = new AdminTrainerApplicationVO();
@@ -157,26 +154,5 @@ public class AdminTrainerService {
         vo.setApprovedAt(trainer.getApprovedAt());
         vo.setCreatedAt(trainer.getCreatedAt());
         return vo;
-    }
-
-    private Specification<Trainer> buildTrainerSpec(AdminTrainerQuery query) {
-        return (root, cq, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            if (query.getStatus() != null) {
-                predicates.add(cb.equal(root.get("status"), query.getStatus()));
-            }
-
-            if (query.getSearch() != null && !query.getSearch().isBlank()) {
-                String like = "%" + query.getSearch().trim() + "%";
-                predicates.add(cb.or(
-                        cb.like(root.get("name"), like),
-                        cb.like(root.get("title"), like),
-                        cb.like(root.get("phone"), like)
-                ));
-            }
-
-            return cb.and(predicates.toArray(new Predicate[0]));
-        };
     }
 }

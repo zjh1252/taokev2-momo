@@ -17,6 +17,7 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -368,6 +369,45 @@ public class TrainerServiceImpl implements TrainerService {
 
         response.setExpertiseCategories(expertiseList);
         response.setIndustryCategories(industryList);
+    }
+
+    @Override
+    public Page<Trainer> searchForAdmin(String search, Integer status, Pageable pageable) {
+        Specification<Trainer> spec = (root, cq, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (search != null && !search.isBlank()) {
+                String like = "%" + search.trim() + "%";
+                predicates.add(cb.or(
+                        cb.like(root.get("name"), like),
+                        cb.like(root.get("title"), like),
+                        cb.like(root.get("phone"), like)
+                ));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return trainerRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public List<Trainer> findByUserIds(List<Integer> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        Specification<Trainer> spec = (root, cq, cb) -> root.get("userId").in(userIds);
+        return trainerRepository.findAll(spec);
+    }
+
+    @Override
+    public boolean hasExpertiseCategoryReference(Integer categoryId) {
+        return expertiseCategoryRepository.existsByCategoryId(categoryId);
+    }
+
+    @Override
+    public boolean hasIndustryCategoryReference(Integer categoryId) {
+        return industryCategoryRepository.existsByCategoryId(categoryId);
     }
 
     /** 批量回填多个列表的 categoryName */

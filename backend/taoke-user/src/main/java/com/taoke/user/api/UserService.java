@@ -4,6 +4,11 @@ import com.taoke.user.dto.user.ChangePasswordRequest;
 import com.taoke.user.dto.user.ChangePhoneRequest;
 import com.taoke.user.dto.user.UpdateProfileRequest;
 import com.taoke.user.dto.user.UserProfileResponse;
+import com.taoke.user.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 /**
  * 用户资料与账号相关能力（查询资料、修改资料、改密、改手机号、账号状态）。
@@ -53,4 +58,32 @@ public interface UserService {
      * @param freezeReason 冻结原因（非冻结场景可为空）
      */
     void updateStatus(Integer userId, Integer status, String freezeReason);
+
+    /**
+     * 分页搜索用户（支持手机号/昵称/真名模糊匹配 + 状态筛选）
+     *
+     * @param search   搜索关键词（可为 null）
+     * @param status   状态（可为 null 表示不筛选）
+     * @param pageable 分页参数
+     * @return 用户分页结果
+     */
+    Page<User> searchUsers(String search, Integer status, Pageable pageable);
+
+    /**
+     * 判断用户是否存在
+     */
+    boolean existsById(Integer userId);
+
+    /**
+     * 获取所有正常状态用户的 ID 列表
+     */
+    List<Integer> getActiveUserIds();
+
+    /**
+     * 批量查询用户
+     *
+     * @param ids 用户 ID 列表
+     * @return 用户列表
+     */
+    List<User> findAllByIds(List<Integer> ids);
 }

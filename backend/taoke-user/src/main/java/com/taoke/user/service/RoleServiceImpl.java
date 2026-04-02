@@ -87,6 +87,11 @@ public class RoleServiceImpl implements com.taoke.user.api.RoleService {
     }
 
     @Override
+    public List<Role> findByRoleType(String roleType) {
+        return roleRepository.findByRoleType(roleType);
+    }
+
+    @Override
     @Transactional
     public void assignPermissions(Integer roleId, List<Integer> permissionIds) {
         if (!roleRepository.existsById(roleId)) {
