@@ -117,6 +117,12 @@
   - Admin API：`POST /admin/notifications/broadcast` 广播系统公告
   - C端前端：导航栏铃铛 + 未读红点（30s 轮询）+ 下拉通知面板
 
+## 2026-04-02 20:30
+- 修复 admin-frontend 图标库引用错误（lucide-react → @tabler/icons-react）
+  - `template-table.tsx`：Pencil/Trash2/Plus → IconEdit/IconTrash/IconPlus
+  - `send-notification-form.tsx`：X/Search/Send/Users/UserCheck/Globe → 对应 @tabler 图标
+- 架构文档补充图标库说明：C端 lucide-react，管理后台 @tabler/icons-react
+
 ## 2026-04-01 20:25
 - 从 taoke.com 抓取 15 位人力资源类专家种子数据并入库
   - 下载 15 张专家头像到 `frontend/public/statics/images/trainers/`，以 taoke ID 命名
