@@ -40,28 +40,38 @@ public class PermissionServiceImpl implements com.taoke.user.api.PermissionServi
 
     @Override
     @Transactional
-    public Permission create(Permission permission) {
-        if (permissionRepository.existsByPermissionCode(permission.getPermissionCode())) {
+    public Permission create(String permissionCode, String permissionName, String module,
+                             String actionType, Integer parentId, Integer sortOrder, String description) {
+        if (permissionRepository.existsByPermissionCode(permissionCode)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "权限编码已存在");
         }
-        return permissionRepository.save(permission);
+        Permission entity = new Permission();
+        entity.setPermissionCode(permissionCode);
+        entity.setPermissionName(permissionName);
+        entity.setModule(module);
+        entity.setActionType(actionType);
+        entity.setParentId(parentId != null ? parentId : 0);
+        entity.setSortOrder(sortOrder != null ? sortOrder : 0);
+        entity.setDescription(description);
+        return permissionRepository.save(entity);
     }
 
     @Override
     @Transactional
-    public Permission update(Integer id, Permission updated) {
+    public Permission update(Integer id, String permissionCode, String permissionName, String module,
+                             String actionType, Integer parentId, Integer sortOrder, String description) {
         Permission entity = getById(id);
-        if (!entity.getPermissionCode().equals(updated.getPermissionCode())
-                && permissionRepository.existsByPermissionCode(updated.getPermissionCode())) {
+        if (!entity.getPermissionCode().equals(permissionCode)
+                && permissionRepository.existsByPermissionCode(permissionCode)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "权限编码已存在");
         }
-        entity.setPermissionCode(updated.getPermissionCode());
-        entity.setPermissionName(updated.getPermissionName());
-        entity.setModule(updated.getModule());
-        entity.setActionType(updated.getActionType());
-        entity.setParentId(updated.getParentId());
-        entity.setSortOrder(updated.getSortOrder());
-        entity.setDescription(updated.getDescription());
+        entity.setPermissionCode(permissionCode);
+        entity.setPermissionName(permissionName);
+        entity.setModule(module);
+        entity.setActionType(actionType);
+        entity.setParentId(parentId != null ? parentId : 0);
+        entity.setSortOrder(sortOrder != null ? sortOrder : 0);
+        entity.setDescription(description);
         return permissionRepository.save(entity);
     }
 

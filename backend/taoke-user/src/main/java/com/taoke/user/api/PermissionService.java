@@ -37,19 +37,33 @@ public interface PermissionService {
     /**
      * 新建权限。
      *
-     * @param permission 待持久化的权限
-     * @return 保存后的权限（含生成的主键等）
+     * @param permissionCode 权限编码
+     * @param permissionName 权限名称
+     * @param module         所属模块
+     * @param actionType     操作类型
+     * @param parentId       父级 ID（0 为顶级）
+     * @param sortOrder      排序序号
+     * @param description    描述
+     * @return 保存后的权限
      */
-    Permission create(Permission permission);
+    Permission create(String permissionCode, String permissionName, String module,
+                      String actionType, Integer parentId, Integer sortOrder, String description);
 
     /**
      * 更新指定 ID 的权限。
      *
-     * @param id      权限 ID
-     * @param updated 更新内容
+     * @param id             权限 ID
+     * @param permissionCode 权限编码
+     * @param permissionName 权限名称
+     * @param module         所属模块
+     * @param actionType     操作类型
+     * @param parentId       父级 ID
+     * @param sortOrder      排序序号
+     * @param description    描述
      * @return 更新后的权限
      */
-    Permission update(Integer id, Permission updated);
+    Permission update(Integer id, String permissionCode, String permissionName, String module,
+                      String actionType, Integer parentId, Integer sortOrder, String description);
 
     /**
      * 删除指定权限。

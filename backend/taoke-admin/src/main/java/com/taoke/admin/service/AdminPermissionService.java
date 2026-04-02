@@ -15,7 +15,10 @@ import java.util.stream.Collectors;
 /**
  * 后台 — 权限管理编排服务（薄层）。
  * <p>
- * 领域操作委托给 {@link PermissionService}，仅处理 VO 映射与树形组装。
+ * 领域操作委托给 {@link PermissionService}，仅处理 VO 映射与树形组装，不构造跨模块 entity。
+ *
+ * @author Fangxinxin
+ * @date 2026-04-01
  */
 @Service
 @RequiredArgsConstructor
@@ -51,15 +54,30 @@ public class AdminPermissionService {
     }
 
     public PermissionVO create(SavePermissionRequest request) {
-        Permission entity = new Permission();
-        applyRequest(entity, request);
-        return toVO(permissionService.create(entity));
+        Permission created = permissionService.create(
+                request.getPermissionCode(),
+                request.getPermissionName(),
+                request.getModule(),
+                request.getActionType(),
+                request.getParentId(),
+                request.getSortOrder(),
+                request.getDescription()
+        );
+        return toVO(created);
     }
 
     public PermissionVO update(Integer id, SavePermissionRequest request) {
-        Permission updated = new Permission();
-        applyRequest(updated, request);
-        return toVO(permissionService.update(id, updated));
+        Permission updated = permissionService.update(
+                id,
+                request.getPermissionCode(),
+                request.getPermissionName(),
+                request.getModule(),
+                request.getActionType(),
+                request.getParentId(),
+                request.getSortOrder(),
+                request.getDescription()
+        );
+        return toVO(updated);
     }
 
     public void delete(Integer id) {
@@ -67,16 +85,6 @@ public class AdminPermissionService {
     }
 
     /* ==================== 内部方法 ==================== */
-
-    private void applyRequest(Permission entity, SavePermissionRequest req) {
-        entity.setPermissionCode(req.getPermissionCode());
-        entity.setPermissionName(req.getPermissionName());
-        entity.setModule(req.getModule());
-        entity.setActionType(req.getActionType());
-        entity.setParentId(req.getParentId() != null ? req.getParentId() : 0);
-        entity.setSortOrder(req.getSortOrder() != null ? req.getSortOrder() : 0);
-        entity.setDescription(req.getDescription());
-    }
 
     private PermissionVO toVO(Permission p) {
         PermissionVO vo = new PermissionVO();

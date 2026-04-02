@@ -37,19 +37,29 @@ public interface RoleService {
     /**
      * 新建角色。
      *
-     * @param role 待持久化的角色
-     * @return 保存后的角色（含生成的主键等）
+     * @param roleCode    角色编码
+     * @param roleName    角色名称
+     * @param roleType    角色类型（PLATFORM / BUSINESS）
+     * @param description 描述
+     * @param isActive    是否启用
+     * @param isSystem    是否系统内置
+     * @return 保存后的角色
      */
-    Role create(Role role);
+    Role create(String roleCode, String roleName, String roleType,
+                String description, Integer isActive, Integer isSystem);
 
     /**
      * 更新指定 ID 的角色。
      *
-     * @param id   角色 ID
-     * @param role 更新内容
+     * @param id          角色 ID
+     * @param roleCode    角色编码
+     * @param roleName    角色名称
+     * @param description 描述
+     * @param isActive    是否启用
      * @return 更新后的角色
      */
-    Role update(Integer id, Role role);
+    Role update(Integer id, String roleCode, String roleName,
+                String description, Integer isActive);
 
     /**
      * 删除指定角色。
