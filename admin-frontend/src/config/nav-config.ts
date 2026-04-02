@@ -57,6 +57,31 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
+    label: '分类管理',
+    items: [
+      {
+        title: '分类管理',
+        url: '#',
+        icon: 'tags',
+        isActive: false,
+        items: [
+          {
+            title: '课程分类',
+            url: '/dashboard/categories/course-category'
+          },
+          {
+            title: '专家擅长领域',
+            url: '/dashboard/categories/trainer-expertise'
+          },
+          {
+            title: '专家擅长行业',
+            url: '/dashboard/categories/trainer-industry'
+          }
+        ]
+      }
+    ]
+  },
+  {
     label: '权限设置',
     items: [
       {

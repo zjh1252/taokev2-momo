@@ -39,3 +39,12 @@ export type UpdateUserStatusPayload = {
   status: number;
   freezeReason?: string;
 };
+
+export type UserBusinessRole = {
+  roleCode: string;
+  status: number;
+};
+
+export type AssignBusinessRolesPayload = {
+  roleCodes: string[];
+};

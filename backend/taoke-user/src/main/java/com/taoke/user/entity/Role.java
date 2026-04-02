@@ -1,6 +1,7 @@
 package com.taoke.user.entity;
 
 import com.taoke.common.entity.BaseEntity;
+import com.taoke.common.enums.RoleType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,6 +23,10 @@ public class Role extends BaseEntity {
 
     @Column(name = "role_name", nullable = false, length = 64)
     private String roleName;
+
+    /** 角色分类：BUSINESS=业务角色, PLATFORM=运营管理角色 */
+    @Column(name = "role_type", nullable = false, length = 20)
+    private String roleType = RoleType.PLATFORM.name();
 
     @Column(name = "description", length = 255)
     private String description;

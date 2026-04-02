@@ -50,11 +50,12 @@ export default function AppSidebar() {
             <SidebarMenu>
               {group.items.map((item) => {
                 const Icon = item.icon ? Icons[item.icon] : Icons.logo;
+                const hasSubActive = item.items?.some((sub) => pathname === sub.url || pathname.startsWith(sub.url + '/'));
                 return item?.items && item?.items?.length > 0 ? (
                   <Collapsible
                     key={item.title}
                     asChild
-                    defaultOpen={item.isActive}
+                    defaultOpen={item.isActive || hasSubActive}
                     className='group/collapsible'
                   >
                     <SidebarMenuItem>
@@ -69,7 +70,7 @@ export default function AppSidebar() {
                         <SidebarMenuSub>
                           {item.items?.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
+                              <SidebarMenuSubButton asChild isActive={pathname === subItem.url || pathname.startsWith(subItem.url + '/')}>
                                 <Link href={subItem.url}>
                                   <span>{subItem.title}</span>
                                 </Link>

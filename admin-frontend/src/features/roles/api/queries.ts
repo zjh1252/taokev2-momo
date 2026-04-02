@@ -9,5 +9,5 @@ export const roleKeys = {
 export const rolesQueryOptions = () =>
   queryOptions({
     queryKey: roleKeys.list(),
-    queryFn: getRoles
+    queryFn: () => getRoles()
   });

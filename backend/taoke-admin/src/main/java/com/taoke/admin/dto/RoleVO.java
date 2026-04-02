@@ -14,6 +14,7 @@ public class RoleVO {
     private Integer id;
     private String roleCode;
     private String roleName;
+    private String roleType;
     private String description;
     private Integer isSystem;
     private Integer isActive;

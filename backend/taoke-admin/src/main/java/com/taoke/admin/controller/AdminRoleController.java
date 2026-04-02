@@ -27,10 +27,10 @@ public class AdminRoleController {
 
     private final AdminRoleService adminRoleService;
 
-    @Operation(summary = "获取角色列表")
+    @Operation(summary = "获取角色列表（可选按 type 过滤：BUSINESS / PLATFORM）")
     @GetMapping
-    public ApiResponse<List<RoleVO>> list() {
-        return ApiResponse.ok(adminRoleService.listAll());
+    public ApiResponse<List<RoleVO>> list(@RequestParam(required = false) String type) {
+        return ApiResponse.ok(adminRoleService.listAll(type));
     }
 
     @Operation(summary = "获取角色详情（含权限 ID）")

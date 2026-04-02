@@ -21,8 +21,19 @@ public class AdminRoleService {
 
     private final RoleService roleService;
 
-    public List<RoleVO> listAll() {
-        return roleService.findAll().stream().map(this::toVO).toList();
+    /**
+     * 查询角色列表，可选按 roleType 过滤
+     *
+     * @param roleType 角色分类（BUSINESS / PLATFORM），null 则返回全部
+     */
+    public List<RoleVO> listAll(String roleType) {
+        List<Role> roles = roleService.findAll();
+        if (roleType != null && !roleType.isBlank()) {
+            roles = roles.stream()
+                    .filter(r -> roleType.equalsIgnoreCase(r.getRoleType()))
+                    .toList();
+        }
+        return roles.stream().map(this::toVO).toList();
     }
 
     public RoleVO getById(Integer id) {
@@ -66,6 +77,7 @@ public class AdminRoleService {
         vo.setId(role.getId());
         vo.setRoleCode(role.getRoleCode());
         vo.setRoleName(role.getRoleName());
+        vo.setRoleType(role.getRoleType());
         vo.setDescription(role.getDescription());
         vo.setIsSystem(role.getIsSystem());
         vo.setIsActive(role.getIsActive());

@@ -15,13 +15,19 @@ public class CategoryTreeVO {
 
     private Integer id;
 
+    private Integer parentId;
+
     private String name;
 
     private Integer level;
 
     private Integer sortOrder;
 
+    private Integer isVisible;
+
     private String icon;
+
+    private String description;
 
     /** 子节点列表，叶子节点为 null 或空列表 */
     private List<CategoryTreeVO> children;

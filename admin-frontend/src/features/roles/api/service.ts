@@ -3,8 +3,13 @@ import type { Role, SaveRolePayload, AssignPermissionsPayload } from './types';
 
 type ApiResp<T> = { code: number; message: string; data: T };
 
-export async function getRoles() {
-  return apiClient<ApiResp<Role[]>>('/roles');
+export async function getRoles(type?: string) {
+  const params = type ? `?type=${type}` : '';
+  return apiClient<ApiResp<Role[]>>(`/roles${params}`);
+}
+
+export async function getBusinessRoles() {
+  return getRoles('BUSINESS');
 }
 
 export async function createRole(payload: SaveRolePayload) {

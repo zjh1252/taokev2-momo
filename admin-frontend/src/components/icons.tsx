@@ -75,6 +75,7 @@ import {
   IconStack2,
   IconStar,
   IconSun,
+  IconTags,
   IconTrash,
   IconTrendingDown,
   IconTrendingUp,
@@ -206,6 +207,9 @@ export const Icons = {
   italic: IconItalic,
   underline: IconUnderline,
   text: IconTypography,
+
+  // Categories
+  tags: IconTags,
 
   // Misc
   pizza: IconPizza,

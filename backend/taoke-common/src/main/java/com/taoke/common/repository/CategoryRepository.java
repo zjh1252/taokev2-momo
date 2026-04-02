@@ -25,4 +25,7 @@ public interface CategoryRepository extends JpaRepository<Category, Integer> {
 
     /** 按 ID 批量查（用于回填分类名称） */
     List<Category> findByIdIn(Collection<Integer> ids);
+
+    /** 判断是否存在子分类 */
+    boolean existsByParentId(Integer parentId);
 }

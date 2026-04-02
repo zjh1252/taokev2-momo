@@ -19,4 +19,7 @@ public interface TrainerExpertiseCategoryRepository extends JpaRepository<Traine
     List<TrainerExpertiseCategory> findByTrainerIdInOrderBySortOrder(Collection<Integer> trainerIds);
 
     void deleteByTrainerId(Integer trainerId);
+
+    /** 检查是否有专家关联了该分类 */
+    boolean existsByCategoryId(Integer categoryId);
 }

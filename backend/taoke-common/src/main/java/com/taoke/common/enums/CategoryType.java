@@ -12,7 +12,8 @@ import lombok.Getter;
 public enum CategoryType {
 
     TRAINER_EXPERTISE("专家培训领域"),
-    TRAINER_INDUSTRY("专家擅长行业");
+    TRAINER_INDUSTRY("专家擅长行业"),
+    COURSE_CATEGORY("课程分类");
 
     private final String label;
 
