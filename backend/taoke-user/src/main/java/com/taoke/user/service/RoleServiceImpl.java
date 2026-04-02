@@ -43,26 +43,35 @@ public class RoleServiceImpl implements com.taoke.user.api.RoleService {
 
     @Override
     @Transactional
-    public Role create(Role role) {
-        if (roleRepository.existsByRoleCode(role.getRoleCode())) {
+    public Role create(String roleCode, String roleName, String roleType,
+                       String description, Integer isActive, Integer isSystem) {
+        if (roleRepository.existsByRoleCode(roleCode)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "角色编码已存在");
         }
-        return roleRepository.save(role);
+        Role entity = new Role();
+        entity.setRoleCode(roleCode);
+        entity.setRoleName(roleName);
+        entity.setRoleType(roleType);
+        entity.setDescription(description);
+        entity.setIsActive(isActive != null ? isActive : 1);
+        entity.setIsSystem(isSystem != null ? isSystem : 0);
+        return roleRepository.save(entity);
     }
 
     @Override
     @Transactional
-    public Role update(Integer id, Role updated) {
+    public Role update(Integer id, String roleCode, String roleName,
+                       String description, Integer isActive) {
         Role entity = getById(id);
-        if (!entity.getRoleCode().equals(updated.getRoleCode())
-                && roleRepository.existsByRoleCode(updated.getRoleCode())) {
+        if (!entity.getRoleCode().equals(roleCode)
+                && roleRepository.existsByRoleCode(roleCode)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "角色编码已存在");
         }
-        entity.setRoleCode(updated.getRoleCode());
-        entity.setRoleName(updated.getRoleName());
-        entity.setDescription(updated.getDescription());
-        if (updated.getIsActive() != null) {
-            entity.setIsActive(updated.getIsActive());
+        entity.setRoleCode(roleCode);
+        entity.setRoleName(roleName);
+        entity.setDescription(description);
+        if (isActive != null) {
+            entity.setIsActive(isActive);
         }
         return roleRepository.save(entity);
     }
@@ -84,6 +93,11 @@ public class RoleServiceImpl implements com.taoke.user.api.RoleService {
                 .stream()
                 .map(RolePermission::getPermissionId)
                 .toList();
+    }
+
+    @Override
+    public List<Role> findByRoleType(String roleType) {
+        return roleRepository.findByRoleType(roleType);
     }
 
     @Override

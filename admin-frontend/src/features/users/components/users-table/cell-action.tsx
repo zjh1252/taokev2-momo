@@ -6,6 +6,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { updateUserStatusMutation } from '../../api/mutations';
@@ -14,6 +15,7 @@ import { Icons } from '@/components/icons';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { AssignRolesDialog } from '../assign-roles-dialog';
 
 interface CellActionProps {
   data: User;
@@ -21,6 +23,7 @@ interface CellActionProps {
 
 export function CellAction({ data }: CellActionProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
 
   const isFrozen = data.status === 2;
   const nextStatus = isFrozen ? 1 : 2;
@@ -50,6 +53,11 @@ export function CellAction({ data }: CellActionProps) {
         }
         loading={statusMutation.isPending}
       />
+      <AssignRolesDialog
+        user={data}
+        open={rolesDialogOpen}
+        onOpenChange={setRolesDialogOpen}
+      />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant='ghost' className='h-8 w-8 p-0'>
@@ -59,6 +67,11 @@ export function CellAction({ data }: CellActionProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
           <DropdownMenuLabel>操作</DropdownMenuLabel>
+          <DropdownMenuItem onClick={() => setRolesDialogOpen(true)}>
+            <Icons.settings className='mr-2 h-4 w-4' />
+            授权角色
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setConfirmOpen(true)}>
             {isFrozen ? (
               <Icons.check className='mr-2 h-4 w-4' />

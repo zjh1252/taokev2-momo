@@ -1,33 +1,28 @@
 package com.taoke.admin.service;
 
-import com.taoke.admin.dto.AdminUserQuery;
-import com.taoke.admin.dto.AdminUserVO;
-import com.taoke.admin.dto.UpdateUserStatusRequest;
+import com.taoke.admin.dto.*;
 import com.taoke.admin.mapper.AdminUserMapper;
 import com.taoke.common.dto.PageResult;
+import com.taoke.common.exception.BusinessException;
+import com.taoke.common.exception.ErrorCode;
+import com.taoke.user.api.UserRoleService;
 import com.taoke.user.api.UserService;
 import com.taoke.user.entity.User;
 import com.taoke.user.entity.UserRole;
-import com.taoke.user.repository.UserRepository;
-import com.taoke.user.repository.UserRoleRepository;
-import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * 后台用户管理编排服务。
  * <p>
- * 分页查询仍直接使用 Repository（admin 特有的复合查询），
- * 状态变更委托给 {@link UserService}。
+ * 通过 {@code api/} 契约接口访问 taoke-user 能力，不直接依赖 Repository。
  *
  * @author Fangxinxin
  * @date 2026-03-20
@@ -36,22 +31,20 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminUserService {
 
-    private final UserRepository userRepository;
-    private final UserRoleRepository userRoleRepository;
-    private final AdminUserMapper adminUserMapper;
     private final UserService userService;
+    private final UserRoleService userRoleService;
+    private final AdminUserMapper adminUserMapper;
 
     /**
      * 分页查询用户列表（三段式：条件分页 -> 回表 -> 批量查角色组装）。
      */
     public PageResult<AdminUserVO> listUsers(AdminUserQuery query) {
-        Specification<User> spec = buildSpec(query);
         PageRequest pageable = PageRequest.of(
                 query.getPage() - 1, query.getSize(),
                 Sort.by(Sort.Direction.DESC, "id")
         );
 
-        Page<User> userPage = userRepository.findAll(spec, pageable);
+        Page<User> userPage = userService.searchUsers(query.getSearch(), query.getStatus(), pageable);
         List<User> users = userPage.getContent();
 
         if (users.isEmpty()) {
@@ -59,7 +52,7 @@ public class AdminUserService {
         }
 
         List<Integer> userIds = users.stream().map(User::getId).toList();
-        Map<Integer, List<UserRole>> roleMap = userRoleRepository.findByUserIdIn(userIds)
+        Map<Integer, List<UserRole>> roleMap = userRoleService.findByUserIds(userIds)
                 .stream()
                 .collect(Collectors.groupingBy(UserRole::getUserId));
 
@@ -80,24 +73,27 @@ public class AdminUserService {
         userService.updateStatus(userId, request.getStatus(), request.getFreezeReason());
     }
 
-    private Specification<User> buildSpec(AdminUserQuery query) {
-        return (root, cq, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
+    /**
+     * 获取用户当前持有的平台角色列表。
+     */
+    public List<UserBusinessRoleVO> getUserRoles(Integer userId) {
+        if (!userService.existsById(userId)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
+        }
+        return userRoleService.getUserPlatformRoles(userId).stream()
+                .map(ur -> new UserBusinessRoleVO(ur.getRole(), ur.getStatus()))
+                .toList();
+    }
 
-            if (query.getStatus() != null) {
-                predicates.add(cb.equal(root.get("status"), query.getStatus()));
-            }
-
-            if (query.getSearch() != null && !query.getSearch().isBlank()) {
-                String like = "%" + query.getSearch().trim() + "%";
-                predicates.add(cb.or(
-                        cb.like(root.get("phone"), like),
-                        cb.like(root.get("nickname"), like),
-                        cb.like(root.get("realName"), like)
-                ));
-            }
-
-            return cb.and(predicates.toArray(new Predicate[0]));
-        };
+    /**
+     * 全量替换用户平台角色：新增的直接生效，多余的移除。
+     * <p>仅操作平台角色，不影响用户的业务角色。</p>
+     */
+    @Transactional
+    public List<UserBusinessRoleVO> assignRoles(Integer userId, AssignBusinessRolesRequest request) {
+        List<UserRole> result = userRoleService.assignPlatformRoles(userId, request.getRoleCodes());
+        return result.stream()
+                .map(ur -> new UserBusinessRoleVO(ur.getRole(), ur.getStatus()))
+                .toList();
     }
 }

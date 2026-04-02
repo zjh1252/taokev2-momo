@@ -2,8 +2,12 @@ import { apiClient } from '@/lib/api-client';
 import type {
   UserFilters,
   UsersResponse,
-  UpdateUserStatusPayload
+  UpdateUserStatusPayload,
+  UserBusinessRole,
+  AssignBusinessRolesPayload
 } from './types';
+
+type ApiResp<T> = { code: number; message: string; data: T };
 
 export function buildUserParams(filters: UserFilters): URLSearchParams {
   const params = new URLSearchParams();
@@ -31,4 +35,18 @@ export async function updateUserStatus(
       body: JSON.stringify(payload)
     }
   );
+}
+
+export async function getUserBusinessRoles(userId: number) {
+  return apiClient<ApiResp<UserBusinessRole[]>>(`/users/${userId}/roles`);
+}
+
+export async function assignBusinessRoles(
+  userId: number,
+  payload: AssignBusinessRolesPayload
+) {
+  return apiClient<ApiResp<UserBusinessRole[]>>(`/users/${userId}/roles`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
 }

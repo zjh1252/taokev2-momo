@@ -67,3 +67,80 @@
   - 3 个 page 文件 import 路径从 `@/modules/` 更新为 `@/features/`
   - 旧 `modules/` 和 `lib/api/` 目录已删除
 - Next.js 16 适配：`middleware.ts` 重命名为 `proxy.ts`（Next.js 16 约定变更）
+
+## 2026-04-02 11:30
+- 角色体系完善
+  - Flyway V12：`sys_roles` 增加 `role_type` 字段（BUSINESS/PLATFORM），种子化 8 个业务角色
+  - 新增 `RoleType` 枚举（`taoke-common`），替代硬编码字符串
+  - `Role` 实体增加 `roleType` 字段，`AdminRoleController` 支持 `?type=` 过滤
+  - `RoleRepository` 增加 `findByRoleType` 方法
+- 后台用户管理 — 授权平台角色
+  - 后端 `AdminUserController` 新增 `GET/PUT /admin/users/{id}/roles` 接口
+  - 通过 `sys_roles.role_type` 动态判断平台角色（非硬编码），仅操作平台角色不影响业务角色
+  - 前端新增 `AssignRolesDialog` 组件，仅展示平台管理角色供勾选
+  - 新增 BFF 路由 `/api/users/[id]/roles`
+- 分类管理（后台 CRUD）
+  - `CategoryService` 补充写方法：`createCategory`、`updateCategory`、`deleteCategory`、`getFullTree`
+  - `CategoryRepository` 增加 `existsByParentId`
+  - `TrainerExpertise/IndustryCategoryRepository` 增加 `existsByCategoryId` 用于删除引用检查
+  - 新增 `AdminCategoryController`（编排层）：树查询、增删改、删除时跨模块引用检查
+  - 前端新增 `features/categories/` 模块（API + 组件）
+  - `CategoryTreeTable` 树形表格：展开收起、可见性 Switch、增删改
+  - `CategoryFormDialog` 新增/编辑分类弹窗
+  - 侧边栏"分类管理"可折叠菜单，含课程分类、专家擅长领域、专家擅长行业子菜单
+  - 动态路由 `/dashboard/categories/[type]` 共用同一页面
+  - 优化侧边栏子菜单自动激活检测
+- 课程分类数据入库
+  - `CategoryType` 枚举新增 `COURSE_CATEGORY`
+  - Flyway V13：种子化 27 个课程一级分类（来源 taoke.com/opencourse）
+- 修复 `rolesQueryOptions` 的 `queryFn` 透传 context 对象导致 URL 拼接为 `[object Object]` 的 bug
+- 清理重复配置文件：删除 `application.yaml` 和 `application-dev.yaml`（旧版），保留 `.yml`（完整版）
+- `application.yml` 补充 `flyway.encoding: UTF-8`
+
+## 2026-04-02 15:30
+- 前端专家路由重命名：`/experts` → `/trainers`，全站链接、导航、i18n key 同步更新，旧路由保留重定向
+- 后台管理 — 专家管理
+  - 侧边栏"专家管理"拆分为父菜单，子菜单：专家列表、专家申请
+  - 后端 `AdminTrainerController`：`GET /admin/trainers`（专家列表）、`GET /admin/trainers/applications`（申请列表）、`PUT .../approve`、`PUT .../reject`
+  - `AdminTrainerService`：三段式分页查询 + 批量组装、审批/驳回委托 `RoleApplyService`
+  - `RoleApplyService` 新增 `reject()` 方法（状态 → 已驳回 + 记录原因）
+  - `UserEventListener` 增强：审核通过时自动更新 Trainer 状态与 approvedAt
+  - 前端专家列表表格 + 申请管理表格（含审批/驳回弹窗）
+- 站内信通知模块
+  - Flyway V14：`sys_notifications` 表 + 索引
+  - `NotificationType` 枚举（taoke-common）：SYSTEM / APPLY_RESULT / ORDER / COMMENT
+  - `Notification` 实体 + `NotificationRepository`（分页查、未读计数、批量标已读）
+  - `NotificationService` 接口 + 实现：send / sendBatch / listByUser / countUnread / markRead / markAllRead
+  - C端 API：`GET /notifications`、`GET /notifications/unread-count`、`PUT /{id}/read`、`PUT /read-all`
+  - 新增 `ApplyRejectedEvent` 领域事件，`RoleApplyServiceImpl.reject()` 发布驳回事件
+  - `UserEventListener` 增强：审核通过/驳回 → 自动创建站内通知
+  - Admin API：`POST /admin/notifications/broadcast` 广播系统公告
+  - C端前端：导航栏铃铛 + 未读红点（30s 轮询）+ 下拉通知面板
+
+## 2026-04-02 21:40
+- 重构 taoke-admin 模块边界：消除跨模块 Repository 直接引用和 Entity 回写
+  - 新建 `UserRoleService` api 接口 + `UserRoleServiceImpl`（封装用户角色查询与平台角色分配逻辑）
+  - 扩展 `UserService`：新增 searchUsers / existsById / getActiveUserIds / findAllByIds
+  - 扩展 `RoleService`：新增 findByRoleType；create / update 签名改为接收原始参数
+  - 扩展 `PermissionService`：create / update 签名改为接收原始参数
+  - 扩展 `TrainerService`：新增 searchForAdmin / findByUserIds / hasExpertise/IndustryCategoryReference
+  - 重构 4 个 admin 文件（AdminUserService / AdminTrainerService / AdminNotificationController / AdminCategoryController）：全部改为通过 api/ 接口访问
+  - 重构 AdminRoleService / AdminPermissionService：不再构造跨模块 Entity，改为传递原始参数
+  - 架构文档更新：3.4 Admin 边界规则、5.1 Entity 只读约定、5.3 禁止事项
+- 初始化 taoke-course 模块骨架（api / controller / service / repository / entity / dto / mapper / enums / eventlistener / config）
+
+## 2026-04-02 20:30
+- 修复 admin-frontend 图标库引用错误（lucide-react → @tabler/icons-react）
+  - `template-table.tsx`：Pencil/Trash2/Plus → IconEdit/IconTrash/IconPlus
+  - `send-notification-form.tsx`：X/Search/Send/Users/UserCheck/Globe → 对应 @tabler 图标
+- 架构文档补充图标库说明：C端 lucide-react，管理后台 @tabler/icons-react
+
+## 2026-04-01 20:25
+- 从 taoke.com 抓取 15 位人力资源类专家种子数据并入库
+  - 下载 15 张专家头像到 `frontend/public/statics/images/trainers/`，以 taoke ID 命名
+  - 编写 Flyway V10 迁移 SQL（`V10__seed_trainer_data.sql`），共约 75 条语句：
+    - `sys_users`：15 条虚拟用户（phone: `13266660001`~`13266660015`，avatar_url 指向本地路径）
+    - `sys_user_roles`：15 条 TRAINER 角色分配
+    - `user_trainers`：15 条专家主表记录（含省市 ID 映射，直辖市取"市辖区"条目）
+    - `trainer_expertise_categories`：29 条擅长领域关联（人力资源/领导力/培训发展/经营战略/职业素养/质量管理/国学心理学）
+  - SQL 使用 `SELECT id WHERE phone=...` 变量方式获取 user_id/trainer_id，不依赖硬编码自增 ID

@@ -13,11 +13,16 @@ import com.taoke.user.entity.UserRole;
 import com.taoke.user.mapper.UserMapper;
 import com.taoke.user.repository.UserRepository;
 import com.taoke.user.repository.UserRoleRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -142,6 +147,43 @@ public class UserServiceImpl implements UserService {
         user.setStatus(status);
         user.setFreezeReason(freezeReason);
         userRepository.save(user);
+    }
+
+    @Override
+    public Page<User> searchUsers(String search, Integer status, Pageable pageable) {
+        Specification<User> spec = (root, cq, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (search != null && !search.isBlank()) {
+                String like = "%" + search.trim() + "%";
+                predicates.add(cb.or(
+                        cb.like(root.get("phone"), like),
+                        cb.like(root.get("nickname"), like),
+                        cb.like(root.get("realName"), like)
+                ));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return userRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public boolean existsById(Integer userId) {
+        return userRepository.existsById(userId);
+    }
+
+    @Override
+    public List<Integer> getActiveUserIds() {
+        return userRepository.findByStatus(1).stream()
+                .map(User::getId)
+                .toList();
+    }
+
+    @Override
+    public List<User> findAllByIds(List<Integer> ids) {
+        return userRepository.findAllById(ids);
     }
 
     private User findUser(Integer userId) {

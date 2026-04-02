@@ -26,7 +26,7 @@ export function ExpertsSection({ experts }: ExpertsSectionProps) {
     <section>
       <SectionHeader
         title={t('experts.sectionTitle')}
-        viewMoreHref="/experts"
+        viewMoreHref="/trainers"
         viewMoreText={t('experts.viewMore')}
       />
 
@@ -52,7 +52,7 @@ export function ExpertsSection({ experts }: ExpertsSectionProps) {
 function MainExpertCard({ expert }: { expert: Expert }) {
   return (
     <Link
-      href={`/experts/${expert.id}`}
+      href={`/trainers/${expert.id}`}
       className="col-span-1 md:col-span-6 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-slate-100 flex flex-col md:flex-row h-full group"
     >
       <div className="md:w-[45%] h-64 md:h-full overflow-hidden relative shrink-0">
@@ -110,7 +110,7 @@ function MainExpertCard({ expert }: { expert: Expert }) {
 function MiddleExpertCard({ expert }: { expert: Expert }) {
   return (
     <Link
-      href={`/experts/${expert.id}`}
+      href={`/trainers/${expert.id}`}
       className="col-span-1 md:col-span-3 bg-gradient-to-b from-slate-900 to-[#3b0a0a] rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all relative flex flex-col items-center pt-10 pb-8 px-6 group text-white h-full"
     >
       <div className="w-32 h-32 rounded-full overflow-hidden mb-5 border-4 border-primary/30 shadow-inner">
@@ -147,7 +147,7 @@ function MiddleExpertCard({ expert }: { expert: Expert }) {
 function SideExpertCard({ expert }: { expert: Expert }) {
   return (
     <Link
-      href={`/experts/${expert.id}`}
+      href={`/trainers/${expert.id}`}
       className="bg-white rounded-xl p-6 flex flex-col border border-slate-100 shadow-sm hover:shadow-md transition-all flex-1 group relative overflow-hidden"
     >
       <div className="flex items-start gap-4 mb-3">

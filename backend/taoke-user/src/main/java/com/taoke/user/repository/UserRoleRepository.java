@@ -1,7 +1,10 @@
 package com.taoke.user.repository;
 
 import com.taoke.user.entity.UserRole;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,7 +15,7 @@ import java.util.Optional;
  * @author Fangxinxin
  * @date 2026-03-31 11:00
  */
-public interface UserRoleRepository extends JpaRepository<UserRole, Integer> {
+public interface UserRoleRepository extends JpaRepository<UserRole, Integer>, JpaSpecificationExecutor<UserRole> {
 
     List<UserRole> findByUserIdAndStatus(Integer userId, Integer status);
 
@@ -25,4 +28,8 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Integer> {
     Optional<UserRole> findByUserIdAndRole(Integer userId, String role);
 
     List<UserRole> findByUserIdIn(List<Integer> userIds);
+
+    Page<UserRole> findByRole(String role, Pageable pageable);
+
+    Page<UserRole> findByRoleAndStatus(String role, Integer status, Pageable pageable);
 }

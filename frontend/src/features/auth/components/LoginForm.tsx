@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, MessageCircle, Fingerprint, Loader2 } from 'lucide-react';
+import { ArrowRight, MessageCircle, Fingerprint, Loader2, Bug, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { storage } from '@/lib/storage';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -13,6 +13,7 @@ import { sendCode, smsLogin, getMockCode } from '../api/service';
 const PHONE_LENGTH = 11;
 const CODE_LENGTH = 6;
 const COUNTDOWN_SECONDS = 60;
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 /**
  * 登录/注册表单 — 短信验证码登录，未注册自动创建账号
@@ -32,6 +33,8 @@ export function LoginForm() {
   const [sendingCode, setSendingCode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [devCode, setDevCode] = useState('');
+  const [devCopied, setDevCopied] = useState(false);
 
   const canSendCode = phone.length === PHONE_LENGTH && countdown === 0 && !sendingCode;
   const canSubmit =
@@ -54,12 +57,14 @@ export function LoginForm() {
       await sendCode(phone);
       setCountdown(COUNTDOWN_SECONDS);
 
-      // 开发环境自动获取 Mock 验证码
-      if (process.env.NODE_ENV === 'development') {
+      // 开发环境：获取 Mock 验证码并弹窗提示
+      if (IS_DEV) {
         try {
           const res = await getMockCode(phone);
           if (res.data) {
             setCode(res.data);
+            setDevCode(res.data);
+            setDevCopied(false);
           }
         } catch {
           // Mock 接口失败不影响正常流程
@@ -235,6 +240,45 @@ export function LoginForm() {
           </button>
         </div>
       </div>
+
+      {/* DEV 环境调试弹窗 — 显示 Mock 验证码 */}
+      {IS_DEV && devCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="relative w-80 rounded-2xl bg-white shadow-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-200">
+            <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-amber-100">
+              <Bug className="size-5 text-amber-600" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 mb-1">开发环境调试</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              你正处于测试环境，请使用以下验证码登录：
+            </p>
+            <div className="flex items-center justify-center gap-2 mb-5">
+              <span className="font-mono text-3xl font-extrabold tracking-[0.3em] text-primary">
+                {devCode}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(devCode);
+                  setDevCopied(true);
+                }}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                title="复制验证码"
+              >
+                {devCopied ? <Check className="size-4 text-green-500" /> : <Copy className="size-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">验证码已自动填入输入框</p>
+            <button
+              type="button"
+              onClick={() => setDevCode('')}
+              className="w-full h-10 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors"
+            >
+              知道了
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

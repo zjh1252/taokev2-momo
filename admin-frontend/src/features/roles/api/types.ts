@@ -2,6 +2,7 @@ export type Role = {
   id: number;
   roleCode: string;
   roleName: string;
+  roleType: string;
   description: string | null;
   isSystem: number;
   isActive: number;

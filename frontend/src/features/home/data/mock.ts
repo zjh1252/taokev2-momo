@@ -22,7 +22,7 @@ export const heroCategories: HeroCategory[] = [
 
 /**
  * 推荐专家（首页 6+3+3 混合布局）
- * TODO: 替换为接口 GET /experts?featured=true
+ * TODO: 替换为接口 GET /trainers?featured=true
  */
 export const featuredExperts: Expert[] = [
   {

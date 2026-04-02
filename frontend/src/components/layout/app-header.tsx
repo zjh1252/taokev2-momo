@@ -7,7 +7,7 @@ import { SearchBar } from './search-bar';
 /** 主导航链接配置 */
 const NAV_LINKS = [
   { key: 'home', href: ROUTES.HOME },
-  { key: 'experts', href: ROUTES.EXPERTS },
+  { key: 'trainers', href: ROUTES.TRAINERS },
   { key: 'publicCourses', href: ROUTES.PUBLIC_COURSES },
   { key: 'internalCourses', href: ROUTES.INTERNAL_COURSES },
   { key: 'onlineCourses', href: ROUTES.ONLINE_COURSES },

@@ -1,8 +1,11 @@
 import { serverFetch } from '@/lib/server-fetch';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
-  const result = await serverFetch<unknown>('/admin/roles');
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const type = searchParams.get('type');
+  const query = type ? `?type=${type}` : '';
+  const result = await serverFetch<unknown>(`/admin/roles${query}`);
   return NextResponse.json(result);
 }
 
