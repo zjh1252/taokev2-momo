@@ -74,9 +74,11 @@ public interface CourseService {
 
     /**
      * 公开课程列表（仅已上架，支持分页、分类筛选、关键词搜索）
+     *
+     * @param isOpen true=公开课(OPEN_OFFLINE/OPEN_ONLINE)，false=内训课(INTERNAL)，null=全部
      */
     PageResponse<CourseListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
-                                              String type, String keyword,
+                                              String type, Boolean isOpen, String keyword,
                                               int page, int size);
 
     // ==================== 后台管理 ====================

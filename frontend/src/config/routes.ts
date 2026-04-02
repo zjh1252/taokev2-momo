@@ -3,8 +3,8 @@
 export const ROUTES = {
   HOME: '/',
   TRAINERS: '/trainers',
-  PUBLIC_COURSES: '/public-courses',
-  INTERNAL_COURSES: '/internal-courses',
+  PUBLIC_COURSES: '/opencourses',
+  INTERNAL_COURSES: '/innercourses',
   ONLINE_COURSES: '/online-courses',
   INSTITUTIONS: '/institutions',
   COURSES: '/courses',

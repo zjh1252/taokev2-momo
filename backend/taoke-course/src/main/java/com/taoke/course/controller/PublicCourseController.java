@@ -31,10 +31,11 @@ public class PublicCourseController {
             @RequestParam(required = false) Integer categoryId,
             @RequestParam(required = false) Integer subCategoryId,
             @RequestParam(required = false) String type,
+            @RequestParam(required = false) Boolean isOpen,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "15") int size) {
-        return ApiResponse.ok(courseService.listPublic(categoryId, subCategoryId, type, keyword, page, size));
+        return ApiResponse.ok(courseService.listPublic(categoryId, subCategoryId, type, isOpen, keyword, page, size));
     }
 
     @Public

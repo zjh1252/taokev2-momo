@@ -181,7 +181,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public PageResponse<CourseListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
-                                                      String type, String keyword,
+                                                      String type, Boolean isOpen, String keyword,
                                                       int page, int size) {
         Specification<Course> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -195,6 +195,12 @@ public class CourseServiceImpl implements CourseService {
             }
             if (type != null && !type.isBlank()) {
                 predicates.add(cb.equal(root.get("type"), CourseType.valueOf(type)));
+            } else if (isOpen != null) {
+                if (isOpen) {
+                    predicates.add(root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE));
+                } else {
+                    predicates.add(cb.equal(root.get("type"), CourseType.INTERNAL));
+                }
             }
             if (keyword != null && !keyword.isBlank()) {
                 String like = "%" + keyword.trim() + "%";

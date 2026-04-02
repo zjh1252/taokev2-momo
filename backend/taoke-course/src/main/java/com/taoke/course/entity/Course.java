@@ -26,10 +26,10 @@ public class Course extends BaseEntity {
     @Column(name = "title", nullable = false, length = 200)
     private String title;
 
-    /** 课程类型 */
+    /** 课程类型，默认内训课 */
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 16)
-    private CourseType type;
+    private CourseType type = CourseType.INTERNAL;
 
     /** 发布者 ID（用户 ID） */
     @Column(name = "publisher_id", nullable = false)

@@ -1,4 +1,100 @@
 {
+  "inner": {
+    "title": "内训课",
+    "subtitle": "为企业团队量身定制的专业培训课程",
+    "empty": "暂无内训课程",
+    "meta": {
+      "title": "内训课 — 淘课网",
+      "description": "浏览企业内训精品课程，为团队量身定制培训方案"
+    }
+  },
+  "open": {
+    "title": "公开课",
+    "subtitle": "全国各地近期公开课程，立即报名参加",
+    "empty": "暂无公开课程",
+    "meta": {
+      "title": "公开课 — 淘课网",
+      "description": "浏览全国公开课程，按城市、分类筛选，在线报名"
+    }
+  },
+  "detail": {
+    "courseId": "课程编号",
+    "duration": "课程时长",
+    "daysUnit": "天",
+    "hoursUnit": "小时",
+    "audience": "适合对象",
+    "trainer": "授课老师",
+    "category": "课程类别",
+    "rating": "评分",
+    "publisher": "发布人",
+    "location": "开课地点",
+    "consult": "立即咨询",
+    "reserve": "立即预约",
+    "favorite": "加入收藏",
+    "share": "分享",
+    "popularity": "人气",
+    "views": "观看",
+    "review": "评价",
+    "price": "培训参考价",
+    "tabIntro": "课程介绍",
+    "tabReview": "评价详情",
+    "tabDetail": "课程详情",
+    "trainingTarget": "培训受众",
+    "courseHighlights": "课程收益",
+    "courseSyllabus": "课程大纲",
+    "trainerProfile": "授课专家",
+    "viewTrainerPage": "查看讲师主页",
+    "tagInternal": "内训课",
+    "tagOpen": "公开课",
+    "tagFeatured": "主打",
+    "tagFree": "免费"
+  },
+  "plan": {
+    "title": "全国各地近期开课计划",
+    "courseId": "课程编号",
+    "location": "课程地点",
+    "classType": "班型",
+    "startTime": "上课时间",
+    "price": "价格",
+    "status": "状态",
+    "action": "操作",
+    "enroll": "立即报名",
+    "consulting": "预约咨询",
+    "enrolling": "招生中",
+    "confirmed": "确认开课",
+    "cancelled": "已取消"
+  },
+  "filters": {
+    "all": "综合类",
+    "category": "课程分类",
+    "city": "讲师城市",
+    "industry": "课程行业",
+    "exclusive": "讲师独家",
+    "comprehensive": "综合筛选",
+    "openCity": "开课省市",
+    "openTime": "开课时间",
+    "priceRange": "价格范围",
+    "courseRating": "课程评价",
+    "enrollStatus": "报名状态",
+    "courseExtras": "课程配套"
+  },
+  "sort": {
+    "default": "默认",
+    "rating": "评分",
+    "time": "开课时间",
+    "price": "价格",
+    "review": "评价"
+  },
+  "labels": {
+    "trainer": "授课讲师",
+    "days": "课程天数",
+    "category": "课程分类",
+    "keywords": "关键字",
+    "trainerCity": "讲师常驻地",
+    "openTime": "开课时间",
+    "openLocation": "开课地点",
+    "totalCourses": "共 {total} 门课程"
+  },
   "list": {
     "title": "全部课程",
     "subtitle": "为企业团队精选的专业培训课程",
@@ -6,14 +102,6 @@
     "meta": {
       "title": "课程列表 — 淘课网",
       "description": "浏览企业培训精品课程"
-    }
-  },
-  "detail": {
-    "enroll": "立即报名",
-    "duration": "共 {hours} 课时",
-    "instructor": "讲师",
-    "meta": {
-      "suffix": "淘课网"
     }
   }
 }
