@@ -91,6 +91,27 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
+    label: '通知管理',
+    items: [
+      {
+        title: '通知管理',
+        url: '#',
+        icon: 'notification',
+        isActive: false,
+        items: [
+          {
+            title: '通知模板管理',
+            url: '/dashboard/notification-templates'
+          },
+          {
+            title: '发送通知消息',
+            url: '/dashboard/notifications/send'
+          }
+        ]
+      }
+    ]
+  },
+  {
     label: '权限设置',
     items: [
       {
