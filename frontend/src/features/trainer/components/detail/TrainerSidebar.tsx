@@ -71,7 +71,7 @@ export function TrainerSidebar({ trainer, relatedTrainers }: TrainerSidebarProps
             {relatedTrainers.map((t) => (
               <Link
                 key={t.id}
-                href={`/experts/${t.id}`}
+                href={`/trainers/${t.id}`}
                 className="flex items-center gap-3 cursor-pointer group"
               >
                 <Image

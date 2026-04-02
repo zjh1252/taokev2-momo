@@ -106,6 +106,31 @@ public class RoleApplyServiceImpl implements RoleApplyService {
     }
 
     /**
+     * 驳回角色申请（管理端调用）。
+     * <p>
+     * 状态流转：status=2（待审核）→ status=3（已驳回），并记录驳回原因。
+     *
+     * @param userId     目标用户 ID
+     * @param roleCode   角色编码
+     * @param reason     驳回原因
+     */
+    @Transactional
+    @Override
+    public void reject(Integer userId, String roleCode, String reason) {
+        UserRole userRole = userRoleRepository.findByUserIdAndRole(userId, roleCode)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "未找到角色申请记录"));
+
+        if (userRole.getStatus() != 2) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID,
+                    "当前状态不可驳回: " + STATUS_TEXT.getOrDefault(userRole.getStatus(), "未知"));
+        }
+
+        userRole.setStatus(3);
+        userRole.setRejectReason(reason);
+        userRoleRepository.save(userRole);
+    }
+
+    /**
      * 查询用户某角色的申请状态。
      *
      * @param userId   当前用户 ID

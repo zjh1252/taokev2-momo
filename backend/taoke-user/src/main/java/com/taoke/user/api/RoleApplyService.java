@@ -27,6 +27,15 @@ public interface RoleApplyService {
     void approve(Integer userId, String roleCode);
 
     /**
+     * 审批驳回用户的角色申请。
+     *
+     * @param userId   用户 ID
+     * @param roleCode 角色编码
+     * @param reason   驳回原因
+     */
+    void reject(Integer userId, String roleCode, String reason);
+
+    /**
      * 查询用户对某角色的申请/生效状态。
      *
      * @param userId   用户 ID

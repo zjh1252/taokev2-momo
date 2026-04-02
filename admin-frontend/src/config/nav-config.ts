@@ -48,11 +48,20 @@ export const navGroups: NavGroup[] = [
     label: '专家管理',
     items: [
       {
-        title: '专家列表',
-        url: '/dashboard/trainers',
+        title: '专家管理',
+        url: '#',
         icon: 'user',
         isActive: false,
-        items: []
+        items: [
+          {
+            title: '专家列表',
+            url: '/dashboard/trainers'
+          },
+          {
+            title: '专家申请',
+            url: '/dashboard/trainers/applications'
+          }
+        ]
       }
     ]
   },

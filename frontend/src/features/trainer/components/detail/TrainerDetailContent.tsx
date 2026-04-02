@@ -260,7 +260,7 @@ function HomeView({
             {relatedTrainers.map((t) => (
               <Link
                 key={t.id}
-                href={`/experts/${t.id}`}
+                href={`/trainers/${t.id}`}
                 className="border border-slate-200 rounded-lg p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer group"
               >
                 <Image

@@ -14,7 +14,7 @@ export function TrainerCard({ trainer }: TrainerCardProps) {
 
   return (
     <Link
-      href={`/experts/${trainer.id}`}
+      href={`/trainers/${trainer.id}`}
       className="bg-white rounded-xl border border-slate-200 p-5 flex gap-5 hover:shadow-md transition-all group"
     >
       {/* 头像 */}

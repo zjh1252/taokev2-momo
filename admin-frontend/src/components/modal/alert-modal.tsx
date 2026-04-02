@@ -8,9 +8,11 @@ interface AlertModalProps {
   onClose: () => void;
   onConfirm: () => void;
   loading: boolean;
+  title?: string;
+  description?: string;
 }
 
-export function AlertModal({ isOpen, onClose, onConfirm, loading }: AlertModalProps) {
+export function AlertModal({ isOpen, onClose, onConfirm, loading, title, description }: AlertModalProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -23,8 +25,8 @@ export function AlertModal({ isOpen, onClose, onConfirm, loading }: AlertModalPr
 
   return (
     <Modal
-      title='确认操作'
-      description='此操作执行后无法撤销。'
+      title={title ?? '确认操作'}
+      description={description ?? '此操作执行后无法撤销。'}
       isOpen={isOpen}
       onClose={onClose}
     >
