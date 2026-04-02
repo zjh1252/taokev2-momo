@@ -401,6 +401,14 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     @Override
+    public List<Trainer> findByIds(Collection<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return trainerRepository.findByIdIn(ids);
+    }
+
+    @Override
     public boolean hasExpertiseCategoryReference(Integer categoryId) {
         return expertiseCategoryRepository.existsByCategoryId(categoryId);
     }

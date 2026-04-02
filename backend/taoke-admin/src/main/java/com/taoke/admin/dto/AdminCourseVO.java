@@ -1,0 +1,44 @@
+package com.taoke.admin.dto;
+
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+/**
+ * 后台课程列表项 VO
+ *
+ * @author Fangxinxin
+ * @date 2026-04-02 15:00
+ */
+@Data
+public class AdminCourseVO {
+
+    private Integer id;
+    private String title;
+    private String type;
+    private String typeLabel;
+    private String coverUrl;
+
+    private Integer publisherId;
+    private String publisherType;
+
+    private Integer categoryId;
+    private String categoryName;
+
+    private Integer durationDays;
+    private BigDecimal price;
+
+    private Integer isFeatured;
+    private Integer isFree;
+    private Integer status;
+    private String statusLabel;
+
+    private Integer viewCount;
+    private Integer enrollmentCount;
+
+    private String trainerName;
+
+    private LocalDateTime publishedAt;
+    private LocalDateTime createdAt;
+}

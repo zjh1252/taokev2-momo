@@ -1,0 +1,128 @@
+package com.taoke.course.controller;
+
+import com.taoke.common.enums.BusinessRole;
+import com.taoke.common.exception.BusinessException;
+import com.taoke.common.exception.ErrorCode;
+import com.taoke.common.response.ApiResponse;
+import com.taoke.common.response.PageResponse;
+import com.taoke.common.security.RequireRole;
+import com.taoke.common.security.SecurityUtils;
+import com.taoke.course.api.CourseService;
+import com.taoke.course.dto.course.CourseDetailVO;
+import com.taoke.course.dto.course.CourseListItemVO;
+import com.taoke.course.dto.course.SaveCourseRequest;
+import com.taoke.user.api.UserRoleService;
+import com.taoke.user.entity.UserRole;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Set;
+
+/**
+ * C 端课程发布者接口 — 专家/机构创建、编辑、提交审核、下架、删除课程
+ *
+ * @author Fangxinxin
+ * @date 2026-04-02 15:00
+ */
+@Tag(name = "课程-发布者", description = "TRAINER / INSTITUTION 角色的课程管理")
+@RestController
+@RequiredArgsConstructor
+public class CourseController {
+
+    private final CourseService courseService;
+    private final UserRoleService userRoleService;
+
+    private static final Set<String> PUBLISHER_ROLES = Set.of(
+            BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION
+    );
+
+    @Operation(summary = "创建课程（保存为草稿）")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @PostMapping("/courses")
+    public ApiResponse<CourseDetailVO> create(@Valid @RequestBody SaveCourseRequest request) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        String publisherType = resolvePublisherType(userId);
+        return ApiResponse.ok(courseService.create(userId, publisherType, request));
+    }
+
+    @Operation(summary = "编辑课程")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @PutMapping("/courses/{id}")
+    public ApiResponse<CourseDetailVO> update(@PathVariable Integer id,
+                                              @Valid @RequestBody SaveCourseRequest request) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        return ApiResponse.ok(courseService.update(id, userId, request));
+    }
+
+    @Operation(summary = "我的课程列表")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @GetMapping("/courses/me")
+    public ApiResponse<PageResponse<CourseListItemVO>> myCourses(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "15") int size) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        String publisherType = resolvePublisherType(userId);
+        return ApiResponse.ok(courseService.listByPublisher(userId, publisherType, status, keyword, page, size));
+    }
+
+    @Operation(summary = "我的课程详情")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @GetMapping("/courses/me/{id}")
+    public ApiResponse<CourseDetailVO> myDetail(@PathVariable Integer id) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        return ApiResponse.ok(courseService.getDetailForPublisher(id, userId));
+    }
+
+    @Operation(summary = "提交审核")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @PutMapping("/courses/{id}/submit")
+    public ApiResponse<Void> submit(@PathVariable Integer id) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        courseService.submitForReview(id, userId);
+        return ApiResponse.ok();
+    }
+
+    @Operation(summary = "下架课程")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @PutMapping("/courses/{id}/unpublish")
+    public ApiResponse<Void> unpublish(@PathVariable Integer id) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        courseService.unpublish(id, userId);
+        return ApiResponse.ok();
+    }
+
+    @Operation(summary = "删除课程")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @DeleteMapping("/courses/{id}")
+    public ApiResponse<Void> delete(@PathVariable Integer id) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        courseService.delete(id, userId);
+        return ApiResponse.ok();
+    }
+
+    /**
+     * 从当前用户角色中解析发布者类型（优先 TRAINER，其次 INSTITUTION）
+     */
+    private String resolvePublisherType(Integer userId) {
+        List<UserRole> roles = userRoleService.findByUserId(userId);
+        for (UserRole role : roles) {
+            if (role.getStatus() == 1 && PUBLISHER_ROLES.contains(role.getRole())) {
+                if (BusinessRole.Code.TRAINER.equals(role.getRole())) {
+                    return BusinessRole.Code.TRAINER;
+                }
+            }
+        }
+        for (UserRole role : roles) {
+            if (role.getStatus() == 1 && BusinessRole.Code.INSTITUTION.equals(role.getRole())) {
+                return BusinessRole.Code.INSTITUTION;
+            }
+        }
+        throw new BusinessException(ErrorCode.ROLE_NOT_MATCH, "当前用户无发布课程的角色");
+    }
+}

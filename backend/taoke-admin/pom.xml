@@ -24,6 +24,10 @@
             <groupId>com.taoke</groupId>
             <artifactId>taoke-user</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.taoke</groupId>
+            <artifactId>taoke-course</artifactId>
+        </dependency>
     </dependencies>
 
 </project>
