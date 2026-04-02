@@ -117,6 +117,18 @@
   - Admin API：`POST /admin/notifications/broadcast` 广播系统公告
   - C端前端：导航栏铃铛 + 未读红点（30s 轮询）+ 下拉通知面板
 
+## 2026-04-02 21:40
+- 重构 taoke-admin 模块边界：消除跨模块 Repository 直接引用和 Entity 回写
+  - 新建 `UserRoleService` api 接口 + `UserRoleServiceImpl`（封装用户角色查询与平台角色分配逻辑）
+  - 扩展 `UserService`：新增 searchUsers / existsById / getActiveUserIds / findAllByIds
+  - 扩展 `RoleService`：新增 findByRoleType；create / update 签名改为接收原始参数
+  - 扩展 `PermissionService`：create / update 签名改为接收原始参数
+  - 扩展 `TrainerService`：新增 searchForAdmin / findByUserIds / hasExpertise/IndustryCategoryReference
+  - 重构 4 个 admin 文件（AdminUserService / AdminTrainerService / AdminNotificationController / AdminCategoryController）：全部改为通过 api/ 接口访问
+  - 重构 AdminRoleService / AdminPermissionService：不再构造跨模块 Entity，改为传递原始参数
+  - 架构文档更新：3.4 Admin 边界规则、5.1 Entity 只读约定、5.3 禁止事项
+- 初始化 taoke-course 模块骨架（api / controller / service / repository / entity / dto / mapper / enums / eventlistener / config）
+
 ## 2026-04-02 20:30
 - 修复 admin-frontend 图标库引用错误（lucide-react → @tabler/icons-react）
   - `template-table.tsx`：Pencil/Trash2/Plus → IconEdit/IconTrash/IconPlus
