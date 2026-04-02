@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>淘课网 - 内训课列表</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#be0003",
+            "primary-container": "#e62117",
+            "background": "#f7f9fc",
+            "surface": "#ffffff",
+            "on-surface": "#191c1e",
+            "secondary-text": "#515f74",
+            "outline-variant": "#e0e3e6",
+          },
+          fontFamily: {
+            "headline": ["Manrope"],
+            "body": ["Inter"],
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "sm": "0.25rem",
+            "lg": "0.75rem",
+            "xl": "1rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    body { background-color: #f7f9fc; color: #191c1e; font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-background font-body text-on-surface">
+
+  <!-- 顶部辅助导航栏 (Top Nav Bar) -->
+  <div class="w-full bg-slate-50 border-b border-slate-100 text-xs py-1.5 px-8 z-50 relative">
+    <div class="max-w-7xl w-full mx-auto flex items-center justify-between">
+      <!-- 左侧：集团站点 -->
+      <div class="flex items-center gap-3 text-slate-500">
+        <a href="#" class="hover:text-primary transition-colors">淘课集团</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">淘课网</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">培训宝</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">目标通</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">AI 导师</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">智能创导</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">AI 陪练</a>
+      </div>
+      <!-- 右侧：用户认证区域 -->
+      <div class="flex items-center gap-3 text-slate-500">
+        <a href="#" class="hover:text-primary transition-colors">登录</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">注册</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主导航栏 (App Header) -->
+  <nav class="h-[80px] w-full bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-sm px-8 flex flex-col justify-center transition-all duration-300">
+    <div class="max-w-7xl w-full mx-auto flex items-center justify-between h-full">
+      <!-- 左侧：Logo -->
+      <div class="flex items-center gap-6 shrink-0">
+        <a href="#" class="flex flex-col items-center justify-center">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">school</span>
+            <span class="text-on-surface font-headline font-black text-2xl tracking-tighter">淘课网</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- 中间：主导航链接 -->
+      <div class="hidden lg:flex items-center gap-8 shrink-0">
+        <a href="#" class="text-slate-600 font-medium hover:text-primary transition-colors text-[15px]">首页</a>
+        <a href="#" class="text-slate-600 font-medium hover:text-primary transition-colors text-[15px]">专家/讲师</a>
+        <a href="#" class="text-slate-600 font-medium hover:text-primary transition-colors text-[15px]">公开课</a>
+        <a href="#" class="text-primary font-bold transition-colors text-[15px] border-b-2 border-primary pb-1">内训课</a>
+        <a href="#" class="text-slate-600 font-medium hover:text-primary transition-colors text-[15px]">在线课</a>
+        <a href="#" class="text-slate-600 font-medium hover:text-primary transition-colors text-[15px]">机构</a>
+      </div>
+
+      <!-- 右侧：搜索栏 -->
+      <div class="flex items-center ml-4 flex-1 max-w-xs justify-end relative">
+        <input type="text" placeholder="搜索课程、讲师..." class="w-full h-10 pl-4 pr-10 bg-slate-100 border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+        <span class="material-symbols-outlined absolute right-3 text-slate-400">search</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主内容区 -->
+  <main class="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
+    <!-- 面包屑导航 -->
+    <nav class="flex text-sm text-slate-500 gap-2 items-center">
+      <span>你的位置：</span>
+      <a href="#" class="hover:text-primary transition-colors">首页</a>
+      <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+      <span class="text-slate-800 font-medium">内训课</span>
+    </nav>
+
+    <!-- 左右两栏布局容器 -->
+    <div class="flex gap-6 items-start">
+      
+      <!-- 左侧边栏：内训课导航 -->
+      <aside class="w-64 shrink-0 bg-white rounded-xl shadow-sm border border-slate-100 overflow-visible relative">
+        <!-- 综合类 -->
+        <div class="border-b border-slate-100 group">
+          <button class="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors">
+            <span class="font-semibold text-slate-800 text-sm">综合类</span>
+            <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">keyboard_arrow_right</span>
+          </button>
+        </div>
+        
+        <!-- 课程分类 -->
+        <div class="border-b border-slate-100 group">
+          <button class="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors">
+            <span class="font-semibold text-slate-800 text-sm">课程分类</span>
+            <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">keyboard_arrow_right</span>
+          </button>
+        </div>
+
+        <!-- 讲师城市 -->
+        <div class="border-b border-slate-100 group">
+          <button class="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors">
+            <span class="font-semibold text-slate-800 text-sm">讲师城市</span>
+            <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">keyboard_arrow_right</span>
+          </button>
+        </div>
+
+        <!-- 课程行业 -->
+        <div class="border-b border-slate-100 group">
+          <button class="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors">
+            <span class="font-semibold text-slate-800 text-sm">课程行业</span>
+            <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">keyboard_arrow_right</span>
+          </button>
+        </div>
+
+        <!-- 讲师独家 -->
+        <div class="group">
+          <button class="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors">
+            <span class="font-semibold text-slate-800 text-sm">讲师独家</span>
+            <span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">keyboard_arrow_right</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- 右侧主内容：排序控制与列表 -->
+      <div class="flex-1 flex flex-col gap-4">
+        
+        <!-- 排序 Tabs -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex items-center gap-2">
+          <button class="px-6 py-2 rounded-lg text-sm font-bold text-primary bg-primary/5 transition-colors">默认</button>
+          <button class="px-6 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">评分</button>
+        </div>
+
+        <!-- 课程卡片列表 -->
+        <div class="flex flex-col gap-3">
+          
+          <!-- 循环生成卡片 -->
+          <script>
+            const courses = [
+              { title: "移动通信管理能力训练——管理九剑", pop: 16404, author: "白老师", loc: "广东 广州市", days: "2.0天", cat: "领导力", kw: "管理 基层主管 领导力" },
+              { title: "PowerPoint结构 Point中国——PPT排版设计...", pop: 9155, author: "刘老师", loc: "广东 广州市", days: "2.0天", cat: "职业素养", kw: "ppt office 办公技能 PowerPoint" },
+              { title: "《六段锦职场成长管理》", pop: 1812, author: "陈老师", loc: "上海 上海市", days: "1.0天", cat: "领导力", kw: "员工管理 激励 高效沟通 目标管理" },
+              { title: "《用数字》管理领导力打和沙盘", pop: 10190, author: "李老师", loc: "江苏 南京市", days: "1.0天", cat: "部门管理", kw: "沟通 跨部门沟通 团队建设" },
+              { title: "六大工具防错主管《有效解决问题》", pop: 12447, author: "张老师", loc: "江苏 苏州市", days: "1.0天", cat: "领导力", kw: "一线主管 骨干员工 六大工具 pdca" },
+              { title: "非人力资源的人力资源管理", pop: 16370, author: "王老师", loc: "江苏 南京市", days: "1.0天", cat: "人力资源", kw: "非人 人力资源管理 人才招聘 绩效考核" },
+              { title: "《OKR开发及应用》", pop: 14053, author: "赵老师", loc: "上海 上海市", days: "1.0天", cat: "人力资源", kw: "绩效管理 okr" },
+              { title: "培训管理者的项目管理", pop: 18001, author: "孙老师", loc: "待定 待定", days: "2.0天", cat: "人力资源", kw: "培训管理 培训体系 培训师" },
+              { title: "打造狼性团队", pop: 5643, author: "吴老师", loc: "北京 北京市", days: "2.0天", cat: "领导力", kw: "管理 团队建设 激励 执行力 沟通" },
+              { title: "内部讲师培养", pop: 16756, author: "周老师", loc: "广东 深圳市", days: "2.0天", cat: "培训师/TTT", kw: "TTT 讲师培养" },
+              { title: "PDCA 解决问题的金钥匙", pop: 10741, author: "吴老师", loc: "上海 上海市", days: "1.0天", cat: "职业素养", kw: "问题解决 pdca" },
+              { title: "行动学习：从问题解决到管理技能提升训练", pop: 8132, author: "钱老师", loc: "广东 广州市", days: "2.0天", cat: "领导力", kw: "问题解决 管理技能提升" },
+              { title: "力量沙盘", pop: 2883, author: "孙老师", loc: "上海 上海市", days: "1.0天", cat: "团队建设", kw: "沙盘" },
+              { title: "跨部门沟通与协作", pop: 4896, author: "吴老师", loc: "上海 上海市", days: "2.0天", cat: "人力资源", kw: "跨部门沟通 沟通技巧" },
+              { title: "关键时刻：职场人的高情商沟通", pop: 12592, author: "赵老师", loc: "上海 上海市", days: "1.0天", cat: "职业素养", kw: "职场沟通 高情商" },
+            ];
+
+            courses.forEach(c => {
+              document.write(`
+            <div class="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group flex flex-col md:flex-row gap-4">
+              <div class="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-slate-300 text-2xl">menu_book</span>
+              </div>
+              
+              <div class="flex-1">
+                <div class="flex flex-col md:flex-row md:items-start justify-between mb-2 gap-2">
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-base font-bold text-slate-800 group-hover:text-primary transition-colors line-clamp-1">\${c.title}</h3>
+                  </div>
+                  <div class="flex items-center gap-4 text-xs shrink-0">
+                    <div class="flex items-center gap-1 text-slate-500">
+                      <span class="material-symbols-outlined text-[14px] text-orange-400">local_fire_department</span>
+                      人气：<span class="text-primary font-semibold">\${c.pop}</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-slate-500">
+                      课程评分：
+                      <div class="flex text-slate-200 text-[14px]">
+                        <span class="material-symbols-outlined text-amber-400" style="font-variation-settings: 'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined text-amber-400" style="font-variation-settings: 'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined text-amber-400" style="font-variation-settings: 'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined text-amber-400" style="font-variation-settings: 'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined text-amber-400" style="font-variation-settings: 'FILL' 1;">star</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-y-1.5 text-xs text-slate-600 bg-slate-50/50 p-2.5 rounded-md mb-2">
+                  <div class="flex items-center gap-1">
+                    <span class="text-slate-400 min-w-[60px]">授课讲师：</span> \${c.author}
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <span class="text-slate-400 min-w-[60px]">确定天数：</span> \${c.days}
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <span class="text-slate-400 min-w-[60px]">讲师常驻地：</span> \${c.loc}
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <span class="text-slate-400 min-w-[60px]">课程分类：</span> <span class="text-slate-700">\${c.cat}</span>
+                  </div>
+                </div>
+                
+                <div class="text-xs text-slate-400">
+                  关键字：\${c.kw}
+                </div>
+              </div>
+            </div>
+              `);
+            });
+          </script>
+          
+          <!-- 分页 (Pagination Mock) -->
+          <div class="flex justify-center mt-6">
+            <div class="flex items-center gap-2">
+              <button class="px-3 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 cursor-not-allowed text-sm" disabled>首页</button>
+              <button class="px-3 h-8 flex items-center justify-center rounded-lg bg-primary text-white font-medium shadow-sm text-sm">上一页</button>
+              <button class="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-white font-medium shadow-sm">1</button>
+              <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium">2</button>
+              <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium">3</button>
+              <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium">4</button>
+              <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium">5</button>
+              <span class="text-slate-400 px-1">...</span>
+              <button class="px-3 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm">下一页</button>
+              <button class="px-3 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm">尾页</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Match Engagement Banner -->
+    <section class="bg-gradient-to-r from-[#200502] via-[#0d161d] to-[#410502] rounded-xl px-10 py-8 flex flex-col md:flex-row items-center justify-between shadow-2xl overflow-hidden relative border border-white/5 mt-6">
+      <div class="relative z-10 max-w-2xl mb-6 md:mb-0">
+        <div class="inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-white/70 text-[10px] mb-3">
+          <span class="material-symbols-outlined text-[14px]">support_agent</span>
+          AI 智能客服助手 v2.0
+        </div>
+        <h2 class="text-white text-2xl font-black mb-2 font-headline leading-tight">不知道该选什么课程？随时咨询 AI 智能客服</h2>
+        <p class="text-white/60 text-sm leading-relaxed max-w-lg">7x24小时在线解答，为您提供智能课程推荐、需求分析及售后支持，极速响应您的每一个问题。</p>
+      </div>
+      <div class="relative z-10">
+        <button class="bg-primary text-white font-black px-6 py-3 rounded-lg hover:scale-105 active:scale-95 transition-all shadow-xl shadow-red-500/20 text-base flex items-center gap-2">
+          <span class="material-symbols-outlined">chat</span> 立即唤起 AI 客服
+        </button>
+      </div>
+      <div class="absolute right-0 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
+        <span class="material-symbols-outlined text-[150px] text-white">support_agent</span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 页脚 (Footer) -->
+  <footer class="mt-10 bg-[#141414] py-16 text-[#A0A0A0]">
+        <div class="max-w-[1400px] mx-auto px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
+                <!-- 列 1: 品牌简介 -->
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-10 h-10 bg-primary rounded flex items-center justify-center text-white font-bold text-xl">淘</div>
+                            <span class="text-2xl font-black tracking-tighter text-white font-headline">淘课网</span>
+                        </div>
+                        <p class="text-white text-[15px] font-medium tracking-wide">领先的企业培训采购平台</p>
+                    </div>
+                    <div class="w-10 h-0.5 bg-primary"></div>
+                    <p class="text-[13px] leading-6">
+                        淘课网联合全国数万优秀培训师和培训机构,给企业提供有针对性的、互动的、积聚人脉的管理培训服务.包括提供培训需求诊断、培训课程采购、培训资料下载等服务！
+                    </p>
+                </div>
+
+                <!-- 列 2: 网站导航 -->
+                <div class="flex flex-col gap-5">
+                    <h3 class="text-white font-bold text-[16px]">网站导航</h3>
+                    <ul class="flex flex-col gap-3 text-[13px]">
+                        <li><a href="#" class="hover:text-white transition-colors">淘课网首页</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">淘课百科</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">《快乐培训》期刊</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">DISC性格测评</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">使用帮助</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">站点地图</a></li>
+                    </ul>
+                </div>
+
+                <!-- 列 3: 关于我们 & 商务合作 -->
+                <div class="flex flex-col gap-8">
+                    <div class="flex flex-col gap-5">
+                        <h3 class="text-white font-bold text-[16px]">关于我们</h3>
+                        <ul class="flex flex-col gap-3 text-[13px]">
+                            <li><a href="#" class="hover:text-white transition-colors">关于淘课</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">联系我们</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">招聘英才</a></li>
+                        </ul>
+                    </div>
+                    <div class="flex flex-col gap-5">
+                        <h3 class="text-white font-bold text-[16px]">商务服务</h3>
+                        <ul class="flex flex-col gap-3 text-[13px]">
+                            <li><a href="#" class="hover:text-white transition-colors">商务合作</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">广告服务</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 列 4: 法律与条款 -->
+                <div class="flex flex-col gap-5">
+                    <h3 class="text-white font-bold text-[16px]">法律声明</h3>
+                    <ul class="flex flex-col gap-3 text-[13px]">
+                        <li><a href="#" class="hover:text-white transition-colors">服务条款</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">法律声明</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">隐私保护</a></li>
+                    </ul>
+                </div>
+
+                <!-- 列 5: 联系我们 & 二维码 -->
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex flex-col gap-5 w-full">
+                            <h3 class="text-white font-bold text-[16px]">联系我们</h3>
+                            <ul class="flex flex-col gap-4 text-[13px]">
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-[#07C160] transition-colors"><span class="material-symbols-outlined text-[16px] text-white">chat</span></div>
+                                    <span>微信公众号</span>
+                                </li>
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-white transition-colors"><span class="material-symbols-outlined text-[16px] text-white group-hover:text-black">music_note</span></div>
+                                    <span>官方抖音号</span>
+                                </li>
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-[#FF2442] transition-colors"><span class="text-white text-[10px] font-bold">小红书</span></div>
+                                    <span>官方小红书</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <!-- 二维码 -->
+                        <div class="shrink-0 bg-white p-2 rounded-md mt-10">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://taoke.com" alt="二维码" class="w-24 h-24" />
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <div class="text-white text-[24px] font-bold font-headline mb-3">400-169-7929</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-12 pt-6 border-t border-[#333] text-center text-[12px] text-[#888] flex flex-col md:flex-row justify-center items-center gap-4">
+                <span>Copyright(C) 2006-2024 TAOKE.com All Rights Reserved.</span>
+                <a href="#" class="hover:text-white transition-colors">上海淘课企业管理咨询有限公司 版权所有</a>
+                <a href="#" class="hover:text-white transition-colors">沪ICP备05034964号</a>
+                <div class="flex items-center gap-1 ml-4 cursor-pointer hover:text-white transition-colors">
+                    <img src="https://img.alicdn.com/tfs/TB1..50QpXXXXX7XpXXXXXXXXXX-40-40.png" alt="上海工商" class="w-4 h-4 opacity-70 grayscale">
+                    <span>上海工商</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

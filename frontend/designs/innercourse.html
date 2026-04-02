@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>淘课网 - 内训课详情</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries,typography"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#be0003",
+            "primary-container": "#e62117",
+            "background": "#f7f9fc",
+            "surface": "#ffffff",
+            "on-surface": "#191c1e",
+            "secondary-text": "#515f74",
+            "outline-variant": "#e0e3e6",
+          },
+          fontFamily: {
+            "headline": ["Manrope"],
+            "body": ["Inter"],
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "sm": "0.25rem",
+            "lg": "0.75rem",
+            "xl": "1rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1; }
+    body { background-color: #f7f9fc; color: #191c1e; font-family: 'Inter', sans-serif; }
+    
+    /* Tab active state styles */
+    .tab-btn { position: relative; }
+    .tab-btn.active { color: #be0003; font-weight: 700; }
+    .tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background-color: #be0003; border-radius: 3px 3px 0 0; }
+    .tab-btn:not(.active) { color: #515f74; }
+    .tab-btn:not(.active):hover { color: #191c1e; }
+    
+    .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+    .tab-content.active { display: block; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Content formatting */
+    .course-prose h3 { font-size: 1.125rem; font-weight: 700; color: #1e293b; margin-top: 2rem; margin-bottom: 1rem; border-left: 4px solid #be0003; padding-left: 0.75rem; line-height: 1.2; background-color: #f1f5f9; padding-top: 0.5rem; padding-bottom: 0.5rem;}
+    .course-prose h4 { font-size: 1rem; font-weight: 600; color: #334155; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+    .course-prose p { margin-bottom: 1rem; color: #475569; line-height: 1.8; font-size: 0.95rem; }
+    .course-prose ul { list-style-type: none; padding-left: 0; margin-bottom: 1.5rem; color: #475569; font-size: 0.95rem; }
+    .course-prose ul li { position: relative; padding-left: 1.25rem; margin-bottom: 0.5rem; line-height: 1.6; }
+    .course-prose ul li::before { content: '•'; position: absolute; left: 0; color: #cbd5e1; font-size: 1.2rem; line-height: 1; top: 0.1rem; }
+    
+    /* Custom styles for inner course content */
+    .innercourse-content h4 { font-size: 1rem; font-weight: 700; color: #1e293b; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+    .innercourse-content ol { list-style-type: none; counter-reset: item; padding-left: 0; margin-bottom: 1rem; color: #475569; font-size: 0.95rem;}
+    .innercourse-content > ol > li { counter-increment: item; margin-bottom: 0.5rem; line-height: 1.6; }
+    .innercourse-content > ol > li::before { content: counter(item) ". "; font-weight: bold; margin-right: 0.25rem; }
+    .innercourse-content ol ol { list-style-type: none; counter-reset: subitem; padding-left: 1.5rem; margin-top: 0.25rem; margin-bottom: 0.5rem; }
+    .innercourse-content ol ol > li { counter-increment: subitem; margin-bottom: 0.25rem; }
+    .innercourse-content ol ol > li::before { content: counter(subitem) ") "; margin-right: 0.25rem; }
+  </style>
+</head>
+<body class="bg-background font-body text-on-surface">
+
+  <!-- 顶部辅助导航栏 (Top Nav Bar) -->
+  <div class="w-full bg-slate-50 border-b border-slate-100 text-xs py-1.5 px-8 z-50 relative">
+    <div class="max-w-7xl w-full mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3 text-slate-500">
+        <a href="#" class="hover:text-primary transition-colors">淘课集团</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">淘课网</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">培训宝</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">目标通</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">AI 导师</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">智能创导</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">AI 陪练</a>
+      </div>
+      <div class="flex items-center gap-3 text-slate-500">
+        <a href="#" class="hover:text-primary transition-colors">登录</a>
+        <span class="text-slate-300">|</span>
+        <a href="#" class="hover:text-primary transition-colors">注册</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主导航栏 (App Header) -->
+  <nav class="h-[80px] w-full bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-sm px-8 flex flex-col justify-center transition-all duration-300">
+    <div class="max-w-7xl w-full mx-auto flex items-center justify-between h-full">
+      <!-- 左侧：Logo -->
+      <div class="flex items-center gap-6 shrink-0">
+        <a href="#" class="flex flex-col items-center justify-center">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-3xl filled">school</span>
+            <span class="text-on-surface font-headline font-black text-2xl tracking-tighter">淘课网</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- 中间：主导航链接 -->
+      <div class="hidden lg:flex items-center gap-8 shrink-0">
+        <a href="#" class="text-slate-600 font-medium hover:text-primary transition-colors text-[15px]">首页</a>
+        <a href="#" class="text-slate-600 font-medium hover:text-primary transition-colors text-[15px]">专家/讲师</a>
+        <a href="#" class="text-slate-600 font-medium hover:text-primary transition-colors text-[15px]">公开课</a>
+        <a href="#" class="text-primary font-bold transition-colors text-[15px] border-b-2 border-primary pb-1">内训课</a>
+        <a href="#" class="text-slate-600 font-medium hover:text-primary transition-colors text-[15px]">在线课</a>
+        <a href="#" class="text-slate-600 font-medium hover:text-primary transition-colors text-[15px]">机构</a>
+      </div>
+
+      <!-- 右侧：搜索栏 -->
+      <div class="flex items-center ml-4 flex-1 max-w-xs justify-end relative">
+        <div class="relative w-full max-w-[240px]">
+            <input type="text" placeholder="搜索课程/讲师..." class="w-full bg-slate-100 border-transparent rounded-full py-2 pl-4 pr-10 text-sm focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none">
+            <button class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary">
+                <span class="material-symbols-outlined text-[18px]">search</span>
+            </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl w-full mx-auto px-8 py-6">
+    <!-- 面包屑导航 -->
+    <nav class="flex items-center text-sm text-slate-500 mb-6">
+      <span class="mr-2">您的位置：</span>
+      <a href="#" class="hover:text-primary transition-colors">首页</a>
+      <span class="mx-2 text-slate-300">&gt;</span>
+      <a href="#" class="hover:text-primary transition-colors">内训</a>
+      <span class="mx-2 text-slate-300">&gt;</span>
+      <span class="text-slate-800 font-medium">课程详情</span>
+    </nav>
+
+    <!-- 核心信息区 (Hero Section) -->
+    <section class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 mb-6 flex flex-col lg:flex-row gap-8 relative overflow-hidden">
+        <!-- 装饰背景 -->
+        <div class="absolute right-0 top-0 w-64 h-64 bg-red-50 rounded-full blur-3xl -z-0 opacity-50 translate-x-1/2 -translate-y-1/2"></div>
+        
+        <!-- 左侧课程信息 -->
+        <div class="flex-1 relative z-10">
+            <!-- 标签与标题 -->
+            <div class="flex items-center gap-3 mb-4">
+                <span class="bg-red-50 text-primary text-xs font-bold px-2.5 py-1 rounded border border-red-100">内训课</span>
+                <span class="bg-amber-50 text-amber-600 text-xs font-bold px-2.5 py-1 rounded border border-amber-100">主打</span>
+            </div>
+            <h1 class="text-3xl font-headline font-black text-slate-900 mb-6 leading-tight">系统性管理能力训练——管理九剑</h1>
+            
+            <!-- 课程元数据 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-8 text-sm text-slate-600 mb-6">
+                <div class="flex items-start">
+                    <span class="text-slate-400 w-20 shrink-0">课程编号：</span>
+                    <span class="font-medium text-slate-800">395382</span>
+                </div>
+                <div class="flex items-start">
+                    <span class="text-slate-400 w-20 shrink-0">课程时长：</span>
+                    <span class="font-medium text-slate-800">2.0天</span>
+                </div>
+                <div class="flex items-start md:col-span-2">
+                    <span class="text-slate-400 w-20 shrink-0">适合对象：</span>
+                    <span class="font-medium text-slate-800 leading-relaxed">经理人</span>
+                </div>
+            </div>
+
+            <hr class="border-slate-100 my-6">
+
+            <!-- 核心人物/机构信息 -->
+            <div class="flex flex-wrap items-center gap-x-8 gap-y-4 text-sm">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                        <span class="material-symbols-outlined text-[18px]">person</span>
+                    </div>
+                    <span class="text-slate-500">授课老师：</span>
+                    <a href="#" class="text-primary font-medium hover:underline">张三</a>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                        <span class="material-symbols-outlined text-[18px]">category</span>
+                    </div>
+                    <span class="text-slate-500">课程类别：</span>
+                    <a href="#" class="text-primary font-medium hover:underline">领导力</a>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-500">
+                        <span class="material-symbols-outlined text-[18px] filled">star</span>
+                    </div>
+                    <span class="text-slate-500">评分：</span>
+                    <span class="text-amber-500 font-bold">5.0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧操作区 -->
+        <div class="w-full lg:w-80 shrink-0 bg-slate-50 rounded-xl p-6 flex flex-col justify-center relative z-10 border border-slate-100">
+            <div class="flex flex-col gap-3">
+                <button class="w-full bg-primary hover:bg-primary-container text-white font-bold py-3.5 px-4 rounded-lg shadow-lg shadow-red-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-[20px]">chat</span>
+                    立即咨询
+                </button>
+                <button class="w-full bg-white border border-slate-200 hover:border-primary hover:text-primary text-slate-600 font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-[20px]">favorite_border</span>
+                    加入收藏
+                </button>
+            </div>
+
+            <!-- 互动数据 -->
+            <div class="flex items-center justify-between text-xs text-slate-400 mt-6 pt-4 border-t border-slate-200">
+                <div class="flex gap-4">
+                    <button class="flex items-center gap-1 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[16px]">share</span> 分享</button>
+                    <button class="flex items-center gap-1 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[16px]">local_fire_department</span> 人气: 11447</button>
+                </div>
+                <div class="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-[16px]">edit_note</span> 评价
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI 智能客服入口 -->
+    <section class="bg-gradient-to-r from-red-50/80 via-rose-50/80 to-red-50/80 rounded-xl p-5 mb-8 border border-red-100 flex flex-col md:flex-row items-center justify-between shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+        <!-- 装饰图标 -->
+        <div class="absolute -right-6 -top-6 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500 pointer-events-none">
+            <span class="material-symbols-outlined text-[120px] text-primary">support_agent</span>
+        </div>
+
+        <div class="flex items-center gap-4 relative z-10 mb-4 md:mb-0">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shadow-lg shadow-primary/30 shrink-0">
+                <span class="material-symbols-outlined text-white">support_agent</span>
+            </div>
+            <div>
+                <h3 class="text-slate-900 font-bold text-[16px] mb-0.5 flex items-center gap-2">
+                    AI 智能客服帮您深度解读本课程
+                    <span class="bg-red-100 text-primary text-[10px] px-2 py-0.5 rounded-full font-semibold">Beta</span>
+                </h3>
+                <p class="text-slate-600 text-sm">不确定是否适合您的团队？一键唤起 AI 助手，获取课程亮点提取与受众分析。</p>
+            </div>
+        </div>
+        <div class="relative z-10 w-full md:w-auto">
+            <button class="w-full md:w-auto bg-primary hover:bg-primary-container text-white font-semibold border border-transparent px-6 py-2.5 rounded-lg shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">chat</span>
+                立即对话 AI
+            </button>
+        </div>
+    </section>
+
+    <!-- 内容选项卡 (Tabs) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden min-h-[500px]">
+        <!-- Tabs Header -->
+        <div class="flex border-b border-slate-100 px-8 bg-slate-50/50">
+            <button class="tab-btn active px-6 py-4 text-[16px] transition-all cursor-pointer outline-none" data-target="course-details">
+                课程介绍
+            </button>
+            <button class="tab-btn px-6 py-4 text-[16px] transition-all cursor-pointer outline-none" data-target="evaluations">
+                评价详情(1)
+            </button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-8 lg:px-12 lg:py-10">
+            
+            <!-- ================= Tab 1: 课程介绍 ================= -->
+            <div id="course-details" class="tab-content active course-prose innercourse-content">
+                
+                <h3 class="mt-0">培训受众：</h3>
+                <p>未经系统培训的基、中、高层管理者，新晋升主管、经理，准备晋升管理的核心员工，创业者。</p>
+
+                <h3>课程收益：</h3>
+                <p>大部分管理者都是因为业务优秀而升职。从业务明星升职管理者，却不培训管理知识和技能，不仅失去一个业务明星，更可能拖累整个业务团队。<br>
+                研究表明，一个人的工作绩效表现72%是由领导决定的；70%以上的离职，直接原因就是上级主管。一个不懂管理的管理者，带来的破坏是灾难性的：执行力差、离职率高、团队涣散、沟通不畅......这些都是管理者的原罪；管理靠懵懂，什么培训、激励、机制，都没用！<br>
+                所以每个新任管理者，都必须精修这一课：有效管理。<br>
+                本课程源于彼得·德鲁克、马利克、稻盛和夫等众多大师的研究成果，集众家之所长，既有扎实的经典理论基础，又易于理解记忆，结合实际工作场景的演练、应用，让学员便于落地，高效实战。</p>
+
+                <p>课程收益：<br>
+                创建学习型组织，可在以下方面提升管理团队：</p>
+                <ul>
+                    <li><strong>明确责任、转变角色：</strong>明白管理者的岗位责任，转变管理心态，系统学习管理的模块和工作内容，完成管理者的关键任务</li>
+                    <li><strong>掌握核心管理技能：</strong>掌握目标管理、计划管理、时间管理、管理沟通、绩效管理等核心管理技能</li>
+                    <li><strong>达成目标、结果导向：</strong>可以带领团队分解任务，整合资源，以结果为导向，高效、有效地达成目标</li>
+                    <li><strong>打造高绩效团队：</strong>学会如何激励员工，指导下属，领导团队，建立良好的组织执行和绩效</li>
+                    <li><strong>解决实操：</strong>如何处理能力比自己强的下属？如何应对骨干级员工出单不抢业务？如何向上管理？如何面对部属刺头员工？如何处理执行力差的问题？如何考评员工？......</li>
+                    <li><strong>帮助企业升级管理：</strong>能够带领员工学习和复盘，不断迭代精进，培养优秀员工，推动企业不断地发展</li>
+                </ul>
+
+                <h3>课程大纲</h3>
+                <h4>一、剑术总论：重新认识管理</h4>
+                <ol>
+                    <li>管理到底是什么</li>
+                    <li>管理的核心是什么</li>
+                    <li>为什么要做管理角色</li>
+                    <li>如何学习管理</li>
+                </ol>
+
+                <h4>二、管理核心一剑：计划执行模块的核心原则</h4>
+                <ol>
+                    <li>核心第一剑：知人善任
+                        <ol>
+                            <li>结果导向的识人方法</li>
+                            <li>选对人才</li>
+                            <li>用人所长原则</li>
+                        </ol>
+                    </li>
+                    <li>核心第二剑：职业素养
+                        <ol>
+                            <li>职业素养的内涵定义</li>
+                            <li>职业素养测试</li>
+                            <li>职业素养在职场应用</li>
+                        </ol>
+                    </li>
+                    <li>核心第三剑：打造团队
+                        <ol>
+                            <li>打造团队的关键：用人所长</li>
+                            <li>团队协作</li>
+                            <li>引导积极向上的心态</li>
+                        </ol>
+                    </li>
+                </ol>
+
+                <h4>三、管理实战九剑：有效管理的核心任务工具</h4>
+                <ol>
+                    <li>实战第一剑：决策
+                        <ol>
+                            <li>科学决策的常识</li>
+                            <li>决策中的误区</li>
+                            <li>决策的程序</li>
+                        </ol>
+                    </li>
+                    <li>实战第二剑：计划
+                        <ol>
+                            <li>目标管理的基本原则</li>
+                            <li>把目标合理组织起来</li>
+                            <li>任务与目标</li>
+                        </ol>
+                    </li>
+                    <li>实战第三剑：委派
+                        <ol>
+                            <li>交代工作和委派员工</li>
+                            <li>信任和授权的方法</li>
+                            <li>过程化解技巧</li>
+                        </ol>
+                    </li>
+                    <li>实战第四剑：监督
+                        <ol>
+                            <li>关注过程，考核结果</li>
+                            <li>结果导向是评价绩效的根本</li>
+                            <li>打造完美执行力</li>
+                        </ol>
+                    </li>
+                    <li>实战第五剑：激励
+                        <ol>
+                            <li>激励的科学原理</li>
+                            <li>领导力的体现</li>
+                            <li>让系统有效率</li>
+                        </ol>
+                    </li>
+                    <li>实战第六剑：改进
+                        <ol>
+                            <li>管理团队与绩效改进</li>
+                            <li>反思与复盘</li>
+                            <li>改进的方法和工具</li>
+                        </ol>
+                    </li>
+                </ol>
+
+                <h4>四、实战情境演练辅导</h4>
+                <ol>
+                    <li>员工能力强，出单不抢业务怎么办？</li>
+                    <li>如何向上管理？</li>
+                    <li>为什么交代的任务得不到积极响应？</li>
+                    <li>如何管理比自己强的下属？</li>
+                    <li>如何避免相互扯皮、推诿？</li>
+                    <li>员工不愿进取怎么办？</li>
+                    <li>如何处理执行不力的问题？</li>
+                    <li>如何面对部属刺头员工？</li>
+                    <li>如何修炼自己的领导力</li>
+                    <li>同级需要用命令的口吻让其做事，怎么办？</li>
+                    <li>如何凝聚团队士气？</li>
+                    <li>如何考评部属？</li>
+                    <li>如何让奖惩制度行之有效？</li>
+                    <li>现场实际问题的分析与解决</li>
+                </ol>
+
+                <h3>培训师介绍</h3>
+                <ul>
+                    <li>广东大腾企业管理咨询总经理</li>
+                    <li>曾就职多家世界500强跨国企业</li>
+                    <li>15年管理、培训经验</li>
+                    <li>曾组建运营上市公司企业大学</li>
+                    <li>IPA国际注册高级沙盘讲师</li>
+                    <li>多家知名培训机构签约讲师、多门版权课程</li>
+                    <li>有批发零售、外贸、IT、AI、服务业等多行业背景</li>
+                </ul>
+            </div>
+
+            <!-- ================= Tab 2: 评价详情 ================= -->
+            <div id="evaluations" class="tab-content">
+                <div class="flex items-center justify-between mb-8">
+                    <h3 class="text-xl font-bold text-slate-800 m-0">学员真实评价 <span class="text-sm font-normal text-slate-500 ml-2">共 1 条评价</span></h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl font-black text-amber-500">5.0</span>
+                        <div class="flex text-amber-500">
+                            <span class="material-symbols-outlined text-[20px] filled">star</span>
+                            <span class="material-symbols-outlined text-[20px] filled">star</span>
+                            <span class="material-symbols-outlined text-[20px] filled">star</span>
+                            <span class="material-symbols-outlined text-[20px] filled">star</span>
+                            <span class="material-symbols-outlined text-[20px] filled">star</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- 评价卡片 1 -->
+                    <div class="border-b border-slate-100 pb-6">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">陈</div>
+                                <div>
+                                    <div class="font-medium text-slate-800 text-sm">陈* (项目经理)</div>
+                                    <div class="text-xs text-slate-400">2026-03-20</div>
+                                </div>
+                            </div>
+                            <div class="flex text-amber-500">
+                                <span class="material-symbols-outlined text-[16px] filled">star</span>
+                                <span class="material-symbols-outlined text-[16px] filled">star</span>
+                                <span class="material-symbols-outlined text-[16px] filled">star</span>
+                                <span class="material-symbols-outlined text-[16px] filled">star</span>
+                                <span class="material-symbols-outlined text-[16px] filled">star</span>
+                            </div>
+                        </div>
+                        <p class="text-slate-600 text-sm leading-relaxed">老师讲得非常好，理论结合实际，干货满满。特别是关于目标管理和团队建设的部分，解答了我平时工作中的很多疑惑，非常推荐新晋管理者来学习！</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+  </main>
+
+  <!-- 页脚 (Footer) -->
+  <footer class="mt-10 bg-[#141414] py-16 text-[#A0A0A0]">
+        <div class="max-w-[1400px] mx-auto px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
+                <!-- 列 1: 品牌简介 -->
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-10 h-10 bg-primary rounded flex items-center justify-center text-white font-bold text-xl">淘</div>
+                            <span class="text-2xl font-black tracking-tighter text-white font-headline">淘课网</span>
+                        </div>
+                        <p class="text-white text-[15px] font-medium tracking-wide">领先的企业培训采购平台</p>
+                    </div>
+                    <div class="w-10 h-0.5 bg-primary"></div>
+                    <p class="text-[13px] leading-6">
+                        淘课网联合全国数万优秀培训师和培训机构,给企业提供有针对性的、互动的、积聚人脉的管理培训服务.包括提供培训需求诊断、培训课程采购、培训资料下载等服务！
+                    </p>
+                </div>
+
+                <!-- 列 2: 网站导航 -->
+                <div class="flex flex-col gap-5">
+                    <h3 class="text-white font-bold text-[16px]">网站导航</h3>
+                    <ul class="flex flex-col gap-3 text-[13px]">
+                        <li><a href="#" class="hover:text-white transition-colors">淘课网首页</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">淘课百科</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">《快乐培训》期刊</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">培训工具下载</a></li>
+                    </ul>
+                </div>
+
+                <!-- 列 3: 帮助中心 -->
+                <div class="flex flex-col gap-5">
+                    <h3 class="text-white font-bold text-[16px]">帮助中心</h3>
+                    <ul class="flex flex-col gap-3 text-[13px]">
+                        <li><a href="#" class="hover:text-white transition-colors">关于我们</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">联系我们</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">服务条款</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">隐私政策</a></li>
+                    </ul>
+                </div>
+
+                <!-- 列 4: 联系方式 -->
+                <div class="lg:col-span-2 flex flex-col gap-5">
+                    <h3 class="text-white font-bold text-[16px]">联系我们</h3>
+                    <div class="flex flex-col gap-4 text-[13px]">
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-primary text-[18px]">location_on</span>
+                            <p>上海市浦东新区某某路123号淘课大厦</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-primary text-[18px]">call</span>
+                            <div>
+                                <p class="text-white text-lg font-bold">400-123-4567</p>
+                                <p class="text-xs mt-1">周一至周日 9:00 - 18:00</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-primary text-[18px]">mail</span>
+                            <p>service@taoke.com</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部版权 -->
+            <div class="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-[12px]">
+                <p>&copy; 2024 淘课网 版权所有. 沪ICP备12345678号-1</p>
+                <div class="flex gap-4">
+                    <a href="#" class="hover:text-white transition-colors">法律声明</a>
+                    <a href="#" class="hover:text-white transition-colors">举报中心</a>
+                </div>
+            </div>
+        </div>
+  </footer>
+
+  <!-- Tabs 切换逻辑 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // 移除所有 active 类
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+
+                // 添加当前 active 类
+                btn.classList.add('active');
+                const targetId = btn.getAttribute('data-target');
+                document.getElementById(targetId).classList.add('active');
+            });
+        });
+    });
+  </script>
+</body>
+</html>
