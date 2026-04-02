@@ -2,33 +2,81 @@
 
 import { useTranslations } from 'next-intl';
 import { Search, ChevronDown } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent } from 'react';
+
+const SEARCH_CATEGORIES = [
+  { key: 'trainer', i18nKey: 'categoryTrainer' },
+  { key: 'course', i18nKey: 'categoryCourse' },
+] as const;
 
 /**
- * 顶部搜索栏 — 包含分类选择 + 关键词输入 + 搜索按钮
+ * 顶部搜索栏 — 包含分类下拉选择 + 关键词输入 + 搜索按钮
  */
 export function SearchBar() {
   const t = useTranslations('nav.search');
   const [keyword, setKeyword] = useState('');
+  const [categoryKey, setCategoryKey] = useState<string>('trainer');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const currentCategory = SEARCH_CATEGORIES.find((c) => c.key === categoryKey)!;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!keyword.trim()) return;
-    // TODO: 跳转至搜索结果页
+    // TODO: 跳转至搜索结果页，携带 categoryKey 和 keyword
   };
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-center bg-slate-100 rounded-[4px] overflow-hidden p-0.5 border border-slate-200"
+      className="flex items-center bg-slate-100 rounded-[4px] overflow-visible p-0.5 border border-slate-200 relative"
     >
-      <button
-        type="button"
-        className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-500 border-r border-slate-200 hover:bg-slate-200 shrink-0"
-      >
-        {t('category')}
-        <ChevronDown className="size-3.5" />
-      </button>
+      {/* 分类下拉 */}
+      <div ref={dropdownRef} className="relative shrink-0">
+        <button
+          type="button"
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-500 border-r border-slate-200 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+        >
+          {t(currentCategory.i18nKey)}
+          <ChevronDown
+            className={`size-3.5 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {dropdownOpen && (
+          <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-100 py-1 z-50 min-w-[100px]">
+            {SEARCH_CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                type="button"
+                onClick={() => {
+                  setCategoryKey(cat.key);
+                  setDropdownOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2 text-xs transition-colors ${
+                  categoryKey === cat.key
+                    ? 'text-primary bg-primary/5 font-medium'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-primary'
+                }`}
+              >
+                {t(cat.i18nKey)}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <input
         value={keyword}

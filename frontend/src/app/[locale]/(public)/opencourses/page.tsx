@@ -1,4 +1,6 @@
 import { getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
+import { ChevronRight } from 'lucide-react';
 import { OpenCourseListSection } from '@/features/course/components/open/OpenCourseListSection';
 import { getCourseList, getCourseCategoryTree } from '@/features/course/api/service';
 
@@ -11,8 +13,6 @@ export async function generateMetadata() {
 }
 
 export default async function OpenCoursesPage() {
-  const t = await getTranslations('course');
-
   const [initialData, categoryTree] = await Promise.all([
     getCourseList({ page: 1, size: 15, isOpen: true }).catch(() => ({
       list: [],
@@ -25,12 +25,18 @@ export default async function OpenCoursesPage() {
   ]);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900">{t('open.title')}</h1>
-        <p className="text-slate-500 mt-2">{t('open.subtitle')}</p>
-      </div>
+    <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
+      {/* 面包屑导航 */}
+      <nav className="flex text-sm text-slate-500 gap-2 items-center">
+        <span>你的位置：</span>
+        <Link href="/" className="hover:text-primary transition-colors">
+          首页
+        </Link>
+        <ChevronRight className="size-4" />
+        <span className="text-slate-800 font-medium">公开课</span>
+      </nav>
+
       <OpenCourseListSection initialData={initialData} categoryTree={categoryTree} />
-    </div>
+    </main>
   );
 }

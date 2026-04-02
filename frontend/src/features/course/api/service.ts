@@ -15,6 +15,7 @@ export interface CourseListParams {
   type?: string;
   isOpen?: boolean;
   keyword?: string;
+  sortBy?: string;
 }
 
 /**
@@ -31,6 +32,7 @@ export async function getCourseList(
   if (params.type) query.set('type', params.type);
   if (params.isOpen !== undefined) query.set('isOpen', String(params.isOpen));
   if (params.keyword) query.set('keyword', params.keyword);
+  if (params.sortBy) query.set('sortBy', params.sortBy);
 
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<CourseListItem>>>(
@@ -53,6 +55,18 @@ export async function getCourseDetail(id: number): Promise<CourseDetail> {
 export async function getCourseCategoryTree(): Promise<CategoryTreeNode[]> {
   const res = await apiGet<ApiResponse<CategoryTreeNode[]>>(
     `/categories/tree?type=COURSE_CATEGORY`,
+  );
+  return res.data;
+}
+
+/**
+ * 获取指定类型的分类树（通用）
+ */
+export async function getCategoryTree(
+  type: 'TRAINER_EXPERTISE' | 'TRAINER_INDUSTRY' | 'COURSE_CATEGORY',
+): Promise<CategoryTreeNode[]> {
+  const res = await apiGet<ApiResponse<CategoryTreeNode[]>>(
+    `/categories/tree?type=${type}`,
   );
   return res.data;
 }

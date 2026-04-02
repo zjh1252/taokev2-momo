@@ -73,13 +73,14 @@ public interface CourseService {
     CourseDetailVO getPublicDetail(Integer courseId);
 
     /**
-     * 公开课程列表（仅已上架，支持分页、分类筛选、关键词搜索）
+     * 公开课程列表（仅已上架，支持分页、分类筛选、关键词搜索、排序）
      *
      * @param isOpen true=公开课(OPEN_OFFLINE/OPEN_ONLINE)，false=内训课(INTERNAL)，null=全部
+     * @param sortBy 排序方式：default=默认(权重+上线时间), price=价格升序, score=评分降序, time=上线时间降序, viewCount=人气降序
      */
     PageResponse<CourseListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                               String type, Boolean isOpen, String keyword,
-                                              int page, int size);
+                                              String sortBy, int page, int size);
 
     // ==================== 后台管理 ====================
 

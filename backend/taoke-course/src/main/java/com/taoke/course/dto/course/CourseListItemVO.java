@@ -40,6 +40,7 @@ public class CourseListItemVO {
     private String publisherType;
     private String publisherName;
     private String trainerName;
+    private String keywords;
 
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;

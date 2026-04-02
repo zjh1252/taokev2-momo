@@ -64,6 +64,7 @@ export interface CourseListItem {
   publisherType: string;
   publisherName: string;
   trainerName: string;
+  keywords: string;
   publishedAt: string;
   createdAt: string;
 }

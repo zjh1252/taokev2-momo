@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useTransition } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { OpenCourseCard } from './OpenCourseCard';
 import { OpenCourseFilters } from './OpenCourseFilters';
 import { getCourseList } from '../../api/service';
@@ -13,10 +13,10 @@ interface OpenCourseListSectionProps {
 }
 
 const SORT_OPTIONS = [
-  { key: 'default', label: '默认' },
-  { key: 'time', label: '开课时间' },
-  { key: 'price', label: '价格' },
-  { key: 'review', label: '评价' },
+  { key: 'default', label: '默认', sortBy: 'default' },
+  { key: 'time', label: '开课时间', sortBy: 'time' },
+  { key: 'price', label: '价格', sortBy: 'price' },
+  { key: 'review', label: '评价', sortBy: 'score' },
 ];
 
 export function OpenCourseListSection({ initialData, categoryTree }: OpenCourseListSectionProps) {
@@ -27,8 +27,10 @@ export function OpenCourseListSection({ initialData, categoryTree }: OpenCourseL
   const [isPending, startTransition] = useTransition();
 
   const fetchData = useCallback(
-    (page: number, newFilters?: typeof filters) => {
+    (page: number, newFilters?: typeof filters, overrideSortKey?: string) => {
       const f = newFilters ?? filters;
+      const sort = overrideSortKey ?? sortKey;
+      const sortByValue = SORT_OPTIONS.find((o) => o.key === sort)?.sortBy ?? 'default';
       startTransition(async () => {
         try {
           const result = await getCourseList({
@@ -36,6 +38,7 @@ export function OpenCourseListSection({ initialData, categoryTree }: OpenCourseL
             size: 15,
             isOpen: true,
             categoryId: f.categoryId,
+            sortBy: sortByValue === 'default' ? undefined : sortByValue,
           });
           setData(result);
           setCurrentPage(page);
@@ -44,7 +47,7 @@ export function OpenCourseListSection({ initialData, categoryTree }: OpenCourseL
         }
       });
     },
-    [filters],
+    [filters, sortKey],
   );
 
   const handleFilterChange = useCallback(
@@ -58,8 +61,7 @@ export function OpenCourseListSection({ initialData, categoryTree }: OpenCourseL
   const handleSortChange = useCallback(
     (key: string) => {
       setSortKey(key);
-      // TODO: 后端暂未支持排序参数，后续接入
-      fetchData(1, filters);
+      fetchData(1, filters, key);
     },
     [fetchData, filters],
   );
@@ -73,34 +75,33 @@ export function OpenCourseListSection({ initialData, categoryTree }: OpenCourseL
   );
 
   return (
-    <div className="flex gap-6">
+    <div className="flex gap-6 items-start">
       <OpenCourseFilters categoryTree={categoryTree} onFilterChange={handleFilterChange} />
 
-      <div className="flex-1 space-y-4">
+      <div className="flex-1 flex flex-col gap-4">
         {/* 排序栏 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            {SORT_OPTIONS.map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => handleSortChange(opt.key)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  sortKey === opt.key
-                    ? 'bg-primary text-white'
-                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <span className="text-sm text-slate-500">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex items-center gap-2">
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => handleSortChange(opt.key)}
+              className={`px-6 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-1 ${
+                sortKey === opt.key
+                  ? 'font-bold text-primary bg-primary/5'
+                  : 'font-medium text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {opt.label}
+              {opt.key === 'default' && <ArrowUpDown className="size-3.5" />}
+            </button>
+          ))}
+          <span className="ml-auto text-sm text-slate-500 pr-2">
             共 <strong className="text-slate-900">{data.total}</strong> 门课程
           </span>
         </div>
 
         {/* 列表 */}
-        <div className={`space-y-3 transition-opacity ${isPending ? 'opacity-50' : ''}`}>
+        <div className={`flex flex-col gap-3 transition-opacity ${isPending ? 'opacity-50' : ''}`}>
           {data.list.length > 0 ? (
             data.list.map((course) => <OpenCourseCard key={course.id} course={course} />)
           ) : (
@@ -112,26 +113,26 @@ export function OpenCourseListSection({ initialData, categoryTree }: OpenCourseL
 
         {/* 分页 */}
         {data.totalPages > 1 && (
-          <div className="flex justify-center pt-6 border-t border-slate-200">
-            <div className="flex items-center gap-2 text-[14px]">
+          <div className="flex justify-center mt-6">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage <= 1}
-                className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-500 hover:text-primary hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="size-4" />
               </button>
               {generatePageNumbers(currentPage, data.totalPages).map((p, i) =>
                 p === -1 ? (
-                  <span key={`dot-${i}`} className="px-1 text-slate-400">...</span>
+                  <span key={`dot-${i}`} className="text-slate-400 px-1">...</span>
                 ) : (
                   <button
                     key={p}
                     onClick={() => handlePageChange(p)}
-                    className={`w-8 h-8 rounded border flex items-center justify-center ${
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg font-medium text-sm ${
                       p === currentPage
-                        ? 'border-primary bg-primary text-white'
-                        : 'border-slate-200 text-slate-500 hover:text-primary hover:border-primary'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
                     {p}
@@ -141,7 +142,7 @@ export function OpenCourseListSection({ initialData, categoryTree }: OpenCourseL
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= data.totalPages}
-                className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-500 hover:text-primary hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="size-4" />
               </button>

@@ -19,7 +19,9 @@
   "logout": "Logout",
   "search": {
     "placeholder": "Search...",
-    "category": "Trainers"
+    "category": "Trainers",
+    "categoryTrainer": "Trainers",
+    "categoryCourse": "Courses"
   },
   "product": {
     "label": "TrainPro",

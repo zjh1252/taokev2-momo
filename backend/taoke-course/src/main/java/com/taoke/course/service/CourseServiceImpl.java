@@ -182,7 +182,7 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public PageResponse<CourseListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                                       String type, Boolean isOpen, String keyword,
-                                                      int page, int size) {
+                                                      String sortBy, int page, int size) {
         Specification<Course> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()));
@@ -212,9 +212,7 @@ public class CourseServiceImpl implements CourseService {
             return cb.and(predicates.toArray(Predicate[]::new));
         };
 
-        Sort sort = Sort.by(Sort.Direction.DESC, "sortOrder")
-                .and(Sort.by(Sort.Direction.DESC, "publishedAt"))
-                .and(Sort.by(Sort.Direction.DESC, "id"));
+        Sort sort = resolvePublicSort(sortBy);
         PageRequest pageable = PageRequest.of(page - 1, size, sort);
         Page<Course> coursePage = courseRepository.findAll(spec, pageable);
 
@@ -226,6 +224,30 @@ public class CourseServiceImpl implements CourseService {
                 .map(this::toListItemVO)
                 .toList();
         return PageResponse.of(items, coursePage.getTotalElements(), page, size);
+    }
+
+    /**
+     * 根据前端传入的 sortBy 值解析排序规则
+     */
+    private Sort resolvePublicSort(String sortBy) {
+        if (sortBy == null || sortBy.isBlank() || "default".equals(sortBy)) {
+            return Sort.by(Sort.Direction.DESC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.DESC, "publishedAt"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        }
+        return switch (sortBy) {
+            case "price" -> Sort.by(Sort.Direction.ASC, "price")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "score" -> Sort.by(Sort.Direction.DESC, "score")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "time" -> Sort.by(Sort.Direction.DESC, "publishedAt")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "viewCount" -> Sort.by(Sort.Direction.DESC, "viewCount")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            default -> Sort.by(Sort.Direction.DESC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.DESC, "publishedAt"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        };
     }
 
     // ==================== 后台管理 ====================

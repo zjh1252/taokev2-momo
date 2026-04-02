@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { GraduationCap } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
 import { SearchBar } from './search-bar';
 
@@ -15,7 +15,7 @@ const NAV_LINKS = [
 ] as const;
 
 /**
- * 主导航栏 — 毛玻璃背景、Logo 图片、导航链接、搜索栏
+ * 主导航栏 — 毛玻璃背景、Logo 图标 + 文字、导航链接、搜索栏
  * <p>用户认证区域已移至顶部辅助导航栏 TopNavBar</p>
  *
  * @author Fangxinxin
@@ -29,15 +29,11 @@ export function AppHeader() {
       <div className="max-w-7xl w-full mx-auto flex items-center justify-between h-full">
         {/* 左侧：Logo */}
         <div className="flex items-center gap-6 shrink-0">
-          <Link href={ROUTES.HOME} className="flex flex-col">
-            <Image
-              src="/statics/images/taokelogo.jpg"
-              alt="淘课网"
-              width={120}
-              height={40}
-              className="h-10 w-auto object-contain"
-              priority
-            />
+          <Link href={ROUTES.HOME} className="flex items-center gap-2">
+            <GraduationCap className="size-8 text-primary" strokeWidth={2.5} />
+            <span className="text-2xl font-black tracking-tighter text-slate-900">
+              淘课网
+            </span>
           </Link>
         </div>
 
@@ -54,7 +50,7 @@ export function AppHeader() {
           ))}
         </div>
 
-        {/* 右侧：搜索栏（拉满剩余空间） */}
+        {/* 右侧：搜索栏 */}
         <div className="flex items-center ml-4 flex-1 max-w-xs justify-end">
           <SearchBar />
         </div>

@@ -10,50 +10,84 @@ export function OpenCourseCard({ course }: OpenCourseCardProps) {
   return (
     <Link
       href={`/opencourses/${course.id}`}
-      className="bg-white rounded-lg p-4 flex gap-4 border border-slate-100 hover:border-primary hover:shadow-md transition-all cursor-pointer group"
+      className="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group flex gap-4"
     >
-      {/* 左侧图标占位 */}
-      <div className="w-24 h-24 bg-slate-50 rounded-lg flex items-center justify-center shrink-0">
+      {/* 左侧图标 */}
+      <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
         {course.coverUrl ? (
-          <img src={course.coverUrl} alt={course.title} className="w-full h-full object-cover rounded-lg" />
+          <img
+            src={course.coverUrl}
+            alt={course.title}
+            className="w-full h-full object-cover rounded-lg"
+          />
         ) : (
-          <BookOpen className="size-8 text-slate-300" />
+          <BookOpen className="size-6 text-slate-300" />
         )}
       </div>
 
       {/* 右侧信息 */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="font-bold text-base text-slate-800 group-hover:text-primary transition-colors line-clamp-1">
-            {course.title}
-          </h3>
-          {course.isFeatured === 1 && (
-            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-orange-50 text-orange-500 shrink-0">
-              推荐
+        {/* 标题行 + 指标 */}
+        <div className="flex items-start justify-between mb-2 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="text-base font-bold text-slate-800 group-hover:text-primary transition-colors line-clamp-1">
+              {course.title}
+            </h3>
+            {course.isFeatured === 1 && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold text-primary border border-primary/30 bg-primary/5 whitespace-nowrap shrink-0">
+                推荐
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-4 text-xs shrink-0">
+            <span className="flex items-center gap-1 text-slate-500">
+              <Flame className="size-3.5 text-orange-400" />
+              看过：<span className="text-primary font-semibold">{course.viewCount}</span>
             </span>
-          )}
+            <span className="flex items-center gap-1 text-slate-500">
+              评分：
+              <span className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`size-3.5 ${
+                      i < Math.round(course.score)
+                        ? 'fill-amber-400 text-amber-400'
+                        : 'fill-none text-slate-200'
+                    }`}
+                  />
+                ))}
+              </span>
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 mb-2">
-          <span className="flex items-center gap-1 text-xs text-orange-500">
-            <Flame className="size-3.5" />
-            {course.viewCount}
-          </span>
-          <span className="flex items-center gap-0.5 text-xs text-yellow-500">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} className={`size-3 ${i < Math.round(course.score) ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200'}`} />
-            ))}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-y-1 text-sm text-slate-500">
-          {/* TODO: 开课时间需从 plans 中获取，列表接口不含 plans */}
-          <div>开课时间：<span className="text-slate-700">-</span></div>
-          <div>课程天数：<span className="text-slate-700">{course.durationDays ? `${course.durationDays}天` : '-'}</span></div>
-          {/* TODO: 开课地点需从 plans 中获取 */}
-          <div>开课地点：<span className="text-slate-700">-</span></div>
-          <div>授课讲师：<span className="text-slate-700">{course.trainerName || '-'}</span></div>
-          <div>课程分类：<span className="text-slate-700">{course.categoryName || '-'}</span></div>
+        {/* 信息网格 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-1.5 text-xs text-slate-600 bg-slate-50/50 p-2.5 rounded-md">
+          <div className="flex items-center gap-1">
+            <span className="text-slate-400 min-w-[60px]">开课时间：</span>
+            <span className="text-slate-700">-</span>
+            {/* TODO: 开课时间需从 plans 中获取 */}
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-slate-400 min-w-[60px]">课程天数：</span>
+            <span className="text-slate-700">
+              {course.durationDays ? `${course.durationDays}天` : '-'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-slate-400 min-w-[60px]">开课地点：</span>
+            <span className="text-slate-700">-</span>
+            {/* TODO: 开课地点需从 plans 中获取 */}
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-slate-400 min-w-[60px]">授课讲师：</span>
+            <span className="text-slate-700">{course.trainerName || '-'}</span>
+          </div>
+          <div className="flex items-center gap-1 md:col-span-2">
+            <span className="text-slate-400 min-w-[60px]">课程分类：</span>
+            <span className="text-slate-700">{course.categoryName || '-'}</span>
+          </div>
         </div>
       </div>
     </Link>

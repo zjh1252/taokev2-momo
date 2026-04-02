@@ -25,7 +25,7 @@ public class PublicCourseController {
     private final CourseService courseService;
 
     @Public
-    @Operation(summary = "公开课程列表（分页、分类筛选、关键词搜索）")
+    @Operation(summary = "公开课程列表（分页、分类筛选、关键词搜索、排序）")
     @GetMapping("/courses")
     public ApiResponse<PageResponse<CourseListItemVO>> list(
             @RequestParam(required = false) Integer categoryId,
@@ -33,9 +33,10 @@ public class PublicCourseController {
             @RequestParam(required = false) String type,
             @RequestParam(required = false) Boolean isOpen,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sortBy,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "15") int size) {
-        return ApiResponse.ok(courseService.listPublic(categoryId, subCategoryId, type, isOpen, keyword, page, size));
+        return ApiResponse.ok(courseService.listPublic(categoryId, subCategoryId, type, isOpen, keyword, sortBy, page, size));
     }
 
     @Public

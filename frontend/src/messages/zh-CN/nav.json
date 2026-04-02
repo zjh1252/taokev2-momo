@@ -19,7 +19,9 @@
   "logout": "登出",
   "search": {
     "placeholder": "关键词搜索...",
-    "category": "培训讲师"
+    "category": "培训讲师",
+    "categoryTrainer": "培训讲师",
+    "categoryCourse": "课程"
   },
   "product": {
     "label": "培训宝",
