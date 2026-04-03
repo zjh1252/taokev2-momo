@@ -3,14 +3,18 @@
 # 一键构建 & 推送全部 Docker 镜像
 #
 # 用法：
-#   ./build.sh <版本号>           # 构建并推送所有镜像
-#   ./build.sh <版本号> backend   # 仅构建并推送后端
-#   ./build.sh <版本号> frontend  # 仅构建并推送 C 端前端
-#   ./build.sh <版本号> admin     # 仅构建并推送管理后台前端
+#   ./build.sh <版本号>                    # 构建并推送所有镜像（默认环境）
+#   ./build.sh <版本号> test               # 构建全部，使用 test 环境配置
+#   ./build.sh <版本号> test backend       # 仅构建后端，test 环境
+#   ./build.sh <版本号> backend            # 仅构建后端，默认环境
+#
+# 环境参数会以 --build-arg BUILD_ENV=<env> 传递给 Dockerfile，
+# 前端构建时自动加载 .env.<env> 文件中的变量。
 #
 # 示例：
 #   ./build.sh 1.0.1
-#   ./build.sh 1.0.1 backend
+#   ./build.sh 1.0.1 test
+#   ./build.sh 1.0.1 test frontend
 # ============================================================
 
 set -euo pipefail
@@ -18,7 +22,8 @@ set -euo pipefail
 REGISTRY="10.0.16.26:5000"
 IMAGE_PREFIX="taokev2"
 
-# 镜像定义：名称  Dockerfile 路径
+KNOWN_TARGETS="backend frontend admin all"
+
 declare -A IMAGES=(
   [backend]="deploy/backend/Dockerfile"
   [frontend]="deploy/frontend/Dockerfile"
@@ -28,12 +33,20 @@ declare -A IMAGES=(
 # ---- 参数校验 ----
 if [ -z "${1:-}" ]; then
   echo "错误：请指定版本号"
-  echo "用法：./build.sh <版本号> [backend|frontend|admin]"
+  echo "用法：./build.sh <版本号> [环境] [backend|frontend|admin]"
   exit 1
 fi
 
 VERSION="$1"
-TARGET="${2:-all}"
+
+# 解析第二个参数：如果是已知目标则为 TARGET，否则为 BUILD_ENV
+if echo "${KNOWN_TARGETS}" | grep -qw "${2:-}"; then
+  BUILD_ENV=""
+  TARGET="${2:-all}"
+else
+  BUILD_ENV="${2:-}"
+  TARGET="${3:-all}"
+fi
 
 # 切换到仓库根目录（build.sh 在 deploy/ 下）
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -43,6 +56,8 @@ cd "$REPO_ROOT"
 echo "========================================"
 echo "  淘课网 v2 — Docker 镜像构建"
 echo "  版本：${VERSION}"
+echo "  环境：${BUILD_ENV:-default}"
+echo "  目标：${TARGET}"
 echo "  仓库：${REGISTRY}"
 echo "========================================"
 echo ""
@@ -58,6 +73,7 @@ build_and_push() {
 
   docker build \
     -f "${dockerfile}" \
+    --build-arg BUILD_ENV="${BUILD_ENV}" \
     -t "${full_tag}" \
     -t "${latest_tag}" \
     .

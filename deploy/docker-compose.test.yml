@@ -1,0 +1,60 @@
+# ============================================================
+# 淘课网 v2 — Test 环境 Docker Compose
+#
+# 用法：
+#   VERSION=1.0.1 docker compose -f docker-compose.test.yml up -d
+#   docker compose -f docker-compose.test.yml down
+#
+# 前置条件：
+#   1. 镜像已通过 ./build.sh <version> test 构建并推送
+#   2. application-test.yaml 已放到与本文件同级目录（/Users/taoke03/taokev2/）
+# ============================================================
+
+services:
+
+  backend:
+    image: 10.0.16.26:5000/taokev2-backend:${VERSION:-latest}
+    container_name: taokev2-backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./application-test.yaml:/app/config/application-test.yaml:ro
+      - ./web/storage:/app/storage
+      - ./web/logs:/app/logs
+    environment:
+      - SPRING_PROFILES_ACTIVE=test
+      - SPRING_CONFIG_ADDITIONAL_LOCATION=file:/app/config/
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    image: 10.0.16.26:5000/taokev2-frontend:${VERSION:-latest}
+    container_name: taokev2-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - HOSTNAME=0.0.0.0
+      - TZ=Asia/Shanghai
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  admin:
+    image: 10.0.16.26:5000/taokev2-admin:${VERSION:-latest}
+    container_name: taokev2-admin
+    ports:
+      - "3001:3000"
+    environment:
+      - HOSTNAME=0.0.0.0
+      - BACKEND_URL=http://backend:8080
+      - TZ=Asia/Shanghai
+    depends_on:
+      - backend
+    restart: unless-stopped
+
