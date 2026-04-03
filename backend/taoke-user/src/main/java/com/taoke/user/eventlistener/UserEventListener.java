@@ -5,6 +5,7 @@ import com.taoke.common.enums.NotificationType;
 import com.taoke.common.eventbus.DomainEventListener;
 import com.taoke.common.events.user.ApplyPassedEvent;
 import com.taoke.common.events.user.ApplyRejectedEvent;
+import com.taoke.common.events.user.NewUserRegisteredEvent;
 import com.taoke.user.api.NotificationService;
 import com.taoke.user.repository.TrainerRepository;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,22 @@ public class UserEventListener {
                 String.valueOf(userId), null);
 
         // TODO 后续实现：初始化角色对应的默认资源
+    }
+
+    /**
+     * 新用户注册 — 发送欢迎站内通知。
+     */
+    @DomainEventListener
+    public void onNewUserRegistered(NewUserRegisteredEvent event) {
+        Integer userId = Integer.valueOf(event.getAggregateId());
+        log.info("收到新用户注册事件: userId={}, phone={}, eventId={}",
+                userId, event.getPhone(), event.getEventId());
+
+        notificationService.send(userId, NotificationType.WELCOME,
+                "欢迎加入淘课网！",
+                "恭喜您注册成为淘课网的一员！在这里，您可以浏览海量培训课程、发现优质专家资源、"
+                        + "发布培训需求。您还可以在「修改身份」中申请成为专家、经纪人、机构等角色，解锁更多功能。祝您使用愉快！",
+                null, "/dashboard");
     }
 
     /**

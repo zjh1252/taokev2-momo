@@ -14,6 +14,7 @@ import lombok.Getter;
 public enum NotificationType {
 
     SYSTEM("系统公告"),
+    WELCOME("欢迎通知"),
     APPLY_RESULT("申请审核结果"),
     ORDER("订单通知"),
     COMMENT("评论通知");

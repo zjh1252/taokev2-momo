@@ -1,6 +1,8 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.common.eventbus.EventPublisher;
+import com.taoke.common.events.user.NewUserRegisteredEvent;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.AuthService;
@@ -42,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtils jwtUtils;
     private final SecurityUserService securityUserService;
     private final PermissionCacheService permissionCacheService;
+    private final EventPublisher eventPublisher;
 
     @Value("${taoke.jwt.access-token-expire-ms:7200000}")
     private long accessTokenExpireMs;
@@ -71,8 +74,10 @@ public class AuthServiceImpl implements AuthService {
     public TokenResponse loginBySms(SmsLoginRequest request) {
         verificationCodeService.verifyCode(request.getPhone(), request.getCode(), "LOGIN");
 
+        boolean isNewUser = false;
         User user = userRepository.findByPhone(request.getPhone()).orElse(null);
         if (user == null) {
+            isNewUser = true;
             user = new User();
             user.setPhone(request.getPhone());
             user.setStatus(1);
@@ -88,7 +93,14 @@ public class AuthServiceImpl implements AuthService {
         }
 
         checkAccountStatus(user);
-        return generateTokens(user);
+        TokenResponse tokenResponse = generateTokens(user);
+
+        if (isNewUser) {
+            tokenResponse.setNewUser(true);
+            eventPublisher.publish(new NewUserRegisteredEvent(user.getId(), user.getPhone()));
+        }
+
+        return tokenResponse;
     }
 
     @Transactional
@@ -115,7 +127,10 @@ public class AuthServiceImpl implements AuthService {
         buyerRole.setApprovedAt(LocalDateTime.now());
         userRoleRepository.save(buyerRole);
 
-        return generateTokens(user);
+        TokenResponse tokenResponse = generateTokens(user);
+        tokenResponse.setNewUser(true);
+        eventPublisher.publish(new NewUserRegisteredEvent(user.getId(), user.getPhone()));
+        return tokenResponse;
     }
 
     @Override
