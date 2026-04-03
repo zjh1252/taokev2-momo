@@ -1,4 +1,4 @@
-import { serverFetch } from '@/lib/server-fetch';
+import { serverFetch, USE_SECURE_COOKIE } from '@/lib/server-fetch';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   cookieStore.set('access_token', accessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: USE_SECURE_COOKIE,
     sameSite: 'lax',
     path: '/',
     maxAge: expiresIn
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
   cookieStore.set('refresh_token', refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: USE_SECURE_COOKIE,
     sameSite: 'lax',
     path: '/',
     maxAge: 30 * 24 * 60 * 60

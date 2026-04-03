@@ -3,6 +3,12 @@ import { cookies } from 'next/headers';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
 /**
+ * 是否使用 Secure Cookie（仅 HTTPS 环境设为 true）。
+ * 通过环境变量 COOKIE_SECURE 控制，默认 false。
+ */
+export const USE_SECURE_COOKIE = process.env.COOKIE_SECURE === 'true';
+
+/**
  * 服务端 fetch 封装，自动携带 accessToken 并处理后端统一响应格式
  * 仅用于 Route Handler / Server Component
  */
