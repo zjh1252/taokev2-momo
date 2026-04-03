@@ -4,5 +4,46 @@
   },
   "profile": {
     "title": "个人资料"
+  },
+  "center": {
+    "breadcrumb": "我的淘课网",
+    "welcome": "欢迎来到用户中心，{name}",
+    "headerWelcome": "欢迎您，{name}",
+    "studentId": "学号",
+    "messages": "消息",
+    "sidebar": {
+      "home": "个人主页",
+      "messages": "消息中心",
+      "learning": "我的学习",
+      "orders": "我的订单",
+      "demands": "我的需求",
+      "favorites": "我的收藏",
+      "reviews": "我的点评",
+      "alliance": "淘课联盟",
+      "allianceAmbassador": "推广大使",
+      "alliancePartner": "培训合伙人",
+      "alliance721": "721讲师合作",
+      "account": "我的账号",
+      "accountInfo": "身份信息",
+      "accountBase": "账号信息",
+      "accountVerify": "账号认证",
+      "accountBind": "账号绑定",
+      "accountSwitch": "修改身份"
+    },
+    "quickActions": {
+      "title": "在淘课，你可以：",
+      "continueLearning": "继续学习",
+      "continuePlay": "继续播放",
+      "progress": "已学习 {percent}% (第{section}节)",
+      "findResources": "找好资源",
+      "aiSelect": "AI智能选课",
+      "hotCourses": "行业热点课",
+      "useTools": "用好工具",
+      "trainingTool": "培训宝",
+      "goalTracker": "目标通"
+    },
+    "recentLearning": "最近学习",
+    "recommendations": "智能推荐",
+    "discoverMore": "发现更多优质课程"
   }
 }
