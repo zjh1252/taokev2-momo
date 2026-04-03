@@ -1,6 +1,6 @@
 # ============================================================
-# C端前端 — 多阶段构建
-# 构建阶段使用 Node 22 编译 Next.js
+# C端前端 — 多阶段构建（pnpm）
+# 构建阶段使用 Node 22 + pnpm 编译 Next.js
 # 运行阶段使用精简 Node 镜像
 #
 # 构建参数：
@@ -12,12 +12,16 @@ ARG BUILD_ENV=""
 # ---------- 阶段1：依赖安装 ----------
 FROM node:22-alpine AS deps
 
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci --prefer-offline 2>/dev/null || npm install
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # ---------- 阶段2：构建 ----------
 FROM node:22-alpine AS builder
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 ARG BUILD_ENV
 
@@ -32,7 +36,7 @@ RUN if [ -n "$BUILD_ENV" ] && [ -f ".env.${BUILD_ENV}" ]; then \
     fi
 
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN pnpm run build
 
 # ---------- 阶段3：运行镜像 ----------
 FROM node:22-alpine

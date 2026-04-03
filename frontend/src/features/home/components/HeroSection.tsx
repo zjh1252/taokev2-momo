@@ -17,14 +17,14 @@ interface HeroSectionProps {
 export function HeroSection({ categories }: HeroSectionProps) {
   const t = useTranslations('home');
   const [activeCatId, setActiveCatId] = useState<number | null>(null);
-  const leaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const leaveTimer = useRef<ReturnType<typeof setTimeout>>(null);
 
   const titleParts = t('hero.title').split('\n');
 
   const handleMouseEnter = useCallback((id: number) => {
     if (leaveTimer.current) {
       clearTimeout(leaveTimer.current);
-      leaveTimer.current = undefined;
+      leaveTimer.current = null;
     }
     setActiveCatId(id);
   }, []);
@@ -80,7 +80,7 @@ export function HeroSection({ categories }: HeroSectionProps) {
             onMouseEnter={() => {
               if (leaveTimer.current) {
                 clearTimeout(leaveTimer.current);
-                leaveTimer.current = undefined;
+                leaveTimer.current = null;
               }
             }}
           >

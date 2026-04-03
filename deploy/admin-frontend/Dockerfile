@@ -1,6 +1,6 @@
 # ============================================================
-# 管理后台前端 — 多阶段构建
-# 构建阶段使用 Node 22 编译 Next.js
+# 管理后台前端 — 多阶段构建（bun）
+# 构建阶段使用 Bun 编译 Next.js
 # 运行阶段使用精简 Node 镜像
 #
 # 构建参数：
@@ -10,14 +10,14 @@
 ARG BUILD_ENV=""
 
 # ---------- 阶段1：依赖安装 ----------
-FROM node:22-alpine AS deps
+FROM oven/bun:1-alpine AS deps
 
 WORKDIR /app
-COPY admin-frontend/package.json admin-frontend/package-lock.json* ./
-RUN npm ci --prefer-offline 2>/dev/null || npm install
+COPY admin-frontend/package.json admin-frontend/bun.lock ./
+RUN bun install --frozen-lockfile
 
 # ---------- 阶段2：构建 ----------
-FROM node:22-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 
 ARG BUILD_ENV
 
@@ -33,7 +33,7 @@ RUN if [ -n "$BUILD_ENV" ] && [ -f ".env.${BUILD_ENV}" ]; then \
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV BUILD_STANDALONE=true
-RUN npm run build
+RUN bun run build
 
 # ---------- 阶段3：运行镜像 ----------
 FROM node:22-alpine
