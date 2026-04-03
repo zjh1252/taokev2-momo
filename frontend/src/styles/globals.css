@@ -128,3 +128,16 @@
     @apply font-sans;
   }
 }
+
+/* 角色申请表单统一输入框样式 */
+.form-input {
+  @apply w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-sm text-gray-900
+    placeholder:text-gray-400 transition-colors
+    focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary;
+}
+textarea.form-input {
+  @apply h-auto py-2;
+}
+select.form-input {
+  @apply appearance-none cursor-pointer;
+}

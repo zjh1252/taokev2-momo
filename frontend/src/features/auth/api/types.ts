@@ -17,6 +17,8 @@ export interface TokenResponse {
   refreshToken: string;
   expiresIn: number;
   tokenType: string;
+  /** 是否为首次登录（新注册用户），后端不返回时为 undefined */
+  newUser?: boolean;
 }
 
 /** 通用 API 响应包装 */

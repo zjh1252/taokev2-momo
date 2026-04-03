@@ -1,31 +1,43 @@
 'use client';
 
+import Link from 'next/link';
+import {
+  Building2,
+  GraduationCap,
+  UserCheck,
+  Headset,
+  Briefcase,
+  Landmark,
+  IdCard,
+  Shield,
+  User,
+} from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { cn } from '@/lib/utils';
+import { ROUTES } from '@/config/routes';
 
 const ALL_ROLES = [
-  { code: 'BUYER', label: 'INDIVIDUAL_BUYER（个人甲方）' },
-  { code: 'ENTERPRISE_BUYER', label: 'ENTERPRISE_BUYER（企业甲方）' },
-  { code: 'TRAINER', label: 'TRAINER（讲师）' },
-  { code: 'AGENT', label: 'AGENT（讲师经纪人）' },
-  { code: 'INSTITUTION', label: 'ORGANIZATION（机构）' },
-  {
-    code: '_ADMIN',
-    label: 'FRONTEND_CS / BACKEND_CS / SUPER_ADMIN',
-    adminOnly: true,
-  },
+  { code: 'BUYER', label: '个人学员', description: '默认角色，浏览课程、学习记录', icon: User },
+  { code: 'ENTERPRISE_BUYER', label: '企业培训采购方', description: '发布培训需求、购买课程', icon: Building2 },
+  { code: 'TRAINER', label: '专家', description: '发布课程、管理授课案例', icon: GraduationCap },
+  { code: 'AGENT', label: '专家经纪人', description: '维护专家资源、筛选匹配推荐', icon: UserCheck },
+  { code: 'ASSISTANT', label: '专家助理', description: '辅助专家运营管理', icon: Headset },
+  { code: 'ENTERPRISE_AGENT', label: '专家经纪公司', description: '批量运营专家资源', icon: Briefcase },
+  { code: 'INSTITUTION', label: '培训机构', description: '管理师资团队、发布课程', icon: Landmark },
+  { code: 'INSTITUTION_EMPLOYEE', label: '机构员工', description: '机构内部运营人员', icon: IdCard },
+  { code: '_ADMIN', label: '管理员', description: '运营角色，仅后台创建', icon: Shield, adminOnly: true },
 ] as const;
 
 /**
- * 修改身份页 — 展示角色列表、当前角色高亮、未开通可申请（接入 /users/me roles）
+ * 修改身份页 — 展示角色列表、当前角色高亮、未开通可申请
  *
  * @author Fangxinxin
  * @date 2026-04-03 11:30
  */
 export default function AccountSwitchPage() {
   const { user } = useAuth();
-  const activeRoleCodes = new Set(
-    user?.roles?.filter((r) => r.status === 1).map((r) => r.role) || [],
+  const roleStatusMap = new Map(
+    user?.roles?.map((r) => [r.role, r.status]) || [],
   );
 
   return (
@@ -36,36 +48,68 @@ export default function AccountSwitchPage() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5">
         {ALL_ROLES.map((role) => {
-          const isActive = activeRoleCodes.has(role.code);
+          const status = roleStatusMap.get(role.code);
+          const isActive = status === 1;
+          const isPending = status === 2;
           const isAdmin = 'adminOnly' in role && role.adminOnly;
+          const isDefault = role.code === 'BUYER';
+          const canApply = !isActive && !isPending && !isAdmin && !isDefault;
+          const Icon = role.icon;
 
           return (
-            <button
+            <div
               key={role.code}
-              type="button"
               className={cn(
-                'border rounded-lg p-4 text-left transition-colors',
+                'border rounded-xl p-4 transition-colors flex items-start gap-3',
                 isActive
-                  ? 'border-red-200 bg-red-50'
-                  : 'border-slate-200 hover:border-slate-300',
+                  ? 'border-primary/30 bg-red-50/60'
+                  : isPending
+                    ? 'border-amber-200 bg-amber-50/40'
+                    : 'border-slate-200',
               )}
             >
               <div
                 className={cn(
-                  'font-medium',
-                  isActive && 'text-primary',
+                  'flex items-center justify-center size-10 rounded-lg shrink-0',
+                  isActive
+                    ? 'bg-primary/10 text-primary'
+                    : 'bg-slate-100 text-slate-400',
                 )}
               >
-                {role.label}
+                <Icon className="size-5" />
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {isActive
-                  ? '当前身份'
-                  : isAdmin
-                    ? '运营角色，仅后台创建'
-                    : '未开通 · 去申请'}
+              <div className="flex-1 min-w-0">
+                <div className={cn('font-semibold text-sm', isActive && 'text-primary')}>
+                  {role.label}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">{role.description}</div>
+                <div className="mt-2 text-xs">
+                  {isActive && (
+                    <span className="inline-flex items-center gap-1 text-primary font-medium">
+                      <span className="size-1.5 rounded-full bg-primary" />
+                      当前身份
+                    </span>
+                  )}
+                  {isPending && (
+                    <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
+                      <span className="size-1.5 rounded-full bg-amber-500" />
+                      审核中
+                    </span>
+                  )}
+                  {isAdmin && (
+                    <span className="text-gray-400">运营角色，仅后台创建</span>
+                  )}
+                  {canApply && (
+                    <Link
+                      href={`${ROUTES.UC_APPLY}/${role.code}`}
+                      className="text-primary font-medium hover:underline"
+                    >
+                      未开通 · 去申请
+                    </Link>
+                  )}
+                </div>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

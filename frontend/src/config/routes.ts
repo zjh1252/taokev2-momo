@@ -31,4 +31,8 @@ export const ROUTES = {
   UC_ACCOUNT_VERIFY: '/dashboard/account/verify',
   UC_ACCOUNT_BIND: '/dashboard/account/bind',
   UC_ACCOUNT_SWITCH: '/dashboard/account/switch',
+
+  // ---- 角色申请 ----
+  UC_APPLY: '/dashboard/apply',
+  UC_APPLY_SUCCESS: '/dashboard/apply/success',
 } as const;
