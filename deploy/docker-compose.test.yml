@@ -7,7 +7,7 @@
 #
 # 前置条件：
 #   1. 镜像已通过 ./build.sh <version> test 构建并推送
-#   2. application-test.yaml 已放到与本文件同级目录（/Users/taoke03/taokev2/）
+#   2. application-test.yaml 已放到 ./config/ 目录下
 # ============================================================
 
 services:
@@ -18,13 +18,12 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./application-test.yaml:/app/config/application-test.yaml:ro
+      - ./config:/app/config:ro
       - ./web/storage:/app/storage
-      - ./web/logs:/app/logs
     environment:
-      - SPRING_PROFILES_ACTIVE=test
-      - SPRING_CONFIG_ADDITIONAL_LOCATION=file:/app/config/
-      - TZ=Asia/Shanghai
+      SPRING_PROFILES_ACTIVE: test
+      TZ: Asia/Shanghai
+    command: ["--spring.config.additional-location=file:/app/config/"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health || exit 1"]
@@ -39,8 +38,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - HOSTNAME=0.0.0.0
-      - TZ=Asia/Shanghai
+      HOSTNAME: 0.0.0.0
+      TZ: Asia/Shanghai
     depends_on:
       - backend
     restart: unless-stopped
@@ -51,9 +50,9 @@ services:
     ports:
       - "3001:3000"
     environment:
-      - HOSTNAME=0.0.0.0
-      - BACKEND_URL=http://backend:8080
-      - TZ=Asia/Shanghai
+      HOSTNAME: 0.0.0.0
+      BACKEND_URL: http://backend:8080
+      TZ: Asia/Shanghai
     depends_on:
       - backend
     restart: unless-stopped

@@ -71,7 +71,7 @@ Docker 守护进程需配置 insecure-registries：
 ### 前置条件
 
 1. 镜像已通过 `./deploy/build.sh <version> test` 构建并推送到仓库
-2. 在 test 服务器上准备好 `application-test.yaml`，放到 compose 文件同级目录（`/Users/taoke03/taokev2/`）
+2. 在 test 服务器上准备好 `application-test.yaml`，放到 `./config/` 目录下
 
 ### 启动服务
 
@@ -124,17 +124,16 @@ VERSION=1.0.2 docker compose -f docker-compose.test.yml up -d
 
 ### 数据持久化
 
-- 后端配置文件：`./application-test.yaml` -> 容器内 `/app/config/application-test.yaml`（只读）
-- 后端上传文件存储：`./web/storage` -> 容器内 `/app/storage`
-- 后端日志：`./web/logs` -> 容器内 `/app/logs`
+- 后端配置目录：`./config/` -> 容器内 `/app/config/`（只读）
+- 后端上传文件存储：`./web/storage/` -> 容器内 `/app/storage/`
 
 Test 环境宿主机目录结构（`/Users/taoke03/taokev2/`）：
 
 ```
 /Users/taoke03/taokev2/
 ├── docker-compose.test.yml       # compose 编排文件
-├── application-test.yaml         # 后端配置
+├── config/
+│   └── application-test.yaml     # 后端配置
 └── web/
-    ├── storage/                  # 后端上传文件持久化
-    └── logs/                     # 后端日志持久化
+    └── storage/                  # 后端上传文件持久化
 ```
