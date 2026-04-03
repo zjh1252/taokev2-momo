@@ -50,7 +50,7 @@ export function HeroSection({ categories }: HeroSectionProps) {
             <span className="text-[15px]">{t('hero.allCategories')}</span>
           </div>
           <nav className="flex-1 overflow-y-auto px-2 space-y-1">
-            {categories.map((cat) => (
+            {categories.slice(0, 8).map((cat) => (
               <div
                 key={cat.id}
                 className={`flex items-center justify-between px-4 py-2.5 rounded-lg transition-all cursor-pointer ${

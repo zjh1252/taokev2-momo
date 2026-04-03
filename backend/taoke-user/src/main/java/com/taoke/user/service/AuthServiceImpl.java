@@ -21,6 +21,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -97,7 +99,7 @@ public class AuthServiceImpl implements AuthService {
 
         if (isNewUser) {
             tokenResponse.setNewUser(true);
-            eventPublisher.publish(new NewUserRegisteredEvent(user.getId(), user.getPhone()));
+            publishAfterCommit(new NewUserRegisteredEvent(user.getId(), user.getPhone()));
         }
 
         return tokenResponse;
@@ -129,7 +131,7 @@ public class AuthServiceImpl implements AuthService {
 
         TokenResponse tokenResponse = generateTokens(user);
         tokenResponse.setNewUser(true);
-        eventPublisher.publish(new NewUserRegisteredEvent(user.getId(), user.getPhone()));
+        publishAfterCommit(new NewUserRegisteredEvent(user.getId(), user.getPhone()));
         return tokenResponse;
     }
 
@@ -184,6 +186,22 @@ public class AuthServiceImpl implements AuthService {
         permissionCacheService.evict(user.getId());
 
         return new TokenResponse(accessToken, refreshToken, accessTokenExpireMs / 1000);
+    }
+
+    /**
+     * 事务提交后再发布领域事件，避免消费端读到未提交的数据
+     */
+    private void publishAfterCommit(com.taoke.common.eventbus.DomainEvent event) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    eventPublisher.publish(event);
+                }
+            });
+        } else {
+            eventPublisher.publish(event);
+        }
     }
 
     private void checkAccountStatus(User user) {
