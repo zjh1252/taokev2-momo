@@ -4,15 +4,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
 /**
- * 跨域过滤器 — 基于 YAML 配置化，不同环境可设不同策略。
+ * 跨域配置 — 基于 YAML 配置化，不同环境可设不同策略。
  * <p>
  * dev 环境：{@code allowed-origins: *}（全放开）<br>
  * prod 环境：{@code allowed-origins: https://www.taoke.com}（限定域名）
+ * <p>
+ * 注册为 {@link CorsConfigurationSource} Bean，供 Spring Security 的
+ * {@code .cors(Customizer.withDefaults())} 自动集成，确保 CORS 头
+ * 在 Security 过滤器链之前生效（含 OPTIONS 预检请求）。
  *
  * @author Fangxinxin
  * @date 2026-03-19
@@ -36,7 +41,7 @@ public class CorsFilterConfig {
     private long maxAge;
 
     @Bean
-    public org.springframework.web.filter.CorsFilter corsFilter() {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(allowedOrigins);
         config.setAllowedMethods(allowedMethods);
@@ -46,6 +51,6 @@ public class CorsFilterConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-        return new org.springframework.web.filter.CorsFilter(source);
+        return source;
     }
 }
