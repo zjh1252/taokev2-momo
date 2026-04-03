@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { AlertModal } from '@/components/modal/alert-modal';
@@ -15,17 +14,29 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { permissionTreeQueryOptions } from '../api/queries';
+import { permissionListQueryOptions } from '../api/queries';
 import { deletePermissionMutation } from '../api/mutations';
 import type { Permission } from '../api/types';
 import { PermissionFormDialog } from './permission-form-dialog';
 
+/** 按 module 字段分组，保留组内排序 */
+function groupByModule(list: Permission[]) {
+  const map = new Map<string, Permission[]>();
+  for (const p of list) {
+    const key = p.module || '未分类';
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(p);
+  }
+  return Array.from(map.entries());
+}
+
 export function PermissionTable() {
-  const { data: resp, isLoading } = useQuery(permissionTreeQueryOptions());
+  const { data: resp, isLoading } = useQuery(permissionListQueryOptions());
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [editTarget, setEditTarget] = useState<Permission | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [parentForCreate, setParentForCreate] = useState<number>(0);
+  const [collapsedModules, setCollapsedModules] = useState<Set<string>>(new Set());
 
   const delMutation = useMutation({
     ...deletePermissionMutation,
@@ -36,7 +47,20 @@ export function PermissionTable() {
     onError: () => toast.error('删除失败')
   });
 
-  const tree = resp?.data ?? [];
+  const allPermissions = resp?.data ?? [];
+  const moduleGroups = useMemo(() => groupByModule(allPermissions), [allPermissions]);
+
+  const toggleModule = (module: string) => {
+    setCollapsedModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(module)) {
+        next.delete(module);
+      } else {
+        next.add(module);
+      }
+      return next;
+    });
+  };
 
   if (isLoading) {
     return <div className='text-muted-foreground py-8 text-center'>加载中...</div>;
@@ -81,33 +105,37 @@ export function PermissionTable() {
             <TableRow>
               <TableHead className='w-[200px]'>权限名称</TableHead>
               <TableHead>权限编码</TableHead>
-              <TableHead>模块</TableHead>
               <TableHead>操作类型</TableHead>
               <TableHead className='w-[60px]'>排序</TableHead>
-              <TableHead className='w-[100px]'>操作</TableHead>
+              <TableHead className='text-right w-[100px]'>操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tree.length === 0 ? (
+            {moduleGroups.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className='h-24 text-center'>
+                <TableCell colSpan={5} className='h-24 text-center'>
                   暂无数据
                 </TableCell>
               </TableRow>
             ) : (
-              tree.map((node) => (
-                <PermissionRow
-                  key={node.id}
-                  node={node}
-                  depth={0}
-                  onEdit={setEditTarget}
-                  onDelete={setDeleteTarget}
-                  onAddChild={(parentId) => {
-                    setParentForCreate(parentId);
-                    setCreateOpen(true);
-                  }}
-                />
-              ))
+              moduleGroups.map(([module, permissions]) => {
+                const isCollapsed = collapsedModules.has(module);
+                return (
+                  <ModuleGroup
+                    key={module}
+                    module={module}
+                    permissions={permissions}
+                    isCollapsed={isCollapsed}
+                    onToggle={() => toggleModule(module)}
+                    onEdit={setEditTarget}
+                    onDelete={setDeleteTarget}
+                    onAddChild={(parentId) => {
+                      setParentForCreate(parentId);
+                      setCreateOpen(true);
+                    }}
+                  />
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -116,93 +144,91 @@ export function PermissionTable() {
   );
 }
 
-function PermissionRow({
-  node,
-  depth,
+function ModuleGroup({
+  module,
+  permissions,
+  isCollapsed,
+  onToggle,
   onEdit,
   onDelete,
   onAddChild
 }: {
-  node: Permission;
-  depth: number;
+  module: string;
+  permissions: Permission[];
+  isCollapsed: boolean;
+  onToggle: () => void;
   onEdit: (p: Permission) => void;
   onDelete: (id: number) => void;
   onAddChild: (parentId: number) => void;
 }) {
-  const [expanded, setExpanded] = useState(true);
-  const hasChildren = node.children && node.children.length > 0;
-
   return (
     <>
-      <TableRow>
-        <TableCell>
-          <div className='flex items-center' style={{ paddingLeft: depth * 24 }}>
-            {hasChildren ? (
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className='mr-1 p-0.5'
-              >
-                <Icons.chevronRight
-                  className={`h-4 w-4 transition-transform ${expanded ? 'rotate-90' : ''}`}
-                />
-              </button>
-            ) : (
-              <span className='mr-1 inline-block w-5' />
-            )}
-            <span className='font-medium'>{node.permissionName}</span>
-          </div>
-        </TableCell>
-        <TableCell>
-          <code className='bg-muted rounded px-1.5 py-0.5 text-xs'>
-            {node.permissionCode}
-          </code>
-        </TableCell>
-        <TableCell>
-          <Badge variant='outline'>{node.module}</Badge>
-        </TableCell>
-        <TableCell>{node.actionType}</TableCell>
-        <TableCell>{node.sortOrder}</TableCell>
-        <TableCell>
-          <div className='flex gap-1'>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='h-7 w-7'
-              onClick={() => onAddChild(node.id)}
-              title='新增子权限'
-            >
-              <Icons.add className='h-3.5 w-3.5' />
-            </Button>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='h-7 w-7'
-              onClick={() => onEdit(node)}
-            >
-              <Icons.edit className='h-3.5 w-3.5' />
-            </Button>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='h-7 w-7'
-              onClick={() => onDelete(node.id)}
-            >
-              <Icons.trash className='h-3.5 w-3.5' />
-            </Button>
+      {/* 模块分组行 — 整行可点击折叠/展开 */}
+      <TableRow
+        className='bg-muted/50 hover:bg-muted cursor-pointer select-none'
+        onClick={onToggle}
+      >
+        <TableCell colSpan={5}>
+          <div className='flex items-center gap-2'>
+            <Icons.chevronRight
+              className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
+                !isCollapsed ? 'rotate-90' : ''
+              }`}
+            />
+            <span className='font-semibold'>{module}</span>
+            <span className='text-muted-foreground text-xs'>
+              ({permissions.length} 项)
+            </span>
           </div>
         </TableCell>
       </TableRow>
-      {expanded &&
-        hasChildren &&
-        node.children!.map((child) => (
-          <PermissionRow
-            key={child.id}
-            node={child}
-            depth={depth + 1}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onAddChild={onAddChild}
-          />
+
+      {/* 模块下的权限行 */}
+      {!isCollapsed &&
+        permissions.map((perm) => (
+          <TableRow key={perm.id}>
+            <TableCell>
+              <div className='flex items-center pl-6'>
+                <span>{perm.permissionName}</span>
+              </div>
+            </TableCell>
+            <TableCell>
+              <code className='bg-muted rounded px-1.5 py-0.5 text-xs'>
+                {perm.permissionCode}
+              </code>
+            </TableCell>
+            <TableCell>{perm.actionType}</TableCell>
+            <TableCell>{perm.sortOrder}</TableCell>
+            <TableCell>
+              <div className='flex justify-end gap-1'>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='h-7 w-7'
+                  onClick={() => onAddChild(perm.id)}
+                  title='新增子权限'
+                >
+                  <Icons.add className='h-3.5 w-3.5' />
+                </Button>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='h-7 w-7'
+                  onClick={() => onEdit(perm)}
+                >
+                  <Icons.edit className='h-3.5 w-3.5' />
+                </Button>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='h-7 w-7'
+                  onClick={() => onDelete(perm.id)}
+                >
+                  <Icons.trash className='h-3.5 w-3.5' />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
         ))}
     </>
   );

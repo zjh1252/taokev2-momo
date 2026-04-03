@@ -9,11 +9,13 @@ import { storage } from '@/lib/storage';
 import { useAuth } from '@/lib/auth/auth-context';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import { sendCode, smsLogin, getMockCode } from '../api/service';
+import { markNewUserPending } from '@/features/role-apply/hooks/useRoleApplyState';
 
 const PHONE_LENGTH = 11;
 const CODE_LENGTH = 6;
 const COUNTDOWN_SECONDS = 60;
-const IS_DEV = process.env.NODE_ENV === 'development';
+const IS_MOCK_SMS = process.env.NODE_ENV === 'development'
+  || process.env.NEXT_PUBLIC_MOCK_SMS === 'true';
 
 /**
  * 登录/注册表单 — 短信验证码登录，未注册自动创建账号
@@ -58,7 +60,7 @@ export function LoginForm() {
       setCountdown(COUNTDOWN_SECONDS);
 
       // 开发环境：获取 Mock 验证码并弹窗提示
-      if (IS_DEV) {
+      if (IS_MOCK_SMS) {
         try {
           const res = await getMockCode(phone);
           if (res.data) {
@@ -92,6 +94,10 @@ export function LoginForm() {
         tokenType: token.tokenType,
       });
       await refreshUser();
+
+      if (token.newUser === true) {
+        markNewUserPending();
+      }
       router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败，请重试');
@@ -242,7 +248,7 @@ export function LoginForm() {
       </div>
 
       {/* DEV 环境调试弹窗 — 显示 Mock 验证码 */}
-      {IS_DEV && devCode && (
+      {IS_MOCK_SMS && devCode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
           <div className="relative w-80 rounded-2xl bg-white shadow-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-200">
             <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-amber-100">

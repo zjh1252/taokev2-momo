@@ -37,12 +37,12 @@ const INDUSTRIES = [
 export function InnerCourseFilters({ categoryTree, onFilterChange }: InnerCourseFiltersProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>();
-  const leaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const leaveTimer = useRef<ReturnType<typeof setTimeout>>(null);
 
   const handleMouseEnter = useCallback((key: FilterKey) => {
     if (leaveTimer.current) {
       clearTimeout(leaveTimer.current);
-      leaveTimer.current = undefined;
+      leaveTimer.current = null;
     }
     setActiveFilter(key);
   }, []);
@@ -97,7 +97,7 @@ export function InnerCourseFilters({ categoryTree, onFilterChange }: InnerCourse
           onMouseEnter={() => {
             if (leaveTimer.current) {
               clearTimeout(leaveTimer.current);
-              leaveTimer.current = undefined;
+              leaveTimer.current = null;
             }
           }}
         >

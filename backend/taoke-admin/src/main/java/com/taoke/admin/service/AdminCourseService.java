@@ -1,5 +1,7 @@
 package com.taoke.admin.service;
 
+import com.taoke.admin.dto.AdminCoursePlanQuery;
+import com.taoke.admin.dto.AdminCoursePlanVO;
 import com.taoke.admin.dto.AdminCourseQuery;
 import com.taoke.admin.dto.AdminCourseVO;
 import com.taoke.common.dto.PageResult;
@@ -7,6 +9,7 @@ import com.taoke.common.service.CategoryService;
 import com.taoke.course.api.CourseService;
 import com.taoke.course.dto.course.CourseDetailVO;
 import com.taoke.course.entity.Course;
+import com.taoke.course.entity.CoursePlan;
 import com.taoke.course.enums.CourseStatus;
 import com.taoke.course.enums.CourseType;
 import com.taoke.user.api.TrainerService;
@@ -139,5 +142,56 @@ public class AdminCourseService {
      */
     public void toggleFeatured(Integer courseId) {
         courseService.toggleFeatured(courseId);
+    }
+
+    /**
+     * 分页查询排课计划（含关联课程信息）
+     */
+    public PageResult<AdminCoursePlanVO> listPlans(AdminCoursePlanQuery query) {
+        PageRequest pageable = PageRequest.of(
+                query.getPage() - 1, query.getSize(),
+                Sort.by(Sort.Direction.DESC, "startTime")
+        );
+
+        Page<CoursePlan> page = courseService.searchPlansForAdmin(
+                query.getCourseId(), query.getKeyword(), pageable);
+        List<CoursePlan> plans = page.getContent();
+
+        if (plans.isEmpty()) {
+            return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), List.of());
+        }
+
+        // 批量获取关联课程
+        Set<Integer> courseIds = plans.stream()
+                .map(CoursePlan::getCourseId)
+                .collect(Collectors.toSet());
+        Map<Integer, Course> courseMap = courseService.findByIds(courseIds).stream()
+                .collect(Collectors.toMap(Course::getId, Function.identity()));
+
+        List<AdminCoursePlanVO> voList = plans.stream().map(plan -> {
+            AdminCoursePlanVO vo = new AdminCoursePlanVO();
+            vo.setId(plan.getId());
+            vo.setCourseId(plan.getCourseId());
+            vo.setStartTime(plan.getStartTime());
+            vo.setEndTime(plan.getEndTime());
+            vo.setProvinceId(plan.getProvinceId());
+            vo.setCityId(plan.getCityId());
+            vo.setDistrictId(plan.getDistrictId());
+            vo.setAddress(plan.getAddress());
+            vo.setOnlineUrl(plan.getOnlineUrl());
+            vo.setSortOrder(plan.getSortOrder());
+            vo.setCreatedAt(plan.getCreatedAt());
+
+            Course course = courseMap.get(plan.getCourseId());
+            if (course != null) {
+                vo.setCourseTitle(course.getTitle());
+                vo.setCourseType(course.getType().name());
+                vo.setCourseTypeLabel(course.getType().getLabel());
+            }
+
+            return vo;
+        }).toList();
+
+        return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), voList);
     }
 }

@@ -1,0 +1,26 @@
+# ===== 通用排除 =====
+.git
+.gitignore
+*.md
+docs/
+deploy/
+.cursor/
+.vscode/
+
+# ===== Node 相关 =====
+**/node_modules
+**/.next
+**/.env.local
+**/dist
+
+# ===== Java 相关 =====
+**/target
+
+# ===== 设计稿 =====
+**/designs
+
+# ===== OS / IDE =====
+.DS_Store
+Thumbs.db
+*.iml
+.idea/

@@ -56,7 +56,7 @@ export function SendNotificationForm() {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { data: templateData } = useQuery(templateListQueryOptions);

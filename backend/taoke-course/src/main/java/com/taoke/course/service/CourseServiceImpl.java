@@ -515,4 +515,29 @@ public class CourseServiceImpl implements CourseService {
             vo.setTrainerName(trainers.get(0).getName());
         }
     }
+
+    @Override
+    public List<Course> findByIds(Set<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return courseRepository.findAllById(ids);
+    }
+
+    @Override
+    public Page<CoursePlan> searchPlansForAdmin(Integer courseId, String keyword, Pageable pageable) {
+        Specification<CoursePlan> spec = (root, cq, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (courseId != null) {
+                predicates.add(cb.equal(root.get("courseId"), courseId));
+            }
+            // keyword 匹配地址
+            if (keyword != null && !keyword.isBlank()) {
+                String like = "%" + keyword.trim() + "%";
+                predicates.add(cb.like(root.get("address"), like));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+        return coursePlanRepository.findAll(spec, pageable);
+    }
 }

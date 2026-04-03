@@ -162,6 +162,15 @@
     - 删除旧 `courses/page.tsx` 占位页
   - Flyway V18：插入 20 门种子课程（13 内训课 + 5 线下公开课 + 2 线上公开课）+ 16 条开课计划
 
+## 2026-04-03 10:30
+- 课程列表排序功能接入后端
+  - 后端：`CourseService.listPublic()` 和 `PublicCourseController` 新增 `sortBy` 可选参数
+  - 后端：`CourseServiceImpl` 新增 `resolvePublicSort()` 方法，支持 default/price/score/time/viewCount 五种排序方式
+  - 前端：`CourseListParams` 新增 `sortBy` 字段，API 请求时传递
+  - 前端：`OpenCourseListSection` 排序按钮点击后传递 sortBy 参数给后端（默认/开课时间/价格/评价）
+  - 前端：`InnerCourseListSection` 排序按钮点击后传递 sortBy 参数给后端（默认/评分）
+  - 前端：两个列表页的"默认"排序按钮后面新增 ArrowUpDown 排序图标
+
 ## 2026-04-01 20:25
 - 从 taoke.com 抓取 15 位人力资源类专家种子数据并入库
   - 下载 15 张专家头像到 `frontend/public/statics/images/trainers/`，以 taoke ID 命名
@@ -171,3 +180,13 @@
     - `user_trainers`：15 条专家主表记录（含省市 ID 映射，直辖市取"市辖区"条目）
     - `trainer_expertise_categories`：29 条擅长领域关联（人力资源/领导力/培训发展/经营战略/职业素养/质量管理/国学心理学）
   - SQL 使用 `SELECT id WHERE phone=...` 变量方式获取 user_id/trainer_id，不依赖硬编码自增 ID
+
+## 2026-04-03 14:00
+- 实现 C 端用户中心（个人用户中心）完整 UI，参照设计稿 `student_center_demo.html`
+  - 将 `(portal)` Route Group 重命名为 `(usercenter)`，语义更清晰
+  - 新建 `features/user-center` 模块，包含 `UserCenterHeader`（红色主题）、`UserCenterSidebar`（可折叠子菜单）、`UserCenterBreadcrumb` 三个核心组件
+  - `(usercenter)/layout.tsx` 整体布局：红色 Header + 面包屑 + 侧边栏(220px) + 内容区 + 复用公共 AppFooter
+  - 新增 15 个子页面（含 15 个路由常量和 i18n 文本）：
+    - 已接入后端：个人主页(useAuth)、消息中心(GET /notifications + 标记已读)、账号信息(PUT /users/me)、身份信息、修改身份
+    - 写死/TODO：我的学习(录播课+公开课)、我的订单(4 tabs)、我的需求、我的收藏(4 tabs)、我的点评、推广大使(协议)、培训合伙人(协议+表单)、721讲师合作(协议+表单)、账号认证、账号绑定
+  - `next.config.ts` 添加 Unsplash / ui-avatars 图片域名白名单

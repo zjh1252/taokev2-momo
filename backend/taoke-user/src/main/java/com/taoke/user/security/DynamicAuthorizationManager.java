@@ -11,11 +11,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.servlet.HandlerExecutionChain;
+import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import org.springframework.context.annotation.Lazy;
 
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
@@ -40,6 +43,12 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
 
     private final RequestMappingHandlerMapping handlerMapping;
 
+    /**
+     * 缓存 "HTTP方法 + URI" → HandlerMethod 的映射，避免每次请求都遍历全量映射表。
+     * 用 Optional 包装以区分"查过但没命中"和"还没查过"。
+     */
+    private final ConcurrentHashMap<String, Optional<HandlerMethod>> handlerMethodCache = new ConcurrentHashMap<>(256);
+
     public DynamicAuthorizationManager(@Lazy RequestMappingHandlerMapping handlerMapping) {
         this.handlerMapping = handlerMapping;
     }
@@ -47,12 +56,10 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
     @Override
     public AuthorizationDecision check(Supplier<Authentication> authenticationSupplier,
                                        RequestAuthorizationContext context) {
-        // 判定优先级：1.@Public 放行 2.未认证拒绝 3.SUPER_ADMIN 放行 4.@RequireRole 5.@RequirePermission 6.已认证无注解放行
         HttpServletRequest request = context.getRequest();
 
         HandlerMethod handlerMethod = resolveHandlerMethod(request);
         if (handlerMethod == null) {
-            // 无法解析到控制器方法（静态资源等），放行
             return new AuthorizationDecision(true);
         }
 
@@ -104,15 +111,32 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
         return new AuthorizationDecision(true);
     }
 
+    /**
+     * 通过遍历已注册的 RequestMappingInfo 来匹配 HandlerMethod，
+     * 避免调用 handlerMapping.getHandler() 触发 Security 过滤器链导致无限递归。
+     * 结果按 "HTTP方法 + URI" 缓存，同一路径只解析一次。
+     */
     private HandlerMethod resolveHandlerMethod(HttpServletRequest request) {
+        String cacheKey = request.getMethod() + " " + request.getRequestURI();
+        Optional<HandlerMethod> cached = handlerMethodCache.get(cacheKey);
+        if (cached != null) {
+            return cached.orElse(null);
+        }
+
+        HandlerMethod matched = null;
         try {
-            HandlerExecutionChain chain = handlerMapping.getHandler(request);
-            if (chain != null && chain.getHandler() instanceof HandlerMethod) {
-                return (HandlerMethod) chain.getHandler();
+            Map<RequestMappingInfo, HandlerMethod> methods = handlerMapping.getHandlerMethods();
+            for (Map.Entry<RequestMappingInfo, HandlerMethod> entry : methods.entrySet()) {
+                if (entry.getKey().getMatchingCondition(request) != null) {
+                    matched = entry.getValue();
+                    break;
+                }
             }
         } catch (Exception e) {
             log.debug("解析 HandlerMethod 失败: {}", e.getMessage());
         }
-        return null;
+
+        handlerMethodCache.put(cacheKey, Optional.ofNullable(matched));
+        return matched;
     }
 }

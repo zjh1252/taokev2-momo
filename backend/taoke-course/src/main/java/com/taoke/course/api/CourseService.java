@@ -5,8 +5,12 @@ import com.taoke.course.dto.course.CourseDetailVO;
 import com.taoke.course.dto.course.CourseListItemVO;
 import com.taoke.course.dto.course.SaveCourseRequest;
 import com.taoke.course.entity.Course;
+import com.taoke.course.entity.CoursePlan;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * 课程管理能力接口
@@ -118,4 +122,14 @@ public interface CourseService {
      * 检查是否有课程引用了指定分类
      */
     boolean hasCategoryReference(Integer categoryId);
+
+    /**
+     * 后台分页查询排课计划
+     */
+    Page<CoursePlan> searchPlansForAdmin(Integer courseId, String keyword, Pageable pageable);
+
+    /**
+     * 根据 ID 集合批量获取课程
+     */
+    List<Course> findByIds(Set<Integer> ids);
 }

@@ -2,6 +2,7 @@ package com.taoke.course.repository;
 
 import com.taoke.course.entity.CoursePlan;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 
@@ -11,7 +12,8 @@ import java.util.List;
  * @author Fangxinxin
  * @date 2026-04-02 15:00
  */
-public interface CoursePlanRepository extends JpaRepository<CoursePlan, Integer> {
+public interface CoursePlanRepository extends JpaRepository<CoursePlan, Integer>,
+        JpaSpecificationExecutor<CoursePlan> {
 
     List<CoursePlan> findByCourseIdOrderBySortOrder(Integer courseId);
 

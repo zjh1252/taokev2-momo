@@ -96,9 +96,9 @@ public class AuthController {
     /**
      * 仅 dev 环境可用的 Mock 验证码查询接口
      */
-    @Profile("dev")
+    @Profile({"dev", "test"})
     @RestController
-    @Tag(name = "Mock-开发调试", description = "仅 dev 环境可用")
+    @Tag(name = "Mock-开发调试", description = "仅 dev/test 环境可用")
     static class MockCodeController {
 
         private final SmsProvider smsProvider;

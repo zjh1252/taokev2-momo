@@ -5,46 +5,129 @@ import com.taoke.course.dto.course.CourseListItemVO;
 import com.taoke.course.dto.course.CoursePlanDTO;
 import com.taoke.course.entity.Course;
 import com.taoke.course.entity.CoursePlan;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
- * 课程对象映射 — Entity/DTO/VO 转换
+ * 课程对象映射器，负责 Entity/DTO/VO 之间的转换。
+ * <p>
+ * 该模块的 MapStruct 生成实现存在增量编译产物不稳定问题，
+ * 此处改为显式 Spring 组件，避免运行时注入依赖于生成类。
+ * </p>
  *
  * @author Fangxinxin
- * @date 2026-04-02 15:00
+ * @date 2026-04-03 13:20
  */
-@Mapper(componentModel = "spring")
-public interface CourseMapper {
+@Component
+public class CourseMapper {
 
-    // ==================== 课程主表 ====================
+    public CourseDetailVO toDetailVO(Course course) {
+        if (course == null) {
+            return null;
+        }
 
-    @Mapping(target = "typeLabel", ignore = true)
-    @Mapping(target = "publisherName", ignore = true)
-    @Mapping(target = "categoryName", ignore = true)
-    @Mapping(target = "subCategoryName", ignore = true)
-    @Mapping(target = "trainerName", ignore = true)
-    @Mapping(target = "statusLabel", ignore = true)
-    @Mapping(target = "plans", ignore = true)
-    CourseDetailVO toDetailVO(Course course);
+        CourseDetailVO vo = new CourseDetailVO();
+        vo.setId(course.getId());
+        vo.setTitle(course.getTitle());
+        vo.setType(course.getType() == null ? null : course.getType().name());
+        vo.setPublisherId(course.getPublisherId());
+        vo.setPublisherType(course.getPublisherType());
+        vo.setCategoryId(course.getCategoryId());
+        vo.setSubCategoryId(course.getSubCategoryId());
+        vo.setCoverUrl(course.getCoverUrl());
+        vo.setIntro(course.getIntro());
+        vo.setSyllabus(course.getSyllabus());
+        vo.setAudience(course.getAudience());
+        vo.setHighlights(course.getHighlights());
+        vo.setDurationDays(course.getDurationDays());
+        vo.setHoursPerDay(course.getHoursPerDay());
+        vo.setPrice(course.getPrice());
+        vo.setOriginalPrice(course.getOriginalPrice());
+        vo.setKeywords(course.getKeywords());
+        vo.setTrainerId(course.getTrainerId());
+        vo.setIsFeatured(course.getIsFeatured());
+        vo.setIsFree(course.getIsFree());
+        vo.setStatus(course.getStatus());
+        vo.setRejectReason(course.getRejectReason());
+        vo.setSortOrder(course.getSortOrder());
+        vo.setViewCount(course.getViewCount());
+        vo.setEnrollmentCount(course.getEnrollmentCount());
+        vo.setScore(course.getScore());
+        vo.setPublishedAt(course.getPublishedAt());
+        vo.setCreatedAt(course.getCreatedAt());
+        vo.setUpdatedAt(course.getUpdatedAt());
+        return vo;
+    }
 
-    @Mapping(target = "typeLabel", ignore = true)
-    @Mapping(target = "categoryName", ignore = true)
-    @Mapping(target = "statusLabel", ignore = true)
-    @Mapping(target = "publisherName", ignore = true)
-    @Mapping(target = "trainerName", ignore = true)
-    CourseListItemVO toListItemVO(Course course);
+    public CourseListItemVO toListItemVO(Course course) {
+        if (course == null) {
+            return null;
+        }
 
-    // ==================== 开课计划 ====================
+        CourseListItemVO vo = new CourseListItemVO();
+        vo.setId(course.getId());
+        vo.setTitle(course.getTitle());
+        vo.setType(course.getType() == null ? null : course.getType().name());
+        vo.setCoverUrl(course.getCoverUrl());
+        vo.setCategoryId(course.getCategoryId());
+        vo.setDurationDays(course.getDurationDays());
+        vo.setHoursPerDay(course.getHoursPerDay());
+        vo.setPrice(course.getPrice());
+        vo.setOriginalPrice(course.getOriginalPrice());
+        vo.setIsFeatured(course.getIsFeatured());
+        vo.setIsFree(course.getIsFree());
+        vo.setStatus(course.getStatus());
+        vo.setViewCount(course.getViewCount());
+        vo.setEnrollmentCount(course.getEnrollmentCount());
+        vo.setScore(course.getScore());
+        vo.setPublisherType(course.getPublisherType());
+        vo.setKeywords(course.getKeywords());
+        vo.setPublishedAt(course.getPublishedAt());
+        vo.setCreatedAt(course.getCreatedAt());
+        return vo;
+    }
 
-    CoursePlanDTO toPlanDTO(CoursePlan plan);
+    public CoursePlanDTO toPlanDTO(CoursePlan plan) {
+        if (plan == null) {
+            return null;
+        }
 
-    List<CoursePlanDTO> toPlanDTOList(List<CoursePlan> plans);
+        CoursePlanDTO dto = new CoursePlanDTO();
+        dto.setId(plan.getId());
+        dto.setStartTime(plan.getStartTime());
+        dto.setEndTime(plan.getEndTime());
+        dto.setProvinceId(plan.getProvinceId());
+        dto.setCityId(plan.getCityId());
+        dto.setDistrictId(plan.getDistrictId());
+        dto.setAddress(plan.getAddress());
+        dto.setOnlineUrl(plan.getOnlineUrl());
+        dto.setSortOrder(plan.getSortOrder());
+        return dto;
+    }
 
-    @Mapping(target = "courseId", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    CoursePlan toPlanEntity(CoursePlanDTO dto);
+    public List<CoursePlanDTO> toPlanDTOList(List<CoursePlan> plans) {
+        if (plans == null) {
+            return null;
+        }
+        return plans.stream().map(this::toPlanDTO).toList();
+    }
+
+    public CoursePlan toPlanEntity(CoursePlanDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+
+        CoursePlan plan = new CoursePlan();
+        plan.setId(dto.getId());
+        plan.setStartTime(dto.getStartTime());
+        plan.setEndTime(dto.getEndTime());
+        plan.setProvinceId(dto.getProvinceId());
+        plan.setCityId(dto.getCityId());
+        plan.setDistrictId(dto.getDistrictId());
+        plan.setAddress(dto.getAddress());
+        plan.setOnlineUrl(dto.getOnlineUrl());
+        plan.setSortOrder(dto.getSortOrder());
+        return plan;
+    }
 }

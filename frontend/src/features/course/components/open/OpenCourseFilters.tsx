@@ -55,12 +55,12 @@ const EXTRAS = ['提供教材', '包含午餐', '课后答疑', '颁发证书', 
 export function OpenCourseFilters({ categoryTree, onFilterChange }: OpenCourseFiltersProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>();
-  const leaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const leaveTimer = useRef<ReturnType<typeof setTimeout>>(null);
 
   const handleMouseEnter = useCallback((key: FilterKey) => {
     if (leaveTimer.current) {
       clearTimeout(leaveTimer.current);
-      leaveTimer.current = undefined;
+      leaveTimer.current = null;
     }
     setActiveFilter(key);
   }, []);
@@ -115,7 +115,7 @@ export function OpenCourseFilters({ categoryTree, onFilterChange }: OpenCourseFi
           onMouseEnter={() => {
             if (leaveTimer.current) {
               clearTimeout(leaveTimer.current);
-              leaveTimer.current = undefined;
+              leaveTimer.current = null;
             }
           }}
         >
