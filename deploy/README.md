@@ -20,9 +20,9 @@ deploy/
 - 地址：`10.0.16.26:5000`
 - 镜像前缀：`taokev2`
 - 生成的镜像名：
-  - `10.0.16.26:5000/taokev2-backend:<version>`
-  - `10.0.16.26:5000/taokev2-frontend:<version>`
-  - `10.0.16.26:5000/taokev2-admin:<version>`
+  - `10.0.16.26:5000/taokev2/backend:<version>`
+  - `10.0.16.26:5000/taokev2/frontend:<version>`
+  - `10.0.16.26:5000/taokev2/admin:<version>`
 
 Docker 守护进程需配置 insecure-registries：
 

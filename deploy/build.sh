@@ -65,8 +65,8 @@ echo ""
 build_and_push() {
   local name="$1"
   local dockerfile="$2"
-  local full_tag="${REGISTRY}/${IMAGE_PREFIX}-${name}:${VERSION}"
-  local latest_tag="${REGISTRY}/${IMAGE_PREFIX}-${name}:latest"
+  local full_tag="${REGISTRY}/${IMAGE_PREFIX}/${name}:${VERSION}"
+  local latest_tag="${REGISTRY}/${IMAGE_PREFIX}/${name}:latest"
 
   echo "-------- 构建 ${name} --------"
   echo "镜像标签: ${full_tag}"

@@ -14,7 +14,7 @@ FROM oven/bun:1-alpine AS deps
 
 WORKDIR /app
 COPY admin-frontend/package.json admin-frontend/bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # ---------- 阶段2：构建 ----------
 FROM oven/bun:1-alpine AS builder

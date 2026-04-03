@@ -10,7 +10,7 @@ deploy/
 # ===== Node 相关 =====
 **/node_modules
 **/.next
-**/.env*
+**/.env.local
 **/dist
 
 # ===== Java 相关 =====
