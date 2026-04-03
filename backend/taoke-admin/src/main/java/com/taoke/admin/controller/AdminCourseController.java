@@ -1,5 +1,7 @@
 package com.taoke.admin.controller;
 
+import com.taoke.admin.dto.AdminCoursePlanQuery;
+import com.taoke.admin.dto.AdminCoursePlanVO;
 import com.taoke.admin.dto.AdminCourseQuery;
 import com.taoke.admin.dto.AdminCourseVO;
 import com.taoke.admin.dto.RejectApplicationRequest;
@@ -68,5 +70,11 @@ public class AdminCourseController {
     public ApiResponse<Void> toggleFeatured(@PathVariable Integer id) {
         adminCourseService.toggleFeatured(id);
         return ApiResponse.ok();
+    }
+
+    @Operation(summary = "分页查询排课计划")
+    @GetMapping("/admin/courses/plans")
+    public ApiResponse<PageResult<AdminCoursePlanVO>> listPlans(AdminCoursePlanQuery query) {
+        return ApiResponse.ok(adminCourseService.listPlans(query));
     }
 }

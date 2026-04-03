@@ -36,11 +36,20 @@ export const navGroups: NavGroup[] = [
     label: '课程管理',
     items: [
       {
-        title: '课程列表',
-        url: '/dashboard/courses',
-        icon: 'product',
+        title: '课程管理',
+        url: '#',
+        icon: 'book',
         isActive: false,
-        items: []
+        items: [
+          {
+            title: '课程列表',
+            url: '/dashboard/courses'
+          },
+          {
+            title: '排课管理',
+            url: '/dashboard/courses/plans'
+          }
+        ]
       }
     ]
   },

@@ -162,6 +162,15 @@
     - 删除旧 `courses/page.tsx` 占位页
   - Flyway V18：插入 20 门种子课程（13 内训课 + 5 线下公开课 + 2 线上公开课）+ 16 条开课计划
 
+## 2026-04-03 10:30
+- 课程列表排序功能接入后端
+  - 后端：`CourseService.listPublic()` 和 `PublicCourseController` 新增 `sortBy` 可选参数
+  - 后端：`CourseServiceImpl` 新增 `resolvePublicSort()` 方法，支持 default/price/score/time/viewCount 五种排序方式
+  - 前端：`CourseListParams` 新增 `sortBy` 字段，API 请求时传递
+  - 前端：`OpenCourseListSection` 排序按钮点击后传递 sortBy 参数给后端（默认/开课时间/价格/评价）
+  - 前端：`InnerCourseListSection` 排序按钮点击后传递 sortBy 参数给后端（默认/评分）
+  - 前端：两个列表页的"默认"排序按钮后面新增 ArrowUpDown 排序图标
+
 ## 2026-04-01 20:25
 - 从 taoke.com 抓取 15 位人力资源类专家种子数据并入库
   - 下载 15 张专家头像到 `frontend/public/statics/images/trainers/`，以 taoke ID 命名

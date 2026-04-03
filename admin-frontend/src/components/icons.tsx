@@ -5,11 +5,13 @@ import {
   IconArrowRight,
   IconBell,
   IconBold,
+  IconBook,
   IconBox,
   IconBrandGithub,
   IconBrandTwitter,
   IconBrightness,
   IconCalendar,
+  IconCalendarEvent,
   IconCheck,
   IconChecks,
   IconChevronDown,
@@ -191,6 +193,7 @@ export const Icons = {
   product: IconBox,
   pro: IconCrown,
   exclusive: IconStar,
+  star: IconStar,
   sparkles: IconSparkles,
   badgeCheck: IconRosetteDiscountCheck,
   lock: IconLock,
@@ -207,6 +210,10 @@ export const Icons = {
   italic: IconItalic,
   underline: IconUnderline,
   text: IconTypography,
+
+  // Education / Courses
+  book: IconBook,
+  calendarEvent: IconCalendarEvent,
 
   // Categories
   tags: IconTags,
