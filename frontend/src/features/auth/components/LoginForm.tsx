@@ -9,7 +9,7 @@ import { storage } from '@/lib/storage';
 import { useAuth } from '@/lib/auth/auth-context';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import { sendCode, smsLogin, getMockCode } from '../api/service';
-import { RoleSelectModal } from '@/features/role-apply/components/RoleSelectModal';
+import { markNewUserPending } from '@/features/role-apply/hooks/useRoleApplyState';
 
 const PHONE_LENGTH = 11;
 const CODE_LENGTH = 6;
@@ -36,7 +36,6 @@ export function LoginForm() {
   const [error, setError] = useState('');
   const [devCode, setDevCode] = useState('');
   const [devCopied, setDevCopied] = useState(false);
-  const [showRoleModal, setShowRoleModal] = useState(false);
 
   const canSendCode = phone.length === PHONE_LENGTH && countdown === 0 && !sendingCode;
   const canSubmit =
@@ -95,13 +94,10 @@ export function LoginForm() {
       });
       await refreshUser();
 
-      const isNewUser = token.newUser === true;
-      const dismissed = !!storage.get<boolean>('taoke_role_apply_dismissed');
-      if (isNewUser && !dismissed) {
-        setShowRoleModal(true);
-      } else {
-        router.push('/');
+      if (token.newUser === true) {
+        markNewUserPending();
       }
+      router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败，请重试');
     } finally {
@@ -249,15 +245,6 @@ export function LoginForm() {
           </button>
         </div>
       </div>
-
-      {/* 新用户角色选择弹窗 */}
-      <RoleSelectModal
-        open={showRoleModal}
-        onClose={() => {
-          setShowRoleModal(false);
-          router.push('/');
-        }}
-      />
 
       {/* DEV 环境调试弹窗 — 显示 Mock 验证码 */}
       {IS_DEV && devCode && (

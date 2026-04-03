@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/lib/auth/auth-context';
+import { NewUserRolePrompt } from '@/features/role-apply/components/NewUserRolePrompt';
 
 /**
  * 客户端 Providers 聚合组件
@@ -11,5 +12,10 @@ import { AuthProvider } from '@/lib/auth/auth-context';
  * @date 2026-04-01 22:10
  */
 export function Providers({ children }: { children: ReactNode }) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <AuthProvider>
+      {children}
+      <NewUserRolePrompt />
+    </AuthProvider>
+  );
 }

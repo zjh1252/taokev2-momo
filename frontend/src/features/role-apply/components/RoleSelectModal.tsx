@@ -90,18 +90,18 @@ export function RoleSelectModal({ open, onClose }: RoleSelectModalProps) {
                 type="button"
                 onClick={() => setSelected(role.code)}
                 className={cn(
-                  'flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer',
+                  'flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all duration-200 cursor-pointer',
                   isSelected
-                    ? 'border-primary bg-red-50/60 shadow-sm'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50',
+                    ? 'border-primary bg-red-50/60 shadow-md scale-[1.02]'
+                    : 'border-slate-200 hover:border-primary/40 hover:bg-red-50/30 hover:shadow-sm hover:scale-[1.01]',
                 )}
               >
                 <div
                   className={cn(
-                    'flex items-center justify-center size-10 rounded-lg shrink-0 transition-colors',
+                    'flex items-center justify-center size-10 rounded-lg shrink-0 transition-all duration-200',
                     isSelected
-                      ? 'bg-primary text-white'
-                      : 'bg-slate-100 text-slate-500',
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-500 group-hover:bg-primary/10',
                   )}
                 >
                   <Icon className="size-5" />
@@ -109,7 +109,7 @@ export function RoleSelectModal({ open, onClose }: RoleSelectModalProps) {
                 <div className="min-w-0">
                   <div
                     className={cn(
-                      'font-semibold text-sm',
+                      'font-semibold text-sm transition-colors duration-200',
                       isSelected ? 'text-primary' : 'text-gray-900',
                     )}
                   >
