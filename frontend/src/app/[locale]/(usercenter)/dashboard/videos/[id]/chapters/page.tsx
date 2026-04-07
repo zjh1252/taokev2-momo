@@ -11,6 +11,7 @@ import {
   createVideoChapter,
   updateVideoChapter,
   deleteVideoChapter,
+  uploadVideoFile,
 } from '@/features/video/api/publisher-service';
 import type {
   VideoChapter,
@@ -27,6 +28,8 @@ import {
   Eye,
   X,
   Lock,
+  Film,
+  CheckCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -57,6 +60,8 @@ export default function VideoChaptersManagePage() {
   const [formSeriesId, setFormSeriesId] = useState(0);
   const [formIsPreview, setFormIsPreview] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoFileName, setVideoFileName] = useState('');
 
   const fetchData = useCallback(async () => {
     if (!videoId) return;
@@ -90,6 +95,7 @@ export default function VideoChaptersManagePage() {
     setFormSort(chapters.length);
     setFormSeriesId(0);
     setFormIsPreview(0);
+    setVideoFileName('');
     setModalOpen(true);
   };
 
@@ -102,7 +108,23 @@ export default function VideoChaptersManagePage() {
     setFormSort(ch.sortOrder);
     setFormSeriesId(ch.seriesId || 0);
     setFormIsPreview(ch.isPreview || 0);
+    setVideoFileName(ch.videoUrl ? '已上传视频' : '');
     setModalOpen(true);
+  };
+
+  const handleUploadChapterVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingVideo(true);
+    setVideoFileName(file.name);
+    try {
+      const url = await uploadVideoFile(file);
+      setFormVideoUrl(url);
+    } catch {
+      alert('视频上传失败，请检查文件格式和大小（最大500MB）');
+    } finally {
+      setUploadingVideo(false);
+    }
   };
 
   const handleSave = async () => {
@@ -275,13 +297,50 @@ export default function VideoChaptersManagePage() {
               )}
 
               <div>
-                <label className="text-sm text-gray-700 mb-1 block">视频地址</label>
+                <label className="text-sm text-gray-700 mb-1 block">上传视频</label>
+                {formVideoUrl ? (
+                  <div className="flex items-center gap-3 border border-slate-200 rounded-lg px-3 py-2.5 bg-slate-50">
+                    <CheckCircle className="size-4 text-green-500 shrink-0" />
+                    <span className="text-sm text-gray-700 flex-1 truncate">{videoFileName || '已上传视频'}</span>
+                    <button
+                      type="button"
+                      onClick={() => { setFormVideoUrl(''); setVideoFileName(''); }}
+                      className="text-gray-400 hover:text-red-500 shrink-0"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className={cn(
+                    'flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors',
+                    uploadingVideo ? 'border-primary/40 bg-primary/5' : 'border-slate-300 hover:border-primary',
+                  )}>
+                    <input
+                      type="file"
+                      accept="video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/webm,.mp4,.avi,.mov,.wmv,.flv,.mkv,.webm"
+                      onChange={handleUploadChapterVideo}
+                      className="hidden"
+                      disabled={uploadingVideo}
+                    />
+                    {uploadingVideo ? (
+                      <>
+                        <div className="animate-spin rounded-full size-5 border-2 border-primary border-t-transparent" />
+                        <span className="text-sm text-primary">上传中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Film className="size-5 text-slate-400" />
+                        <span className="text-sm text-slate-500">点击选择视频文件</span>
+                      </>
+                    )}
+                  </label>
+                )}
                 <input
                   type="text"
                   value={formVideoUrl}
                   onChange={(e) => setFormVideoUrl(e.target.value)}
-                  placeholder="请输入视频地址"
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  placeholder="或直接输入视频URL"
+                  className="w-full mt-2 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
               </div>
 

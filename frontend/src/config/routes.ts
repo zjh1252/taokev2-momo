@@ -5,7 +5,7 @@ export const ROUTES = {
   TRAINERS: '/trainers',
   PUBLIC_COURSES: '/opencourses',
   INTERNAL_COURSES: '/innercourses',
-  ONLINE_COURSES: '/online-courses',
+  ONLINE_COURSES: '/videos',
   INSTITUTIONS: '/institutions',
   CART: '/cart',
   CHECKOUT: '/checkout',

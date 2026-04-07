@@ -4,14 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import RichTextEditor from '@/components/rich-text-editor';
 import { getVideoCategoryTree } from '@/features/video/api/service';
-import { uploadImage } from '@/features/video/api/publisher-service';
+import { uploadImage, uploadVideoFile } from '@/features/video/api/publisher-service';
 import type {
   VideoType,
   CategoryTreeNode,
   SaveVideoRequest,
   VideoDetail,
 } from '@/features/video/api/types';
-import { ImagePlus, X, ChevronDown } from 'lucide-react';
+import { ImagePlus, X, ChevronDown, Upload, Film, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VideoFormProps {
@@ -44,7 +44,9 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   const [keywords, setKeywords] = useState(initialData?.keywords || '');
 
   const [categories, setCategories] = useState<CategoryTreeNode[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoFileName, setVideoFileName] = useState('');
   const [catDropdownOpen, setCatDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -54,14 +56,29 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   const handleUploadCover = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
+    setUploadingCover(true);
     try {
       const url = await uploadImage(file);
       setCoverUrl(url);
     } catch {
       alert('封面上传失败');
     } finally {
-      setUploading(false);
+      setUploadingCover(false);
+    }
+  }, []);
+
+  const handleUploadVideo = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingVideo(true);
+    setVideoFileName(file.name);
+    try {
+      const url = await uploadVideoFile(file);
+      setVideoUrl(url);
+    } catch {
+      alert('视频上传失败，请检查文件格式和大小（最大500MB）');
+    } finally {
+      setUploadingVideo(false);
     }
   }, []);
 
@@ -82,7 +99,7 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       subCategoryId: subCategoryId || undefined,
       coverUrl: coverUrl || undefined,
       intro,
-      videoUrl: videoType === 'SINGLE' ? videoUrl : undefined,
+      videoUrl: videoType !== 'EXTERNAL' ? (videoUrl || undefined) : undefined,
       externalUrl: videoType === 'EXTERNAL' ? externalUrl : undefined,
       teacherName: teacherName || undefined,
       price: isFree === 1 ? 0 : price,
@@ -182,17 +199,59 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
         </div>
       </div>
 
-      {/* 单个视频URL（SINGLE类型） */}
-      {videoType === 'SINGLE' && (
+      {/* 上传视频（SERIES / SINGLE 类型） */}
+      {(videoType === 'SERIES' || videoType === 'SINGLE') && (
         <div className="flex items-start gap-4">
-          <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">视频地址</label>
+          <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">上传视频</label>
           <div className="flex-1">
+            {videoUrl ? (
+              <div className="flex items-center gap-3 border border-slate-200 rounded-lg px-4 py-3 bg-slate-50">
+                <CheckCircle className="size-5 text-green-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700 truncate">{videoFileName || '已上传视频'}</p>
+                  <p className="text-xs text-slate-400 truncate">{videoUrl}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setVideoUrl(''); setVideoFileName(''); }}
+                  className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <label className={cn(
+                'flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg p-6 cursor-pointer transition-colors',
+                uploadingVideo ? 'border-primary/40 bg-primary/5' : 'border-slate-300 hover:border-primary',
+              )}>
+                <input
+                  type="file"
+                  accept="video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/webm,video/x-flv,.mp4,.avi,.mov,.wmv,.flv,.mkv,.webm"
+                  onChange={handleUploadVideo}
+                  className="hidden"
+                  disabled={uploadingVideo}
+                />
+                {uploadingVideo ? (
+                  <>
+                    <div className="animate-spin rounded-full size-8 border-2 border-primary border-t-transparent" />
+                    <span className="text-sm text-primary">正在上传 {videoFileName}...</span>
+                  </>
+                ) : (
+                  <>
+                    <Film className="size-8 text-slate-400" />
+                    <span className="text-sm text-slate-500">点击选择视频文件</span>
+                    <span className="text-xs text-slate-400">支持 mp4、avi、mov、wmv、flv、mkv、webm，最大 500MB</span>
+                  </>
+                )}
+              </label>
+            )}
+            <p className="text-xs text-slate-400 mt-1.5">也可以直接填写视频URL：</p>
             <input
               type="text"
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="请输入视频URL"
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              placeholder="或输入视频URL地址"
+              className="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </div>
         </div>
@@ -232,7 +291,7 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
           ) : (
             <label className="w-[200px] h-[150px] border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary transition-colors">
               <input type="file" accept="image/*" onChange={handleUploadCover} className="hidden" />
-              {uploading ? (
+              {uploadingCover ? (
                 <div className="animate-spin rounded-full size-6 border-2 border-primary border-t-transparent" />
               ) : (
                 <>

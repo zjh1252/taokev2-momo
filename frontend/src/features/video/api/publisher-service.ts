@@ -159,3 +159,18 @@ export async function uploadImage(file: File): Promise<string> {
   const json = await resp.json() as ApiResponse<{ url: string }>;
   return json.data.url;
 }
+
+/** 上传视频文件 */
+export async function uploadVideoFile(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+  const resp = await fetch(`${API_BASE_URL}/uploads/videos`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${storage.get<{ accessToken?: string }>(TOKEN_KEY)?.accessToken || ''}` },
+    body: formData,
+  });
+  if (!resp.ok) throw new Error('视频上传失败');
+  const json = await resp.json() as ApiResponse<{ url: string }>;
+  return json.data.url;
+}

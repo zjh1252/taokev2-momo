@@ -28,6 +28,11 @@ public interface FileUploadService {
     FileUploadResponse uploadAvatar(MultipartFile file);
 
     /**
+     * 上传视频
+     */
+    FileUploadResponse uploadVideo(MultipartFile file);
+
+    /**
      * 按指定业务类型上传
      */
     FileUploadResponse upload(MultipartFile file, UploadBizType bizType);

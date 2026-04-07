@@ -53,6 +53,14 @@ public class FileUploadServiceImpl implements FileUploadService {
     }
 
     @Override
+    public FileUploadResponse uploadVideo(MultipartFile file) {
+        validateNotEmpty(file);
+        validateVideoSize(file);
+        validateVideoType(file);
+        return doUpload(file, UploadBizType.VIDEOS);
+    }
+
+    @Override
     public FileUploadResponse upload(MultipartFile file, UploadBizType bizType) {
         validateNotEmpty(file);
         validateSize(file);
@@ -110,6 +118,26 @@ public class FileUploadServiceImpl implements FileUploadService {
         if (extension == null || !properties.getAllowedFileExtensions().contains(extension.toLowerCase())) {
             throw new BusinessException(ErrorCode.INVALID_FILE_TYPE,
                     "不支持的文件格式，支持: " + String.join(", ", properties.getAllowedFileExtensions()));
+        }
+    }
+
+    private void validateVideoSize(MultipartFile file) {
+        if (file.getSize() > properties.getMaxVideoSize()) {
+            throw new BusinessException(ErrorCode.FILE_TOO_LARGE,
+                    String.format("视频文件大小不能超过 %d MB", properties.getMaxVideoSize() / 1024 / 1024));
+        }
+    }
+
+    private void validateVideoType(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null || !properties.getAllowedVideoTypes().contains(contentType.toLowerCase())) {
+            throw new BusinessException(ErrorCode.INVALID_FILE_TYPE,
+                    "不支持的视频类型，支持: " + String.join(", ", properties.getAllowedVideoExtensions()));
+        }
+        String extension = StringUtils.getFilenameExtension(file.getOriginalFilename());
+        if (extension == null || !properties.getAllowedVideoExtensions().contains(extension.toLowerCase())) {
+            throw new BusinessException(ErrorCode.INVALID_FILE_TYPE,
+                    "不支持的视频格式，支持: " + String.join(", ", properties.getAllowedVideoExtensions()));
         }
     }
 }

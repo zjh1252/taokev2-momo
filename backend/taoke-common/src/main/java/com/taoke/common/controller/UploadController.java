@@ -41,4 +41,10 @@ public class UploadController {
     public ApiResponse<FileUploadResponse> uploadAvatar(@RequestParam("file") MultipartFile file) {
         return ApiResponse.ok(fileUploadService.uploadAvatar(file));
     }
+
+    @Operation(summary = "上传视频", description = "支持 mp4、avi、mov、wmv、flv、mkv、webm 等格式，最大 500MB")
+    @PostMapping("/uploads/videos")
+    public ApiResponse<FileUploadResponse> uploadVideo(@RequestParam("file") MultipartFile file) {
+        return ApiResponse.ok(fileUploadService.uploadVideo(file));
+    }
 }

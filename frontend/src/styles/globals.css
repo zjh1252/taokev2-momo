@@ -141,6 +141,15 @@
   }
 }
 
+/* Sonner toast 关闭按钮移到右上角 */
+[data-sonner-toast] [data-close-button] {
+  position: absolute !important;
+  top: 4px !important;
+  right: 4px !important;
+  left: auto !important;
+  transform: none !important;
+}
+
 /* 角色申请表单统一输入框样式 */
 .form-input {
   @apply w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-sm text-gray-900

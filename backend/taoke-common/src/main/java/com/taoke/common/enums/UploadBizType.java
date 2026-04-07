@@ -18,7 +18,8 @@ public enum UploadBizType {
     FILES("files", "通用文件"),
     CERTIFICATES("certificates", "资质证书"),
     COURSES("courses", "课程封面/课件"),
-    CASES("cases", "案例图片");
+    CASES("cases", "案例图片"),
+    VIDEOS("videos", "视频文件");
 
     /** 子目录名 */
     private final String dir;
