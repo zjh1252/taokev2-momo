@@ -7,6 +7,8 @@ export const ROUTES = {
   INTERNAL_COURSES: '/innercourses',
   ONLINE_COURSES: '/online-courses',
   INSTITUTIONS: '/institutions',
+  CART: '/cart',
+  CHECKOUT: '/checkout',
   COURSES: '/courses',
   INSTRUCTORS: '/instructors',
   ARTICLES: '/articles',

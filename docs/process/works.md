@@ -190,3 +190,28 @@
     - 已接入后端：个人主页(useAuth)、消息中心(GET /notifications + 标记已读)、账号信息(PUT /users/me)、身份信息、修改身份
     - 写死/TODO：我的学习(录播课+公开课)、我的订单(4 tabs)、我的需求、我的收藏(4 tabs)、我的点评、推广大使(协议)、培训合伙人(协议+表单)、721讲师合作(协议+表单)、账号认证、账号绑定
   - `next.config.ts` 添加 Unsplash / ui-avatars 图片域名白名单
+
+## 2026-04-07 17:30
+- 实现课程购买支付完整流程（购物车 → 下单 → 支付 → 报名）
+- Flyway V22：新建 carts、orders、order_items、payments、course_enrollments 5 张表
+- 后端 taoke-course 模块新增 cart/order/pay 三个子包：
+  - Entity：Cart、Order、OrderItem、Payment、CourseEnrollment
+  - Enum：ProductType、OrderStatus、PaymentStatus、PaymentMethod
+  - Repository / DTO / Mapper / Service / Controller 全套
+  - 购物车 API：增删改查 + 数量统计（6 个接口）
+  - 订单 API：创建（支持购物车结算 + 直接购买）、列表、详情、取消（4 个接口）
+  - 支付 API：发起支付（模拟支付直接成功）、查询状态（2 个接口）
+  - 支付成功回调自动生成 course_enrollments / video_enrollments 报名记录 + 更新 enrollment_count
+  - 订单超时定时任务（@Scheduled 每分钟扫描关闭 30 分钟过期订单）
+  - ErrorCode 新增 40001-40010 订单/支付错误码
+  - TaokeApplication 新增 @EnableScheduling
+- 前端新增 cart / order 两个 feature 模块：
+  - API service + types + useCart hook
+  - CartBadge（顶部购物车图标+badge）、CartItemCard、OrderCard、CheckoutSummary、PaymentModal 组件
+  - /cart 购物车页面（全选/单选/数量/删除/结算）
+  - /checkout 结算确认页 + 模拟支付弹窗
+  - TopNavBar 左侧新增购物车入口
+  - VideoSidebar / CourseSidebar 购买 + 购物车按钮对接真实 API
+  - /dashboard/orders 订单列表页替换为真实数据（Tab 筛选 + 分页 + 支付弹窗）
+  - i18n：新增 cart.json / order.json（zh-CN + en）、request.ts 注册命名空间
+  - routes.ts 新增 CART / CHECKOUT 路由常量

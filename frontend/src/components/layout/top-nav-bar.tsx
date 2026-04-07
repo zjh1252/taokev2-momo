@@ -2,6 +2,7 @@
 
 import { UserAuthArea } from './header-auth';
 import { NotificationBell } from '@/features/notification/components/NotificationBell';
+import { CartBadge } from '@/features/cart/components/CartBadge';
 
 /** 集团产品矩阵链接 */
 const GROUP_LINKS = [
@@ -42,8 +43,10 @@ export function TopNavBar() {
           ))}
         </div>
 
-        {/* 右侧：通知 + 用户认证区域 */}
+        {/* 右侧：购物车 + 通知 + 用户认证区域 */}
         <div className="flex items-center gap-3 text-slate-500">
+          <CartBadge />
+          <span className="text-slate-300">|</span>
           <NotificationBell />
           <span className="text-slate-300">|</span>
           <UserAuthArea />

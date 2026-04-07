@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 淘课网 v2 应用启动入口。
@@ -15,6 +16,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @SpringBootApplication(scanBasePackages = "com.taoke")
 @EnableJpaRepositories(basePackages = "com.taoke")
 @EntityScan(basePackages = "com.taoke")
+@EnableScheduling
 public class TaokeApplication {
 
     public static void main(String[] args) {

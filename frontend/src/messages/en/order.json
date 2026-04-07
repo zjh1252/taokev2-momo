@@ -1,0 +1,41 @@
+{
+  "title": "My Orders",
+  "tabs": {
+    "all": "All Orders",
+    "pending": "Pending",
+    "paid": "Completed",
+    "cancelled": "Cancelled",
+    "expired": "Expired"
+  },
+  "searchPlaceholder": "Search by order number",
+  "empty": "No orders yet",
+  "orderNo": "Order No.",
+  "actualPay": "Amount Paid",
+  "payNow": "Pay Now",
+  "cancelOrder": "Cancel Order",
+  "cancelSuccess": "Order cancelled",
+  "items": "items",
+  "unitPrice": "Price",
+  "done": "Completed",
+  "confirmOrder": "Confirm Order",
+  "confirmProduct": "Confirm Products",
+  "productTotal": "Subtotal",
+  "payable": "Total",
+  "payNowBtn": "Pay Now",
+  "alreadyPaid": "This order has been paid",
+  "missingOrderNo": "Missing order number",
+  "orderNotFound": "Order not found",
+  "payment": {
+    "title": "Confirm Payment",
+    "mockHint": "Mock payment mode — click to complete payment",
+    "confirm": "Confirm Payment",
+    "processing": "Processing...",
+    "wait": "Please wait",
+    "success": "Payment Successful",
+    "amount": "Amount",
+    "redirect": "Redirecting to order details..."
+  },
+  "prevPage": "Previous",
+  "nextPage": "Next",
+  "pageInfo": "Page {page}"
+}

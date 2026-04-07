@@ -1,11 +1,48 @@
+'use client';
+
+import { useState } from 'react';
 import { ShoppingCart, Zap, User } from 'lucide-react';
+import { toast } from 'sonner';
+import { useRouter } from '@/i18n/navigation';
 import type { VideoDetail } from '../../api/types';
+import { useCart } from '@/features/cart/hooks/useCart';
+import { createOrder } from '@/features/order/api/service';
 
 interface VideoSidebarProps {
   video: VideoDetail;
 }
 
 export function VideoSidebar({ video }: VideoSidebarProps) {
+  const { addItem } = useCart();
+  const router = useRouter();
+  const [buyLoading, setBuyLoading] = useState(false);
+
+  const handleAddToCart = async () => {
+    if (video.isFree === 1) {
+      toast.info('该课程为免费课程，无需购买');
+      return;
+    }
+    await addItem({ productType: 'VIDEO_COURSE', productId: video.id });
+  };
+
+  const handleBuyNow = async () => {
+    if (video.isFree === 1) {
+      toast.info('该课程为免费课程，无需购买');
+      return;
+    }
+    setBuyLoading(true);
+    try {
+      const order = await createOrder({
+        directItem: { productType: 'VIDEO_COURSE', productId: video.id },
+      });
+      router.push(`/checkout?orderNo=${order.orderNo}`);
+    } catch {
+      // 错误已弹出
+    } finally {
+      setBuyLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* 价格卡片 */}
@@ -27,13 +64,16 @@ export function VideoSidebar({ video }: VideoSidebarProps) {
         <div className="space-y-3">
           <button
             type="button"
-            className="w-full bg-primary text-white font-medium py-3 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            onClick={handleBuyNow}
+            disabled={buyLoading}
+            className="w-full bg-primary text-white font-medium py-3 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Zap className="size-4" />
-            立即购买
+            {buyLoading ? '处理中...' : '立即购买'}
           </button>
           <button
             type="button"
+            onClick={handleAddToCart}
             className="w-full border border-primary text-primary font-medium py-3 rounded-lg hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
           >
             <ShoppingCart className="size-4" />

@@ -1,8 +1,22 @@
 'use client';
 
-import { MessageSquare, Heart, Share2, Flame, PenLine, Eye, CalendarCheck } from 'lucide-react';
+import { useState } from 'react';
+import {
+  MessageSquare,
+  Heart,
+  Share2,
+  Flame,
+  PenLine,
+  Eye,
+  Zap,
+  ShoppingCart,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
+import { useRouter } from '@/i18n/navigation';
 import type { CourseDetail } from '../../api/types';
+import { useCart } from '@/features/cart/hooks/useCart';
+import { createOrder } from '@/features/order/api/service';
 
 interface CourseSidebarProps {
   course: CourseDetail;
@@ -11,6 +25,33 @@ interface CourseSidebarProps {
 export function CourseSidebar({ course }: CourseSidebarProps) {
   const t = useTranslations('course.detail');
   const isOpen = course.type === 'OPEN_OFFLINE' || course.type === 'OPEN_ONLINE';
+  const isPurchasable = isOpen && course.price > 0 && course.isFree !== 1;
+  const { addItem } = useCart();
+  const router = useRouter();
+  const [buyLoading, setBuyLoading] = useState(false);
+
+  const handleBuyNow = async () => {
+    if (!isPurchasable) return;
+    setBuyLoading(true);
+    try {
+      const order = await createOrder({
+        directItem: { productType: 'OPEN_COURSE', productId: course.id },
+      });
+      router.push(`/checkout?orderNo=${order.orderNo}`);
+    } catch {
+      // 错误已弹出
+    } finally {
+      setBuyLoading(false);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!isPurchasable) {
+      toast.info('该课程暂不支持加入购物车');
+      return;
+    }
+    await addItem({ productType: 'OPEN_COURSE', productId: course.id });
+  };
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 sticky top-[120px] space-y-4">
@@ -27,17 +68,40 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         </div>
       )}
 
-      {/* 主按钮 */}
-      <button
-        onClick={() => { /* TODO: 咨询/预约功能 */ }}
-        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md"
-      >
-        {isOpen ? (
-          <><CalendarCheck className="size-4" /> {t('reserve')}</>
-        ) : (
-          <><MessageSquare className="size-4" /> {t('consult')}</>
-        )}
-      </button>
+      {/* 购买按钮（付费公开课） */}
+      {isPurchasable && (
+        <>
+          <button
+            onClick={handleBuyNow}
+            disabled={buyLoading}
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md disabled:opacity-50"
+          >
+            <Zap className="size-4" />
+            {buyLoading ? '处理中...' : '立即购买'}
+          </button>
+          <button
+            onClick={handleAddToCart}
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-primary text-primary font-medium text-sm hover:bg-primary/5 transition-all"
+          >
+            <ShoppingCart className="size-4" />
+            加入购物车
+          </button>
+        </>
+      )}
+
+      {/* 非付费课程保留原有按钮 */}
+      {!isPurchasable && (
+        <button
+          onClick={() => { /* TODO: 咨询/预约功能 */ }}
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md"
+        >
+          {isOpen ? (
+            <><Zap className="size-4" /> {t('reserve')}</>
+          ) : (
+            <><MessageSquare className="size-4" /> {t('consult')}</>
+          )}
+        </button>
+      )}
 
       {/* 收藏按钮 */}
       <button

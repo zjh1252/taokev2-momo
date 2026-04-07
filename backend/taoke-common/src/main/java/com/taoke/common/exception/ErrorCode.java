@@ -58,6 +58,18 @@ public enum ErrorCode {
     COURSE_NO_PERMISSION(403, 30003, "无权操作此课程"),
     COURSE_PLAN_REQUIRED(400, 30004, "公开课必须添加至少一条开课计划"),
 
+    /* ==================== 订单/支付 400xx ==================== */
+    CART_ITEM_EXISTS(400, 40001, "该商品已在购物车中"),
+    CART_ITEM_NOT_FOUND(404, 40002, "购物车条目不存在"),
+    PRODUCT_NOT_FOUND(404, 40003, "商品不存在或已下架"),
+    PRODUCT_NOT_PURCHASABLE(400, 40004, "该商品为免费课程，无需购买"),
+    ORDER_NOT_FOUND(404, 40005, "订单不存在"),
+    ORDER_STATUS_INVALID(400, 40006, "当前订单状态不允许此操作"),
+    ORDER_EXPIRED(400, 40007, "订单已过期"),
+    PAYMENT_ORDER_MISMATCH(400, 40008, "支付信息与订单不匹配"),
+    ALREADY_ENROLLED(400, 40009, "您已报名该课程"),
+    ORDER_ITEMS_EMPTY(400, 40010, "订单商品不能为空"),
+
     /* ==================== 通用/系统级 900xx ==================== */
     PARAM_INVALID(400, 90001, "参数校验失败"),
     NOT_FOUND(404, 90002, "资源不存在"),
