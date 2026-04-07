@@ -46,6 +46,7 @@ public class CourseDetailVO {
 
     private Integer isFeatured;
     private Integer isFree;
+    private Integer hasPlan;
     private Integer status;
     private String statusLabel;
     private String rejectReason;

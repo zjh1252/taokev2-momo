@@ -99,6 +99,10 @@ public class Course extends BaseEntity {
     @Column(name = "is_free", nullable = false, columnDefinition = "tinyint")
     private Integer isFree = 0;
 
+    /** 是否有公开课计划：0=否 1=是 */
+    @Column(name = "has_plan", nullable = false, columnDefinition = "tinyint")
+    private Integer hasPlan = 0;
+
     /** 状态：0=草稿 1=待审核 2=已上架 3=驳回 4=已下架 */
     @Column(name = "status", nullable = false, columnDefinition = "tinyint")
     private Integer status = CourseStatus.DRAFT.getValue();

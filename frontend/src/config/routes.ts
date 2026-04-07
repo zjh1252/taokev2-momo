@@ -32,6 +32,11 @@ export const ROUTES = {
   UC_ACCOUNT_BIND: '/dashboard/account/bind',
   UC_ACCOUNT_SWITCH: '/dashboard/account/switch',
 
+  // ---- 我的课程 ----
+  UC_COURSES: '/dashboard/courses',
+  UC_COURSES_CREATE: '/dashboard/courses/create',
+  UC_COURSES_MANAGE: '/dashboard/courses/manage',
+
   // ---- 角色申请 ----
   UC_APPLY: '/dashboard/apply',
   UC_APPLY_SUCCESS: '/dashboard/apply/success',

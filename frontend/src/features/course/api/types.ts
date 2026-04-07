@@ -2,6 +2,25 @@
 
 export type CourseType = 'INTERNAL' | 'OPEN_OFFLINE' | 'OPEN_ONLINE';
 
+/** 课程状态（对应后端 CourseStatus 枚举） */
+export const CourseStatus = {
+  DRAFT: 0,
+  PENDING: 1,
+  PUBLISHED: 2,
+  REJECTED: 3,
+  UNPUBLISHED: 4,
+} as const;
+
+export type CourseStatusValue = (typeof CourseStatus)[keyof typeof CourseStatus];
+
+export const CourseStatusLabelMap: Record<CourseStatusValue, string> = {
+  [CourseStatus.DRAFT]: '草稿',
+  [CourseStatus.PENDING]: '待审核',
+  [CourseStatus.PUBLISHED]: '已上架',
+  [CourseStatus.REJECTED]: '已驳回',
+  [CourseStatus.UNPUBLISHED]: '已下架',
+};
+
 /** 后端统一响应包装 */
 export interface ApiResponse<T> {
   code: number;
@@ -69,6 +88,43 @@ export interface CourseListItem {
   createdAt: string;
 }
 
+/** 创建/编辑课程请求体（对应后端 SaveCourseRequest） */
+export interface SaveCourseRequest {
+  title: string;
+  /** hasPlan=1 时传 OPEN_OFFLINE/OPEN_ONLINE，否则可不传（后端默认 INTERNAL） */
+  type?: CourseType;
+  categoryId?: number;
+  subCategoryId?: number;
+  coverUrl?: string;
+  intro: string;
+  syllabus?: string;
+  audience?: string;
+  highlights?: string;
+  durationDays?: number;
+  hoursPerDay?: number;
+  price?: number;
+  originalPrice?: number;
+  keywords?: string;
+  isFeatured?: number;
+  isFree?: number;
+  /** 是否有公开课计划：0=否 1=是 */
+  hasPlan?: number;
+  plans?: CoursePlanDTO[];
+}
+
+/** 开课计划 DTO（创建/编辑时提交用） */
+export interface CoursePlanDTO {
+  id?: number;
+  startTime: string;
+  endTime: string;
+  provinceId?: number;
+  cityId?: number;
+  districtId?: number;
+  address?: string;
+  onlineUrl?: string;
+  sortOrder?: number;
+}
+
 /** 课程详情（对应后端 CourseDetailVO） */
 export interface CourseDetail {
   id: number;
@@ -96,6 +152,7 @@ export interface CourseDetail {
   trainerName: string;
   isFeatured: number;
   isFree: number;
+  hasPlan: number;
   status: number;
   statusLabel: string;
   rejectReason: string;

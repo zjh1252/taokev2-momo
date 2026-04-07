@@ -2,7 +2,6 @@ package com.taoke.course.dto.course;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -20,7 +19,7 @@ public class SaveCourseRequest {
     @NotBlank(message = "课程标题不能为空")
     private String title;
 
-    @NotNull(message = "课程类型不能为空")
+    /** hasPlan=1 时必须传 OPEN_OFFLINE 或 OPEN_ONLINE，否则可不传（默认 INTERNAL） */
     private String type;
 
     /** 一级分类 ID */
@@ -66,8 +65,11 @@ public class SaveCourseRequest {
     /** 是否免费 */
     private Integer isFree;
 
+    /** 是否有公开课计划：0=否 1=是 */
+    private Integer hasPlan;
+
     /**
-     * 公开课开课计划列表，type 为 OPEN_OFFLINE/OPEN_ONLINE 时必填
+     * 公开课开课计划列表，hasPlan=1 时必填
      */
     @Valid
     private List<CoursePlanDTO> plans;

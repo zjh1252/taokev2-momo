@@ -47,7 +47,7 @@ taoke:
     provider: mock
   storage:
     provider: local
-    base-dir: ./storage
+    base-dir: ../../frontend/public
     public-domain:
   cors:
     allowed-origins: '*'

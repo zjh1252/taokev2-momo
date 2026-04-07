@@ -50,7 +50,7 @@ public class CourseServiceImpl implements CourseService {
     @Transactional
     @Override
     public CourseDetailVO create(Integer publisherId, String publisherType, SaveCourseRequest request) {
-        CourseType type = parseCourseType(request.getType());
+        CourseType type = resolveCourseType(request);
         validatePublisherType(publisherType, type);
         validatePlans(type, request.getPlans());
 
@@ -77,7 +77,7 @@ public class CourseServiceImpl implements CourseService {
         Course course = getOwnedCourse(courseId, publisherId);
         assertEditable(course);
 
-        CourseType type = parseCourseType(request.getType());
+        CourseType type = resolveCourseType(request);
         validatePublisherType(course.getPublisherType(), type);
         validatePlans(type, request.getPlans());
 
@@ -340,6 +340,17 @@ public class CourseServiceImpl implements CourseService {
 
     // ==================== 内部方法 ====================
 
+    /**
+     * 根据 hasPlan 标志自动推断课程类型：
+     * hasPlan=0（或未传）→ INTERNAL；hasPlan=1 → 从 type 字段解析为 OPEN_OFFLINE / OPEN_ONLINE
+     */
+    private CourseType resolveCourseType(SaveCourseRequest request) {
+        if (request.getHasPlan() != null && request.getHasPlan() == 1) {
+            return parseCourseType(request.getType());
+        }
+        return CourseType.INTERNAL;
+    }
+
     private CourseType parseCourseType(String typeStr) {
         try {
             return CourseType.valueOf(typeStr);
@@ -400,6 +411,7 @@ public class CourseServiceImpl implements CourseService {
         if (req.getKeywords() != null) course.setKeywords(req.getKeywords());
         if (req.getIsFeatured() != null) course.setIsFeatured(req.getIsFeatured());
         if (req.getIsFree() != null) course.setIsFree(req.getIsFree());
+        if (req.getHasPlan() != null) course.setHasPlan(req.getHasPlan());
     }
 
     /** 专家发布时自动关联 trainerId */

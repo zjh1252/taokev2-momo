@@ -48,6 +48,7 @@ public class CourseMapper {
         vo.setTrainerId(course.getTrainerId());
         vo.setIsFeatured(course.getIsFeatured());
         vo.setIsFree(course.getIsFree());
+        vo.setHasPlan(course.getHasPlan());
         vo.setStatus(course.getStatus());
         vo.setRejectReason(course.getRejectReason());
         vo.setSortOrder(course.getSortOrder());

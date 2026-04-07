@@ -34,6 +34,9 @@ yarn-error.log*
 .env
 
 
+# 后端上传的静态资源（开发环境写入 public/）
+# /public/uploads
+
 # vercel
 .vercel
 
