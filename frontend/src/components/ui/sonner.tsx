@@ -1,32 +1,42 @@
 "use client"
 
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import { CircleCheckIcon, InfoIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
+/**
+ * 全局 Toast 通知组件
+ * <p>基于 Sonner 定制，支持 error / info / success 三种类型，
+ * 顶部居中显示，3 秒自动消失，带关闭按钮。</p>
+ *
+ * @author Fangxinxin
+ * @date 2026-04-07 16:00
+ */
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="light"
+      position="top-center"
+      offset="80px"
+      duration={3000}
+      closeButton
       className="toaster group"
       icons={{
-        success: (
-          <CircleCheckIcon className="size-4" />
-        ),
-        info: (
-          <InfoIcon className="size-4" />
-        ),
-        warning: (
-          <TriangleAlertIcon className="size-4" />
-        ),
-        error: (
-          <OctagonXIcon className="size-4" />
-        ),
-        loading: (
-          <Loader2Icon className="size-4 animate-spin" />
-        ),
+        success: <CircleCheckIcon className="size-4" />,
+        info: <InfoIcon className="size-4" />,
+        error: <OctagonXIcon className="size-4" />,
+        loading: <Loader2Icon className="size-4 animate-spin" />,
+      }}
+      toastOptions={{
+        classNames: {
+          toast: "cn-toast",
+          closeButton: "!border-current/20",
+          error:
+            "!bg-destructive/10 !text-destructive !border-destructive/25",
+          info:
+            "!bg-info/15 !text-info-foreground !border-info/30",
+          success:
+            "!bg-success/10 !text-success !border-success/25",
+        },
       }}
       style={
         {
@@ -36,11 +46,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }
-      toastOptions={{
-        classNames: {
-          toast: "cn-toast",
-        },
-      }}
       {...props}
     />
   )

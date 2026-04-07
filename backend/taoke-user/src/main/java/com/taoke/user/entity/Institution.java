@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 /**
  * 机构扩展信息实体 — INSTITUTION 角色扩展信息。
  *
@@ -75,4 +77,60 @@ public class Institution extends BaseEntity {
     /** 详细地址 */
     @Column(name = "address", nullable = false, length = 200)
     private String address = "";
+
+    /** 擅长领域，逗号分隔 */
+    @Column(name = "specialties", length = 512)
+    private String specialties;
+
+    /** 擅长行业，逗号分隔 */
+    @Column(name = "industries", length = 512)
+    private String industries;
+
+    /** 综合评分（0.00-5.00） */
+    @Column(name = "score", nullable = false, precision = 3, scale = 2)
+    private BigDecimal score = BigDecimal.ZERO;
+
+    /** 浏览量/人气 */
+    @Column(name = "view_count", nullable = false)
+    private Integer viewCount = 0;
+
+    /** 评价数量 */
+    @Column(name = "comment_count", nullable = false)
+    private Integer commentCount = 0;
+
+    /** 公开课数量 */
+    @Column(name = "open_course_count", nullable = false)
+    private Integer openCourseCount = 0;
+
+    /** 内训课数量 */
+    @Column(name = "inner_course_count", nullable = false)
+    private Integer innerCourseCount = 0;
+
+    /** 机构 Logo URL */
+    @Column(name = "logo_url", length = 512)
+    private String logoUrl;
+
+    /** 机构横幅图 URL */
+    @Column(name = "banner_url", length = 512)
+    private String bannerUrl;
+
+    /** 是否已认证：0=否，1=是 */
+    @Column(name = "is_certified", nullable = false, columnDefinition = "tinyint")
+    private Integer isCertified = 0;
+
+    /** 是否金牌推荐：0=否，1=是 */
+    @Column(name = "is_recommended", nullable = false, columnDefinition = "tinyint")
+    private Integer isRecommended = 0;
+
+    /** 排序权重，值越大越靠前 */
+    @Column(name = "sort_order", nullable = false)
+    private Integer sortOrder = 0;
+
+    /** 状态：0=待审核，1=已发布，2=已下线 */
+    @Column(name = "status", nullable = false, columnDefinition = "tinyint")
+    private Integer status = 0;
+
+    /** 服务过的客户描述 */
+    @Column(name = "client_cases", columnDefinition = "text")
+    private String clientCases;
 }

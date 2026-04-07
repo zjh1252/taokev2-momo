@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/lib/auth/auth-context';
 import { NewUserRolePrompt } from '@/features/role-apply/components/NewUserRolePrompt';
+import { Toaster } from '@/components/ui/sonner';
 
 /**
  * 客户端 Providers 聚合组件
@@ -16,6 +17,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <AuthProvider>
       {children}
       <NewUserRolePrompt />
+      <Toaster />
     </AuthProvider>
   );
 }

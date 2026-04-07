@@ -1,5 +1,8 @@
 package com.taoke.user.api;
 
+import com.taoke.common.response.PageResponse;
+import com.taoke.user.dto.institution.InstitutionListItemResponse;
+import com.taoke.user.dto.institution.InstitutionPublicResponse;
 import com.taoke.user.dto.institution.InstitutionRequest;
 import com.taoke.user.dto.institution.InstitutionResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
@@ -44,4 +47,23 @@ public interface InstitutionService {
      * @return 申请状态
      */
     RoleApplicationStatusResponse getApplyStatus(Integer userId);
+
+    /**
+     * 公开机构列表（分页 + 关键词筛选）。
+     *
+     * @param page    页码（从 1 开始）
+     * @param size    每页条数
+     * @param keyword 搜索关键词（匹配名称、擅长领域、擅长行业）
+     * @param sort    排序方式：default / popularity
+     * @return 分页结果
+     */
+    PageResponse<InstitutionListItemResponse> listPublic(int page, int size, String keyword, String sort);
+
+    /**
+     * 获取机构公开详情。
+     *
+     * @param id 机构 ID
+     * @return 机构公开详情
+     */
+    InstitutionPublicResponse getPublicProfile(Integer id);
 }

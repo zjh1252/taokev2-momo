@@ -2,8 +2,12 @@ package com.taoke.user.controller;
 
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
+import com.taoke.common.response.PageResponse;
+import com.taoke.common.security.Public;
 import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
+import com.taoke.user.dto.institution.InstitutionListItemResponse;
+import com.taoke.user.dto.institution.InstitutionPublicResponse;
 import com.taoke.user.dto.institution.InstitutionRequest;
 import com.taoke.user.dto.institution.InstitutionResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
@@ -15,17 +19,39 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 机构自服务接口 — INSTITUTION 角色扩展信息。
+ * 机构接口 — 公开列表/详情 + INSTITUTION 角色扩展信息自服务。
  *
  * @author Fangxinxin
  * @date 2026-03-31 16:00
  */
-@Tag(name = "机构", description = "INSTITUTION 角色扩展信息管理")
+@Tag(name = "机构", description = "机构公开展示与 INSTITUTION 角色信息管理")
 @RestController
 @RequiredArgsConstructor
 public class InstitutionController {
 
     private final InstitutionService institutionService;
+
+    // ==================== 公开接口 ====================
+
+    @Public
+    @Operation(summary = "机构公开列表（分页 + 搜索）")
+    @GetMapping("/institutions")
+    public ApiResponse<PageResponse<InstitutionListItemResponse>> list(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "default") String sort) {
+        return ApiResponse.ok(institutionService.listPublic(page, size, keyword, sort));
+    }
+
+    @Public
+    @Operation(summary = "机构公开详情页")
+    @GetMapping("/institutions/{id}")
+    public ApiResponse<InstitutionPublicResponse> getPublicProfile(@PathVariable Integer id) {
+        return ApiResponse.ok(institutionService.getPublicProfile(id));
+    }
+
+    // ==================== 自服务接口 ====================
 
     @Operation(summary = "获取机构信息")
     @RequireRole(BusinessRole.Code.INSTITUTION)

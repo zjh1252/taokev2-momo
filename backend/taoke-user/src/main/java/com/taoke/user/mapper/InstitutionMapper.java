@@ -1,5 +1,7 @@
 package com.taoke.user.mapper;
 
+import com.taoke.user.dto.institution.InstitutionListItemResponse;
+import com.taoke.user.dto.institution.InstitutionPublicResponse;
 import com.taoke.user.dto.institution.InstitutionResponse;
 import com.taoke.user.entity.Institution;
 import org.mapstruct.Mapper;
@@ -14,4 +16,8 @@ import org.mapstruct.Mapper;
 public interface InstitutionMapper {
 
     InstitutionResponse toResponse(Institution institution);
+
+    InstitutionListItemResponse toListItemResponse(Institution institution);
+
+    InstitutionPublicResponse toPublicResponse(Institution institution);
 }
