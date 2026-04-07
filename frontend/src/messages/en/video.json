@@ -1,0 +1,113 @@
+{
+  "meta": {
+    "title": "Video Courses - TaoKe",
+    "description": "Premium recorded courses, learn anytime anywhere"
+  },
+  "breadcrumb": {
+    "home": "Home",
+    "list": "Video Courses",
+    "detail": "Course Detail"
+  },
+  "list": {
+    "title": "Video Courses",
+    "allCategories": "All Categories",
+    "search": "Search video courses...",
+    "sort": {
+      "default": "Default",
+      "time": "Latest",
+      "price": "Lowest Price",
+      "viewCount": "Most Viewed",
+      "studentCount": "Most Students"
+    },
+    "empty": "No video courses found",
+    "free": "Free",
+    "episodes": "{count} episodes",
+    "students": "{count} students"
+  },
+  "detail": {
+    "teacher": "Instructor",
+    "price": "Price",
+    "free": "Free",
+    "buyNow": "Buy Now",
+    "addToCart": "Add to Cart",
+    "intro": "Introduction",
+    "chapters": "Chapters",
+    "reviews": "Reviews",
+    "episodes": "{count} episodes",
+    "duration": "Total Duration",
+    "students": "Students",
+    "views": "Views",
+    "preview": "Preview",
+    "noChapters": "No chapters available"
+  },
+  "publish": {
+    "title": "Publish Video Course",
+    "editTitle": "Edit Video Course",
+    "form": {
+      "videoTitle": "Video Title",
+      "videoTitlePlaceholder": "Enter video title",
+      "category": "Category",
+      "categoryPlaceholder": "Select a category",
+      "videoType": "Video Type",
+      "coverImage": "Cover Image",
+      "coverImageHint": "Recommended size: 400 x 300",
+      "intro": "Introduction",
+      "introPlaceholder": "Enter a brief introduction, 35-400 characters",
+      "teacherName": "Instructor",
+      "teacherNamePlaceholder": "Enter instructor name",
+      "price": "Price",
+      "priceUnit": "CNY/person/year",
+      "priceHint": "Enter the price",
+      "keywords": "Keywords",
+      "keywordsPlaceholder": "Separate keywords with commas",
+      "videoUrl": "Video URL",
+      "videoUrlPlaceholder": "Enter video URL",
+      "externalUrl": "External Link",
+      "externalUrlPlaceholder": "Enter external webpage URL"
+    },
+    "submit": "Save",
+    "submitAndReview": "Save & Submit for Review"
+  },
+  "manage": {
+    "title": "Manage Video Courses",
+    "createNew": "Publish New Video Course",
+    "empty": "No video courses",
+    "emptyAction": "Publish your first video course",
+    "search": "Search video courses...",
+    "edit": "Edit",
+    "submitReview": "Submit for Review",
+    "unpublish": "Unpublish",
+    "delete": "Delete",
+    "manageSeries": "Manage Series",
+    "manageChapters": "Manage Chapters",
+    "confirmSubmit": "Are you sure you want to submit for review?",
+    "confirmUnpublish": "Are you sure you want to unpublish this course?",
+    "confirmDelete": "Are you sure you want to delete this course? This cannot be undone."
+  },
+  "series": {
+    "title": "Series Management",
+    "add": "Add Series",
+    "edit": "Edit Series",
+    "delete": "Delete Series",
+    "name": "Series Name",
+    "namePlaceholder": "Enter series name",
+    "description": "Description",
+    "empty": "No series",
+    "confirmDelete": "Delete this series? Chapters within will become standalone.",
+    "chapterCount": "{count} chapters"
+  },
+  "chapter": {
+    "title": "Chapter Management",
+    "add": "Add Chapter",
+    "edit": "Edit Chapter",
+    "delete": "Delete Chapter",
+    "name": "Chapter Title",
+    "namePlaceholder": "Enter chapter title",
+    "videoUrl": "Video URL",
+    "videoUrlPlaceholder": "Enter video URL",
+    "duration": "Duration (seconds)",
+    "isPreview": "Allow Preview",
+    "empty": "No chapters",
+    "confirmDelete": "Are you sure you want to delete this chapter?"
+  }
+}

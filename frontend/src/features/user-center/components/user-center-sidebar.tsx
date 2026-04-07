@@ -15,6 +15,7 @@ import {
   Handshake,
   UserCog,
   BookOpen,
+  Video,
   ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,13 @@ const NAV_ENTRIES: NavEntry[] = [
     children: [
       { label: '发布课程', href: ROUTES.UC_COURSES_CREATE },
       { label: '管理课程', href: ROUTES.UC_COURSES_MANAGE },
+    ],
+  },
+  {
+    kind: 'group', label: '我的视频', icon: <Video className="size-5" />,
+    children: [
+      { label: '发布录播课', href: ROUTES.UC_VIDEOS_CREATE },
+      { label: '管理录播课', href: ROUTES.UC_VIDEOS_MANAGE },
     ],
   },
   { kind: 'item', label: '我的学习', href: ROUTES.UC_LEARNING, icon: <GraduationCap className="size-5" /> },

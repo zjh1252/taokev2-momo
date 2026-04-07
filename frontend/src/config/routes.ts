@@ -37,6 +37,11 @@ export const ROUTES = {
   UC_COURSES_CREATE: '/dashboard/courses/create',
   UC_COURSES_MANAGE: '/dashboard/courses/manage',
 
+  // ---- 我的视频（录播课） ----
+  VIDEOS: '/videos',
+  UC_VIDEOS_CREATE: '/dashboard/videos/create',
+  UC_VIDEOS_MANAGE: '/dashboard/videos/manage',
+
   // ---- 角色申请 ----
   UC_APPLY: '/dashboard/apply',
   UC_APPLY_SUCCESS: '/dashboard/apply/success',

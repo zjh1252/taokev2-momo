@@ -1,0 +1,113 @@
+{
+  "meta": {
+    "title": "录播课 - 淘课网",
+    "description": "精选录播课程，随时随地在线学习"
+  },
+  "breadcrumb": {
+    "home": "首页",
+    "list": "录播课",
+    "detail": "课程详情"
+  },
+  "list": {
+    "title": "录播课",
+    "allCategories": "全部分类",
+    "search": "搜索录播课...",
+    "sort": {
+      "default": "默认排序",
+      "time": "最新发布",
+      "price": "价格最低",
+      "viewCount": "最多浏览",
+      "studentCount": "最多学员"
+    },
+    "empty": "暂无录播课",
+    "free": "免费",
+    "episodes": "{count} 集",
+    "students": "{count} 人学习"
+  },
+  "detail": {
+    "teacher": "授课老师",
+    "price": "课程价格",
+    "free": "免费",
+    "buyNow": "立即购买",
+    "addToCart": "加入购物车",
+    "intro": "课程介绍",
+    "chapters": "课程目录",
+    "reviews": "学员评价",
+    "episodes": "共 {count} 集",
+    "duration": "总时长",
+    "students": "学习人数",
+    "views": "浏览次数",
+    "preview": "试看",
+    "noChapters": "暂无章节内容"
+  },
+  "publish": {
+    "title": "发布录播课",
+    "editTitle": "编辑录播课",
+    "form": {
+      "videoTitle": "视频标题",
+      "videoTitlePlaceholder": "请输入视频标题",
+      "category": "所属分类",
+      "categoryPlaceholder": "请选择所属分类",
+      "videoType": "视频类型",
+      "coverImage": "封面图片",
+      "coverImageHint": "建议尺寸：400 x 300",
+      "intro": "视频介绍",
+      "introPlaceholder": "请填写视频的简要介绍，字数为 35 到 400 字符。",
+      "teacherName": "授课老师",
+      "teacherNamePlaceholder": "请输入授课老师名称",
+      "price": "视频价格",
+      "priceUnit": "元/人/年",
+      "priceHint": "请输入视频价格",
+      "keywords": "关键字",
+      "keywordsPlaceholder": "多个关键字用\",\"分隔",
+      "videoUrl": "视频地址",
+      "videoUrlPlaceholder": "请输入视频URL",
+      "externalUrl": "外部链接",
+      "externalUrlPlaceholder": "请输入外部网页地址"
+    },
+    "submit": "保存",
+    "submitAndReview": "保存并提交审核"
+  },
+  "manage": {
+    "title": "管理录播课",
+    "createNew": "发布新录播课",
+    "empty": "暂无录播课",
+    "emptyAction": "去发布第一门录播课",
+    "search": "搜索录播课...",
+    "edit": "编辑",
+    "submitReview": "提交审核",
+    "unpublish": "下架",
+    "delete": "删除",
+    "manageSeries": "系列管理",
+    "manageChapters": "章节管理",
+    "confirmSubmit": "确定要提交审核吗？",
+    "confirmUnpublish": "确定要下架此录播课吗？",
+    "confirmDelete": "确定要删除此录播课吗？此操作不可恢复。"
+  },
+  "series": {
+    "title": "系列管理",
+    "add": "添加系列",
+    "edit": "编辑系列",
+    "delete": "删除系列",
+    "name": "系列名称",
+    "namePlaceholder": "请输入系列名称",
+    "description": "系列描述",
+    "empty": "暂无系列",
+    "confirmDelete": "确定要删除此系列吗？系列下的章节将变为独立章节。",
+    "chapterCount": "{count} 个章节"
+  },
+  "chapter": {
+    "title": "章节管理",
+    "add": "添加章节",
+    "edit": "编辑章节",
+    "delete": "删除章节",
+    "name": "章节标题",
+    "namePlaceholder": "请输入章节标题",
+    "videoUrl": "视频地址",
+    "videoUrlPlaceholder": "请输入视频地址",
+    "duration": "时长（秒）",
+    "isPreview": "允许试看",
+    "empty": "暂无章节",
+    "confirmDelete": "确定要删除此章节吗？"
+  }
+}
