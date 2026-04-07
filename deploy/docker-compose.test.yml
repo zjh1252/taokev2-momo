@@ -9,6 +9,7 @@
 #   1. 镜像已通过 ./build.sh <version> test 构建并推送
 #   2. application-test.yaml 已放到 ./config/ 目录下
 #   3. 域名 v2.taoke.com / adminv2.taoke.com 已解析到本机
+#   4. 已按 deploy/nginx/ssl/README.md 生成自签证书（仅映射宿主机 443，不占用 80）
 # ============================================================
 
 services:
@@ -17,9 +18,10 @@ services:
     image: 10.0.16.26:5000/taokev2/nginx:1.27-alpine
     container_name: taokev2-nginx
     ports:
-      - "443:80"
+      - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./configs/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
       - ./web/nginx-logs:/var/log/nginx
       - ./web/storage:/data/storage:ro
     depends_on:
