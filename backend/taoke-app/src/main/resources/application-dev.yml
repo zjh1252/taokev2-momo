@@ -27,7 +27,7 @@ spring:
     port: 5672
     username: guest
     password: guest
-    virtual-host: /
+    virtual-host: /taokev1-dev
 
   jpa:
     show-sql: true
