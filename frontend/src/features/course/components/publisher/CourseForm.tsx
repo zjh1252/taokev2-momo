@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import RichTextEditor from '@/components/rich-text-editor';
+import RegionCascader, { type RegionValue } from '@/components/region-cascader';
 import { getCourseCategoryTree } from '@/features/course/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type {
@@ -441,10 +442,29 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
                           <input type="datetime-local" value={plan.endTime} onChange={(e) => updateDraftPlan(idx, { endTime: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
                         </div>
                         {draftPlanType === 'OPEN_OFFLINE' && (
-                          <div className="col-span-2">
-                            <label className="block text-xs text-gray-500 mb-1">上课地点 <span className="text-red-400">*</span></label>
-                            <input type="text" value={plan.address || ''} onChange={(e) => updateDraftPlan(idx, { address: e.target.value })} placeholder="详细上课地址" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
-                          </div>
+                          <>
+                            <div className="col-span-2">
+                              <label className="block text-xs text-gray-500 mb-1">省/市/区 <span className="text-red-400">*</span></label>
+                              <RegionCascader
+                                value={{
+                                  provinceId: plan.provinceId || undefined,
+                                  cityId: plan.cityId || undefined,
+                                  districtId: plan.districtId || undefined,
+                                }}
+                                onChange={(region: RegionValue) => {
+                                  updateDraftPlan(idx, {
+                                    provinceId: region.provinceId || 0,
+                                    cityId: region.cityId || 0,
+                                    districtId: region.districtId || 0,
+                                  });
+                                }}
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <label className="block text-xs text-gray-500 mb-1">详细地址</label>
+                              <input type="text" value={plan.address || ''} onChange={(e) => updateDraftPlan(idx, { address: e.target.value })} placeholder="街道门牌号等详细地址" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                            </div>
+                          </>
                         )}
                         {draftPlanType === 'OPEN_ONLINE' && (
                           <div className="col-span-2">

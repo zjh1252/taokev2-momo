@@ -68,7 +68,7 @@ public class RegionServiceImpl implements RegionService {
         }
         List<Region> regions = regionRepository.searchByKeyword(keyword.trim(), level);
         return regions.stream()
-                .map(r -> new RegionVO(r.getCode(), r.getName(), r.getLevel(), checkHasChildren(r.getCode())))
+                .map(r -> new RegionVO(r.getId(), r.getCode(), r.getName(), r.getLevel(), checkHasChildren(r.getCode())))
                 .toList();
     }
 
@@ -77,7 +77,7 @@ public class RegionServiceImpl implements RegionService {
     private List<RegionVO> loadChildren(String parentCode) {
         List<Region> children = regionRepository.findByParentCodeOrderByCodeAsc(parentCode);
         return children.stream()
-                .map(r -> new RegionVO(r.getCode(), r.getName(), r.getLevel(), checkHasChildren(r.getCode())))
+                .map(r -> new RegionVO(r.getId(), r.getCode(), r.getName(), r.getLevel(), checkHasChildren(r.getCode())))
                 .toList();
     }
 
@@ -88,7 +88,7 @@ public class RegionServiceImpl implements RegionService {
         List<RegionVO> path = new ArrayList<>();
         Region node = current;
         while (node != null) {
-            path.add(new RegionVO(node.getCode(), node.getName(), node.getLevel(), null));
+            path.add(new RegionVO(node.getId(), node.getCode(), node.getName(), node.getLevel(), null));
             if (ROOT_PARENT_CODE.equals(node.getParentCode())) {
                 break;
             }

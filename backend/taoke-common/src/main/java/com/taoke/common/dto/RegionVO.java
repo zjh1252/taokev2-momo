@@ -15,6 +15,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RegionVO {
 
+    /** 主键 ID */
+    private Integer id;
+
     /** 行政区划编码 */
     private String code;
 
