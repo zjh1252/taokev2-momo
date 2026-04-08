@@ -2,6 +2,8 @@
 chcp 65001 >nul
 cd /d F:\taoke\repos\taokev2-mono\backend
 
+
+
 echo [1/2] 编译安装所有模块...
 call mvn clean install -DskipTests
 if %errorlevel% neq 0 (

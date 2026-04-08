@@ -1,0 +1,1 @@
+mvn compile -pl taoke-admin -am
