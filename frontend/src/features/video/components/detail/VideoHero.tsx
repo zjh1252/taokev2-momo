@@ -44,7 +44,7 @@ export function VideoHero({ video }: VideoHeroProps) {
               key={playbackSrc}
               src={playbackSrc}
               poster={video.coverUrl || undefined}
-              className="w-full"
+              className="w-full h-full"
             />
           ) : (
             <>

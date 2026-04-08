@@ -2,8 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import videojs from 'video.js';
-import 'video.js/dist/video-js.css';
-import '@videojs/http-streaming';
+import type Player from 'video.js/dist/types/player';
 import { inferVideoMimeType } from '../../lib/playback-sources';
 
 type VideoJsPlayerProps = {
@@ -13,46 +12,51 @@ type VideoJsPlayerProps = {
 };
 
 /**
- * Video.js 封装（客户端），已注册 VHS 以支持 HLS。
- * <p>换源时请由父组件变更 {@code key}（例如 {@code key={playbackSrc}}），整组件卸载重建，避免 dispose 后复用同一 DOM。</p>
+ * Video.js 封装（客户端），v8 已内置 HLS/VHS。
+ * <p>采用容器 ref + 动态创建 {@code <video>} 的方式，避免 React Strict Mode
+ * 下 dispose 移除 DOM 后二次挂载 ref 失效的问题。</p>
+ * <p>换源时请由父组件变更 {@code key}（例如 {@code key={playbackSrc}}），
+ * 整组件卸载重建。</p>
  *
  * @author Fangxinxin
  * @date 2026-04-08 15:30
  */
 export function VideoJsPlayer({ src, poster, className }: VideoJsPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const playerRef = useRef<Player | null>(null);
 
   useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
+    if (playerRef.current) return;
 
-    const player = videojs(el, {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const videoEl = document.createElement('video-js');
+    videoEl.classList.add('video-js', 'vjs-big-play-centered', 'vjs-fluid');
+    videoEl.setAttribute('playsinline', '');
+    container.appendChild(videoEl);
+
+    const player = videojs(videoEl, {
       controls: true,
       responsive: true,
       fluid: true,
       preload: 'metadata',
-      poster: poster || undefined,
+      poster: poster ?? undefined,
       sources: [{ src, type: inferVideoMimeType(src) }],
     });
 
+    playerRef.current = player;
+
     return () => {
-      try {
-        player.dispose();
-      } catch {
-        /* 已释放或非幂等场景忽略 */
+      const p = playerRef.current;
+      if (p && !p.isDisposed()) {
+        p.dispose();
       }
+      playerRef.current = null;
     };
     // 仅挂载时初始化；换源依赖父级 key 强制重挂载
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <div data-vjs-player className={className}>
-      <video
-        ref={videoRef}
-        className="video-js vjs-big-play-centered vjs-fluid"
-        playsInline
-      />
-    </div>
-  );
+  return <div ref={containerRef} data-vjs-player className={className} />;
 }

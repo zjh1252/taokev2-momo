@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "./themes/primary.css";
+@import "video.js/dist/video-js.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -139,6 +140,20 @@
   html {
     @apply font-sans;
   }
+}
+
+/* ── Video.js：防止 Tailwind preflight 重置破坏播放器控件 ── */
+.video-js button {
+  background-color: transparent;
+}
+.video-js .vjs-big-play-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-style: solid;
+}
+.video-js .vjs-control-bar {
+  display: flex;
 }
 
 /* Toast 置于最顶层，避免被 sticky 顶栏、Dialog 等遮挡 */
