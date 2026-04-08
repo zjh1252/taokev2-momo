@@ -2,6 +2,8 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import ReviewDialog from '@/features/interaction/components/ReviewDialog';
 
 const ONLINE_COURSES = [
   {
@@ -72,6 +74,8 @@ const OFFLINE_COURSES = [
  */
 export default function LearningPage() {
   const [tab, setTab] = useState<'online' | 'offline'>('online');
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewCourseTitle, setReviewCourseTitle] = useState('');
 
   return (
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
@@ -134,6 +138,12 @@ export default function LearningPage() {
               </div>
               <button
                 type="button"
+                onClick={() => {
+                  if (c.btnText === '去评价') {
+                    setReviewCourseTitle(c.title);
+                    setReviewOpen(true);
+                  }
+                }}
                 className={`text-xs px-3 py-1.5 rounded ${c.status === '已完结' ? 'bg-primary text-white' : 'border border-primary text-primary hover:bg-red-50'}`}
               >
                 {c.btnText}
@@ -142,6 +152,14 @@ export default function LearningPage() {
           ))}
         </div>
       )}
+
+      <ReviewDialog
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        scope="COURSE"
+        prefillTitle={reviewCourseTitle}
+        onSuccess={() => toast.success('评价已提交，审核通过后将公开展示')}
+      />
     </section>
   );
 }

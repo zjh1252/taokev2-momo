@@ -1,9 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { CourseDetail } from '../../api/types';
 import { CoursePlanTable } from './CoursePlanTable';
+import { getPublicReviews } from '@/features/interaction/api/service';
+import type { ReviewItem } from '@/features/interaction/api/types';
 
 interface CourseDetailTabsProps {
   course: CourseDetail;
@@ -132,12 +136,84 @@ export function CourseDetailTabs({ course }: CourseDetailTabsProps) {
         )}
 
         {activeTab === 'review' && (
-          <div className="text-center py-12 text-slate-400">
-            {/* TODO: 后端暂无评价接口，后续接入 */}
-            暂无评价数据
-          </div>
+          <CourseReviewsPanel courseId={course.id} />
         )}
       </div>
+    </div>
+  );
+}
+
+function CourseReviewsPanel({ courseId }: { courseId: number }) {
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    getPublicReviews('COURSE', { courseId, page: 0, size: 50 })
+      .then((page) => {
+        setReviews(page.list);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, [courseId]);
+
+  if (!loaded) {
+    return <div className="text-center py-12 text-slate-400">加载中...</div>;
+  }
+
+  if (reviews.length === 0) {
+    return <div className="text-center py-12 text-slate-400">暂无评价数据</div>;
+  }
+
+  const avgScore = (
+    reviews.reduce((sum, r) => sum + Number(r.avgScore), 0) / reviews.length
+  ).toFixed(1);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-4 mb-4">
+        <span className="text-2xl font-extrabold text-primary">{avgScore}</span>
+        <span className="text-sm text-slate-500">综合评分 · 共 {reviews.length} 条</span>
+      </div>
+      {reviews.map((review) => (
+        <article key={review.id} className="border border-slate-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-sm">
+              {review.isAnonymous === 1 ? '匿名用户' : (review.submitterName || '学员')}
+            </span>
+            <span className="text-xs text-slate-500">
+              {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="flex text-[#FFD700]">
+              {Array.from({ length: Math.floor(Number(review.avgScore)) }).map((_, i) => (
+                <Star key={i} className="size-4 fill-current" />
+              ))}
+            </div>
+            <span className="text-[#FFD700] font-bold text-sm">{review.avgScore}</span>
+          </div>
+          <div className="flex gap-4 mt-1 text-xs text-slate-400">
+            <span>内容 {review.ratingContent}分</span>
+            <span>水平 {review.ratingTeaching}分</span>
+            <span>服务 {review.ratingService}分</span>
+          </div>
+          <p className="text-sm text-slate-600 mt-2">{review.commentText}</p>
+          {review.photoUrls && review.photoUrls.length > 0 && (
+            <div className="mt-3 flex gap-2 flex-wrap">
+              {review.photoUrls.map((url, idx) => (
+                <Image
+                  key={idx}
+                  src={url}
+                  alt="评价配图"
+                  width={120}
+                  height={90}
+                  className="w-[120px] h-[90px] object-cover rounded border border-slate-200"
+                />
+              ))}
+            </div>
+          )}
+        </article>
+      ))}
     </div>
   );
 }

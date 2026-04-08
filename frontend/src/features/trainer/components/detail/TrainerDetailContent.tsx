@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Star, ChevronRight, Play } from 'lucide-react';
+import { toast } from 'sonner';
 import type {
   TrainerDetail,
   MockCourse,
@@ -13,6 +14,9 @@ import type {
   MockBook,
   MockRelatedTrainer,
 } from '../../types';
+import { getPublicReviews } from '@/features/interaction/api/service';
+import type { ReviewItem } from '@/features/interaction/api/types';
+import ReviewDialog from '@/features/interaction/components/ReviewDialog';
 
 interface TrainerDetailContentProps {
   trainer: TrainerDetail;
@@ -91,7 +95,9 @@ export function TrainerDetailContent({
         {activeTab === 'courses' && <CoursesView courses={courses} />}
         {activeTab === 'cases' && <CasesView cases={cases} />}
         {activeTab === 'clips' && <ClipsView clips={clips} />}
-        {activeTab === 'comments' && <ReviewsView reviews={reviews} />}
+        {activeTab === 'comments' && (
+          <ReviewsView reviews={reviews} trainerUserId={trainer.userId} trainerName={trainer.name} />
+        )}
         {activeTab === 'books' && <BooksView books={books} />}
       </div>
     </>
@@ -452,17 +458,45 @@ function ClipsView({ clips }: { clips: MockClip[] }) {
 
 // ==================== 学员评价视图 ====================
 
-function ReviewsView({ reviews }: { reviews: MockReview[] }) {
+function ReviewsView({
+  reviews: mockReviews,
+  trainerUserId,
+  trainerName,
+}: {
+  reviews: MockReview[];
+  trainerUserId: number;
+  trainerName: string;
+}) {
+  const [apiReviews, setApiReviews] = useState<ReviewItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+
+  useEffect(() => {
+    getPublicReviews('TRAINER', { trainerUserId, page: 0, size: 50 })
+      .then((page) => {
+        setApiReviews(page.list);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, [trainerUserId]);
+
+  const reviews = loaded ? apiReviews : [];
   const avgScore = reviews.length
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    ? (reviews.reduce((sum, r) => sum + Number(r.avgScore), 0) / reviews.length).toFixed(1)
     : '0.0';
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
-      <div className="flex items-center gap-4 border-b border-slate-200 pb-4 mb-6">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
         <h2 className="text-[20px] font-bold text-slate-900">
           学员评价 <span className="text-primary mx-1">{reviews.length}</span> 个
         </h2>
+        <button
+          onClick={() => setReviewOpen(true)}
+          className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition-colors"
+        >
+          我要评价
+        </button>
       </div>
 
       {/* 评分统计 */}
@@ -472,43 +506,70 @@ function ReviewsView({ reviews }: { reviews: MockReview[] }) {
           <div className="text-sm text-slate-500 mt-1">综合评分</div>
         </div>
         <div className="space-y-3">
+          {reviews.length === 0 && loaded && (
+            <p className="text-sm text-slate-400 py-8 text-center">暂无评价数据</p>
+          )}
           {reviews.map((review) => (
             <article key={review.id} className="border border-slate-200 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">{review.username}</span>
-                  <span className="text-xs text-slate-500">{review.role}</span>
+                  <span className="font-semibold">
+                    {review.isAnonymous === 1 ? '匿名用户' : (review.submitterName || '学员')}
+                  </span>
                 </div>
-                <div className="text-xs text-slate-500">{review.date}</div>
+                <div className="text-xs text-slate-500">
+                  {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
+                </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex text-[#FFD700]">
-                  {Array.from({ length: Math.floor(review.rating) }).map((_, i) => (
+                  {Array.from({ length: Math.floor(Number(review.avgScore)) }).map((_, i) => (
                     <Star key={i} className="size-4 fill-current" />
                   ))}
                 </div>
-                <span className="text-[#FFD700] font-bold text-[14px]">{review.rating}</span>
-                <span className="text-[14px] text-primary">{review.courseName}</span>
+                <span className="text-[#FFD700] font-bold text-[14px]">{review.avgScore}</span>
+                {review.courseTitle && (
+                  <span className="text-[14px] text-primary">{review.courseTitle}</span>
+                )}
               </div>
-              <p className="text-sm text-slate-600 mt-2">{review.content}</p>
-              {review.image && (
-                <div className="mt-3">
-                  <Image
-                    src={review.image}
-                    alt="评价配图"
-                    width={200}
-                    height={140}
-                    className="w-[200px] h-[140px] object-cover rounded border border-slate-200"
-                  />
+              <div className="flex gap-4 mt-2 text-xs text-slate-400">
+                <span>内容 {review.ratingContent}分</span>
+                <span>水平 {review.ratingTeaching}分</span>
+                <span>服务 {review.ratingService}分</span>
+              </div>
+              <p className="text-sm text-slate-600 mt-2">{review.commentText}</p>
+              {review.photoUrls && review.photoUrls.length > 0 && (
+                <div className="mt-3 flex gap-2 flex-wrap">
+                  {review.photoUrls.map((url, idx) => (
+                    <Image
+                      key={idx}
+                      src={url}
+                      alt="评价配图"
+                      width={120}
+                      height={90}
+                      className="w-[120px] h-[90px] object-cover rounded border border-slate-200"
+                    />
+                  ))}
                 </div>
-              )}
-              {review.hasReply && review.replyContent && (
-                <p className="text-xs mt-2 text-primary">讲师回复：{review.replyContent}</p>
               )}
             </article>
           ))}
         </div>
       </div>
+
+      <ReviewDialog
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        scope="TRAINER"
+        trainerUserId={trainerUserId}
+        prefillTitle={trainerName}
+        onSuccess={() => {
+          toast.success('评价已提交，审核通过后将公开展示');
+          getPublicReviews('TRAINER', { trainerUserId, page: 0, size: 50 })
+            .then((page) => setApiReviews(page.list))
+            .catch(() => {});
+        }}
+      />
     </div>
   );
 }

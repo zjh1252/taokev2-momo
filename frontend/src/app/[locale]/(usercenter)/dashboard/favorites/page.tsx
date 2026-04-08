@@ -1,52 +1,63 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  getFavorites,
+  removeFavorite,
+} from '@/features/interaction/api/service';
+import type { FavoriteItem } from '@/features/interaction/api/types';
 
-type FavTab = 'course' | 'trainer' | 'org' | 'case';
+type FavTab = 'COURSE' | 'TRAINER' | 'INSTITUTION' | 'CASE';
 
 const TABS: { key: FavTab; label: string }[] = [
-  { key: 'course', label: '课程' },
-  { key: 'trainer', label: '讲师' },
-  { key: 'org', label: '机构' },
-  { key: 'case', label: '案例' },
+  { key: 'COURSE', label: '课程' },
+  { key: 'TRAINER', label: '讲师' },
+  { key: 'INSTITUTION', label: '机构' },
+  { key: 'CASE', label: '案例' },
 ];
 
-const INITIAL_FAVS: Record<FavTab, { id: number; title: string; sub1: string; sub2: string; image: string; round?: boolean }[]> = {
-  course: [
-    { id: 1, title: 'AI办公效率提升全景课', sub1: '讲师：刘晨 · 录播课', sub2: '¥299.00 · 2,354人学习', image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=220&h=140' },
-    { id: 2, title: '高绩效团队管理实战', sub1: '讲师：赵明 · 录播课', sub2: '¥399.00 · 1,128人学习', image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=220&h=140' },
-  ],
-  trainer: [
-    { id: 10, title: '李老师 · 销售管理专家', sub1: '擅长：B2B销售、团队管理', sub2: '评分：4.9 · 成交：126', image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=160&h=160', round: true },
-  ],
-  org: [
-    { id: 20, title: '启航企业培训研究院', sub1: '机构类型：培训机构 · 所在地：上海', sub2: '', image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=220&h=140' },
-  ],
-  case: [
-    { id: 30, title: '某制造企业销售团队提效项目', sub1: '培训周期：3个月 · 结果：人均业绩 +18%', sub2: '', image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=220&h=140' },
-  ],
-};
-
 /**
- * 我的收藏 — 课程 / 讲师 / 机构 / 案例 tabs（全部写死）
+ * 我的收藏 — 接入真实后端 API
  *
  * @author Fangxinxin
- * @date 2026-04-03 12:30
+ * @date 2026-04-08 14:00
  */
 export default function FavoritesPage() {
-  const [tab, setTab] = useState<FavTab>('course');
-  const [favs, setFavs] = useState(INITIAL_FAVS);
+  const [tab, setTab] = useState<FavTab>('COURSE');
+  const [items, setItems] = useState<FavoriteItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const removeFav = useCallback((key: FavTab, id: number) => {
-    setFavs((prev) => ({
-      ...prev,
-      [key]: prev[key].filter((f) => f.id !== id),
-    }));
+  const fetchFavs = useCallback(async (targetType: FavTab) => {
+    setLoading(true);
+    try {
+      const page = await getFavorites(0, 50, targetType);
+      setItems(page.list);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const items = favs[tab];
+  useEffect(() => {
+    fetchFavs(tab);
+  }, [tab, fetchFavs]);
+
+  const handleRemove = useCallback(
+    async (item: FavoriteItem) => {
+      try {
+        await removeFavorite(item.targetType, item.targetId);
+        setItems((prev) => prev.filter((f) => f.id !== item.id));
+        toast.success('已取消收藏');
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : '操作失败');
+      }
+    },
+    [],
+  );
 
   return (
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
@@ -74,35 +85,50 @@ export default function FavoritesPage() {
       </div>
 
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        {items.length === 0 && (
+        {loading && (
+          <div className="col-span-2 text-center text-gray-400 py-12">加载中...</div>
+        )}
+        {!loading && items.length === 0 && (
           <div className="col-span-2 text-center text-gray-400 py-12">暂无收藏</div>
         )}
-        {items.map((item) => (
-          <div key={item.id} className="border border-slate-200 rounded-lg p-4 flex gap-3">
-            <Image
-              src={item.image}
-              alt={item.title}
-              width={item.round ? 76 : 120}
-              height={76}
-              className={`${item.round ? 'w-[76px] h-[76px] rounded-full' : 'w-[120px] h-[76px] rounded'} object-cover`}
-            />
-            <div className="flex-1">
-              <div className="font-medium">{item.title}</div>
-              <div className="text-xs text-gray-500 mt-1">{item.sub1}</div>
-              {item.sub2 && <div className="text-xs text-gray-500 mt-1">{item.sub2}</div>}
+        {!loading &&
+          items.map((item) => (
+            <div key={item.id} className="border border-slate-200 rounded-lg p-4 flex gap-3">
+              {item.coverUrl ? (
+                <Image
+                  src={item.coverUrl}
+                  alt={item.title || ''}
+                  width={tab === 'TRAINER' ? 76 : 120}
+                  height={76}
+                  className={`${tab === 'TRAINER' ? 'w-[76px] h-[76px] rounded-full' : 'w-[120px] h-[76px] rounded'} object-cover`}
+                />
+              ) : (
+                <div
+                  className={`${tab === 'TRAINER' ? 'w-[76px] h-[76px] rounded-full' : 'w-[120px] h-[76px] rounded'} bg-slate-100 flex items-center justify-center text-slate-400 text-xs shrink-0`}
+                >
+                  暂无图片
+                </div>
+              )}
+              <div className="flex-1">
+                <div className="font-medium">{item.title || `ID: ${item.targetId}`}</div>
+                {item.subtitle && (
+                  <div className="text-xs text-gray-500 mt-1">{item.subtitle}</div>
+                )}
+                <div className="text-xs text-gray-400 mt-1">
+                  收藏于 {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '--'}
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleRemove(item)}
+                  className="text-xs border border-slate-200 rounded px-3 py-1 hover:text-primary hover:border-red-200 transition-colors"
+                >
+                  取消收藏
+                </button>
+              </div>
             </div>
-            <div className="mt-3 flex justify-end">
-              {/* TODO: 接入取消收藏 API */}
-              <button
-                type="button"
-                onClick={() => removeFav(tab, item.id)}
-                className="text-xs border border-slate-200 rounded px-3 py-1 hover:text-primary hover:border-red-200 transition-colors"
-              >
-                取消收藏
-              </button>
-            </div>
-          </div>
-        ))}
+          ))}
       </div>
     </section>
   );

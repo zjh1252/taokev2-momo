@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import {
   Building2,
   Star,
@@ -10,13 +11,46 @@ import {
   MessageSquare,
   Award,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { InstitutionDetail } from '../../types';
+import {
+  addFavorite,
+  removeFavorite,
+  getInteractionState,
+} from '@/features/interaction/api/service';
 
 interface InstitutionHeroProps {
   institution: InstitutionDetail;
 }
 
 export function InstitutionHero({ institution }: InstitutionHeroProps) {
+  const [favorited, setFavorited] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
+
+  useEffect(() => {
+    getInteractionState('INSTITUTION', institution.id)
+      .then((s) => setFavorited(s.favorited))
+      .catch(() => {});
+  }, [institution.id]);
+
+  const toggleFavorite = useCallback(async () => {
+    setFavLoading(true);
+    try {
+      if (favorited) {
+        await removeFavorite('INSTITUTION', institution.id);
+        setFavorited(false);
+        toast.success('已取消收藏');
+      } else {
+        await addFavorite('INSTITUTION', institution.id);
+        setFavorited(true);
+        toast.success('收藏成功');
+      }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : '操作失败');
+    } finally {
+      setFavLoading(false);
+    }
+  }, [favorited, institution.id]);
   const bannerSrc =
     institution.bannerUrl ||
     'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
@@ -88,8 +122,15 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
                 <button className="flex items-center gap-1 text-blue-500 hover:text-blue-600 transition-colors">
                   <Share2 className="size-3.5" /> 分享
                 </button>
-                <button className="flex items-center gap-1 text-amber-500 hover:text-amber-600 transition-colors">
-                  <Heart className="size-3.5" /> 收藏
+                <button
+                  onClick={toggleFavorite}
+                  disabled={favLoading}
+                  className={`flex items-center gap-1 transition-colors ${
+                    favorited ? 'text-primary' : 'text-amber-500 hover:text-amber-600'
+                  }`}
+                >
+                  <Heart className={`size-3.5 ${favorited ? 'fill-primary' : ''}`} />
+                  {favorited ? '已收藏' : '收藏'}
                 </button>
               </div>
             </div>

@@ -43,33 +43,39 @@
 
 #### 2.1.1 评价触发场景
 
-| 场景 | 评价对象 | 触发条件 |
-|------|---------|---------|
-| 内训合作完成 | 讲师 + 机构 + 课程 | 内训订单标记"已完成"后开放评价入口 |
-| 在线课学习完成 | 课程 + 讲师 | 个人用户完成在线课程全部章节学习后开放 |
-| 公开课出席 | 课程 + 讲师/机构 | 公开课结束且用户签到/确认出席后开放 |
-| 版权课学习完成 | 课程 | 版权课学习完成后开放 |
+
+| 场景      | 评价对象         | 触发条件                |
+| ------- | ------------ | ------------------- |
+| 内训合作完成  | 讲师 + 机构 + 课程 | 内训订单标记"已完成"后开放评价入口  |
+| 在线课学习完成 | 课程 + 讲师      | 个人用户完成在线课程全部章节学习后开放 |
+| 公开课出席   | 课程 + 讲师/机构   | 公开课结束且用户签到/确认出席后开放  |
+| 版权课学习完成 | 课程           | 版权课学习完成后开放          |
+
 
 #### 2.1.2 评价内容
 
-| 项目 | 说明 |
-|------|------|
-| 总体星级 | 1-5 星，必填，支持半星（精度 0.5） |
-| 多维度评分 | 根据评价对象类型展示不同维度（详见 2.1.3），每个维度 1-5 分 |
-| 文字评价 | 选填，最多 500 字 |
-| 培训效果图片 | 选填，最多上传 9 张图片，支持 JPG/PNG 格式 |
-| 匿名选项 | 用户可选择匿名发布评价，匿名后前台隐藏评价人真实信息 |
+
+| 项目     | 说明                                  |
+| ------ | ----------------------------------- |
+| 总体星级   | 1-5 星，必填，支持半星（精度 0.5）               |
+| 多维度评分  | 根据评价对象类型展示不同维度（详见 2.1.3），每个维度 1-5 分 |
+| 文字评价   | 选填，最多 500 字                         |
+| 培训效果图片 | 选填，最多上传 9 张图片，支持 JPG/PNG 格式         |
+| 匿名选项   | 用户可选择匿名发布评价，匿名后前台隐藏评价人真实信息          |
+
 
 #### 2.1.3 多维度评分维度
 
-| 评价对象类型 | 评分维度 | 说明 |
-|-------------|---------|------|
-| 内训课评价 | PROFESSIONALISM（讲师专业度） | 讲师授课水平与专业表现 |
-| 内训课评价 | CUSTOMIZATION（定制实用性） | 课程内容与企业需求的匹配程度 |
-| 内训课评价 | SERVICE（客服服务满意度） | 平台客服对接与服务质量 |
-| 公开课/在线课评价 | QUALITY（课程质量） | 课程内容、结构、深度 |
-| 公开课评价 | ENVIRONMENT（场地环境） | 公开课授课场地环境 |
-| 公开课/在线课评价 | TEACHER（讲师授课质量） | 讲师的授课表现 |
+
+| 评价对象类型    | 评分维度                   | 说明             |
+| --------- | ---------------------- | -------------- |
+| 内训课评价     | PROFESSIONALISM（讲师专业度） | 讲师授课水平与专业表现    |
+| 内训课评价     | CUSTOMIZATION（定制实用性）   | 课程内容与企业需求的匹配程度 |
+| 内训课评价     | SERVICE（客服服务满意度）       | 平台客服对接与服务质量    |
+| 公开课/在线课评价 | QUALITY（课程质量）          | 课程内容、结构、深度     |
+| 公开课评价     | ENVIRONMENT（场地环境）      | 公开课授课场地环境      |
+| 公开课/在线课评价 | TEACHER（讲师授课质量）        | 讲师的授课表现        |
+
 
 #### 2.1.4 评价规则
 
@@ -91,12 +97,14 @@
 
 #### 2.2.2 审核要点
 
-| 审核项 | 说明 |
-|--------|------|
-| 真实性校验 | 核实评价人确实参与了该培训/课程 |
-| 内容合规 | 检查恶意言论、人身攻击、辱骂等违规内容 |
-| 广告过滤 | 检查评价内容是否含有广告、推广信息 |
-| 图片审查 | 检查上传图片是否与培训相关，排除无关/违规图片 |
+
+| 审核项   | 说明                      |
+| ----- | ----------------------- |
+| 真实性校验 | 核实评价人确实参与了该培训/课程        |
+| 内容合规  | 检查恶意言论、人身攻击、辱骂等违规内容     |
+| 广告过滤  | 检查评价内容是否含有广告、推广信息       |
+| 图片审查  | 检查上传图片是否与培训相关，排除无关/违规图片 |
+
 
 #### 2.2.3 审核范围
 
@@ -127,23 +135,27 @@
 
 #### 2.3.3 评价申诉
 
-| 项目 | 说明 |
-|------|------|
-| 申诉对象 | 仅可对已审核通过、正在展示的评价发起申诉 |
+
+| 项目   | 说明                                       |
+| ---- | ---------------------------------------- |
+| 申诉对象 | 仅可对已审核通过、正在展示的评价发起申诉                     |
 | 申诉内容 | 填写申诉理由（必填，最多 500 字）+ 上传证据材料（选填，最多 5 张图片） |
-| 申诉次数 | 同一条评价仅允许申诉一次 |
+| 申诉次数 | 同一条评价仅允许申诉一次                             |
 | 处理流程 | 后台客服受理 → 审核证据 → 处理结果：维持原评价 / 隐藏评价 / 删除评价 |
-| 处理通知 | 申诉结果通过站内消息通知申诉人与评价人 |
+| 处理通知 | 申诉结果通过站内消息通知申诉人与评价人                      |
+
 
 ### 2.4 问题反馈
 
 #### 2.4.1 反馈提交
 
-| 项目 | 说明 |
-|------|------|
-| 反馈类型 | 资源信息不符、联系不畅通、课程质量问题、平台功能异常、其他 |
+
+| 项目   | 说明                                  |
+| ---- | ----------------------------------- |
+| 反馈类型 | 资源信息不符、联系不畅通、课程质量问题、平台功能异常、其他       |
 | 反馈内容 | 问题描述（必填，最多 1000 字）+ 图片证据（选填，最多 9 张） |
-| 关联对象 | 可选择关联的课程/讲师/机构/订单（辅助客服定位问题） |
+| 关联对象 | 可选择关联的课程/讲师/机构/订单（辅助客服定位问题）         |
+
 
 #### 2.4.2 反馈处理
 
@@ -161,11 +173,13 @@
 
 #### 2.5.1 展示位置
 
-| 页面 | 展示内容 |
-|------|---------|
+
+| 页面    | 展示内容                         |
+| ----- | ---------------------------- |
 | 课程详情页 | 该课程所有已审核通过的评价列表、课程综合评分、各维度评分 |
-| 讲师主页 | 针对该讲师的所有已审核通过评价、讲师综合评分 |
-| 机构主页 | 针对该机构的所有已审核通过评价、机构综合评分 |
+| 讲师主页  | 针对该讲师的所有已审核通过评价、讲师综合评分       |
+| 机构主页  | 针对该机构的所有已审核通过评价、机构综合评分       |
+
 
 #### 2.5.2 评分聚合展示
 
@@ -192,35 +206,39 @@
 
 > 存储用户对讲师/机构/课程的评价记录，一条记录对应一次评价行为。
 
-| 字段名 | 类型 | 约束 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `id` | int | PK, AUTO_INCREMENT | — | 主键 |
-| `user_id` | int | NOT NULL | — | 评价人用户 ID，关联 users.id |
-| `target_type` | varchar(20) | NOT NULL | — | 评价对象类型：TRAINER / ORGANIZATION / COURSE |
-| `target_id` | int | NOT NULL | — | 评价对象 ID（讲师 ID / 机构 ID / 课程 ID） |
-| `order_id` | int | | NULL | 关联订单 ID（内训/公开课评价时关联） |
-| `learning_record_id` | int | | NULL | 关联学习记录 ID（在线课评价时关联） |
-| `star_rating` | decimal(2,1) | NOT NULL | — | 总体星级评分（1.0 - 5.0，步长 0.5） |
-| `content` | varchar(500) | | NULL | 文字评价内容 |
-| `is_anonymous` | tinyint | NOT NULL | 0 | 是否匿名：0=否，1=是 |
-| `status` | varchar(20) | NOT NULL | 'PENDING' | 评价状态：PENDING / APPROVED / HIDDEN / DELETED |
-| `reviewed_by` | int | | NULL | 审核人用户 ID |
-| `reviewed_at` | datetime | | NULL | 审核时间 |
-| `review_remark` | varchar(500) | | NULL | 审核备注（隐藏/删除时填写原因） |
-| `source_type` | varchar(20) | | NULL | 来源类型：INHOUSE（内训）/ ONLINE（在线课）/ OPEN（公开课）/ COPYRIGHT（版权课） |
-| `created_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 更新时间 |
+
+| 字段名                  | 类型           | 约束                 | 默认值               | 说明                                                       |
+| -------------------- | ------------ | ------------------ | ----------------- | -------------------------------------------------------- |
+| `id`                 | int          | PK, AUTO_INCREMENT | —                 | 主键                                                       |
+| `user_id`            | int          | NOT NULL           | —                 | 评价人用户 ID，关联 users.id                                     |
+| `target_type`        | varchar(20)  | NOT NULL           | —                 | 评价对象类型：TRAINER / ORGANIZATION / COURSE                   |
+| `target_id`          | int          | NOT NULL           | —                 | 评价对象 ID（讲师 ID / 机构 ID / 课程 ID）                           |
+| `order_id`           | int          |                    | NULL              | 关联订单 ID（内训/公开课评价时关联）                                     |
+| `learning_record_id` | int          |                    | NULL              | 关联学习记录 ID（在线课评价时关联）                                      |
+| `star_rating`        | decimal(2,1) | NOT NULL           | —                 | 总体星级评分（1.0 - 5.0，步长 0.5）                                 |
+| `content`            | varchar(500) |                    | NULL              | 文字评价内容                                                   |
+| `is_anonymous`       | tinyint      | NOT NULL           | 0                 | 是否匿名：0=否，1=是                                             |
+| `status`             | varchar(20)  | NOT NULL           | 'PENDING'         | 评价状态：PENDING / APPROVED / HIDDEN / DELETED               |
+| `reviewed_by`        | int          |                    | NULL              | 审核人用户 ID                                                 |
+| `reviewed_at`        | datetime     |                    | NULL              | 审核时间                                                     |
+| `review_remark`      | varchar(500) |                    | NULL              | 审核备注（隐藏/删除时填写原因）                                         |
+| `source_type`        | varchar(20)  |                    | NULL              | 来源类型：INHOUSE（内训）/ ONLINE（在线课）/ OPEN（公开课）/ COPYRIGHT（版权课） |
+| `created_at`         | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 创建时间                                                     |
+| `updated_at`         | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 更新时间                                                     |
+
 
 **索引设计：**
 
-| 索引名 | 字段 | 类型 | 说明 |
-|--------|------|------|------|
-| `idx_review_user_id` | `user_id` | 普通 | 按评价人查询 |
-| `idx_review_target` | `target_type, target_id` | 联合 | 按评价对象查询（核心查询路径） |
-| `idx_review_order_id` | `order_id` | 普通 | 按订单查询评价 |
-| `idx_review_status` | `status` | 普通 | 按审核状态筛选 |
-| `idx_review_created` | `created_at` | 普通 | 按时间排序 |
-| `idx_review_source` | `source_type` | 普通 | 按来源类型筛选 |
+
+| 索引名                   | 字段                       | 类型  | 说明              |
+| --------------------- | ------------------------ | --- | --------------- |
+| `idx_review_user_id`  | `user_id`                | 普通  | 按评价人查询          |
+| `idx_review_target`   | `target_type, target_id` | 联合  | 按评价对象查询（核心查询路径） |
+| `idx_review_order_id` | `order_id`               | 普通  | 按订单查询评价         |
+| `idx_review_status`   | `status`                 | 普通  | 按审核状态筛选         |
+| `idx_review_created`  | `created_at`             | 普通  | 按时间排序           |
+| `idx_review_source`   | `source_type`            | 普通  | 按来源类型筛选         |
+
 
 ---
 
@@ -228,20 +246,24 @@
 
 > 存储评价关联的培训效果反馈图片，每条评价最多 9 张。
 
-| 字段名 | 类型 | 约束 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `id` | int | PK, AUTO_INCREMENT | — | 主键 |
-| `review_id` | int | NOT NULL | — | 关联评价 ID，关联 reviews.id |
-| `image_url` | varchar(500) | NOT NULL | — | 图片 URL |
-| `sort_order` | int | NOT NULL | 0 | 排序序号，值越小越靠前 |
-| `created_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 更新时间 |
+
+| 字段名          | 类型           | 约束                 | 默认值               | 说明                    |
+| ------------ | ------------ | ------------------ | ----------------- | --------------------- |
+| `id`         | int          | PK, AUTO_INCREMENT | —                 | 主键                    |
+| `review_id`  | int          | NOT NULL           | —                 | 关联评价 ID，关联 reviews.id |
+| `image_url`  | varchar(500) | NOT NULL           | —                 | 图片 URL                |
+| `sort_order` | int          | NOT NULL           | 0                 | 排序序号，值越小越靠前           |
+| `created_at` | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 创建时间                  |
+| `updated_at` | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 更新时间                  |
+
 
 **索引设计：**
 
-| 索引名 | 字段 | 类型 | 说明 |
-|--------|------|------|------|
-| `idx_ri_review_id` | `review_id` | 普通 | 按评价查询图片 |
+
+| 索引名                | 字段          | 类型  | 说明      |
+| ------------------ | ----------- | --- | ------- |
+| `idx_ri_review_id` | `review_id` | 普通  | 按评价查询图片 |
+
 
 ---
 
@@ -249,21 +271,25 @@
 
 > 存储每条评价的各维度评分，一条评价可有多条维度评分记录。
 
-| 字段名 | 类型 | 约束 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `id` | int | PK, AUTO_INCREMENT | — | 主键 |
-| `review_id` | int | NOT NULL | — | 关联评价 ID，关联 reviews.id |
-| `dimension` | varchar(30) | NOT NULL | — | 评分维度：PROFESSIONALISM / CUSTOMIZATION / SERVICE / QUALITY / ENVIRONMENT / TEACHER |
-| `score` | decimal(2,1) | NOT NULL | — | 维度评分（1.0 - 5.0） |
-| `created_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 更新时间 |
+
+| 字段名          | 类型           | 约束                 | 默认值               | 说明                                                                               |
+| ------------ | ------------ | ------------------ | ----------------- | -------------------------------------------------------------------------------- |
+| `id`         | int          | PK, AUTO_INCREMENT | —                 | 主键                                                                               |
+| `review_id`  | int          | NOT NULL           | —                 | 关联评价 ID，关联 reviews.id                                                            |
+| `dimension`  | varchar(30)  | NOT NULL           | —                 | 评分维度：PROFESSIONALISM / CUSTOMIZATION / SERVICE / QUALITY / ENVIRONMENT / TEACHER |
+| `score`      | decimal(2,1) | NOT NULL           | —                 | 维度评分（1.0 - 5.0）                                                                  |
+| `created_at` | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 创建时间                                                                             |
+| `updated_at` | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 更新时间                                                                             |
+
 
 **索引设计：**
 
-| 索引名 | 字段 | 类型 | 说明 |
-|--------|------|------|------|
-| `idx_rds_review_id` | `review_id` | 普通 | 按评价查询维度评分 |
-| `UNIQUE idx_rds_review_dim` | `review_id, dimension` | 唯一 | 同一评价同一维度不重复 |
+
+| 索引名                         | 字段                     | 类型  | 说明          |
+| --------------------------- | ---------------------- | --- | ----------- |
+| `idx_rds_review_id`         | `review_id`            | 普通  | 按评价查询维度评分   |
+| `UNIQUE idx_rds_review_dim` | `review_id, dimension` | 唯一  | 同一评价同一维度不重复 |
+
 
 ---
 
@@ -271,21 +297,25 @@
 
 > 讲师/机构对评价的回复，每条评价仅允许一条回复。
 
-| 字段名 | 类型 | 约束 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `id` | int | PK, AUTO_INCREMENT | — | 主键 |
-| `review_id` | int | NOT NULL | — | 关联评价 ID，关联 reviews.id |
-| `user_id` | int | NOT NULL | — | 回复人用户 ID（讲师/机构管理员的 users.id） |
-| `content` | varchar(500) | NOT NULL | — | 回复内容 |
-| `created_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 更新时间 |
+
+| 字段名          | 类型           | 约束                 | 默认值               | 说明                           |
+| ------------ | ------------ | ------------------ | ----------------- | ---------------------------- |
+| `id`         | int          | PK, AUTO_INCREMENT | —                 | 主键                           |
+| `review_id`  | int          | NOT NULL           | —                 | 关联评价 ID，关联 reviews.id        |
+| `user_id`    | int          | NOT NULL           | —                 | 回复人用户 ID（讲师/机构管理员的 users.id） |
+| `content`    | varchar(500) | NOT NULL           | —                 | 回复内容                         |
+| `created_at` | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 创建时间                         |
+| `updated_at` | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 更新时间                         |
+
 
 **索引设计：**
 
-| 索引名 | 字段 | 类型 | 说明 |
-|--------|------|------|------|
-| `UNIQUE idx_rr_review_id` | `review_id` | 唯一 | 一条评价仅一条回复 |
-| `idx_rr_user_id` | `user_id` | 普通 | 按回复人查询 |
+
+| 索引名                       | 字段          | 类型  | 说明        |
+| ------------------------- | ----------- | --- | --------- |
+| `UNIQUE idx_rr_review_id` | `review_id` | 唯一  | 一条评价仅一条回复 |
+| `idx_rr_user_id`          | `user_id`   | 普通  | 按回复人查询    |
+
 
 ---
 
@@ -293,27 +323,31 @@
 
 > 讲师/机构对恶意评价的申诉记录，每条评价仅允许一次申诉。
 
-| 字段名 | 类型 | 约束 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `id` | int | PK, AUTO_INCREMENT | — | 主键 |
-| `review_id` | int | NOT NULL | — | 关联评价 ID，关联 reviews.id |
-| `user_id` | int | NOT NULL | — | 申诉人用户 ID |
-| `reason` | varchar(500) | NOT NULL | — | 申诉理由 |
-| `evidence_urls` | varchar(2000) | | NULL | 证据材料图片 URL，JSON 数组格式 |
-| `status` | varchar(20) | NOT NULL | 'PENDING' | 申诉状态：PENDING / ACCEPTED / REJECTED |
-| `handled_by` | int | | NULL | 处理人用户 ID |
-| `handled_at` | datetime | | NULL | 处理时间 |
-| `result` | varchar(500) | | NULL | 处理结果说明 |
-| `created_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 更新时间 |
+
+| 字段名             | 类型            | 约束                 | 默认值               | 说明                                 |
+| --------------- | ------------- | ------------------ | ----------------- | ---------------------------------- |
+| `id`            | int           | PK, AUTO_INCREMENT | —                 | 主键                                 |
+| `review_id`     | int           | NOT NULL           | —                 | 关联评价 ID，关联 reviews.id              |
+| `user_id`       | int           | NOT NULL           | —                 | 申诉人用户 ID                           |
+| `reason`        | varchar(500)  | NOT NULL           | —                 | 申诉理由                               |
+| `evidence_urls` | varchar(2000) |                    | NULL              | 证据材料图片 URL，JSON 数组格式               |
+| `status`        | varchar(20)   | NOT NULL           | 'PENDING'         | 申诉状态：PENDING / ACCEPTED / REJECTED |
+| `handled_by`    | int           |                    | NULL              | 处理人用户 ID                           |
+| `handled_at`    | datetime      |                    | NULL              | 处理时间                               |
+| `result`        | varchar(500)  |                    | NULL              | 处理结果说明                             |
+| `created_at`    | datetime      | NOT NULL           | CURRENT_TIMESTAMP | 创建时间                               |
+| `updated_at`    | datetime      | NOT NULL           | CURRENT_TIMESTAMP | 更新时间                               |
+
 
 **索引设计：**
 
-| 索引名 | 字段 | 类型 | 说明 |
-|--------|------|------|------|
-| `UNIQUE idx_ra_review_id` | `review_id` | 唯一 | 一条评价仅一次申诉 |
-| `idx_ra_user_id` | `user_id` | 普通 | 按申诉人查询 |
-| `idx_ra_status` | `status` | 普通 | 按申诉状态筛选 |
+
+| 索引名                       | 字段          | 类型  | 说明        |
+| ------------------------- | ----------- | --- | --------- |
+| `UNIQUE idx_ra_review_id` | `review_id` | 唯一  | 一条评价仅一次申诉 |
+| `idx_ra_user_id`          | `user_id`   | 普通  | 按申诉人查询    |
+| `idx_ra_status`           | `status`    | 普通  | 按申诉状态筛选   |
+
 
 ---
 
@@ -321,33 +355,37 @@
 
 > 按评价对象聚合的统计数据，用于前台展示评分、各星级分布等。每个评价对象（讲师/机构/课程）对应一条记录，通过事件驱动或定时任务更新。
 
-| 字段名 | 类型 | 约束 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `id` | int | PK, AUTO_INCREMENT | — | 主键 |
-| `target_type` | varchar(20) | NOT NULL | — | 对象类型：TRAINER / ORGANIZATION / COURSE |
-| `target_id` | int | NOT NULL | — | 对象 ID |
-| `total_count` | int | NOT NULL | 0 | 已审核通过的评价总数 |
-| `average_rating` | decimal(2,1) | NOT NULL | 0.0 | 综合平均评分（1.0 - 5.0） |
-| `five_star_count` | int | NOT NULL | 0 | 5 星评价数 |
-| `four_star_count` | int | NOT NULL | 0 | 4 星评价数 |
-| `three_star_count` | int | NOT NULL | 0 | 3 星评价数 |
-| `two_star_count` | int | NOT NULL | 0 | 2 星评价数 |
-| `one_star_count` | int | NOT NULL | 0 | 1 星评价数 |
-| `good_rate` | decimal(5,2) | NOT NULL | 0.00 | 好评率（4-5 星占比，百分比） |
-| `avg_professionalism` | decimal(2,1) | | NULL | 讲师专业度平均分（仅讲师/内训课） |
-| `avg_customization` | decimal(2,1) | | NULL | 定制实用性平均分（仅内训课） |
-| `avg_service` | decimal(2,1) | | NULL | 服务满意度平均分 |
-| `avg_quality` | decimal(2,1) | | NULL | 课程质量平均分 |
-| `avg_environment` | decimal(2,1) | | NULL | 场地环境平均分（仅公开课） |
-| `avg_teacher` | decimal(2,1) | | NULL | 讲师授课质量平均分 |
-| `created_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 更新时间 |
+
+| 字段名                   | 类型           | 约束                 | 默认值               | 说明                                   |
+| --------------------- | ------------ | ------------------ | ----------------- | ------------------------------------ |
+| `id`                  | int          | PK, AUTO_INCREMENT | —                 | 主键                                   |
+| `target_type`         | varchar(20)  | NOT NULL           | —                 | 对象类型：TRAINER / ORGANIZATION / COURSE |
+| `target_id`           | int          | NOT NULL           | —                 | 对象 ID                                |
+| `total_count`         | int          | NOT NULL           | 0                 | 已审核通过的评价总数                           |
+| `average_rating`      | decimal(2,1) | NOT NULL           | 0.0               | 综合平均评分（1.0 - 5.0）                    |
+| `five_star_count`     | int          | NOT NULL           | 0                 | 5 星评价数                               |
+| `four_star_count`     | int          | NOT NULL           | 0                 | 4 星评价数                               |
+| `three_star_count`    | int          | NOT NULL           | 0                 | 3 星评价数                               |
+| `two_star_count`      | int          | NOT NULL           | 0                 | 2 星评价数                               |
+| `one_star_count`      | int          | NOT NULL           | 0                 | 1 星评价数                               |
+| `good_rate`           | decimal(5,2) | NOT NULL           | 0.00              | 好评率（4-5 星占比，百分比）                     |
+| `avg_professionalism` | decimal(2,1) |                    | NULL              | 讲师专业度平均分（仅讲师/内训课）                    |
+| `avg_customization`   | decimal(2,1) |                    | NULL              | 定制实用性平均分（仅内训课）                       |
+| `avg_service`         | decimal(2,1) |                    | NULL              | 服务满意度平均分                             |
+| `avg_quality`         | decimal(2,1) |                    | NULL              | 课程质量平均分                              |
+| `avg_environment`     | decimal(2,1) |                    | NULL              | 场地环境平均分（仅公开课）                        |
+| `avg_teacher`         | decimal(2,1) |                    | NULL              | 讲师授课质量平均分                            |
+| `created_at`          | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 创建时间                                 |
+| `updated_at`          | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 更新时间                                 |
+
 
 **索引设计：**
 
-| 索引名 | 字段 | 类型 | 说明 |
-|--------|------|------|------|
-| `UNIQUE idx_rs_target` | `target_type, target_id` | 唯一 | 每个对象一条统计记录 |
+
+| 索引名                    | 字段                       | 类型  | 说明         |
+| ---------------------- | ------------------------ | --- | ---------- |
+| `UNIQUE idx_rs_target` | `target_type, target_id` | 唯一  | 每个对象一条统计记录 |
+
 
 ---
 
@@ -355,30 +393,34 @@
 
 > 用户提交的问题反馈记录。
 
-| 字段名 | 类型 | 约束 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `id` | int | PK, AUTO_INCREMENT | — | 主键 |
-| `user_id` | int | NOT NULL | — | 反馈人用户 ID，关联 users.id |
-| `type` | varchar(30) | NOT NULL | — | 反馈类型：RESOURCE_MISMATCH（资源信息不符）/ CONNECTION_ISSUE（联系不畅通）/ QUALITY_ISSUE（课程质量问题）/ PLATFORM_BUG（平台功能异常）/ OTHER（其他） |
-| `description` | varchar(1000) | NOT NULL | — | 问题描述 |
-| `related_type` | varchar(20) | | NULL | 关联对象类型：COURSE / TRAINER / ORGANIZATION / ORDER |
-| `related_id` | int | | NULL | 关联对象 ID |
-| `status` | varchar(20) | NOT NULL | 'PENDING' | 反馈状态：PENDING（待处理）/ PROCESSING（处理中）/ RESOLVED（已解决）/ CLOSED（已关闭） |
-| `handled_by` | int | | NULL | 处理人用户 ID（后台客服） |
-| `handled_at` | datetime | | NULL | 首次受理时间 |
-| `resolved_at` | datetime | | NULL | 解决/关闭时间 |
-| `created_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 更新时间 |
+
+| 字段名            | 类型            | 约束                 | 默认值               | 说明                                                                                                              |
+| -------------- | ------------- | ------------------ | ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| `id`           | int           | PK, AUTO_INCREMENT | —                 | 主键                                                                                                              |
+| `user_id`      | int           | NOT NULL           | —                 | 反馈人用户 ID，关联 users.id                                                                                            |
+| `type`         | varchar(30)   | NOT NULL           | —                 | 反馈类型：RESOURCE_MISMATCH（资源信息不符）/ CONNECTION_ISSUE（联系不畅通）/ QUALITY_ISSUE（课程质量问题）/ PLATFORM_BUG（平台功能异常）/ OTHER（其他） |
+| `description`  | varchar(1000) | NOT NULL           | —                 | 问题描述                                                                                                            |
+| `related_type` | varchar(20)   |                    | NULL              | 关联对象类型：COURSE / TRAINER / ORGANIZATION / ORDER                                                                  |
+| `related_id`   | int           |                    | NULL              | 关联对象 ID                                                                                                         |
+| `status`       | varchar(20)   | NOT NULL           | 'PENDING'         | 反馈状态：PENDING（待处理）/ PROCESSING（处理中）/ RESOLVED（已解决）/ CLOSED（已关闭）                                                  |
+| `handled_by`   | int           |                    | NULL              | 处理人用户 ID（后台客服）                                                                                                  |
+| `handled_at`   | datetime      |                    | NULL              | 首次受理时间                                                                                                          |
+| `resolved_at`  | datetime      |                    | NULL              | 解决/关闭时间                                                                                                         |
+| `created_at`   | datetime      | NOT NULL           | CURRENT_TIMESTAMP | 创建时间                                                                                                            |
+| `updated_at`   | datetime      | NOT NULL           | CURRENT_TIMESTAMP | 更新时间                                                                                                            |
+
 
 **索引设计：**
 
-| 索引名 | 字段 | 类型 | 说明 |
-|--------|------|------|------|
-| `idx_fb_user_id` | `user_id` | 普通 | 按反馈人查询 |
-| `idx_fb_status` | `status` | 普通 | 按状态筛选 |
-| `idx_fb_type` | `type` | 普通 | 按反馈类型筛选 |
-| `idx_fb_handled_by` | `handled_by` | 普通 | 按处理人查询 |
-| `idx_fb_created` | `created_at` | 普通 | 按时间排序 |
+
+| 索引名                 | 字段           | 类型  | 说明      |
+| ------------------- | ------------ | --- | ------- |
+| `idx_fb_user_id`    | `user_id`    | 普通  | 按反馈人查询  |
+| `idx_fb_status`     | `status`     | 普通  | 按状态筛选   |
+| `idx_fb_type`       | `type`       | 普通  | 按反馈类型筛选 |
+| `idx_fb_handled_by` | `handled_by` | 普通  | 按处理人查询  |
+| `idx_fb_created`    | `created_at` | 普通  | 按时间排序   |
+
 
 ---
 
@@ -386,20 +428,24 @@
 
 > 问题反馈关联的图片证据。
 
-| 字段名 | 类型 | 约束 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `id` | int | PK, AUTO_INCREMENT | — | 主键 |
-| `feedback_id` | int | NOT NULL | — | 关联反馈 ID，关联 feedbacks.id |
-| `image_url` | varchar(500) | NOT NULL | — | 图片 URL |
-| `sort_order` | int | NOT NULL | 0 | 排序序号 |
-| `created_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 更新时间 |
+
+| 字段名           | 类型           | 约束                 | 默认值               | 说明                      |
+| ------------- | ------------ | ------------------ | ----------------- | ----------------------- |
+| `id`          | int          | PK, AUTO_INCREMENT | —                 | 主键                      |
+| `feedback_id` | int          | NOT NULL           | —                 | 关联反馈 ID，关联 feedbacks.id |
+| `image_url`   | varchar(500) | NOT NULL           | —                 | 图片 URL                  |
+| `sort_order`  | int          | NOT NULL           | 0                 | 排序序号                    |
+| `created_at`  | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 创建时间                    |
+| `updated_at`  | datetime     | NOT NULL           | CURRENT_TIMESTAMP | 更新时间                    |
+
 
 **索引设计：**
 
-| 索引名 | 字段 | 类型 | 说明 |
-|--------|------|------|------|
-| `idx_fi_feedback_id` | `feedback_id` | 普通 | 按反馈查询图片 |
+
+| 索引名                  | 字段            | 类型  | 说明      |
+| -------------------- | ------------- | --- | ------- |
+| `idx_fi_feedback_id` | `feedback_id` | 普通  | 按反馈查询图片 |
+
 
 ---
 
@@ -407,25 +453,27 @@
 
 > 后台客服对问题反馈的回复记录，支持多轮回复。
 
-| 字段名 | 类型 | 约束 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `id` | int | PK, AUTO_INCREMENT | — | 主键 |
-| `feedback_id` | int | NOT NULL | — | 关联反馈 ID，关联 feedbacks.id |
-| `user_id` | int | NOT NULL | — | 回复人用户 ID（后台客服或反馈人追加说明） |
-| `content` | varchar(1000) | NOT NULL | — | 回复内容 |
-| `created_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_at` | datetime | NOT NULL | CURRENT_TIMESTAMP | 更新时间 |
+
+| 字段名           | 类型            | 约束                 | 默认值               | 说明                      |
+| ------------- | ------------- | ------------------ | ----------------- | ----------------------- |
+| `id`          | int           | PK, AUTO_INCREMENT | —                 | 主键                      |
+| `feedback_id` | int           | NOT NULL           | —                 | 关联反馈 ID，关联 feedbacks.id |
+| `user_id`     | int           | NOT NULL           | —                 | 回复人用户 ID（后台客服或反馈人追加说明）  |
+| `content`     | varchar(1000) | NOT NULL           | —                 | 回复内容                    |
+| `created_at`  | datetime      | NOT NULL           | CURRENT_TIMESTAMP | 创建时间                    |
+| `updated_at`  | datetime      | NOT NULL           | CURRENT_TIMESTAMP | 更新时间                    |
+
 
 **索引设计：**
 
-| 索引名 | 字段 | 类型 | 说明 |
-|--------|------|------|------|
-| `idx_fr_feedback_id` | `feedback_id` | 普通 | 按反馈查询回复 |
-| `idx_fr_user_id` | `user_id` | 普通 | 按回复人查询 |
+
+| 索引名                  | 字段            | 类型  | 说明      |
+| -------------------- | ------------- | --- | ------- |
+| `idx_fr_feedback_id` | `feedback_id` | 普通  | 按反馈查询回复 |
+| `idx_fr_user_id`     | `user_id`     | 普通  | 按回复人查询  |
+
 
 ---
-
-
 
 ## 5. 业务逻辑与规则
 
@@ -463,10 +511,12 @@
 
 评价统计变更后，需同步更新关联模块的冗余评分字段：
 
-| 目标表 | 更新字段 | 触发条件 |
-|--------|---------|---------|
-| `trainers` | `score`, `comment_count` | 讲师评价统计变更时 |
+
+| 目标表             | 更新字段                           | 触发条件      |
+| --------------- | ------------------------------ | --------- |
+| `trainers`      | `score`, `comment_count`       | 讲师评价统计变更时 |
 | `organizations` | `review_score`, `review_count` | 机构评价统计变更时 |
+
 
 - 通过事件消息（如 `REVIEW_STATS_UPDATED`）通知讲师模块与机构模块异步更新
 
@@ -509,125 +559,149 @@
 
 ### 6.1 评价发布
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/v1/reviews` | 提交评价（含星级、内容、图片、维度评分） |
-| GET | `/api/v1/reviews/check` | 检查当前用户对指定对象是否可评价（query: target_type, target_id, order_id） |
+
+| 方法   | 路径                      | 说明                                                        |
+| ---- | ----------------------- | --------------------------------------------------------- |
+| POST | `/api/v1/reviews`       | 提交评价（含星级、内容、图片、维度评分）                                      |
+| GET  | `/api/v1/reviews/check` | 检查当前用户对指定对象是否可评价（query: target_type, target_id, order_id） |
+
 
 ### 6.2 评价展示（公开）
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/reviews` | 获取评价列表（query: target_type, target_id, 分页/排序/星级筛选） |
-| GET | `/api/v1/reviews/{id}` | 获取评价详情（含图片、维度评分、回复） |
-| GET | `/api/v1/review-stats` | 获取评价统计（query: target_type, target_id） |
+
+| 方法  | 路径                     | 说明                                                |
+| --- | ---------------------- | ------------------------------------------------- |
+| GET | `/api/v1/reviews`      | 获取评价列表（query: target_type, target_id, 分页/排序/星级筛选） |
+| GET | `/api/v1/reviews/{id}` | 获取评价详情（含图片、维度评分、回复）                               |
+| GET | `/api/v1/review-stats` | 获取评价统计（query: target_type, target_id）             |
+
 
 ### 6.3 评价管理（讲师/机构端）
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/my/reviews` | 获取针对自己的评价列表（讲师/机构视角，支持筛选） |
-| POST | `/api/v1/reviews/{id}/reply` | 回复评价 |
-| POST | `/api/v1/reviews/{id}/appeal` | 发起评价申诉 |
+
+| 方法   | 路径                            | 说明                        |
+| ---- | ----------------------------- | ------------------------- |
+| GET  | `/api/v1/my/reviews`          | 获取针对自己的评价列表（讲师/机构视角，支持筛选） |
+| POST | `/api/v1/reviews/{id}/reply`  | 回复评价                      |
+| POST | `/api/v1/reviews/{id}/appeal` | 发起评价申诉                    |
+
 
 ### 6.4 评价审核（后台）
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/admin/reviews/pending` | 获取待审核评价列表（分页） |
-| PUT | `/api/v1/admin/reviews/{id}/approve` | 审核通过评价 |
-| PUT | `/api/v1/admin/reviews/{id}/hide` | 隐藏评价（需填写原因） |
-| PUT | `/api/v1/admin/reviews/{id}/delete` | 删除评价（需填写原因） |
-| GET | `/api/v1/admin/review-appeals/pending` | 获取待处理申诉列表 |
+
+| 方法  | 路径                                         | 说明            |
+| --- | ------------------------------------------ | ------------- |
+| GET | `/api/v1/admin/reviews/pending`            | 获取待审核评价列表（分页） |
+| PUT | `/api/v1/admin/reviews/{id}/approve`       | 审核通过评价        |
+| PUT | `/api/v1/admin/reviews/{id}/hide`          | 隐藏评价（需填写原因）   |
+| PUT | `/api/v1/admin/reviews/{id}/delete`        | 删除评价（需填写原因）   |
+| GET | `/api/v1/admin/review-appeals/pending`     | 获取待处理申诉列表     |
 | PUT | `/api/v1/admin/review-appeals/{id}/handle` | 处理评价申诉（接受/驳回） |
+
 
 ### 6.5 问题反馈
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/v1/feedbacks` | 提交问题反馈 |
-| GET | `/api/v1/my/feedbacks` | 获取我的反馈列表（分页） |
-| GET | `/api/v1/feedbacks/{id}` | 获取反馈详情（含回复列表） |
+
+| 方法   | 路径                       | 说明            |
+| ---- | ------------------------ | ------------- |
+| POST | `/api/v1/feedbacks`      | 提交问题反馈        |
+| GET  | `/api/v1/my/feedbacks`   | 获取我的反馈列表（分页）  |
+| GET  | `/api/v1/feedbacks/{id}` | 获取反馈详情（含回复列表） |
+
 
 ### 6.6 反馈处理（后台）
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/admin/feedbacks` | 获取反馈列表（支持按状态/类型筛选，分页） |
-| PUT | `/api/v1/admin/feedbacks/{id}/accept` | 受理反馈（状态变更为处理中） |
-| POST | `/api/v1/admin/feedbacks/{id}/reply` | 回复反馈 |
-| PUT | `/api/v1/admin/feedbacks/{id}/resolve` | 标记反馈已解决 |
-| PUT | `/api/v1/admin/feedbacks/{id}/close` | 关闭反馈 |
+
+| 方法   | 路径                                     | 说明                    |
+| ---- | -------------------------------------- | --------------------- |
+| GET  | `/api/v1/admin/feedbacks`              | 获取反馈列表（支持按状态/类型筛选，分页） |
+| PUT  | `/api/v1/admin/feedbacks/{id}/accept`  | 受理反馈（状态变更为处理中）        |
+| POST | `/api/v1/admin/feedbacks/{id}/reply`   | 回复反馈                  |
+| PUT  | `/api/v1/admin/feedbacks/{id}/resolve` | 标记反馈已解决               |
+| PUT  | `/api/v1/admin/feedbacks/{id}/close`   | 关闭反馈                  |
+
 
 ---
-
-
 
 ## 附录 A: 状态枚举汇总
 
 ### 评价状态（reviews.status）
 
-| 值 | 常量 | 说明 |
-|----|------|------|
-| `PENDING` | 待审核 | 用户提交后默认状态，等待后台客服审核 |
-| `APPROVED` | 已通过 | 审核通过，前台公开展示 |
-| `HIDDEN` | 已隐藏 | 被客服隐藏，不展示但数据保留 |
-| `DELETED` | 已删除 | 被客服删除（软删除），不展示不计入统计 |
+
+| 值          | 常量  | 说明                  |
+| ---------- | --- | ------------------- |
+| `PENDING`  | 待审核 | 用户提交后默认状态，等待后台客服审核  |
+| `APPROVED` | 已通过 | 审核通过，前台公开展示         |
+| `HIDDEN`   | 已隐藏 | 被客服隐藏，不展示但数据保留      |
+| `DELETED`  | 已删除 | 被客服删除（软删除），不展示不计入统计 |
+
 
 ### 评价对象类型（reviews.target_type）
 
-| 值 | 常量 | 说明 |
-|----|------|------|
-| `TRAINER` | 讲师 | 对讲师的评价 |
-| `ORGANIZATION` | 机构 | 对机构的评价 |
-| `COURSE` | 课程 | 对课程的评价 |
+
+| 值              | 常量  | 说明     |
+| -------------- | --- | ------ |
+| `TRAINER`      | 讲师  | 对讲师的评价 |
+| `ORGANIZATION` | 机构  | 对机构的评价 |
+| `COURSE`       | 课程  | 对课程的评价 |
+
 
 ### 评价来源类型（reviews.source_type）
 
-| 值 | 常量 | 说明 |
-|----|------|------|
-| `INHOUSE` | 内训 | 内训合作后评价 |
-| `ONLINE` | 在线课 | 在线课学习完成后评价 |
-| `OPEN` | 公开课 | 公开课出席后评价 |
+
+| 值           | 常量  | 说明         |
+| ----------- | --- | ---------- |
+| `INHOUSE`   | 内训  | 内训合作后评价    |
+| `ONLINE`    | 在线课 | 在线课学习完成后评价 |
+| `OPEN`      | 公开课 | 公开课出席后评价   |
 | `COPYRIGHT` | 版权课 | 版权课学习完成后评价 |
+
 
 ### 评分维度（review_dimension_scores.dimension）
 
-| 值 | 常量 | 适用场景 | 说明 |
-|----|------|---------|------|
-| `PROFESSIONALISM` | 讲师专业度 | 内训课 | 讲师授课水平与专业表现 |
-| `CUSTOMIZATION` | 定制实用性 | 内训课 | 课程内容与企业需求匹配度 |
-| `SERVICE` | 客服服务满意度 | 内训课 | 平台客服对接服务质量 |
-| `QUALITY` | 课程质量 | 公开课/在线课 | 课程内容与结构质量 |
-| `ENVIRONMENT` | 场地环境 | 公开课 | 授课场地环境 |
-| `TEACHER` | 讲师授课质量 | 公开课/在线课 | 讲师授课表现 |
+
+| 值                 | 常量      | 适用场景    | 说明           |
+| ----------------- | ------- | ------- | ------------ |
+| `PROFESSIONALISM` | 讲师专业度   | 内训课     | 讲师授课水平与专业表现  |
+| `CUSTOMIZATION`   | 定制实用性   | 内训课     | 课程内容与企业需求匹配度 |
+| `SERVICE`         | 客服服务满意度 | 内训课     | 平台客服对接服务质量   |
+| `QUALITY`         | 课程质量    | 公开课/在线课 | 课程内容与结构质量    |
+| `ENVIRONMENT`     | 场地环境    | 公开课     | 授课场地环境       |
+| `TEACHER`         | 讲师授课质量  | 公开课/在线课 | 讲师授课表现       |
+
 
 ### 申诉状态（review_appeals.status）
 
-| 值 | 常量 | 说明 |
-|----|------|------|
-| `PENDING` | 待处理 | 申诉提交后默认状态 |
-| `ACCEPTED` | 已接受 | 申诉成功，评价被处理 |
+
+| 值          | 常量  | 说明          |
+| ---------- | --- | ----------- |
+| `PENDING`  | 待处理 | 申诉提交后默认状态   |
+| `ACCEPTED` | 已接受 | 申诉成功，评价被处理  |
 | `REJECTED` | 已驳回 | 申诉不成立，维持原评价 |
+
 
 ### 反馈类型（feedbacks.type）
 
-| 值 | 常量 | 说明 |
-|----|------|------|
+
+| 值                   | 常量     | 说明               |
+| ------------------- | ------ | ---------------- |
 | `RESOURCE_MISMATCH` | 资源信息不符 | 课程/讲师/机构信息与实际不一致 |
-| `CONNECTION_ISSUE` | 联系不畅通 | 无法联系到讲师/机构/客服 |
-| `QUALITY_ISSUE` | 课程质量问题 | 课程内容质量不达标 |
-| `PLATFORM_BUG` | 平台功能异常 | 平台产品功能缺陷 |
-| `OTHER` | 其他 | 其他类型反馈 |
+| `CONNECTION_ISSUE`  | 联系不畅通  | 无法联系到讲师/机构/客服    |
+| `QUALITY_ISSUE`     | 课程质量问题 | 课程内容质量不达标        |
+| `PLATFORM_BUG`      | 平台功能异常 | 平台产品功能缺陷         |
+| `OTHER`             | 其他     | 其他类型反馈           |
+
 
 ### 反馈状态（feedbacks.status）
 
-| 值 | 常量 | 说明 |
-|----|------|------|
-| `PENDING` | 待处理 | 用户提交后默认状态 |
-| `PROCESSING` | 处理中 | 客服已受理，正在处理 |
-| `RESOLVED` | 已解决 | 问题已解决 |
-| `CLOSED` | 已关闭 | 反馈已关闭（无法解决/无效反馈） |
+
+| 值            | 常量  | 说明               |
+| ------------ | --- | ---------------- |
+| `PENDING`    | 待处理 | 用户提交后默认状态        |
+| `PROCESSING` | 处理中 | 客服已受理，正在处理       |
+| `RESOLVED`   | 已解决 | 问题已解决            |
+| `CLOSED`     | 已关闭 | 反馈已关闭（无法解决/无效反馈） |
+
 
 ---
 
@@ -651,13 +725,16 @@ users (用户表)
 
 ### 跨模块依赖
 
-| 依赖模块 | 关联说明 |
-|----------|----------|
-| **用户模块 (users)** | `reviews.user_id` → `users.id`，评价人身份；`review_replies.user_id` → `users.id`，回复人身份；`feedbacks.user_id` → `users.id`，反馈人身份 |
-| **讲师模块 (trainers)** | `reviews.target_id`（target_type=TRAINER）关联讲师；评价统计变更时异步更新 `trainers.score` 和 `trainers.comment_count` |
-| **机构模块 (organizations)** | `reviews.target_id`（target_type=ORGANIZATION）关联机构；评价统计变更时异步更新 `organizations.review_score` 和 `organizations.review_count` |
-| **课程模块 (courses)** | `reviews.target_id`（target_type=COURSE）关联课程；评价统计数据展示在课程详情页 |
-| **订单模块 (orders)** | `reviews.order_id` 关联订单，用于校验评价资格与防止重复评价 |
-| **消息通知模块 (notifications)** | 评价审核结果通知、申诉处理结果通知、反馈回复通知等通过消息模块发送（站内消息） |
-| **审核工作台 (admin)** | 后台客服对评价的审核、申诉处理、反馈处理操作均在后台工作台完成 |
-| **文件存储模块 (attachments)** | 评价图片、反馈图片、申诉证据材料的上传与存储 |
+
+| 依赖模块                       | 关联说明                                                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **用户模块 (users)**           | `reviews.user_id` → `users.id`，评价人身份；`review_replies.user_id` → `users.id`，回复人身份；`feedbacks.user_id` → `users.id`，反馈人身份   |
+| **讲师模块 (trainers)**        | `reviews.target_id`（target_type=TRAINER）关联讲师；评价统计变更时异步更新 `trainers.score` 和 `trainers.comment_count`                      |
+| **机构模块 (organizations)**   | `reviews.target_id`（target_type=ORGANIZATION）关联机构；评价统计变更时异步更新 `organizations.review_score` 和 `organizations.review_count` |
+| **课程模块 (courses)**         | `reviews.target_id`（target_type=COURSE）关联课程；评价统计数据展示在课程详情页                                                                |
+| **订单模块 (orders)**          | `reviews.order_id` 关联订单，用于校验评价资格与防止重复评价                                                                                   |
+| **消息通知模块 (notifications)** | 评价审核结果通知、申诉处理结果通知、反馈回复通知等通过消息模块发送（站内消息）                                                                                   |
+| **审核工作台 (admin)**          | 后台客服对评价的审核、申诉处理、反馈处理操作均在后台工作台完成                                                                                           |
+| **文件存储模块 (attachments)**   | 评价图片、反馈图片、申诉证据材料的上传与存储                                                                                                    |
+
+

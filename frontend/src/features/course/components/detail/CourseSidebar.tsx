@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   MessageSquare,
   Heart,
@@ -17,6 +17,12 @@ import { useRouter } from '@/i18n/navigation';
 import type { CourseDetail } from '../../api/types';
 import { useCart } from '@/features/cart/hooks/useCart';
 import { createOrder } from '@/features/order/api/service';
+import {
+  addFavorite,
+  removeFavorite,
+  getInteractionState,
+} from '@/features/interaction/api/service';
+import ReviewDialog from '@/features/interaction/components/ReviewDialog';
 
 interface CourseSidebarProps {
   course: CourseDetail;
@@ -29,6 +35,34 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
   const { addItem } = useCart();
   const router = useRouter();
   const [buyLoading, setBuyLoading] = useState(false);
+  const [favorited, setFavorited] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+
+  useEffect(() => {
+    getInteractionState('COURSE', course.id)
+      .then((s) => setFavorited(s.favorited))
+      .catch(() => {});
+  }, [course.id]);
+
+  const toggleFavorite = useCallback(async () => {
+    setFavLoading(true);
+    try {
+      if (favorited) {
+        await removeFavorite('COURSE', course.id);
+        setFavorited(false);
+        toast.success('已取消收藏');
+      } else {
+        await addFavorite('COURSE', course.id);
+        setFavorited(true);
+        toast.success('收藏成功');
+      }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : '操作失败');
+    } finally {
+      setFavLoading(false);
+    }
+  }, [favorited, course.id]);
 
   const handleBuyNow = async () => {
     if (!isPurchasable) return;
@@ -105,11 +139,16 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
 
       {/* 收藏按钮 */}
       <button
-        onClick={() => { /* TODO: 收藏功能 */ }}
-        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-slate-200 text-slate-700 font-medium text-sm hover:border-primary hover:text-primary transition-all"
+        onClick={toggleFavorite}
+        disabled={favLoading}
+        className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg border font-medium text-sm transition-all ${
+          favorited
+            ? 'border-primary text-primary'
+            : 'border-slate-200 text-slate-700 hover:border-primary hover:text-primary'
+        }`}
       >
-        <Heart className="size-4" />
-        {t('favorite')}
+        <Heart className={`size-4 ${favorited ? 'fill-primary' : ''}`} />
+        {favorited ? '已收藏' : t('favorite')}
       </button>
 
       {/* 互动数据 */}
@@ -122,11 +161,23 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
           {isOpen ? <Eye className="size-3.5" /> : <Flame className="size-3.5" />}
           {isOpen ? t('views') : t('popularity')}: {course.viewCount}
         </span>
-        <button className="flex items-center gap-1 hover:text-primary transition-colors">
+        <button
+          onClick={() => setReviewOpen(true)}
+          className="flex items-center gap-1 hover:text-primary transition-colors"
+        >
           <PenLine className="size-3.5" />
           {t('review')}
         </button>
       </div>
+
+      <ReviewDialog
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        scope="COURSE"
+        courseId={course.id}
+        prefillTitle={course.title}
+        onSuccess={() => toast.success('评价已提交，审核通过后将公开展示')}
+      />
     </div>
   );
 }

@@ -1,6 +1,16 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { Star, StarHalf, MessageSquare } from 'lucide-react';
+import { Star, StarHalf, MessageSquare, Heart } from 'lucide-react';
+import { toast } from 'sonner';
 import type { TrainerDetail } from '../../types';
+import {
+  addFavorite,
+  removeFavorite,
+  getInteractionState,
+} from '@/features/interaction/api/service';
+import TrainerMessageDialog from '@/features/interaction/components/TrainerMessageDialog';
 
 interface TrainerHeroProps {
   trainer: TrainerDetail;
@@ -21,6 +31,34 @@ function StarRating({ score }: { score: number }) {
 
 export function TrainerHero({ trainer }: TrainerHeroProps) {
   const expertiseTags = trainer.expertiseTags?.split(',').filter(Boolean) ?? [];
+  const [msgOpen, setMsgOpen] = useState(false);
+  const [favorited, setFavorited] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
+
+  useEffect(() => {
+    getInteractionState('TRAINER', trainer.userId)
+      .then((s) => setFavorited(s.favorited))
+      .catch(() => {});
+  }, [trainer.userId]);
+
+  const toggleFavorite = useCallback(async () => {
+    setFavLoading(true);
+    try {
+      if (favorited) {
+        await removeFavorite('TRAINER', trainer.userId);
+        setFavorited(false);
+        toast.success('已取消收藏');
+      } else {
+        await addFavorite('TRAINER', trainer.userId);
+        setFavorited(true);
+        toast.success('收藏成功');
+      }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : '操作失败');
+    } finally {
+      setFavLoading(false);
+    }
+  }, [favorited, trainer.userId]);
 
   return (
     <section className="bg-white rounded-xl border border-slate-200 shadow-sm relative z-10 w-full mb-6 mt-6">
@@ -46,18 +84,38 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           </div>
 
           <div className="flex flex-col gap-3 mt-6 w-[190px]">
-            <button className="w-full px-4 py-2.5 bg-primary text-white rounded flex items-center justify-center gap-1.5 hover:bg-primary/90 font-medium transition-colors whitespace-nowrap">
+            <button
+              onClick={() => setMsgOpen(true)}
+              className="w-full px-4 py-2.5 bg-primary text-white rounded flex items-center justify-center gap-1.5 hover:bg-primary/90 font-medium transition-colors whitespace-nowrap"
+            >
               <MessageSquare className="size-5" /> 给专家留言
             </button>
             <div className="flex items-center gap-3 w-full justify-between">
-              <button className="flex-1 py-2 border border-slate-200 rounded text-slate-600 hover:text-primary hover:border-primary font-medium bg-white transition-all text-[13px] text-center">
-                收藏讲师
+              <button
+                onClick={toggleFavorite}
+                disabled={favLoading}
+                className={`flex-1 py-2 border rounded font-medium bg-white transition-all text-[13px] text-center flex items-center justify-center gap-1 ${
+                  favorited
+                    ? 'border-primary text-primary'
+                    : 'border-slate-200 text-slate-600 hover:text-primary hover:border-primary'
+                }`}
+              >
+                <Heart className={`size-3.5 ${favorited ? 'fill-primary' : ''}`} />
+                {favorited ? '已收藏' : '收藏讲师'}
               </button>
               <button className="flex-1 py-2 border border-slate-200 rounded text-slate-600 hover:text-primary hover:border-primary font-medium bg-white transition-all text-[13px] text-center">
                 加入对比
               </button>
             </div>
           </div>
+
+          <TrainerMessageDialog
+            open={msgOpen}
+            onOpenChange={setMsgOpen}
+            trainerUserId={trainer.userId}
+            trainerName={trainer.name}
+            onSuccess={() => toast.success('留言已提交，我们会尽快联系您！')}
+          />
         </div>
 
         {/* 右侧：信息与操作 */}

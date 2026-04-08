@@ -70,6 +70,18 @@ public enum ErrorCode {
     ALREADY_ENROLLED(400, 40009, "您已报名该课程"),
     ORDER_ITEMS_EMPTY(400, 40010, "订单商品不能为空"),
 
+    /* ==================== 评价/互动 500xx ==================== */
+    FAVORITE_ALREADY_EXISTS(400, 50001, "已收藏，请勿重复操作"),
+    FAVORITE_NOT_FOUND(404, 50002, "未收藏该资源"),
+    LIKE_ALREADY_EXISTS(400, 50003, "已点赞，请勿重复操作"),
+    LIKE_NOT_FOUND(404, 50004, "未点赞该资源"),
+    REVIEW_TARGET_INVALID(400, 50005, "评价目标不存在或不可评价"),
+    REVIEW_NOT_FOUND(404, 50006, "评价不存在"),
+    REVIEW_COMMENT_TOO_SHORT(400, 50007, "文字评价不能少于20字"),
+    REVIEW_RATING_INVALID(400, 50008, "评分必须在 1~5 之间"),
+    TRAINER_NOT_FOUND_FOR_MSG(404, 50009, "目标专家不存在"),
+    INTERACTION_TARGET_NOT_FOUND(404, 50010, "目标资源不存在"),
+
     /* ==================== 通用/系统级 900xx ==================== */
     PARAM_INVALID(400, 90001, "参数校验失败"),
     NOT_FOUND(404, 90002, "资源不存在"),
