@@ -215,3 +215,29 @@
   - /dashboard/orders 订单列表页替换为真实数据（Tab 筛选 + 分页 + 支付弹窗）
   - i18n：新增 cart.json / order.json（zh-CN + en）、request.ts 注册命名空间
   - routes.ts 新增 CART / CHECKOUT 路由常量
+
+## 2026-04-08 15:30
+- 实现用户与资源互动模块（收藏、点赞、评价、专家留言）
+- Flyway V23：新建 user_favorites、user_likes、training_reviews、trainer_lead_messages 4 张表
+- 后端 taoke-course 模块新增 interaction 子包：
+  - 枚举：InteractionTargetType / ReviewScope / ReviewStatus / LeadMessageStatus
+  - Entity + Repository 各 4 个
+  - DTO 7 个（收藏/点赞/评价/留言请求+响应 + 互动聚合状态）
+  - Service 5 个（Favorite / Like / Review / TrainerMessage / InteractionTargetValidator）
+  - Controller 5 个：收藏增删查、点赞增删查、评价提交+公开列表+我的列表、专家留言提交、互动聚合状态
+  - API 接口 2 个：InteractionQueryService（跨模块只读查询）、ReviewModerationService（后台审核操作）
+  - ErrorCode 新增 500xx 段 10 个互动错误码
+- 前端新增 features/interaction 模块：
+  - API 层：types.ts + service.ts（收藏/点赞/评价/留言/聚合状态）
+  - ReviewDialog 评价弹窗（三维星评+培训信息表单）
+  - TrainerMessageDialog 专家留言弹窗
+- 前端已有页面接入：
+  - TrainerHero：留言按钮 → TrainerMessageDialog、收藏按钮 → 真实收藏 API
+  - CourseSidebar：收藏按钮 → 真实收藏 API、评价按钮 → ReviewDialog
+  - TrainerDetailContent ReviewsView：mock 数据替换为真实 API + 新增"我要评价"
+  - CourseDetailTabs 评价 Tab：从"暂无数据"改为真实评价列表
+  - InstitutionHero：收藏按钮 → 真实收藏 API
+  - 用户中心收藏页：mock 替换为真实 API 分页 + 取消收藏
+  - 用户中心评价页：mock 替换为真实"我的评价"列表 + 提交入口
+  - 用户中心学习页："去评价"按钮 → ReviewDialog
+- 新增 docs/refactor-tables-mapping.md：新旧表映射说明

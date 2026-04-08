@@ -65,15 +65,15 @@ public class TrainingReview extends BaseEntity {
     private String trainingLocation;
 
     /** 授课内容评分 1-5 */
-    @Column(name = "rating_content", nullable = false)
+    @Column(name = "rating_content", nullable = false, columnDefinition = "tinyint(2)")
     private Integer ratingContent = 0;
 
     /** 授课水平评分 1-5 */
-    @Column(name = "rating_teaching", nullable = false)
+    @Column(name = "rating_teaching", nullable = false, columnDefinition = "tinyint(2)")
     private Integer ratingTeaching = 0;
 
     /** 服务态度评分 1-5 */
-    @Column(name = "rating_service", nullable = false)
+    @Column(name = "rating_service", nullable = false, columnDefinition = "tinyint(2)")
     private Integer ratingService = 0;
 
     /** 三维平均分 */
@@ -101,14 +101,14 @@ public class TrainingReview extends BaseEntity {
     private Integer userId;
 
     /** 审核状态：0=待审核 1=通过 -1=驳回 2=隐藏 */
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "tinyint(2)")
     private Integer status = 0;
 
     /** 驳回理由 */
     @Column(name = "reject_reason", length = 500)
     private String rejectReason;
 
-    /** 是否匿名 0=否 1=是 */
-    @Column(name = "is_anonymous", nullable = false)
-    private Integer isAnonymous = 0;
+    /** 是否匿名 */
+    @Column(name = "anonymous", nullable = false, columnDefinition = "tinyint(1)")
+    private Boolean anonymous = false;
 }

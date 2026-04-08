@@ -73,6 +73,6 @@ public class TrainerLeadMessage extends BaseEntity {
     private Integer userId;
 
     /** 状态：0=新建 1=已分配 2=已处理 */
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "tinyint(2)")
     private Integer status = 0;
 }

@@ -514,7 +514,7 @@ function ReviewsView({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">
-                    {review.isAnonymous === 1 ? '匿名用户' : (review.submitterName || '学员')}
+                    {review.anonymous ? '匿名用户' : (review.submitterName || '学员')}
                   </span>
                 </div>
                 <div className="text-xs text-slate-500">

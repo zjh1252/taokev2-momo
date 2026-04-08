@@ -1,17 +1,20 @@
 # AI 代码助手规范
 
 ## 项目概述
+
 你是一名资深的 Java/全栈 开发工程师，将协助我们从0开始重构一个课程培训系统，本仓库下包含多个项目，采用mono形式组织仓库。
 如果需要进入python环境的命令行，可以使用 conda activate common-ai，进入 common-ai 的python虚拟环境。
 你在写代码时，不需要编译java，不使用mvn命令，后端编译我说动执行即可。
 
 ## 全局项目设定
+
 - 文件编码： UTF-8
 - 注释语言：中文
 - 时区: 东八区（上海）
 - local：简体中文
 
 ## 技术栈
+
 - 后端技术栈:
   - 运行环境：
     - JDK：OpenJDK 21
@@ -34,7 +37,6 @@
   - 开发辅助：
     - 接口文档: springdoc-openapi
     - Lombok：简化实体与 DTO 代码
-
 - 前端技术栈:
   - nextjs ^16 + tailwind + shadcn-ui
   - i18n 采用 next-intl
@@ -42,6 +44,7 @@
   - 低耦合,模块化
 
 ## 目录结构
+
 - 后端项目: /backend
   - /backend/taoke-common — 公共基础层（工具、DTO、事件总线、安全注解、文件上传）
   - /backend/taoke-user — 用户域（认证、权限、RBAC、各角色档案、专家/经纪人/机构等供给侧）
@@ -58,6 +61,7 @@
 - 开发任务文档： /docs/tasks
 
 ## 编码规范
+
 - 注释语言用中文, 有良好的中文注释，遵循标准 JavaDoc 格式（`<p>`、`<ul>`、`<ol>`、`{@code}`、`<pre>` 等标签均可正常使用）
   - 类注释模板：描述部分按标准 JavaDoc 写法；末尾必须加 @author 和 @date
     ```
@@ -87,37 +91,38 @@
   - 数据表的设计与命名符合主流规范，字段要写注释，资源表使用复数，
   - id 主键使用 int 自增
   - 如无特殊指令，数据表都要有id,created_at, updated_at字段，时间字段使用 datetime
-  - 数据库索引要以 idx\_前缀开头，数据表不使用外键，在代码中逻辑维持。
+  - 数据库索引要以 idx前缀开头，数据表不使用外键，在代码中逻辑维持。
   - 中间关联表注意字段命名格式
+  - 布尔字段规范：数据库列名禁止以 `is`_ 前缀开头，直接用语义词命名（如 `anonymous`、`enabled`、`activated`、`featured`），类型统一使用 `TINYINT(1)`；Java Entity 端对应使用 `Boolean` 类型，必须显式赋默认值（如 `private Boolean anonymous = false;`），getter/setter 交由 Lombok 自动生成，不手写。
+  - 小整型字段规范：非布尔的小整型字段（如状态 status、评分 rating 等取值范围有限的字段）使用 `TINYINT(2)`，以与 `TINYINT(1)` 的布尔语义区分；如需更大范围可使用 `SMALLINT(4)`。Java Entity 端对应使用 `Integer` 类型。
   - API规划上，路由不需要有/api前缀，ingress自动发现直接到具体资源
 - Controller 规范：
   - 路由写法：不使用类级 `@RequestMapping` 前缀拼接，每个方法注解上直接写完整资源路径，方便全局搜索定位路由。比如： @PutMapping("/users/me/password")
-
-- 前端
-  - 
+- ## 前端
 - 单元测试
   - 暂时不写单元测试
 
-
 ## 注意事项
+
 - 与人工协作时，注意避免覆盖人工修改的代码
 - 全新项目，不需要兼容代码版本，不需要@Deprecated考虑。
 
 ## progress 记录
+
 - 每次在完成编码任务后，在我说OK/可以了/正常了好了的情况下，要把完成的工作内容，用简洁的文字进行记录到工作进度文件中： /docs/process/works.md。使用如下模版进行每次任务的记录：
+
 ---
-\#\# {时间：2023-03-27 11:10 精确到分钟} 
-\- 修改了前置任务列表的显示范围
-\- 新增了用户类型字段，用于区分不同的用户类型。
+
+ {时间：2023-03-27 11:10 精确到分钟} 
+ 修改了前置任务列表的显示范围
+ 新增了用户类型字段，用于区分不同的用户类型。
 
 ## 禁止读取
+
 - /docs/ai-prd-exports
 - /docs/tmp
 - /tmp
 
-
 ## 已知存在的坑
+
 - 
-
-
-

@@ -86,7 +86,7 @@ public class ReviewServiceImpl {
         review.setSubmitterContact(req.getSubmitterContact());
         review.setUserId(userId);
         review.setStatus(ReviewStatus.PENDING.getValue());
-        review.setIsAnonymous(Boolean.TRUE.equals(req.getAnonymous()) ? 1 : 0);
+        review.setAnonymous(Boolean.TRUE.equals(req.getAnonymous()));
 
         reviewRepository.save(review);
         return review.getId();
@@ -197,7 +197,7 @@ public class ReviewServiceImpl {
         vo.setAvgScore(r.getAvgScore());
         vo.setCommentText(r.getCommentText());
         vo.setSubmitterName(r.getSubmitterName());
-        vo.setIsAnonymous(r.getIsAnonymous());
+        vo.setAnonymous(r.getAnonymous());
         vo.setStatus(r.getStatus());
         vo.setCreatedAt(r.getCreatedAt());
 

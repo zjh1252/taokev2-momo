@@ -37,7 +37,7 @@ public class ReviewVO {
     private List<String> photoUrls;
 
     private String submitterName;
-    private Integer isAnonymous;
+    private Boolean anonymous;
     private Integer status;
 
     private LocalDateTime createdAt;

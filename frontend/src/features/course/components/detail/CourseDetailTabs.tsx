@@ -178,7 +178,7 @@ function CourseReviewsPanel({ courseId }: { courseId: number }) {
         <article key={review.id} className="border border-slate-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <span className="font-semibold text-sm">
-              {review.isAnonymous === 1 ? '匿名用户' : (review.submitterName || '学员')}
+              {review.anonymous ? '匿名用户' : (review.submitterName || '学员')}
             </span>
             <span className="text-xs text-slate-500">
               {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}

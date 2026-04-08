@@ -54,7 +54,7 @@ export interface ReviewItem {
   commentText: string;
   photoUrls: string[];
   submitterName: string;
-  isAnonymous: number;
+  anonymous: boolean;
   status: number;
   createdAt: string;
 }
