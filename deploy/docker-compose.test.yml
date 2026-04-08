@@ -57,6 +57,7 @@ services:
     environment:
       HOSTNAME: 0.0.0.0
       TZ: Asia/Shanghai
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
     depends_on:
       - backend
     restart: unless-stopped
