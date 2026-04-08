@@ -52,8 +52,8 @@ export default function FavoritesPage() {
         await removeFavorite(item.targetType, item.targetId);
         setItems((prev) => prev.filter((f) => f.id !== item.id));
         toast.success('已取消收藏');
-      } catch (e: unknown) {
-        toast.error(e instanceof Error ? e.message : '操作失败');
+      } catch {
+        // 错误提示已在 apiClient 中弹出
       }
     },
     [],

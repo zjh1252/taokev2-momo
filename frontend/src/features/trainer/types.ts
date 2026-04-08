@@ -50,6 +50,8 @@ export interface TrainerHonor {
 /** 专家公开详情（对应后端 TrainerPublicResponse） */
 export interface TrainerDetail {
   id: number;
+  /** 平台用户 ID：收藏/互动状态/留言等与后端 TRAINER 维度一致 */
+  userId: number;
   name: string;
   avatar: string;
   title: string;

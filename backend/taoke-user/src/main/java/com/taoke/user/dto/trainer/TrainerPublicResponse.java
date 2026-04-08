@@ -14,7 +14,14 @@ import java.util.List;
 @Data
 public class TrainerPublicResponse {
 
+    /** 专家主表 ID（路由、公开详情路径参数） */
     private Integer id;
+
+    /**
+     * 关联的平台用户 ID
+     * <p>互动域中 targetType=TRAINER 的 targetId、专家留言的 trainerUserId 等均须使用该字段。</p>
+     */
+    private Integer userId;
 
     // ==================== 基础展示 ====================
 

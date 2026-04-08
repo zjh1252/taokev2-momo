@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { AuthProvider } from '@/lib/auth/auth-context';
 import { NewUserRolePrompt } from '@/features/role-apply/components/NewUserRolePrompt';
 import { Toaster } from '@/components/ui/sonner';
+import { CartProvider } from '@/features/cart/hooks/useCart';
 
 /**
  * 客户端 Providers 聚合组件
@@ -15,9 +16,11 @@ import { Toaster } from '@/components/ui/sonner';
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
-      {children}
-      <NewUserRolePrompt />
-      <Toaster />
+      <CartProvider>
+        {children}
+        <NewUserRolePrompt />
+        <Toaster />
+      </CartProvider>
     </AuthProvider>
   );
 }

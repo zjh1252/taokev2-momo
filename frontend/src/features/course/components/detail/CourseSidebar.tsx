@@ -57,8 +57,8 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         setFavorited(true);
         toast.success('收藏成功');
       }
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '操作失败');
+    } catch {
+      // 错误提示已在 apiClient 中弹出，避免与 catch 重复 toast
     } finally {
       setFavLoading(false);
     }

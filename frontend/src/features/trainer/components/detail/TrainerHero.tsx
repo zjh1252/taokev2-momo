@@ -53,8 +53,8 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
         setFavorited(true);
         toast.success('收藏成功');
       }
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '操作失败');
+    } catch {
+      // 错误提示已在 apiClient 中弹出
     } finally {
       setFavLoading(false);
     }
