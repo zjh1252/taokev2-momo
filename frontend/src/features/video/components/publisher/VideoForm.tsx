@@ -143,6 +143,10 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       alert('请填写视频介绍');
       return;
     }
+    if (isFree === 0 && (!price || price <= 0)) {
+      alert('请填写课程价格，或勾选"免费"');
+      return;
+    }
 
     const data: SaveVideoRequest = {
       title: title.trim(),

@@ -72,7 +72,7 @@ public class OrderServiceImpl {
                 throw new BusinessException(ErrorCode.ORDER_ITEMS_EMPTY);
             }
             for (Cart cart : carts) {
-                OrderItem item = buildOrderItem(cart.getProductType(), cart.getProductId(), cart.getQuantity());
+                OrderItem item = buildOrderItem(cart.getProductType(), cart.getProductId(), cart.getQuantity(), userId);
                 items.add(item);
             }
             // 下单后从购物车移除
@@ -83,7 +83,7 @@ public class OrderServiceImpl {
             CreateOrderRequest.DirectItem di = request.getDirectItem();
             ProductType pt = ProductType.valueOf(di.getProductType());
             OrderItem item = buildOrderItem(pt, di.getProductId(),
-                    di.getQuantity() != null ? di.getQuantity() : 1);
+                    di.getQuantity() != null ? di.getQuantity() : 1, userId);
             items.add(item);
         } else {
             throw new BusinessException(ErrorCode.ORDER_ITEMS_EMPTY);
@@ -206,7 +206,7 @@ public class OrderServiceImpl {
         return orderItemRepository.findByOrderId(orderId);
     }
 
-    private OrderItem buildOrderItem(ProductType productType, Integer productId, int quantity) {
+    private OrderItem buildOrderItem(ProductType productType, Integer productId, int quantity, Integer userId) {
         OrderItem item = new OrderItem();
         item.setProductType(productType);
         item.setProductId(productId);
@@ -232,6 +232,9 @@ public class OrderServiceImpl {
             }
             if (video.getIsFree() == 1) {
                 throw new BusinessException(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+            }
+            if (userId != null && userId.equals(video.getPublisherId())) {
+                throw new BusinessException(ErrorCode.CANNOT_BUY_OWN_PRODUCT);
             }
             item.setProductTitle(video.getTitle());
             item.setProductCover(video.getCoverUrl());

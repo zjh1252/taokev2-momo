@@ -29,6 +29,8 @@ type VideoPlaybackContextValue = {
   isFree: boolean;
   /** 是否已购买 */
   enrolled: boolean;
+  /** 是否为课程发布者 */
+  isOwner: boolean;
   /** 权限加载中 */
   accessLoading: boolean;
   /** 学习进度信息 */
@@ -60,6 +62,7 @@ export function VideoPlaybackProvider({
   const [accessible, setAccessible] = useState(video.isFree === 1);
   const [isFree] = useState(video.isFree === 1);
   const [enrolled, setEnrolled] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [accessLoading, setAccessLoading] = useState(!isFree && !!user);
   const [progressInfo, setProgressInfo] = useState<VideoProgressInfo | null>(null);
 
@@ -83,6 +86,7 @@ export function VideoPlaybackProvider({
       .then((info: VideoAccessInfo) => {
         setAccessible(info.accessible);
         setEnrolled(info.enrolled);
+        setIsOwner(info.isOwner ?? false);
         if (info.accessible) {
           const src = getFirstPlayableSource(video);
           if (src) setPlaybackSrcState(src);
@@ -132,10 +136,11 @@ export function VideoPlaybackProvider({
       accessible,
       isFree,
       enrolled,
+      isOwner,
       accessLoading,
       progressInfo,
     }),
-    [playbackSrc, setPlaybackSrc, currentTitle, currentChapterId, accessible, isFree, enrolled, accessLoading, progressInfo],
+    [playbackSrc, setPlaybackSrc, currentTitle, currentChapterId, accessible, isFree, enrolled, isOwner, accessLoading, progressInfo],
   );
 
   return (

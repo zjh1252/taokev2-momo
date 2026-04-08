@@ -17,9 +17,13 @@ export function VideoSidebar({ video }: VideoSidebarProps) {
   const { addItem } = useCart();
   const router = useRouter();
   const [buyLoading, setBuyLoading] = useState(false);
-  const { accessible, enrolled, isFree } = useVideoPlayback();
+  const { accessible, enrolled, isFree, isOwner } = useVideoPlayback();
 
   const handleAddToCart = async () => {
+    if (isOwner) {
+      toast.info('不能购买自己发布的课程');
+      return;
+    }
     if (isFree) {
       toast.info('该课程为免费课程，无需购买');
       return;
@@ -32,6 +36,10 @@ export function VideoSidebar({ video }: VideoSidebarProps) {
   };
 
   const handleBuyNow = async () => {
+    if (isOwner) {
+      toast.info('不能购买自己发布的课程');
+      return;
+    }
     if (isFree) {
       toast.info('该课程为免费课程，无需购买');
       return;
@@ -60,6 +68,11 @@ export function VideoSidebar({ video }: VideoSidebarProps) {
         <div className="mb-4">
           {isFree ? (
             <div className="text-3xl font-bold text-green-600">免费</div>
+          ) : isOwner ? (
+            <div className="flex items-center gap-2">
+              <CheckCircle className="size-6 text-blue-500" />
+              <span className="text-xl font-bold text-blue-600">我发布的</span>
+            </div>
           ) : accessible ? (
             <div className="flex items-center gap-2">
               <CheckCircle className="size-6 text-green-500" />
@@ -76,7 +89,7 @@ export function VideoSidebar({ video }: VideoSidebarProps) {
           )}
         </div>
 
-        {!isFree && !accessible && (
+        {!isFree && !accessible && !isOwner && (
           <div className="space-y-3">
             <button
               type="button"
@@ -102,7 +115,11 @@ export function VideoSidebar({ video }: VideoSidebarProps) {
           <p className="text-sm text-green-600 text-center">免费课程，可直接观看</p>
         )}
 
-        {accessible && !isFree && (
+        {isOwner && (
+          <p className="text-sm text-blue-600 text-center">您发布的课程，可直接观看所有章节</p>
+        )}
+
+        {accessible && !isFree && !isOwner && (
           <p className="text-sm text-green-600 text-center">已购买，可直接观看所有章节</p>
         )}
       </div>

@@ -53,7 +53,7 @@ public class CartServiceImpl {
         cart.setQuantity(request.getQuantity() != null ? request.getQuantity() : 1);
 
         // 填充商品快照信息
-        fillProductSnapshot(cart, productType, request.getProductId());
+        fillProductSnapshot(cart, productType, request.getProductId(), userId);
 
         cartRepository.save(cart);
         return cartMapper.toVO(cart);
@@ -131,7 +131,7 @@ public class CartServiceImpl {
         cartRepository.deleteAllByIdInBatch(ids);
     }
 
-    private void fillProductSnapshot(Cart cart, ProductType productType, Integer productId) {
+    private void fillProductSnapshot(Cart cart, ProductType productType, Integer productId, Integer userId) {
         if (productType == ProductType.OPEN_COURSE) {
             Course course = courseRepository.findById(productId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -152,6 +152,9 @@ public class CartServiceImpl {
             }
             if (video.getIsFree() == 1) {
                 throw new BusinessException(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+            }
+            if (userId != null && userId.equals(video.getPublisherId())) {
+                throw new BusinessException(ErrorCode.CANNOT_BUY_OWN_PRODUCT);
             }
             cart.setProductTitle(video.getTitle());
             cart.setProductCover(video.getCoverUrl());

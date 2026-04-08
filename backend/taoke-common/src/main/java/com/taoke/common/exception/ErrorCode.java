@@ -69,6 +69,7 @@ public enum ErrorCode {
     PAYMENT_ORDER_MISMATCH(400, 40008, "支付信息与订单不匹配"),
     ALREADY_ENROLLED(400, 40009, "您已报名该课程"),
     ORDER_ITEMS_EMPTY(400, 40010, "订单商品不能为空"),
+    CANNOT_BUY_OWN_PRODUCT(400, 40011, "不能购买自己发布的课程"),
 
     /* ==================== 评价/互动 500xx ==================== */
     FAVORITE_ALREADY_EXISTS(400, 50001, "已收藏，请勿重复操作"),

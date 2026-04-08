@@ -19,4 +19,7 @@ public class VideoAccessVO {
 
     /** 是否免费课程 */
     private Boolean isFree;
+
+    /** 是否为课程发布者 */
+    private Boolean isOwner;
 }

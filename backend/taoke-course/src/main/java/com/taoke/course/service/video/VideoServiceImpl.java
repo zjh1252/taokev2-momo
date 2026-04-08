@@ -180,6 +180,14 @@ public class VideoServiceImpl implements VideoService {
 
         VideoAccessVO vo = new VideoAccessVO();
         vo.setIsFree(video.getIsFree() == 1);
+        vo.setIsOwner(userId != null && userId.equals(video.getPublisherId()));
+
+        // 发布者本人可直接播放
+        if (vo.getIsOwner()) {
+            vo.setAccessible(true);
+            vo.setEnrolled(false);
+            return vo;
+        }
 
         if (video.getIsFree() == 1) {
             vo.setAccessible(true);

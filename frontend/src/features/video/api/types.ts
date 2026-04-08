@@ -159,6 +159,7 @@ export interface VideoAccessInfo {
   accessible: boolean;
   enrolled: boolean;
   isFree: boolean;
+  isOwner: boolean;
 }
 
 /** 章节学习进度 */
