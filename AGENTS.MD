@@ -39,6 +39,9 @@
     - Lombok：简化实体与 DTO 代码
 - 前端技术栈:
   - nextjs ^16 + tailwind + shadcn-ui
+  - **包管理器（定死，勿混用）**：
+    - C 端 **`frontend`**：仅 **pnpm**（`pnpm install` / `pnpm add`）
+    - 管理后台 **`admin-frontend`**：仅 **bun**（`bun install` / `bun add`）
   - i18n 采用 next-intl
   - 主题参考 themes 目录下
   - 低耦合,模块化
@@ -51,8 +54,8 @@
   - /backend/taoke-course — 课程域（课程管理、订单、支付、需求、案例、评价、CMS、消息）
   - /backend/taoke-admin — 后台管理编排层（Admin API，薄编排，调用 user/course 的 api 接口）
   - /backend/taoke-app — 启动入口（聚合所有模块、Flyway 迁移、全局配置）
-- 管理后台前端: /admin-frontend
-- C端前端项目: /frontend
+- 管理后台前端: /admin-frontend（**bun**）
+- C端前端项目: /frontend（**pnpm**）
 - 文档目录: /docs
   - 项目概述: /docs/01-项目概述.md
   - 架构设计: /docs/02-架构设计.md

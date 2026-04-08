@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { ChevronRight } from 'lucide-react';
 import { getVideoDetail } from '@/features/video/api/service';
+import { VideoDetailShell } from '@/features/video/components/detail/VideoDetailShell';
 import { VideoHero } from '@/features/video/components/detail/VideoHero';
 import { VideoDetailTabs } from '@/features/video/components/detail/VideoDetailTabs';
 import { VideoSidebar } from '@/features/video/components/detail/VideoSidebar';
@@ -52,18 +53,20 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
         <span className="text-slate-800 font-medium line-clamp-1">{video.title}</span>
       </nav>
 
-      {/* Hero */}
-      <VideoHero video={video} />
+      <VideoDetailShell video={video}>
+        {/* Hero：内嵌 Video.js，与目录共用播放源 */}
+        <VideoHero video={video} />
 
-      {/* 主体：左侧内容 + 右侧侧边栏 */}
-      <div className="flex gap-6 items-start">
-        <div className="flex-1 min-w-0">
-          <VideoDetailTabs video={video} />
+        {/* 主体：左侧内容 + 右侧侧边栏 */}
+        <div className="flex gap-6 items-start">
+          <div className="flex-1 min-w-0">
+            <VideoDetailTabs video={video} />
+          </div>
+          <div className="w-[320px] shrink-0 hidden lg:block">
+            <VideoSidebar video={video} />
+          </div>
         </div>
-        <div className="w-[320px] shrink-0 hidden lg:block">
-          <VideoSidebar video={video} />
-        </div>
-      </div>
+      </VideoDetailShell>
     </main>
   );
 }

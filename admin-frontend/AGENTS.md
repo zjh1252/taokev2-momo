@@ -16,7 +16,7 @@ This file provides essential information for AI coding agents working on this pr
 - **Error Tracking**: Sentry
 - **Charts**: Recharts
 - **Containerization**: Docker (Node.js & Bun Dockerfiles)
-- **Package Manager**: Bun (preferred) or npm
+- **Package Manager**: **Bun（定死）** — 与本 mono 约定一致：`admin-frontend` 仅用 bun，勿用 npm/pnpm
 
 The project follows a feature-based folder structure designed for scalability in SaaS applications, internal tools, and admin panels.
 

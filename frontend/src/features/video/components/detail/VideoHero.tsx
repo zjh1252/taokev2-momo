@@ -1,6 +1,23 @@
+'use client';
+
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { Play, Clock, Users, Eye } from 'lucide-react';
 import type { VideoDetail } from '../../api/types';
+import { useVideoPlayback } from '../../context/video-playback-context';
+
+const VideoJsPlayer = dynamic(
+  () =>
+    import('../player/VideoJsPlayer').then((m) => ({
+      default: m.VideoJsPlayer,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="aspect-video w-full bg-slate-950 animate-pulse rounded-lg min-h-[200px]" />
+    ),
+  },
+);
 
 interface VideoHeroProps {
   video: VideoDetail;
@@ -15,32 +32,45 @@ function formatDuration(seconds: number): string {
 }
 
 export function VideoHero({ video }: VideoHeroProps) {
+  const { playbackSrc, currentTitle } = useVideoPlayback();
+
   return (
     <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl overflow-hidden">
       <div className="flex flex-col md:flex-row gap-6 p-6">
-        {/* 封面 */}
-        <div className="relative w-full md:w-[400px] aspect-video rounded-lg overflow-hidden bg-slate-700 shrink-0">
-          {video.coverUrl ? (
-            <Image
-              src={video.coverUrl}
-              alt={video.title}
-              fill
-              className="object-cover"
+        {/* 播放器 / 封面 */}
+        <div className="relative w-full md:w-[min(100%,480px)] aspect-video rounded-lg overflow-hidden bg-slate-950 shrink-0">
+          {playbackSrc ? (
+            <VideoJsPlayer
+              key={playbackSrc}
+              src={playbackSrc}
+              poster={video.coverUrl || undefined}
+              className="w-full"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Play className="size-16 text-slate-500" />
-            </div>
+            <>
+              {video.coverUrl ? (
+                <Image
+                  src={video.coverUrl}
+                  alt={video.title}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Play className="size-16 text-slate-500" />
+                </div>
+              )}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
+                <p className="text-sm text-white/90 px-4 text-center">
+                  暂无可播放视频地址，请在后台为课程或章节配置视频 URL
+                </p>
+              </div>
+            </>
           )}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-              <Play className="size-7 text-white fill-white ml-1" />
-            </div>
-          </div>
         </div>
 
         {/* 信息 */}
-        <div className="flex-1 flex flex-col justify-between text-white">
+        <div className="flex-1 flex flex-col justify-between text-white min-w-0">
           <div>
             <div className="flex items-center gap-2 mb-3">
               {video.isFree === 1 && (
@@ -58,12 +88,17 @@ export function VideoHero({ video }: VideoHeroProps) {
               )}
             </div>
             <h1 className="text-2xl font-bold mb-3">{video.title}</h1>
+            {currentTitle && (
+              <p className="text-sm text-emerald-200/90 mb-2 line-clamp-2">
+                正在播放：{currentTitle}
+              </p>
+            )}
             {video.teacherName && (
               <p className="text-sm text-white/70 mb-2">授课老师：{video.teacherName}</p>
             )}
           </div>
 
-          <div className="flex items-center gap-6 text-sm text-white/60">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-white/60">
             <span className="flex items-center gap-1.5">
               <Play className="size-4" />
               共 {video.totalEpisodes} 集

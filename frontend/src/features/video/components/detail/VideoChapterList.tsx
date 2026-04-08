@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { ChevronDown, Play, Lock, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 import type { VideoSeries, VideoChapter } from '../../api/types';
 import { cn } from '@/lib/utils';
+import { useVideoPlayback } from '../../context/video-playback-context';
 
 interface VideoChapterListProps {
   seriesList: VideoSeries[];
@@ -18,6 +20,8 @@ function formatDuration(seconds: number): string {
 }
 
 export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapterListProps) {
+  const { setPlaybackSrc } = useVideoPlayback();
+
   const [expandedSeries, setExpandedSeries] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = {};
     seriesList.forEach((s) => { init[s.id] = true; });
@@ -59,7 +63,12 @@ export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapte
           {expandedSeries[series.id] && series.chapters && series.chapters.length > 0 && (
             <div className="divide-y divide-slate-100">
               {series.chapters.map((chapter, idx) => (
-                <ChapterRow key={chapter.id} chapter={chapter} index={idx + 1} />
+                <ChapterRow
+                  key={chapter.id}
+                  chapter={chapter}
+                  index={idx + 1}
+                  onPlay={(url, title) => setPlaybackSrc(url, title)}
+                />
               ))}
             </div>
           )}
@@ -76,7 +85,12 @@ export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapte
           )}
           <div className="divide-y divide-slate-100">
             {standaloneChapters.map((chapter, idx) => (
-              <ChapterRow key={chapter.id} chapter={chapter} index={idx + 1} />
+              <ChapterRow
+                key={chapter.id}
+                chapter={chapter}
+                index={idx + 1}
+                onPlay={(url, title) => setPlaybackSrc(url, title)}
+              />
             ))}
           </div>
         </div>
@@ -85,9 +99,32 @@ export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapte
   );
 }
 
-function ChapterRow({ chapter, index }: { chapter: VideoChapter; index: number }) {
+function ChapterRow({
+  chapter,
+  index,
+  onPlay,
+}: {
+  chapter: VideoChapter;
+  index: number;
+  onPlay: (url: string, title: string) => void;
+}) {
+  const url = chapter.videoUrl?.trim();
+
+  const handleClick = () => {
+    if (!url) {
+      toast.info('该章节暂无视频文件');
+      return;
+    }
+    // TODO: 已购/免费/试看校验通过后，再允许 onPlay；当前为便于联调，只要有地址即可切换
+    onPlay(url, chapter.title);
+  };
+
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
+    <button
+      type="button"
+      onClick={handleClick}
+      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left disabled:opacity-60"
+    >
       <span className="text-sm text-slate-400 w-6 text-center shrink-0">{index}</span>
       {chapter.isPreview === 1 ? (
         <Play className="size-4 text-primary shrink-0" />
@@ -104,6 +141,6 @@ function ChapterRow({ chapter, index }: { chapter: VideoChapter; index: number }
       {chapter.duration > 0 && (
         <span className="text-xs text-slate-400 shrink-0">{formatDuration(chapter.duration)}</span>
       )}
-    </div>
+    </button>
   );
 }
