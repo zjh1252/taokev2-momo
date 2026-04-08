@@ -9,8 +9,9 @@ import {
   type ReactNode,
 } from 'react';
 import { storage } from '@/lib/storage';
-import { TOKEN_KEY, PUBLIC_PROFILE_ROLES } from './constants';
+import { TOKEN_KEY, ROLE_TRAINER } from './constants';
 import { getMyProfile } from '@/features/user/api/service';
+import { getMyTrainerProfile } from '@/features/trainer/api/service';
 import type { UserProfileResponse, RoleInfo } from '@/features/user/api/types';
 
 /** 精简后的认证用户信息 */
@@ -31,8 +32,10 @@ interface AuthContextValue {
   refreshUser: () => Promise<void>;
   /** 退出登录 */
   logout: () => void;
-  /** 判断当前用户是否拥有公开主页（专家/机构/机构员工） */
-  hasPublicProfile: boolean;
+  /**
+   * 专家公开主页路径（如 /trainers/123），非已生效专家或未拉到档案时为 null
+   */
+  trainerPublicHomeHref: string | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -54,13 +57,9 @@ function toAuthUser(profile: UserProfileResponse): AuthUser {
   };
 }
 
-/** 判断角色列表中是否包含拥有公开主页的角色（且状态为生效） */
-function checkHasPublicProfile(roles: RoleInfo[]): boolean {
-  return roles.some(
-    (r) =>
-      PUBLIC_PROFILE_ROLES.includes(r.role as (typeof PUBLIC_PROFILE_ROLES)[number]) &&
-      r.status === 1,
-  );
+/** 是否已生效的专家角色（顶栏才展示「我的主页」） */
+function isApprovedTrainer(roles: RoleInfo[]): boolean {
+  return roles.some((r) => r.role === ROLE_TRAINER && r.status === 1);
 }
 
 /**
@@ -76,22 +75,36 @@ function checkHasPublicProfile(roles: RoleInfo[]): boolean {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [trainerPublicHomeHref, setTrainerPublicHomeHref] = useState<string | null>(null);
 
   const fetchUser = useCallback(async () => {
     const token = getAccessToken();
     if (!token) {
       setUser(null);
+      setTrainerPublicHomeHref(null);
       setLoading(false);
       return;
     }
 
+    setTrainerPublicHomeHref(null);
     try {
       const res = await getMyProfile(token);
-      setUser(toAuthUser(res.data));
+      const authUser = toAuthUser(res.data);
+      setUser(authUser);
+
+      if (isApprovedTrainer(authUser.roles)) {
+        try {
+          const me = await getMyTrainerProfile();
+          setTrainerPublicHomeHref(`/trainers/${me.id}`);
+        } catch {
+          setTrainerPublicHomeHref(null);
+        }
+      }
     } catch {
       // token 无效或过期，清理本地存储
       storage.remove(TOKEN_KEY);
       setUser(null);
+      setTrainerPublicHomeHref(null);
     } finally {
       setLoading(false);
     }
@@ -109,14 +122,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     storage.remove(TOKEN_KEY);
     setUser(null);
+    setTrainerPublicHomeHref(null);
     window.location.href = '/';
   }, []);
 
-  const hasPublicProfile = user ? checkHasPublicProfile(user.roles) : false;
-
   return (
     <AuthContext.Provider
-      value={{ user, loading, refreshUser, logout, hasPublicProfile }}
+      value={{ user, loading, refreshUser, logout, trainerPublicHomeHref }}
     >
       {children}
     </AuthContext.Provider>

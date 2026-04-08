@@ -1,4 +1,6 @@
 import { apiGet } from '@/lib/http/client';
+import { storage } from '@/lib/storage';
+import { TOKEN_KEY } from '@/lib/auth/constants';
 import type {
   ApiResponse,
   TrainerDetail,
@@ -6,6 +8,22 @@ import type {
   PageResponse,
   CategoryTreeNode,
 } from '../types';
+
+function authHeaders(): Record<string, string> {
+  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
+  return { Authorization: `Bearer ${tokenData?.accessToken || ''}` };
+}
+
+/**
+ * 获取当前登录专家本人档案（需 TRAINER 角色）
+ * <p>用于顶栏「我的主页」解析公开详情路径 {@code /trainers/{id}}。</p>
+ */
+export async function getMyTrainerProfile(): Promise<{ id: number }> {
+  const res = await apiGet<ApiResponse<{ id: number }>>('/trainers/me', {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
 
 /**
  * 获取专家公开详情

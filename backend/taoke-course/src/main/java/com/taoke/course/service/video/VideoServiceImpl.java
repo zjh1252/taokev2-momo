@@ -160,9 +160,10 @@ public class VideoServiceImpl implements VideoService {
     public VideoDetailVO getPublicDetail(Integer videoId) {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
-        if (video.getStatus() != VideoStatus.PUBLISHED.getValue()) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在");
-        }
+        // TODO: 正式上线后恢复仅允许已上架(PUBLISHED)访问；当前测试阶段放开全部状态便于联调
+        // if (video.getStatus() != VideoStatus.PUBLISHED.getValue()) {
+        //     throw new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在");
+        // }
         // 浏览量+1
         video.setViewCount(video.getViewCount() + 1);
         videoRepository.save(video);
@@ -175,7 +176,8 @@ public class VideoServiceImpl implements VideoService {
                                                      int page, int size) {
         Specification<Video> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()));
+            // TODO: 正式上线后恢复仅展示已上架(PUBLISHED)：predicates.add(cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()));
+            // 当前测试阶段列出全部状态，便于测试草稿/待审核等数据
 
             if (categoryId != null) {
                 predicates.add(cb.equal(root.get("categoryId"), categoryId));
@@ -191,7 +193,9 @@ public class VideoServiceImpl implements VideoService {
                         cb.like(root.get("teacherName"), like)
                 ));
             }
-            return cb.and(predicates.toArray(Predicate[]::new));
+            return predicates.isEmpty()
+                    ? cb.conjunction()
+                    : cb.and(predicates.toArray(Predicate[]::new));
         };
 
         Sort sort = resolvePublicSort(sortBy);

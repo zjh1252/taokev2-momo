@@ -2,9 +2,7 @@
 export const TOKEN_KEY = 'taoke_token';
 
 /**
- * 拥有公开主页的角色列表
- * <p>
- * 对应后端 BusinessRole 枚举中的 TRAINER / INSTITUTION / INSTITUTION_EMPLOYEE
- * </p>
+ * 业务角色码：专家（与后端 {@code BusinessRole.Code.TRAINER} 一致）
+ * <p>顶栏「我的主页」仅当该角色且状态为生效时展示，并链至 {@code /trainers/{id}}。</p>
  */
-export const PUBLIC_PROFILE_ROLES = ['TRAINER', 'INSTITUTION', 'INSTITUTION_EMPLOYEE'] as const;
+export const ROLE_TRAINER = 'TRAINER';

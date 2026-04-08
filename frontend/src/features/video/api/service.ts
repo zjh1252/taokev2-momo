@@ -18,6 +18,7 @@ export interface VideoListParams {
 
 /**
  * 公开录播课列表（分页 + 筛选）
+ * <p>TODO: 依赖后端 {@code GET /videos} 仅返回已上架；当前后端测试阶段会返回全部状态，上线前需与后端对齐。</p>
  */
 export async function getVideoList(
   params: VideoListParams = {},

@@ -15,7 +15,6 @@ export const ROUTES = {
   CASES: '/cases',
   LOGIN: '/login',
   REGISTER: '/register',
-  MY_PAGE: '/my-page',
 
   // ---- 用户中心 ----
   DASHBOARD: '/dashboard',

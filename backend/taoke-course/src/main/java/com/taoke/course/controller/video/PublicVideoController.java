@@ -16,7 +16,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 公开录播课接口 — 无需登录，仅展示已上架录播课
+ * 公开录播课接口 — 无需登录
+ * <p>TODO: 正式上线后与 {@link com.taoke.course.service.video.VideoServiceImpl#listPublic} 一致，仅展示已上架录播课；当前测试阶段后端暂不过滤状态。</p>
  *
  * @author Fangxinxin
  * @date 2026-04-07 14:00
