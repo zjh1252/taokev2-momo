@@ -125,6 +125,16 @@ export async function getVideoChapterList(videoId: number, seriesId?: number): P
   return res.data;
 }
 
+export async function batchCreateVideoChapters(
+  videoId: number,
+  data: SaveVideoChapterRequest[],
+): Promise<VideoChapter[]> {
+  const res = await apiPost<ApiResponse<VideoChapter[]>>(`/videos/${videoId}/chapters/batch`, data, {
+    headers: authHeaders(),
+  });
+  return res.data;
+}
+
 export async function createVideoChapter(videoId: number, data: SaveVideoChapterRequest): Promise<VideoChapter> {
   const res = await apiPost<ApiResponse<VideoChapter>>(`/videos/${videoId}/chapters`, data, {
     headers: authHeaders(),

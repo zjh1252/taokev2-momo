@@ -2,6 +2,7 @@ package com.taoke.course.api;
 
 import com.taoke.common.response.PageResponse;
 import com.taoke.course.dto.video.*;
+import com.taoke.course.dto.video.VideoAccessVO;
 
 import java.util.List;
 
@@ -52,6 +53,13 @@ public interface VideoService {
                                                    Integer status, String keyword,
                                                    int page, int size);
 
+    // ==================== 访问权限 ====================
+
+    /**
+     * 检查用户对录播课的访问权限（免费/已购买未过期）
+     */
+    VideoAccessVO checkAccess(Integer videoId, Integer userId);
+
     // ==================== 公开接口 ====================
 
     /**
@@ -68,6 +76,33 @@ public interface VideoService {
                                               String keyword, String sortBy,
                                               int page, int size);
 
+    // ==================== 后台管理 ====================
+
+    /**
+     * 后台分页查询录播课列表
+     */
+    PageResponse<VideoListItemVO> listForAdmin(Integer status, String keyword, int page, int size);
+
+    /**
+     * 后台录播课详情（无状态限制）
+     */
+    VideoDetailVO getAdminDetail(Integer videoId);
+
+    /**
+     * 审核通过（PENDING → PUBLISHED）
+     */
+    void approve(Integer videoId);
+
+    /**
+     * 审核驳回（PENDING → REJECTED）
+     */
+    void reject(Integer videoId, String reason);
+
+    /**
+     * 后台下架（PUBLISHED → UNPUBLISHED）
+     */
+    void adminUnpublish(Integer videoId);
+
     // ==================== 系列管理 ====================
 
     List<VideoSeriesVO> listSeries(Integer videoId, Integer publisherId);
@@ -83,6 +118,11 @@ public interface VideoService {
     List<VideoChapterVO> listChapters(Integer videoId, Integer publisherId, Integer seriesId);
 
     VideoChapterVO createChapter(Integer videoId, Integer publisherId, SaveVideoChapterRequest request);
+
+    /**
+     * 批量创建章节（SERIES类型，前端上传多个视频后一次性创建）
+     */
+    List<VideoChapterVO> batchCreateChapters(Integer videoId, Integer publisherId, List<SaveVideoChapterRequest> requests);
 
     VideoChapterVO updateChapter(Integer videoId, Integer chapterId, Integer publisherId, SaveVideoChapterRequest request);
 

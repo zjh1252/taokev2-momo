@@ -154,6 +154,32 @@ export interface VideoDetail {
   standaloneChapters: VideoChapter[];
 }
 
+/** 录播课访问权限信息 */
+export interface VideoAccessInfo {
+  accessible: boolean;
+  enrolled: boolean;
+  isFree: boolean;
+}
+
+/** 章节学习进度 */
+export interface ChapterProgressItem {
+  chapterId: number;
+  watchDuration: number;
+  chapterDuration: number;
+  progress: number;
+  completed: boolean;
+  lastWatchedAt: string | null;
+}
+
+/** 录播课学习进度 */
+export interface VideoProgressInfo {
+  overallProgress: number;
+  lastChapterId: number;
+  totalWatchTime: number;
+  lastWatchedAt: string | null;
+  chapters: ChapterProgressItem[];
+}
+
 /** 创建/编辑录播课请求体 */
 export interface SaveVideoRequest {
   title: string;

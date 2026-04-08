@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import VideoForm from '@/features/video/components/publisher/VideoForm';
-import { createVideo } from '@/features/video/api/publisher-service';
+import type { UploadedVideoItem } from '@/features/video/components/publisher/VideoForm';
+import { createVideo, batchCreateVideoChapters } from '@/features/video/api/publisher-service';
 import type { SaveVideoRequest } from '@/features/video/api/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
@@ -13,10 +14,21 @@ export default function CreateVideoPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (data: SaveVideoRequest) => {
+  const handleSubmit = async (data: SaveVideoRequest, videoFiles?: UploadedVideoItem[]) => {
     setSubmitting(true);
     try {
-      await createVideo(data);
+      const video = await createVideo(data);
+
+      // SERIES 类型：批量创建章节
+      if (data.videoType === 'SERIES' && videoFiles && videoFiles.length > 0) {
+        const chapterRequests = videoFiles.map((v, idx) => ({
+          title: `${data.title} - 章节${idx + 1}`,
+          videoUrl: v.url,
+          sortOrder: idx + 1,
+        }));
+        await batchCreateVideoChapters(video.id, chapterRequests);
+      }
+
       alert('录播课已保存为草稿');
       router.push(ROUTES.UC_VIDEOS_MANAGE);
     } catch {

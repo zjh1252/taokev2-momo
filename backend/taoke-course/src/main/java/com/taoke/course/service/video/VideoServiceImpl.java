@@ -13,7 +13,9 @@ import com.taoke.course.entity.video.VideoSeries;
 import com.taoke.course.enums.VideoStatus;
 import com.taoke.course.enums.VideoType;
 import com.taoke.course.mapper.VideoMapper;
+import com.taoke.course.entity.video.VideoEnrollment;
 import com.taoke.course.repository.video.VideoChapterRepository;
+import com.taoke.course.repository.video.VideoEnrollmentRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.repository.video.VideoSeriesRepository;
 import com.taoke.user.api.TrainerService;
@@ -44,6 +46,7 @@ public class VideoServiceImpl implements VideoService {
     private final VideoRepository videoRepository;
     private final VideoSeriesRepository videoSeriesRepository;
     private final VideoChapterRepository videoChapterRepository;
+    private final VideoEnrollmentRepository videoEnrollmentRepository;
     private final VideoMapper videoMapper;
     private final CategoryService categoryService;
     private final TrainerService trainerService;
@@ -64,6 +67,20 @@ public class VideoServiceImpl implements VideoService {
         }
 
         video = videoRepository.save(video);
+
+        // SINGLE 类型且有视频地址时，自动创建一个章节
+        if (video.getVideoType() == VideoType.SINGLE
+                && request.getVideoUrl() != null && !request.getVideoUrl().isBlank()) {
+            VideoChapter chapter = new VideoChapter();
+            chapter.setVideoId(video.getId());
+            chapter.setSeriesId(0);
+            chapter.setTitle(video.getTitle() + " - 章节1");
+            chapter.setVideoUrl(request.getVideoUrl());
+            chapter.setSortOrder(1);
+            videoChapterRepository.save(chapter);
+            refreshVideoStats(video.getId());
+        }
+
         return assembleDetail(video);
     }
 
@@ -154,6 +171,36 @@ public class VideoServiceImpl implements VideoService {
         return PageResponse.of(items, videoPage.getTotalElements(), page, size);
     }
 
+    // ==================== 访问权限 ====================
+
+    @Override
+    public VideoAccessVO checkAccess(Integer videoId, Integer userId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+
+        VideoAccessVO vo = new VideoAccessVO();
+        vo.setIsFree(video.getIsFree() == 1);
+
+        if (video.getIsFree() == 1) {
+            vo.setAccessible(true);
+            vo.setEnrolled(false);
+            return vo;
+        }
+
+        // 查询是否有有效的报名记录（status=1 且未过期）
+        Optional<VideoEnrollment> enrollment = videoEnrollmentRepository.findByVideoIdAndUserId(videoId, userId);
+        if (enrollment.isPresent() && enrollment.get().getStatus() == 1) {
+            VideoEnrollment e = enrollment.get();
+            boolean notExpired = e.getExpiredAt() == null || e.getExpiredAt().isAfter(LocalDateTime.now());
+            vo.setEnrolled(true);
+            vo.setAccessible(notExpired);
+        } else {
+            vo.setEnrolled(false);
+            vo.setAccessible(false);
+        }
+        return vo;
+    }
+
     // ==================== 公开接口 ====================
 
     @Override
@@ -210,6 +257,84 @@ public class VideoServiceImpl implements VideoService {
                 .map(this::toListItemVO)
                 .toList();
         return PageResponse.of(items, videoPage.getTotalElements(), page, size);
+    }
+
+    // ==================== 后台管理 ====================
+
+    @Override
+    public PageResponse<VideoListItemVO> listForAdmin(Integer status, String keyword, int page, int size) {
+        Specification<Video> spec = (root, cq, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (keyword != null && !keyword.isBlank()) {
+                String like = "%" + keyword.trim() + "%";
+                predicates.add(cb.or(
+                        cb.like(root.get("title"), like),
+                        cb.like(root.get("keywords"), like)
+                ));
+            }
+            return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        PageRequest pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "id"));
+        Page<Video> videoPage = videoRepository.findAll(spec, pageable);
+
+        if (videoPage.isEmpty()) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+
+        List<VideoListItemVO> items = videoPage.getContent().stream()
+                .map(this::toListItemVO)
+                .toList();
+        return PageResponse.of(items, videoPage.getTotalElements(), page, size);
+    }
+
+    @Override
+    public VideoDetailVO getAdminDetail(Integer videoId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+        return assembleDetail(video);
+    }
+
+    @Transactional
+    @Override
+    public void approve(Integer videoId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+        if (video.getStatus() != VideoStatus.PENDING.getValue()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅待审核状态的录播课可审核通过");
+        }
+        video.setStatus(VideoStatus.PUBLISHED.getValue());
+        video.setPublishedAt(LocalDateTime.now());
+        video.setRejectReason("");
+        videoRepository.save(video);
+    }
+
+    @Transactional
+    @Override
+    public void reject(Integer videoId, String reason) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+        if (video.getStatus() != VideoStatus.PENDING.getValue()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅待审核状态的录播课可驳回");
+        }
+        video.setStatus(VideoStatus.REJECTED.getValue());
+        video.setRejectReason(reason);
+        videoRepository.save(video);
+    }
+
+    @Transactional
+    @Override
+    public void adminUnpublish(Integer videoId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+        if (video.getStatus() != VideoStatus.PUBLISHED.getValue()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅已上架的录播课可下架");
+        }
+        video.setStatus(VideoStatus.UNPUBLISHED.getValue());
+        videoRepository.save(video);
     }
 
     // ==================== 系列管理 ====================
@@ -311,6 +436,27 @@ public class VideoServiceImpl implements VideoService {
         chapter = videoChapterRepository.save(chapter);
         refreshVideoStats(videoId);
         return videoMapper.toChapterVO(chapter);
+    }
+
+    @Transactional
+    @Override
+    public List<VideoChapterVO> batchCreateChapters(Integer videoId, Integer publisherId,
+                                                     List<SaveVideoChapterRequest> requests) {
+        getOwnedVideo(videoId, publisherId);
+        List<VideoChapterVO> result = new ArrayList<>();
+        for (int i = 0; i < requests.size(); i++) {
+            SaveVideoChapterRequest req = requests.get(i);
+            VideoChapter chapter = new VideoChapter();
+            chapter.setVideoId(videoId);
+            applyChapterRequest(chapter, req);
+            if (chapter.getSortOrder() == 0) {
+                chapter.setSortOrder(i + 1);
+            }
+            chapter = videoChapterRepository.save(chapter);
+            result.add(videoMapper.toChapterVO(chapter));
+        }
+        refreshVideoStats(videoId);
+        return result;
     }
 
     @Transactional

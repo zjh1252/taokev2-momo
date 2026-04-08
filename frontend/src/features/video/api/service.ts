@@ -1,11 +1,20 @@
-import { apiGet } from '@/lib/http/client';
+import { apiGet, apiPost } from '@/lib/http/client';
+import { storage } from '@/lib/storage';
+import { TOKEN_KEY } from '@/lib/auth/constants';
 import type {
   ApiResponse,
   PageResponse,
   VideoListItem,
   VideoDetail,
+  VideoAccessInfo,
+  VideoProgressInfo,
   CategoryTreeNode,
 } from './types';
+
+function authHeaders() {
+  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
+  return { Authorization: `Bearer ${tokenData?.accessToken || ''}` };
+}
 
 export interface VideoListParams {
   page?: number;
@@ -44,6 +53,41 @@ export async function getVideoList(
 export async function getVideoDetail(id: number): Promise<VideoDetail> {
   const res = await apiGet<ApiResponse<VideoDetail>>(`/videos/${id}`);
   return res.data;
+}
+
+/**
+ * 检查录播课访问权限（需登录）
+ */
+export async function getVideoAccess(id: number): Promise<VideoAccessInfo> {
+  const res = await apiGet<ApiResponse<VideoAccessInfo>>(`/videos/${id}/access`, {
+    headers: authHeaders(),
+    silent: true,
+  });
+  return res.data;
+}
+
+/**
+ * 获取学习进度（需登录）
+ */
+export async function getVideoProgress(videoId: number): Promise<VideoProgressInfo> {
+  const res = await apiGet<ApiResponse<VideoProgressInfo>>(`/videos/${videoId}/progress`, {
+    headers: authHeaders(),
+    silent: true,
+  });
+  return res.data;
+}
+
+/**
+ * 上报播放进度（需登录）
+ */
+export async function updateVideoProgress(
+  videoId: number,
+  data: { chapterId: number; watchDuration: number; chapterDuration: number },
+): Promise<void> {
+  await apiPost<ApiResponse<void>>(`/videos/${videoId}/progress`, data, {
+    headers: authHeaders(),
+    silent: true,
+  });
 }
 
 /**

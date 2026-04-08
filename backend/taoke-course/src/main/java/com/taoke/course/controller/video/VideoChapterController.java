@@ -46,6 +46,16 @@ public class VideoChapterController {
         return ApiResponse.ok(videoService.createChapter(videoId, userId, request));
     }
 
+    @Operation(summary = "批量创建章节")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @PostMapping("/videos/{videoId}/chapters/batch")
+    public ApiResponse<List<VideoChapterVO>> batchCreate(
+            @PathVariable Integer videoId,
+            @Valid @RequestBody List<SaveVideoChapterRequest> requests) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        return ApiResponse.ok(videoService.batchCreateChapters(videoId, userId, requests));
+    }
+
     @Operation(summary = "编辑章节")
     @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
     @PutMapping("/videos/{videoId}/chapters/{id}")

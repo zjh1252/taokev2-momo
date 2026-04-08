@@ -48,6 +48,10 @@ export const navGroups: NavGroup[] = [
           {
             title: '排课管理',
             url: '/dashboard/courses/plans'
+          },
+          {
+            title: '录播课管理',
+            url: '/dashboard/videos'
           }
         ]
       }

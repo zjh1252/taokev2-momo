@@ -4,8 +4,10 @@ import com.taoke.common.dto.CategoryTreeVO;
 import com.taoke.common.response.ApiResponse;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.security.Public;
+import com.taoke.common.security.SecurityUtils;
 import com.taoke.common.service.CategoryService;
 import com.taoke.course.api.VideoService;
+import com.taoke.course.dto.video.VideoAccessVO;
 import com.taoke.course.dto.video.VideoDetailVO;
 import com.taoke.course.dto.video.VideoListItemVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,6 +50,13 @@ public class PublicVideoController {
     @GetMapping("/videos/{id}")
     public ApiResponse<VideoDetailVO> detail(@PathVariable Integer id) {
         return ApiResponse.ok(videoService.getPublicDetail(id));
+    }
+
+    @Operation(summary = "检查录播课访问权限（需登录）")
+    @GetMapping("/videos/{id}/access")
+    public ApiResponse<VideoAccessVO> checkAccess(@PathVariable Integer id) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        return ApiResponse.ok(videoService.checkAccess(id, userId));
     }
 
     @Public

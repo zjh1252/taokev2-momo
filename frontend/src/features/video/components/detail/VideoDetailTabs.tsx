@@ -11,7 +11,7 @@ interface VideoDetailTabsProps {
 
 const TABS = [
   { key: 'intro', label: '课程介绍' },
-  { key: 'chapters', label: '课程目录' },
+  { key: 'chapters', label: '录播课章节' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Play, Lock, Eye } from 'lucide-react';
+import { ChevronDown, PlayCircle, Lock, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import type { VideoSeries, VideoChapter } from '../../api/types';
 import { cn } from '@/lib/utils';
@@ -20,7 +20,7 @@ function formatDuration(seconds: number): string {
 }
 
 export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapterListProps) {
-  const { setPlaybackSrc } = useVideoPlayback();
+  const { setPlaybackSrc, accessible, setCurrentChapterId, playbackSrc } = useVideoPlayback();
 
   const [expandedSeries, setExpandedSeries] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = {};
@@ -67,7 +67,12 @@ export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapte
                   key={chapter.id}
                   chapter={chapter}
                   index={idx + 1}
-                  onPlay={(url, title) => setPlaybackSrc(url, title)}
+                  accessible={accessible}
+                  isPlaying={playbackSrc === chapter.videoUrl?.trim()}
+                  onPlay={(url, title, id) => {
+                    setPlaybackSrc(url, title);
+                    setCurrentChapterId(id);
+                  }}
                 />
               ))}
             </div>
@@ -80,7 +85,7 @@ export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapte
         <div className="border border-slate-200 rounded-lg overflow-hidden">
           {seriesList.length > 0 && (
             <div className="px-4 py-3 bg-slate-50">
-              <span className="font-medium text-slate-800">其他章节</span>
+              <span className="font-medium text-slate-800">录播课章节</span>
             </div>
           )}
           <div className="divide-y divide-slate-100">
@@ -89,7 +94,12 @@ export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapte
                 key={chapter.id}
                 chapter={chapter}
                 index={idx + 1}
-                onPlay={(url, title) => setPlaybackSrc(url, title)}
+                accessible={accessible}
+                isPlaying={playbackSrc === chapter.videoUrl?.trim()}
+                onPlay={(url, title, id) => {
+                  setPlaybackSrc(url, title);
+                  setCurrentChapterId(id);
+                }}
               />
             ))}
           </div>
@@ -102,41 +112,62 @@ export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapte
 function ChapterRow({
   chapter,
   index,
+  accessible,
+  isPlaying,
   onPlay,
 }: {
   chapter: VideoChapter;
   index: number;
-  onPlay: (url: string, title: string) => void;
+  accessible: boolean;
+  isPlaying: boolean;
+  onPlay: (url: string, title: string, id: number) => void;
 }) {
   const url = chapter.videoUrl?.trim();
 
   const handleClick = () => {
+    if (!accessible) {
+      toast.warning('需要购买才能播放');
+      return;
+    }
     if (!url) {
       toast.info('该章节暂无视频文件');
       return;
     }
-    // TODO: 已购/免费/试看校验通过后，再允许 onPlay；当前为便于联调，只要有地址即可切换
-    onPlay(url, chapter.title);
+    onPlay(url, chapter.title, chapter.id);
   };
 
   return (
     <button
       type="button"
       onClick={handleClick}
-      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left disabled:opacity-60"
+      className={cn(
+        'w-full flex items-center gap-3 px-4 py-3 transition-colors text-left',
+        accessible
+          ? 'cursor-pointer hover:bg-primary/5 active:bg-primary/10'
+          : 'cursor-not-allowed hover:bg-slate-50',
+        isPlaying && 'bg-primary/10',
+      )}
     >
       <span className="text-sm text-slate-400 w-6 text-center shrink-0">{index}</span>
-      {chapter.isPreview === 1 ? (
-        <Play className="size-4 text-primary shrink-0" />
+      {accessible ? (
+        <PlayCircle className={cn('size-4 shrink-0', isPlaying ? 'text-primary' : 'text-primary/70')} />
       ) : (
         <Lock className="size-4 text-slate-300 shrink-0" />
       )}
-      <span className="text-sm text-slate-700 flex-1 truncate">{chapter.title}</span>
-      {chapter.isPreview === 1 && (
+      <span className={cn(
+        'text-sm flex-1 truncate',
+        isPlaying ? 'text-primary font-medium' : 'text-slate-700',
+      )}>
+        {chapter.title}
+      </span>
+      {chapter.isPreview === 1 && !accessible && (
         <span className="text-xs text-primary flex items-center gap-0.5">
           <Eye className="size-3" />
           试看
         </span>
+      )}
+      {isPlaying && (
+        <span className="text-xs text-primary font-medium shrink-0">播放中</span>
       )}
       {chapter.duration > 0 && (
         <span className="text-xs text-slate-400 shrink-0">{formatDuration(chapter.duration)}</span>

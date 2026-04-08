@@ -17,7 +17,8 @@ public enum NotificationType {
     WELCOME("欢迎通知"),
     APPLY_RESULT("申请审核结果"),
     ORDER("订单通知"),
-    COMMENT("评论通知");
+    COMMENT("评论通知"),
+    VIDEO_REVIEW("录播课审核结果");
 
     private final String label;
 }

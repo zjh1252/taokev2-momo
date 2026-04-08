@@ -11,6 +11,8 @@ import com.taoke.course.entity.order.OrderItem;
 import com.taoke.course.entity.pay.Payment;
 import com.taoke.course.entity.video.Video;
 import com.taoke.course.entity.video.VideoEnrollment;
+import com.taoke.course.entity.video.VideoStudent;
+import com.taoke.course.repository.video.VideoStudentRepository;
 import com.taoke.course.enums.OrderStatus;
 import com.taoke.course.enums.PaymentMethod;
 import com.taoke.course.enums.PaymentStatus;
@@ -52,6 +54,7 @@ public class PayServiceImpl {
     private final VideoRepository videoRepository;
     private final CourseEnrollmentRepository courseEnrollmentRepository;
     private final VideoEnrollmentRepository videoEnrollmentRepository;
+    private final VideoStudentRepository videoStudentRepository;
 
     private static final DateTimeFormatter PAY_NO_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final Random RANDOM = new Random();
@@ -169,6 +172,15 @@ public class PayServiceImpl {
             enrollment.setExpiredAt(LocalDateTime.now().plusYears(1));
             enrollment.setStatus(1);
             videoEnrollmentRepository.save(enrollment);
+
+            // 同步创建学员记录（便于后续跟踪学习进度）
+            if (!videoStudentRepository.existsByVideoIdAndUserId(item.getProductId(), userId)) {
+                VideoStudent student = new VideoStudent();
+                student.setVideoId(item.getProductId());
+                student.setUserId(userId);
+                student.setEnrollmentId(enrollment.getId());
+                videoStudentRepository.save(student);
+            }
 
             videoRepository.findById(item.getProductId()).ifPresent(video -> {
                 video.setEnrollmentCount(video.getEnrollmentCount() + item.getQuantity());

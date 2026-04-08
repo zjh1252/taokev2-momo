@@ -11,13 +11,19 @@ import type {
   SaveVideoRequest,
   VideoDetail,
 } from '@/features/video/api/types';
-import { ImagePlus, X, ChevronDown, Upload, Film, CheckCircle } from 'lucide-react';
+import { ImagePlus, X, ChevronDown, Film, CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VideoFormProps {
   initialData?: VideoDetail;
-  onSubmit: (data: SaveVideoRequest) => Promise<void>;
+  onSubmit: (data: SaveVideoRequest, videoFiles?: UploadedVideoItem[]) => Promise<void>;
   submitting?: boolean;
+}
+
+/** 多文件上传项 */
+export interface UploadedVideoItem {
+  fileName: string;
+  url: string;
 }
 
 const VIDEO_TYPES: { value: VideoType; label: string }[] = [
@@ -45,9 +51,16 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
 
   const [categories, setCategories] = useState<CategoryTreeNode[]>([]);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [videoFileName, setVideoFileName] = useState('');
   const [catDropdownOpen, setCatDropdownOpen] = useState(false);
+
+  // SINGLE 类型：单个视频
+  const [uploadingSingleVideo, setUploadingSingleVideo] = useState(false);
+  const [singleVideoFileName, setSingleVideoFileName] = useState('');
+
+  // SERIES 类型：多个视频
+  const [seriesVideos, setSeriesVideos] = useState<
+    { fileName: string; url: string; uploading: boolean }[]
+  >([]);
 
   useEffect(() => {
     getVideoCategoryTree().then(setCategories).catch(() => {});
@@ -67,20 +80,58 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
     }
   }, []);
 
-  const handleUploadVideo = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadSingleVideo = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploadingVideo(true);
-    setVideoFileName(file.name);
+    setUploadingSingleVideo(true);
+    setSingleVideoFileName(file.name);
     try {
       const url = await uploadVideoFile(file);
       setVideoUrl(url);
     } catch {
       alert('视频上传失败，请检查文件格式和大小（最大500MB）');
     } finally {
-      setUploadingVideo(false);
+      setUploadingSingleVideo(false);
     }
   }, []);
+
+  const handleUploadSeriesVideos = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newItems = Array.from(files).map((f) => ({
+      fileName: f.name,
+      url: '',
+      uploading: true,
+    }));
+    setSeriesVideos((prev) => [...prev, ...newItems]);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const itemIndex = seriesVideos.length + i;
+      try {
+        const url = await uploadVideoFile(file);
+        setSeriesVideos((prev) =>
+          prev.map((item, idx) =>
+            idx === itemIndex ? { ...item, url, uploading: false } : item,
+          ),
+        );
+      } catch {
+        setSeriesVideos((prev) =>
+          prev.map((item, idx) =>
+            idx === itemIndex ? { ...item, uploading: false } : item,
+          ),
+        );
+        alert(`视频 "${file.name}" 上传失败`);
+      }
+    }
+    // 清空 input
+    e.target.value = '';
+  }, [seriesVideos.length]);
+
+  const removeSeriesVideo = (idx: number) => {
+    setSeriesVideos((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +143,7 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       alert('请填写视频介绍');
       return;
     }
+
     const data: SaveVideoRequest = {
       title: title.trim(),
       videoType,
@@ -99,17 +151,24 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       subCategoryId: subCategoryId || undefined,
       coverUrl: coverUrl || undefined,
       intro,
-      videoUrl: videoType !== 'EXTERNAL' ? (videoUrl || undefined) : undefined,
+      videoUrl: videoType === 'SINGLE' ? (videoUrl || undefined) : undefined,
       externalUrl: videoType === 'EXTERNAL' ? externalUrl : undefined,
       teacherName: teacherName || undefined,
       price: isFree === 1 ? 0 : price,
       isFree,
       keywords: keywords || undefined,
     };
-    await onSubmit(data);
+
+    // SERIES 类型时，将已上传的视频列表传给父组件，由父组件调用批量创建章节
+    const uploadedVideos = videoType === 'SERIES'
+      ? seriesVideos.filter((v) => v.url && !v.uploading).map((v) => ({ fileName: v.fileName, url: v.url }))
+      : undefined;
+
+    await onSubmit(data, uploadedVideos);
   };
 
   const selectedCatName = categories.find((c) => c.id === categoryId)?.name;
+  const isAnySeriesUploading = seriesVideos.some((v) => v.uploading);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -199,8 +258,8 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
         </div>
       </div>
 
-      {/* 上传视频（SERIES / SINGLE 类型） */}
-      {(videoType === 'SERIES' || videoType === 'SINGLE') && (
+      {/* SINGLE 类型 — 单个视频上传 */}
+      {videoType === 'SINGLE' && (
         <div className="flex items-start gap-4">
           <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">上传视频</label>
           <div className="flex-1">
@@ -208,12 +267,12 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
               <div className="flex items-center gap-3 border border-slate-200 rounded-lg px-4 py-3 bg-slate-50">
                 <CheckCircle className="size-5 text-green-500 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-700 truncate">{videoFileName || '已上传视频'}</p>
+                  <p className="text-sm text-gray-700 truncate">{singleVideoFileName || '已上传视频'}</p>
                   <p className="text-xs text-slate-400 truncate">{videoUrl}</p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => { setVideoUrl(''); setVideoFileName(''); }}
+                  onClick={() => { setVideoUrl(''); setSingleVideoFileName(''); }}
                   className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
                 >
                   <X className="size-4" />
@@ -222,25 +281,25 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
             ) : (
               <label className={cn(
                 'flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg p-6 cursor-pointer transition-colors',
-                uploadingVideo ? 'border-primary/40 bg-primary/5' : 'border-slate-300 hover:border-primary',
+                uploadingSingleVideo ? 'border-primary/40 bg-primary/5' : 'border-slate-300 hover:border-primary',
               )}>
                 <input
                   type="file"
                   accept="video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/webm,video/x-flv,.mp4,.avi,.mov,.wmv,.flv,.mkv,.webm"
-                  onChange={handleUploadVideo}
+                  onChange={handleUploadSingleVideo}
                   className="hidden"
-                  disabled={uploadingVideo}
+                  disabled={uploadingSingleVideo}
                 />
-                {uploadingVideo ? (
+                {uploadingSingleVideo ? (
                   <>
-                    <div className="animate-spin rounded-full size-8 border-2 border-primary border-t-transparent" />
-                    <span className="text-sm text-primary">正在上传 {videoFileName}...</span>
+                    <Loader2 className="size-8 text-primary animate-spin" />
+                    <span className="text-sm text-primary">正在上传 {singleVideoFileName}...</span>
                   </>
                 ) : (
                   <>
                     <Film className="size-8 text-slate-400" />
                     <span className="text-sm text-slate-500">点击选择视频文件</span>
-                    <span className="text-xs text-slate-400">支持 mp4、avi、mov、wmv、flv、mkv、webm，最大 500MB</span>
+                    <span className="text-xs text-slate-400">支持 mp4、avi、mov 等，最大 500MB</span>
                   </>
                 )}
               </label>
@@ -253,6 +312,81 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
               placeholder="或输入视频URL地址"
               className="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
+            <p className="text-xs text-blue-500 mt-1">保存后将自动生成一个章节</p>
+          </div>
+        </div>
+      )}
+
+      {/* SERIES 类型 — 多视频上传 */}
+      {videoType === 'SERIES' && (
+        <div className="flex items-start gap-4">
+          <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">上传视频</label>
+          <div className="flex-1 space-y-3">
+            {/* 已上传 / 上传中的列表 */}
+            {seriesVideos.length > 0 && (
+              <div className="space-y-2">
+                {seriesVideos.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3 border border-slate-200 rounded-lg px-4 py-2.5 bg-slate-50">
+                    {item.uploading ? (
+                      <Loader2 className="size-4 text-primary animate-spin shrink-0" />
+                    ) : item.url ? (
+                      <CheckCircle className="size-4 text-green-500 shrink-0" />
+                    ) : (
+                      <X className="size-4 text-red-500 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 truncate">
+                        章节{idx + 1}：{item.fileName}
+                      </p>
+                      {item.url && (
+                        <p className="text-xs text-slate-400 truncate">{item.url}</p>
+                      )}
+                    </div>
+                    {!item.uploading && (
+                      <button
+                        type="button"
+                        onClick={() => removeSeriesVideo(idx)}
+                        className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 上传按钮 */}
+            <label className={cn(
+              'flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg p-6 cursor-pointer transition-colors',
+              isAnySeriesUploading ? 'border-primary/40 bg-primary/5' : 'border-slate-300 hover:border-primary',
+            )}>
+              <input
+                type="file"
+                accept="video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/webm,video/x-flv,.mp4,.avi,.mov,.wmv,.flv,.mkv,.webm"
+                multiple
+                onChange={handleUploadSeriesVideos}
+                className="hidden"
+                disabled={isAnySeriesUploading}
+              />
+              {isAnySeriesUploading ? (
+                <>
+                  <Loader2 className="size-8 text-primary animate-spin" />
+                  <span className="text-sm text-primary">正在上传...</span>
+                </>
+              ) : (
+                <>
+                  <Film className="size-8 text-slate-400" />
+                  <span className="text-sm text-slate-500">点击选择多个视频文件</span>
+                  <span className="text-xs text-slate-400">
+                    每个视频自动生成一个章节，支持 mp4、avi、mov 等，最大 500MB/个
+                  </span>
+                </>
+              )}
+            </label>
+            <p className="text-xs text-blue-500">
+              保存后，每个视频将自动生成对应章节（章节名 = 标题 - 章节N）
+            </p>
           </div>
         </div>
       )}
@@ -381,7 +515,7 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       <div className="flex items-center gap-4 pt-4 pl-28">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || isAnySeriesUploading}
           className="bg-primary text-white font-medium px-8 py-2.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
           {submitting ? '保存中...' : '保存'}

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ShoppingCart, Zap, User } from 'lucide-react';
+import { ShoppingCart, Zap, User, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
 import type { VideoDetail } from '../../api/types';
 import { useCart } from '@/features/cart/hooks/useCart';
 import { createOrder } from '@/features/order/api/service';
+import { useVideoPlayback } from '../../context/video-playback-context';
 
 interface VideoSidebarProps {
   video: VideoDetail;
@@ -16,18 +17,27 @@ export function VideoSidebar({ video }: VideoSidebarProps) {
   const { addItem } = useCart();
   const router = useRouter();
   const [buyLoading, setBuyLoading] = useState(false);
+  const { accessible, enrolled, isFree } = useVideoPlayback();
 
   const handleAddToCart = async () => {
-    if (video.isFree === 1) {
+    if (isFree) {
       toast.info('该课程为免费课程，无需购买');
+      return;
+    }
+    if (enrolled) {
+      toast.info('您已购买此课程');
       return;
     }
     await addItem({ productType: 'VIDEO_COURSE', productId: video.id });
   };
 
   const handleBuyNow = async () => {
-    if (video.isFree === 1) {
+    if (isFree) {
       toast.info('该课程为免费课程，无需购买');
+      return;
+    }
+    if (enrolled) {
+      toast.info('您已购买此课程');
       return;
     }
     setBuyLoading(true);
@@ -48,8 +58,13 @@ export function VideoSidebar({ video }: VideoSidebarProps) {
       {/* 价格卡片 */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <div className="mb-4">
-          {video.isFree === 1 ? (
+          {isFree ? (
             <div className="text-3xl font-bold text-green-600">免费</div>
+          ) : accessible ? (
+            <div className="flex items-center gap-2">
+              <CheckCircle className="size-6 text-green-500" />
+              <span className="text-xl font-bold text-green-600">已解锁</span>
+            </div>
           ) : (
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-bold text-primary">¥{video.price}</span>
@@ -61,25 +76,35 @@ export function VideoSidebar({ video }: VideoSidebarProps) {
           )}
         </div>
 
-        <div className="space-y-3">
-          <button
-            type="button"
-            onClick={handleBuyNow}
-            disabled={buyLoading}
-            className="w-full bg-primary text-white font-medium py-3 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <Zap className="size-4" />
-            {buyLoading ? '处理中...' : '立即购买'}
-          </button>
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            className="w-full border border-primary text-primary font-medium py-3 rounded-lg hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
-          >
-            <ShoppingCart className="size-4" />
-            加入购物车
-          </button>
-        </div>
+        {!isFree && !accessible && (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              disabled={buyLoading}
+              className="w-full bg-primary text-white font-medium py-3 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Zap className="size-4" />
+              {buyLoading ? '处理中...' : '立即购买'}
+            </button>
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              className="w-full border border-primary text-primary font-medium py-3 rounded-lg hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
+            >
+              <ShoppingCart className="size-4" />
+              加入购物车
+            </button>
+          </div>
+        )}
+
+        {isFree && (
+          <p className="text-sm text-green-600 text-center">免费课程，可直接观看</p>
+        )}
+
+        {accessible && !isFree && (
+          <p className="text-sm text-green-600 text-center">已购买，可直接观看所有章节</p>
+        )}
       </div>
 
       {/* 讲师信息 */}
