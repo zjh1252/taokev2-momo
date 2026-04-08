@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
+import 'video.js/dist/video-js.css';
+import './video-player.css';
 import { inferVideoMimeType } from '../../lib/playback-sources';
 
 type VideoJsPlayerProps = {
@@ -32,14 +34,13 @@ export function VideoJsPlayer({ src, poster, className }: VideoJsPlayerProps) {
     if (!container) return;
 
     const videoEl = document.createElement('video-js');
-    videoEl.classList.add('video-js', 'vjs-big-play-centered', 'vjs-fluid');
+    videoEl.classList.add('video-js', 'vjs-big-play-centered', 'vjs-fill');
     videoEl.setAttribute('playsinline', '');
     container.appendChild(videoEl);
 
     const player = videojs(videoEl, {
       controls: true,
-      responsive: true,
-      fluid: true,
+      fill: true,
       preload: 'metadata',
       poster: poster ?? undefined,
       sources: [{ src, type: inferVideoMimeType(src) }],
