@@ -60,7 +60,7 @@ public class VideoServiceImpl implements VideoService {
         applyRequest(video, request);
         video.setPublisherId(publisherId);
         video.setPublisherType(publisherType);
-        video.setStatus(VideoStatus.DRAFT.getValue());
+        video.setStatus(VideoStatus.PENDING.getValue());
 
         if (BusinessRole.Code.TRAINER.equals(publisherType)) {
             bindTrainerId(video, publisherId);
@@ -231,8 +231,7 @@ public class VideoServiceImpl implements VideoService {
                                                      int page, int size) {
         Specification<Video> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            // TODO: 正式上线后恢复仅展示已上架(PUBLISHED)：predicates.add(cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()));
-            // 当前测试阶段列出全部状态，便于测试草稿/待审核等数据
+            predicates.add(cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()));
 
             if (categoryId != null) {
                 predicates.add(cb.equal(root.get("categoryId"), categoryId));
@@ -342,6 +341,19 @@ public class VideoServiceImpl implements VideoService {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "仅已上架的录播课可下架");
         }
         video.setStatus(VideoStatus.UNPUBLISHED.getValue());
+        videoRepository.save(video);
+    }
+
+    @Transactional
+    @Override
+    public void adminPublish(Integer videoId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+        if (video.getStatus() != VideoStatus.UNPUBLISHED.getValue()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅已下架的录播课可重新上架");
+        }
+        video.setStatus(VideoStatus.PUBLISHED.getValue());
+        video.setPublishedAt(LocalDateTime.now());
         videoRepository.save(video);
     }
 

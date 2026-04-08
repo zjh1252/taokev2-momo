@@ -9,6 +9,7 @@ import { createVideo, batchCreateVideoChapters } from '@/features/video/api/publ
 import type { SaveVideoRequest } from '@/features/video/api/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import { toast } from 'sonner';
 
 export default function CreateVideoPage() {
   const router = useRouter();
@@ -29,10 +30,10 @@ export default function CreateVideoPage() {
         await batchCreateVideoChapters(video.id, chapterRequests);
       }
 
-      alert('录播课已保存为草稿');
+      toast.success('录播课已提交，等待管理员审核');
       router.push(ROUTES.UC_VIDEOS_MANAGE);
     } catch {
-      alert('保存失败，请稍后重试');
+      toast.error('保存失败，请稍后重试');
     } finally {
       setSubmitting(false);
     }

@@ -62,4 +62,11 @@ public class AdminVideoController {
         adminVideoService.unpublish(id);
         return ApiResponse.ok();
     }
+
+    @Operation(summary = "后台重新上架录播课")
+    @PutMapping("/admin/videos/{id}/publish")
+    public ApiResponse<Void> publish(@PathVariable Integer id) {
+        adminVideoService.publish(id);
+        return ApiResponse.ok();
+    }
 }

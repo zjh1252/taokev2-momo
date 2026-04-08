@@ -13,6 +13,7 @@ import type {
 } from '@/features/video/api/types';
 import { ImagePlus, X, ChevronDown, Film, CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface VideoFormProps {
   initialData?: VideoDetail;
@@ -74,7 +75,7 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       const url = await uploadImage(file);
       setCoverUrl(url);
     } catch {
-      alert('封面上传失败');
+      toast.error('封面上传失败');
     } finally {
       setUploadingCover(false);
     }
@@ -89,7 +90,7 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       const url = await uploadVideoFile(file);
       setVideoUrl(url);
     } catch {
-      alert('视频上传失败，请检查文件格式和大小（最大500MB）');
+      toast.error('视频上传失败，请检查文件格式和大小（最大500MB）');
     } finally {
       setUploadingSingleVideo(false);
     }
@@ -122,7 +123,7 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
             idx === itemIndex ? { ...item, uploading: false } : item,
           ),
         );
-        alert(`视频 "${file.name}" 上传失败`);
+        toast.error(`视频 "${file.name}" 上传失败`);
       }
     }
     // 清空 input
@@ -136,15 +137,15 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert('请输入视频标题');
+      toast.warning('请输入视频标题');
       return;
     }
     if (!intro.trim()) {
-      alert('请填写视频介绍');
+      toast.warning('请填写视频介绍');
       return;
     }
     if (isFree === 0 && (!price || price <= 0)) {
-      alert('请填写课程价格，或勾选"免费"');
+      toast.warning('请填写课程价格，或勾选"免费"');
       return;
     }
 

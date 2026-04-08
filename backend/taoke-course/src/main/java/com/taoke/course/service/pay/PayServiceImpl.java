@@ -1,5 +1,7 @@
 package com.taoke.course.service.pay;
 
+import com.taoke.common.eventbus.EventPublisher;
+import com.taoke.common.events.video.VideoPurchasedEvent;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.course.dto.pay.PayRequest;
@@ -23,6 +25,8 @@ import com.taoke.course.repository.pay.PaymentRepository;
 import com.taoke.course.repository.video.VideoEnrollmentRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.service.order.OrderServiceImpl;
+import com.taoke.user.api.UserService;
+import com.taoke.user.dto.user.UserProfileResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -55,6 +59,8 @@ public class PayServiceImpl {
     private final CourseEnrollmentRepository courseEnrollmentRepository;
     private final VideoEnrollmentRepository videoEnrollmentRepository;
     private final VideoStudentRepository videoStudentRepository;
+    private final EventPublisher eventPublisher;
+    private final UserService userService;
 
     private static final DateTimeFormatter PAY_NO_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final Random RANDOM = new Random();
@@ -185,6 +191,18 @@ public class PayServiceImpl {
             videoRepository.findById(item.getProductId()).ifPresent(video -> {
                 video.setEnrollmentCount(video.getEnrollmentCount() + item.getQuantity());
                 videoRepository.save(video);
+
+                // 发布购买事件，通知课程作者
+                try {
+                    UserProfileResponse buyer = userService.getProfile(userId);
+                    String buyerName = buyer.getNickname() != null ? buyer.getNickname() : "用户" + userId;
+                    eventPublisher.publish(new VideoPurchasedEvent(
+                            video.getId(), video.getTitle(), video.getPublisherId(),
+                            userId, buyerName, item.getSubtotal()
+                    ));
+                } catch (Exception e) {
+                    log.warn("发布录播课购买事件失败: videoId={}, userId={}", video.getId(), userId, e);
+                }
             });
         }
     }

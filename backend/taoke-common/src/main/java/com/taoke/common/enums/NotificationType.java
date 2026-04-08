@@ -18,7 +18,8 @@ public enum NotificationType {
     APPLY_RESULT("申请审核结果"),
     ORDER("订单通知"),
     COMMENT("评论通知"),
-    VIDEO_REVIEW("录播课审核结果");
+    VIDEO_REVIEW("录播课审核结果"),
+    VIDEO_PURCHASED("录播课被购买");
 
     private final String label;
 }

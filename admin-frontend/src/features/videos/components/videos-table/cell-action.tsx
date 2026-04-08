@@ -23,7 +23,7 @@ import { Icons } from '@/components/icons';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { approveVideo, rejectVideo, unpublishVideo } from '../../api/service';
+import { approveVideo, rejectVideo, unpublishVideo, publishVideo } from '../../api/service';
 import { videoKeys } from '../../api/queries';
 
 interface CellActionProps {
@@ -34,11 +34,13 @@ export function CellAction({ data }: CellActionProps) {
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [unpublishOpen, setUnpublishOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
   const [reason, setReason] = useState('');
   const queryClient = useQueryClient();
 
   const isPending = data.status === 1;
   const isPublished = data.status === 2;
+  const isUnpublished = data.status === 4;
 
   const approveMutation = useMutation({
     mutationFn: () => approveVideo(data.id),
@@ -71,6 +73,16 @@ export function CellAction({ data }: CellActionProps) {
     onError: () => toast.error('操作失败')
   });
 
+  const publishMutation = useMutation({
+    mutationFn: () => publishVideo(data.id),
+    onSuccess: () => {
+      toast.success('已重新上架');
+      setPublishOpen(false);
+      void queryClient.invalidateQueries({ queryKey: videoKeys.all });
+    },
+    onError: () => toast.error('操作失败')
+  });
+
   return (
     <>
       {/* 审核通过确认 */}
@@ -91,6 +103,16 @@ export function CellAction({ data }: CellActionProps) {
         loading={unpublishMutation.isPending}
         title='确认下架'
         description={`确定要下架录播课「${data.title}」吗？`}
+      />
+
+      {/* 重新上架确认 */}
+      <AlertModal
+        isOpen={publishOpen}
+        onClose={() => setPublishOpen(false)}
+        onConfirm={() => publishMutation.mutate()}
+        loading={publishMutation.isPending}
+        title='确认上架'
+        description={`确定要重新上架录播课「${data.title}」吗？上架后用户可立即浏览和购买。`}
       />
 
       {/* 驳回弹窗 */}
@@ -153,6 +175,14 @@ export function CellAction({ data }: CellActionProps) {
             <DropdownMenuItem onClick={() => setUnpublishOpen(true)}>
               <Icons.eyeOff className='mr-2 h-4 w-4' />
               下架
+            </DropdownMenuItem>
+          )}
+
+          {/* 已下架：重新上架 */}
+          {isUnpublished && (
+            <DropdownMenuItem onClick={() => setPublishOpen(true)}>
+              <Icons.check className='mr-2 h-4 w-4' />
+              上架
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

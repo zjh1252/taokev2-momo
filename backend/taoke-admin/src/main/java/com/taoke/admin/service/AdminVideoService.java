@@ -60,4 +60,11 @@ public class AdminVideoService {
     public void unpublish(Integer videoId) {
         videoService.adminUnpublish(videoId);
     }
+
+    /**
+     * 后台重新上架（已下架 → 已上架）
+     */
+    public void publish(Integer videoId) {
+        videoService.adminPublish(videoId);
+    }
 }

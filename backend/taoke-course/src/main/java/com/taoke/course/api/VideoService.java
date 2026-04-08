@@ -17,7 +17,7 @@ public interface VideoService {
     // ==================== C 端发布者操作 ====================
 
     /**
-     * 创建录播课（保存为草稿）
+     * 创建录播课（直接进入待审核状态）
      */
     VideoDetailVO create(Integer publisherId, String publisherType, SaveVideoRequest request);
 
@@ -102,6 +102,11 @@ public interface VideoService {
      * 后台下架（PUBLISHED → UNPUBLISHED）
      */
     void adminUnpublish(Integer videoId);
+
+    /**
+     * 后台重新上架（UNPUBLISHED → PUBLISHED）
+     */
+    void adminPublish(Integer videoId);
 
     // ==================== 系列管理 ====================
 

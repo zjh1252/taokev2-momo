@@ -41,3 +41,11 @@ export async function unpublishVideo(videoId: number) {
     { method: 'PUT' }
   );
 }
+
+/** 重新上架录播课 */
+export async function publishVideo(videoId: number) {
+  return apiClient<{ code: number; message: string }>(
+    `/videos/${videoId}/publish`,
+    { method: 'PUT' }
+  );
+}
