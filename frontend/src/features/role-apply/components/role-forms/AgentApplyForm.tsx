@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useAuth } from '@/lib/auth/auth-context';
 import type { AgentFormData } from '../../api/types';
 
 interface AgentApplyFormProps {
@@ -14,7 +16,14 @@ interface AgentApplyFormProps {
  * @date 2026-04-03 16:00
  */
 export function AgentApplyForm({ data, onChange }: AgentApplyFormProps) {
+  const { user } = useAuth();
   const update = (patch: Partial<AgentFormData>) => onChange({ ...data, ...patch });
+
+  useEffect(() => {
+    if (!data.contactPhone && user?.phone) {
+      onChange({ ...data, contactPhone: user.phone });
+    }
+  }, [user?.phone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-8">
@@ -23,6 +32,16 @@ export function AgentApplyForm({ data, onChange }: AgentApplyFormProps) {
           经纪人信息
         </legend>
         <div className="grid grid-cols-1 gap-y-4">
+          <FormField label="联系电话" required>
+            <input
+              type="tel"
+              value={data.contactPhone || ''}
+              onChange={(e) => update({ contactPhone: e.target.value })}
+              placeholder="11位手机号"
+              maxLength={11}
+              className="form-input"
+            />
+          </FormField>
           <FormField label="个人简介" required>
             <textarea
               value={data.bio || ''}

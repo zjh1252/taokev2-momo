@@ -116,12 +116,14 @@ export interface TrainerFormData {
 }
 
 export interface AgentFormData {
+  contactPhone: string;
   bio: string;
   specialties: string;
   serviceCityIds: string;
 }
 
 export interface AssistantFormData {
+  contactPhone: string;
   bio: string;
   authScope: string;
 }
@@ -156,6 +158,7 @@ export interface InstitutionFormData {
 }
 
 export interface InstitutionEmployeeFormData {
+  contactPhone: string;
   orgId: number | null;
   position: string;
   department: string;

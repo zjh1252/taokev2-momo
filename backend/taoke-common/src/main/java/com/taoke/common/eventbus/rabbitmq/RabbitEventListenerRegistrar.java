@@ -15,6 +15,7 @@ import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
@@ -56,7 +57,9 @@ public class RabbitEventListenerRegistrar implements BeanPostProcessor, SmartIni
     @Override
     @SuppressWarnings("unchecked")
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        for (Method method : bean.getClass().getDeclaredMethods()) {
+        // 使用 AopUtils 获取目标类，避免 CGLIB 代理导致注解扫描失败
+        Class<?> targetClass = AopUtils.getTargetClass(bean);
+        for (Method method : targetClass.getDeclaredMethods()) {
             DomainEventListener annotation = method.getAnnotation(DomainEventListener.class);
             if (annotation == null) {
                 continue;
@@ -70,7 +73,7 @@ public class RabbitEventListenerRegistrar implements BeanPostProcessor, SmartIni
 
             listenerMetas.add(new ListenerMeta(bean, method, eventType, topic));
             log.debug("发现事件监听器: {}.{}() → topic={}, eventType={}",
-                    bean.getClass().getSimpleName(), method.getName(), topic, eventType.getSimpleName());
+                    targetClass.getSimpleName(), method.getName(), topic, eventType.getSimpleName());
         }
         return bean;
     }

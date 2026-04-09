@@ -1,4 +1,4 @@
-import { apiPost, apiPut } from '@/lib/http/client';
+import { apiPost } from '@/lib/http/client';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import type {
@@ -24,9 +24,9 @@ function authHeaders() {
   return { Authorization: `Bearer ${tokenData?.accessToken || ''}` };
 }
 
-/** 企业培训采购方 — 直接保存即生效，无审核 */
+/** 企业培训采购方申请 */
 export function applyEnterpriseBuyer(data: EnterpriseBuyerFormData) {
-  return apiPut('/enterprise-buyers/me', data, { headers: authHeaders() });
+  return apiPost('/enterprise-buyers/apply', data, { headers: authHeaders() });
 }
 
 /** 专家申请 */

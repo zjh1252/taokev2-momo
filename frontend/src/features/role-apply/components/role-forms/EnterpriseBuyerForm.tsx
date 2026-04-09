@@ -38,12 +38,32 @@ export function EnterpriseBuyerForm({ data, onChange }: EnterpriseBuyerFormProps
     }
   }, [user?.phone]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 加载行业分类
+  const [selectedParentId, setSelectedParentId] = useState<number | null>(null);
+
+  // 加载行业分类（二级树）
   useEffect(() => {
-    apiGet<{ data: CategoryNode[] }>('/categories/tree?type=TRAINER_EXPERTISE')
-      .then((res) => setIndustryCategories(res.data || []))
+    apiGet<{ data: CategoryNode[] }>('/categories/tree?type=TRAINER_INDUSTRY')
+      .then((res) => {
+        const cats = res.data || [];
+        setIndustryCategories(cats);
+        // 如果已有值，回溯选中的父级
+        if (data.industry && cats.length > 0) {
+          for (const parent of cats) {
+            if (parent.name === data.industry) {
+              setSelectedParentId(parent.id);
+              break;
+            }
+            if (parent.children?.some((c) => c.name === data.industry)) {
+              setSelectedParentId(parent.id);
+              break;
+            }
+          }
+        }
+      })
       .catch(() => {});
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const childCategories = industryCategories.find((c) => c.id === selectedParentId)?.children || [];
 
   return (
     <div className="space-y-8">
@@ -62,16 +82,39 @@ export function EnterpriseBuyerForm({ data, onChange }: EnterpriseBuyerFormProps
             />
           </FormField>
           <FormField label="所属行业" required>
-            <select
-              value={data.industry || ''}
-              onChange={(e) => update({ industry: e.target.value })}
-              className="form-input"
-            >
-              <option value="">请选择行业</option>
-              {industryCategories.map((cat) => (
-                <option key={cat.id} value={cat.name}>{cat.name}</option>
-              ))}
-            </select>
+            <div className="flex gap-3">
+              <select
+                value={selectedParentId ?? ''}
+                onChange={(e) => {
+                  const pid = e.target.value ? Number(e.target.value) : null;
+                  setSelectedParentId(pid);
+                  const parent = industryCategories.find((c) => c.id === pid);
+                  if (parent && (!parent.children || parent.children.length === 0)) {
+                    update({ industry: parent.name });
+                  } else {
+                    update({ industry: '' });
+                  }
+                }}
+                className="form-input flex-1"
+              >
+                <option value="">请选择行业大类</option>
+                {industryCategories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+              {childCategories.length > 0 && (
+                <select
+                  value={data.industry || ''}
+                  onChange={(e) => update({ industry: e.target.value })}
+                  className="form-input flex-1"
+                >
+                  <option value="">请选择子行业</option>
+                  {childCategories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
           </FormField>
           <FormField label="企业规模">
             <select

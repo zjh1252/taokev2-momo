@@ -36,6 +36,10 @@ interface AuthContextValue {
    * 专家公开主页路径（如 /trainers/123），非已生效专家或未拉到档案时为 null
    */
   trainerPublicHomeHref: string | null;
+  /** 当前激活的身份角色编码 */
+  activeRole: string;
+  /** 切换当前身份 */
+  setActiveRole: (role: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -72,10 +76,18 @@ function isApprovedTrainer(roles: RoleInfo[]): boolean {
  * @author Fangxinxin
  * @date 2026-04-01 22:00
  */
+const ACTIVE_ROLE_KEY = 'taoke_active_role';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [trainerPublicHomeHref, setTrainerPublicHomeHref] = useState<string | null>(null);
+  const [activeRole, setActiveRoleState] = useState<string>('BUYER');
+
+  const setActiveRole = useCallback((role: string) => {
+    setActiveRoleState(role);
+    storage.set(ACTIVE_ROLE_KEY, role);
+  }, []);
 
   const fetchUser = useCallback(async () => {
     const token = getAccessToken();
@@ -91,6 +103,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await getMyProfile(token);
       const authUser = toAuthUser(res.data);
       setUser(authUser);
+
+      const savedRole = storage.get<string>(ACTIVE_ROLE_KEY);
+      if (savedRole && authUser.roles.some((r) => r.role === savedRole && r.status === 1)) {
+        setActiveRoleState(savedRole);
+      } else {
+        setActiveRoleState('BUYER');
+      }
 
       if (isApprovedTrainer(authUser.roles)) {
         try {
@@ -128,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, refreshUser, logout, trainerPublicHomeHref }}
+      value={{ user, loading, refreshUser, logout, trainerPublicHomeHref, activeRole, setActiveRole }}
     >
       {children}
     </AuthContext.Provider>

@@ -41,6 +41,7 @@ spring:
 taoke:
   event:
     enabled: true
+    exchange: taoke.events
   jwt:
     secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
   sms:

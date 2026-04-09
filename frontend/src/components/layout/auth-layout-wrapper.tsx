@@ -29,7 +29,7 @@ export function AuthLayoutWrapper({ children }: { children: React.ReactNode }) {
           <div className="absolute -bottom-[5%] -left-[5%] w-48 h-48 bg-black/10 rounded-full blur-2xl" />
 
           {/* Logo */}
-          <div className="z-10">
+          <div className="relative z-10">
             <Link href={ROUTES.HOME} className="flex items-center gap-2">
               <div className="bg-white p-1.5 rounded-lg">
                 <GraduationCap className="size-6 text-primary" />
@@ -41,7 +41,7 @@ export function AuthLayoutWrapper({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* 标语 */}
-          <div className="z-10 mt-auto">
+          <div className="relative z-10 mt-auto">
             <h1 className="text-white font-heading font-extrabold text-3xl leading-tight tracking-tight mb-4">
               {sloganParts.map((part, i) => (
                 <span key={i}>
@@ -56,14 +56,14 @@ export function AuthLayoutWrapper({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* 底部指示条 */}
-          <div className="z-10 mt-12 flex gap-4">
+          <div className="relative z-10 mt-12 flex gap-4">
             <div className="h-1 w-12 bg-white/40 rounded-full" />
             <div className="h-1 w-4 bg-white/20 rounded-full" />
             <div className="h-1 w-4 bg-white/20 rounded-full" />
           </div>
 
           {/* 背景图遮罩 */}
-          <div className="absolute inset-0 z-0 opacity-20 mix-blend-overlay">
+          <div className="absolute inset-0 z-0 opacity-[0.15]">
             <Image
               src="/statics/images/auth-bg.jpg"
               alt=""

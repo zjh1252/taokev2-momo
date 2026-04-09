@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useAuth } from '@/lib/auth/auth-context';
 import type { InstitutionFormData } from '../../api/types';
 
 const ORG_TYPE_OPTIONS = [
@@ -22,7 +24,14 @@ interface InstitutionApplyFormProps {
  * @date 2026-04-03 16:00
  */
 export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormProps) {
+  const { user } = useAuth();
   const update = (patch: Partial<InstitutionFormData>) => onChange({ ...data, ...patch });
+
+  useEffect(() => {
+    if (!data.contactPhone && user?.phone) {
+      onChange({ ...data, contactPhone: user.phone });
+    }
+  }, [user?.phone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-8">

@@ -41,7 +41,7 @@ const ALL_ROLES = [
  * @date 2026-04-03 11:30
  */
 export default function AccountSwitchPage() {
-  const { user } = useAuth();
+  const { user, activeRole, setActiveRole } = useAuth();
   const router = useRouter();
   const { setSelectedRole } = useRoleApplyState();
   const [showModal, setShowModal] = useState(false);
@@ -50,6 +50,8 @@ export default function AccountSwitchPage() {
   const roleStatusMap = new Map(
     user?.roles?.map((r) => [r.role, r.status]) || [],
   );
+  // 个人学员始终标记为已生效
+  roleStatusMap.set('BUYER', 1);
 
   const handleApplyClick = () => {
     setSelected(null);
@@ -86,7 +88,9 @@ export default function AccountSwitchPage() {
             const status = roleStatusMap.get(role.code);
             const isActive = status === 1;
             const isPending = status === 2;
+            const isRejected = status === 3;
             const isAdmin = 'adminOnly' in role && role.adminOnly;
+            const isCurrent = activeRole === role.code;
             const Icon = role.icon;
 
             return (
@@ -94,11 +98,15 @@ export default function AccountSwitchPage() {
                 key={role.code}
                 className={cn(
                   'border rounded-xl p-4 transition-colors flex items-start gap-3',
-                  isActive
-                    ? 'border-primary/30 bg-red-50/60'
-                    : isPending
-                      ? 'border-amber-200 bg-amber-50/40'
-                      : 'border-slate-200',
+                  isCurrent
+                    ? 'border-primary/40 bg-red-50/60 ring-1 ring-primary/20'
+                    : isActive
+                      ? 'border-primary/30 bg-red-50/40'
+                      : isPending
+                        ? 'border-amber-200 bg-amber-50/40'
+                        : isRejected
+                          ? 'border-red-200 bg-red-50/30'
+                          : 'border-slate-200',
                 )}
               >
                 <div
@@ -116,17 +124,38 @@ export default function AccountSwitchPage() {
                     {role.label}
                   </div>
                   <div className="text-xs text-gray-500 mt-0.5">{role.description}</div>
-                  <div className="mt-2 text-xs">
+                  <div className="mt-2 text-xs flex items-center gap-2">
                     {isActive && (
+                      <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+                        <span className="size-1.5 rounded-full bg-emerald-500" />
+                        已生效
+                      </span>
+                    )}
+                    {isCurrent && (
                       <span className="inline-flex items-center gap-1 text-primary font-medium">
                         <span className="size-1.5 rounded-full bg-primary" />
                         当前身份
                       </span>
                     )}
+                    {isActive && !isCurrent && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveRole(role.code)}
+                        className="text-primary hover:underline cursor-pointer"
+                      >
+                        切换到此身份
+                      </button>
+                    )}
                     {isPending && (
                       <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
                         <span className="size-1.5 rounded-full bg-amber-500" />
                         审核中
+                      </span>
+                    )}
+                    {isRejected && (
+                      <span className="inline-flex items-center gap-1 text-red-600 font-medium">
+                        <span className="size-1.5 rounded-full bg-red-500" />
+                        已驳回
                       </span>
                     )}
                     {isAdmin && (

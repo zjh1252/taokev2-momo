@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useAuth } from '@/lib/auth/auth-context';
 import type { EnterpriseAgentFormData } from '../../api/types';
 
 const COMPANY_SIZE_OPTIONS = ['1-50人', '51-200人', '201-500人', '501-1000人', '1000人以上'];
@@ -16,7 +18,14 @@ interface EnterpriseAgentFormProps {
  * @date 2026-04-03 16:00
  */
 export function EnterpriseAgentForm({ data, onChange }: EnterpriseAgentFormProps) {
+  const { user } = useAuth();
   const update = (patch: Partial<EnterpriseAgentFormData>) => onChange({ ...data, ...patch });
+
+  useEffect(() => {
+    if (!data.contactPhone && user?.phone) {
+      onChange({ ...data, contactPhone: user.phone });
+    }
+  }, [user?.phone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-8">

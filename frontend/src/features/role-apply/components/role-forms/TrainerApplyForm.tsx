@@ -1,10 +1,19 @@
 'use client';
 
-import { Upload } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Upload, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth/auth-context';
+import { apiGet } from '@/lib/http/client';
 import RegionCascader from '@/components/region-cascader';
 import type { RegionValue } from '@/components/region-cascader';
 import type { TrainerFormData } from '../../api/types';
+
+interface CategoryNode {
+  id: number;
+  name: string;
+  children?: CategoryNode[];
+}
 
 const GENDER_OPTIONS = [
   { value: 1, label: '男' },
@@ -25,7 +34,42 @@ interface TrainerApplyFormProps {
  * @date 2026-04-03 16:00
  */
 export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
+  const { user } = useAuth();
   const update = (patch: Partial<TrainerFormData>) => onChange({ ...data, ...patch });
+  const [expertiseTree, setExpertiseTree] = useState<CategoryNode[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!data.phone && user?.phone) {
+      onChange({ ...data, phone: user.phone });
+    }
+  }, [user?.phone]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    apiGet<{ data: CategoryNode[] }>('/categories/tree?type=TRAINER_EXPERTISE')
+      .then((res) => setExpertiseTree(res.data || []))
+      .catch(() => {});
+  }, []);
+
+  const selectedNames = new Set(
+    (data.goodAt || '').split(',').map((s) => s.trim()).filter(Boolean),
+  );
+
+  const toggleExpertise = (name: string) => {
+    const next = new Set(selectedNames);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    update({ goodAt: Array.from(next).join(',') });
+  };
+
+  const toggleGroup = (id: number) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -139,13 +183,61 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
             </button>
           </FormField>
           <FormField label="擅长领域" required>
-            <input
-              type="text"
-              value={data.goodAt || ''}
-              onChange={(e) => update({ goodAt: e.target.value })}
-              placeholder="多个领域用逗号分隔，如：领导力,团队管理"
-              className="form-input"
-            />
+            {selectedNames.size > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {Array.from(selectedNames).map((name) => (
+                  <span
+                    key={name}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded cursor-pointer hover:bg-primary/20"
+                    onClick={() => toggleExpertise(name)}
+                  >
+                    {name}
+                    <span className="text-primary/60">&times;</span>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="border border-slate-200 rounded-lg max-h-[280px] overflow-y-auto">
+              {expertiseTree.map((group) => (
+                <div key={group.id} className="border-b border-slate-100 last:border-b-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.id)}
+                    className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-800 hover:bg-slate-50 cursor-pointer"
+                  >
+                    <span>{group.name}</span>
+                    <ChevronDown
+                      className={`size-4 text-gray-400 transition-transform ${expandedGroups.has(group.id) ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  {expandedGroups.has(group.id) && group.children && (
+                    <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+                      {group.children.map((child) => (
+                        <label
+                          key={child.id}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs cursor-pointer border transition-colors ${
+                            selectedNames.has(child.name)
+                              ? 'bg-primary/10 border-primary/30 text-primary font-medium'
+                              : 'bg-slate-50 border-slate-200 text-gray-600 hover:border-primary/30'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedNames.has(child.name)}
+                            onChange={() => toggleExpertise(child.name)}
+                            className="sr-only"
+                          />
+                          {child.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {expertiseTree.length === 0 && (
+                <div className="px-3 py-4 text-sm text-gray-400 text-center">加载中...</div>
+              )}
+            </div>
           </FormField>
           <FormField label="专业标签">
             <input

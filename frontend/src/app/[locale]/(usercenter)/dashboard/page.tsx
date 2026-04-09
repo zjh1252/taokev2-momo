@@ -19,6 +19,18 @@ import { useState, useEffect } from 'react';
 import { getContinueLearning, getMyVideoLearnings } from '@/features/learning/api/service';
 import type { ContinueLearning, MyVideoLearning } from '@/features/learning/api/types';
 
+const ROLE_LABELS: Record<string, string> = {
+  BUYER: '学员',
+  INDIVIDUAL_BUYER: '学员',
+  ENTERPRISE_BUYER: '企业采购方',
+  TRAINER: '专家',
+  AGENT: '专家经纪人',
+  ASSISTANT: '专家助理',
+  ENTERPRISE_AGENT: '专家经纪公司',
+  INSTITUTION: '培训机构',
+  INSTITUTION_EMPLOYEE: '机构员工',
+};
+
 /**
  * 用户中心 — 个人主页
  *
@@ -80,17 +92,21 @@ export default function DashboardPage() {
               <h1 className="text-xl font-bold text-gray-900">
                 欢迎来到用户中心，{nickname}
               </h1>
-              <span className="px-2.5 py-0.5 bg-yellow-100 text-yellow-700 border border-yellow-200 rounded text-xs font-bold flex items-center gap-1 shadow-sm">
-                学员
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <span className="px-2 py-0.5 bg-slate-100 text-gray-600 rounded text-xs">
-                AI办公应用
-              </span>
-              <span className="px-2 py-0.5 bg-slate-100 text-gray-600 rounded text-xs">
-                销售技能
-              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="px-2.5 py-0.5 bg-yellow-100 text-yellow-700 border border-yellow-200 rounded text-xs font-bold flex items-center gap-1 shadow-sm">
+                  学员
+                </span>
+                {user?.roles
+                  ?.filter((r) => r.status === 1 && r.role !== 'BUYER' && r.role !== 'INDIVIDUAL_BUYER')
+                  .map((r) => (
+                    <span
+                      key={r.role}
+                      className="px-2.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-xs font-bold shadow-sm"
+                    >
+                      {ROLE_LABELS[r.role] || r.role}
+                    </span>
+                  ))}
+              </div>
             </div>
             <div className="text-sm text-gray-500 flex items-center gap-3">
               <span>学号：C{String(user?.id || 12).padStart(5, '0')}</span>
