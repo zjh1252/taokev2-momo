@@ -81,5 +81,8 @@ public class InstitutionPublicResponse {
     /** 服务过的客户描述 */
     private String clientCases;
 
+    /** 是否培训协会 */
+    private Boolean association;
+
     private LocalDateTime createdAt;
 }

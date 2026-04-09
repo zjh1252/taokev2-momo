@@ -16,6 +16,7 @@ import com.taoke.user.repository.InstitutionRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -65,7 +66,8 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
 
     @Override
     public PageResponse<InstitutionListItemResponse> listPublic(int page, int size,
-                                                                 String keyword, String sort) {
+                                                                 String keyword, String sort,
+                                                                 Boolean association) {
         Sort jpaSort = "popularity".equals(sort)
                 ? Sort.by(Sort.Direction.DESC, "viewCount").and(Sort.by(Sort.Direction.DESC, "id"))
                 : Sort.by(Sort.Direction.DESC, "sortOrder")
@@ -74,7 +76,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
 
         PageRequest pageable = PageRequest.of(page - 1, size, jpaSort);
 
-        Specification<Institution> spec = buildListSpec(keyword);
+        Specification<Institution> spec = buildListSpec(keyword, association);
         Page<Institution> result = institutionRepository.findAll(spec, pageable);
 
         if (result.isEmpty()) {
@@ -109,10 +111,14 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     }
 
     /** 构建公开列表查询的动态条件（仅状态=1 的已发布机构） */
-    private Specification<Institution> buildListSpec(String keyword) {
+    private Specification<Institution> buildListSpec(String keyword, Boolean association) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), 1));
+
+            if (association != null) {
+                predicates.add(cb.equal(root.get("association"), association));
+            }
 
             if (keyword != null && !keyword.isBlank()) {
                 String pattern = "%" + keyword.trim() + "%";
@@ -125,6 +131,42 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
 
             return cb.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    @Override
+    public Page<Institution> searchForAdmin(String search, Integer status, Pageable pageable) {
+        Specification<Institution> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (search != null && !search.isBlank()) {
+                String pattern = "%" + search.trim() + "%";
+                predicates.add(cb.or(
+                        cb.like(root.get("orgName"), pattern),
+                        cb.like(root.get("contactPhone"), pattern)
+                ));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+        return institutionRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    @Transactional
+    public void setAssociation(Integer institutionId, boolean association) {
+        Institution inst = institutionRepository.findById(institutionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
+        inst.setAssociation(association);
+        institutionRepository.save(inst);
+    }
+
+    @Override
+    public List<Institution> findByUserIds(List<Integer> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return institutionRepository.findByUserIdIn(userIds);
     }
 
     private Institution saveOrUpdateExtension(Integer userId, InstitutionRequest request) {

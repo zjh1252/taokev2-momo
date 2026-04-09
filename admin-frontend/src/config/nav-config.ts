@@ -92,6 +92,27 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
+    label: '机构管理',
+    items: [
+      {
+        title: '机构管理',
+        url: '#',
+        icon: 'building',
+        isActive: false,
+        items: [
+          {
+            title: '机构列表',
+            url: '/dashboard/institutions'
+          },
+          {
+            title: '机构申请',
+            url: '/dashboard/institutions/applications'
+          }
+        ]
+      }
+    ]
+  },
+  {
     label: '分类管理',
     items: [
       {

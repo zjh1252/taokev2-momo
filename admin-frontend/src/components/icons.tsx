@@ -10,6 +10,7 @@ import {
   IconBrandGithub,
   IconBrandTwitter,
   IconBrightness,
+  IconBuilding,
   IconCalendar,
   IconCalendarEvent,
   IconCheck,
@@ -213,6 +214,7 @@ export const Icons = {
 
   // Education / Courses
   book: IconBook,
+  building: IconBuilding,
   calendarEvent: IconCalendarEvent,
 
   // Categories

@@ -6,6 +6,11 @@ import com.taoke.user.dto.institution.InstitutionPublicResponse;
 import com.taoke.user.dto.institution.InstitutionRequest;
 import com.taoke.user.dto.institution.InstitutionResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
+import com.taoke.user.entity.Institution;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 /**
  * 机构主体档案的查询、保存与角色申请能力（按用户维度）。
@@ -51,13 +56,14 @@ public interface InstitutionService {
     /**
      * 公开机构列表（分页 + 关键词筛选）。
      *
-     * @param page    页码（从 1 开始）
-     * @param size    每页条数
-     * @param keyword 搜索关键词（匹配名称、擅长领域、擅长行业）
-     * @param sort    排序方式：default / popularity
+     * @param page        页码（从 1 开始）
+     * @param size        每页条数
+     * @param keyword     搜索关键词（匹配名称、擅长领域、擅长行业）
+     * @param sort        排序方式：default / popularity
+     * @param association 可选筛选：是否培训协会（null=不过滤）
      * @return 分页结果
      */
-    PageResponse<InstitutionListItemResponse> listPublic(int page, int size, String keyword, String sort);
+    PageResponse<InstitutionListItemResponse> listPublic(int page, int size, String keyword, String sort, Boolean association);
 
     /**
      * 获取机构公开详情。
@@ -66,4 +72,21 @@ public interface InstitutionService {
      * @return 机构公开详情
      */
     InstitutionPublicResponse getPublicProfile(Integer id);
+
+    // ==================== 后台管理查询 ====================
+
+    /**
+     * 后台分页搜索机构（支持机构名称/联系电话模糊匹配 + 状态筛选）
+     */
+    Page<Institution> searchForAdmin(String search, Integer status, Pageable pageable);
+
+    /**
+     * 设置/取消培训协会标识
+     */
+    void setAssociation(Integer institutionId, boolean association);
+
+    /**
+     * 根据 userId 列表批量查询机构档案
+     */
+    List<Institution> findByUserIds(List<Integer> userIds);
 }

@@ -14,6 +14,7 @@ export interface InstitutionListParams {
   size?: number;
   keyword?: string;
   sort?: string;
+  association?: boolean;
 }
 
 /**
@@ -27,6 +28,7 @@ export async function getInstitutionList(
   if (params.size) query.set('size', String(params.size));
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sort) query.set('sort', params.sort);
+  if (params.association != null) query.set('association', String(params.association));
 
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<InstitutionListItem>>>(

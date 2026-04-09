@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { key: 'internalCourses', href: ROUTES.INTERNAL_COURSES },
   { key: 'onlineCourses', href: ROUTES.ONLINE_COURSES },
   { key: 'institutions', href: ROUTES.INSTITUTIONS },
+  { key: 'associations', href: ROUTES.ASSOCIATIONS },
 ] as const;
 
 /**

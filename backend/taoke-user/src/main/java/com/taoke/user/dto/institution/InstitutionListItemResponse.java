@@ -55,4 +55,7 @@ public class InstitutionListItemResponse {
 
     /** 是否金牌推荐 */
     private Integer isRecommended;
+
+    /** 是否培训协会 */
+    private Boolean association;
 }

@@ -40,8 +40,9 @@ public class InstitutionController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "default") String sort) {
-        return ApiResponse.ok(institutionService.listPublic(page, size, keyword, sort));
+            @RequestParam(defaultValue = "default") String sort,
+            @RequestParam(required = false) Boolean association) {
+        return ApiResponse.ok(institutionService.listPublic(page, size, keyword, sort, association));
     }
 
     @Public

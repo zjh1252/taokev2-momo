@@ -7,6 +7,7 @@ import com.taoke.common.events.user.ApplyPassedEvent;
 import com.taoke.common.events.user.ApplyRejectedEvent;
 import com.taoke.common.events.user.NewUserRegisteredEvent;
 import com.taoke.user.api.NotificationService;
+import com.taoke.user.repository.InstitutionRepository;
 import com.taoke.user.repository.TrainerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ import java.time.LocalDateTime;
 public class UserEventListener {
 
     private final TrainerRepository trainerRepository;
+    private final InstitutionRepository institutionRepository;
     private final NotificationService notificationService;
 
     /**
@@ -52,6 +54,12 @@ public class UserEventListener {
                 log.info("专家档案状态已更新为审核通过: trainerId={}, trainerCode={}, userId={}",
                         trainer.getId(), trainer.getTrainerCode(), userId);
             });
+        } else if (BusinessRole.Code.INSTITUTION.equals(role)) {
+            institutionRepository.findByUserId(userId).ifPresent(inst -> {
+                inst.setStatus(1);
+                institutionRepository.save(inst);
+                log.info("机构档案状态已更新为已发布: institutionId={}, userId={}", inst.getId(), userId);
+            });
         }
 
         String roleName = getRoleName(role);
@@ -59,8 +67,6 @@ public class UserEventListener {
                 roleName + "入驻申请已通过",
                 "恭喜！您的" + roleName + "入驻申请已审核通过，相关功能已开放。",
                 String.valueOf(userId), null);
-
-        // TODO 后续实现：初始化角色对应的默认资源
     }
 
     /**
@@ -97,6 +103,12 @@ public class UserEventListener {
                 trainer.setRejectReason(reason);
                 trainerRepository.save(trainer);
                 log.info("专家档案状态已更新为驳回: trainerId={}, userId={}", trainer.getId(), userId);
+            });
+        } else if (BusinessRole.Code.INSTITUTION.equals(role)) {
+            institutionRepository.findByUserId(userId).ifPresent(inst -> {
+                inst.setStatus(0);
+                institutionRepository.save(inst);
+                log.info("机构档案状态已更新为待审核: institutionId={}, userId={}", inst.getId(), userId);
             });
         }
 

@@ -9,6 +9,9 @@ import type { InstitutionListItem, PageResponse } from '../../types';
 
 interface InstitutionListSectionProps {
   initialData: PageResponse<InstitutionListItem>;
+  association?: boolean;
+  basePath?: string;
+  title?: string;
 }
 
 const SORT_OPTIONS = [
@@ -16,7 +19,12 @@ const SORT_OPTIONS = [
   { key: 'popularity', label: '机构人气' },
 ];
 
-export function InstitutionListSection({ initialData }: InstitutionListSectionProps) {
+export function InstitutionListSection({
+  initialData,
+  association,
+  basePath = '/institutions',
+  title = '培训机构',
+}: InstitutionListSectionProps) {
   const [data, setData] = useState(initialData);
   const [keyword, setKeyword] = useState('');
   const [sortKey, setSortKey] = useState('default');
@@ -34,6 +42,7 @@ export function InstitutionListSection({ initialData }: InstitutionListSectionPr
             size: 15,
             keyword: kw || undefined,
             sort,
+            association,
           });
           setData(result);
           setCurrentPage(page);
@@ -42,7 +51,7 @@ export function InstitutionListSection({ initialData }: InstitutionListSectionPr
         }
       });
     },
-    [keyword, sortKey],
+    [keyword, sortKey, association],
   );
 
   const handleSearch = useCallback(
@@ -86,9 +95,9 @@ export function InstitutionListSection({ initialData }: InstitutionListSectionPr
             </div>
             <div className="p-6 bg-gradient-to-b from-white to-slate-50/30 grid grid-cols-2 sm:grid-cols-4 gap-6 md:gap-8 justify-items-center">
               {recommendedItems.map((item) => (
-                <a
+                  <a
                   key={item.id}
-                  href={`/institutions/${item.id}`}
+                  href={`${basePath}/${item.id}`}
                   className="group flex flex-col items-center gap-3 w-full"
                 >
                   <div className="w-24 h-24 md:w-28 md:h-28 bg-white rounded-xl shadow-sm border border-slate-100 group-hover:shadow-md group-hover:border-primary/30 transition-all flex items-center justify-center p-2">
@@ -114,7 +123,7 @@ export function InstitutionListSection({ initialData }: InstitutionListSectionPr
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
           {/* 排序栏 */}
           <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-6">
-            <span className="text-slate-700 font-bold text-[15px] ml-2">培训机构</span>
+            <span className="text-slate-700 font-bold text-[15px] ml-2">{title}</span>
             <div className="flex items-center gap-2">
               {SORT_OPTIONS.map((opt) => (
                 <button
@@ -140,7 +149,7 @@ export function InstitutionListSection({ initialData }: InstitutionListSectionPr
           {/* 卡片列表 */}
           <div className={`flex flex-col transition-opacity ${isPending ? 'opacity-50' : ''}`}>
             {data.list.length > 0 ? (
-              data.list.map((item) => <InstitutionCard key={item.id} institution={item} />)
+              data.list.map((item) => <InstitutionCard key={item.id} institution={item} basePath={basePath} />)
             ) : (
               <div className="p-12 text-center text-slate-400">暂无培训机构</div>
             )}

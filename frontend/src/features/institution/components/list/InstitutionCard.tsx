@@ -6,15 +6,16 @@ import type { InstitutionListItem } from '../../types';
 
 interface InstitutionCardProps {
   institution: InstitutionListItem;
+  basePath?: string;
 }
 
-export function InstitutionCard({ institution }: InstitutionCardProps) {
+export function InstitutionCard({ institution, basePath = '/institutions' }: InstitutionCardProps) {
   const logoSrc = institution.logoUrl
     || `https://ui-avatars.com/api/?name=${encodeURIComponent(institution.orgName.slice(0, 2))}&background=E0F2FE&color=0369A1&size=120&font-size=0.35`;
 
   return (
     <Link
-      href={`/institutions/${institution.id}`}
+      href={`${basePath}/${institution.id}`}
       className="p-6 border-b border-slate-100 hover:bg-slate-50/50 transition-colors flex flex-col md:flex-row gap-6 group"
     >
       {/* Logo */}
