@@ -36,6 +36,8 @@ interface AuthContextValue {
    * 专家公开主页路径（如 /trainers/123），非已生效专家或未拉到档案时为 null
    */
   trainerPublicHomeHref: string | null;
+  /** 专家编号（如 TK-A1B2C3），非专家为 null */
+  trainerCode: string | null;
   /** 当前激活的身份角色编码 */
   activeRole: string;
   /** 切换当前身份 */
@@ -82,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [trainerPublicHomeHref, setTrainerPublicHomeHref] = useState<string | null>(null);
+  const [trainerCode, setTrainerCode] = useState<string | null>(null);
   const [activeRole, setActiveRoleState] = useState<string>('BUYER');
 
   const setActiveRole = useCallback((role: string) => {
@@ -99,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setTrainerPublicHomeHref(null);
+    setTrainerCode(null);
     try {
       const res = await getMyProfile(token);
       const authUser = toAuthUser(res.data);
@@ -115,15 +119,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const me = await getMyTrainerProfile();
           setTrainerPublicHomeHref(`/trainers/${me.id}`);
+          setTrainerCode(me.trainerCode || null);
         } catch {
           setTrainerPublicHomeHref(null);
         }
       }
     } catch {
-      // token 无效或过期，清理本地存储
       storage.remove(TOKEN_KEY);
       setUser(null);
       setTrainerPublicHomeHref(null);
+      setTrainerCode(null);
     } finally {
       setLoading(false);
     }
@@ -147,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, refreshUser, logout, trainerPublicHomeHref, activeRole, setActiveRole }}
+      value={{ user, loading, refreshUser, logout, trainerPublicHomeHref, trainerCode, activeRole, setActiveRole }}
     >
       {children}
     </AuthContext.Provider>

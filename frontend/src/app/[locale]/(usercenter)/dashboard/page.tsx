@@ -18,6 +18,7 @@ import {
 import { useState, useEffect } from 'react';
 import { getContinueLearning, getMyVideoLearnings } from '@/features/learning/api/service';
 import type { ContinueLearning, MyVideoLearning } from '@/features/learning/api/types';
+import { cn } from '@/lib/utils';
 
 const ROLE_LABELS: Record<string, string> = {
   BUYER: '学员',
@@ -31,6 +32,8 @@ const ROLE_LABELS: Record<string, string> = {
   INSTITUTION_EMPLOYEE: '机构员工',
 };
 
+const PLATFORM_ROLES = new Set(['SUPER_ADMIN', 'ADMIN']);
+
 /**
  * 用户中心 — 个人主页
  *
@@ -38,8 +41,9 @@ const ROLE_LABELS: Record<string, string> = {
  * @date 2026-04-03 10:30
  */
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, activeRole, setActiveRole, trainerCode } = useAuth();
   const [activeTab, setActiveTab] = useState<'recent' | 'recommend'>('recent');
+  const [switchTarget, setSwitchTarget] = useState<string | null>(null);
 
   const [continueLearning, setContinueLearning] = useState<ContinueLearning | null>(null);
   const [continueLoading, setContinueLoading] = useState(true);
@@ -93,23 +97,49 @@ export default function DashboardPage() {
                 欢迎来到用户中心，{nickname}
               </h1>
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="px-2.5 py-0.5 bg-yellow-100 text-yellow-700 border border-yellow-200 rounded text-xs font-bold flex items-center gap-1 shadow-sm">
+                {/* 学员标签（默认角色） */}
+                <button
+                  type="button"
+                  onClick={() => activeRole !== 'BUYER' && setSwitchTarget('BUYER')}
+                  className={cn(
+                    'relative px-2.5 py-0.5 rounded text-xs font-bold shadow-sm transition-all cursor-pointer',
+                    activeRole === 'BUYER'
+                      ? 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                      : 'bg-yellow-50 text-yellow-600 border border-yellow-100 hover:bg-yellow-100 hover:border-yellow-200',
+                  )}
+                >
                   学员
-                </span>
+                  {activeRole === 'BUYER' && (
+                    <span className="absolute -top-1 -right-1 text-[10px] text-primary leading-none font-black">*</span>
+                  )}
+                </button>
                 {user?.roles
-                  ?.filter((r) => r.status === 1 && r.role !== 'BUYER' && r.role !== 'INDIVIDUAL_BUYER')
+                  ?.filter((r) => r.status === 1 && r.role !== 'BUYER' && r.role !== 'INDIVIDUAL_BUYER' && !PLATFORM_ROLES.has(r.role))
                   .map((r) => (
-                    <span
+                    <button
+                      type="button"
                       key={r.role}
-                      className="px-2.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-xs font-bold shadow-sm"
+                      onClick={() => activeRole !== r.role && setSwitchTarget(r.role)}
+                      className={cn(
+                        'relative px-2.5 py-0.5 rounded text-xs font-bold shadow-sm transition-all cursor-pointer',
+                        activeRole === r.role
+                          ? 'bg-primary/10 text-primary border border-primary/30'
+                          : 'bg-primary/5 text-primary/70 border border-primary/10 hover:bg-primary/10 hover:border-primary/30 hover:text-primary',
+                      )}
                     >
                       {ROLE_LABELS[r.role] || r.role}
-                    </span>
+                      {activeRole === r.role && (
+                        <span className="absolute -top-1 -right-1 text-[10px] text-primary leading-none font-black">*</span>
+                      )}
+                    </button>
                   ))}
               </div>
             </div>
-            <div className="text-sm text-gray-500 flex items-center gap-3">
+            <div className="text-sm text-gray-500 flex flex-col gap-0.5">
               <span>学号：C{String(user?.id || 12).padStart(5, '0')}</span>
+              {trainerCode && (
+                <span>专家编号：{trainerCode}</span>
+              )}
             </div>
           </div>
         </div>
@@ -334,6 +364,41 @@ export default function DashboardPage() {
           )}
         </div>
       </section>
+
+      {/* 切换角色确认对话框 */}
+      {switchTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-sm mx-4 rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200 p-6">
+            <h3 className="text-base font-bold text-gray-900 mb-2">切换当前身份</h3>
+            <p className="text-sm text-gray-600 mb-5">
+              确定要将当前身份切换为
+              <span className="font-bold text-primary mx-1">
+                {ROLE_LABELS[switchTarget] || switchTarget}
+              </span>
+              吗？
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setSwitchTarget(null)}
+                className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveRole(switchTarget);
+                  setSwitchTarget(null);
+                }}
+                className="px-5 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm cursor-pointer"
+              >
+                确认切换
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

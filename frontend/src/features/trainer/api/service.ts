@@ -18,8 +18,8 @@ function authHeaders(): Record<string, string> {
  * 获取当前登录专家本人档案（需 TRAINER 角色）
  * <p>用于顶栏「我的主页」解析公开详情路径 {@code /trainers/{id}}。</p>
  */
-export async function getMyTrainerProfile(): Promise<{ id: number }> {
-  const res = await apiGet<ApiResponse<{ id: number }>>('/trainers/me', {
+export async function getMyTrainerProfile(): Promise<{ id: number; trainerCode?: string }> {
+  const res = await apiGet<ApiResponse<{ id: number; trainerCode?: string }>>('/trainers/me', {
     headers: authHeaders(),
     silent: true,
   });

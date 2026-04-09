@@ -16,8 +16,9 @@ const ROLE_LABELS: Record<string, string> = {
   ENTERPRISE_AGENT: '专家经纪公司',
   INSTITUTION: '培训机构',
   INSTITUTION_EMPLOYEE: '机构员工',
-  SUPER_ADMIN: '超级管理员',
 };
+
+const PLATFORM_ROLES = new Set(['SUPER_ADMIN', 'ADMIN']);
 
 const STATUS_LABELS: Record<number, { text: string; cls: string }> = {
   1: { text: '生效中', cls: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
@@ -37,8 +38,9 @@ export default function AccountInfoPage() {
   const router = useRouter();
   const [showSwitchModal, setShowSwitchModal] = useState(false);
 
-  const activeRoles = user?.roles?.filter((r) => r.status === 1) || [];
-  const allRoles = user?.roles || [];
+  const businessRoles = user?.roles?.filter((r) => !PLATFORM_ROLES.has(r.role)) || [];
+  const activeRoles = businessRoles.filter((r) => r.status === 1);
+  const allRoles = businessRoles;
   const currentLabel = ROLE_LABELS[activeRole] || '个人学员';
 
   const switchableRoles = [
