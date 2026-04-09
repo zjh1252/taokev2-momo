@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useRouter } from '@/i18n/navigation';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { useAuth } from './auth-context';
 import { ROUTES } from '@/config/routes';
 import {
@@ -41,6 +41,7 @@ const AuthGuardContext = createContext<AuthGuardContextValue | null>(null);
 export function AuthGuardProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   const requireAuth = useCallback(
@@ -56,8 +57,9 @@ export function AuthGuardProvider({ children }: { children: ReactNode }) {
 
   const handleGoLogin = useCallback(() => {
     setOpen(false);
-    router.push(ROUTES.LOGIN);
-  }, [router]);
+    const redirect = encodeURIComponent(pathname);
+    router.push(`${ROUTES.LOGIN}?redirect=${redirect}`);
+  }, [router, pathname]);
 
   return (
     <AuthGuardContext.Provider value={{ requireAuth }}>
@@ -71,8 +73,8 @@ export function AuthGuardProvider({ children }: { children: ReactNode }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleGoLogin}>
+            <AlertDialogCancel size="lg">取消</AlertDialogCancel>
+            <AlertDialogAction size="lg" onClick={handleGoLogin}>
               前往登录
             </AlertDialogAction>
           </AlertDialogFooter>

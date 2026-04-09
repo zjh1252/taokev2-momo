@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, MessageCircle, Fingerprint, Loader2, Bug, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { storage } from '@/lib/storage';
@@ -26,6 +26,7 @@ const IS_MOCK_SMS = process.env.NODE_ENV === 'development'
 export function LoginForm() {
   const t = useTranslations('auth.login');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
 
   const [phone, setPhone] = useState('');
@@ -98,7 +99,8 @@ export function LoginForm() {
       if (token.newUser === true) {
         markNewUserPending();
       }
-      router.push('/');
+      const redirect = searchParams.get('redirect');
+      router.push(redirect || '/');
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败，请重试');
     } finally {
