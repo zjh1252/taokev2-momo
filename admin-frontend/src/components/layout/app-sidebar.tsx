@@ -44,8 +44,8 @@ export default function AppSidebar() {
     <Sidebar collapsible='icon'>
       <SidebarHeader />
       <SidebarContent className='overflow-x-hidden'>
-        {filteredGroups.map((group) => (
-          <SidebarGroup key={group.label || 'ungrouped'} className='py-0'>
+        {filteredGroups.map((group, index) => (
+          <SidebarGroup key={group.label || `group-${index}`} className='py-0'>
             {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
             <SidebarMenu>
               {group.items.map((item) => {

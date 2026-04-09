@@ -4,10 +4,11 @@ import { NavGroup } from '@/types';
  * 后台管理系统侧边栏导航配置
  *
  * 按业务模块分组，每个 NavGroup 渲染为一个 SidebarGroupLabel。
+ * label 为空字符串时不渲染分组标题，避免与菜单项文字重复。
  */
 export const navGroups: NavGroup[] = [
   {
-    label: '总览',
+    label: '',
     items: [
       {
         title: 'Dashboard',
@@ -20,10 +21,10 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '用户管理',
+    label: '',
     items: [
       {
-        title: '用户列表',
+        title: '用户管理',
         url: '/dashboard/users',
         icon: 'teams',
         shortcut: ['u', 'u'],
@@ -33,7 +34,7 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '课程管理',
+    label: '',
     items: [
       {
         title: '课程管理',
@@ -54,7 +55,7 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '录播课管理',
+    label: '',
     items: [
       {
         title: '录播课管理',
@@ -71,7 +72,7 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '专家管理',
+    label: '',
     items: [
       {
         title: '专家管理',
@@ -92,7 +93,7 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '机构管理',
+    label: '',
     items: [
       {
         title: '机构管理',
@@ -113,7 +114,7 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '分类管理',
+    label: '',
     items: [
       {
         title: '分类管理',
@@ -138,7 +139,7 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '通知管理',
+    label: '',
     items: [
       {
         title: '通知管理',
@@ -159,7 +160,7 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '权限设置',
+    label: '',
     items: [
       {
         title: '角色管理',
@@ -178,7 +179,7 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '系统设置',
+    label: '',
     items: [
       {
         title: '系统配置',
