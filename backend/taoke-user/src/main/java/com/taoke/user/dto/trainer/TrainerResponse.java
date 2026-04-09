@@ -18,6 +18,9 @@ public class TrainerResponse {
     private Integer id;
     private Integer userId;
 
+    /** 专家编号 */
+    private String trainerCode;
+
     // ==================== 基础信息 ====================
 
     private String name;
