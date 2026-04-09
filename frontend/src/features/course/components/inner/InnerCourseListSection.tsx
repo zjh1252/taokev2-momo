@@ -90,7 +90,7 @@ export function InnerCourseListSection({ initialData, categoryTree }: InnerCours
               }`}
             >
               {opt.label}
-              {opt.key === 'default' && <ArrowUpDown className="size-3.5" />}
+              <ArrowUpDown className="size-3.5" />
             </button>
           ))}
           <span className="ml-auto text-sm text-slate-500 pr-2">

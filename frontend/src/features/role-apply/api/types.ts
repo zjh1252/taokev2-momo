@@ -88,6 +88,7 @@ export interface EnterpriseBuyerFormData {
   provinceId: number | null;
   cityId: number | null;
   districtId: number | null;
+  townId: number | null;
   address: string;
   trainingTags: string;
 }

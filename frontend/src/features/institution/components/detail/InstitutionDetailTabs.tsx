@@ -14,7 +14,7 @@ export function InstitutionDetailTabs({ institution }: InstitutionDetailTabsProp
 
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'intro', label: '机构介绍' },
-    { key: 'contact', label: '联系方式' },
+    { key: 'contact', label: '在线留言' },
   ];
 
   return (
@@ -79,63 +79,22 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
 }
 
 function ContactContent({ institution }: { institution: InstitutionDetail }) {
-  const hasContact = institution.showContact === 1;
-
   return (
     <div className="flex flex-col md:flex-row gap-12">
-      {/* 左侧联系信息 */}
+      {/* 左侧客服中转信息 */}
       <div className="flex-1 flex flex-col gap-6">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-red-50 text-primary rounded-full flex items-center justify-center">
-            <span className="text-2xl">🏢</span>
+            <span className="text-2xl">📞</span>
           </div>
           <div>
-            <div className="text-sm text-slate-400 mb-1">公司名称</div>
-            <div className="text-lg font-bold text-slate-800">{institution.orgName}</div>
+            <div className="text-sm text-slate-400 mb-1">淘课网客服 中转</div>
+            <div className="text-lg font-bold text-slate-800">021-34606062</div>
           </div>
         </div>
-
-        {institution.address && (
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-50 text-primary rounded-full flex items-center justify-center">
-              <span className="text-2xl">📍</span>
-            </div>
-            <div>
-              <div className="text-sm text-slate-400 mb-1">公司地址</div>
-              <div className="text-base text-slate-800">{institution.address}</div>
-            </div>
-          </div>
-        )}
-
-        {hasContact && institution.contactPhone && (
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-50 text-primary rounded-full flex items-center justify-center">
-              <span className="text-2xl">📞</span>
-            </div>
-            <div>
-              <div className="text-sm text-slate-400 mb-1">联系电话</div>
-              <div className="text-base text-slate-800 font-bold">{institution.contactPhone}</div>
-            </div>
-          </div>
-        )}
-
-        {hasContact && institution.contactName && (
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-50 text-primary rounded-full flex items-center justify-center">
-              <span className="text-2xl">👤</span>
-            </div>
-            <div>
-              <div className="text-sm text-slate-400 mb-1">联系人</div>
-              <div className="text-base text-slate-800">{institution.contactName}</div>
-            </div>
-          </div>
-        )}
-
-        {!hasContact && (
-          <div className="text-sm text-slate-400 bg-slate-50 rounded-lg p-4">
-            该机构未公开联系方式，您可以通过平台留言联系。
-          </div>
-        )}
+        <div className="text-sm text-slate-400 bg-slate-50 rounded-lg p-4">
+          如需联系该机构，请致电淘课网客服热线，我们将为您转接。
+        </div>
       </div>
 
       {/* 右侧留言 */}

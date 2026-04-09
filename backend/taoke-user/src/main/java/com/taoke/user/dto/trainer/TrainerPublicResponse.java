@@ -23,12 +23,22 @@ public class TrainerPublicResponse {
      */
     private Integer userId;
 
+    /** 专家编号 */
+    private String trainerCode;
+
     // ==================== 基础展示 ====================
 
     private String name;
     private String avatar;
     private String title;
     private Integer gender;
+
+    // ==================== 地区 ====================
+
+    private Integer provinceId;
+    private Integer cityId;
+    private String provinceName;
+    private String cityName;
 
     // ==================== 专业信息 ====================
 

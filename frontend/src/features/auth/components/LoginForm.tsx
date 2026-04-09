@@ -134,6 +134,8 @@ export function LoginForm() {
             </div>
             <input
               type="tel"
+              name="phone"
+              autoComplete="tel"
               maxLength={PHONE_LENGTH}
               value={phone}
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}

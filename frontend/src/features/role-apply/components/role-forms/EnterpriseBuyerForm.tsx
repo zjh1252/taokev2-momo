@@ -1,8 +1,19 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/auth/auth-context';
+import { apiGet } from '@/lib/http/client';
+import RegionCascader from '@/components/region-cascader';
+import type { RegionValue } from '@/components/region-cascader';
 import type { EnterpriseBuyerFormData } from '../../api/types';
 
 const COMPANY_SIZE_OPTIONS = ['1-50人', '51-200人', '201-500人', '501-1000人', '1000人以上'];
+
+interface CategoryNode {
+  id: number;
+  name: string;
+  children?: CategoryNode[];
+}
 
 interface EnterpriseBuyerFormProps {
   data: Partial<EnterpriseBuyerFormData>;
@@ -16,7 +27,23 @@ interface EnterpriseBuyerFormProps {
  * @date 2026-04-03 16:00
  */
 export function EnterpriseBuyerForm({ data, onChange }: EnterpriseBuyerFormProps) {
+  const { user } = useAuth();
   const update = (patch: Partial<EnterpriseBuyerFormData>) => onChange({ ...data, ...patch });
+  const [industryCategories, setIndustryCategories] = useState<CategoryNode[]>([]);
+
+  // 自动填入注册手机号
+  useEffect(() => {
+    if (!data.contactPhone && user?.phone) {
+      onChange({ ...data, contactPhone: user.phone });
+    }
+  }, [user?.phone]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 加载行业分类
+  useEffect(() => {
+    apiGet<{ data: CategoryNode[] }>('/categories/tree?type=TRAINER_EXPERTISE')
+      .then((res) => setIndustryCategories(res.data || []))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -35,13 +62,16 @@ export function EnterpriseBuyerForm({ data, onChange }: EnterpriseBuyerFormProps
             />
           </FormField>
           <FormField label="所属行业" required>
-            <input
-              type="text"
+            <select
               value={data.industry || ''}
               onChange={(e) => update({ industry: e.target.value })}
-              placeholder="如：互联网、制造业、金融"
               className="form-input"
-            />
+            >
+              <option value="">请选择行业</option>
+              {industryCategories.map((cat) => (
+                <option key={cat.id} value={cat.name}>{cat.name}</option>
+              ))}
+            </select>
           </FormField>
           <FormField label="企业规模">
             <select
@@ -82,14 +112,34 @@ export function EnterpriseBuyerForm({ data, onChange }: EnterpriseBuyerFormProps
               className="form-input"
             />
           </FormField>
-          {/* TODO: 接入省市区三级联动组件 */}
+          <div className="md:col-span-2">
+            <FormField label="所在地区">
+              <RegionCascader
+                maxLevel={4}
+                value={{
+                  provinceId: data.provinceId ?? undefined,
+                  cityId: data.cityId ?? undefined,
+                  districtId: data.districtId ?? undefined,
+                  townId: data.townId ?? undefined,
+                }}
+                onChange={(val: RegionValue) =>
+                  update({
+                    provinceId: val.provinceId ?? null,
+                    cityId: val.cityId ?? null,
+                    districtId: val.districtId ?? null,
+                    townId: val.townId ?? null,
+                  })
+                }
+              />
+            </FormField>
+          </div>
           <div className="md:col-span-2">
             <FormField label="详细地址">
               <input
                 type="text"
                 value={data.address || ''}
                 onChange={(e) => update({ address: e.target.value })}
-                placeholder="请输入详细地址"
+                placeholder="请输入详细地址（街道门牌号等）"
                 className="form-input"
               />
             </FormField>

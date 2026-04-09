@@ -6,7 +6,8 @@ import { useState, useRef, useEffect, type FormEvent } from 'react';
 
 const SEARCH_CATEGORIES = [
   { key: 'trainer', i18nKey: 'categoryTrainer' },
-  { key: 'course', i18nKey: 'categoryCourse' },
+  { key: 'openCourse', i18nKey: 'categoryOpenCourse' },
+  { key: 'innerCourse', i18nKey: 'categoryInnerCourse' },
 ] as const;
 
 /**

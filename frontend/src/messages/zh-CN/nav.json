@@ -21,7 +21,8 @@
     "placeholder": "关键词搜索...",
     "category": "培训讲师",
     "categoryTrainer": "培训讲师",
-    "categoryCourse": "课程"
+    "categoryOpenCourse": "公开课",
+    "categoryInnerCourse": "内训课"
   },
   "product": {
     "label": "培训宝",

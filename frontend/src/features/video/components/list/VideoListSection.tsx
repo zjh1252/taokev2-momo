@@ -128,7 +128,7 @@ export function VideoListSection({ initialData, categoryTree }: VideoListSection
             )}
           >
             {opt.label}
-            {opt.key === 'default' && <ArrowUpDown className="size-3.5" />}
+            <ArrowUpDown className="size-3.5" />
           </button>
         ))}
 

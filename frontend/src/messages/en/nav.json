@@ -21,7 +21,8 @@
     "placeholder": "Search...",
     "category": "Trainers",
     "categoryTrainer": "Trainers",
-    "categoryCourse": "Courses"
+    "categoryOpenCourse": "Open Courses",
+    "categoryInnerCourse": "In-House Training"
   },
   "product": {
     "label": "TrainPro",

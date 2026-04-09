@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 
 /**
@@ -44,8 +45,12 @@ public class UserEventListener {
             trainerRepository.findByUserId(userId).ifPresent(trainer -> {
                 trainer.setStatus(2);
                 trainer.setApprovedAt(LocalDateTime.now());
+                if (trainer.getTrainerCode() == null) {
+                    trainer.setTrainerCode(generateUniqueTrainerCode());
+                }
                 trainerRepository.save(trainer);
-                log.info("专家档案状态已更新为审核通过: trainerId={}, userId={}", trainer.getId(), userId);
+                log.info("专家档案状态已更新为审核通过: trainerId={}, trainerCode={}, userId={}",
+                        trainer.getId(), trainer.getTrainerCode(), userId);
             });
         }
 
@@ -108,5 +113,23 @@ public class UserEventListener {
         } catch (IllegalArgumentException e) {
             return roleCode;
         }
+    }
+
+    private static final String CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    /** 生成唯一专家编号 TK-{6位大写字母数字}，重复则重试 */
+    private String generateUniqueTrainerCode() {
+        for (int attempt = 0; attempt < 10; attempt++) {
+            StringBuilder sb = new StringBuilder("TK-");
+            for (int i = 0; i < 6; i++) {
+                sb.append(CODE_CHARS.charAt(RANDOM.nextInt(CODE_CHARS.length())));
+            }
+            String code = sb.toString();
+            if (!trainerRepository.existsByTrainerCode(code)) {
+                return code;
+            }
+        }
+        throw new RuntimeException("无法生成唯一的专家编号，请重试");
     }
 }

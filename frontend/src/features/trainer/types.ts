@@ -52,10 +52,15 @@ export interface TrainerDetail {
   id: number;
   /** 平台用户 ID：收藏/互动状态/留言等与后端 TRAINER 维度一致 */
   userId: number;
+  trainerCode?: string;
   name: string;
   avatar: string;
   title: string;
   gender: number;
+  provinceId?: number;
+  cityId?: number;
+  provinceName?: string;
+  cityName?: string;
   bio?: string;
   intro?: string;
   background?: string;

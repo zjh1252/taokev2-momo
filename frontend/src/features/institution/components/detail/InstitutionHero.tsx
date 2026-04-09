@@ -19,6 +19,15 @@ import {
   getInteractionState,
 } from '@/features/interaction/api/service';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 interface InstitutionHeroProps {
   institution: InstitutionDetail;
@@ -28,6 +37,7 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
   const { requireAuth } = useAuthGuard();
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
 
   useEffect(() => {
     getInteractionState('INSTITUTION', institution.id)
@@ -117,7 +127,10 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
           <div className="flex-1 flex flex-col relative">
             {/* 右上角操作 */}
             <div className="absolute right-0 top-0 flex flex-col gap-3 w-[120px]">
-              <button className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2 rounded shadow-sm transition-all flex items-center justify-center gap-1 text-sm">
+              <button
+                onClick={() => setContactOpen(true)}
+                className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2 rounded shadow-sm transition-all flex items-center justify-center gap-1 text-sm"
+              >
                 <MessageSquare className="size-4" /> 联系机构
               </button>
               <div className="flex items-center justify-between text-xs font-medium w-full px-1">
@@ -188,6 +201,21 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
           </div>
         </div>
       </div>
+
+      {/* 客服中转弹窗 */}
+      <AlertDialog open={contactOpen} onOpenChange={setContactOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>客服中转</AlertDialogTitle>
+            <AlertDialogDescription>
+              淘课网客服 021-34606062
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>知道了</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

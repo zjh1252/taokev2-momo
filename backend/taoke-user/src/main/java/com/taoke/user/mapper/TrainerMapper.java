@@ -26,12 +26,14 @@ public interface TrainerMapper {
     @Mapping(target = "industryCategories", ignore = true)
     TrainerResponse toResponse(Trainer trainer);
 
-    /** 公开返回（不含报价），子表由 Service 层组装 */
+    /** 公开返回（不含报价），子表及地区名称由 Service 层组装 */
     @Mapping(target = "educations", ignore = true)
     @Mapping(target = "workExperiences", ignore = true)
     @Mapping(target = "honors", ignore = true)
     @Mapping(target = "expertiseCategories", ignore = true)
     @Mapping(target = "industryCategories", ignore = true)
+    @Mapping(target = "provinceName", ignore = true)
+    @Mapping(target = "cityName", ignore = true)
     TrainerPublicResponse toPublicResponse(Trainer trainer);
 
     /** 列表项（轻量化），分类由 Service 层组装 */

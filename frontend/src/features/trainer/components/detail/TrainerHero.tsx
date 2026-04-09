@@ -131,6 +131,24 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                 <span className="text-[18px] text-slate-600 font-medium">{trainer.title}</span>
               </div>
 
+              {/* 专家编号和驻地 */}
+              <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-slate-600">
+                {trainer.trainerCode && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-slate-500">专家编号:</span>
+                    <span className="font-bold text-slate-800">{trainer.trainerCode}</span>
+                  </div>
+                )}
+                {(trainer.provinceName || trainer.cityName) && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-slate-500">专家驻地:</span>
+                    <span className="text-slate-800">
+                      {[trainer.provinceName, trainer.cityName].filter(Boolean).join(' ')}
+                    </span>
+                  </div>
+                )}
+              </div>
+
               <div className="mt-2 space-y-4">
                 {/* 擅长领域 */}
                 {trainer.expertiseCategories.length > 0 && (

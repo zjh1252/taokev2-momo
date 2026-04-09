@@ -5,6 +5,7 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.service.CategoryService;
+import com.taoke.common.service.RegionService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.dto.trainer.*;
@@ -52,6 +53,7 @@ public class TrainerServiceImpl implements TrainerService {
     private final TrainerMapper trainerMapper;
     private final RoleApplyService roleApplyService;
     private final CategoryService categoryService;
+    private final RegionService regionService;
 
     @Override
     public TrainerResponse getByUserId(Integer userId) {
@@ -180,6 +182,17 @@ public class TrainerServiceImpl implements TrainerService {
 
         TrainerPublicResponse response = trainerMapper.toPublicResponse(trainer);
         fillSubTableData(response, trainerId);
+
+        // 填充省市名称
+        List<Integer> regionIds = new ArrayList<>();
+        if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) regionIds.add(trainer.getProvinceId());
+        if (trainer.getCityId() != null && trainer.getCityId() > 0) regionIds.add(trainer.getCityId());
+        if (!regionIds.isEmpty()) {
+            Map<Integer, String> regionNames = regionService.getNamesByIds(regionIds);
+            response.setProvinceName(regionNames.get(trainer.getProvinceId()));
+            response.setCityName(regionNames.get(trainer.getCityId()));
+        }
+
         return response;
     }
 

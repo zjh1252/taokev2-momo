@@ -23,6 +23,8 @@ public interface TrainerRepository extends JpaRepository<Trainer, Integer>, JpaS
 
     List<Trainer> findByIdIn(Collection<Integer> ids);
 
+    boolean existsByTrainerCode(String trainerCode);
+
     /**
      * 三段式查询第一段：分页查满足条件的专家 ID
      */

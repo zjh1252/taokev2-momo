@@ -1,5 +1,9 @@
 'use client';
 
+import { Upload } from 'lucide-react';
+import { toast } from 'sonner';
+import RegionCascader from '@/components/region-cascader';
+import type { RegionValue } from '@/components/region-cascader';
 import type { TrainerFormData } from '../../api/types';
 
 const GENDER_OPTIONS = [
@@ -87,20 +91,25 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
         </div>
       </fieldset>
 
-      {/* 地区信息 */}
+      {/* 常驻城市 */}
       <fieldset>
         <legend className="text-base font-bold text-gray-900 mb-4 pb-2 border-b border-slate-100">
-          所在地区
+          常驻城市
         </legend>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          {/* TODO: 接入省市区三级联动组件 */}
-          <FormField label="详细地址">
-            <input
-              type="text"
-              value={data.address || ''}
-              onChange={(e) => update({ address: e.target.value })}
-              placeholder="请输入详细地址"
-              className="form-input"
+        <div className="grid grid-cols-1 gap-y-4">
+          <FormField label="请选择常驻城市" required>
+            <RegionCascader
+              maxLevel={2}
+              value={{
+                provinceId: data.provinceId ?? undefined,
+                cityId: data.cityId ?? undefined,
+              }}
+              onChange={(val: RegionValue) =>
+                update({
+                  provinceId: val.provinceId ?? null,
+                  cityId: val.cityId ?? null,
+                })
+              }
             />
           </FormField>
         </div>
@@ -120,6 +129,14 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
               rows={4}
               className="form-input resize-none"
             />
+            <button
+              type="button"
+              onClick={() => toast.info('AI 解析功能即将上线')}
+              className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-primary border border-primary/40 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <Upload className="size-4" />
+              上传文档（AI解析）
+            </button>
           </FormField>
           <FormField label="擅长领域" required>
             <input

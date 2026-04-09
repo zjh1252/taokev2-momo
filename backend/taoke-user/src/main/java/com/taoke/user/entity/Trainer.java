@@ -27,6 +27,10 @@ public class Trainer extends BaseEntity {
     @Column(name = "user_id", nullable = false, unique = true)
     private Integer userId;
 
+    /** 专家编号，规则: TK-{6位大写字母数字} */
+    @Column(name = "trainer_code", length = 10, unique = true)
+    private String trainerCode;
+
     // ==================== 基础信息 ====================
 
     /** 讲师姓名 */
