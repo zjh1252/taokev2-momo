@@ -117,6 +117,27 @@ export const navGroups: NavGroup[] = [
     label: '',
     items: [
       {
+        title: '企业采购方管理',
+        url: '#',
+        icon: 'briefcase',
+        isActive: false,
+        items: [
+          {
+            title: '企业采购方列表',
+            url: '/dashboard/enterprise-buyers'
+          },
+          {
+            title: '企业采购方申请',
+            url: '/dashboard/enterprise-buyers/applications'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
         title: '分类管理',
         url: '#',
         icon: 'tags',

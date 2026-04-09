@@ -6,6 +6,7 @@ import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerRequest;
 import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerResponse;
+import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.api.EnterpriseBuyerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,5 +39,18 @@ public class EnterpriseBuyerController {
     @PutMapping("/enterprise-buyers/me")
     public ApiResponse<EnterpriseBuyerResponse> save(@Valid @RequestBody EnterpriseBuyerRequest request) {
         return ApiResponse.ok(enterpriseBuyerService.save(SecurityUtils.getRequiredUserId(), request));
+    }
+
+    @Operation(summary = "申请成为企业培训采购方")
+    @PostMapping("/enterprise-buyers/apply")
+    public ApiResponse<Void> apply(@Valid @RequestBody EnterpriseBuyerRequest request) {
+        enterpriseBuyerService.apply(SecurityUtils.getRequiredUserId(), request);
+        return ApiResponse.ok(null);
+    }
+
+    @Operation(summary = "查看企业采购方入驻申请状态")
+    @GetMapping("/enterprise-buyers/apply/status")
+    public ApiResponse<RoleApplicationStatusResponse> getApplyStatus() {
+        return ApiResponse.ok(enterpriseBuyerService.getApplyStatus(SecurityUtils.getRequiredUserId()));
     }
 }

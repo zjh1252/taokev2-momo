@@ -18,6 +18,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   videos: '录播课管理',
   trainers: '专家管理',
   institutions: '机构管理',
+  'enterprise-buyers': '企业采购方管理',
   applications: '申请管理',
   categories: '分类管理',
   'course-category': '课程分类',
@@ -71,6 +72,15 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
     { title: 'Dashboard', link: '/dashboard' },
     { title: '机构管理', link: '/dashboard/institutions' },
     { title: '机构申请', link: '/dashboard/institutions/applications' }
+  ],
+  '/dashboard/enterprise-buyers': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '企业采购方管理', link: '/dashboard/enterprise-buyers' }
+  ],
+  '/dashboard/enterprise-buyers/applications': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '企业采购方管理', link: '/dashboard/enterprise-buyers' },
+    { title: '企业采购方申请', link: '/dashboard/enterprise-buyers/applications' }
   ],
   '/dashboard/notifications': [
     { title: 'Dashboard', link: '/dashboard' },

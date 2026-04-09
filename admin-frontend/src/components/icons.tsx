@@ -8,6 +8,7 @@ import {
   IconBook,
   IconBox,
   IconBrandGithub,
+  IconBriefcase,
   IconBrandTwitter,
   IconBrightness,
   IconBuilding,
@@ -214,6 +215,7 @@ export const Icons = {
 
   // Education / Courses
   book: IconBook,
+  briefcase: IconBriefcase,
   building: IconBuilding,
   calendarEvent: IconCalendarEvent,
 
