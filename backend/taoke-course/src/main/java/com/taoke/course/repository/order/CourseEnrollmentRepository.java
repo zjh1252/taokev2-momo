@@ -1,6 +1,8 @@
 package com.taoke.course.repository.order;
 
 import com.taoke.course.entity.order.CourseEnrollment;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
@@ -16,4 +18,7 @@ public interface CourseEnrollmentRepository extends JpaRepository<CourseEnrollme
     Optional<CourseEnrollment> findByCourseIdAndUserId(Integer courseId, Integer userId);
 
     boolean existsByCourseIdAndUserIdAndStatus(Integer courseId, Integer userId, Integer status);
+
+    /** 按 userId 分页查报名记录（有效的），报名时间倒序 */
+    Page<CourseEnrollment> findByUserIdAndStatusOrderByEnrolledAtDesc(Integer userId, Integer status, Pageable pageable);
 }

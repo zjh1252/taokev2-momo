@@ -10,10 +10,7 @@ import com.taoke.common.service.RegionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -39,6 +36,9 @@ public class RegionServiceImpl implements RegionService {
 
     /** hasChildren 缓存：code → Boolean */
     private final Map<String, Boolean> hasChildrenCache = new ConcurrentHashMap<>();
+
+    /** ID → 名称 缓存，地区数据为静态字典，可长期缓存 */
+    private final Map<Integer, String> idNameCache = new ConcurrentHashMap<>();
 
     @Override
     public List<RegionVO> getChildren(String parentCode) {
@@ -70,6 +70,44 @@ public class RegionServiceImpl implements RegionService {
         return regions.stream()
                 .map(r -> new RegionVO(r.getId(), r.getCode(), r.getName(), r.getLevel(), checkHasChildren(r.getCode())))
                 .toList();
+    }
+
+    @Override
+    public String getNameById(Integer id) {
+        if (id == null || id <= 0) {
+            return "";
+        }
+        return idNameCache.computeIfAbsent(id, key ->
+                regionRepository.findById(key).map(Region::getName).orElse(""));
+    }
+
+    @Override
+    public Map<Integer, String> getNamesByIds(Collection<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<Integer, String> result = new HashMap<>();
+        List<Integer> missIds = new ArrayList<>();
+
+        for (Integer id : ids) {
+            if (id == null || id <= 0) continue;
+            String cached = idNameCache.get(id);
+            if (cached != null) {
+                result.put(id, cached);
+            } else {
+                missIds.add(id);
+            }
+        }
+
+        if (!missIds.isEmpty()) {
+            List<Region> regions = regionRepository.findAllById(missIds);
+            for (Region r : regions) {
+                idNameCache.put(r.getId(), r.getName());
+                result.put(r.getId(), r.getName());
+            }
+        }
+        return result;
     }
 
     // ==================== 内部方法 ====================

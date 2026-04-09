@@ -3,7 +3,9 @@ package com.taoke.common.service;
 import com.taoke.common.dto.RegionDetailVO;
 import com.taoke.common.dto.RegionVO;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 行政区划查询接口
@@ -38,4 +40,20 @@ public interface RegionService {
      * @return 匹配结果（最多 20 条）
      */
     List<RegionVO> search(String keyword, Integer level);
+
+    /**
+     * 根据地区主键 ID 获取名称，结果带缓存。
+     *
+     * @param id 地区主键 ID
+     * @return 地区名称，不存在时返回空字符串
+     */
+    String getNameById(Integer id);
+
+    /**
+     * 批量根据地区主键 ID 获取名称 Map，高效复用缓存。
+     *
+     * @param ids 地区主键 ID 集合
+     * @return id → name 映射，不存在的 ID 不包含在内
+     */
+    Map<Integer, String> getNamesByIds(Collection<Integer> ids);
 }

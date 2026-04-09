@@ -12,36 +12,12 @@ import {
   Target,
   Compass,
   Camera,
+  BookOpen,
+  Loader2,
 } from 'lucide-react';
-import { useState } from 'react';
-
-/** 设计稿中的 mock 课程 */
-const RECENT_COURSES = [
-  {
-    id: 1,
-    title: 'B2B大客户销售实战策略与控单技巧',
-    instructor: '李云龙',
-    audience: '销售人员',
-    price: '¥ 199.00',
-    progress: '已学 100%',
-    tag: '录播课',
-    tagClass: 'bg-black/60',
-    image:
-      'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400&h=250',
-  },
-  {
-    id: 2,
-    title: '2024企业战略规划与绩效落地研修班',
-    city: '上海',
-    date: '04月15日',
-    price: '面议',
-    status: '报名成功',
-    tag: '线下公开课',
-    tagClass: 'bg-primary/90',
-    image:
-      'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=400&h=250',
-  },
-];
+import { useState, useEffect } from 'react';
+import { getContinueLearning, getMyVideoLearnings } from '@/features/learning/api/service';
+import type { ContinueLearning, MyVideoLearning } from '@/features/learning/api/types';
 
 /**
  * 用户中心 — 个人主页
@@ -52,6 +28,24 @@ const RECENT_COURSES = [
 export default function DashboardPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'recent' | 'recommend'>('recent');
+
+  const [continueLearning, setContinueLearning] = useState<ContinueLearning | null>(null);
+  const [continueLoading, setContinueLoading] = useState(true);
+
+  const [recentVideos, setRecentVideos] = useState<MyVideoLearning[]>([]);
+  const [recentLoading, setRecentLoading] = useState(true);
+
+  useEffect(() => {
+    getContinueLearning()
+      .then(setContinueLearning)
+      .catch(() => setContinueLearning(null))
+      .finally(() => setContinueLoading(false));
+
+    getMyVideoLearnings(1, 3)
+      .then((res) => setRecentVideos(res.list))
+      .catch(() => setRecentVideos([]))
+      .finally(() => setRecentLoading(false));
+  }, []);
 
   const nickname = user?.nickname || '用户';
   const initials = nickname.slice(0, 2).toUpperCase();
@@ -121,36 +115,50 @@ export default function DashboardPage() {
           <h2 className="font-bold text-gray-800">在淘课，你可以：</h2>
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* 左半：继续学习 (录播课相关，写死) */}
+          {/* 左半：继续学习 */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2 text-primary font-bold text-sm">
               <PlayCircle className="size-5" /> 继续学习
             </div>
-            <div className="border border-red-100 bg-red-50/30 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer group">
-              <h3 className="font-medium text-gray-800 mb-3 group-hover:text-primary transition-colors truncate">
-                《ChatGPT在企业办公中的高效应用与实战》
-              </h3>
-              {/* 进度条 */}
-              <div className="w-full bg-slate-200 rounded-full h-1.5 mb-2">
-                <div
-                  className="bg-primary h-1.5 rounded-full relative"
-                  style={{ width: '45%' }}
-                >
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-primary rounded-full shadow" />
+            {continueLoading ? (
+              <div className="flex items-center justify-center h-32 text-gray-400">
+                <Loader2 className="size-5 animate-spin" />
+              </div>
+            ) : continueLearning ? (
+              <Link
+                href={`${ROUTES.VIDEOS}/${continueLearning.videoId}`}
+                className="border border-red-100 bg-red-50/30 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer group block"
+              >
+                <h3 className="font-medium text-gray-800 mb-3 group-hover:text-primary transition-colors truncate">
+                  《{continueLearning.title}》
+                </h3>
+                <div className="w-full bg-slate-200 rounded-full h-1.5 mb-2">
+                  <div
+                    className="bg-primary h-1.5 rounded-full relative"
+                    style={{ width: `${continueLearning.progress}%` }}
+                  >
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-primary rounded-full shadow" />
+                  </div>
                 </div>
+                <div className="flex justify-between items-center mt-4">
+                  <span className="text-xs text-gray-500">
+                    已学习 {continueLearning.progress}%
+                    {continueLearning.lastChapterTitle && ` (${continueLearning.lastChapterTitle})`}
+                  </span>
+                  <span className="text-xs text-primary border border-primary px-3 py-1.5 rounded group-hover:bg-primary group-hover:text-white transition-colors">
+                    继续播放
+                  </span>
+                </div>
+              </Link>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-32 text-gray-400 border border-dashed border-slate-200 rounded-lg">
+                <BookOpen className="size-8 mb-2 opacity-40" />
+                <span className="text-sm">暂无学习中的课程</span>
+                <Link href={ROUTES.VIDEOS} className="text-xs text-primary mt-2 hover:underline">
+                  去发现课程 →
+                </Link>
               </div>
-              <div className="flex justify-between items-center mt-4">
-                <span className="text-xs text-gray-500">
-                  已学习 45% (第3节)
-                </span>
-                <button
-                  type="button"
-                  className="text-xs text-primary border border-primary px-3 py-1.5 rounded hover:bg-primary hover:text-white transition-colors"
-                >
-                  继续播放
-                </button>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* 右半：工具与资源 */}
@@ -217,62 +225,97 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-          {RECENT_COURSES.map((course) => (
-            <div
-              key={course.id}
-              className="group cursor-pointer border border-slate-100 rounded-lg overflow-hidden hover:shadow-lg transition-all"
-            >
-              <div className="aspect-[16/10] bg-slate-800 relative overflow-hidden">
-                <Image
-                  src={course.image}
-                  alt={course.title}
-                  width={400}
-                  height={250}
-                  className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className={`absolute top-2 right-2 ${course.tagClass} backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded`}>
-                  {course.tag}
+        <div className="p-6">
+          {activeTab === 'recent' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {recentLoading ? (
+                <div className="col-span-3 flex items-center justify-center h-48 text-gray-400">
+                  <Loader2 className="size-5 animate-spin mr-2" />
+                  <span className="text-sm">加载中...</span>
                 </div>
-                {course.tag === '录播课' && (
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <PlayCircle className="size-10 text-white drop-shadow-md" />
+              ) : recentVideos.length > 0 ? (
+                <>
+                  {recentVideos.map((video) => (
+                    <Link
+                      key={video.videoId}
+                      href={`${ROUTES.VIDEOS}/${video.videoId}`}
+                      className="group cursor-pointer border border-slate-100 rounded-lg overflow-hidden hover:shadow-lg transition-all block"
+                    >
+                      <div className="aspect-[16/10] bg-slate-800 relative overflow-hidden">
+                        {video.coverUrl ? (
+                          <Image
+                            src={video.coverUrl}
+                            alt={video.title}
+                            width={400}
+                            height={250}
+                            className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-500">
+                            <PlayCircle className="size-12 opacity-30" />
+                          </div>
+                        )}
+                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded">
+                          录播课
+                        </div>
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <PlayCircle className="size-10 text-white drop-shadow-md" />
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-medium text-gray-800 line-clamp-2 mb-2 group-hover:text-primary transition-colors text-sm h-10">
+                          {video.title}
+                        </h3>
+                        <div className="text-xs text-gray-500 mb-3">
+                          讲师：{video.teacherName || '—'}
+                        </div>
+                        <div className="flex justify-between items-center mt-auto">
+                          <span className="text-primary font-bold">
+                            {video.pricePaid != null ? `¥ ${Number(video.pricePaid).toFixed(2)}` : '免费'}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            已学 {video.progress}%
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                  {/* 发现更多 */}
+                  <Link
+                    href={ROUTES.UC_LEARNING}
+                    className="group cursor-pointer border border-slate-100 rounded-lg overflow-hidden flex flex-col items-center justify-center bg-slate-50 border-dashed border-2 text-gray-400 hover:text-primary hover:border-primary/50 hover:bg-red-50/20 min-h-[200px]"
+                  >
+                    <Compass className="size-10 mb-2 opacity-50" />
+                    <span className="text-sm font-medium">查看全部学习记录</span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <div className="col-span-2 flex flex-col items-center justify-center h-48 text-gray-400">
+                    <BookOpen className="size-10 mb-3 opacity-30" />
+                    <span className="text-sm">还没有学习记录</span>
+                    <Link href={ROUTES.VIDEOS} className="text-xs text-primary mt-2 hover:underline">
+                      去发现课程 →
+                    </Link>
                   </div>
-                )}
-              </div>
-              <div className="p-4">
-                <h3 className="font-medium text-gray-800 line-clamp-2 mb-2 group-hover:text-primary transition-colors text-sm h-10">
-                  {course.title}
-                </h3>
-                <div className="text-xs text-gray-500 mb-3">
-                  {course.instructor
-                    ? `讲师：${course.instructor} | 适用：${course.audience}`
-                    : `开课城市：${course.city} | ${course.date}`}
-                </div>
-                <div className="flex justify-between items-center mt-auto">
-                  <span className="text-primary font-bold">{course.price}</span>
-                  {course.progress ? (
-                    <span className="text-xs text-gray-400">
-                      {course.progress}
-                    </span>
-                  ) : (
-                    <span className="text-[10px] bg-red-50 text-primary px-1.5 py-0.5 rounded border border-red-100">
-                      {course.status}
-                    </span>
-                  )}
-                </div>
-              </div>
+                  <Link
+                    href={ROUTES.PUBLIC_COURSES}
+                    className="group cursor-pointer border border-slate-100 rounded-lg overflow-hidden flex flex-col items-center justify-center bg-slate-50 border-dashed border-2 text-gray-400 hover:text-primary hover:border-primary/50 hover:bg-red-50/20 min-h-[200px]"
+                  >
+                    <Compass className="size-10 mb-2 opacity-50" />
+                    <span className="text-sm font-medium">发现更多优质课程</span>
+                  </Link>
+                </>
+              )}
             </div>
-          ))}
+          )}
 
-          {/* 发现更多 */}
-          <Link
-            href={ROUTES.PUBLIC_COURSES}
-            className="group cursor-pointer border border-slate-100 rounded-lg overflow-hidden flex flex-col items-center justify-center bg-slate-50 border-dashed border-2 text-gray-400 hover:text-primary hover:border-primary/50 hover:bg-red-50/20 min-h-[200px]"
-          >
-            <Compass className="size-10 mb-2 opacity-50" />
-            <span className="text-sm font-medium">发现更多优质课程</span>
-          </Link>
+          {activeTab === 'recommend' && (
+            <div className="flex flex-col items-center justify-center h-48 text-gray-400">
+              <Brain className="size-10 mb-3 opacity-30" />
+              <span className="text-sm">智能推荐功能即将上线</span>
+            </div>
+          )}
         </div>
       </section>
     </>
