@@ -8,6 +8,7 @@ import type { VideoDetail } from '../../api/types';
 import { useCart } from '@/features/cart/hooks/useCart';
 import { createOrder } from '@/features/order/api/service';
 import { useVideoPlayback } from '../../context/video-playback-context';
+import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 
 interface VideoSidebarProps {
   video: VideoDetail;
@@ -16,6 +17,7 @@ interface VideoSidebarProps {
 export function VideoSidebar({ video }: VideoSidebarProps) {
   const { addItem } = useCart();
   const router = useRouter();
+  const { requireAuth } = useAuthGuard();
   const [buyLoading, setBuyLoading] = useState(false);
   const { accessible, enrolled, isFree, isOwner } = useVideoPlayback();
 
@@ -93,7 +95,7 @@ export function VideoSidebar({ video }: VideoSidebarProps) {
           <div className="space-y-3">
             <button
               type="button"
-              onClick={handleBuyNow}
+              onClick={() => requireAuth(handleBuyNow)}
               disabled={buyLoading}
               className="w-full bg-primary text-white font-medium py-3 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
@@ -102,7 +104,7 @@ export function VideoSidebar({ video }: VideoSidebarProps) {
             </button>
             <button
               type="button"
-              onClick={handleAddToCart}
+              onClick={() => requireAuth(handleAddToCart)}
               className="w-full border border-primary text-primary font-medium py-3 rounded-lg hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
             >
               <ShoppingCart className="size-4" />

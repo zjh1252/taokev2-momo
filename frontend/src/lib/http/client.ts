@@ -1,4 +1,6 @@
 import { toast } from 'sonner';
+import { storage } from '@/lib/storage';
+import { TOKEN_KEY } from '@/lib/auth/constants';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
@@ -47,7 +49,10 @@ async function extractErrorMessage(response: Response, status: number): Promise<
 
 /**
  * 通用 API 客户端
- * <p>自动解析响应、弹出错误 toast（可通过 silent 选项关闭）</p>
+ * <p>
+ * 自动解析响应、弹出错误 toast（可通过 silent 选项关闭）。
+ * 收到 401 时自动清除本地 token 并静默处理，不弹 toast。
+ * </p>
  */
 export async function apiClient<T>(
   endpoint: string,
@@ -66,6 +71,12 @@ export async function apiClient<T>(
 
   if (!response.ok) {
     const message = await extractErrorMessage(response, response.status);
+
+    // 401 统一静默处理：清除过期 token，不弹 toast
+    if (response.status === 401 && typeof window !== 'undefined') {
+      storage.remove(TOKEN_KEY);
+      throw new ApiException(response.status, undefined, message);
+    }
 
     if (!silent && typeof window !== 'undefined') {
       toast.error(message);

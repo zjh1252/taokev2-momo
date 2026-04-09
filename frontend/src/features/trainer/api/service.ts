@@ -21,6 +21,7 @@ function authHeaders(): Record<string, string> {
 export async function getMyTrainerProfile(): Promise<{ id: number }> {
   const res = await apiGet<ApiResponse<{ id: number }>>('/trainers/me', {
     headers: authHeaders(),
+    silent: true,
   });
   return res.data;
 }

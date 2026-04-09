@@ -18,12 +18,14 @@ import {
   removeFavorite,
   getInteractionState,
 } from '@/features/interaction/api/service';
+import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 
 interface InstitutionHeroProps {
   institution: InstitutionDetail;
 }
 
 export function InstitutionHero({ institution }: InstitutionHeroProps) {
+  const { requireAuth } = useAuthGuard();
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
 
@@ -123,7 +125,7 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
                   <Share2 className="size-3.5" /> 分享
                 </button>
                 <button
-                  onClick={toggleFavorite}
+                  onClick={() => requireAuth(toggleFavorite)}
                   disabled={favLoading}
                   className={`flex items-center gap-1 transition-colors ${
                     favorited ? 'text-primary' : 'text-amber-500 hover:text-amber-600'

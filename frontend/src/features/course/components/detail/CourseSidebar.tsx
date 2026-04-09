@@ -23,6 +23,7 @@ import {
   getInteractionState,
 } from '@/features/interaction/api/service';
 import ReviewDialog from '@/features/interaction/components/ReviewDialog';
+import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 
 interface CourseSidebarProps {
   course: CourseDetail;
@@ -34,6 +35,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
   const isPurchasable = isOpen && course.price > 0 && course.isFree !== 1;
   const { addItem } = useCart();
   const router = useRouter();
+  const { requireAuth } = useAuthGuard();
   const [buyLoading, setBuyLoading] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
@@ -106,7 +108,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
       {isPurchasable && (
         <>
           <button
-            onClick={handleBuyNow}
+            onClick={() => requireAuth(handleBuyNow)}
             disabled={buyLoading}
             className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md disabled:opacity-50"
           >
@@ -114,7 +116,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
             {buyLoading ? '处理中...' : '立即购买'}
           </button>
           <button
-            onClick={handleAddToCart}
+            onClick={() => requireAuth(handleAddToCart)}
             className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-primary text-primary font-medium text-sm hover:bg-primary/5 transition-all"
           >
             <ShoppingCart className="size-4" />
@@ -139,7 +141,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
 
       {/* 收藏按钮 */}
       <button
-        onClick={toggleFavorite}
+        onClick={() => requireAuth(toggleFavorite)}
         disabled={favLoading}
         className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg border font-medium text-sm transition-all ${
           favorited
@@ -162,7 +164,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
           {isOpen ? t('views') : t('popularity')}: {course.viewCount}
         </span>
         <button
-          onClick={() => setReviewOpen(true)}
+          onClick={() => requireAuth(() => setReviewOpen(true))}
           className="flex items-center gap-1 hover:text-primary transition-colors"
         >
           <PenLine className="size-3.5" />

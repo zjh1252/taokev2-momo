@@ -11,6 +11,7 @@ import {
   getInteractionState,
 } from '@/features/interaction/api/service';
 import TrainerMessageDialog from '@/features/interaction/components/TrainerMessageDialog';
+import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 
 interface TrainerHeroProps {
   trainer: TrainerDetail;
@@ -31,6 +32,7 @@ function StarRating({ score }: { score: number }) {
 
 export function TrainerHero({ trainer }: TrainerHeroProps) {
   const expertiseTags = trainer.expertiseTags?.split(',').filter(Boolean) ?? [];
+  const { requireAuth } = useAuthGuard();
   const [msgOpen, setMsgOpen] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
@@ -85,14 +87,14 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
 
           <div className="flex flex-col gap-3 mt-6 w-[190px]">
             <button
-              onClick={() => setMsgOpen(true)}
+              onClick={() => requireAuth(() => setMsgOpen(true))}
               className="w-full px-4 py-2.5 bg-primary text-white rounded flex items-center justify-center gap-1.5 hover:bg-primary/90 font-medium transition-colors whitespace-nowrap"
             >
               <MessageSquare className="size-5" /> 给专家留言
             </button>
             <div className="flex items-center gap-3 w-full justify-between">
               <button
-                onClick={toggleFavorite}
+                onClick={() => requireAuth(toggleFavorite)}
                 disabled={favLoading}
                 className={`flex-1 py-2 border rounded font-medium bg-white transition-all text-[13px] text-center flex items-center justify-center gap-1 ${
                   favorited

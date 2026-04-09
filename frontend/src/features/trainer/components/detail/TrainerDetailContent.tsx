@@ -17,6 +17,7 @@ import type {
 import { getPublicReviews } from '@/features/interaction/api/service';
 import type { ReviewItem } from '@/features/interaction/api/types';
 import ReviewDialog from '@/features/interaction/components/ReviewDialog';
+import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 
 interface TrainerDetailContentProps {
   trainer: TrainerDetail;
@@ -467,6 +468,7 @@ function ReviewsView({
   trainerUserId: number;
   trainerName: string;
 }) {
+  const { requireAuth } = useAuthGuard();
   const [apiReviews, setApiReviews] = useState<ReviewItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -492,7 +494,7 @@ function ReviewsView({
           学员评价 <span className="text-primary mx-1">{reviews.length}</span> 个
         </h2>
         <button
-          onClick={() => setReviewOpen(true)}
+          onClick={() => requireAuth(() => setReviewOpen(true))}
           className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition-colors"
         >
           我要评价

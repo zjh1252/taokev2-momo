@@ -24,7 +24,7 @@ export async function getInteractionState(
 ): Promise<InteractionState> {
   const res = await apiGet<ApiResponse<InteractionState>>(
     `/interaction/states?targetType=${targetType}&targetId=${targetId}`,
-    { headers: authHeaders() },
+    { headers: authHeaders(), silent: true },
   );
   return res.data;
 }

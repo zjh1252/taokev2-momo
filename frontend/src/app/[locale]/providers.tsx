@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/lib/auth/auth-context';
+import { AuthGuardProvider } from '@/lib/auth/auth-guard-context';
 import { NewUserRolePrompt } from '@/features/role-apply/components/NewUserRolePrompt';
 import { Toaster } from '@/components/ui/sonner';
 import { CartProvider } from '@/features/cart/hooks/useCart';
@@ -17,9 +18,11 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
       <CartProvider>
-        {children}
-        <NewUserRolePrompt />
-        <Toaster />
+        <AuthGuardProvider>
+          {children}
+          <NewUserRolePrompt />
+          <Toaster />
+        </AuthGuardProvider>
       </CartProvider>
     </AuthProvider>
   );

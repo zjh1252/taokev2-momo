@@ -3,9 +3,13 @@ import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import type { ApiResponse, CartItem, AddCartRequest } from './types';
 
-function authHeaders() {
+function getAccessToken(): string | null {
   const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
-  return { Authorization: `Bearer ${tokenData?.accessToken || ''}` };
+  return tokenData?.accessToken ?? null;
+}
+
+function authHeaders() {
+  return { Authorization: `Bearer ${getAccessToken() || ''}` };
 }
 
 /** 添加购物车 */
@@ -16,8 +20,9 @@ export async function addCartItem(data: AddCartRequest): Promise<CartItem> {
   return res.data;
 }
 
-/** 获取购物车列表 */
+/** 获取购物车列表（未登录时返回空数组，不发请求） */
 export async function getCartItems(): Promise<CartItem[]> {
+  if (!getAccessToken()) return [];
   const res = await apiGet<ApiResponse<CartItem[]>>('/cart/items', {
     headers: authHeaders(),
   });
@@ -51,8 +56,9 @@ export async function clearCart(): Promise<void> {
   });
 }
 
-/** 获取购物车商品数量 */
+/** 获取购物车商品数量（未登录时返回 0，不发请求） */
 export async function getCartCount(): Promise<number> {
+  if (!getAccessToken()) return 0;
   const res = await apiGet<ApiResponse<number>>('/cart/count', {
     headers: authHeaders(),
   });
