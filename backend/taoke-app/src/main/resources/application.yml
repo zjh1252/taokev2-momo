@@ -9,10 +9,18 @@ spring:
     active: dev
 
   config:
+    activate:
+      on-profile: dev  
     import:
       - optional:nacos:shared-config.yml?group=DEFAULT_GROUP
       - optional:nacos:${spring.application.name}.yml?group=DEFAULT_GROUP
-      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml?group=DEFAULT_GROUP 
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml?group=DEFAULT_GROUP
+  nacos:
+    config:
+      server-addr: 10.0.14.20:8848
+      namespace: dev
+      username: nacos
+      password: nacos
 
   jpa:
     hibernate:
