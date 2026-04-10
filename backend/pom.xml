@@ -37,6 +37,7 @@
         <!-- Lombok 与 MapStruct 同时启用编译期处理时的桥接包，版本由父 POM 统一 -->
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <aliyun-oss.version>3.18.4</aliyun-oss.version>
+        <nacos-config.version>2025.0.0.0</nacos-config.version>
     </properties>
 
     <!-- 全局依赖：所有子模块自动继承 -->
@@ -109,6 +110,13 @@
                 <groupId>com.aliyun.oss</groupId>
                 <artifactId>aliyun-sdk-oss</artifactId>
                 <version>${aliyun-oss.version}</version>
+            </dependency>
+
+            <!-- Nacos 配置中心（轻量级，不依赖 Spring Cloud） -->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-alibaba-nacos-config</artifactId>
+                <version>${nacos-config.version}</version>
             </dependency>
 
             <!-- JWT -->

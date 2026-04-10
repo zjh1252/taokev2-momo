@@ -23,6 +23,15 @@ taoke:
   jwt:
     secret: ${JWT_SECRET:}
 
+# Nacos 配置中心
+spring:
+  nacos:
+    config:
+      server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+      namespace: ${NACOS_NAMESPACE:prod}
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+
 logging:
   level:
     com.taoke: info

@@ -22,12 +22,13 @@ set -euo pipefail
 REGISTRY="10.0.16.26:5000"
 IMAGE_PREFIX="taokev2"
 
-KNOWN_TARGETS="backend frontend admin all"
+KNOWN_TARGETS="backend frontend admin nacos all"
 
 declare -A IMAGES=(
   [backend]="deploy/backend/Dockerfile"
   [frontend]="deploy/frontend/Dockerfile"
   [admin]="deploy/admin-frontend/Dockerfile"
+  [nacos]="deploy/nacos/Dockerfile"
 )
 
 # ---- 参数校验 ----
@@ -92,8 +93,12 @@ if [ "$TARGET" = "all" ]; then
   done
 else
   if [ -z "${IMAGES[$TARGET]+x}" ]; then
-    echo "错误：未知目标 '${TARGET}'，可选值：backend / frontend / admin"
+    echo "错误：未知目标 '${TARGET}'，可选值：backend / frontend / admin / nacos"
     exit 1
+  fi
+  # nacos 使用固定版本标签而非业务版本号
+  if [ "$TARGET" = "nacos" ]; then
+    VERSION="3.1.2"
   fi
   build_and_push "$TARGET" "${IMAGES[$TARGET]}"
 fi

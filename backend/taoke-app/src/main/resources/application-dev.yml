@@ -53,6 +53,13 @@ taoke:
     allowed-origins: '*'
     allow-credentials: false
 
+# Nacos 配置中心
+spring:
+  nacos:
+    config:
+      server-addr: localhost:8848
+      namespace: dev
+
 logging:
   level:
     com.taoke: debug
