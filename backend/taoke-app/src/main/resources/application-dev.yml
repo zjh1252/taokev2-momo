@@ -1,8 +1,15 @@
 # ============================================================
 # 开发环境配置 — 中间件连接、密钥、日志级别等
 # ============================================================
-
+# Nacos 配置中心
 spring:
+  
+  # Nacos 配置中心
+  nacos:
+    config:
+      server-addr: 10.0.14.20:8848
+      namespace: dev
+
   datasource:
     url: jdbc:mysql://localhost:3306/taokev2?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
     username: root
@@ -52,13 +59,6 @@ taoke:
   cors:
     allowed-origins: '*'
     allow-credentials: false
-
-# Nacos 配置中心
-spring:
-  nacos:
-    config:
-      server-addr: localhost:8848
-      namespace: dev
 
 logging:
   level:

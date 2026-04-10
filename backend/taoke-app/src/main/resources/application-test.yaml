@@ -3,6 +3,12 @@
 # ============================================================
 
 spring:
+  # Nacos 配置中心
+  nacos:
+    config:
+      server-addr: 10.0.14.20:8848
+      namespace: test
+
   datasource:
     url: jdbc:mysql://10.0.14.20:3306/taokev2?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
     username: root
@@ -54,14 +60,7 @@ taoke:
     allowed-origins: '*'
     allow-credentials: false
 
-# Nacos 配置中心
-spring:
-  nacos:
-    config:
-      server-addr: 10.0.14.20:8848
-      namespace: test
-
 logging:
   level:
-    com.taoke: debug
-    org.springframework.security: debug
+    com.taoke: info
+    org.springframework.security: info
