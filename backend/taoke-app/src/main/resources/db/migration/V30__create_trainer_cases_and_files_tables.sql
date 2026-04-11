@@ -1,0 +1,51 @@
+-- 专家授课案例主表
+CREATE TABLE `user_trainer_cases` (
+    `id`              INT           NOT NULL AUTO_INCREMENT,
+    `trainer_id`      INT           NOT NULL COMMENT '关联 user_trainers.id',
+    `case_title`      VARCHAR(200)  NOT NULL COMMENT '案例标题',
+    `enterprise_name` VARCHAR(200)  NOT NULL COMMENT '客户/企业名称',
+    `industry`        VARCHAR(100)  NOT NULL DEFAULT '' COMMENT '所属行业',
+    `training_topic`  VARCHAR(200)  NOT NULL DEFAULT '' COMMENT '培训主题',
+    `training_effect`  TEXT         NULL COMMENT '培训效果描述',
+    `trainee_count`   INT           NULL COMMENT '培训人数',
+    `training_date`   DATE          NULL COMMENT '培训日期',
+    `description`     TEXT          NULL COMMENT '案例详细描述',
+    `cover_image`     VARCHAR(500)  NOT NULL DEFAULT '' COMMENT '封面图 URL',
+    `auto_extracted`  TINYINT(1)    NOT NULL DEFAULT 0 COMMENT '是否系统自动萃取：0=否, 1=是',
+    `sort_order`      INT           NOT NULL DEFAULT 0 COMMENT '排序值，值越大越靠前',
+    `status`          TINYINT(2)    NOT NULL DEFAULT 0 COMMENT '审核状态：0=待审核, 1=通过, 2=驳回',
+    `reject_reason`   VARCHAR(500)  NOT NULL DEFAULT '' COMMENT '驳回原因',
+    `reviewer_id`     INT           NULL COMMENT '审核人 ID',
+    `reviewed_at`     DATETIME      NULL COMMENT '审核时间',
+    `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_trainer_cases_trainer_status_sort` (`trainer_id`, `status`, `sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='专家授课案例表';
+
+-- 专家案例文件表（图片+视频）
+CREATE TABLE `user_trainer_case_files` (
+    `id`              INT           NOT NULL AUTO_INCREMENT,
+    `trainer_id`      INT           NOT NULL COMMENT '关联 user_trainers.id',
+    `case_id`         INT           NOT NULL COMMENT '关联 user_trainer_cases.id',
+    `file_type`       TINYINT(2)    NOT NULL DEFAULT 1 COMMENT '文件类型：1=图片, 2=视频',
+    `title`           VARCHAR(200)  NOT NULL DEFAULT '' COMMENT '标题',
+    `description`     VARCHAR(500)  NOT NULL DEFAULT '' COMMENT '描述',
+    `file_url`        VARCHAR(500)  NOT NULL COMMENT '文件 URL',
+    `thumbnail_url`   VARCHAR(500)  NOT NULL DEFAULT '' COMMENT '缩略图 URL',
+    `width`           INT           NOT NULL DEFAULT 0 COMMENT '图片宽度（px）',
+    `height`          INT           NOT NULL DEFAULT 0 COMMENT '图片高度（px）',
+    `duration`        INT           NOT NULL DEFAULT 0 COMMENT '视频时长（秒），图片为 0',
+    `file_size`       BIGINT        NOT NULL DEFAULT 0 COMMENT '文件大小（字节）',
+    `auto_extracted`  TINYINT(1)    NOT NULL DEFAULT 0 COMMENT '是否系统自动萃取',
+    `sort_order`      INT           NOT NULL DEFAULT 0 COMMENT '排序值',
+    `status`          TINYINT(2)    NOT NULL DEFAULT 0 COMMENT '审核状态：0=待审核, 1=通过, 2=驳回',
+    `reject_reason`   VARCHAR(500)  NOT NULL DEFAULT '' COMMENT '驳回原因',
+    `reviewer_id`     INT           NULL COMMENT '审核人 ID',
+    `reviewed_at`     DATETIME      NULL COMMENT '审核时间',
+    `view_count`      INT           NOT NULL DEFAULT 0 COMMENT '浏览/播放次数',
+    `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_trainer_case_files_case_sort` (`case_id`, `sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='专家案例文件表';

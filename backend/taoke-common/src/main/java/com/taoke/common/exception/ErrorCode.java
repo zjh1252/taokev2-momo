@@ -52,6 +52,16 @@ public enum ErrorCode {
     FORBIDDEN(403, 10102, "无权限访问"),
     TOKEN_EXPIRED(401, 10103, "登录已过期，请重新登录"),
 
+    /* ==================== 专家案例/精彩瞬间 200xx ==================== */
+    TRAINER_CASE_NOT_FOUND(404, 20030, "案例不存在"),
+    TRAINER_CASE_NO_PERMISSION(403, 20031, "无权操作此案例"),
+    TRAINER_CASE_STATUS_INVALID(400, 20032, "案例当前状态不允许此操作"),
+    TRAINER_CASE_FILE_NOT_FOUND(404, 20033, "案例文件不存在"),
+    TRAINER_HIGHLIGHT_NOT_FOUND(404, 20050, "精彩瞬间不存在"),
+    TRAINER_HIGHLIGHT_NO_PERMISSION(403, 20051, "无权操作此精彩瞬间"),
+    TRAINER_HIGHLIGHT_STATUS_INVALID(400, 20052, "精彩瞬间当前状态不允许此操作"),
+    TRAINER_PROFILE_REQUIRED(400, 20060, "请先完成专家入驻"),
+
     /* ==================== 课程 300xx ==================== */
     COURSE_NOT_FOUND(404, 30001, "课程不存在"),
     COURSE_STATUS_INVALID(400, 30002, "课程当前状态不允许此操作"),
@@ -92,6 +102,11 @@ public enum ErrorCode {
     FILE_UPLOAD_FAILED(500, 90010, "文件上传失败"),
     INVALID_FILE_TYPE(400, 90011, "不支持的文件类型"),
     FILE_TOO_LARGE(400, 90012, "文件大小超出限制"),
+
+    /* ==================== 敏感词 900xx ==================== */
+    SENSITIVE_WORD_NOT_FOUND(404, 90020, "敏感词不存在"),
+    SENSITIVE_WORD_EXISTS(400, 90021, "敏感词已存在"),
+    SENSITIVE_WORD_IMPORT_EMPTY(400, 90022, "导入文件内容为空"),
 
     INTERNAL_ERROR(500, 99999, "系统繁忙，请稍后再试");
 
