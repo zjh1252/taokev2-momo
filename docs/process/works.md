@@ -241,3 +241,77 @@
   - 用户中心评价页：mock 替换为真实"我的评价"列表 + 提交入口
   - 用户中心学习页："去评价"按钮 → ReviewDialog
 - 新增 docs/refactor-tables-mapping.md：新旧表映射说明
+
+## 2026-04-11 16:50
+
+实现敏感词、专家案例、专家精彩瞬间三个功能的后端部分：
+
+**敏感词功能（taoke-common + taoke-admin）**
+- Flyway V29: sys_sensitive_words 表
+- DfaTrieFilter: 基于 DFA Trie 的高效敏感词匹配算法，启动时加载到内存
+- SensitiveWord Entity + Repository
+- SensitiveWordService / SensitiveWordServiceImpl: 检测/查找/替换 + 词库管理（CRUD/批量导入/重载）
+- AdminSensitiveWordController: 分页查询、新增、编辑、删除、批量导入（文件上传）、手动重载
+- ErrorCode 新增 900xx 段 3 个敏感词错误码
+
+**专家案例功能（taoke-user + taoke-admin）**
+- Flyway V30: user_trainer_cases + user_trainer_case_files 表
+- TrainerCase + TrainerCaseFile Entity + Repository
+- TrainerCaseService / TrainerCaseServiceImpl: 专家自服务（案例 CRUD + 文件管理）、C 端公开列表、后台分页查询/审核
+- TrainerCaseController: 自服务 /trainers/me/cases/*、C 端公开 /trainers/{id}/cases
+- AdminTrainerCaseController: /admin/trainer-cases/* 列表/详情/审核通过/驳回
+- TrainerCaseApprovedEvent / TrainerCaseRejectedEvent 领域事件
+
+**专家精彩瞬间功能（taoke-user + taoke-admin）**
+- Flyway V31: user_trainer_highlights 表
+- TrainerHighlight Entity + Repository
+- TrainerHighlightService / TrainerHighlightServiceImpl: 专家自服务（CRUD + 批量排序）、C 端公开列表、后台审核
+- TrainerHighlightController: 自服务 /trainers/me/highlights/*、C 端公开 /trainers/{id}/highlights
+- AdminTrainerHighlightController: /admin/trainer-highlights/* 列表/详情/审核
+- TrainerHighlightApprovedEvent / TrainerHighlightRejectedEvent 领域事件
+
+**索引优化**
+- Flyway V32: 优化 V29-V31 中的低效单列索引，替换为联合索引
+- ErrorCode 新增 200xx 段 8 个案例/精彩瞬间错误码
+
+## 2026-04-11 19:30
+
+实现敏感词、专家案例、专家精彩瞬间三个功能的前端页面：
+
+**Admin 后台 — 案例管理（admin-frontend）**
+- features/trainer-cases: API 层（types + service + queries + server-service）
+- BFF 路由: api/trainer-cases/[id]/approve|reject
+- 组件: cases-table（columns + cell-action + index）、case-listing
+- 页面: dashboard/trainers/cases — 列表 + 状态筛选 + 审核通过/驳回操作
+
+**Admin 后台 — 精彩瞬间管理（admin-frontend）**
+- features/trainer-highlights: API 层（types + service + queries + server-service）
+- BFF 路由: api/trainer-highlights/[id]/approve|reject
+- 组件: highlights-table（columns + cell-action + index）、highlight-listing
+- 页面: dashboard/trainers/highlights — 带缩略图的列表 + 状态筛选 + 审核操作
+
+**Admin 后台 — 敏感词管理（admin-frontend）**
+- features/sensitive-words: API 层（types + service + queries + server-service）
+- BFF 路由: api/sensitive-words/[id] + import + reload
+- 组件: words-table（columns + cell-action + index）、word-form-dialog（新增/编辑）、import-dialog（批量导入）、page-actions（新增/导入/重载按钮）、word-listing
+- 页面: dashboard/sensitive-words — CRUD 完整管理 + 批量导入 + 词库重载
+
+**Admin 后台 — 导航更新**
+- nav-config.ts: 专家管理下新增「案例管理」「精彩瞬间管理」；新增「内容管理」分组含「敏感词管理」
+- use-breadcrumbs.tsx: 新增案例/精彩瞬间/敏感词的面包屑映射
+
+**C 端用户中心 — 我的案例（frontend）**
+- features/trainer-case: API 层（types + service）
+- 页面: dashboard/cases/manage — 案例列表（状态 Tab + 卡片 + 编辑/删除）
+- 页面: dashboard/cases/create — 发布案例表单（含封面上传）
+- 页面: dashboard/cases/[id]/edit — 编辑案例
+
+**C 端用户中心 — 我的精彩瞬间（frontend）**
+- features/trainer-highlight: API 层（types + service）
+- 页面: dashboard/highlights/manage — 精彩瞬间列表（网格布局 + 状态 Tab + 媒体预览）
+- 页面: dashboard/highlights/create — 发布精彩瞬间（图片/视频类型选择 + 上传）
+- 页面: dashboard/highlights/[id]/edit — 编辑精彩瞬间
+
+**C 端导航更新**
+- routes.ts: 新增 UC_CASES_MANAGE/CREATE、UC_HIGHLIGHTS_MANAGE/CREATE 路由常量
+- user-center-sidebar.tsx: 新增「我的案例」和「我的精彩瞬间」分组菜单

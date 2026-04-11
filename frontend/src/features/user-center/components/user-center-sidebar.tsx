@@ -17,6 +17,8 @@ import {
   BookOpen,
   Video,
   ChevronDown,
+  Briefcase,
+  Camera,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -40,6 +42,20 @@ const NAV_ENTRIES: NavEntry[] = [
     children: [
       { label: '发布课程', href: ROUTES.UC_COURSES_CREATE },
       { label: '管理课程', href: ROUTES.UC_COURSES_MANAGE },
+    ],
+  },
+  {
+    kind: 'group', label: '我的案例', icon: <Briefcase className="size-5" />,
+    children: [
+      { label: '发布案例', href: ROUTES.UC_CASES_CREATE },
+      { label: '管理案例', href: ROUTES.UC_CASES_MANAGE },
+    ],
+  },
+  {
+    kind: 'group', label: '我的精彩瞬间', icon: <Camera className="size-5" />,
+    children: [
+      { label: '发布精彩瞬间', href: ROUTES.UC_HIGHLIGHTS_CREATE },
+      { label: '管理精彩瞬间', href: ROUTES.UC_HIGHLIGHTS_MANAGE },
     ],
   },
   {

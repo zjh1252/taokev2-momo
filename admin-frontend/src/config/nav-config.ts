@@ -87,6 +87,14 @@ export const navGroups: NavGroup[] = [
           {
             title: '专家申请',
             url: '/dashboard/trainers/applications'
+          },
+          {
+            title: '案例管理',
+            url: '/dashboard/trainers/cases'
+          },
+          {
+            title: '精彩瞬间管理',
+            url: '/dashboard/trainers/highlights'
           }
         ]
       }
@@ -196,6 +204,23 @@ export const navGroups: NavGroup[] = [
         icon: 'permission',
         isActive: false,
         items: []
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
+        title: '内容管理',
+        url: '#',
+        icon: 'text',
+        isActive: false,
+        items: [
+          {
+            title: '敏感词管理',
+            url: '/dashboard/sensitive-words'
+          }
+        ]
       }
     ]
   },
