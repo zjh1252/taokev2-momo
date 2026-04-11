@@ -20,7 +20,9 @@ CREATE TABLE `user_trainer_cases` (
     `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    KEY `idx_trainer_cases_trainer_status_sort` (`trainer_id`, `status`, `sort_order`)
+    KEY `idx_trainer_cases_trainer_id` (`trainer_id`),
+    KEY `idx_trainer_cases_status` (`status`),
+    KEY `idx_trainer_cases_sort_order` (`sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='专家授课案例表';
 
 -- 专家案例文件表（图片+视频）
@@ -47,5 +49,8 @@ CREATE TABLE `user_trainer_case_files` (
     `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    KEY `idx_trainer_case_files_case_sort` (`case_id`, `sort_order`)
+    KEY `idx_trainer_case_files_trainer_id` (`trainer_id`),
+    KEY `idx_trainer_case_files_case_id` (`case_id`),
+    KEY `idx_trainer_case_files_status` (`status`),
+    KEY `idx_trainer_case_files_sort_order` (`sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='专家案例文件表';

@@ -18,5 +18,7 @@ CREATE TABLE `user_trainer_highlights` (
     `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    KEY `idx_trainer_highlights_trainer_status_sort` (`trainer_id`, `status`, `sort_order`)
+    KEY `idx_trainer_highlights_trainer_id` (`trainer_id`),
+    KEY `idx_trainer_highlights_status` (`status`),
+    KEY `idx_trainer_highlights_sort_order` (`sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='专家精彩瞬间表';
