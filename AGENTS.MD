@@ -89,15 +89,24 @@
   - 遵守 Java Spring Boot 开发规范，有良好详细的中文注释。
   - 注释语言用中文
   - 如在开发中，有未实现的地方，要带上"//TODO"的注释标记 和 原因说明,以方便后续跟进
-  - 列表分页查询规范：优先使用三段式查询（分页查 ID → 回表主表 → 批量查集合并组装），避免 N+1 与分页膨胀问题。
+  - JPA 性能规范：
+    - Entity 必须加 `@DynamicInsert`，推荐加 `@DynamicUpdate`
+    - 关联关系一律 `FetchType.LAZY`，禁止依赖默认 EAGER
+    - 禁止在循环中访问懒加载属性
+    - 列表分页查询用三段式（分页查 ID → 回表主表 → 批量查集合），避免 N+1 与分页膨胀
+    - 单条详情需要关联数据时用 `@EntityGraph` 或 `JOIN FETCH`
+    - 列表查询优先用 DTO 投影（Interface Projection 或 JPQL new），不查完整 Entity
 - Mysql 规范：
   - 数据表的设计与命名符合主流规范，字段要写注释，资源表使用复数，
   - id 主键使用 int 自增
   - 如无特殊指令，数据表都要有id,created_at, updated_at字段，时间字段使用 datetime
   - 数据库索引要以 idx前缀开头，数据表不使用外键，在代码中逻辑维持。
   - 中间关联表注意字段命名格式
-  - 布尔字段规范：数据库列名禁止以 `is`_ 前缀开头，直接用语义词命名（如 `anonymous`、`enabled`、`activated`、`featured`），类型统一使用 `TINYINT(1)`；Java Entity 端对应使用 `Boolean` 类型，必须显式赋默认值（如 `private Boolean anonymous = false;`），getter/setter 交由 Lombok 自动生成，不手写。
-  - 小整型字段规范：非布尔的小整型字段（如状态 status、评分 rating 等取值范围有限的字段）使用 `TINYINT(2)`，以与 `TINYINT(1)` 的布尔语义区分；如需更大范围可使用 `SMALLINT(4)`。Java Entity 端对应使用 `Integer` 类型。
+  - 布尔字段规范：
+    - 数据库列名禁止 `is_` 前缀，用语义词命名（如 `enabled`、`activated`、`certified`、`featured`、`deleted`、`visible`）
+    - 数据库类型使用 `TINYINT(1)`；非布尔小整型（status、rating 等）使用 `TINYINT(2)` + Java `Integer` 以区分语义
+    - Java Entity 使用 `Boolean` 包装类型，不设 Java 侧默认值，默认值由数据库 `DEFAULT` 控制（配合 `@DynamicInsert`）
+    - getter/setter 交由 Lombok 生成，禁止手写
   - API规划上，路由不需要有/api前缀，ingress自动发现直接到具体资源
 - Controller 规范：
   - 路由写法：不使用类级 `@RequestMapping` 前缀拼接，每个方法注解上直接写完整资源路径，方便全局搜索定位路由。比如： @PutMapping("/users/me/password")
