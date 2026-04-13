@@ -16,12 +16,16 @@ import { apiClient } from '@/lib/api-client';
 
 interface OverviewStats {
   totalUsers: number;
+  todayUsers: number;
   monthUsers: number;
   totalTrainers: number;
+  todayTrainers: number;
   monthTrainers: number;
   totalCourses: number;
+  todayCourses: number;
   monthCourses: number;
   totalOrders: number;
+  todayOrders: number;
   monthOrders: number;
 }
 
@@ -36,32 +40,40 @@ const CARDS = [
     key: 'users' as const,
     label: '用户总数',
     totalField: 'totalUsers' as const,
+    todayField: 'todayUsers' as const,
     monthField: 'monthUsers' as const,
-    monthLabel: '本月新增用户',
+    todayLabel: '今日新增用户数',
+    monthLabel: '本月新增用户数',
     icon: Icons.teams
   },
   {
     key: 'trainers' as const,
     label: '专家总数',
     totalField: 'totalTrainers' as const,
+    todayField: 'todayTrainers' as const,
     monthField: 'monthTrainers' as const,
-    monthLabel: '本月新增专家',
+    todayLabel: '今日新增专家数',
+    monthLabel: '本月新增专家数',
     icon: Icons.kanban
   },
   {
     key: 'courses' as const,
     label: '课程总数',
     totalField: 'totalCourses' as const,
+    todayField: 'todayCourses' as const,
     monthField: 'monthCourses' as const,
-    monthLabel: '本月新增课程',
+    todayLabel: '今日新增课程数',
+    monthLabel: '本月新增课程数',
     icon: Icons.laptop
   },
   {
     key: 'orders' as const,
     label: '订单总数',
     totalField: 'totalOrders' as const,
+    todayField: 'todayOrders' as const,
     monthField: 'monthOrders' as const,
-    monthLabel: '本月新增订单',
+    todayLabel: '今日新增订单数',
+    monthLabel: '本月新增订单数',
     icon: Icons.forms
   }
 ] as const;
@@ -93,6 +105,7 @@ export default function OverviewPage() {
         <div className='*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs md:grid-cols-2 lg:grid-cols-4'>
           {CARDS.map((card) => {
             const total = stats?.[card.totalField] ?? 0;
+            const today = stats?.[card.todayField] ?? 0;
             const month = stats?.[card.monthField] ?? 0;
             const Icon = card.icon;
 
@@ -108,16 +121,18 @@ export default function OverviewPage() {
                   </CardTitle>
                   <CardAction>
                     <Badge variant='outline'>
-                      +{loading ? '-' : month}
+                      +{loading ? '-' : today}
                     </Badge>
                   </CardAction>
                 </CardHeader>
                 <CardFooter className='flex-col items-start gap-1.5 text-sm'>
                   <div className='line-clamp-1 flex gap-2 font-medium'>
-                    {card.monthLabel}
-                    {month > 0 && <Icons.trendingUp className='size-4' />}
+                    {card.todayLabel}：{loading ? '-' : today}
+                    {today > 0 && <Icons.trendingUp className='size-4' />}
                   </div>
-                  <div className='text-muted-foreground'>当月累计数据</div>
+                  <div className='text-muted-foreground'>
+                    {card.monthLabel}：{loading ? '-' : month}
+                  </div>
                 </CardFooter>
               </Card>
             );
