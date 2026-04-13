@@ -29,7 +29,6 @@
     - 使用 Flyway 做数据迁移， 生成迁移
     - Spring Data Redis
     - Redisson：用于分布式锁、延迟队列、高级数据结构与并发控制
-    - Redisson：用于分布式锁、延迟队列、高级数据结构与并发控制
   - 中间件 / 其他：
     - MySQL：8.4.7
     - Redis：缓存与会话相关存储
@@ -40,8 +39,8 @@
 - 前端技术栈:
   - nextjs ^16 + tailwind + shadcn-ui
   - **包管理器（定死，勿混用）**：
-    - C 端 **`frontend`**：仅 **pnpm**（`pnpm install` / `pnpm add`）
-    - 管理后台 **`admin-frontend`**：仅 **bun**（`bun install` / `bun add`）
+    - C 端 **`frontend`**
+    - 管理后台 **`admin-frontend`**
   - i18n 采用 next-intl
   - 主题参考 themes 目录下
   - 低耦合,模块化
