@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Briefcase,
   Camera,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -70,6 +71,7 @@ const NAV_ENTRIES: NavEntry[] = [
   { kind: 'item', label: '我的需求', href: ROUTES.UC_DEMANDS, icon: <ClipboardList className="size-5" /> },
   { kind: 'item', label: '我的收藏', href: ROUTES.UC_FAVORITES, icon: <Heart className="size-5" /> },
   { kind: 'item', label: '我的点评', href: ROUTES.UC_REVIEWS, icon: <MessageCircle className="size-5" /> },
+  { kind: 'item', label: '培协', href: ROUTES.ASSOCIATIONS, icon: <Building2 className="size-5" /> },
   {
     kind: 'group', label: '淘课联盟', icon: <Handshake className="size-5" />, separator: true,
     children: [

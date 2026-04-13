@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { label: '内训课', href: ROUTES.INTERNAL_COURSES },
   { label: '录播课', href: ROUTES.ONLINE_COURSES },
   { label: '机构', href: ROUTES.INSTITUTIONS },
+  { label: '培协', href: ROUTES.ASSOCIATIONS },
 ] as const;
 
 /**
@@ -21,7 +22,7 @@ const NAV_LINKS = [
  * @date 2026-04-03 10:00
  */
 export function UserCenterHeader() {
-  const { user, logout } = useAuth();
+  const { user, logout, trainerPublicHomeHref } = useAuth();
 
   return (
     <header className="bg-primary text-white h-[60px] flex items-center shadow-md sticky top-0 z-50">
@@ -51,6 +52,17 @@ export function UserCenterHeader() {
         <div className="flex items-center gap-4 text-sm">
           {user && (
             <span className="text-white/90">欢迎您，{user.nickname}</span>
+          )}
+          {trainerPublicHomeHref && (
+            <>
+              <span className="w-[1px] h-3 bg-white/30" />
+              <Link
+                href={trainerPublicHomeHref}
+                className="hover:text-white/80 transition-colors"
+              >
+                个人主页
+              </Link>
+            </>
           )}
           <span className="w-[1px] h-3 bg-white/30" />
           <Link
