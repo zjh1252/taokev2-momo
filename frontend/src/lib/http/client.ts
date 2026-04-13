@@ -61,13 +61,21 @@ export async function apiClient<T>(
   const { silent, ...fetchInit } = init || {};
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
 
-  const response = await fetch(url, {
-    ...fetchInit,
-    headers: {
-      'Content-Type': 'application/json',
-      ...fetchInit.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...fetchInit,
+      headers: {
+        'Content-Type': 'application/json',
+        ...fetchInit.headers,
+      },
+    });
+  } catch {
+    if (!silent && typeof window !== 'undefined') {
+      toast.error('网络连接失败，请检查网络后重试');
+    }
+    throw new ApiException(0, undefined, '网络连接失败');
+  }
 
   if (!response.ok) {
     const message = await extractErrorMessage(response, response.status);

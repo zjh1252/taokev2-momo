@@ -14,7 +14,6 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
 import { toast } from 'sonner';
-import { ApiException } from '@/lib/http/client';
 
 export default function CreateHighlightPage() {
   const router = useRouter();
@@ -76,10 +75,8 @@ export default function CreateHighlightPage() {
 
       toast.success('精彩瞬间已创建');
       router.push(ROUTES.UC_HIGHLIGHTS_MANAGE);
-    } catch (err) {
-      if (!(err instanceof ApiException)) {
-        toast.error('创建失败，请检查网络连接');
-      }
+    } catch {
+      // 平台层已统一处理错误提示
     } finally {
       setSubmitting(false);
     }
