@@ -49,17 +49,9 @@
 ## 目录结构
 
 - 后端项目: /backend
-  - /backend/taoke-common — 公共基础层（工具、DTO、事件总线、安全注解、文件上传）
-  - /backend/taoke-user — 用户域（认证、权限、RBAC、各角色档案、专家/经纪人/机构等供给侧）
-  - /backend/taoke-course — 课程域（课程管理、订单、支付、需求、案例、评价、CMS、消息）
-  - /backend/taoke-admin — 后台管理编排层（Admin API，薄编排，调用 user/course 的 api 接口）
-  - /backend/taoke-app — 启动入口（聚合所有模块、Flyway 迁移、全局配置）
 - 管理后台前端: /admin-frontend（**bun**）
 - C端前端项目: /frontend（**pnpm**）
 - 文档目录: /docs
-  - 项目概述: /docs/01-项目概述.md
-  - 架构设计: /docs/02-架构设计.md
-  - 角色体系: /docs/03-角色体系.md
 - 需求文档目录: /docs/prds (人为梳理的需求，可能根实际开发会有出入)
 - 开发任务文档： /docs/tasks
 
@@ -85,28 +77,10 @@
      */
     ```
   - 行内注释：逻辑复杂、有业务坑点需要提示的时候，才简洁说明写在代码的上一行。
-- Java 规范:
-  - 遵守 Java Spring Boot 开发规范，有良好详细的中文注释。
-  - 注释语言用中文
-  - 如在开发中，有未实现的地方，要带上"//TODO"的注释标记 和 原因说明,以方便后续跟进
-  - JPA 性能规范：
-    - Entity 必须加 `@DynamicInsert`，推荐加 `@DynamicUpdate`
-    - 关联关系一律 `FetchType.LAZY`，禁止依赖默认 EAGER
-    - 禁止在循环中访问懒加载属性
-    - 列表分页查询用三段式（分页查 ID → 回表主表 → 批量查集合），避免 N+1 与分页膨胀
-    - 单条详情需要关联数据时用 `@EntityGraph` 或 `JOIN FETCH`
-    - 列表查询优先用 DTO 投影（Interface Projection 或 JPQL new），不查完整 Entity
 - Mysql 规范：
   - 数据表的设计与命名符合主流规范，字段要写注释，资源表使用复数，
   - id 主键使用 int 自增
   - 如无特殊指令，数据表都要有id,created_at, updated_at字段，时间字段使用 datetime
-  - 数据库索引要以 idx前缀开头，数据表不使用外键，在代码中逻辑维持。
-  - 中间关联表注意字段命名格式
-  - 布尔字段规范：
-    - 数据库列名禁止 `is_` 前缀，用语义词命名（如 `enabled`、`activated`、`certified`、`featured`、`deleted`、`visible`）
-    - 数据库类型使用 `TINYINT(1)`；非布尔小整型（status、rating 等）使用 `TINYINT(2)` + Java `Integer` 以区分语义
-    - Java Entity 使用 `Boolean` 包装类型，不设 Java 侧默认值，默认值由数据库 `DEFAULT` 控制（配合 `@DynamicInsert`）
-    - getter/setter 交由 Lombok 生成，禁止手写
   - API规划上，路由不需要有/api前缀，ingress自动发现直接到具体资源
 - Controller 规范：
   - 路由写法：不使用类级 `@RequestMapping` 前缀拼接，每个方法注解上直接写完整资源路径，方便全局搜索定位路由。比如： @PutMapping("/users/me/password")
