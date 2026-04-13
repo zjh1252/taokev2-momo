@@ -1,30 +1,25 @@
+export type TrainerHighlightFile = {
+  id: number;
+  highlightId: number;
+  fileType: number;
+  title: string | null;
+  fileUrl: string;
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  fileSize: number | null;
+  sortOrder: number;
+  createdAt: string;
+};
+
 export type AdminTrainerHighlight = {
   id: number;
   trainerId: number;
   trainerName: string | null;
-  mediaType: number;
-  title: string | null;
-  mediaUrl: string;
-  thumbnailUrl: string | null;
-  sortOrder: number;
-  status: number;
-  rejectReason: string | null;
-  viewCount: number;
-  reviewedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type TrainerHighlightDetail = {
-  id: number;
-  trainerId: number;
-  mediaType: number;
   title: string | null;
   description: string | null;
-  mediaUrl: string;
-  thumbnailUrl: string | null;
-  duration: number | null;
-  fileSize: number | null;
+  coverImage: string | null;
   sortOrder: number;
   status: number;
   rejectReason: string | null;
@@ -32,7 +27,10 @@ export type TrainerHighlightDetail = {
   reviewedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  files: TrainerHighlightFile[];
 };
+
+export type TrainerHighlightDetail = AdminTrainerHighlight;
 
 export type TrainerHighlightFilters = {
   page?: number;
@@ -59,17 +57,15 @@ export type TrainerHighlightDetailResponse = {
 };
 
 export const HIGHLIGHT_STATUS_MAP: Record<number, string> = {
-  0: '草稿',
-  1: '待审核',
-  2: '审核通过',
-  3: '审核驳回'
+  0: '待审核',
+  1: '审核通过',
+  2: '审核驳回'
 };
 
 export const HIGHLIGHT_STATUS_OPTIONS = [
-  { value: '0', label: '草稿' },
-  { value: '1', label: '待审核' },
-  { value: '2', label: '审核通过' },
-  { value: '3', label: '审核驳回' }
+  { value: '0', label: '待审核' },
+  { value: '1', label: '审核通过' },
+  { value: '2', label: '审核驳回' }
 ];
 
 export const MEDIA_TYPE_MAP: Record<number, string> = {

@@ -1,6 +1,8 @@
 package com.taoke.user.api;
 
+import com.taoke.user.dto.trainerhighlight.SaveTrainerHighlightFileRequest;
 import com.taoke.user.dto.trainerhighlight.SaveTrainerHighlightRequest;
+import com.taoke.user.dto.trainerhighlight.TrainerHighlightFileResponse;
 import com.taoke.user.dto.trainerhighlight.TrainerHighlightResponse;
 import com.taoke.user.entity.TrainerHighlight;
 import org.springframework.data.domain.Page;
@@ -28,6 +30,13 @@ public interface TrainerHighlightService {
 
     /** 批量调整排序（按 ID 列表顺序） */
     void batchSort(Integer userId, List<Integer> ids);
+
+    /** 添加文件到精彩瞬间 */
+    TrainerHighlightFileResponse addHighlightFile(Integer userId, Integer highlightId,
+                                                  SaveTrainerHighlightFileRequest request);
+
+    /** 删除精彩瞬间中的文件 */
+    void deleteHighlightFile(Integer userId, Integer highlightId, Integer fileId);
 
     // ==================== C端公开 ====================
 

@@ -56,14 +56,12 @@ export type SaveTrainerCaseRequest = {
 };
 
 export const CaseStatus = {
-  DRAFT: 0,
-  PENDING: 1,
-  APPROVED: 2,
-  REJECTED: 3
+  PENDING: 0,
+  APPROVED: 1,
+  REJECTED: 2
 } as const;
 
 export const CaseStatusLabelMap: Record<number, string> = {
-  [CaseStatus.DRAFT]: '草稿',
   [CaseStatus.PENDING]: '待审核',
   [CaseStatus.APPROVED]: '已通过',
   [CaseStatus.REJECTED]: '已驳回'

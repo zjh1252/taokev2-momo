@@ -4,14 +4,13 @@ import { TOKEN_KEY } from '@/lib/auth/constants';
 import type {
   ApiResponse,
   TrainerHighlight,
-  SaveTrainerHighlightRequest
+  TrainerHighlightFile,
+  SaveTrainerHighlightRequest,
+  SaveTrainerHighlightFileRequest
 } from './types';
 
 /**
  * 专家精彩瞬间 API — 自服务接口（需登录）
- *
- * @author Fangxinxin
- * @date 2026-04-11 18:00
  */
 
 function authHeaders() {
@@ -58,4 +57,28 @@ export async function deleteHighlight(id: number): Promise<void> {
   await apiDelete<ApiResponse<void>>(`/trainers/me/highlights/${id}`, {
     headers: authHeaders()
   });
+}
+
+/** 添加文件到精彩瞬间 */
+export async function addHighlightFile(
+  highlightId: number,
+  data: SaveTrainerHighlightFileRequest
+): Promise<TrainerHighlightFile> {
+  const res = await apiPost<ApiResponse<TrainerHighlightFile>>(
+    `/trainers/me/highlights/${highlightId}/files`,
+    data,
+    { headers: authHeaders() }
+  );
+  return res.data;
+}
+
+/** 删除精彩瞬间中的文件 */
+export async function deleteHighlightFile(
+  highlightId: number,
+  fileId: number
+): Promise<void> {
+  await apiDelete<ApiResponse<void>>(
+    `/trainers/me/highlights/${highlightId}/files/${fileId}`,
+    { headers: authHeaders() }
+  );
 }

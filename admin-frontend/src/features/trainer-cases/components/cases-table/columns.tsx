@@ -9,11 +9,11 @@ import { CellAction } from './cell-action';
 
 function statusVariant(status: number) {
   switch (status) {
-    case 2:
-      return 'default';
     case 1:
+      return 'default';
+    case 0:
       return 'secondary';
-    case 3:
+    case 2:
       return 'destructive';
     default:
       return 'outline';

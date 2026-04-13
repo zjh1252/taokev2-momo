@@ -1,13 +1,10 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/http/client';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
-import type { ApiResponse, TrainerCase, SaveTrainerCaseRequest } from './types';
+import type { ApiResponse, TrainerCase, TrainerCaseFile, SaveTrainerCaseRequest } from './types';
 
 /**
  * 专家案例 API — 自服务接口（需登录）
- *
- * @author Fangxinxin
- * @date 2026-04-11 18:00
  */
 
 function authHeaders() {
@@ -63,4 +60,28 @@ export async function deleteCase(id: number): Promise<void> {
   await apiDelete<ApiResponse<void>>(`/trainers/me/cases/${id}`, {
     headers: authHeaders()
   });
+}
+
+/** 添加案例附件 */
+export async function addCaseFile(
+  caseId: number,
+  data: { fileType: number; title?: string; fileUrl: string; thumbnailUrl?: string; width?: number; height?: number; duration?: number; fileSize?: number; sortOrder?: number }
+): Promise<TrainerCaseFile> {
+  const res = await apiPost<ApiResponse<TrainerCaseFile>>(
+    `/trainers/me/cases/${caseId}/files`,
+    data,
+    { headers: authHeaders() }
+  );
+  return res.data;
+}
+
+/** 删除案例附件 */
+export async function deleteCaseFile(
+  caseId: number,
+  fileId: number
+): Promise<void> {
+  await apiDelete<ApiResponse<void>>(
+    `/trainers/me/cases/${caseId}/files/${fileId}`,
+    { headers: authHeaders() }
+  );
 }

@@ -36,7 +36,7 @@ export function CellAction({ data }: CellActionProps) {
   const [reason, setReason] = useState('');
   const queryClient = useQueryClient();
 
-  const isPending = data.status === 1;
+  const isPending = data.status === 0;
 
   const approveMutation = useMutation({
     mutationFn: () => approveTrainerCase(data.id),
@@ -124,11 +124,11 @@ export function CellAction({ data }: CellActionProps) {
           {!isPending && (
             <DropdownMenuItem disabled>
               <Icons.info className='mr-2 h-4 w-4' />
-              {data.status === 2
+              {data.status === 1
                 ? '已通过'
-                : data.status === 3
+                : data.status === 2
                   ? '已驳回'
-                  : '草稿'}
+                  : '未知'}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

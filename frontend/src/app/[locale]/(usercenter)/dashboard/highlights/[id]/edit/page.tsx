@@ -1,28 +1,22 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import {
   getMyHighlights,
   updateHighlight,
+  addHighlightFile,
+  deleteHighlightFile,
 } from '@/features/trainer-highlight/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
-import {
-  MediaType,
-  type SaveTrainerHighlightRequest,
-} from '@/features/trainer-highlight/api/types';
-import { ArrowLeft, Upload, ImageIcon, Video } from 'lucide-react';
+import type { SaveTrainerHighlightRequest } from '@/features/trainer-highlight/api/types';
+import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
-import { cn } from '@/lib/utils';
+import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
+import { toast } from 'sonner';
 
-/**
- * 编辑精彩瞬间
- *
- * @author Fangxinxin
- * @date 2026-04-11 18:30
- */
 export default function EditHighlightPage({
   params: paramsPromise,
 }: {
@@ -33,15 +27,15 @@ export default function EditHighlightPage({
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
 
   const [form, setForm] = useState<SaveTrainerHighlightRequest>({
-    mediaType: MediaType.IMAGE,
     title: '',
     description: '',
-    mediaUrl: '',
-    thumbnailUrl: '',
+    coverImage: '',
   });
+
+  const [files, setFiles] = useState<UploadedFile[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -50,17 +44,24 @@ export default function EditHighlightPage({
         const detail = list.find((h) => h.id === highlightId);
         if (detail) {
           setForm({
-            mediaType: detail.mediaType,
             title: detail.title || '',
             description: detail.description || '',
-            mediaUrl: detail.mediaUrl,
-            thumbnailUrl: detail.thumbnailUrl || '',
-            duration: detail.duration ?? undefined,
-            fileSize: detail.fileSize ?? undefined,
+            coverImage: detail.coverImage || '',
           });
+          setFiles(
+            (detail.files || []).map((f) => ({
+              id: f.id,
+              fileType: f.fileType,
+              fileUrl: f.fileUrl,
+              thumbnailUrl: f.thumbnailUrl || undefined,
+              title: f.title || undefined,
+              fileSize: f.fileSize ?? undefined,
+              sortOrder: f.sortOrder,
+            })),
+          );
         }
       } catch {
-        alert('加载详情失败');
+        toast.error('加载详情失败');
       } finally {
         setLoading(false);
       }
@@ -72,35 +73,73 @@ export default function EditHighlightPage({
     value: SaveTrainerHighlightRequest[K],
   ) => setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
+    setCoverUploading(true);
     try {
       const url = await uploadImage(file);
-      updateField('mediaUrl', url);
-      if (form.mediaType === MediaType.IMAGE) {
-        updateField('thumbnailUrl', url);
-      }
+      updateField('coverImage', url);
     } catch {
-      alert('上传失败');
+      toast.error('封面上传失败');
     } finally {
-      setUploading(false);
+      setCoverUploading(false);
     }
   };
 
+  const handleAddFile = useCallback(
+    async (file: UploadedFile) => {
+      try {
+        const saved = await addHighlightFile(highlightId, {
+          fileType: file.fileType,
+          fileUrl: file.fileUrl,
+          thumbnailUrl: file.thumbnailUrl || '',
+          title: file.title || '',
+          fileSize: file.fileSize,
+          sortOrder: file.sortOrder,
+        });
+        setFiles((prev) => [
+          ...prev,
+          {
+            id: saved.id,
+            fileType: saved.fileType,
+            fileUrl: saved.fileUrl,
+            thumbnailUrl: saved.thumbnailUrl || undefined,
+            title: saved.title || undefined,
+            fileSize: saved.fileSize ?? undefined,
+            sortOrder: saved.sortOrder,
+          },
+        ]);
+      } catch {
+        toast.error('添加文件失败');
+      }
+    },
+    [highlightId],
+  );
+
+  const handleRemoveFile = useCallback(
+    async (index: number, file: UploadedFile) => {
+      if (file.id) {
+        try {
+          await deleteHighlightFile(highlightId, file.id);
+        } catch {
+          toast.error('删除文件失败');
+          return;
+        }
+      }
+      setFiles((prev) => prev.filter((_, i) => i !== index));
+    },
+    [highlightId],
+  );
+
   const handleSubmit = async () => {
-    if (!form.mediaUrl) {
-      alert('请上传媒体文件');
-      return;
-    }
     setSubmitting(true);
     try {
       await updateHighlight(highlightId, form);
-      alert('已更新');
+      toast.success('已更新');
       router.push(ROUTES.UC_HIGHLIGHTS_MANAGE);
     } catch {
-      alert('更新失败');
+      toast.error('更新失败');
     } finally {
       setSubmitting(false);
     }
@@ -126,74 +165,6 @@ export default function EditHighlightPage({
       </div>
 
       <div className="px-6 py-6 max-w-2xl space-y-5">
-        <FormField label="媒体类型">
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => updateField('mediaType', MediaType.IMAGE)}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm transition-colors',
-                form.mediaType === MediaType.IMAGE
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-slate-200 text-gray-600 hover:bg-slate-50',
-              )}
-            >
-              <ImageIcon className="size-4" />
-              图片
-            </button>
-            <button
-              type="button"
-              onClick={() => updateField('mediaType', MediaType.VIDEO)}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm transition-colors',
-                form.mediaType === MediaType.VIDEO
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-slate-200 text-gray-600 hover:bg-slate-50',
-              )}
-            >
-              <Video className="size-4" />
-              视频
-            </button>
-          </div>
-        </FormField>
-
-        <FormField label="媒体文件" required>
-          {form.mediaUrl ? (
-            <div className="relative w-[240px] h-[180px] rounded-lg overflow-hidden border border-slate-200">
-              <Image
-                src={form.thumbnailUrl || form.mediaUrl}
-                alt="预览"
-                fill
-                className="object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  updateField('mediaUrl', '');
-                  updateField('thumbnailUrl', '');
-                }}
-                className="absolute top-1 right-1 bg-black/50 text-white rounded-full size-5 flex items-center justify-center text-xs hover:bg-black/70"
-              >
-                ×
-              </button>
-            </div>
-          ) : (
-            <label className="w-[240px] h-[180px] rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary/50 transition-colors">
-              <Upload className="size-6 text-slate-400" />
-              <span className="text-sm text-slate-400">
-                {uploading ? '上传中...' : '重新上传'}
-              </span>
-              <input
-                type="file"
-                accept={form.mediaType === MediaType.IMAGE ? 'image/*' : 'video/*'}
-                onChange={handleMediaUpload}
-                className="hidden"
-                disabled={uploading}
-              />
-            </label>
-          )}
-        </FormField>
-
         <FormField label="标题">
           <input
             type="text"
@@ -214,6 +185,48 @@ export default function EditHighlightPage({
           />
         </FormField>
 
+        <FormField label="封面图">
+          {form.coverImage ? (
+            <div className="relative w-[240px] h-[180px] rounded-lg overflow-hidden border border-slate-200">
+              <Image
+                src={form.coverImage}
+                alt="封面"
+                fill
+                className="object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => updateField('coverImage', '')}
+                className="absolute top-1 right-1 bg-black/50 text-white rounded-full size-5 flex items-center justify-center text-xs hover:bg-black/70"
+              >
+                ×
+              </button>
+            </div>
+          ) : (
+            <label className="w-[240px] h-[180px] rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary/50 transition-colors">
+              <Upload className="size-6 text-slate-400" />
+              <span className="text-sm text-slate-400">
+                {coverUploading ? '上传中...' : '上传封面图'}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleCoverUpload}
+                className="hidden"
+                disabled={coverUploading}
+              />
+            </label>
+          )}
+        </FormField>
+
+        <FormField label="媒体文件（图片/视频）">
+          <MultiFileUploader
+            files={files}
+            onAdd={handleAddFile}
+            onRemove={handleRemoveFile}
+          />
+        </FormField>
+
         <div className="flex gap-3 pt-4">
           <button
             type="button"
@@ -225,7 +238,7 @@ export default function EditHighlightPage({
           </button>
           <Link
             href={ROUTES.UC_HIGHLIGHTS_MANAGE}
-            className="border border-slate-200 text-gray-600 text-sm px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-colors"
+            className="border border-slate-200 text-gray-600 text-sm px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-colors inline-flex items-center"
           >
             取消
           </Link>

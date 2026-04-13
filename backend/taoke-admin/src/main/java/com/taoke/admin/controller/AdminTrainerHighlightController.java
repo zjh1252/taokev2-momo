@@ -25,7 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 后台 — 精彩瞬间管理（列表 + 审核）
+ * 后台管理 — 专家精彩瞬间审核
  *
  * @author Fangxinxin
  * @date 2026-04-11 16:30
@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminTrainerHighlightController {
 
-    private final TrainerHighlightService trainerHighlightService;
+    private final TrainerHighlightService highlightService;
     private final TrainerService trainerService;
 
     @Operation(summary = "分页查询精彩瞬间列表")
@@ -46,34 +46,39 @@ public class AdminTrainerHighlightController {
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Page<TrainerHighlight> result = trainerHighlightService.adminSearch(trainerId, status, page, size);
+        Page<TrainerHighlight> result = highlightService.adminSearch(trainerId, status,
+                page - 1, size);
 
         List<Integer> trainerIds = result.getContent().stream()
                 .map(TrainerHighlight::getTrainerId).distinct().toList();
         Map<Integer, Trainer> trainerMap = trainerService.findByIds(trainerIds).stream()
                 .collect(Collectors.toMap(Trainer::getId, Function.identity()));
 
-        PageResponse<AdminTrainerHighlightVO> response = PageResponse.of(result, h -> {
-            AdminTrainerHighlightVO vo = AdminTrainerHighlightVO.from(h);
-            Trainer trainer = trainerMap.get(h.getTrainerId());
-            if (trainer != null) {
-                vo.setTrainerName(trainer.getName());
-            }
-            return vo;
-        });
-        return ApiResponse.ok(response);
+        List<AdminTrainerHighlightVO> voList = result.getContent().stream()
+                .map(h -> {
+                    TrainerHighlightResponse detail = highlightService.adminGetDetail(h.getId());
+                    AdminTrainerHighlightVO vo = AdminTrainerHighlightVO.from(h, detail.getFiles());
+                    Trainer trainer = trainerMap.get(h.getTrainerId());
+                    if (trainer != null) {
+                        vo.setTrainerName(trainer.getName());
+                    }
+                    return vo;
+                })
+                .collect(Collectors.toList());
+
+        return ApiResponse.ok(PageResponse.of(voList, result.getTotalElements(), page, size));
     }
 
     @Operation(summary = "精彩瞬间详情")
     @GetMapping("/admin/trainer-highlights/{id}")
     public ApiResponse<TrainerHighlightResponse> detail(@PathVariable Integer id) {
-        return ApiResponse.ok(trainerHighlightService.adminGetDetail(id));
+        return ApiResponse.ok(highlightService.adminGetDetail(id));
     }
 
     @Operation(summary = "审核通过")
     @PutMapping("/admin/trainer-highlights/{id}/approve")
     public ApiResponse<Void> approve(@PathVariable Integer id) {
-        trainerHighlightService.approve(id, SecurityUtils.getCurrentUserId());
+        highlightService.approve(id, SecurityUtils.getCurrentUserId());
         return ApiResponse.ok();
     }
 
@@ -81,7 +86,7 @@ public class AdminTrainerHighlightController {
     @PutMapping("/admin/trainer-highlights/{id}/reject")
     public ApiResponse<Void> reject(@PathVariable Integer id,
                                     @Valid @RequestBody RejectApplicationRequest request) {
-        trainerHighlightService.reject(id, SecurityUtils.getCurrentUserId(), request.getReason());
+        highlightService.reject(id, SecurityUtils.getCurrentUserId(), request.getReason());
         return ApiResponse.ok();
     }
 }

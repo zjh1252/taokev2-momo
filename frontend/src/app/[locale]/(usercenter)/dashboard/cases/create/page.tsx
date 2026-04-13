@@ -1,21 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
-import { createCase } from '@/features/trainer-case/api/service';
+import { createCase, addCaseFile } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
+import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
+import { toast } from 'sonner';
 
-/**
- * 发布案例 — 填写案例信息
- *
- * @author Fangxinxin
- * @date 2026-04-11 18:00
- */
 export default function CreateCasePage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -33,6 +29,8 @@ export default function CreateCasePage() {
     coverImage: '',
   });
 
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+
   const updateField = <K extends keyof SaveTrainerCaseRequest>(
     key: K,
     value: SaveTrainerCaseRequest[K],
@@ -46,24 +44,46 @@ export default function CreateCasePage() {
       const url = await uploadImage(file);
       updateField('coverImage', url);
     } catch {
-      alert('封面上传失败');
+      toast.error('封面上传失败');
     } finally {
       setCoverUploading(false);
     }
   };
 
+  const handleAddFile = useCallback((file: UploadedFile) => {
+    setFiles((prev) => [...prev, file]);
+  }, []);
+
+  const handleRemoveFile = useCallback((_index: number, _file: UploadedFile) => {
+    setFiles((prev) => prev.filter((_, i) => i !== _index));
+  }, []);
+
   const handleSubmit = async () => {
     if (!form.caseTitle.trim() || !form.enterpriseName.trim()) {
-      alert('请填写案例标题和企业名称');
+      toast.error('请填写案例标题和企业名称');
       return;
     }
     setSubmitting(true);
     try {
-      await createCase(form);
-      alert('案例已创建');
+      const created = await createCase(form);
+
+      // 逐个上传附件到子表
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        await addCaseFile(created.id, {
+          fileType: f.fileType,
+          fileUrl: f.fileUrl,
+          thumbnailUrl: f.thumbnailUrl || '',
+          title: f.title || '',
+          fileSize: f.fileSize,
+          sortOrder: i,
+        });
+      }
+
+      toast.success('案例已创建');
       router.push(ROUTES.UC_CASES_MANAGE);
     } catch {
-      alert('创建失败');
+      toast.error('创建失败');
     } finally {
       setSubmitting(false);
     }
@@ -198,6 +218,14 @@ export default function CreateCasePage() {
           </div>
         </FormField>
 
+        <FormField label="案例附件（图片/视频）">
+          <MultiFileUploader
+            files={files}
+            onAdd={handleAddFile}
+            onRemove={handleRemoveFile}
+          />
+        </FormField>
+
         <div className="flex gap-3 pt-4">
           <button
             type="button"
@@ -209,7 +237,7 @@ export default function CreateCasePage() {
           </button>
           <Link
             href={ROUTES.UC_CASES_MANAGE}
-            className="border border-slate-200 text-gray-600 text-sm px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-colors"
+            className="border border-slate-200 text-gray-600 text-sm px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-colors inline-flex items-center"
           >
             取消
           </Link>

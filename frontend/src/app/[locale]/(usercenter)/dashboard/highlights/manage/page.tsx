@@ -11,7 +11,6 @@ import {
 import {
   HighlightStatus,
   HighlightStatusLabelMap,
-  MediaTypeLabelMap,
   type TrainerHighlight,
 } from '@/features/trainer-highlight/api/types';
 import {
@@ -21,36 +20,47 @@ import {
   Camera,
   Edit,
   Play,
+  ImageIcon,
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { MediaGallery, type MediaGalleryItem } from '@/components/media-gallery';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const STATUS_TABS: { label: string; value: number | undefined }[] = [
   { label: '全部', value: undefined },
-  { label: '草稿', value: HighlightStatus.DRAFT },
   { label: '待审核', value: HighlightStatus.PENDING },
   { label: '已通过', value: HighlightStatus.APPROVED },
   { label: '已驳回', value: HighlightStatus.REJECTED },
 ];
 
 const STATUS_BADGE_STYLES: Record<number, string> = {
-  [HighlightStatus.DRAFT]: 'bg-slate-100 text-slate-600',
   [HighlightStatus.PENDING]: 'bg-amber-50 text-amber-600',
   [HighlightStatus.APPROVED]: 'bg-green-50 text-green-600',
   [HighlightStatus.REJECTED]: 'bg-red-50 text-red-600',
 };
 
-/**
- * 管理精彩瞬间 — 列表页
- *
- * @author Fangxinxin
- * @date 2026-04-11 18:30
- */
 export default function ManageHighlightsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<number | undefined>(undefined);
   const [highlights, setHighlights] = useState<TrainerHighlight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Gallery 灯箱状态
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryFiles, setGalleryFiles] = useState<MediaGalleryItem[]>([]);
+  const [galleryIndex, setGalleryIndex] = useState(0);
 
   const filtered = activeTab === undefined
     ? highlights
@@ -73,14 +83,30 @@ export default function ManageHighlightsPage() {
     fetchHighlights();
   }, [fetchHighlights]);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('确定要删除此精彩瞬间吗？')) return;
+  const handleConfirmDelete = async () => {
+    if (deleteId === null) return;
+    setDeleting(true);
     try {
-      await deleteHighlight(id);
+      await deleteHighlight(deleteId);
+      setDeleteId(null);
       fetchHighlights();
     } catch {
-      alert('删除失败');
+      // 静默处理
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const openGallery = (item: TrainerHighlight, index?: number) => {
+    if (!item.files || item.files.length === 0) return;
+    const items: MediaGalleryItem[] = item.files.map((f) => ({
+      url: f.fileUrl,
+      thumbnailUrl: f.thumbnailUrl,
+      type: f.fileType === 2 ? 'video' as const : 'image' as const,
+    }));
+    setGalleryFiles(items);
+    setGalleryIndex(index ?? 0);
+    setGalleryOpen(true);
   };
 
   return (
@@ -136,12 +162,45 @@ export default function ManageHighlightsPage() {
               <HighlightCard
                 key={item.id}
                 item={item}
-                onDelete={handleDelete}
+                onDelete={(id) => setDeleteId(id)}
+                onPreview={(idx) => openGallery(item, idx)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* 删除确认对话框 */}
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确定删除？</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作不可恢复，精彩瞬间及其所有文件将被永久删除。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteId(null)}>
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+            >
+              {deleting ? '删除中...' : '确认删除'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 灯箱预览 */}
+      <MediaGallery
+        files={galleryFiles}
+        initialIndex={galleryIndex}
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+      />
     </section>
   );
 }
@@ -149,47 +208,55 @@ export default function ManageHighlightsPage() {
 function HighlightCard({
   item,
   onDelete,
+  onPreview,
 }: {
   item: TrainerHighlight;
   onDelete: (id: number) => void;
+  onPreview: (index?: number) => void;
 }) {
   const statusLabel = HighlightStatusLabelMap[item.status] || '未知';
   const badgeStyle = STATUS_BADGE_STYLES[item.status] || 'bg-slate-100 text-slate-600';
-  const isDraft = item.status === HighlightStatus.DRAFT;
+  const isPending = item.status === HighlightStatus.PENDING;
   const isRejected = item.status === HighlightStatus.REJECTED;
-  const isVideo = item.mediaType === 2;
-  const thumbUrl = item.thumbnailUrl || item.mediaUrl;
+
+  const coverUrl = item.coverImage || item.files?.[0]?.thumbnailUrl || item.files?.[0]?.fileUrl;
+  const fileCount = item.files?.length || 0;
+  const hasVideo = item.files?.some((f) => f.fileType === 2);
 
   return (
-    <div className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-      <div className="relative aspect-[4/3] bg-slate-100">
-        {thumbUrl ? (
+    <div className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow group/card">
+      {/* 封面区域，点击打开灯箱 */}
+      <div
+        className="relative aspect-[4/3] bg-slate-100 cursor-pointer"
+        onClick={() => onPreview(0)}
+      >
+        {coverUrl ? (
           <Image
-            src={thumbUrl}
+            src={coverUrl}
             alt={item.title || '精彩瞬间'}
             fill
-            className="object-cover"
+            className="object-cover group-hover/card:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Camera className="size-10 text-slate-300" />
           </div>
         )}
-        {isVideo && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-            <Play className="size-8 text-white" />
-          </div>
-        )}
+
+        {/* 状态标签 */}
         <div className="absolute top-2 left-2">
           <span className={cn('text-[11px] px-2 py-0.5 rounded-full', badgeStyle)}>
             {statusLabel}
           </span>
         </div>
-        <div className="absolute top-2 right-2">
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-black/50 text-white">
-            {MediaTypeLabelMap[item.mediaType] || '未知'}
-          </span>
-        </div>
+
+        {/* 文件数量角标 */}
+        {fileCount > 0 && (
+          <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/60 text-white text-[11px] px-2 py-0.5 rounded-full">
+            {hasVideo ? <Play className="size-3" /> : <ImageIcon className="size-3" />}
+            <span>{fileCount}</span>
+          </div>
+        )}
       </div>
 
       <div className="p-3">
@@ -208,7 +275,7 @@ function HighlightCard({
           </div>
         )}
 
-        {(isDraft || isRejected) && (
+        {(isPending || isRejected) && (
           <div className="flex gap-2 mt-2">
             <Link
               href={`/dashboard/highlights/${item.id}/edit`}

@@ -38,7 +38,11 @@ public class TrainerHighlight extends BaseEntity {
     @Column(name = "description", length = 500)
     private String description;
 
-    /** 图片/视频 URL */
+    /** 封面图 URL */
+    @Column(name = "cover_image", length = 500)
+    private String coverImage;
+
+    /** 图片/视频 URL（历史兼容，新数据存入 highlight_files 子表） */
     @Column(name = "media_url", nullable = false, length = 500)
     private String mediaUrl;
 

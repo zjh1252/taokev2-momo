@@ -79,15 +79,13 @@ export type TrainerCaseDetailResponse = {
 };
 
 export const CASE_STATUS_MAP: Record<number, string> = {
-  0: '草稿',
-  1: '待审核',
-  2: '审核通过',
-  3: '审核驳回'
+  0: '待审核',
+  1: '审核通过',
+  2: '审核驳回'
 };
 
 export const CASE_STATUS_OPTIONS = [
-  { value: '0', label: '草稿' },
-  { value: '1', label: '待审核' },
-  { value: '2', label: '审核通过' },
-  { value: '3', label: '审核驳回' }
+  { value: '0', label: '待审核' },
+  { value: '1', label: '审核通过' },
+  { value: '2', label: '审核驳回' }
 ];

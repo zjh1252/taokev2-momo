@@ -1,9 +1,11 @@
 package com.taoke.admin.dto;
 
+import com.taoke.user.dto.trainerhighlight.TrainerHighlightFileResponse;
 import com.taoke.user.entity.TrainerHighlight;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 后台精彩瞬间列表 VO
@@ -17,10 +19,9 @@ public class AdminTrainerHighlightVO {
     private Integer id;
     private Integer trainerId;
     private String trainerName;
-    private Integer mediaType;
     private String title;
-    private String mediaUrl;
-    private String thumbnailUrl;
+    private String description;
+    private String coverImage;
     private Integer sortOrder;
     private Integer status;
     private String rejectReason;
@@ -29,14 +30,17 @@ public class AdminTrainerHighlightVO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static AdminTrainerHighlightVO from(TrainerHighlight entity) {
+    /** 关联的文件列表 */
+    private List<TrainerHighlightFileResponse> files;
+
+    public static AdminTrainerHighlightVO from(TrainerHighlight entity,
+                                               List<TrainerHighlightFileResponse> files) {
         AdminTrainerHighlightVO vo = new AdminTrainerHighlightVO();
         vo.setId(entity.getId());
         vo.setTrainerId(entity.getTrainerId());
-        vo.setMediaType(entity.getMediaType());
         vo.setTitle(entity.getTitle());
-        vo.setMediaUrl(entity.getMediaUrl());
-        vo.setThumbnailUrl(entity.getThumbnailUrl());
+        vo.setDescription(entity.getDescription());
+        vo.setCoverImage(entity.getCoverImage());
         vo.setSortOrder(entity.getSortOrder());
         vo.setStatus(entity.getStatus());
         vo.setRejectReason(entity.getRejectReason());
@@ -44,6 +48,7 @@ public class AdminTrainerHighlightVO {
         vo.setReviewedAt(entity.getReviewedAt());
         vo.setCreatedAt(entity.getCreatedAt());
         vo.setUpdatedAt(entity.getUpdatedAt());
+        vo.setFiles(files);
         return vo;
     }
 }

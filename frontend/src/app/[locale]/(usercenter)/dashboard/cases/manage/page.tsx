@@ -18,33 +18,37 @@ import {
   Briefcase,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const STATUS_TABS: { label: string; value: number | undefined }[] = [
   { label: '全部', value: undefined },
-  { label: '草稿', value: CaseStatus.DRAFT },
   { label: '待审核', value: CaseStatus.PENDING },
   { label: '已通过', value: CaseStatus.APPROVED },
   { label: '已驳回', value: CaseStatus.REJECTED },
 ];
 
 const STATUS_BADGE_STYLES: Record<number, string> = {
-  [CaseStatus.DRAFT]: 'bg-slate-100 text-slate-600',
   [CaseStatus.PENDING]: 'bg-amber-50 text-amber-600',
   [CaseStatus.APPROVED]: 'bg-green-50 text-green-600',
   [CaseStatus.REJECTED]: 'bg-red-50 text-red-600',
 };
 
-/**
- * 管理案例 — 我的案例列表页
- *
- * @author Fangxinxin
- * @date 2026-04-11 18:00
- */
 export default function ManageCasesPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<number | undefined>(undefined);
   const [cases, setCases] = useState<TrainerCase[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const filteredCases = activeTab === undefined
     ? cases
@@ -67,13 +71,17 @@ export default function ManageCasesPage() {
     fetchCases();
   }, [fetchCases]);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('确定要删除此案例吗？此操作不可恢复。')) return;
+  const handleConfirmDelete = async () => {
+    if (deleteId === null) return;
+    setDeleting(true);
     try {
-      await deleteCase(id);
+      await deleteCase(deleteId);
+      setDeleteId(null);
       fetchCases();
     } catch {
-      alert('删除失败');
+      // 静默处理
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -130,12 +138,36 @@ export default function ManageCasesPage() {
               <CaseCard
                 key={item.id}
                 item={item}
-                onDelete={handleDelete}
+                onDelete={(id) => setDeleteId(id)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* 删除确认对话框 */}
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确定删除？</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作不可恢复，案例及其所有附件将被永久删除。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteId(null)}>
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+            >
+              {deleting ? '删除中...' : '确认删除'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
@@ -149,7 +181,7 @@ function CaseCard({
 }) {
   const statusLabel = CaseStatusLabelMap[item.status] || '未知';
   const badgeStyle = STATUS_BADGE_STYLES[item.status] || 'bg-slate-100 text-slate-600';
-  const isDraft = item.status === CaseStatus.DRAFT;
+  const isPending = item.status === CaseStatus.PENDING;
   const isRejected = item.status === CaseStatus.REJECTED;
 
   return (
@@ -180,7 +212,7 @@ function CaseCard({
       </div>
 
       <div className="flex flex-col gap-2 shrink-0 justify-center">
-        {(isDraft || isRejected) && (
+        {(isPending || isRejected) && (
           <Link
             href={`/dashboard/cases/${item.id}/edit`}
             className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
@@ -189,7 +221,7 @@ function CaseCard({
             编辑
           </Link>
         )}
-        {(isDraft || isRejected) && (
+        {(isPending || isRejected) && (
           <button
             type="button"
             onClick={() => onDelete(item.id)}

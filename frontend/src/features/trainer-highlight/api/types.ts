@@ -4,16 +4,27 @@ export type ApiResponse<T> = {
   data: T;
 };
 
+export type TrainerHighlightFile = {
+  id: number;
+  highlightId: number;
+  fileType: number;
+  title: string | null;
+  fileUrl: string;
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  fileSize: number | null;
+  sortOrder: number;
+  createdAt: string;
+};
+
 export type TrainerHighlight = {
   id: number;
   trainerId: number;
-  mediaType: number;
   title: string | null;
   description: string | null;
-  mediaUrl: string;
-  thumbnailUrl: string | null;
-  duration: number | null;
-  fileSize: number | null;
+  coverImage: string | null;
   sortOrder: number;
   status: number;
   rejectReason: string | null;
@@ -21,14 +32,23 @@ export type TrainerHighlight = {
   reviewedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  files: TrainerHighlightFile[];
 };
 
 export type SaveTrainerHighlightRequest = {
-  mediaType: number;
   title?: string;
   description?: string;
-  mediaUrl: string;
+  coverImage?: string;
+  sortOrder?: number;
+};
+
+export type SaveTrainerHighlightFileRequest = {
+  fileType: number;
+  title?: string;
+  fileUrl: string;
   thumbnailUrl?: string;
+  width?: number;
+  height?: number;
   duration?: number;
   fileSize?: number;
   sortOrder?: number;
@@ -40,14 +60,12 @@ export const MediaType = {
 } as const;
 
 export const HighlightStatus = {
-  DRAFT: 0,
-  PENDING: 1,
-  APPROVED: 2,
-  REJECTED: 3
+  PENDING: 0,
+  APPROVED: 1,
+  REJECTED: 2
 } as const;
 
 export const HighlightStatusLabelMap: Record<number, string> = {
-  [HighlightStatus.DRAFT]: '草稿',
   [HighlightStatus.PENDING]: '待审核',
   [HighlightStatus.APPROVED]: '已通过',
   [HighlightStatus.REJECTED]: '已驳回'

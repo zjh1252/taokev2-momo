@@ -5,7 +5,6 @@ import type { AdminTrainerHighlight } from '../../api/types';
 import {
   HIGHLIGHT_STATUS_MAP,
   HIGHLIGHT_STATUS_OPTIONS,
-  MEDIA_TYPE_MAP
 } from '../../api/types';
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
@@ -14,11 +13,11 @@ import { CellAction } from './cell-action';
 
 function statusVariant(status: number) {
   switch (status) {
-    case 2:
-      return 'default';
     case 1:
+      return 'default';
+    case 0:
       return 'secondary';
-    case 3:
+    case 2:
       return 'destructive';
     default:
       return 'outline';
@@ -32,24 +31,20 @@ export const columns: ColumnDef<AdminTrainerHighlight>[] = [
     enableSorting: false
   },
   {
-    accessorKey: 'thumbnailUrl',
-    header: '缩略图',
+    id: 'cover',
+    header: '封面',
     cell: ({ row }) => {
-      const url = row.original.thumbnailUrl || row.original.mediaUrl;
-      const isVideo = row.original.mediaType === 2;
-      return url ? (
+      const coverUrl = row.original.coverImage
+        || row.original.files?.[0]?.thumbnailUrl
+        || row.original.files?.[0]?.fileUrl;
+      return coverUrl ? (
         <div className='relative h-10 w-16 overflow-hidden rounded'>
           <Image
-            src={url}
+            src={coverUrl}
             alt={row.original.title || ''}
             fill
             className='object-cover'
           />
-          {isVideo && (
-            <div className='absolute inset-0 flex items-center justify-center bg-black/30'>
-              <Icons.video className='h-4 w-4 text-white' />
-            </div>
-          )}
         </div>
       ) : (
         <div className='flex h-10 w-16 items-center justify-center rounded bg-muted'>
@@ -73,15 +68,11 @@ export const columns: ColumnDef<AdminTrainerHighlight>[] = [
     cell: ({ cell }) => cell.getValue<string>() || '-'
   },
   {
-    accessorKey: 'mediaType',
-    header: '类型',
-    cell: ({ cell }) => {
-      const type = cell.getValue<number>();
-      return (
-        <Badge variant='outline'>
-          {MEDIA_TYPE_MAP[type] ?? '未知'}
-        </Badge>
-      );
+    id: 'filesCount',
+    header: '文件数',
+    cell: ({ row }) => {
+      const count = row.original.files?.length || 0;
+      return <span>{count}</span>;
     }
   },
   {

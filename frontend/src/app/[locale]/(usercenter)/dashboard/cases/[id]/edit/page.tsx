@@ -1,24 +1,22 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import {
   getMyCaseDetail,
   updateCase,
+  addCaseFile,
+  deleteCaseFile,
 } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
+import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
+import { toast } from 'sonner';
 
-/**
- * 编辑案例
- *
- * @author Fangxinxin
- * @date 2026-04-11 18:00
- */
 export default function EditCasePage({
   params: paramsPromise,
 }: {
@@ -43,6 +41,8 @@ export default function EditCasePage({
     coverImage: '',
   });
 
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -58,8 +58,19 @@ export default function EditCasePage({
           description: detail.description || '',
           coverImage: detail.coverImage || '',
         });
+        setFiles(
+          (detail.files || []).map((f) => ({
+            id: f.id,
+            fileType: f.fileType,
+            fileUrl: f.fileUrl,
+            thumbnailUrl: f.thumbnailUrl || undefined,
+            title: f.title || undefined,
+            fileSize: f.fileSize ?? undefined,
+            sortOrder: f.sortOrder,
+          })),
+        );
       } catch {
-        alert('加载案例详情失败');
+        toast.error('加载案例详情失败');
       } finally {
         setLoading(false);
       }
@@ -79,24 +90,69 @@ export default function EditCasePage({
       const url = await uploadImage(file);
       updateField('coverImage', url);
     } catch {
-      alert('封面上传失败');
+      toast.error('封面上传失败');
     } finally {
       setCoverUploading(false);
     }
   };
 
+  const handleAddFile = useCallback(
+    async (file: UploadedFile) => {
+      try {
+        const saved = await addCaseFile(caseId, {
+          fileType: file.fileType,
+          fileUrl: file.fileUrl,
+          thumbnailUrl: file.thumbnailUrl || '',
+          title: file.title || '',
+          fileSize: file.fileSize,
+          sortOrder: file.sortOrder,
+        });
+        setFiles((prev) => [
+          ...prev,
+          {
+            id: saved.id,
+            fileType: saved.fileType,
+            fileUrl: saved.fileUrl,
+            thumbnailUrl: saved.thumbnailUrl || undefined,
+            title: saved.title || undefined,
+            fileSize: saved.fileSize ?? undefined,
+            sortOrder: saved.sortOrder,
+          },
+        ]);
+      } catch {
+        toast.error('添加文件失败');
+      }
+    },
+    [caseId],
+  );
+
+  const handleRemoveFile = useCallback(
+    async (index: number, file: UploadedFile) => {
+      if (file.id) {
+        try {
+          await deleteCaseFile(caseId, file.id);
+        } catch {
+          toast.error('删除文件失败');
+          return;
+        }
+      }
+      setFiles((prev) => prev.filter((_, i) => i !== index));
+    },
+    [caseId],
+  );
+
   const handleSubmit = async () => {
     if (!form.caseTitle.trim() || !form.enterpriseName.trim()) {
-      alert('请填写案例标题和企业名称');
+      toast.error('请填写案例标题和企业名称');
       return;
     }
     setSubmitting(true);
     try {
       await updateCase(caseId, form);
-      alert('案例已更新');
+      toast.success('案例已更新');
       router.push(ROUTES.UC_CASES_MANAGE);
     } catch {
-      alert('更新失败');
+      toast.error('更新失败');
     } finally {
       setSubmitting(false);
     }
@@ -234,6 +290,14 @@ export default function EditCasePage({
           </div>
         </FormField>
 
+        <FormField label="案例附件（图片/视频）">
+          <MultiFileUploader
+            files={files}
+            onAdd={handleAddFile}
+            onRemove={handleRemoveFile}
+          />
+        </FormField>
+
         <div className="flex gap-3 pt-4">
           <button
             type="button"
@@ -245,7 +309,7 @@ export default function EditCasePage({
           </button>
           <Link
             href={ROUTES.UC_CASES_MANAGE}
-            className="border border-slate-200 text-gray-600 text-sm px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-colors"
+            className="border border-slate-200 text-gray-600 text-sm px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-colors inline-flex items-center"
           >
             取消
           </Link>
