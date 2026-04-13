@@ -65,6 +65,16 @@ taoke:
     allowed-image-extensions: [jpg, jpeg, png, gif, webp]
     allowed-file-extensions: [pdf, doc, docx, xls, xlsx, ppt, pptx, txt, zip, rar]
 
+# Actuator 健康检查
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 # Springdoc OpenAPI
 springdoc:
   api-docs:

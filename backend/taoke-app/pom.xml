@@ -90,6 +90,12 @@
             </exclusions>
         </dependency>
 
+        <!-- 健康检查 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- 开发工具 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
