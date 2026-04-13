@@ -211,28 +211,20 @@ export const navGroups: NavGroup[] = [
     label: '',
     items: [
       {
-        title: '内容管理',
+        title: '系统管理',
         url: '#',
-        icon: 'text',
+        icon: 'settings',
         isActive: false,
         items: [
+          {
+            title: '系统设置',
+            url: '/dashboard/settings'
+          },
           {
             title: '敏感词管理',
             url: '/dashboard/sensitive-words'
           }
         ]
-      }
-    ]
-  },
-  {
-    label: '',
-    items: [
-      {
-        title: '系统配置',
-        url: '/dashboard/settings',
-        icon: 'settings',
-        isActive: false,
-        items: []
       }
     ]
   }

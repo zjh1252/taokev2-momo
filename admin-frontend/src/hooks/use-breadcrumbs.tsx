@@ -79,6 +79,7 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
   ],
   '/dashboard/sensitive-words': [
     { title: 'Dashboard', link: '/dashboard' },
+    { title: '系统管理', link: '#' },
     { title: '敏感词管理', link: '/dashboard/sensitive-words' }
   ],
   '/dashboard/institutions': [
@@ -122,6 +123,7 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
   ],
   '/dashboard/settings': [
     { title: 'Dashboard', link: '/dashboard' },
+    { title: '系统管理', link: '#' },
     { title: '系统设置', link: '/dashboard/settings' }
   ],
   '/dashboard/product': [

@@ -1,5 +1,8 @@
 package com.taoke.user.service;
 
+import com.taoke.common.eventbus.EventPublisher;
+import com.taoke.common.events.user.TrainerHighlightApprovedEvent;
+import com.taoke.common.events.user.TrainerHighlightRejectedEvent;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.TrainerHighlightService;
@@ -36,6 +39,7 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     private final TrainerHighlightRepository highlightRepository;
     private final TrainerHighlightFileRepository highlightFileRepository;
     private final TrainerRepository trainerRepository;
+    private final EventPublisher eventPublisher;
 
     // ==================== 专家自服务 ====================
 
@@ -208,6 +212,12 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         h.setStatus(1);
         h.setReviewedAt(LocalDateTime.now());
         highlightRepository.save(h);
+
+        Trainer trainer = trainerRepository.findById(h.getTrainerId()).orElse(null);
+        if (trainer != null) {
+            eventPublisher.publish(new TrainerHighlightApprovedEvent(
+                    highlightId, h.getTitle(), trainer.getUserId()));
+        }
     }
 
     @Override
@@ -219,6 +229,12 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         h.setRejectReason(reason);
         h.setReviewedAt(LocalDateTime.now());
         highlightRepository.save(h);
+
+        Trainer trainer = trainerRepository.findById(h.getTrainerId()).orElse(null);
+        if (trainer != null) {
+            eventPublisher.publish(new TrainerHighlightRejectedEvent(
+                    highlightId, h.getTitle(), trainer.getUserId(), reason));
+        }
     }
 
     // ==================== 内部方法 ====================

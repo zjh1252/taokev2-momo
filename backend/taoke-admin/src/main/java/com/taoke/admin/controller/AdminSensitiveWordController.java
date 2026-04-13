@@ -2,6 +2,7 @@ package com.taoke.admin.controller;
 
 import com.taoke.admin.dto.SaveSensitiveWordRequest;
 import com.taoke.admin.dto.SensitiveWordVO;
+import com.taoke.common.contentcheck.SkipContentCheck;
 import com.taoke.common.entity.SensitiveWord;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
@@ -31,6 +32,7 @@ import java.util.List;
  */
 @Tag(name = "后台-敏感词管理")
 @RestController
+@SkipContentCheck
 @RequireRole(BusinessRole.Code.SUPER_ADMIN)
 @RequiredArgsConstructor
 public class AdminSensitiveWordController {

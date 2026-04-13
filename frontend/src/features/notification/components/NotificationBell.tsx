@@ -47,7 +47,7 @@ export function NotificationBell() {
     };
 
     fetchCount();
-    const timer = setInterval(fetchCount, 30_000);
+    const timer = setInterval(fetchCount, 5_000);
     return () => clearInterval(timer);
   }, [user, getToken]);
 

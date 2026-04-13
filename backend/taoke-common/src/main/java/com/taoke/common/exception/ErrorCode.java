@@ -108,6 +108,9 @@ public enum ErrorCode {
     SENSITIVE_WORD_EXISTS(400, 90021, "敏感词已存在"),
     SENSITIVE_WORD_IMPORT_EMPTY(400, 90022, "导入文件内容为空"),
 
+    /* ==================== 内容审查 ==================== */
+    CONTENT_CHECK_FAILED(422, 100422, "内容审查未通过"),
+
     INTERNAL_ERROR(500, 99999, "系统繁忙，请稍后再试");
 
     /** HTTP 状态码（控制 ResponseEntity 的 status） */

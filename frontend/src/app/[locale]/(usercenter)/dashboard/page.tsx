@@ -15,9 +15,12 @@ import {
   BookOpen,
   Loader2,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getContinueLearning, getMyVideoLearnings } from '@/features/learning/api/service';
+import { getUnreadCount } from '@/features/notification/api/service';
 import type { ContinueLearning, MyVideoLearning } from '@/features/learning/api/types';
+import { storage } from '@/lib/storage';
+import { TOKEN_KEY } from '@/lib/auth/constants';
 import { cn } from '@/lib/utils';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -50,6 +53,22 @@ export default function DashboardPage() {
 
   const [recentVideos, setRecentVideos] = useState<MyVideoLearning[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(async () => {
+    const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
+    if (!tokenData?.accessToken) return;
+    try {
+      const res = await getUnreadCount(tokenData.accessToken);
+      setUnreadMsgCount(res.data ?? 0);
+    } catch {
+      // 静默处理
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUnreadCount();
+  }, [fetchUnreadCount]);
 
   useEffect(() => {
     getContinueLearning()
@@ -148,7 +167,7 @@ export default function DashboardPage() {
           <div className="flex gap-12">
             <div className="flex flex-col items-center">
               <div className="text-sm text-gray-500 mb-1">消息</div>
-              <div className="text-2xl font-bold text-primary font-mono">0</div>
+              <div className="text-2xl font-bold text-primary font-mono">{unreadMsgCount}</div>
             </div>
           </div>
         </div>

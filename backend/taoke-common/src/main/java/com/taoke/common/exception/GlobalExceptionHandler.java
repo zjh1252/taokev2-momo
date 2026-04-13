@@ -1,5 +1,6 @@
 package com.taoke.common.exception;
 
+import com.taoke.common.contentcheck.ContentCheckException;
 import com.taoke.common.response.ApiResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -25,6 +27,22 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * 内容审查异常 — 返回结构化信息（含策略名 + 命中词），前端可按 code=100422 统一拦截
+     */
+    @ExceptionHandler(ContentCheckException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleContentCheck(ContentCheckException e) {
+        ErrorCode ec = e.getErrorCode();
+        log.warn("内容审查拦截: strategy={}, message={}", e.getStrategyName(), e.getMessage());
+        Map<String, Object> detail = Map.of(
+                "strategyName", e.getStrategyName(),
+                "matchedWords", e.getMatchedWords()
+        );
+        return ResponseEntity
+                .status(ec.getHttpStatus())
+                .body(ApiResponse.error(ec.getCode(), e.getMessage(), detail));
+    }
 
     /**
      * 业务异常 — 由 Service 层主动抛出

@@ -19,7 +19,9 @@ public enum NotificationType {
     ORDER("订单通知"),
     COMMENT("评论通知"),
     VIDEO_REVIEW("录播课审核结果"),
-    VIDEO_PURCHASED("录播课被购买");
+    VIDEO_PURCHASED("录播课被购买"),
+    CASE_REVIEW("案例审核结果"),
+    HIGHLIGHT_REVIEW("精彩瞬间审核结果");
 
     private final String label;
 }
