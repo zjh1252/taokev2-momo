@@ -16,6 +16,7 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
 import { toast } from 'sonner';
+import { ApiException } from '@/lib/http/client';
 
 export default function EditCasePage({
   params: paramsPromise,
@@ -69,8 +70,10 @@ export default function EditCasePage({
             sortOrder: f.sortOrder,
           })),
         );
-      } catch {
-        toast.error('加载案例详情失败');
+      } catch (err) {
+        if (!(err instanceof ApiException)) {
+          toast.error('加载案例详情失败');
+        }
       } finally {
         setLoading(false);
       }
@@ -119,8 +122,10 @@ export default function EditCasePage({
             sortOrder: saved.sortOrder,
           },
         ]);
-      } catch {
-        toast.error('添加文件失败');
+      } catch (err) {
+        if (!(err instanceof ApiException)) {
+          toast.error('添加文件失败');
+        }
       }
     },
     [caseId],
@@ -131,8 +136,10 @@ export default function EditCasePage({
       if (file.id) {
         try {
           await deleteCaseFile(caseId, file.id);
-        } catch {
-          toast.error('删除文件失败');
+        } catch (err) {
+          if (!(err instanceof ApiException)) {
+            toast.error('删除文件失败');
+          }
           return;
         }
       }
@@ -151,8 +158,10 @@ export default function EditCasePage({
       await updateCase(caseId, form);
       toast.success('案例已更新');
       router.push(ROUTES.UC_CASES_MANAGE);
-    } catch {
-      toast.error('更新失败');
+    } catch (err) {
+      if (!(err instanceof ApiException)) {
+        toast.error('更新失败，请检查网络连接');
+      }
     } finally {
       setSubmitting(false);
     }

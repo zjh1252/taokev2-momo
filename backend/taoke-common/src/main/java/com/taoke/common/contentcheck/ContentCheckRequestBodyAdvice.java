@@ -66,9 +66,12 @@ public class ContentCheckRequestBodyAdvice extends RequestBodyAdviceAdapter {
             return false;
         }
 
-        // 跳过 /admin/ 开头的请求
+        // 跳过不需要内容审查的路径
         String uri = request.getRequestURI();
-        return !uri.startsWith("/admin/");
+        if (uri.startsWith("/admin/") || uri.startsWith("/auth/")) {
+            return false;
+        }
+        return true;
     }
 
     @Override

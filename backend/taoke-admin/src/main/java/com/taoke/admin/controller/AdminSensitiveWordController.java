@@ -44,9 +44,10 @@ public class AdminSensitiveWordController {
     public ApiResponse<PageResponse<SensitiveWordVO>> list(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer category,
+            @RequestParam(required = false) Boolean enabled,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Page<SensitiveWord> result = sensitiveWordService.search(keyword, category, page, size);
+        Page<SensitiveWord> result = sensitiveWordService.search(keyword, category, enabled, page, size);
         return ApiResponse.ok(PageResponse.of(result, SensitiveWordVO::from));
     }
 

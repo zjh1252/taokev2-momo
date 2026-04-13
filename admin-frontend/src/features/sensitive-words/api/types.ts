@@ -13,6 +13,7 @@ export type SensitiveWordFilters = {
   limit?: number;
   keyword?: string;
   category?: number;
+  enabled?: string;
 };
 
 export type SensitiveWordsResponse = {

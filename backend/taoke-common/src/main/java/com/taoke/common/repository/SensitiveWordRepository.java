@@ -31,8 +31,10 @@ public interface SensitiveWordRepository extends JpaRepository<SensitiveWord, In
 
     /** 按关键词模糊搜索 */
     @Query("SELECT s FROM SensitiveWord s WHERE (:keyword IS NULL OR s.word LIKE %:keyword%) " +
-            "AND (:category IS NULL OR s.category = :category)")
+            "AND (:category IS NULL OR s.category = :category) " +
+            "AND (:enabled IS NULL OR s.enabled = :enabled)")
     Page<SensitiveWord> search(@Param("keyword") String keyword,
                                @Param("category") Integer category,
+                               @Param("enabled") Boolean enabled,
                                Pageable pageable);
 }

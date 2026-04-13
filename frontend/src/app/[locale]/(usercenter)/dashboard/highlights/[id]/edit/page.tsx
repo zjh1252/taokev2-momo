@@ -16,6 +16,7 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
 import { toast } from 'sonner';
+import { ApiException } from '@/lib/http/client';
 
 export default function EditHighlightPage({
   params: paramsPromise,
@@ -60,8 +61,10 @@ export default function EditHighlightPage({
             })),
           );
         }
-      } catch {
-        toast.error('加载详情失败');
+      } catch (err) {
+        if (!(err instanceof ApiException)) {
+          toast.error('加载详情失败');
+        }
       } finally {
         setLoading(false);
       }
@@ -110,8 +113,10 @@ export default function EditHighlightPage({
             sortOrder: saved.sortOrder,
           },
         ]);
-      } catch {
-        toast.error('添加文件失败');
+      } catch (err) {
+        if (!(err instanceof ApiException)) {
+          toast.error('添加文件失败');
+        }
       }
     },
     [highlightId],
@@ -122,8 +127,10 @@ export default function EditHighlightPage({
       if (file.id) {
         try {
           await deleteHighlightFile(highlightId, file.id);
-        } catch {
-          toast.error('删除文件失败');
+        } catch (err) {
+          if (!(err instanceof ApiException)) {
+            toast.error('删除文件失败');
+          }
           return;
         }
       }
@@ -138,8 +145,10 @@ export default function EditHighlightPage({
       await updateHighlight(highlightId, form);
       toast.success('已更新');
       router.push(ROUTES.UC_HIGHLIGHTS_MANAGE);
-    } catch {
-      toast.error('更新失败');
+    } catch (err) {
+      if (!(err instanceof ApiException)) {
+        toast.error('更新失败，请检查网络连接');
+      }
     } finally {
       setSubmitting(false);
     }

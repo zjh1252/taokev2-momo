@@ -10,6 +10,7 @@ import type { SaveVideoRequest } from '@/features/video/api/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { toast } from 'sonner';
+import { ApiException } from '@/lib/http/client';
 
 export default function CreateVideoPage() {
   const router = useRouter();
@@ -32,8 +33,10 @@ export default function CreateVideoPage() {
 
       toast.success('录播课已提交，等待管理员审核');
       router.push(ROUTES.UC_VIDEOS_MANAGE);
-    } catch {
-      toast.error('保存失败，请稍后重试');
+    } catch (err) {
+      if (!(err instanceof ApiException)) {
+        toast.error('保存失败，请检查网络连接');
+      }
     } finally {
       setSubmitting(false);
     }

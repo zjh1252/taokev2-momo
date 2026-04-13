@@ -15,6 +15,7 @@ export const searchParams = {
   name: parseAsString,
   gender: parseAsString,
   category: parseAsString,
+  enabled: parseAsString,
   role: parseAsString,
   sort: parseAsString
 };

@@ -76,9 +76,9 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
     }
 
     @Override
-    public Page<SensitiveWord> search(String keyword, Integer category, int page, int size) {
+    public Page<SensitiveWord> search(String keyword, Integer category, Boolean enabled, int page, int size) {
         PageRequest pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "id"));
-        return sensitiveWordRepository.search(keyword, category, pageable);
+        return sensitiveWordRepository.search(keyword, category, enabled, pageable);
     }
 
     @Override

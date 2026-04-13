@@ -12,13 +12,17 @@ export function SensitiveWordsTable() {
   const [params] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(20),
-    name: parseAsString
+    name: parseAsString,
+    category: parseAsString,
+    enabled: parseAsString
   });
 
   const filters = {
     page: params.page,
     limit: params.perPage,
-    ...(params.name && { keyword: params.name })
+    ...(params.name && { keyword: params.name }),
+    ...(params.category && { category: Number(params.category) }),
+    ...(params.enabled && { enabled: params.enabled })
   };
 
   const { data: resp } = useSuspenseQuery(

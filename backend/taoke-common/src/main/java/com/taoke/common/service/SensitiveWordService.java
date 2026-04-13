@@ -33,7 +33,7 @@ public interface SensitiveWordService {
     void reload();
 
     /** 分页查询敏感词 */
-    Page<SensitiveWord> search(String keyword, Integer category, int page, int size);
+    Page<SensitiveWord> search(String keyword, Integer category, Boolean enabled, int page, int size);
 
     /** 新增敏感词 */
     SensitiveWord create(String word, Integer category, String replacement, Boolean enabled);

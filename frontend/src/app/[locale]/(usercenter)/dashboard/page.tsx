@@ -165,10 +165,13 @@ export default function DashboardPage() {
         {/* 资产操作 */}
         <div className="lg:border-l border-slate-100 lg:pl-8 flex flex-col items-start lg:items-end w-full lg:w-auto">
           <div className="flex gap-12">
-            <div className="flex flex-col items-center">
-              <div className="text-sm text-gray-500 mb-1">消息</div>
-              <div className="text-2xl font-bold text-primary font-mono">{unreadMsgCount}</div>
-            </div>
+            <Link
+              href={ROUTES.UC_MESSAGES}
+              className="flex flex-col items-center group cursor-pointer"
+            >
+              <div className="text-sm text-gray-500 mb-1 group-hover:text-primary transition-colors">消息</div>
+              <div className="text-2xl font-bold text-primary font-mono group-hover:scale-110 transition-transform">{unreadMsgCount}</div>
+            </Link>
           </div>
         </div>
       </section>

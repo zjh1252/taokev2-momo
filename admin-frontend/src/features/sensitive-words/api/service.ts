@@ -15,6 +15,7 @@ export function buildSensitiveWordParams(
   if (filters.category !== undefined && filters.category !== null) {
     params.set('category', String(filters.category));
   }
+  if (filters.enabled) params.set('enabled', filters.enabled);
   return params;
 }
 
