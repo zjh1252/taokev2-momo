@@ -1,7 +1,7 @@
 {
   "title": "搜索结果",
   "breadcrumb": "搜索结果",
-  "resultTitle": ""{keyword}" 的搜索结果",
+  "resultTitle": "\u201c{keyword}\u201d 的搜索结果",
   "resultTitleEmpty": "搜索结果",
   "tabTrainer": "专家",
   "tabOpenCourse": "公开课",

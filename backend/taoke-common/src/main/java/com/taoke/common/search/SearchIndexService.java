@@ -366,7 +366,7 @@ public class SearchIndexService {
                 .properties("type", p -> p.keyword(k -> k))
                 .properties("categoryId", p -> p.integer(i -> i))
                 .properties("subCategoryId", p -> p.integer(i -> i))
-                .properties("price", p -> p.scaledFloat(sf -> sf.scalingFactor(100)))
+                .properties("price", p -> p.scaledFloat(sf -> sf.scalingFactor(100.0)))
                 .properties("durationDays", p -> p.integer(i -> i))
                 // 专家过滤字段
                 .properties("provinceId", p -> p.integer(i -> i))
