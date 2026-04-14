@@ -65,6 +65,18 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Elasticsearch Java Client（optional，搜索基础设施编译用） -->
+        <dependency>
+            <groupId>co.elastic.clients</groupId>
+            <artifactId>elasticsearch-java</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- 阿里云 OSS（optional，仅生产环境使用） -->
         <dependency>
             <groupId>com.aliyun.oss</groupId>

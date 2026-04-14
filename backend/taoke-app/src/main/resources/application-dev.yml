@@ -39,6 +39,10 @@ spring:
       max-request-size: 500MB
 
 taoke:
+  elasticsearch:
+    uris: http://localhost:9200
+    username: app_search
+    password: taokev2search
   event:
     enabled: true
   jwt:

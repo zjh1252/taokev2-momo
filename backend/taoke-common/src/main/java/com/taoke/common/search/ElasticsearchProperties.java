@@ -1,0 +1,42 @@
+package com.taoke.common.search;
+
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import java.util.List;
+
+/**
+ * Elasticsearch 连接配置属性，绑定 {@code taoke.elasticsearch.*}
+ *
+ * @author Fangxinxin
+ * @date 2026-04-14 17:00
+ */
+@Data
+@ConfigurationProperties(prefix = "taoke.elasticsearch")
+public class ElasticsearchProperties {
+
+    /**
+     * ES 节点地址列表，如 {@code http://localhost:9200}
+     */
+    private List<String> uris = List.of("http://localhost:9200");
+
+    /**
+     * 认证用户名（Basic Auth）
+     */
+    private String username;
+
+    /**
+     * 认证密码（Basic Auth）
+     */
+    private String password;
+
+    /**
+     * 连接超时（毫秒）
+     */
+    private int connectTimeout = 5000;
+
+    /**
+     * 套接字读取超时（毫秒）
+     */
+    private int socketTimeout = 30000;
+}

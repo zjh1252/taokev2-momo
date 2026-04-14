@@ -119,6 +119,57 @@ services:
       retries: 5
       start_period: 30s
 
+  es-setup:
+    image: 10.0.16.26:5000/taokev2/elasticsearch:8.19.13
+    container_name: taokev2-es-setup
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+    command: >
+      bash -c '
+        ES="http://elasticsearch:9200";
+        AUTH="elastic:taokev2es";
+        H="Content-Type: application/json";
+
+        echo "=== Elasticsearch 账号初始化 ===";
+
+        echo "[1/4] 设置 kibana_system 密码...";
+        curl -sf -u $$AUTH -X POST "$$ES/_security/user/kibana_system/_password" \
+          -H "$$H" -d "{\"password\":\"taokev2es\"}" && echo " OK" || echo " FAIL";
+
+        echo "[2/4] 创建 logstash_writer 角色...";
+        curl -sf -u $$AUTH -X PUT "$$ES/_security/role/logstash_writer_role" \
+          -H "$$H" -d "{
+            \"cluster\":[\"manage_index_templates\",\"monitor\"],
+            \"indices\":[{\"names\":[\"*\",\"-.*\"],\"privileges\":[\"create_index\",\"write\",\"manage\"]}]
+          }" && echo " OK" || echo " FAIL";
+
+        echo "[3/4] 创建 logstash_writer 用户...";
+        curl -sf -u $$AUTH -X POST "$$ES/_security/user/logstash_writer" \
+          -H "$$H" -d "{
+            \"password\":\"taokev2logstash\",
+            \"roles\":[\"logstash_writer_role\"],
+            \"full_name\":\"Logstash Writer\"
+          }" && echo " OK" || echo " FAIL";
+
+        echo "[4/4] 创建 app_search 角色和用户...";
+        curl -sf -u $$AUTH -X PUT "$$ES/_security/role/app_search_role" \
+          -H "$$H" -d "{
+            \"cluster\":[\"monitor\"],
+            \"indices\":[{\"names\":[\"taokev2*\"],\"privileges\":[\"all\"]}]
+          }" && echo " OK" || echo " FAIL";
+        curl -sf -u $$AUTH -X POST "$$ES/_security/user/app_search" \
+          -H "$$H" -d "{
+            \"password\":\"taokev2search\",
+            \"roles\":[\"app_search_role\"],
+            \"full_name\":\"App Search Client\"
+          }" && echo " OK" || echo " FAIL";
+
+        echo "=== 初始化完成 ===";
+      '
+
   kibana:
     image: 10.0.16.26:5000/taokev2/kibana:8.19.13
     container_name: taokev2-kibana
@@ -132,6 +183,8 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
+      es-setup:
+        condition: service_completed_successfully
     restart: unless-stopped
 
 volumes:
