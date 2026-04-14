@@ -1,8 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect, type FormEvent } from 'react';
+import { ROUTES } from '@/config/routes';
 
 const SEARCH_CATEGORIES = [
   { key: 'trainer', i18nKey: 'categoryTrainer' },
@@ -15,8 +17,11 @@ const SEARCH_CATEGORIES = [
  */
 export function SearchBar() {
   const t = useTranslations('nav.search');
-  const [keyword, setKeyword] = useState('');
-  const [categoryKey, setCategoryKey] = useState<string>('trainer');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [keyword, setKeyword] = useState(searchParams.get('keyword') ?? '');
+  const [categoryKey, setCategoryKey] = useState<string>(searchParams.get('tab') ?? 'trainer');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -35,7 +40,8 @@ export function SearchBar() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!keyword.trim()) return;
-    // TODO: 跳转至搜索结果页，携带 categoryKey 和 keyword
+    const params = new URLSearchParams({ keyword: keyword.trim(), tab: categoryKey });
+    router.push(`${ROUTES.SEARCH}?${params.toString()}`);
   };
 
   return (

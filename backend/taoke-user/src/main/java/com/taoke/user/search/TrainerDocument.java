@@ -48,6 +48,8 @@ public class TrainerDocument extends BaseDocument {
 
     // ==================== 关联字段（由 Provider 构建时填充） ====================
 
+    private Integer provinceId;
     private String provinceName;
+    private Integer cityId;
     private String cityName;
 }

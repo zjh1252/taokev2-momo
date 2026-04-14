@@ -146,9 +146,11 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
             doc.setTrainerName(trainerNameMap.get(course.getTrainerId()));
         }
         if (course.getCategoryId() != null && course.getCategoryId() > 0) {
+            doc.setCategoryId(course.getCategoryId());
             doc.setCategoryName(categoryNameMap.get(course.getCategoryId()));
         }
         if (course.getSubCategoryId() != null && course.getSubCategoryId() > 0) {
+            doc.setSubCategoryId(course.getSubCategoryId());
             doc.setSubCategoryName(categoryNameMap.get(course.getSubCategoryId()));
         }
 

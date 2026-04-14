@@ -1,0 +1,40 @@
+{
+  "title": "搜索结果",
+  "breadcrumb": "搜索结果",
+  "resultTitle": ""{keyword}" 的搜索结果",
+  "resultTitleEmpty": "搜索结果",
+  "tabTrainer": "专家",
+  "tabOpenCourse": "公开课",
+  "tabInnerCourse": "内训课",
+  "advancedSearch": "高级搜索",
+  "totalResults": "共找到 {total} 条结果",
+  "noResults": "暂无搜索结果",
+  "noResultsHint": "换个关键词试试吧",
+  "filter": {
+    "province": "省份",
+    "city": "城市",
+    "expertise": "擅长领域",
+    "minExperience": "最低教学年限",
+    "category": "课程分类",
+    "subCategory": "子分类",
+    "priceRange": "价格区间",
+    "minPrice": "最低价",
+    "maxPrice": "最高价",
+    "durationDays": "授课天数",
+    "reset": "重置",
+    "apply": "筛选",
+    "allProvinces": "全部省份",
+    "allCities": "全部城市",
+    "allCategories": "全部分类",
+    "allDurations": "不限",
+    "yearUnit": "年",
+    "dayUnit": "天",
+    "priceUnit": "元"
+  },
+  "pagination": {
+    "first": "首页",
+    "last": "末页",
+    "prev": "上一页",
+    "next": "下一页"
+  }
+}

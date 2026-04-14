@@ -1,5 +1,7 @@
 package com.taoke.user.search;
 
+import com.taoke.common.entity.Region;
+import com.taoke.common.repository.RegionRepository;
 import com.taoke.common.search.BaseDocument;
 import com.taoke.common.search.DocumentSyncProvider;
 import com.taoke.user.entity.Trainer;
@@ -10,7 +12,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 专家文档同步提供者 — 从 DB 查询讲师数据并构建 {@link TrainerDocument}。
@@ -28,6 +32,7 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
     private static final int APPROVED = 2;
 
     private final TrainerRepository trainerRepository;
+    private final RegionRepository regionRepository;
 
     @Override
     public String getDocType() {
@@ -67,12 +72,30 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         if (trainers.isEmpty()) {
             return List.of();
         }
+
+        // 批量查关联的省市名称
+        Set<Integer> regionIds = new HashSet<>();
+        trainers.forEach(t -> {
+            if (t.getProvinceId() != null && t.getProvinceId() > 0) {
+                regionIds.add(t.getProvinceId());
+            }
+            if (t.getCityId() != null && t.getCityId() > 0) {
+                regionIds.add(t.getCityId());
+            }
+        });
+        Map<Integer, String> regionNameMap = Collections.emptyMap();
+        if (!regionIds.isEmpty()) {
+            regionNameMap = regionRepository.findAllById(regionIds).stream()
+                    .collect(Collectors.toMap(Region::getId, Region::getName, (a, b) -> a));
+        }
+
+        Map<Integer, String> finalRegionNameMap = regionNameMap;
         return trainers.stream()
-                .map(this::toDocument)
+                .map(t -> toDocument(t, finalRegionNameMap))
                 .toList();
     }
 
-    private TrainerDocument toDocument(Trainer trainer) {
+    private TrainerDocument toDocument(Trainer trainer, Map<Integer, String> regionNameMap) {
         TrainerDocument doc = new TrainerDocument();
         doc.setDocType(DOC_TYPE);
         doc.setId(trainer.getId());
@@ -100,7 +123,15 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         doc.setViewCount(trainer.getViewCount());
         doc.setApprovedAt(trainer.getApprovedAt());
 
-        // 关联字段（省市名称）暂不填充，后续按需扩展
+        // 关联字段：省市 ID + 名称
+        if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) {
+            doc.setProvinceId(trainer.getProvinceId());
+            doc.setProvinceName(regionNameMap.get(trainer.getProvinceId()));
+        }
+        if (trainer.getCityId() != null && trainer.getCityId() > 0) {
+            doc.setCityId(trainer.getCityId());
+            doc.setCityName(regionNameMap.get(trainer.getCityId()));
+        }
 
         doc.buildDocId();
         return doc;

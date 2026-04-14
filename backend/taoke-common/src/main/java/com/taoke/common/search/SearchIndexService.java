@@ -7,6 +7,7 @@ import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.GetIndexResponse;
@@ -201,16 +202,15 @@ public class SearchIndexService {
     }
 
     /**
-     * 全文搜索
+     * 全文搜索（支持高级筛选）
      *
-     * @param keyword 搜索关键词
-     * @param docType 文档类型过滤（null 表示搜所有类型）
-     * @param page    页码（从 1 开始）
-     * @param size    每页条数
+     * @param request 搜索请求参数
      * @return 分页结果
      */
-    public PageResponse<Map<String, Object>> search(String keyword, String docType, int page, int size) {
+    public PageResponse<Map<String, Object>> search(SearchRequest request) {
         try {
+            int page = request.getPage() != null ? request.getPage() : 1;
+            int size = request.getSize() != null ? request.getSize() : 20;
             int from = (page - 1) * size;
 
             @SuppressWarnings("rawtypes")
@@ -221,6 +221,8 @@ public class SearchIndexService {
 
                 BoolQuery.Builder boolQuery = new BoolQuery.Builder();
 
+                // 关键词全文匹配
+                String keyword = request.getKeyword();
                 if (keyword != null && !keyword.isBlank()) {
                     boolQuery.must(m -> m.multiMatch(mm -> mm
                             .query(keyword)
@@ -231,11 +233,85 @@ public class SearchIndexService {
                     ));
                 }
 
-                if (docType != null && !docType.isBlank()) {
+                // docType 过滤
+                if (request.getDocType() != null && !request.getDocType().isBlank()) {
                     boolQuery.filter(f -> f.term(t -> t
                             .field("docType")
-                            .value(docType)
+                            .value(request.getDocType())
                     ));
+                }
+
+                // 课程子类型过滤（支持多选，如公开课 = OPEN_OFFLINE + OPEN_ONLINE）
+                if (request.getCourseType() != null && !request.getCourseType().isEmpty()) {
+                    List<FieldValue> values = request.getCourseType().stream()
+                            .map(FieldValue::of)
+                            .toList();
+                    boolQuery.filter(f -> f.terms(t -> t
+                            .field("type")
+                            .terms(tv -> tv.value(values))
+                    ));
+                }
+
+                // 课程分类 ID
+                if (request.getCategoryId() != null) {
+                    boolQuery.filter(f -> f.term(t -> t
+                            .field("categoryId")
+                            .value(request.getCategoryId())
+                    ));
+                }
+
+                // 课程子分类 ID
+                if (request.getSubCategoryId() != null) {
+                    boolQuery.filter(f -> f.term(t -> t
+                            .field("subCategoryId")
+                            .value(request.getSubCategoryId())
+                    ));
+                }
+
+                // 价格区间
+                if (request.getMinPrice() != null || request.getMaxPrice() != null) {
+                    boolQuery.filter(f -> f.range(r -> r.number(n -> {
+                        n.field("price");
+                        if (request.getMinPrice() != null) {
+                            n.gte(request.getMinPrice().doubleValue());
+                        }
+                        if (request.getMaxPrice() != null) {
+                            n.lte(request.getMaxPrice().doubleValue());
+                        }
+                        return n;
+                    })));
+                }
+
+                // 授课天数
+                if (request.getDurationDays() != null) {
+                    boolQuery.filter(f -> f.term(t -> t
+                            .field("durationDays")
+                            .value(request.getDurationDays())
+                    ));
+                }
+
+                // 省份 ID
+                if (request.getProvinceId() != null) {
+                    boolQuery.filter(f -> f.term(t -> t
+                            .field("provinceId")
+                            .value(request.getProvinceId())
+                    ));
+                }
+
+                // 城市 ID
+                if (request.getCityId() != null) {
+                    boolQuery.filter(f -> f.term(t -> t
+                            .field("cityId")
+                            .value(request.getCityId())
+                    ));
+                }
+
+                // 最低教学年限
+                if (request.getMinExperienceYears() != null) {
+                    boolQuery.filter(f -> f.range(r -> r.number(n -> n
+                            .field("experienceYears")
+                            .gte((double) request.getMinExperienceYears())
+                    )));
                 }
 
                 s.query(q -> q.bool(boolQuery.build()));
@@ -286,7 +362,17 @@ public class SearchIndexService {
                 .properties("trainerName", p -> p.text(t -> t.analyzer("standard")))
                 .properties("categoryName", p -> p.text(t -> t.analyzer("standard")))
                 .properties("subCategoryName", p -> p.text(t -> t.analyzer("standard")))
-                // keyword / 数值 / 布尔类字段由 ES dynamic mapping 自动处理
+                // 课程过滤字段
+                .properties("type", p -> p.keyword(k -> k))
+                .properties("categoryId", p -> p.integer(i -> i))
+                .properties("subCategoryId", p -> p.integer(i -> i))
+                .properties("price", p -> p.scaledFloat(sf -> sf.scalingFactor(100)))
+                .properties("durationDays", p -> p.integer(i -> i))
+                // 专家过滤字段
+                .properties("provinceId", p -> p.integer(i -> i))
+                .properties("cityId", p -> p.integer(i -> i))
+                .properties("experienceYears", p -> p.integer(i -> i))
+                .properties("teachingYears", p -> p.integer(i -> i))
         );
     }
 }

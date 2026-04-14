@@ -46,7 +46,9 @@ public class CourseDocument extends BaseDocument {
 
     // ==================== 关联字段（由 Provider 构建时填充） ====================
 
-    private String trainerName;
+    private Integer categoryId;
     private String categoryName;
+    private Integer subCategoryId;
     private String subCategoryName;
+    private String trainerName;
 }

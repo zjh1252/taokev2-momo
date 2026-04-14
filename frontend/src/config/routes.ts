@@ -8,6 +8,7 @@ export const ROUTES = {
   ONLINE_COURSES: '/videos',
   INSTITUTIONS: '/institutions',
   ASSOCIATIONS: '/associations',
+  SEARCH: '/search',
   CART: '/cart',
   CHECKOUT: '/checkout',
   COURSES: '/courses',

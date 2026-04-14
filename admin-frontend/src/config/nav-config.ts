@@ -223,6 +223,10 @@ export const navGroups: NavGroup[] = [
           {
             title: '敏感词管理',
             url: '/dashboard/sensitive-words'
+          },
+          {
+            title: '全文搜索管理',
+            url: '/dashboard/search'
           }
         ]
       }

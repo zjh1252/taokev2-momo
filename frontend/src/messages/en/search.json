@@ -1,0 +1,40 @@
+{
+  "title": "Search Results",
+  "breadcrumb": "Search Results",
+  "resultTitle": "Results for \"{keyword}\"",
+  "resultTitleEmpty": "Search Results",
+  "tabTrainer": "Experts",
+  "tabOpenCourse": "Open Courses",
+  "tabInnerCourse": "Internal Courses",
+  "advancedSearch": "Advanced Search",
+  "totalResults": "{total} results found",
+  "noResults": "No results found",
+  "noResultsHint": "Try different keywords",
+  "filter": {
+    "province": "Province",
+    "city": "City",
+    "expertise": "Expertise",
+    "minExperience": "Min. Teaching Years",
+    "category": "Category",
+    "subCategory": "Subcategory",
+    "priceRange": "Price Range",
+    "minPrice": "Min Price",
+    "maxPrice": "Max Price",
+    "durationDays": "Duration (Days)",
+    "reset": "Reset",
+    "apply": "Filter",
+    "allProvinces": "All Provinces",
+    "allCities": "All Cities",
+    "allCategories": "All Categories",
+    "allDurations": "Any",
+    "yearUnit": " yrs",
+    "dayUnit": " days",
+    "priceUnit": "¥"
+  },
+  "pagination": {
+    "first": "First",
+    "last": "Last",
+    "prev": "Previous",
+    "next": "Next"
+  }
+}
