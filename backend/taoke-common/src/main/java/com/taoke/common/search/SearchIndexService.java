@@ -379,30 +379,35 @@ public class SearchIndexService {
         return properties.getIndexName();
     }
 
+    /** IK 分词器：索引时最细粒度切分，搜索时智能切分 */
+    private static final String ANALYZER_INDEX = "ik_max_word";
+    private static final String ANALYZER_SEARCH = "ik_smart";
+
     /**
-     * 构建索引 mapping：对需要全文搜索的字段使用 text 类型，其他字段用 keyword/数值等
+     * 构建索引 mapping：全文搜索字段使用 IK 中文分词（ik_max_word 索引 / ik_smart 搜索），
+     * 其他字段用 keyword/数值等。
      */
     private TypeMapping buildMapping() {
         return TypeMapping.of(m -> m
                 .properties("docId", p -> p.keyword(k -> k))
                 .properties("docType", p -> p.keyword(k -> k))
                 .properties("id", p -> p.integer(i -> i))
-                .properties("createdAt", p -> p.date(d -> d.format("yyyy-MM-dd HH:mm:ss||epoch_millis")))
-                .properties("updatedAt", p -> p.date(d -> d.format("yyyy-MM-dd HH:mm:ss||epoch_millis")))
-                // 课程 + 专家共用的全文搜索字段
-                .properties("title", p -> p.text(t -> t.analyzer("standard")))
-                .properties("name", p -> p.text(t -> t.analyzer("standard")))
-                .properties("intro", p -> p.text(t -> t.analyzer("standard")))
-                .properties("bio", p -> p.text(t -> t.analyzer("standard")))
-                .properties("keywords", p -> p.text(t -> t.analyzer("standard")))
-                .properties("highlights", p -> p.text(t -> t.analyzer("standard")))
-                .properties("audience", p -> p.text(t -> t.analyzer("standard")))
-                .properties("goodAt", p -> p.text(t -> t.analyzer("standard")))
-                .properties("expertiseTags", p -> p.text(t -> t.analyzer("standard")))
-                .properties("teachingStyle", p -> p.text(t -> t.analyzer("standard")))
-                .properties("trainerName", p -> p.text(t -> t.analyzer("standard")))
-                .properties("categoryName", p -> p.text(t -> t.analyzer("standard")))
-                .properties("subCategoryName", p -> p.text(t -> t.analyzer("standard")))
+                .properties("createdAt", p -> p.date(d -> d.format("yyyy-MM-dd'T'HH:mm:ss||yyyy-MM-dd HH:mm:ss||epoch_millis")))
+                .properties("updatedAt", p -> p.date(d -> d.format("yyyy-MM-dd'T'HH:mm:ss||yyyy-MM-dd HH:mm:ss||epoch_millis")))
+                // 课程 + 专家共用的全文搜索字段（IK 中文分词）
+                .properties("title", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("name", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("intro", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("bio", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("keywords", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("highlights", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("audience", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("goodAt", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("expertiseTags", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("teachingStyle", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("trainerName", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("categoryName", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("subCategoryName", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
                 // 课程过滤字段
                 .properties("type", p -> p.keyword(k -> k))
                 .properties("categoryId", p -> p.integer(i -> i))

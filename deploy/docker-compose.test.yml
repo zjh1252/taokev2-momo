@@ -94,7 +94,10 @@ services:
     restart: unless-stopped
 
   elasticsearch:
-    image: 10.0.16.26:5000/taokev2/elasticsearch:8.19.13
+    image: 10.0.16.26:5000/taokev2/elasticsearch-with-ik:8.19.13
+    build:
+      context: ./elasticsearch
+      dockerfile: Dockerfile
     container_name: taokev2-elasticsearch
     ports:
       - "9200:9200"
