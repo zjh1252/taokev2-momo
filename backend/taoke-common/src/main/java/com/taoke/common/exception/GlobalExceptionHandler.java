@@ -2,6 +2,7 @@ package com.taoke.common.exception;
 
 import com.taoke.common.contentcheck.ContentCheckException;
 import com.taoke.common.response.ApiResponse;
+import com.taoke.common.search.SearchException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ec.getHttpStatus())
                 .body(ApiResponse.error(ec.getCode(), e.getMessage(), detail));
+    }
+
+    /**
+     * 搜索模块异常 — ES 连接/索引/搜索执行等失败
+     */
+    @ExceptionHandler(SearchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSearchException(SearchException e) {
+        ErrorCode ec = e.getErrorCode();
+        log.warn("搜索异常: code={}, message={}", ec.getCode(), e.getMessage(), e);
+        return ResponseEntity
+                .status(ec.getHttpStatus())
+                .body(ApiResponse.error(ec.getCode(), e.getMessage()));
     }
 
     /**

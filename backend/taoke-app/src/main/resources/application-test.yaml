@@ -49,6 +49,8 @@ taoke:
     uris: http://10.0.14.20:9200
     username: app_search
     password: taokev2search
+    index-name: taokev2app
+    sync-interval: 10000
   event:
     enabled: true
     exchange: taoke.events

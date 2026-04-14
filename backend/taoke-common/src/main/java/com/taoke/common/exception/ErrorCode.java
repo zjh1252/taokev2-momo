@@ -16,6 +16,7 @@ import lombok.Getter;
  *   <li>400xx   — 订单/支付</li>
  *   <li>500xx   — 评价/互动</li>
  *   <li>600xx   — 内容/CMS</li>
+ *   <li>800xx   — 搜索/ES</li>
  *   <li>900xx   — 通用/系统级</li>
  * </ul>
  * 各业务模块在开发时按需在此枚举中追加错误码。
@@ -92,6 +93,12 @@ public enum ErrorCode {
     REVIEW_RATING_INVALID(400, 50008, "评分必须在 1~5 之间"),
     TRAINER_NOT_FOUND_FOR_MSG(404, 50009, "目标专家不存在"),
     INTERACTION_TARGET_NOT_FOUND(404, 50010, "目标资源不存在"),
+
+    /* ==================== 搜索/ES 800xx ==================== */
+    SEARCH_INDEX_ERROR(503, 80001, "索引操作失败"),
+    SEARCH_DOCUMENT_ERROR(503, 80002, "文档写入/删除失败"),
+    SEARCH_EXECUTE_ERROR(503, 80003, "搜索执行失败"),
+    SEARCH_FORBIDDEN(403, 80004, "搜索操作被禁止"),
 
     /* ==================== 通用/系统级 900xx ==================== */
     PARAM_INVALID(400, 90001, "参数校验失败"),

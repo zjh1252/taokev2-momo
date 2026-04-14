@@ -39,4 +39,14 @@ public class ElasticsearchProperties {
      * 套接字读取超时（毫秒）
      */
     private int socketTimeout = 30000;
+
+    /**
+     * 默认索引名
+     */
+    private String indexName = "taokev2app";
+
+    /**
+     * 定时同步间隔（毫秒），默认 10 秒
+     */
+    private long syncInterval = 10000;
 }
