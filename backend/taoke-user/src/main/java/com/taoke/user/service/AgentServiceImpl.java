@@ -9,9 +9,16 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.Agent;
 import com.taoke.user.mapper.AgentMapper;
 import com.taoke.user.repository.AgentRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 专家经纪人档案服务 — AGENT 角色扩展信息管理。
@@ -55,6 +62,27 @@ public class AgentServiceImpl implements AgentService {
     @Override
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
         return roleApplyService.getStatus(userId, BusinessRole.Code.AGENT);
+    }
+
+    @Override
+    public Page<Agent> searchForAdmin(String search, Pageable pageable) {
+        Specification<Agent> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (search != null && !search.isBlank()) {
+                String pattern = "%" + search.trim() + "%";
+                predicates.add(cb.like(root.get("bio"), pattern));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+        return agentRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public List<Agent> findByUserIds(List<Integer> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return agentRepository.findByUserIdIn(userIds);
     }
 
     private Agent saveOrUpdateExtension(Integer userId, AgentRequest request) {

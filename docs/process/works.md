@@ -384,3 +384,13 @@
 - types.ts：新增 TrainerHighlightFile 类型，AdminTrainerHighlight 增加 files/coverImage
 - columns：缩略图取 coverImage → files[0]，新增「文件数」列
 
+---
+
+2026-04-14 17:10
+**Elasticsearch 集成 IK 中文分词插件**
+
+- 新建 deploy/elasticsearch/Dockerfile：基于 ES 8.19.13 镜像安装 analysis-ik 8.19.13 插件
+- 更新 docker-compose.test.yml：ES 镜像改为 elasticsearch-with-ik:8.19.13，支持 build 构建
+- 更新 SearchIndexService.buildMapping()：所有 text 字段从 standard 改为 ik_max_word（索引）/ ik_smart（搜索）
+- 修复 date 字段格式：同时支持 ISO 格式（T 分隔）和空格分隔，解决显式 mapping 下日期解析失败问题
+

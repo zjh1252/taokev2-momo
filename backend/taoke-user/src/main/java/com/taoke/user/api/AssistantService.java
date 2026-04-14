@@ -3,6 +3,11 @@ package com.taoke.user.api;
 import com.taoke.user.dto.assistant.AssistantRequest;
 import com.taoke.user.dto.assistant.AssistantResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
+import com.taoke.user.entity.Assistant;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 /**
  * 助理档案与入驻申请相关能力。
@@ -12,36 +17,21 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
  */
 public interface AssistantService {
 
-    /**
-     * 按用户 ID 查询助理档案。
-     *
-     * @param userId 用户 ID
-     * @return 助理信息
-     */
     AssistantResponse getByUserId(Integer userId);
 
-    /**
-     * 保存或更新当前用户的助理档案。
-     *
-     * @param userId  用户 ID
-     * @param request 档案内容
-     * @return 保存后的助理信息
-     */
     AssistantResponse save(Integer userId, AssistantRequest request);
 
-    /**
-     * 提交助理入驻申请。
-     *
-     * @param userId  用户 ID
-     * @param request 申请附带资料
-     */
     void apply(Integer userId, AssistantRequest request);
 
-    /**
-     * 查询助理入驻申请状态。
-     *
-     * @param userId 用户 ID
-     * @return 申请状态
-     */
     RoleApplicationStatusResponse getApplyStatus(Integer userId);
+
+    /**
+     * 后台分页查询助理列表（可选关键词搜索 bio）。
+     */
+    Page<Assistant> searchForAdmin(String search, Pageable pageable);
+
+    /**
+     * 根据用户 ID 批量查询助理档案。
+     */
+    List<Assistant> findByUserIds(List<Integer> userIds);
 }

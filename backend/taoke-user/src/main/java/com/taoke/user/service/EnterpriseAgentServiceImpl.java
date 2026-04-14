@@ -1,6 +1,7 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.user.api.EnterpriseAgentService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.enterpriseagent.EnterpriseAgentRequest;
 import com.taoke.user.dto.enterpriseagent.EnterpriseAgentResponse;
@@ -8,9 +9,16 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.EnterpriseAgent;
 import com.taoke.user.mapper.EnterpriseAgentMapper;
 import com.taoke.user.repository.EnterpriseAgentRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 专家经纪公司信息服务 — ENTERPRISE_AGENT 角色扩展信息管理。
@@ -20,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-public class EnterpriseAgentServiceImpl implements com.taoke.user.api.EnterpriseAgentService {
+public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
 
     private final EnterpriseAgentRepository enterpriseAgentRepository;
     private final EnterpriseAgentMapper enterpriseAgentMapper;
@@ -48,6 +56,31 @@ public class EnterpriseAgentServiceImpl implements com.taoke.user.api.Enterprise
     @Override
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
         return roleApplyService.getStatus(userId, BusinessRole.Code.ENTERPRISE_AGENT);
+    }
+
+    @Override
+    public Page<EnterpriseAgent> searchForAdmin(String search, Pageable pageable) {
+        Specification<EnterpriseAgent> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (search != null && !search.isBlank()) {
+                String pattern = "%" + search.trim() + "%";
+                predicates.add(cb.or(
+                        cb.like(root.get("companyName"), pattern),
+                        cb.like(root.get("contactName"), pattern),
+                        cb.like(root.get("contactPhone"), pattern)
+                ));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+        return enterpriseAgentRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public List<EnterpriseAgent> findByUserIds(List<Integer> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return enterpriseAgentRepository.findByUserIdIn(userIds);
     }
 
     private EnterpriseAgent saveOrUpdateExtension(Integer userId, EnterpriseAgentRequest request) {

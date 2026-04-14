@@ -3,6 +3,11 @@ package com.taoke.user.api;
 import com.taoke.user.dto.agent.AgentRequest;
 import com.taoke.user.dto.agent.AgentResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
+import com.taoke.user.entity.Agent;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 /**
  * 经纪人档案与入驻申请相关能力。
@@ -12,36 +17,21 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
  */
 public interface AgentService {
 
-    /**
-     * 按用户 ID 查询经纪人档案。
-     *
-     * @param userId 用户 ID
-     * @return 经纪人信息
-     */
     AgentResponse getByUserId(Integer userId);
 
-    /**
-     * 保存或更新当前用户的经纪人档案。
-     *
-     * @param userId  用户 ID
-     * @param request 档案内容
-     * @return 保存后的经纪人信息
-     */
     AgentResponse save(Integer userId, AgentRequest request);
 
-    /**
-     * 提交经纪人入驻申请。
-     *
-     * @param userId  用户 ID
-     * @param request 申请附带资料
-     */
     void apply(Integer userId, AgentRequest request);
 
-    /**
-     * 查询经纪人入驻申请状态。
-     *
-     * @param userId 用户 ID
-     * @return 申请状态
-     */
     RoleApplicationStatusResponse getApplyStatus(Integer userId);
+
+    /**
+     * 后台分页查询经纪人列表（可选关键词搜索 bio）。
+     */
+    Page<Agent> searchForAdmin(String search, Pageable pageable);
+
+    /**
+     * 根据用户 ID 批量查询经纪人档案。
+     */
+    List<Agent> findByUserIds(List<Integer> userIds);
 }

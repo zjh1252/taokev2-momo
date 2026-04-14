@@ -116,6 +116,77 @@ export const navGroups: NavGroup[] = [
           {
             title: '机构申请',
             url: '/dashboard/institutions/applications'
+          },
+          {
+            title: '机构员工列表',
+            url: '/dashboard/institutions/employees'
+          },
+          {
+            title: '机构员工申请',
+            url: '/dashboard/institutions/employees/applications'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
+        title: '专家经纪人管理',
+        url: '#',
+        icon: 'userCheck',
+        isActive: false,
+        items: [
+          {
+            title: '经纪人列表',
+            url: '/dashboard/agents'
+          },
+          {
+            title: '经纪人申请',
+            url: '/dashboard/agents/applications'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
+        title: '专家经纪公司管理',
+        url: '#',
+        icon: 'briefcase',
+        isActive: false,
+        items: [
+          {
+            title: '经纪公司列表',
+            url: '/dashboard/enterprise-agents'
+          },
+          {
+            title: '经纪公司申请',
+            url: '/dashboard/enterprise-agents/applications'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
+        title: '专家助理管理',
+        url: '#',
+        icon: 'headset',
+        isActive: false,
+        items: [
+          {
+            title: '助理列表',
+            url: '/dashboard/assistants'
+          },
+          {
+            title: '助理申请',
+            url: '/dashboard/assistants/applications'
           }
         ]
       }

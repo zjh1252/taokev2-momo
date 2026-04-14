@@ -169,6 +169,14 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         return institutionRepository.findByUserIdIn(userIds);
     }
 
+    @Override
+    public List<Institution> findByIds(java.util.Collection<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return institutionRepository.findAllById(ids);
+    }
+
     private Institution saveOrUpdateExtension(Integer userId, InstitutionRequest request) {
         Institution ent = institutionRepository.findByUserId(userId).orElseGet(() -> {
             Institution e = new Institution();

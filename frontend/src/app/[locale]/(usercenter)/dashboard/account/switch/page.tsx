@@ -84,7 +84,7 @@ export default function AccountSwitchPage() {
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5">
-          {ALL_ROLES.map((role) => {
+          {ALL_ROLES.filter(role => !('adminOnly' in role && role.adminOnly)).map((role) => {
             const status = roleStatusMap.get(role.code);
             const isActive = status === 1;
             const isPending = status === 2;

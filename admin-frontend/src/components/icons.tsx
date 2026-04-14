@@ -87,11 +87,13 @@ import {
   IconUnderline,
   IconUpload,
   IconUser,
+  IconUserCheck,
   IconUserCircle,
   IconUserEdit,
   IconUserX,
   IconUsers,
   IconVideo,
+  IconHeadset,
   IconCrown,
   IconX
 } from '@tabler/icons-react';
@@ -140,8 +142,10 @@ export const Icons = {
   account: IconUserCircle,
   profile: IconUser,
   employee: IconUserX,
+  userCheck: IconUserCheck,
   userPen: IconUserEdit,
   teams: IconUsers,
+  headset: IconHeadset,
 
   // Brand
   github: IconBrandGithub,

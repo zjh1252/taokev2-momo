@@ -89,4 +89,9 @@ public interface InstitutionService {
      * 根据 userId 列表批量查询机构档案
      */
     List<Institution> findByUserIds(List<Integer> userIds);
+
+    /**
+     * 根据机构 ID 列表批量查询机构
+     */
+    List<Institution> findByIds(java.util.Collection<Integer> ids);
 }

@@ -1,6 +1,7 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.user.api.AssistantService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.assistant.AssistantRequest;
 import com.taoke.user.dto.assistant.AssistantResponse;
@@ -8,9 +9,16 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.Assistant;
 import com.taoke.user.mapper.AssistantMapper;
 import com.taoke.user.repository.AssistantRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 专家助理档案服务 — ASSISTANT 角色扩展信息管理。
@@ -20,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-public class AssistantServiceImpl implements com.taoke.user.api.AssistantService {
+public class AssistantServiceImpl implements AssistantService {
 
     private final AssistantRepository assistantRepository;
     private final AssistantMapper assistantMapper;
@@ -54,6 +62,27 @@ public class AssistantServiceImpl implements com.taoke.user.api.AssistantService
     @Override
     public RoleApplicationStatusResponse getApplyStatus(Integer userId) {
         return roleApplyService.getStatus(userId, BusinessRole.Code.ASSISTANT);
+    }
+
+    @Override
+    public Page<Assistant> searchForAdmin(String search, Pageable pageable) {
+        Specification<Assistant> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (search != null && !search.isBlank()) {
+                String pattern = "%" + search.trim() + "%";
+                predicates.add(cb.like(root.get("bio"), pattern));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+        return assistantRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public List<Assistant> findByUserIds(List<Integer> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return assistantRepository.findByUserIdIn(userIds);
     }
 
     private Assistant saveOrUpdateExtension(Integer userId, AssistantRequest request) {

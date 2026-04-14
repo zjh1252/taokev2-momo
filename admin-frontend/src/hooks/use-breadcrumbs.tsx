@@ -18,6 +18,10 @@ const SEGMENT_LABELS: Record<string, string> = {
   videos: '录播课管理',
   trainers: '专家管理',
   institutions: '机构管理',
+  employees: '机构员工',
+  agents: '专家经纪人管理',
+  'enterprise-agents': '专家经纪公司管理',
+  assistants: '专家助理管理',
   'enterprise-buyers': '企业采购方管理',
   applications: '申请管理',
   categories: '分类管理',
@@ -90,6 +94,43 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
     { title: 'Dashboard', link: '/dashboard' },
     { title: '机构管理', link: '/dashboard/institutions' },
     { title: '机构申请', link: '/dashboard/institutions/applications' }
+  ],
+  '/dashboard/institutions/employees': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '机构管理', link: '/dashboard/institutions' },
+    { title: '机构员工列表', link: '/dashboard/institutions/employees' }
+  ],
+  '/dashboard/institutions/employees/applications': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '机构管理', link: '/dashboard/institutions' },
+    { title: '机构员工申请', link: '/dashboard/institutions/employees/applications' }
+  ],
+  '/dashboard/agents': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '专家经纪人管理', link: '/dashboard/agents' }
+  ],
+  '/dashboard/agents/applications': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '专家经纪人管理', link: '/dashboard/agents' },
+    { title: '经纪人申请', link: '/dashboard/agents/applications' }
+  ],
+  '/dashboard/enterprise-agents': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '专家经纪公司管理', link: '/dashboard/enterprise-agents' }
+  ],
+  '/dashboard/enterprise-agents/applications': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '专家经纪公司管理', link: '/dashboard/enterprise-agents' },
+    { title: '经纪公司申请', link: '/dashboard/enterprise-agents/applications' }
+  ],
+  '/dashboard/assistants': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '专家助理管理', link: '/dashboard/assistants' }
+  ],
+  '/dashboard/assistants/applications': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '专家助理管理', link: '/dashboard/assistants' },
+    { title: '助理申请', link: '/dashboard/assistants/applications' }
   ],
   '/dashboard/enterprise-buyers': [
     { title: 'Dashboard', link: '/dashboard' },
