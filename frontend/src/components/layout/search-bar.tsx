@@ -25,6 +25,14 @@ export function SearchBar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // URL 参数变化时同步回搜索框（如在搜索结果页切换 tab）
+  useEffect(() => {
+    const urlKeyword = searchParams.get('keyword') ?? '';
+    const urlTab = searchParams.get('tab') ?? 'trainer';
+    setKeyword(urlKeyword);
+    setCategoryKey(urlTab);
+  }, [searchParams]);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {

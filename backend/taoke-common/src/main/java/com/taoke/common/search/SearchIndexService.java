@@ -323,6 +323,23 @@ public class SearchIndexService {
                 }
 
                 s.query(q -> q.bool(boolQuery.build()));
+
+                // 高亮：对主要文本字段加 highlight，标签用 <em>
+                if (keyword != null && !keyword.isBlank()) {
+                    s.highlight(h -> h
+                            .preTags("<em>")
+                            .postTags("</em>")
+                            .fields("title", hf -> hf.numberOfFragments(1).fragmentSize(120))
+                            .fields("name", hf -> hf.numberOfFragments(1).fragmentSize(120))
+                            .fields("intro", hf -> hf.numberOfFragments(1).fragmentSize(150))
+                            .fields("bio", hf -> hf.numberOfFragments(1).fragmentSize(150))
+                            .fields("keywords", hf -> hf.numberOfFragments(1).fragmentSize(100))
+                            .fields("expertiseTags", hf -> hf.numberOfFragments(1).fragmentSize(100))
+                            .fields("categoryName", hf -> hf.numberOfFragments(1).fragmentSize(80))
+                            .fields("trainerName", hf -> hf.numberOfFragments(1).fragmentSize(80))
+                    );
+                }
+
                 return s;
             }, Map.class);
 
@@ -330,7 +347,23 @@ public class SearchIndexService {
 
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> list = response.hits().hits().stream()
-                    .map(hit -> (Map<String, Object>) hit.source())
+                    .map(hit -> {
+                        Map<String, Object> source = (Map<String, Object>) hit.source();
+                        if (source == null) {
+                            source = new java.util.HashMap<>();
+                        }
+                        // 将 highlight 片段合并到 _highlight 字段
+                        if (hit.highlight() != null && !hit.highlight().isEmpty()) {
+                            Map<String, String> hlMap = new java.util.LinkedHashMap<>();
+                            hit.highlight().forEach((field, fragments) -> {
+                                if (!fragments.isEmpty()) {
+                                    hlMap.put(field, String.join("…", fragments));
+                                }
+                            });
+                            source.put("_highlight", hlMap);
+                        }
+                        return source;
+                    })
                     .collect(Collectors.toList());
 
             return PageResponse.of(list, total, page, size);

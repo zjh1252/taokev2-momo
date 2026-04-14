@@ -10,6 +10,7 @@ interface TrainerResultCardProps {
 }
 
 export function TrainerResultCard({ item }: TrainerResultCardProps) {
+  const hl = item._highlight;
   const tags = item.expertiseTags?.split(',').filter(Boolean) ?? [];
 
   return (
@@ -31,7 +32,9 @@ export function TrainerResultCard({ item }: TrainerResultCardProps) {
         <div>
           <div className="flex items-baseline gap-3 mb-1">
             <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors">
-              {item.name}
+              {hl?.name
+                ? <span className="search-highlight" dangerouslySetInnerHTML={{ __html: hl.name }} />
+                : item.name}
             </h3>
             {(item.score ?? 0) > 0 && (
               <div className="flex items-center gap-1">
@@ -61,20 +64,18 @@ export function TrainerResultCard({ item }: TrainerResultCardProps) {
               ))}
             </div>
           )}
-          {(item.bio || item.intro) && (
-            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-              {item.bio || item.intro}
-            </p>
+          {(hl?.bio || hl?.intro || item.bio || item.intro) && (
+            <p className="search-highlight text-xs text-slate-400 line-clamp-2 leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: hl?.bio || hl?.intro || item.bio || item.intro || '' }}
+            />
           )}
         </div>
 
         <div className="flex items-center gap-4 mt-3 text-xs text-slate-400">
-          {(item.viewCount ?? 0) > 0 && (
-            <span className="flex items-center gap-1">
-              <Eye className="size-3.5" />
-              {item.viewCount} 次浏览
-            </span>
-          )}
+          <span className="flex items-center gap-1">
+            <Eye className="size-3.5" />
+            {item.viewCount ?? 0} 次浏览
+          </span>
         </div>
       </div>
     </Link>

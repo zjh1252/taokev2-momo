@@ -87,4 +87,7 @@ export interface SearchResultItem {
   provinceName?: string;
   cityId?: number;
   cityName?: string;
+
+  /** ES highlight 片段，key 为字段名，value 为带 <em> 标签的高亮文本 */
+  _highlight?: Record<string, string>;
 }

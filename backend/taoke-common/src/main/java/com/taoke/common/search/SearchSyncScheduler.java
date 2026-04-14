@@ -1,6 +1,7 @@
 package com.taoke.common.search;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -37,6 +38,19 @@ public class SearchSyncScheduler {
     private final SearchIndexService indexService;
     private final StringRedisTemplate stringRedisTemplate;
     private final ElasticsearchProperties properties;
+
+    /**
+     * 应用启动时确保默认索引已创建（含正确 mapping），
+     * 避免 bulkIndex 自动创建索引导致 mapping 为动态推断。
+     */
+    @PostConstruct
+    public void ensureIndex() {
+        try {
+            indexService.createIndex(properties.getIndexName());
+        } catch (Exception e) {
+            log.warn("启动时确保索引失败（ES 可能未就绪）: {}", e.getMessage());
+        }
+    }
 
     @Scheduled(fixedDelayString = "${taoke.elasticsearch.sync-interval:10000}")
     public void syncAll() {

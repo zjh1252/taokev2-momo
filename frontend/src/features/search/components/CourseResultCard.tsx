@@ -8,7 +8,17 @@ interface CourseResultCardProps {
   item: SearchResultItem;
 }
 
+function HighlightText({ html }: { html: string }) {
+  return (
+    <span
+      className="search-highlight"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
 export function CourseResultCard({ item }: CourseResultCardProps) {
+  const hl = item._highlight;
   const isOpen = item.type === 'OPEN_OFFLINE' || item.type === 'OPEN_ONLINE';
   const detailPath = isOpen ? `/opencourses/${item.id}` : `/innercourses/${item.id}`;
 
@@ -32,7 +42,7 @@ export function CourseResultCard({ item }: CourseResultCardProps) {
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between mb-2 gap-2">
           <h3 className="text-base font-bold text-slate-800 group-hover:text-primary transition-colors line-clamp-1">
-            {item.title}
+            {hl?.title ? <HighlightText html={hl.title} /> : item.title}
             {item.isFeatured === 1 && (
               <span className="ml-2 inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold text-primary bg-primary/10 rounded">
                 推荐
@@ -90,8 +100,15 @@ export function CourseResultCard({ item }: CourseResultCardProps) {
           </div>
         </div>
 
+        {hl?.intro && (
+          <p className="search-highlight text-xs text-slate-400 line-clamp-2 mb-1"
+            dangerouslySetInnerHTML={{ __html: hl.intro }}
+          />
+        )}
         {item.keywords && (
-          <div className="text-xs text-slate-400 line-clamp-1">关键字：{item.keywords}</div>
+          <div className="text-xs text-slate-400 line-clamp-1">
+            关键字：{hl?.keywords ? <HighlightText html={hl.keywords} /> : item.keywords}
+          </div>
         )}
       </div>
     </Link>

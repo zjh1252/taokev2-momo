@@ -154,6 +154,13 @@
   transform: none !important;
 }
 
+/* 搜索结果高亮：ES 返回的 <em> 标签 */
+.search-highlight em {
+  color: var(--primary);
+  font-style: normal;
+  font-weight: 600;
+}
+
 /* 角色申请表单统一输入框样式 */
 .form-input {
   @apply w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-sm text-gray-900

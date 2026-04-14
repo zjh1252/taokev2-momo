@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition, useCallback } from 'react';
+import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { SlidersHorizontal, ChevronLeft, ChevronRight, Search } from 'lucide-react';
@@ -45,12 +45,20 @@ export function SearchResultSection() {
 
   const [filters, setFilters] = useState<Record<string, number | undefined>>({});
 
-  const doSearch = useCallback(() => {
+  const prevTabRef = useRef(tab);
+
+  useEffect(() => {
+    const effectiveFilters = prevTabRef.current !== tab ? {} : filters;
+    if (prevTabRef.current !== tab) {
+      prevTabRef.current = tab;
+      setFilters({});
+    }
+
     const tabParams = tabToSearchParams(tab);
     const allParams = {
       keyword: keyword || undefined,
       ...tabParams,
-      ...filters,
+      ...effectiveFilters,
       page: currentPage,
       size: PAGE_SIZE,
     };
@@ -64,10 +72,6 @@ export function SearchResultSection() {
       }
     });
   }, [keyword, tab, currentPage, filters]);
-
-  useEffect(() => {
-    doSearch();
-  }, [doSearch]);
 
   const updateUrl = useCallback(
     (updates: Record<string, string | undefined>) => {
@@ -83,10 +87,10 @@ export function SearchResultSection() {
 
   const handleTabChange = useCallback(
     (newTab: SearchTab) => {
-      setFilters({});
+      if (newTab === tab) return;
       updateUrl({ tab: newTab, page: '1' });
     },
-    [updateUrl]
+    [tab, updateUrl]
   );
 
   const handlePageChange = useCallback(
