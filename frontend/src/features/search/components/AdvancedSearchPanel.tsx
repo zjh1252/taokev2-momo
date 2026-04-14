@@ -23,6 +23,7 @@ interface FilterValues {
   provinceId?: number;
   cityId?: number;
   minExperienceYears?: number;
+  expertiseCategoryId?: number;
   categoryId?: number;
   subCategoryId?: number;
   minPrice?: number;
@@ -47,6 +48,10 @@ export function AdvancedSearchPanel({ tab, values, onChange }: AdvancedSearchPan
 
 // --------------- 专家筛选 ---------------
 
+const SELECT_CLS = 'border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-white min-w-[120px] hover:border-primary/40 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors cursor-pointer';
+const SELECT_SM_CLS = 'border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-white min-w-[100px] hover:border-primary/40 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors cursor-pointer';
+const RESET_BTN_CLS = 'text-xs text-slate-400 hover:text-primary hover:bg-slate-100 px-2 py-1 rounded transition-colors';
+
 function TrainerFilters({
   values,
   onChange,
@@ -55,10 +60,14 @@ function TrainerFilters({
   const [provinces, setProvinces] = useState<RegionItem[]>([]);
   const [cities, setCities] = useState<RegionItem[]>([]);
   const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>('');
+  const [expertiseCategories, setExpertiseCategories] = useState<CategoryNode[]>([]);
 
   useEffect(() => {
     apiGet<{ data: RegionItem[] }>('/regions/children')
       .then((res) => setProvinces(res.data || []))
+      .catch(() => {});
+    apiGet<{ data: CategoryNode[] }>('/categories/tree?type=TRAINER_EXPERTISE')
+      .then((res) => setExpertiseCategories(res.data || []))
       .catch(() => {});
   }, []);
 
@@ -89,7 +98,7 @@ function TrainerFilters({
         <select
           value={values.provinceId ?? ''}
           onChange={handleProvinceChange}
-          className="border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-white min-w-[120px]"
+          className={SELECT_CLS}
         >
           <option value="">{t('allProvinces')}</option>
           {provinces.map((p) => (
@@ -103,12 +112,28 @@ function TrainerFilters({
         <select
           value={values.cityId ?? ''}
           onChange={(e) => onChange({ ...values, cityId: e.target.value ? Number(e.target.value) : undefined })}
-          className="border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-white min-w-[120px]"
+          className={SELECT_CLS}
           disabled={!values.provinceId}
         >
           <option value="">{t('allCities')}</option>
           {cities.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex items-center gap-2 text-sm text-slate-600">
+        <span className="text-slate-400 whitespace-nowrap">{t('expertise')}：</span>
+        <select
+          value={values.expertiseCategoryId ?? ''}
+          onChange={(e) =>
+            onChange({ ...values, expertiseCategoryId: e.target.value ? Number(e.target.value) : undefined })
+          }
+          className={SELECT_CLS}
+        >
+          <option value="">{t('allExpertise')}</option>
+          {expertiseCategories.map((cat) => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
           ))}
         </select>
       </label>
@@ -120,7 +145,7 @@ function TrainerFilters({
           onChange={(e) =>
             onChange({ ...values, minExperienceYears: e.target.value ? Number(e.target.value) : undefined })
           }
-          className="border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-white min-w-[100px]"
+          className={SELECT_SM_CLS}
         >
           <option value="">{t('allDurations')}</option>
           {[3, 5, 10, 15, 20].map((y) => (
@@ -131,8 +156,8 @@ function TrainerFilters({
 
       <button
         type="button"
-        onClick={() => onChange({ provinceId: undefined, cityId: undefined, minExperienceYears: undefined })}
-        className="text-xs text-slate-400 hover:text-primary transition-colors"
+        onClick={() => onChange({ provinceId: undefined, cityId: undefined, minExperienceYears: undefined, expertiseCategoryId: undefined })}
+        className={RESET_BTN_CLS}
       >
         {t('reset')}
       </button>
@@ -165,6 +190,8 @@ function CourseFilters({
     }
   }, [values.categoryId, categories]);
 
+  const INPUT_CLS = 'border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-white w-[90px] hover:border-primary/40 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors';
+
   return (
     <div className="flex flex-wrap items-center gap-4">
       <label className="flex items-center gap-2 text-sm text-slate-600">
@@ -174,7 +201,7 @@ function CourseFilters({
           onChange={(e) =>
             onChange({ ...values, categoryId: e.target.value ? Number(e.target.value) : undefined, subCategoryId: undefined })
           }
-          className="border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-white min-w-[120px]"
+          className={SELECT_CLS}
         >
           <option value="">{t('allCategories')}</option>
           {categories.map((c) => (
@@ -191,7 +218,7 @@ function CourseFilters({
             onChange={(e) =>
               onChange({ ...values, subCategoryId: e.target.value ? Number(e.target.value) : undefined })
             }
-            className="border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-white min-w-[120px]"
+            className={SELECT_CLS}
           >
             <option value="">{t('allCategories')}</option>
             {subCategories.map((c) => (
@@ -208,7 +235,7 @@ function CourseFilters({
           placeholder={t('minPrice')}
           value={values.minPrice ?? ''}
           onChange={(e) => onChange({ ...values, minPrice: e.target.value ? Number(e.target.value) : undefined })}
-          className="border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-white w-[90px]"
+          className={INPUT_CLS}
         />
         <span className="text-slate-300">—</span>
         <input
@@ -216,7 +243,7 @@ function CourseFilters({
           placeholder={t('maxPrice')}
           value={values.maxPrice ?? ''}
           onChange={(e) => onChange({ ...values, maxPrice: e.target.value ? Number(e.target.value) : undefined })}
-          className="border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-white w-[90px]"
+          className={INPUT_CLS}
         />
       </label>
 
@@ -227,7 +254,7 @@ function CourseFilters({
           onChange={(e) =>
             onChange({ ...values, durationDays: e.target.value ? Number(e.target.value) : undefined })
           }
-          className="border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-white min-w-[100px]"
+          className={SELECT_SM_CLS}
         >
           <option value="">{t('allDurations')}</option>
           {[1, 2, 3, 5, 7, 10, 14].map((d) => (
@@ -245,7 +272,7 @@ function CourseFilters({
           maxPrice: undefined,
           durationDays: undefined
         })}
-        className="text-xs text-slate-400 hover:text-primary transition-colors"
+        className={RESET_BTN_CLS}
       >
         {t('reset')}
       </button>

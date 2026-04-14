@@ -114,29 +114,27 @@ export function SearchResultSection() {
 
       {/* Tab 栏 + 高级搜索按钮 */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-100 px-4">
-          <div className="flex">
-            {TABS.map((tabItem) => (
-              <button
-                key={tabItem.key}
-                onClick={() => handleTabChange(tabItem.key)}
-                className={`px-6 py-3.5 text-sm font-medium transition-colors relative ${
-                  tab === tabItem.key
-                    ? 'text-primary'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                {t(tabItem.i18nKey)}
-                {tab === tabItem.key && (
-                  <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary rounded-full" />
-                )}
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center border-b border-slate-100 px-4">
+          {TABS.map((tabItem) => (
+            <button
+              key={tabItem.key}
+              onClick={() => handleTabChange(tabItem.key)}
+              className={`px-6 py-3.5 text-sm font-medium transition-colors relative ${
+                tab === tabItem.key
+                  ? 'text-primary'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+              }`}
+            >
+              {t(tabItem.i18nKey)}
+              {tab === tabItem.key && (
+                <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary rounded-full" />
+              )}
+            </button>
+          ))}
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors ${
+            className={`flex items-center gap-1.5 ml-2 px-3 py-1.5 text-sm rounded-md transition-colors ${
               showAdvanced
                 ? 'text-primary bg-primary/5'
                 : 'text-slate-500 hover:text-primary hover:bg-slate-50'

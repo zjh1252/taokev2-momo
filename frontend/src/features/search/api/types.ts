@@ -32,6 +32,7 @@ export interface SearchParams {
   provinceId?: number;
   cityId?: number;
   minExperienceYears?: number;
+  expertiseCategoryId?: number;
   page?: number;
   size?: number;
 }

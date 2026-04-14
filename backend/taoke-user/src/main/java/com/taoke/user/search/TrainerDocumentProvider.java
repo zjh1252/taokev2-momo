@@ -5,6 +5,8 @@ import com.taoke.common.repository.RegionRepository;
 import com.taoke.common.search.BaseDocument;
 import com.taoke.common.search.DocumentSyncProvider;
 import com.taoke.user.entity.Trainer;
+import com.taoke.user.entity.TrainerExpertiseCategory;
+import com.taoke.user.repository.TrainerExpertiseCategoryRepository;
 import com.taoke.user.repository.TrainerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +35,7 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
 
     private final TrainerRepository trainerRepository;
     private final RegionRepository regionRepository;
+    private final TrainerExpertiseCategoryRepository expertiseCategoryRepository;
 
     @Override
     public String getDocType() {
@@ -73,6 +76,8 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
             return List.of();
         }
 
+        List<Integer> trainerIds = trainers.stream().map(Trainer::getId).toList();
+
         // 批量查关联的省市名称
         Set<Integer> regionIds = new HashSet<>();
         trainers.forEach(t -> {
@@ -89,13 +94,21 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
                     .collect(Collectors.toMap(Region::getId, Region::getName, (a, b) -> a));
         }
 
+        // 批量查关联的擅长领域分类 ID
+        Map<Integer, List<Integer>> expertiseMap = expertiseCategoryRepository
+                .findByTrainerIdInOrderBySortOrder(trainerIds).stream()
+                .collect(Collectors.groupingBy(
+                        TrainerExpertiseCategory::getTrainerId,
+                        Collectors.mapping(TrainerExpertiseCategory::getCategoryId, Collectors.toList())
+                ));
+
         Map<Integer, String> finalRegionNameMap = regionNameMap;
         return trainers.stream()
-                .map(t -> toDocument(t, finalRegionNameMap))
+                .map(t -> toDocument(t, finalRegionNameMap, expertiseMap.getOrDefault(t.getId(), List.of())))
                 .toList();
     }
 
-    private TrainerDocument toDocument(Trainer trainer, Map<Integer, String> regionNameMap) {
+    private TrainerDocument toDocument(Trainer trainer, Map<Integer, String> regionNameMap, List<Integer> expertiseCategoryIds) {
         TrainerDocument doc = new TrainerDocument();
         doc.setDocType(DOC_TYPE);
         doc.setId(trainer.getId());
@@ -132,6 +145,8 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
             doc.setCityId(trainer.getCityId());
             doc.setCityName(regionNameMap.get(trainer.getCityId()));
         }
+
+        doc.setExpertiseCategoryIds(expertiseCategoryIds);
 
         doc.buildDocId();
         return doc;

@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 专家 ES 文档 — 索引到 ES 的讲师数据结构。
@@ -52,4 +53,7 @@ public class TrainerDocument extends BaseDocument {
     private String provinceName;
     private Integer cityId;
     private String cityName;
+
+    /** 关联的擅长领域分类 ID 列表（多对多，用于 terms 筛选） */
+    private List<Integer> expertiseCategoryIds;
 }

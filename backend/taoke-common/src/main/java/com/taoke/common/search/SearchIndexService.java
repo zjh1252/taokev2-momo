@@ -314,6 +314,14 @@ public class SearchIndexService {
                     )));
                 }
 
+                // 擅长领域分类 ID
+                if (request.getExpertiseCategoryId() != null) {
+                    boolQuery.filter(f -> f.term(t -> t
+                            .field("expertiseCategoryIds")
+                            .value(request.getExpertiseCategoryId())
+                    ));
+                }
+
                 s.query(q -> q.bool(boolQuery.build()));
                 return s;
             }, Map.class);
@@ -373,6 +381,7 @@ public class SearchIndexService {
                 .properties("cityId", p -> p.integer(i -> i))
                 .properties("experienceYears", p -> p.integer(i -> i))
                 .properties("teachingYears", p -> p.integer(i -> i))
+                .properties("expertiseCategoryIds", p -> p.integer(i -> i))
         );
     }
 }

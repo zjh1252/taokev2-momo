@@ -47,14 +47,14 @@ export function SearchBar() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-center bg-slate-100 rounded-[4px] overflow-visible p-0.5 border border-slate-200 relative"
+      className="flex items-center bg-slate-100 rounded-md overflow-visible p-0.5 border border-slate-200 relative min-w-[360px]"
     >
       {/* 分类下拉 */}
       <div ref={dropdownRef} className="relative shrink-0">
         <button
           type="button"
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-500 border-r border-slate-200 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm text-slate-500 border-r border-slate-200 hover:bg-slate-200 hover:text-slate-700 transition-colors rounded-l-md"
         >
           {t(currentCategory.i18nKey)}
           <ChevronDown
@@ -63,7 +63,7 @@ export function SearchBar() {
         </button>
 
         {dropdownOpen && (
-          <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-100 py-1 z-50 min-w-[100px]">
+          <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-100 py-1 z-50 min-w-[110px]">
             {SEARCH_CATEGORIES.map((cat) => (
               <button
                 key={cat.key}
@@ -72,7 +72,7 @@ export function SearchBar() {
                   setCategoryKey(cat.key);
                   setDropdownOpen(false);
                 }}
-                className={`w-full text-left px-4 py-2 text-xs transition-colors ${
+                className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
                   categoryKey === cat.key
                     ? 'text-primary bg-primary/5 font-medium'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-primary'
@@ -88,14 +88,14 @@ export function SearchBar() {
       <input
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
-        className="bg-transparent border-none focus:ring-0 focus:outline-none text-xs w-full min-w-[120px] px-2"
+        className="bg-transparent border-none focus:ring-0 focus:outline-none text-sm w-full min-w-[180px] px-3 py-1"
         placeholder={t('placeholder')}
         type="text"
       />
 
       <button
         type="submit"
-        className="bg-primary text-white p-1.5 flex items-center justify-center hover:bg-primary-container transition-colors rounded-[2px]"
+        className="bg-primary text-white p-2 flex items-center justify-center hover:bg-primary/90 transition-colors rounded-[3px]"
       >
         <Search className="size-[18px]" />
       </button>

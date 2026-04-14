@@ -50,6 +50,9 @@ public class SearchRequest {
     @Parameter(description = "最低教学年限")
     private Integer minExperienceYears;
 
+    @Parameter(description = "专家擅长领域分类 ID")
+    private Integer expertiseCategoryId;
+
     @Parameter(description = "页码，从 1 开始")
     private Integer page = 1;
 

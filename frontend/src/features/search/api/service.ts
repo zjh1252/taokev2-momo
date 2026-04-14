@@ -42,6 +42,7 @@ export async function searchDocuments(
   if (params.provinceId) query.set('provinceId', String(params.provinceId));
   if (params.cityId) query.set('cityId', String(params.cityId));
   if (params.minExperienceYears) query.set('minExperienceYears', String(params.minExperienceYears));
+  if (params.expertiseCategoryId) query.set('expertiseCategoryId', String(params.expertiseCategoryId));
   if (params.page) query.set('page', String(params.page));
   if (params.size) query.set('size', String(params.size));
 

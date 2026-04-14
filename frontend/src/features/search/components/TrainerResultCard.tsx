@@ -50,7 +50,7 @@ export function TrainerResultCard({ item }: TrainerResultCardProps) {
             </p>
           )}
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               {tags.slice(0, 5).map((tag) => (
                 <span
                   key={tag}
@@ -60,6 +60,11 @@ export function TrainerResultCard({ item }: TrainerResultCardProps) {
                 </span>
               ))}
             </div>
+          )}
+          {(item.bio || item.intro) && (
+            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+              {item.bio || item.intro}
+            </p>
           )}
         </div>
 

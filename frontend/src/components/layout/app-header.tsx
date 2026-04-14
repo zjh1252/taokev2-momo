@@ -52,7 +52,7 @@ export function AppHeader() {
         </div>
 
         {/* 右侧：搜索栏 */}
-        <div className="flex items-center ml-4 flex-1 max-w-xs justify-end">
+        <div className="flex items-center ml-4 flex-1 max-w-md justify-end">
           <SearchBar />
         </div>
       </div>
