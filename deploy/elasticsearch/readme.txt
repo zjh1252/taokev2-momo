@@ -5,5 +5,7 @@ docker buildx create --name multiarch --use --config .\buildkitd.toml
 docker buildx build --platform linux/amd64,linux/arm64 -t 10.0.16.26:5000/taokev2/elasticsearch-with-ik-m:8.19.13 --push .
 
 
-
+# 构建其他镜像的时候 切换回default环境
+docker context use default
+docker buildx use default
 
