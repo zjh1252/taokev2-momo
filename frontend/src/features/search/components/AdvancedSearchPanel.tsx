@@ -19,7 +19,7 @@ interface CategoryNode {
   children?: CategoryNode[];
 }
 
-interface FilterValues {
+export interface FilterValues {
   provinceId?: number;
   cityId?: number;
   minExperienceYears?: number;

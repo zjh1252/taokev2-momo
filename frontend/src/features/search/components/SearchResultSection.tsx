@@ -8,7 +8,7 @@ import { searchDocuments, tabToSearchParams } from '../api/service';
 import type { SearchTab, SearchResultItem, PageResponse } from '../api/types';
 import { TrainerResultCard } from './TrainerResultCard';
 import { CourseResultCard } from './CourseResultCard';
-import { AdvancedSearchPanel } from './AdvancedSearchPanel';
+import { AdvancedSearchPanel, type FilterValues } from './AdvancedSearchPanel';
 
 const TABS: { key: SearchTab; i18nKey: string }[] = [
   { key: 'trainer', i18nKey: 'tabTrainer' },
@@ -43,7 +43,7 @@ export function SearchResultSection() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [data, setData] = useState<PageResponse<SearchResultItem> | null>(null);
 
-  const [filters, setFilters] = useState<Record<string, number | undefined>>({});
+  const [filters, setFilters] = useState<FilterValues>({});
 
   const prevTabRef = useRef(tab);
 
@@ -102,7 +102,7 @@ export function SearchResultSection() {
   );
 
   const handleFilterChange = useCallback(
-    (newFilters: Record<string, number | undefined>) => {
+    (newFilters: FilterValues) => {
       setFilters(newFilters);
       updateUrl({ page: '1' });
     },
