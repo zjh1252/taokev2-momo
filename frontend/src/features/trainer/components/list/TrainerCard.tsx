@@ -47,7 +47,15 @@ export function TrainerCard({ trainer }: TrainerCardProps) {
               </div>
             )}
           </div>
-          <p className="text-sm text-slate-500 line-clamp-1 mb-3">{trainer.title}</p>
+          <p className="text-sm text-slate-500 line-clamp-1 mb-2">{trainer.title}</p>
+
+          {/* 城市 */}
+          {(trainer.provinceName) && (
+            <div className="flex items-center gap-1 text-xs text-slate-400 mb-3">
+              <MapPin className="size-3" />
+              <span>{ trainer.provinceName}</span>
+            </div>
+          )}
 
           {/* 标签 */}
           <div className="flex flex-wrap gap-2">

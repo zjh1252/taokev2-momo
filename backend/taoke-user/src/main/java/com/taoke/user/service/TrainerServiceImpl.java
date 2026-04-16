@@ -104,9 +104,19 @@ public class TrainerServiceImpl implements TrainerService {
         Set<Integer> categoryIds = allExpertise.stream()
                 .map(TrainerExpertiseCategory::getCategoryId)
                 .collect(Collectors.toSet());
-        Map<Integer, String> nameMap = categoryIds.isEmpty()
+        Map<Integer, String> categoryNameMap = categoryIds.isEmpty()
                 ? Map.of()
                 : categoryService.getNameMap(categoryIds);
+
+        // 批量获取省市名称
+        Set<Integer> regionIds = new HashSet<>();
+        trainerMap.values().forEach(t -> {
+            if (t.getProvinceId() != null && t.getProvinceId() > 0) regionIds.add(t.getProvinceId());
+            if (t.getCityId() != null && t.getCityId() > 0) regionIds.add(t.getCityId());
+        });
+        Map<Integer, String> regionNameMap = regionIds.isEmpty()
+                ? Map.of()
+                : regionService.getNamesByIds(regionIds);
 
         // 组装结果，保持 ID 原始顺序
         List<TrainerListItemResponse> items = trainerIds.stream().map(id -> {
@@ -118,10 +128,14 @@ public class TrainerServiceImpl implements TrainerService {
                 dto.setId(ec.getId());
                 dto.setCategoryId(ec.getCategoryId());
                 dto.setSortOrder(ec.getSortOrder());
-                dto.setCategoryName(nameMap.get(ec.getCategoryId()));
+                dto.setCategoryName(categoryNameMap.get(ec.getCategoryId()));
                 return dto;
             }).toList();
             item.setExpertiseCategories(catRefs);
+
+            // 填充省市名称
+            item.setProvinceName(regionNameMap.get(t.getProvinceId()));
+            item.setCityName(regionNameMap.get(t.getCityId()));
 
             return item;
         }).toList();
