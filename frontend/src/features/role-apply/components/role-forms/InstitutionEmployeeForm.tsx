@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import type { InstitutionEmployeeFormData } from '../../api/types';
+import { FormField } from './FormField';
 
 interface InstitutionEmployeeFormProps {
   data: Partial<InstitutionEmployeeFormData>;
@@ -91,26 +92,6 @@ export function InstitutionEmployeeForm({ data, onChange }: InstitutionEmployeeF
           </FormField>
         </div>
       </fieldset>
-    </div>
-  );
-}
-
-function FormField({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { apiGet } from '@/lib/http/client';
 import RegionCascader from '@/components/region-cascader';
 import type { RegionValue } from '@/components/region-cascader';
 import type { TrainerFormData } from '../../api/types';
+import { FormField } from './FormField';
 
 interface CategoryNode {
   id: number;
@@ -343,26 +344,6 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
           </div>
         </div>
       </fieldset>
-    </div>
-  );
-}
-
-function FormField({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
     </div>
   );
 }

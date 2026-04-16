@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import type { EnterpriseAgentFormData } from '../../api/types';
+import { FormField } from './FormField';
 
 const COMPANY_SIZE_OPTIONS = ['1-50人', '51-200人', '201-500人', '501-1000人', '1000人以上'];
 
@@ -139,26 +140,6 @@ export function EnterpriseAgentForm({ data, onChange }: EnterpriseAgentFormProps
           />
         </FormField>
       </fieldset>
-    </div>
-  );
-}
-
-function FormField({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
     </div>
   );
 }

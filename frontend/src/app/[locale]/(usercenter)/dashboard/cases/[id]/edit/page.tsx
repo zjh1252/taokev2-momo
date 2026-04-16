@@ -11,10 +11,12 @@ import {
 } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
+import { validateCaseForm, getFirstError } from '@/features/trainer-case/utils/validation';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
+import { FormField } from '@/components/FormField';
 import { toast } from 'sonner';
 
 export default function EditCasePage({
@@ -142,10 +144,14 @@ export default function EditCasePage({
   );
 
   const handleSubmit = async () => {
-    if (!form.caseTitle.trim() || !form.enterpriseName.trim()) {
-      toast.error('请填写案例标题和企业名称');
+    // 表单验证
+    const validation = validateCaseForm(form);
+    if (!validation.valid) {
+      const firstError = getFirstError(validation.errors);
+      toast.error(firstError || '请完善必填信息');
       return;
     }
+
     setSubmitting(true);
     try {
       await updateCase(caseId, form);
@@ -316,25 +322,5 @@ export default function EditCasePage({
         </div>
       </div>
     </section>
-  );
-}
-
-function FormField({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
-    </div>
   );
 }

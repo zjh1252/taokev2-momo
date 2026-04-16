@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback, use } from 'react';
+import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '@/config/routes';
 import { ApplyStepLayout } from '@/features/role-apply/components/ApplyStepLayout';
 import { useRoleApplyState } from '@/features/role-apply/hooks/useRoleApplyState';
 import { submitRoleApply } from '@/features/role-apply/api/service';
 import { APPLYABLE_ROLES, type ApplyableRole } from '@/features/role-apply/api/types';
+import { validateRoleForm, getFirstError, type ValidationError } from '@/features/role-apply/utils/validation';
 import {
   EnterpriseBuyerForm,
   TrainerApplyForm,
@@ -39,6 +40,7 @@ export default function RoleApplyPage({ params }: { params: Promise<{ role: stri
   const { state, setFormData, clearState } = useRoleApplyState();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   const role = roleParam.toUpperCase() as ApplyableRole;
   const roleMeta = APPLYABLE_ROLES.find((r) => r.code === role);
@@ -75,6 +77,17 @@ export default function RoleApplyPage({ params }: { params: Promise<{ role: stri
 
   const handleSubmit = async () => {
     setError('');
+    setValidationErrors([]);
+
+    // 表单验证
+    const validation = validateRoleForm(role, formData);
+    if (!validation.valid) {
+      setValidationErrors(validation.errors);
+      const firstError = getFirstError(validation.errors);
+      setError(firstError || '请完善必填信息');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await submitRoleApply(role, formData);

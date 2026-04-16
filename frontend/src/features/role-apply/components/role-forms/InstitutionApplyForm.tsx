@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import type { InstitutionFormData } from '../../api/types';
+import { FormField } from './FormField';
 
 const ORG_TYPE_OPTIONS = [
   { value: 1, label: '综合培训机构' },
@@ -145,26 +146,6 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
           </div>
         </div>
       </fieldset>
-    </div>
-  );
-}
-
-function FormField({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
     </div>
   );
 }
