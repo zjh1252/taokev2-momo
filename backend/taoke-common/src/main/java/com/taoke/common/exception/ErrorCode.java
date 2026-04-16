@@ -94,6 +94,12 @@ public enum ErrorCode {
     TRAINER_NOT_FOUND_FOR_MSG(404, 50009, "目标专家不存在"),
     INTERACTION_TARGET_NOT_FOUND(404, 50010, "目标资源不存在"),
 
+    /* ==================== 需求 700xx ==================== */
+    DEMAND_NOT_FOUND(404, 70001, "需求不存在"),
+    DEMAND_NO_PERMISSION(403, 70002, "无权操作此需求"),
+    DEMAND_STATUS_INVALID(400, 70003, "需求当前状态不允许此操作"),
+    DEMAND_ENTERPRISE_REQUIRED(400, 70004, "请先申请企业采购者角色"),
+
     /* ==================== 搜索/ES 800xx ==================== */
     SEARCH_INDEX_ERROR(503, 80001, "索引操作失败"),
     SEARCH_DOCUMENT_ERROR(503, 80002, "文档写入/删除失败"),

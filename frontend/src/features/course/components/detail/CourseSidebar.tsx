@@ -125,16 +125,20 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         </>
       )}
 
-      {/* 非付费课程保留原有按钮 */}
+      {/* 非付费课程 — 内训课显示预约按钮，免费公开课显示预约按钮 */}
       {!isPurchasable && (
         <button
-          onClick={() => { /* TODO: 咨询/预约功能 */ }}
+          onClick={() => requireAuth(() => {
+            if (!isOpen) {
+              router.push(`/dashboard/demands/create?type=INTERNAL_RESERVATION&courseid=${course.id}`);
+            }
+          })}
           className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md"
         >
           {isOpen ? (
             <><Zap className="size-4" /> {t('reserve')}</>
           ) : (
-            <><MessageSquare className="size-4" /> {t('consult')}</>
+            <><MessageSquare className="size-4" /> 预约内训</>
           )}
         </button>
       )}

@@ -24,6 +24,7 @@ export const ROUTES = {
   UC_LEARNING: '/dashboard/learning',
   UC_ORDERS: '/dashboard/orders',
   UC_DEMANDS: '/dashboard/demands',
+  UC_DEMANDS_CREATE: '/dashboard/demands/create',
   UC_FAVORITES: '/dashboard/favorites',
   UC_REVIEWS: '/dashboard/reviews',
   UC_ALLIANCE_AMBASSADOR: '/dashboard/alliance/ambassador',

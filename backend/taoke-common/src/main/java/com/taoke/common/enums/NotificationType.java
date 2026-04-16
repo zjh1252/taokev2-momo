@@ -21,7 +21,8 @@ public enum NotificationType {
     VIDEO_REVIEW("录播课审核结果"),
     VIDEO_PURCHASED("录播课被购买"),
     CASE_REVIEW("案例审核结果"),
-    HIGHLIGHT_REVIEW("精彩瞬间审核结果");
+    HIGHLIGHT_REVIEW("精彩瞬间审核结果"),
+    DEMAND_STATUS("需求状态变更");
 
     private final String label;
 }

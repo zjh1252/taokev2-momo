@@ -196,6 +196,18 @@ export const navGroups: NavGroup[] = [
     label: '',
     items: [
       {
+        title: '需求管理',
+        url: '/dashboard/demands',
+        icon: 'forms',
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
         title: '企业采购方管理',
         url: '#',
         icon: 'briefcase',
