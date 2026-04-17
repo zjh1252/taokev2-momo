@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import type { InstitutionFormData } from '../../api/types';
 import { FormField } from './FormField';
+import type { FormValidationRules } from '@/lib/validation';
+import { Validators } from '@/lib/validation';
 
 const ORG_TYPE_OPTIONS = [
   { value: 1, label: '综合培训机构' },
@@ -149,3 +151,18 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
     </div>
   );
 }
+
+/**
+ * 培训机构表单验证规则
+ */
+export const INSTITUTION_RULES: FormValidationRules<InstitutionFormData> = {
+  orgName: { required: true, requiredMessage: '请输入机构名称' },
+  orgType: { required: true, requiredMessage: '请选择机构类型' },
+  bio: { required: true, requiredMessage: '请输入机构介绍' },
+  contactName: { required: true, requiredMessage: '请输入联系人姓名' },
+  contactPhone: {
+    required: true,
+    requiredMessage: '请输入联系电话',
+    validator: Validators.phone,
+  },
+};

@@ -11,7 +11,8 @@ import {
 } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
-import { validateCaseForm, getFirstError } from '@/features/trainer-case/utils/validation';
+import { validateForm, getFirstError } from '@/lib/validation';
+import { CASE_RULES } from '../../create/page';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
@@ -145,7 +146,7 @@ export default function EditCasePage({
 
   const handleSubmit = async () => {
     // 表单验证
-    const validation = validateCaseForm(form);
+    const validation = validateForm(form, CASE_RULES);
     if (!validation.valid) {
       const firstError = getFirstError(validation.errors);
       toast.error(firstError || '请完善必填信息');

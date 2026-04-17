@@ -1,11 +1,10 @@
 /**
- * 案例表单验证工具
+ * 表单验证引擎 - 底层验证方案封装
  *
+ * @description 提供通用的表单验证能力，验证规则由各表单文件自行定义
  * @author Fangxinxin
- * @date 2026-04-16
+ * @date 2026-04-17
  */
-
-import type { SaveTrainerCaseRequest } from '../api/types';
 
 /** 验证错误信息 */
 export interface ValidationError {
@@ -28,13 +27,6 @@ export interface FieldRule {
 
 /** 表单验证规则配置 */
 export type FormValidationRules<T> = Partial<Record<keyof T, FieldRule>>;
-
-// ---- 案例表单验证规则 ----
-
-export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
-  caseTitle: { required: true, requiredMessage: '请输入案例标题' },
-  enterpriseName: { required: true, requiredMessage: '请输入企业名称' },
-};
 
 /**
  * 验证单个字段
@@ -88,15 +80,22 @@ export function validateForm<T extends Record<string, unknown>>(
 }
 
 /**
- * 验证案例表单
- */
-export function validateCaseForm(formData: Partial<SaveTrainerCaseRequest>): ValidationResult {
-  return validateForm(formData, CASE_RULES);
-}
-
-/**
  * 获取第一个错误消息（用于快速提示）
  */
 export function getFirstError(errors: ValidationError[]): string | undefined {
   return errors[0]?.message;
 }
+
+/**
+ * 常用验证器
+ */
+export const Validators = {
+  /** 手机号验证 */
+  phone: (value: unknown) => {
+    const phone = value as string;
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      return '请输入正确的11位手机号';
+    }
+    return undefined;
+  },
+};

@@ -7,7 +7,7 @@ import { ApplyStepLayout } from '@/features/role-apply/components/ApplyStepLayou
 import { useRoleApplyState } from '@/features/role-apply/hooks/useRoleApplyState';
 import { submitRoleApply } from '@/features/role-apply/api/service';
 import { APPLYABLE_ROLES, type ApplyableRole } from '@/features/role-apply/api/types';
-import { validateRoleForm, getFirstError, type ValidationError } from '@/features/role-apply/utils/validation';
+import { validateForm, getFirstError, type ValidationError, type FormValidationRules } from '@/lib/validation';
 import {
   EnterpriseBuyerForm,
   TrainerApplyForm,
@@ -16,6 +16,13 @@ import {
   EnterpriseAgentForm,
   InstitutionApplyForm,
   InstitutionEmployeeForm,
+  ENTERPRISE_BUYER_RULES,
+  TRAINER_RULES,
+  AGENT_RULES,
+  ASSISTANT_RULES,
+  ENTERPRISE_AGENT_RULES,
+  INSTITUTION_RULES,
+  INSTITUTION_EMPLOYEE_RULES,
 } from '@/features/role-apply/components/role-forms';
 
 const FORM_MAP: Record<ApplyableRole, React.ComponentType<{ data: any; onChange: (d: any) => void }>> = {
@@ -26,6 +33,17 @@ const FORM_MAP: Record<ApplyableRole, React.ComponentType<{ data: any; onChange:
   ENTERPRISE_AGENT: EnterpriseAgentForm,
   INSTITUTION: InstitutionApplyForm,
   INSTITUTION_EMPLOYEE: InstitutionEmployeeForm,
+};
+
+/** 角色验证规则映射 */
+const VALIDATION_RULES_MAP: Record<ApplyableRole, FormValidationRules<unknown>> = {
+  ENTERPRISE_BUYER: ENTERPRISE_BUYER_RULES,
+  TRAINER: TRAINER_RULES,
+  AGENT: AGENT_RULES,
+  ASSISTANT: ASSISTANT_RULES,
+  ENTERPRISE_AGENT: ENTERPRISE_AGENT_RULES,
+  INSTITUTION: INSTITUTION_RULES,
+  INSTITUTION_EMPLOYEE: INSTITUTION_EMPLOYEE_RULES,
 };
 
 /**
@@ -80,7 +98,8 @@ export default function RoleApplyPage({ params }: { params: Promise<{ role: stri
     setValidationErrors([]);
 
     // 表单验证
-    const validation = validateRoleForm(role, formData);
+    const rules = VALIDATION_RULES_MAP[role];
+    const validation = validateForm(formData, rules);
     if (!validation.valid) {
       setValidationErrors(validation.errors);
       const firstError = getFirstError(validation.errors);

@@ -6,7 +6,7 @@ import { ROUTES } from '@/config/routes';
 import { createCase, addCaseFile } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
-import { validateCaseForm, getFirstError, type ValidationError } from '@/features/trainer-case/utils/validation';
+import { validateForm, getFirstError, type ValidationError, type FormValidationRules } from '@/lib/validation';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
@@ -62,7 +62,7 @@ export default function CreateCasePage() {
 
   const handleSubmit = async () => {
     // 表单验证
-    const validation = validateCaseForm(form);
+    const validation = validateForm(form, CASE_RULES);
     if (!validation.valid) {
       const firstError = getFirstError(validation.errors);
       toast.error(firstError || '请完善必填信息');
@@ -252,3 +252,11 @@ export default function CreateCasePage() {
     </section>
   );
 }
+
+/**
+ * 案例表单验证规则
+ */
+export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
+  caseTitle: { required: true, requiredMessage: '请输入案例标题' },
+  enterpriseName: { required: true, requiredMessage: '请输入企业名称' },
+};

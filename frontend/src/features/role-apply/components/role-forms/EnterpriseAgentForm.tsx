@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import type { EnterpriseAgentFormData } from '../../api/types';
 import { FormField } from './FormField';
+import type { FormValidationRules } from '@/lib/validation';
+import { Validators } from '@/lib/validation';
 
 const COMPANY_SIZE_OPTIONS = ['1-50人', '51-200人', '201-500人', '501-1000人', '1000人以上'];
 
@@ -143,3 +145,17 @@ export function EnterpriseAgentForm({ data, onChange }: EnterpriseAgentFormProps
     </div>
   );
 }
+
+/**
+ * 专家经纪公司表单验证规则
+ */
+export const ENTERPRISE_AGENT_RULES: FormValidationRules<EnterpriseAgentFormData> = {
+  companyName: { required: true, requiredMessage: '请输入公司名称' },
+  licenseNo: { required: true, requiredMessage: '请输入营业执照号' },
+  contactName: { required: true, requiredMessage: '请输入联系人姓名' },
+  contactPhone: {
+    required: true,
+    requiredMessage: '请输入联系电话',
+    validator: Validators.phone,
+  },
+};

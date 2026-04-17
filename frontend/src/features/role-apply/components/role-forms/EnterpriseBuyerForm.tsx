@@ -7,6 +7,8 @@ import RegionCascader from '@/components/region-cascader';
 import type { RegionValue } from '@/components/region-cascader';
 import type { EnterpriseBuyerFormData } from '../../api/types';
 import { FormField } from './FormField';
+import type { FormValidationRules } from '@/lib/validation';
+import { Validators } from '@/lib/validation';
 
 const COMPANY_SIZE_OPTIONS = ['1-50人', '51-200人', '201-500人', '501-1000人', '1000人以上'];
 
@@ -208,3 +210,17 @@ export function EnterpriseBuyerForm({ data, onChange }: EnterpriseBuyerFormProps
     </div>
   );
 }
+
+/**
+ * 企业培训采购方表单验证规则
+ */
+export const ENTERPRISE_BUYER_RULES: FormValidationRules<EnterpriseBuyerFormData> = {
+  companyName: { required: true, requiredMessage: '请输入企业名称' },
+  industry: { required: true, requiredMessage: '请选择所属行业' },
+  contactName: { required: true, requiredMessage: '请输入联系人姓名' },
+  contactPhone: {
+    required: true,
+    requiredMessage: '请输入联系电话',
+    validator: Validators.phone,
+  },
+};
