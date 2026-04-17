@@ -46,6 +46,11 @@ export type AdminDemandDetail = {
   description: string | null;
   sourceCaseId: number | null;
   sourceCourseId: number | null;
+  contactName: string | null;
+  contactPhone: string | null;
+  provinceId: number | null;
+  cityId: number | null;
+  districtId: number | null;
   status: number;
   statusLabel: string;
   createdAt: string;
@@ -95,7 +100,7 @@ export const DEMAND_STATUS_OPTIONS = [
 ];
 
 export const DEMAND_TYPE_OPTIONS = [
-  { value: 'DEFAULT', label: '首页发布' },
+  { value: 'DEFAULT', label: '默认' },
   { value: 'TRAINING', label: '企业培训需求' },
   { value: 'CASE_CUSTOM', label: '案例定制' },
   { value: 'INTERNAL_RESERVATION', label: '内训课预约' }

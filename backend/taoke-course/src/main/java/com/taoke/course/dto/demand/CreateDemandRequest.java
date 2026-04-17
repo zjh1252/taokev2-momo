@@ -48,4 +48,19 @@ public class CreateDemandRequest {
 
     /** 来源课程 ID（内训课预约时传入） */
     private Integer sourceCourseId;
+
+    /** 联系人 */
+    private String contactName;
+
+    /** 联系电话 */
+    private String contactPhone;
+
+    /** 省份 ID（线下/混合时传入） */
+    private Integer provinceId;
+
+    /** 城市 ID */
+    private Integer cityId;
+
+    /** 区/县 ID */
+    private Integer districtId;
 }

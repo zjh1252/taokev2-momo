@@ -36,6 +36,11 @@ public class DemandDetailResponse {
     private String description;
     private Integer sourceCaseId;
     private Integer sourceCourseId;
+    private String contactName;
+    private String contactPhone;
+    private Integer provinceId;
+    private Integer cityId;
+    private Integer districtId;
     private Integer status;
     private String statusLabel;
     private LocalDateTime createdAt;
@@ -72,6 +77,11 @@ public class DemandDetailResponse {
         r.setDescription(d.getDescription());
         r.setSourceCaseId(d.getSourceCaseId());
         r.setSourceCourseId(d.getSourceCourseId());
+        r.setContactName(d.getContactName());
+        r.setContactPhone(d.getContactPhone());
+        r.setProvinceId(d.getProvinceId());
+        r.setCityId(d.getCityId());
+        r.setDistrictId(d.getDistrictId());
         r.setStatus(d.getStatus());
         r.setStatusLabel(DemandStatus.of(d.getStatus()).getLabel());
         r.setCreatedAt(d.getCreatedAt());

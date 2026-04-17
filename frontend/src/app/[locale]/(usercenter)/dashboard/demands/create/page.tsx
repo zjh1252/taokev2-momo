@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ROUTES } from '@/config/routes';
 import { createDemand } from '@/features/demand/api/service';
 import { DemandType, FORMAT_OPTIONS, type CreateDemandRequest } from '@/features/demand/api/types';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
+import { useAuth } from '@/lib/auth/auth-context';
+import RegionCascader, { type RegionValue } from '@/components/region-cascader';
 
 /**
  * 发布需求页
@@ -15,6 +17,7 @@ import { Link } from '@/i18n/navigation';
 export default function CreateDemandPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
 
   const initialType = searchParams.get('type') || DemandType.DEFAULT;
   const sourceCourseId = searchParams.get('courseid');
@@ -32,10 +35,39 @@ export default function CreateDemandPage() {
     description: '',
     sourceCaseId: undefined,
     sourceCourseId: sourceCourseId ? Number(sourceCourseId) : undefined,
+    contactName: '',
+    contactPhone: '',
+    provinceId: undefined,
+    cityId: undefined,
+    districtId: undefined,
   });
+
+  useEffect(() => {
+    if (!form.contactPhone && user?.phone) {
+      setForm((prev) => ({ ...prev, contactPhone: user.phone }));
+    }
+  }, [user?.phone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateField = <K extends keyof CreateDemandRequest>(key: K, value: CreateDemandRequest[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleFormatChange = (value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      format: value,
+      // 切换到线上时清除地区
+      ...(value === 'ONLINE' ? { provinceId: undefined, cityId: undefined, districtId: undefined } : {}),
+    }));
+  };
+
+  const handleRegionChange = (val: RegionValue) => {
+    setForm((prev) => ({
+      ...prev,
+      provinceId: val.provinceId,
+      cityId: val.cityId,
+      districtId: val.districtId,
+    }));
   };
 
   const handleSubmit = async () => {
@@ -56,6 +88,7 @@ export default function CreateDemandPage() {
   };
 
   const isReservation = form.demandType === DemandType.INTERNAL_RESERVATION;
+  const showRegion = form.format === 'OFFLINE' || form.format === 'HYBRID';
 
   return (
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
@@ -97,6 +130,30 @@ export default function CreateDemandPage() {
               />
             </fieldset>
           )}
+
+          {/* 联系人 */}
+          <fieldset>
+            <label className="block text-sm font-medium text-gray-700 mb-1">联系人</label>
+            <input
+              type="text"
+              value={form.contactName || ''}
+              onChange={(e) => updateField('contactName', e.target.value)}
+              placeholder="请输入联系人姓名"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+          </fieldset>
+
+          {/* 联系电话 */}
+          <fieldset>
+            <label className="block text-sm font-medium text-gray-700 mb-1">联系电话</label>
+            <input
+              type="tel"
+              value={form.contactPhone || ''}
+              onChange={(e) => updateField('contactPhone', e.target.value)}
+              placeholder="请输入联系电话"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+          </fieldset>
 
           {/* 培训人数 */}
           <fieldset>
@@ -159,7 +216,7 @@ export default function CreateDemandPage() {
                     name="format"
                     value={opt.value}
                     checked={form.format === opt.value}
-                    onChange={(e) => updateField('format', e.target.value)}
+                    onChange={(e) => handleFormatChange(e.target.value)}
                     className="accent-primary"
                   />
                   <span className="text-sm text-gray-700">{opt.label}</span>
@@ -167,6 +224,22 @@ export default function CreateDemandPage() {
               ))}
             </div>
           </fieldset>
+
+          {/* 培训地区 — 线下/混合时显示 */}
+          {showRegion && (
+            <fieldset>
+              <label className="block text-sm font-medium text-gray-700 mb-1">培训地区</label>
+              <RegionCascader
+                maxLevel={3}
+                value={{
+                  provinceId: form.provinceId,
+                  cityId: form.cityId,
+                  districtId: form.districtId,
+                }}
+                onChange={handleRegionChange}
+              />
+            </fieldset>
+          )}
 
           {/* 详细描述 */}
           <fieldset>

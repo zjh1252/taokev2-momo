@@ -80,6 +80,11 @@ public class DemandServiceImpl implements DemandService {
         demand.setDescription(req.getDescription());
         demand.setSourceCaseId(req.getSourceCaseId());
         demand.setSourceCourseId(req.getSourceCourseId());
+        demand.setContactName(req.getContactName());
+        demand.setContactPhone(req.getContactPhone());
+        demand.setProvinceId(req.getProvinceId());
+        demand.setCityId(req.getCityId());
+        demand.setDistrictId(req.getDistrictId());
         demand.setStatus(DemandStatus.SUBMITTED.getValue());
         demandRepository.save(demand);
 

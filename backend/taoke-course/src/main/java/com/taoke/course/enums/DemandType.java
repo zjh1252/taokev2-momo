@@ -11,7 +11,7 @@ import lombok.Getter;
 @Getter
 public enum DemandType {
 
-    DEFAULT("首页发布"),
+    DEFAULT("默认"),
     TRAINING("企业培训需求"),
     CASE_CUSTOM("案例定制"),
     INTERNAL_RESERVATION("内训课预约");

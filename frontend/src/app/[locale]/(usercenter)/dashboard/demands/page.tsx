@@ -143,7 +143,7 @@ export default function DemandsPage() {
                       <span>预算：<span className="text-primary font-medium">{formatBudget(d.budgetMin, d.budgetMax)}</span></span>
                       {d.traineeCount && <span>人数：{d.traineeCount}人</span>}
                       <span>发布时间：{new Date(d.createdAt).toLocaleDateString('zh-CN')}</span>
-                      <span className="text-gray-400">{d.demandTypeLabel}</span>
+                      <span className="text-gray-400">需求类型：{d.demandTypeLabel}</span>
                     </div>
                     <div className="flex gap-3">
                       <button

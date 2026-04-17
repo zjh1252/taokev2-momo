@@ -28,7 +28,7 @@ export enum DemandType {
 }
 
 export const DEMAND_TYPE_MAP: Record<string, string> = {
-  [DemandType.DEFAULT]: '首页发布',
+  [DemandType.DEFAULT]: '默认',
   [DemandType.TRAINING]: '企业培训需求',
   [DemandType.CASE_CUSTOM]: '案例定制',
   [DemandType.INTERNAL_RESERVATION]: '内训课预约',
@@ -70,6 +70,11 @@ export interface CreateDemandRequest {
   description?: string;
   sourceCaseId?: number;
   sourceCourseId?: number;
+  contactName?: string;
+  contactPhone?: string;
+  provinceId?: number;
+  cityId?: number;
+  districtId?: number;
 }
 
 /** 需求列表项 */
@@ -123,6 +128,11 @@ export interface DemandDetail {
   description: string | null;
   sourceCaseId: number | null;
   sourceCourseId: number | null;
+  contactName: string | null;
+  contactPhone: string | null;
+  provinceId: number | null;
+  cityId: number | null;
+  districtId: number | null;
   status: number;
   statusLabel: string;
   createdAt: string;

@@ -78,6 +78,26 @@ public class Demand extends BaseEntity {
     @Column(name = "source_course_id")
     private Integer sourceCourseId;
 
+    /** 联系人 */
+    @Column(name = "contact_name", length = 50)
+    private String contactName;
+
+    /** 联系电话 */
+    @Column(name = "contact_phone", length = 30)
+    private String contactPhone;
+
+    /** 省份 ID */
+    @Column(name = "province_id")
+    private Integer provinceId;
+
+    /** 城市 ID */
+    @Column(name = "city_id")
+    private Integer cityId;
+
+    /** 区/县 ID */
+    @Column(name = "district_id")
+    private Integer districtId;
+
     /** 状态：1=已提交, 2=处理中, 3=已匹配, 4=已完成, 5=已取消 */
     @Column(name = "status", nullable = false, columnDefinition = "tinyint(2)")
     private Integer status;

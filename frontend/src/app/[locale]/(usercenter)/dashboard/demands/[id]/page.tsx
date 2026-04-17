@@ -134,6 +134,18 @@ export default function DemandDetailPage() {
               <span className="text-gray-800">{detail.formatLabel}</span>
             </div>
           )}
+          {detail.contactName && (
+            <div>
+              <span className="text-gray-500">联系人：</span>
+              <span className="text-gray-800">{detail.contactName}</span>
+            </div>
+          )}
+          {detail.contactPhone && (
+            <div>
+              <span className="text-gray-500">联系电话：</span>
+              <span className="text-gray-800">{detail.contactPhone}</span>
+            </div>
+          )}
           {detail.expectedStartDate && (
             <div>
               <span className="text-gray-500">期望开始：</span>

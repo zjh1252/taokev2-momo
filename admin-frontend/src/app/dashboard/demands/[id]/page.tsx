@@ -199,6 +199,18 @@ export default function DemandDetailPage(props: PageProps) {
                 <span>{detail.expectedStartDate}</span>
               </div>
             )}
+            {detail.contactName && (
+              <div>
+                <span className='text-muted-foreground'>联系人：</span>
+                <span>{detail.contactName}</span>
+              </div>
+            )}
+            {detail.contactPhone && (
+              <div>
+                <span className='text-muted-foreground'>联系电话：</span>
+                <span>{detail.contactPhone}</span>
+              </div>
+            )}
             <div>
               <span className='text-muted-foreground'>用户 ID：</span>
               <span>{detail.userId}</span>
