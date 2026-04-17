@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback, use } from 'react';
+import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '@/config/routes';
 import { ApplyStepLayout } from '@/features/role-apply/components/ApplyStepLayout';
 import { useRoleApplyState } from '@/features/role-apply/hooks/useRoleApplyState';
 import { submitRoleApply } from '@/features/role-apply/api/service';
 import { APPLYABLE_ROLES, type ApplyableRole } from '@/features/role-apply/api/types';
+import { validateForm, getFirstError, type ValidationError, type FormValidationRules } from '@/lib/validation';
 import {
   EnterpriseBuyerForm,
   TrainerApplyForm,
@@ -15,6 +16,13 @@ import {
   EnterpriseAgentForm,
   InstitutionApplyForm,
   InstitutionEmployeeForm,
+  ENTERPRISE_BUYER_RULES,
+  TRAINER_RULES,
+  AGENT_RULES,
+  ASSISTANT_RULES,
+  ENTERPRISE_AGENT_RULES,
+  INSTITUTION_RULES,
+  INSTITUTION_EMPLOYEE_RULES,
 } from '@/features/role-apply/components/role-forms';
 
 const FORM_MAP: Record<ApplyableRole, React.ComponentType<{ data: any; onChange: (d: any) => void }>> = {
@@ -25,6 +33,17 @@ const FORM_MAP: Record<ApplyableRole, React.ComponentType<{ data: any; onChange:
   ENTERPRISE_AGENT: EnterpriseAgentForm,
   INSTITUTION: InstitutionApplyForm,
   INSTITUTION_EMPLOYEE: InstitutionEmployeeForm,
+};
+
+/** 角色验证规则映射 */
+const VALIDATION_RULES_MAP: Record<ApplyableRole, FormValidationRules<unknown>> = {
+  ENTERPRISE_BUYER: ENTERPRISE_BUYER_RULES,
+  TRAINER: TRAINER_RULES,
+  AGENT: AGENT_RULES,
+  ASSISTANT: ASSISTANT_RULES,
+  ENTERPRISE_AGENT: ENTERPRISE_AGENT_RULES,
+  INSTITUTION: INSTITUTION_RULES,
+  INSTITUTION_EMPLOYEE: INSTITUTION_EMPLOYEE_RULES,
 };
 
 /**
@@ -39,6 +58,7 @@ export default function RoleApplyPage({ params }: { params: Promise<{ role: stri
   const { state, setFormData, clearState } = useRoleApplyState();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   const role = roleParam.toUpperCase() as ApplyableRole;
   const roleMeta = APPLYABLE_ROLES.find((r) => r.code === role);
@@ -75,6 +95,18 @@ export default function RoleApplyPage({ params }: { params: Promise<{ role: stri
 
   const handleSubmit = async () => {
     setError('');
+    setValidationErrors([]);
+
+    // 表单验证
+    const rules = VALIDATION_RULES_MAP[role];
+    const validation = validateForm(formData, rules);
+    if (!validation.valid) {
+      setValidationErrors(validation.errors);
+      const firstError = getFirstError(validation.errors);
+      setError(firstError || '请完善必填信息');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await submitRoleApply(role, formData);

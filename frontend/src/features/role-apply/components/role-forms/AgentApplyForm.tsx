@@ -3,6 +3,9 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import type { AgentFormData } from '../../api/types';
+import { FormField } from './FormField';
+import type { FormValidationRules } from '@/lib/validation';
+import { Validators } from '@/lib/validation';
 
 interface AgentApplyFormProps {
   data: Partial<AgentFormData>;
@@ -76,22 +79,15 @@ export function AgentApplyForm({ data, onChange }: AgentApplyFormProps) {
   );
 }
 
-function FormField({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
-    </div>
-  );
-}
+/**
+ * 专家经纪人表单验证规则
+ */
+export const AGENT_RULES: FormValidationRules<AgentFormData> = {
+  contactPhone: {
+    required: true,
+    requiredMessage: '请输入联系电话',
+    validator: Validators.phone,
+  },
+  bio: { required: true, requiredMessage: '请输入个人简介' },
+  specialties: { required: true, requiredMessage: '请输入擅长方向' },
+};

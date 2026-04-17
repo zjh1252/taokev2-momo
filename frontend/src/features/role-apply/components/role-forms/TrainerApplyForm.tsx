@@ -8,6 +8,9 @@ import { apiGet } from '@/lib/http/client';
 import RegionCascader from '@/components/region-cascader';
 import type { RegionValue } from '@/components/region-cascader';
 import type { TrainerFormData } from '../../api/types';
+import { FormField } from './FormField';
+import type { FormValidationRules } from '@/lib/validation';
+import { Validators } from '@/lib/validation';
 
 interface CategoryNode {
   id: number;
@@ -347,22 +350,19 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
   );
 }
 
-function FormField({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
-    </div>
-  );
-}
+/**
+ * 培训讲师表单验证规则
+ */
+export const TRAINER_RULES: FormValidationRules<TrainerFormData> = {
+  name: { required: true, requiredMessage: '请输入姓名' },
+  gender: { required: true, requiredMessage: '请选择性别' },
+  phone: {
+    required: true,
+    requiredMessage: '请输入联系电话',
+    validator: Validators.phone,
+  },
+  provinceId: { required: true, requiredMessage: '请选择省份' },
+  cityId: { required: true, requiredMessage: '请选择城市' },
+  bio: { required: true, requiredMessage: '请输入个人简介' },
+  goodAt: { required: true, requiredMessage: '请选择擅长领域' },
+};

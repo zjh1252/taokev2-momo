@@ -1,7 +1,8 @@
-export { EnterpriseBuyerForm } from './EnterpriseBuyerForm';
-export { TrainerApplyForm } from './TrainerApplyForm';
-export { AgentApplyForm } from './AgentApplyForm';
-export { AssistantApplyForm } from './AssistantApplyForm';
-export { EnterpriseAgentForm } from './EnterpriseAgentForm';
-export { InstitutionApplyForm } from './InstitutionApplyForm';
-export { InstitutionEmployeeForm } from './InstitutionEmployeeForm';
+export { EnterpriseBuyerForm, ENTERPRISE_BUYER_RULES } from './EnterpriseBuyerForm';
+export { TrainerApplyForm, TRAINER_RULES } from './TrainerApplyForm';
+export { AgentApplyForm, AGENT_RULES } from './AgentApplyForm';
+export { AssistantApplyForm, ASSISTANT_RULES } from './AssistantApplyForm';
+export { EnterpriseAgentForm, ENTERPRISE_AGENT_RULES } from './EnterpriseAgentForm';
+export { InstitutionApplyForm, INSTITUTION_RULES } from './InstitutionApplyForm';
+export { InstitutionEmployeeForm, INSTITUTION_EMPLOYEE_RULES } from './InstitutionEmployeeForm';
+export { FormField } from './FormField';

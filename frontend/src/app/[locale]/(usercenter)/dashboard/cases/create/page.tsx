@@ -6,10 +6,12 @@ import { ROUTES } from '@/config/routes';
 import { createCase, addCaseFile } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
+import { validateForm, getFirstError, type ValidationError, type FormValidationRules } from '@/lib/validation';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
+import { FormField } from '@/components/FormField';
 import { toast } from 'sonner';
 
 export default function CreateCasePage() {
@@ -59,10 +61,14 @@ export default function CreateCasePage() {
   }, []);
 
   const handleSubmit = async () => {
-    if (!form.caseTitle.trim() || !form.enterpriseName.trim()) {
-      toast.error('请填写案例标题和企业名称');
+    // 表单验证
+    const validation = validateForm(form, CASE_RULES);
+    if (!validation.valid) {
+      const firstError = getFirstError(validation.errors);
+      toast.error(firstError || '请完善必填信息');
       return;
     }
+
     setSubmitting(true);
     try {
       const created = await createCase(form);
@@ -247,22 +253,10 @@ export default function CreateCasePage() {
   );
 }
 
-function FormField({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
-    </div>
-  );
-}
+/**
+ * 案例表单验证规则
+ */
+export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
+  caseTitle: { required: true, requiredMessage: '请输入案例标题' },
+  enterpriseName: { required: true, requiredMessage: '请输入企业名称' },
+};

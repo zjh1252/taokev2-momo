@@ -41,6 +41,12 @@ public class TrainerListItemResponse {
     /** 城市 ID */
     private Integer cityId;
 
+    /** 省份名称 */
+    private String provinceName;
+
+    /** 城市名称 */
+    private String cityName;
+
     /** 擅长领域分类（仅名称，用于 tag 展示） */
     private List<CategoryRefDTO> expertiseCategories;
 }

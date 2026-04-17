@@ -78,9 +78,9 @@ export function CourseDetailTabs({ course }: CourseDetailTabsProps) {
                 <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
                   {t('courseHighlights')}
                 </h3>
-                <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                  {course.highlights}
-                </div>
+                <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ __html: course.highlights }}
+                />
               </section>
             )}
 

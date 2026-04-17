@@ -2,6 +2,18 @@ import { apiGet, apiPut } from '@/lib/http/client';
 import type { ApiResult, UserProfileResponse } from '@/features/user/api/types';
 
 /**
+ * 修改密码
+ */
+export function changePassword(
+  token: string,
+  data: { oldPassword?: string; newPassword: string },
+) {
+  return apiPut<ApiResult>('/users/me/password', data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+/**
  * 获取未读通知数
  */
 export function getUnreadCount(token: string) {

@@ -13,6 +13,7 @@ import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
+import { FormField } from '@/components/FormField';
 import { toast } from 'sonner';
 
 export default function CreateHighlightPage() {
@@ -172,25 +173,5 @@ export default function CreateHighlightPage() {
         </div>
       </div>
     </section>
-  );
-}
-
-function FormField({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
-    </div>
   );
 }

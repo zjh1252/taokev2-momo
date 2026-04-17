@@ -3,6 +3,9 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import type { InstitutionEmployeeFormData } from '../../api/types';
+import { FormField } from './FormField';
+import type { FormValidationRules } from '@/lib/validation';
+import { Validators } from '@/lib/validation';
 
 interface InstitutionEmployeeFormProps {
   data: Partial<InstitutionEmployeeFormData>;
@@ -95,22 +98,14 @@ export function InstitutionEmployeeForm({ data, onChange }: InstitutionEmployeeF
   );
 }
 
-function FormField({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
-    </div>
-  );
-}
+/**
+ * 机构员工表单验证规则
+ */
+export const INSTITUTION_EMPLOYEE_RULES: FormValidationRules<InstitutionEmployeeFormData> = {
+  contactPhone: {
+    required: true,
+    requiredMessage: '请输入联系电话',
+    validator: Validators.phone,
+  },
+  orgId: { required: true, requiredMessage: '请输入所属机构ID' },
+};

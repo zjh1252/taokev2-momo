@@ -100,6 +100,8 @@ export interface TrainerListItem {
   viewCount: number;
   provinceId: number;
   cityId: number;
+  provinceName?: string;
+  cityName?: string;
   expertiseCategories: CategoryRef[];
 }
 

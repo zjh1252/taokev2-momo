@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Star, ChevronRight, Play } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import type {
   TrainerDetail,
   MockCourse,
@@ -29,16 +30,20 @@ interface TrainerDetailContentProps {
   relatedTrainers: MockRelatedTrainer[];
 }
 
-const TABS = [
-  { id: 'home', label: '主页' },
-  { id: 'courses', label: '主讲课程' },
-  { id: 'cases', label: '授课案例' },
-  { id: 'clips', label: '录播课' },
-  { id: 'comments', label: '学员评价' },
-  { id: 'books', label: '著作' },
-] as const;
+interface TabConfig {
+  id: string;
+  label: string;
+  countKey?: 'courses' | 'cases' | 'clips' | 'reviews' | 'books';
+}
 
-type TabId = (typeof TABS)[number]['id'];
+const TABS: TabConfig[] = [
+  { id: 'home', label: '主页' },
+  { id: 'courses', label: '主讲课程', countKey: 'courses' },
+  { id: 'cases', label: '授课案例', countKey: 'cases' },
+  { id: 'clips', label: '录播课', countKey: 'clips' },
+  { id: 'comments', label: '学员评价', countKey: 'reviews' },
+  { id: 'books', label: '著作', countKey: 'books' },
+];
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -58,26 +63,48 @@ export function TrainerDetailContent({
   books,
   relatedTrainers,
 }: TrainerDetailContentProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('home');
+  const [activeTab, setActiveTab] = useState<string>('home');
+
+  // 计算各标签的数量
+  const counts = {
+    courses: courses.length,
+    cases: cases.length,
+    clips: clips.length,
+    reviews: reviews.length,
+    books: books.length,
+  };
 
   return (
     <>
       {/* Tab 导航 */}
       <div className="px-6 lg:px-8 border-t border-slate-200 bg-white rounded-b-xl -mt-6 mb-6">
         <div className="flex items-center gap-8 overflow-x-auto text-[15px]">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-4 whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'text-primary border-b-2 border-primary font-bold'
-                  : 'text-slate-600 hover:text-primary'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {TABS.map((tab) => {
+            const count = tab.countKey ? counts[tab.countKey] : 0;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-4 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                  activeTab === tab.id
+                    ? 'text-primary border-b-2 border-primary font-bold'
+                    : 'text-slate-600 hover:text-primary'
+                }`}
+              >
+                <span>{tab.label}</span>
+                {tab.countKey && count > 0 && (
+                  <span className={cn(
+                    'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold',
+                    activeTab === tab.id
+                      ? 'bg-primary text-white'
+                      : 'bg-slate-200 text-slate-600'
+                  )}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
