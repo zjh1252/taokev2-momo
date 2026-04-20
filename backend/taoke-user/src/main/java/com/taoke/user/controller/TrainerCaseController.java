@@ -28,30 +28,30 @@ public class TrainerCaseController {
 
     private final TrainerCaseService trainerCaseService;
 
-    // ==================== 专家自服务（需 TRAINER 角色） ====================
+    // ==================== 自服务（内容管理角色） ====================
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "我的案例列表")
     @GetMapping("/trainers/me/cases")
     public ApiResponse<List<TrainerCaseResponse>> listMyCases() {
         return ApiResponse.ok(trainerCaseService.listMyCases(SecurityUtils.getCurrentUserId()));
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "我的案例详情")
     @GetMapping("/trainers/me/cases/{id}")
     public ApiResponse<TrainerCaseResponse> getMyCaseDetail(@PathVariable Integer id) {
         return ApiResponse.ok(trainerCaseService.getMyCaseDetail(SecurityUtils.getCurrentUserId(), id));
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "新增案例")
     @PostMapping("/trainers/me/cases")
     public ApiResponse<TrainerCaseResponse> createCase(@Valid @RequestBody SaveTrainerCaseRequest request) {
         return ApiResponse.ok(trainerCaseService.createCase(SecurityUtils.getCurrentUserId(), request));
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "编辑案例")
     @PutMapping("/trainers/me/cases/{id}")
     public ApiResponse<TrainerCaseResponse> updateCase(@PathVariable Integer id,
@@ -59,7 +59,7 @@ public class TrainerCaseController {
         return ApiResponse.ok(trainerCaseService.updateCase(SecurityUtils.getCurrentUserId(), id, request));
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "删除案例")
     @DeleteMapping("/trainers/me/cases/{id}")
     public ApiResponse<Void> deleteCase(@PathVariable Integer id) {
@@ -67,7 +67,7 @@ public class TrainerCaseController {
         return ApiResponse.ok();
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "添加案例文件")
     @PostMapping("/trainers/me/cases/{id}/files")
     public ApiResponse<TrainerCaseFileResponse> addCaseFile(
@@ -77,7 +77,7 @@ public class TrainerCaseController {
                 SecurityUtils.getCurrentUserId(), id, request));
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "删除案例文件")
     @DeleteMapping("/trainers/me/cases/{caseId}/files/{fileId}")
     public ApiResponse<Void> deleteCaseFile(@PathVariable Integer caseId,

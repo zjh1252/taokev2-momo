@@ -28,16 +28,16 @@ public class TrainerHighlightController {
 
     private final TrainerHighlightService highlightService;
 
-    // ==================== 专家自服务（需 TRAINER 角色） ====================
+    // ==================== 自服务（内容管理角色） ====================
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "我的精彩瞬间列表")
     @GetMapping("/trainers/me/highlights")
     public ApiResponse<List<TrainerHighlightResponse>> listMyHighlights() {
         return ApiResponse.ok(highlightService.listMyHighlights(SecurityUtils.getCurrentUserId()));
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "新建精彩瞬间")
     @PostMapping("/trainers/me/highlights")
     public ApiResponse<TrainerHighlightResponse> createHighlight(
@@ -45,7 +45,7 @@ public class TrainerHighlightController {
         return ApiResponse.ok(highlightService.createHighlight(SecurityUtils.getCurrentUserId(), request));
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "更新精彩瞬间")
     @PutMapping("/trainers/me/highlights/{id}")
     public ApiResponse<TrainerHighlightResponse> updateHighlight(
@@ -54,7 +54,7 @@ public class TrainerHighlightController {
         return ApiResponse.ok(highlightService.updateHighlight(SecurityUtils.getCurrentUserId(), id, request));
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "删除精彩瞬间")
     @DeleteMapping("/trainers/me/highlights/{id}")
     public ApiResponse<Void> deleteHighlight(@PathVariable Integer id) {
@@ -62,7 +62,7 @@ public class TrainerHighlightController {
         return ApiResponse.ok(null);
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "批量排序")
     @PutMapping("/trainers/me/highlights/sort")
     public ApiResponse<Void> batchSort(@RequestBody List<Integer> ids) {
@@ -70,7 +70,7 @@ public class TrainerHighlightController {
         return ApiResponse.ok(null);
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "添加文件到精彩瞬间")
     @PostMapping("/trainers/me/highlights/{id}/files")
     public ApiResponse<TrainerHighlightFileResponse> addHighlightFile(
@@ -80,7 +80,7 @@ public class TrainerHighlightController {
                 highlightService.addHighlightFile(SecurityUtils.getCurrentUserId(), id, request));
     }
 
-    @RequireRole(BusinessRole.Code.TRAINER)
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "删除精彩瞬间中的文件")
     @DeleteMapping("/trainers/me/highlights/{highlightId}/files/{fileId}")
     public ApiResponse<Void> deleteHighlightFile(

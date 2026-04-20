@@ -11,6 +11,7 @@ import {
   IdCard,
   Shield,
   User,
+  Pencil,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { cn } from '@/lib/utils';
@@ -30,8 +31,29 @@ const ALL_ROLES = [
   { code: '_ADMIN', label: '管理员', description: '运营角色，仅后台创建', icon: Shield, adminOnly: true },
 ] as const;
 
+const ROLE_LABELS: Record<string, string> = {
+  BUYER: '个人学员',
+  ENTERPRISE_BUYER: '企业培训采购方',
+  TRAINER: '专家',
+  AGENT: '专家经纪人',
+  ASSISTANT: '专家助理',
+  ENTERPRISE_AGENT: '专家经纪公司',
+  INSTITUTION: '培训机构',
+  INSTITUTION_EMPLOYEE: '机构员工',
+};
+
+const applyableRoleCodes = new Set([
+  'ENTERPRISE_BUYER',
+  'TRAINER',
+  'AGENT',
+  'ASSISTANT',
+  'ENTERPRISE_AGENT',
+  'INSTITUTION',
+  'INSTITUTION_EMPLOYEE',
+]);
+
 /**
- * 修改身份页 — 展示角色列表 + 弹窗选择申请
+ * 修改身份页 — 显示当前身份、切换身份、申请新角色、修改角色资料
  *
  * @author Fangxinxin
  * @date 2026-04-03 11:30
@@ -44,57 +66,52 @@ export default function AccountSwitchPage() {
   const roleStatusMap = new Map(
     user?.roles?.map((r) => [r.role, r.status]) || [],
   );
-  // 个人学员始终标记为已生效
   roleStatusMap.set('BUYER', 1);
 
-  // 可申请的角色编码集合
-  const applyableRoleCodes = new Set([
-    'ENTERPRISE_BUYER',
-    'TRAINER',
-    'AGENT',
-    'ASSISTANT',
-    'ENTERPRISE_AGENT',
-    'INSTITUTION',
-    'INSTITUTION_EMPLOYEE',
-  ]);
+  const handleSwitch = (roleCode: string) => {
+    setActiveRole(roleCode);
+  };
 
-  const handleRoleClick = (roleCode: string) => {
-    const status = roleStatusMap.get(roleCode);
-    const isActive = status === 1;
+  const handleApply = (roleCode: string) => {
+    setSelectedRole(roleCode as ApplyableRole);
+    router.push(`${ROUTES.UC_APPLY}/${roleCode}`);
+  };
 
-    if (isActive) {
-      // 已拥有该角色，直接切换
-      setActiveRole(roleCode);
-    } else if (applyableRoleCodes.has(roleCode)) {
-      // 未拥有但可申请，跳转到申请页面
-      setSelectedRole(roleCode as ApplyableRole);
-      router.push(`${ROUTES.UC_APPLY}/${roleCode}`);
-    }
+  const handleEditProfile = (roleCode: string) => {
+    setSelectedRole(roleCode as ApplyableRole);
+    router.push(`${ROUTES.UC_APPLY}/${roleCode}`);
   };
 
   return (
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 min-h-[500px] p-6">
-      <div>
+      {/* 页面标题 */}
+      <div className="mb-6">
         <div className="text-xl font-bold text-gray-900">修改身份</div>
         <div className="text-sm text-gray-500 mt-2">
-          点击角色可切换身份或申请新角色。
+          管理你的角色身份：切换当前身份、申请新角色或修改角色资料。
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5">
+
+      {/* 当前身份展示 */}
+      <div className="bg-gradient-to-r from-primary/5 to-transparent border border-primary/10 rounded-xl p-5 mb-6">
+        <div className="text-sm text-gray-500 mb-1">当前身份</div>
+        <div className="text-lg font-bold text-primary">{ROLE_LABELS[activeRole] || '个人学员'}</div>
+      </div>
+
+      {/* 角色卡片网格 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {ALL_ROLES.filter(role => !('adminOnly' in role && role.adminOnly)).map((role) => {
           const status = roleStatusMap.get(role.code);
           const isActive = status === 1;
           const isPending = status === 2;
           const isRejected = status === 3;
-          const isAdmin = 'adminOnly' in role && role.adminOnly;
           const isCurrent = activeRole === role.code;
-          const isClickable = isActive || applyableRoleCodes.has(role.code);
+          const canEditProfile = isActive && role.code !== 'BUYER' && applyableRoleCodes.has(role.code);
           const Icon = role.icon;
 
           return (
             <div
               key={role.code}
-              onClick={() => isClickable && handleRoleClick(role.code)}
               className={cn(
                 'border rounded-xl p-4 transition-all flex items-start gap-3',
                 isCurrent
@@ -106,8 +123,6 @@ export default function AccountSwitchPage() {
                       : isRejected
                         ? 'border-red-200 bg-red-50/30'
                         : 'border-slate-200',
-                isClickable && 'cursor-pointer hover:shadow-sm',
-                isClickable && !isActive && 'hover:border-primary/40 hover:bg-red-50/30',
               )}
             >
               <div
@@ -125,7 +140,7 @@ export default function AccountSwitchPage() {
                   {role.label}
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">{role.description}</div>
-                <div className="mt-2 text-xs flex items-center gap-2">
+                <div className="mt-2 text-xs flex items-center gap-2 flex-wrap">
                   {isActive && (
                     <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
                       <span className="size-1.5 rounded-full bg-emerald-500" />
@@ -139,9 +154,23 @@ export default function AccountSwitchPage() {
                     </span>
                   )}
                   {isActive && !isCurrent && (
-                    <span className="text-primary hover:underline">
+                    <button
+                      type="button"
+                      onClick={() => handleSwitch(role.code)}
+                      className="text-primary hover:underline font-medium cursor-pointer"
+                    >
                       点击切换
-                    </span>
+                    </button>
+                  )}
+                  {canEditProfile && (
+                    <button
+                      type="button"
+                      onClick={() => handleEditProfile(role.code)}
+                      className="inline-flex items-center gap-1 text-gray-500 hover:text-primary font-medium cursor-pointer"
+                    >
+                      <Pencil className="size-3" />
+                      修改角色资料
+                    </button>
                   )}
                   {isPending && (
                     <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
@@ -156,9 +185,13 @@ export default function AccountSwitchPage() {
                     </span>
                   )}
                   {!isActive && !isPending && !isRejected && applyableRoleCodes.has(role.code) && (
-                    <span className="text-primary hover:underline">
+                    <button
+                      type="button"
+                      onClick={() => handleApply(role.code)}
+                      className="text-primary hover:underline font-medium cursor-pointer"
+                    >
                       点击申请
-                    </span>
+                    </button>
                   )}
                 </div>
               </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, usePathname } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -19,27 +19,123 @@ import {
   ChevronDown,
   Briefcase,
   Camera,
+  Users,
   Building2,
+  MapPin,
+  UserPlus,
+  BarChart3,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/** 显示「我的课程」菜单的角色白名单，后续可扩展 */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const COURSE_MENU_ROLES = ['BUYER', 'TRAINER'] as const;
+/** 内容管理类菜单可见的角色集合 */
+const CONTENT_ROLES = ['TRAINER', 'AGENT', 'ASSISTANT', 'INSTITUTION', 'INSTITUTION_EMPLOYEE'];
 
-type NavEntry =
-  | { kind: 'item'; label: string; href: string; icon: React.ReactNode; badge?: number }
-  | { kind: 'group'; label: string; icon: React.ReactNode; children: { label: string; href: string }[]; separator?: boolean };
+type NavItem = {
+  kind: 'item';
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  badge?: number;
+  /** 不设置则对所有角色可见；设置则仅 activeRole 在列表中时显示 */
+  visibleForRoles?: string[];
+  /** 占位菜单，功能尚未实现 */
+  isPlaceholder?: boolean;
+};
+
+type NavGroup = {
+  kind: 'group';
+  label: string;
+  icon: React.ReactNode;
+  children: { label: string; href: string }[];
+  separator?: boolean;
+  visibleForRoles?: string[];
+  isPlaceholder?: boolean;
+};
+
+type NavEntry = NavItem | NavGroup;
 
 /**
- * 统一有序导航列表，「我的课程」紧跟「消息中心」之后
+ * 构建完整的导航配置。
+ * 角色感知：含 visibleForRoles 的条目只在 activeRole 匹配时显示。
  */
 const NAV_ENTRIES: NavEntry[] = [
-  { kind: 'item', label: '个人主页', href: ROUTES.DASHBOARD, icon: <Home className="size-5" /> },
+  // ── 通用：始终显示 ──
+  { kind: 'item', label: '我的淘课网', href: ROUTES.DASHBOARD, icon: <Home className="size-5" /> },
   { kind: 'item', label: '消息中心', href: ROUTES.UC_MESSAGES, icon: <Mail className="size-5" /> },
-  // TODO: 后续恢复角色控制，当前全部放行便于测试
+  {
+    kind: 'group', label: '我的账号', icon: <UserCog className="size-5" />, separator: true,
+    children: [
+      { label: '修改身份', href: ROUTES.UC_ACCOUNT_SWITCH },
+      { label: '账号信息', href: ROUTES.UC_ACCOUNT_BASE },
+      { label: '账号认证', href: ROUTES.UC_ACCOUNT_VERIFY },
+      { label: '账号绑定', href: ROUTES.UC_ACCOUNT_BIND },
+    ],
+  },
+
+  // ── 角色特有：我的专家（经纪人/助理 有子菜单，机构/机构员工 为 flat 占位） ──
+  {
+    kind: 'group', label: '我的专家', icon: <Users className="size-5" />, separator: true,
+    visibleForRoles: ['AGENT', 'ASSISTANT'],
+    isPlaceholder: true,
+    children: [
+      { label: '专家列表', href: ROUTES.UC_MY_EXPERTS_LIST },
+      { label: '添加专家', href: ROUTES.UC_MY_EXPERTS_ADD },
+    ],
+  },
+  {
+    kind: 'item', label: '我的专家', href: ROUTES.UC_MY_EXPERTS, icon: <Users className="size-5" />,
+    visibleForRoles: ['INSTITUTION', 'INSTITUTION_EMPLOYEE'],
+    isPlaceholder: true,
+  },
+
+  // ── 我的业务（经纪人 和 经纪公司 子菜单略有不同） ──
+  {
+    kind: 'group', label: '我的业务', icon: <BarChart3 className="size-5" />,
+    visibleForRoles: ['AGENT'],
+    isPlaceholder: true,
+    children: [
+      { label: '接收订单', href: ROUTES.UC_MY_BUSINESS_ORDERS },
+      { label: '客户评价', href: ROUTES.UC_MY_BUSINESS_REVIEWS },
+      { label: '专家数据', href: ROUTES.UC_MY_BUSINESS_DATA },
+    ],
+  },
+  {
+    kind: 'group', label: '我的业务', icon: <BarChart3 className="size-5" />,
+    visibleForRoles: ['ENTERPRISE_AGENT'],
+    isPlaceholder: true,
+    children: [
+      { label: '接收订单', href: ROUTES.UC_MY_BUSINESS_ORDERS },
+      { label: '客户评价', href: ROUTES.UC_MY_BUSINESS_REVIEWS },
+      { label: '成交数据', href: ROUTES.UC_MY_BUSINESS_DATA },
+    ],
+  },
+
+  // ── 我的机构（机构员工专属） ──
+  {
+    kind: 'item', label: '我的机构', href: ROUTES.UC_MY_INSTITUTION, icon: <Building2 className="size-5" />,
+    visibleForRoles: ['INSTITUTION_EMPLOYEE'],
+    isPlaceholder: true,
+  },
+
+  // ── 我的员工（培训机构专属） ──
+  {
+    kind: 'item', label: '我的员工', href: ROUTES.UC_MY_STAFF, icon: <UserPlus className="size-5" />,
+    visibleForRoles: ['INSTITUTION'],
+    isPlaceholder: true,
+  },
+
+  // ── 我的场地（培训机构专属） ──
+  {
+    kind: 'item', label: '我的场地', href: ROUTES.UC_MY_VENUES, icon: <MapPin className="size-5" />,
+    visibleForRoles: ['INSTITUTION'],
+    isPlaceholder: true,
+  },
+
+  // ── 内容管理类（TRAINER / AGENT / ASSISTANT / INSTITUTION / INSTITUTION_EMPLOYEE） ──
   {
     kind: 'group', label: '我的课程', icon: <BookOpen className="size-5" />,
+    visibleForRoles: CONTENT_ROLES,
     children: [
       { label: '发布课程', href: ROUTES.UC_COURSES_CREATE },
       { label: '管理课程', href: ROUTES.UC_COURSES_MANAGE },
@@ -47,13 +143,15 @@ const NAV_ENTRIES: NavEntry[] = [
   },
   {
     kind: 'group', label: '我的案例', icon: <Briefcase className="size-5" />,
+    visibleForRoles: CONTENT_ROLES,
     children: [
       { label: '发布案例', href: ROUTES.UC_CASES_CREATE },
       { label: '管理案例', href: ROUTES.UC_CASES_MANAGE },
     ],
   },
   {
-    kind: 'group', label: '我的精彩瞬间', icon: <Camera className="size-5" />,
+    kind: 'group', label: '精彩瞬间', icon: <Camera className="size-5" />,
+    visibleForRoles: CONTENT_ROLES,
     children: [
       { label: '发布精彩瞬间', href: ROUTES.UC_HIGHLIGHTS_CREATE },
       { label: '管理精彩瞬间', href: ROUTES.UC_HIGHLIGHTS_MANAGE },
@@ -61,17 +159,19 @@ const NAV_ENTRIES: NavEntry[] = [
   },
   {
     kind: 'group', label: '我的视频', icon: <Video className="size-5" />,
+    visibleForRoles: CONTENT_ROLES,
     children: [
       { label: '发布录播课', href: ROUTES.UC_VIDEOS_CREATE },
       { label: '管理录播课', href: ROUTES.UC_VIDEOS_MANAGE },
     ],
   },
+
+  // ── 通用：始终显示 ──
   { kind: 'item', label: '我的学习', href: ROUTES.UC_LEARNING, icon: <GraduationCap className="size-5" /> },
   { kind: 'item', label: '我的订单', href: ROUTES.UC_ORDERS, icon: <Receipt className="size-5" /> },
   { kind: 'item', label: '我的需求', href: ROUTES.UC_DEMANDS, icon: <ClipboardList className="size-5" /> },
   { kind: 'item', label: '我的收藏', href: ROUTES.UC_FAVORITES, icon: <Heart className="size-5" /> },
   { kind: 'item', label: '我的点评', href: ROUTES.UC_REVIEWS, icon: <MessageCircle className="size-5" /> },
-  { kind: 'item', label: '培协', href: ROUTES.ASSOCIATIONS, icon: <Building2 className="size-5" /> },
   {
     kind: 'group', label: '淘课联盟', icon: <Handshake className="size-5" />, separator: true,
     children: [
@@ -80,31 +180,26 @@ const NAV_ENTRIES: NavEntry[] = [
       { label: '721讲师合作', href: ROUTES.UC_ALLIANCE_721 },
     ],
   },
-  {
-    kind: 'group', label: '我的账号', icon: <UserCog className="size-5" />, separator: true,
-    children: [
-      { label: '身份信息', href: ROUTES.UC_ACCOUNT_INFO },
-      { label: '账号信息', href: ROUTES.UC_ACCOUNT_BASE },
-      { label: '账号认证', href: ROUTES.UC_ACCOUNT_VERIFY },
-      { label: '账号绑定', href: ROUTES.UC_ACCOUNT_BIND },
-      { label: '修改身份', href: ROUTES.UC_ACCOUNT_SWITCH },
-    ],
-  },
 ];
 
 /**
- * 用户中心左侧导航菜单 — 支持展开/折叠子菜单
+ * 用户中心左侧导航菜单 — 根据 activeRole 动态过滤可见条目
  *
  * @author Fangxinxin
  * @date 2026-04-03 10:00
  */
 export function UserCenterSidebar() {
   const pathname = usePathname();
-  useAuth(); // 保留 hook 调用，后续恢复角色控制时使用
+  const { activeRole } = useAuth();
+
+  const visibleEntries = useMemo(
+    () => NAV_ENTRIES.filter((e) => !e.visibleForRoles || e.visibleForRoles.includes(activeRole)),
+    [activeRole],
+  );
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
-    for (const entry of NAV_ENTRIES) {
+    for (const entry of visibleEntries) {
       if (entry.kind === 'group' && entry.children.some((c) => pathname === c.href)) {
         init[entry.label] = true;
       }
@@ -122,11 +217,11 @@ export function UserCenterSidebar() {
     <aside className="w-full md:w-[220px] shrink-0">
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden sticky top-[80px]">
         <nav className="flex flex-col py-2">
-          {NAV_ENTRIES.map((entry) => {
+          {visibleEntries.map((entry) => {
             if (entry.kind === 'item') {
               return (
                 <Link
-                  key={entry.href}
+                  key={entry.href + entry.label}
                   href={entry.href}
                   className={cn(
                     'flex items-center gap-3 px-6 py-3.5 text-gray-600 hover:bg-slate-50 hover:text-primary transition-colors border-l-4 border-transparent',
@@ -136,6 +231,12 @@ export function UserCenterSidebar() {
                 >
                   {entry.icon}
                   {entry.label}
+                  {entry.isPlaceholder && (
+                    <span className="ml-auto flex items-center gap-0.5 text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
+                      <Sparkles className="size-2.5" />
+                      即将上线
+                    </span>
+                  )}
                   {entry.badge !== undefined && entry.badge > 0 && (
                     <span className="ml-auto bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">
                       {entry.badge}
@@ -149,7 +250,7 @@ export function UserCenterSidebar() {
             const groupActive = entry.children.some((c) => isActive(c.href));
 
             return (
-              <div key={entry.label} className="relative">
+              <div key={entry.label + (entry.visibleForRoles?.join('') ?? '')} className="relative">
                 <button
                   type="button"
                   onClick={() => toggleGroup(entry.label)}
@@ -162,6 +263,12 @@ export function UserCenterSidebar() {
                   <div className="flex items-center gap-3">
                     {entry.icon}
                     {entry.label}
+                    {entry.isPlaceholder && (
+                      <span className="flex items-center gap-0.5 text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
+                        <Sparkles className="size-2.5" />
+                        即将上线
+                      </span>
+                    )}
                   </div>
                   <ChevronDown
                     className={cn(

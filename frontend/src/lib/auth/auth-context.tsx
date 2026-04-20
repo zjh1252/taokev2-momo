@@ -9,9 +9,10 @@ import {
   type ReactNode,
 } from 'react';
 import { storage } from '@/lib/storage';
-import { TOKEN_KEY, ROLE_TRAINER } from './constants';
+import { TOKEN_KEY, ROLE_TRAINER, ROLE_INSTITUTION } from './constants';
 import { getMyProfile } from '@/features/user/api/service';
 import { getMyTrainerProfile } from '@/features/trainer/api/service';
+import { getMyInstitutionProfile } from '@/features/institution/api/service';
 import type { UserProfileResponse, RoleInfo } from '@/features/user/api/types';
 
 /** 精简后的认证用户信息 */
@@ -32,10 +33,14 @@ interface AuthContextValue {
   refreshUser: () => Promise<void>;
   /** 退出登录 */
   logout: () => void;
-  /**
-   * 专家公开主页路径（如 /trainers/123），非已生效专家或未拉到档案时为 null
-   */
+  /** 专家公开主页路径（如 /trainers/123），非已生效专家或未拉到档案时为 null */
   trainerPublicHomeHref: string | null;
+  /** 机构公开主页路径（如 /institutions/5），非已生效机构时为 null */
+  institutionPublicHomeHref: string | null;
+  /**
+   * 当前 activeRole 对应的公开主页路径，仅 TRAINER / INSTITUTION 有值
+   */
+  publicHomeHref: string | null;
   /** 专家编号（如 TK-A1B2C3），非专家为 null */
   trainerCode: string | null;
   /** 当前激活的身份角色编码 */
@@ -63,9 +68,14 @@ function toAuthUser(profile: UserProfileResponse): AuthUser {
   };
 }
 
-/** 是否已生效的专家角色（顶栏才展示「我的主页」） */
+/** 是否已生效的专家角色 */
 function isApprovedTrainer(roles: RoleInfo[]): boolean {
   return roles.some((r) => r.role === ROLE_TRAINER && r.status === 1);
+}
+
+/** 是否已生效的机构角色 */
+function isApprovedInstitution(roles: RoleInfo[]): boolean {
+  return roles.some((r) => r.role === ROLE_INSTITUTION && r.status === 1);
 }
 
 /**
@@ -84,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [trainerPublicHomeHref, setTrainerPublicHomeHref] = useState<string | null>(null);
+  const [institutionPublicHomeHref, setInstitutionPublicHomeHref] = useState<string | null>(null);
   const [trainerCode, setTrainerCode] = useState<string | null>(null);
   const [activeRole, setActiveRoleState] = useState<string>('BUYER');
 
@@ -97,11 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) {
       setUser(null);
       setTrainerPublicHomeHref(null);
+      setInstitutionPublicHomeHref(null);
       setLoading(false);
       return;
     }
 
     setTrainerPublicHomeHref(null);
+    setInstitutionPublicHomeHref(null);
     setTrainerCode(null);
     try {
       const res = await getMyProfile(token);
@@ -124,10 +137,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTrainerPublicHomeHref(null);
         }
       }
+
+      if (isApprovedInstitution(authUser.roles)) {
+        try {
+          const inst = await getMyInstitutionProfile();
+          setInstitutionPublicHomeHref(`/institutions/${inst.id}`);
+        } catch {
+          setInstitutionPublicHomeHref(null);
+        }
+      }
     } catch {
       storage.remove(TOKEN_KEY);
       setUser(null);
       setTrainerPublicHomeHref(null);
+      setInstitutionPublicHomeHref(null);
       setTrainerCode(null);
     } finally {
       setLoading(false);
@@ -147,12 +170,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     storage.remove(TOKEN_KEY);
     setUser(null);
     setTrainerPublicHomeHref(null);
+    setInstitutionPublicHomeHref(null);
     window.location.href = '/';
   }, []);
 
+  // 根据当前 activeRole 计算对应的公开主页链接
+  const publicHomeHref =
+    activeRole === ROLE_TRAINER
+      ? trainerPublicHomeHref
+      : activeRole === ROLE_INSTITUTION
+        ? institutionPublicHomeHref
+        : null;
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, refreshUser, logout, trainerPublicHomeHref, trainerCode, activeRole, setActiveRole }}
+      value={{
+        user, loading, refreshUser, logout,
+        trainerPublicHomeHref, institutionPublicHomeHref, publicHomeHref,
+        trainerCode, activeRole, setActiveRole,
+      }}
     >
       {children}
     </AuthContext.Provider>

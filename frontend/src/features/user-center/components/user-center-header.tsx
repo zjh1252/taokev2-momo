@@ -22,7 +22,7 @@ const NAV_LINKS = [
  * @date 2026-04-03 10:00
  */
 export function UserCenterHeader() {
-  const { user, logout, trainerPublicHomeHref } = useAuth();
+  const { user, logout, publicHomeHref } = useAuth();
 
   return (
     <header className="bg-primary text-white h-[60px] flex items-center shadow-md sticky top-0 z-50">
@@ -53,11 +53,11 @@ export function UserCenterHeader() {
           {user && (
             <span className="text-white/90">欢迎您，{user.nickname}</span>
           )}
-          {trainerPublicHomeHref && (
+          {publicHomeHref && (
             <>
               <span className="w-[1px] h-3 bg-white/30" />
               <Link
-                href={trainerPublicHomeHref}
+                href={publicHomeHref}
                 className="hover:text-white/80 transition-colors"
               >
                 个人主页
