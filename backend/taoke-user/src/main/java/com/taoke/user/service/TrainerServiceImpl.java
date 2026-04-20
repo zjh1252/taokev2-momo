@@ -210,6 +210,67 @@ public class TrainerServiceImpl implements TrainerService {
         return response;
     }
 
+    @Override
+    public List<TrainerListItemResponse> listRecommendedTrainers(Integer trainerId) {
+        if (trainerId == null || trainerId <= 0) {
+            return List.of();
+        }
+
+        // 命中当前专家的擅长领域 / 擅长行业分类 ID
+        List<Integer> expertiseIds = expertiseCategoryRepository
+                .findByTrainerIdOrderBySortOrder(trainerId).stream()
+                .map(TrainerExpertiseCategory::getCategoryId)
+                .toList();
+        List<Integer> industryIds = industryCategoryRepository
+                .findByTrainerIdOrderBySortOrder(trainerId).stream()
+                .map(TrainerIndustryCategory::getCategoryId)
+                .toList();
+        if (expertiseIds.isEmpty() && industryIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 候选专家 ID 集合：分别从两张关联表收集，再合并去重，剔除自己
+        Set<Integer> candidateIds = new HashSet<>();
+        if (!expertiseIds.isEmpty()) {
+            for (TrainerExpertiseCategory ec : expertiseCategoryRepository.findByCategoryIdIn(expertiseIds)) {
+                if (!Objects.equals(ec.getTrainerId(), trainerId)) {
+                    candidateIds.add(ec.getTrainerId());
+                }
+            }
+        }
+        if (!industryIds.isEmpty()) {
+            for (TrainerIndustryCategory ic : industryCategoryRepository.findByCategoryIdIn(industryIds)) {
+                if (!Objects.equals(ic.getTrainerId(), trainerId)) {
+                    candidateIds.add(ic.getTrainerId());
+                }
+            }
+        }
+        if (candidateIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 取候选专家中：状态=已通过（status=2），按推荐 + 评分倒序，最多 3 条
+        Specification<Trainer> spec = (root, cq, cb) -> cb.and(
+                root.get("id").in(candidateIds),
+                cb.equal(root.get("status"), 2)
+        );
+        PageRequest pageable = PageRequest.of(0, 3,
+                Sort.by(Sort.Direction.DESC, "isRecommended")
+                        .and(Sort.by(Sort.Direction.DESC, "score"))
+                        .and(Sort.by(Sort.Direction.DESC, "id")));
+        List<Trainer> trainers = trainerRepository.findAll(spec, pageable).getContent();
+        if (trainers.isEmpty()) {
+            return List.of();
+        }
+
+        // 组装列表项（不需要分类、地区名称，留空即可，前端只展示头像/姓名/头衔/评分）
+        return trainers.stream().map(t -> {
+            TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
+            item.setExpertiseCategories(List.of());
+            return item;
+        }).toList();
+    }
+
     @Transactional
     @Override
     public TrainerResponse save(Integer userId, TrainerRequest request) {
@@ -333,6 +394,7 @@ public class TrainerServiceImpl implements TrainerService {
         if (req.getBio() != null) trainer.setBio(req.getBio());
         if (req.getIntro() != null) trainer.setIntro(req.getIntro());
         if (req.getBackground() != null) trainer.setBackground(req.getBackground());
+        if (req.getPartialClients() != null) trainer.setPartialClients(req.getPartialClients());
         if (req.getGoodAt() != null) trainer.setGoodAt(req.getGoodAt());
         if (req.getSpecialties() != null) trainer.setSpecialties(req.getSpecialties());
         if (req.getExpertiseTags() != null) trainer.setExpertiseTags(req.getExpertiseTags());

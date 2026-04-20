@@ -42,10 +42,16 @@ public class SubmitTrainerMessageRequest {
     private String companyPhone;
 
     /** 省 ID */
+    @NotNull(message = "请选择省份")
     private Integer provinceId;
 
     /** 市 ID */
+    @NotNull(message = "请选择城市")
     private Integer cityId;
+
+    /** 区/县 ID */
+    @NotNull(message = "请选择区/县")
+    private Integer districtId;
 
     /** 培训天数 */
     private String trainingDays;

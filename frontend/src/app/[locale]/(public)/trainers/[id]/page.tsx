@@ -10,7 +10,6 @@ import {
   mockClips,
   mockReviews,
   mockBooks,
-  mockRelatedTrainers,
 } from '@/features/trainer/data/mock';
 
 interface Props {
@@ -62,10 +61,9 @@ export default async function TrainerDetailPage({ params }: Props) {
             clips={mockClips}
             reviews={mockReviews}
             books={mockBooks}
-            relatedTrainers={mockRelatedTrainers}
           />
         </div>
-        <TrainerSidebar trainer={trainer} relatedTrainers={mockRelatedTrainers} />
+        <TrainerSidebar trainer={trainer} />
       </section>
     </div>
   );

@@ -104,6 +104,10 @@ export interface TrainerFormData {
   districtId: number | null;
   address: string;
   bio: string;
+  /** 实战经历 / 从业背景（长文本） */
+  background: string;
+  /** 部分客户（长文本，对外展示在专家详情页） */
+  partialClients: string;
   goodAt: string;
   expertiseTags: string;
   teachingStyle: string;

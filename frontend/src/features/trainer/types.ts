@@ -64,6 +64,8 @@ export interface TrainerDetail {
   bio?: string;
   intro?: string;
   background?: string;
+  /** 部分客户（长文本，单行展示） */
+  partialClients?: string;
   goodAt?: string;
   specialties?: string;
   expertiseTags?: string;
@@ -180,4 +182,22 @@ export interface MockRelatedTrainer {
   title: string;
   avatar: string;
   score: number;
+}
+
+/** 推荐课程项（专家详情页右侧栏） */
+export interface RecommendedCourseItem {
+  id: number;
+  title: string;
+  coverUrl?: string;
+  viewCount?: number;
+}
+
+/** 推荐相关专家项（专家详情页右侧栏） */
+export interface RecommendedTrainerItem {
+  id: number;
+  name: string;
+  title?: string;
+  avatar?: string;
+  score?: number;
+  isRecommended?: number;
 }

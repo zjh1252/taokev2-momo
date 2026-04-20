@@ -47,6 +47,17 @@ public interface TrainerService {
     TrainerPublicResponse getPublicProfile(Integer trainerId);
 
     /**
+     * 专家详情页推荐相关专家
+     * <p>
+     * 命中规则：与目标专家共享至少一个擅长领域分类或擅长行业分类；
+     * 排除自己；仅取已审核通过（status=2）；按 isRecommended DESC、score DESC 排序，最多 3 条。
+     * </p>
+     *
+     * @param trainerId 当前专家 ID
+     */
+    List<TrainerListItemResponse> listRecommendedTrainers(Integer trainerId);
+
+    /**
      * 保存或更新当前用户的专家主表档案
      */
     TrainerResponse save(Integer userId, TrainerRequest request);

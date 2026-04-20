@@ -56,6 +56,10 @@ public class TrainerLeadMessage extends BaseEntity {
     @Column(name = "city_id")
     private Integer cityId;
 
+    /** 区/县 ID */
+    @Column(name = "district_id")
+    private Integer districtId;
+
     /** 培训天数 */
     @Column(name = "training_days", length = 20)
     private String trainingDays;

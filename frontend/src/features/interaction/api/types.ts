@@ -91,6 +91,7 @@ export interface SubmitTrainerMessagePayload {
   companyPhone?: string;
   provinceId?: number;
   cityId?: number;
+  districtId?: number;
   trainingDays?: string;
   email?: string;
   remark?: string;

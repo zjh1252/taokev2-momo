@@ -56,6 +56,9 @@ public class TrainerRequest {
     /** 从业经历/背景 */
     private String background;
 
+    /** 部分客户（长文本） */
+    private String partialClients;
+
     /** 专长描述 */
     private String goodAt;
 

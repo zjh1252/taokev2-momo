@@ -41,6 +41,8 @@ public class TrainerResponse {
     private String bio;
     private String intro;
     private String background;
+    /** 部分客户（长文本） */
+    private String partialClients;
     private String goodAt;
     private String specialties;
     private String expertiseTags;

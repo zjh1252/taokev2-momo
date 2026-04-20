@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Link } from '@/i18n/navigation';
-import { Star, ChevronRight, Play } from 'lucide-react';
+import { Play, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type {
@@ -13,7 +12,6 @@ import type {
   MockClip,
   MockReview,
   MockBook,
-  MockRelatedTrainer,
 } from '../../types';
 import { getPublicReviews } from '@/features/interaction/api/service';
 import type { ReviewItem } from '@/features/interaction/api/types';
@@ -27,7 +25,6 @@ interface TrainerDetailContentProps {
   clips: MockClip[];
   reviews: MockReview[];
   books: MockBook[];
-  relatedTrainers: MockRelatedTrainer[];
 }
 
 interface TabConfig {
@@ -36,6 +33,7 @@ interface TabConfig {
   countKey?: 'courses' | 'cases' | 'clips' | 'reviews' | 'books';
 }
 
+// 学员评价 tab 的角标采用专家维度的累计评论数（后端实时维护），无需依赖 mock。
 const TABS: TabConfig[] = [
   { id: 'home', label: '主页' },
   { id: 'courses', label: '主讲课程', countKey: 'courses' },
@@ -61,16 +59,15 @@ export function TrainerDetailContent({
   clips,
   reviews,
   books,
-  relatedTrainers,
 }: TrainerDetailContentProps) {
   const [activeTab, setActiveTab] = useState<string>('home');
 
-  // 计算各标签的数量
+  // 计算各标签的数量；学员评价以专家累计评论数为准，避免依赖 mock。
   const counts = {
     courses: courses.length,
     cases: cases.length,
     clips: clips.length,
-    reviews: reviews.length,
+    reviews: trainer.commentCount ?? 0,
     books: books.length,
   };
 
@@ -117,7 +114,6 @@ export function TrainerDetailContent({
             clips={clips}
             reviews={reviews}
             books={books}
-            relatedTrainers={relatedTrainers}
           />
         )}
         {activeTab === 'courses' && <CoursesView courses={courses} />}
@@ -137,17 +133,12 @@ export function TrainerDetailContent({
 function HomeView({
   trainer,
   cases,
-  clips,
-  reviews,
-  books,
-  relatedTrainers,
 }: {
   trainer: TrainerDetail;
   cases: MockCase[];
   clips: MockClip[];
   reviews: MockReview[];
   books: MockBook[];
-  relatedTrainers: MockRelatedTrainer[];
 }) {
   return (
     <div className="space-y-6">
@@ -173,6 +164,16 @@ function HomeView({
           <SectionTitle>实战经历</SectionTitle>
           <div className="text-[15px] leading-7 text-slate-600 whitespace-pre-line">
             {trainer.background}
+          </div>
+        </div>
+      )}
+
+      {/* 部分客户 */}
+      {trainer.partialClients && trainer.partialClients.trim() && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <SectionTitle>部分客户</SectionTitle>
+          <div className="text-[15px] leading-7 text-slate-600 whitespace-pre-line">
+            {trainer.partialClients}
           </div>
         </div>
       )}
@@ -286,37 +287,6 @@ function HomeView({
         </div>
       )}
 
-      {/* 相关讲师 */}
-      {relatedTrainers.length > 0 && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>相关讲师</SectionTitle>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {relatedTrainers.map((t) => (
-              <Link
-                key={t.id}
-                href={`/trainers/${t.id}`}
-                className="border border-slate-200 rounded-lg p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer group"
-              >
-                <Image
-                  src={t.avatar}
-                  alt={t.name}
-                  width={64}
-                  height={64}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm mb-3 group-hover:scale-105 transition-transform"
-                />
-                <h4 className="font-bold text-slate-900 group-hover:text-primary transition-colors text-[15px]">
-                  {t.name}
-                </h4>
-                <p className="text-[12px] text-slate-500 mt-1 line-clamp-1">{t.title}</p>
-                <div className="flex items-center text-[14px] mt-2 gap-1">
-                  <Star className="size-4 fill-[#FFD700] text-[#FFD700]" />
-                  <span className="text-slate-900 text-[12px] font-bold">{t.score}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -630,9 +600,6 @@ function BooksView({ books }: { books: MockBook[] }) {
               {book.title}
             </h3>
             <p className="text-[12px] text-slate-500 mt-1">{book.publisher}</p>
-            <p className="text-[16px] text-primary font-bold mt-1">
-              {book.price > 0 ? `¥ ${book.price.toFixed(2)}` : '免费'}
-            </p>
           </div>
         ))}
       </div>

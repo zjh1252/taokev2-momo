@@ -3,6 +3,7 @@ package com.taoke.course.api;
 import com.taoke.common.response.PageResponse;
 import com.taoke.course.dto.course.CourseDetailVO;
 import com.taoke.course.dto.course.CourseListItemVO;
+import com.taoke.course.dto.course.RecommendedCourseVO;
 import com.taoke.course.dto.course.SaveCourseRequest;
 import com.taoke.course.entity.Course;
 import com.taoke.course.entity.CoursePlan;
@@ -85,6 +86,14 @@ public interface CourseService {
     PageResponse<CourseListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                               String type, Boolean isOpen, String keyword,
                                               String sortBy, int page, int size);
+
+    /**
+     * 专家详情页推荐课程
+     * <p>规则：trainer_id = trainerId AND status = 已上架，按 view_count DESC 排序，最多 3 条。</p>
+     *
+     * @param trainerId 专家主表 ID（user_trainers.id）
+     */
+    List<RecommendedCourseVO> listRecommendedByTrainer(Integer trainerId);
 
     // ==================== 后台管理 ====================
 

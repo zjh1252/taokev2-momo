@@ -260,6 +260,24 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
               className="form-input"
             />
           </FormField>
+          <FormField label="实战经历">
+            <textarea
+              value={data.background || ''}
+              onChange={(e) => update({ background: e.target.value })}
+              placeholder="请简要描述您的项目实战经历、典型案例（选填）"
+              rows={3}
+              className="form-input resize-none"
+            />
+          </FormField>
+          <FormField label="部分客户">
+            <textarea
+              value={data.partialClients || ''}
+              onChange={(e) => update({ partialClients: e.target.value })}
+              placeholder="请简要列举您服务过的代表客户，可一行一个（选填）"
+              rows={3}
+              className="form-input resize-none"
+            />
+          </FormField>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <FormField label="从业年限">
               <input

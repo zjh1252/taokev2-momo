@@ -250,6 +250,29 @@ public class CourseServiceImpl implements CourseService {
         };
     }
 
+    @Override
+    public List<RecommendedCourseVO> listRecommendedByTrainer(Integer trainerId) {
+        if (trainerId == null || trainerId <= 0) {
+            return List.of();
+        }
+        Specification<Course> spec = (root, cq, cb) -> cb.and(
+                cb.equal(root.get("trainerId"), trainerId),
+                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue())
+        );
+        PageRequest pageable = PageRequest.of(0, 3,
+                Sort.by(Sort.Direction.DESC, "viewCount").and(Sort.by(Sort.Direction.DESC, "id")));
+        return courseRepository.findAll(spec, pageable).getContent().stream()
+                .map(course -> {
+                    RecommendedCourseVO vo = new RecommendedCourseVO();
+                    vo.setId(course.getId());
+                    vo.setTitle(course.getTitle());
+                    vo.setCoverUrl(course.getCoverUrl());
+                    vo.setViewCount(course.getViewCount());
+                    return vo;
+                })
+                .toList();
+    }
+
     // ==================== 后台管理 ====================
 
     @Override

@@ -7,6 +7,8 @@ import type {
   TrainerListItem,
   PageResponse,
   CategoryTreeNode,
+  RecommendedCourseItem,
+  RecommendedTrainerItem,
 } from '../types';
 
 function authHeaders(): Record<string, string> {
@@ -67,6 +69,31 @@ export async function getTrainerList(
     `/trainers${qs ? `?${qs}` : ''}`,
   );
   return res.data;
+}
+
+/**
+ * 获取专家详情页推荐课程（仅已上架，按浏览量倒序，最多 3 条）
+ */
+export async function getRecommendedCourses(
+  trainerId: number,
+): Promise<RecommendedCourseItem[]> {
+  const res = await apiGet<ApiResponse<RecommendedCourseItem[]>>(
+    `/trainers/${trainerId}/recommended-courses`,
+  );
+  return res.data || [];
+}
+
+/**
+ * 获取专家详情页推荐相关专家
+ * <p>命中规则：与当前专家共享至少一个擅长领域或擅长行业，按推荐 + 评分倒序，最多 3 条。</p>
+ */
+export async function getRecommendedTrainers(
+  trainerId: number,
+): Promise<RecommendedTrainerItem[]> {
+  const res = await apiGet<ApiResponse<RecommendedTrainerItem[]>>(
+    `/trainers/${trainerId}/recommended-trainers`,
+  );
+  return res.data || [];
 }
 
 /**

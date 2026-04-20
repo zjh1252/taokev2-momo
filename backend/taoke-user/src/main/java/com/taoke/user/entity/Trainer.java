@@ -95,6 +95,10 @@ public class Trainer extends BaseEntity {
     @Column(name = "background", columnDefinition = "text")
     private String background;
 
+    /** 部分客户（长文本，专家详情页对外展示） */
+    @Column(name = "partial_clients", columnDefinition = "text")
+    private String partialClients;
+
     /** 专长描述 */
     @Column(name = "good_at", columnDefinition = "text")
     private String goodAt;

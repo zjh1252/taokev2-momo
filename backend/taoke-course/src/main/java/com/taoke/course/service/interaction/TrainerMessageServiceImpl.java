@@ -37,6 +37,7 @@ public class TrainerMessageServiceImpl {
         msg.setCompanyPhone(req.getCompanyPhone());
         msg.setProvinceId(req.getProvinceId());
         msg.setCityId(req.getCityId());
+        msg.setDistrictId(req.getDistrictId());
         msg.setTrainingDays(req.getTrainingDays());
         msg.setEmail(req.getEmail());
         msg.setRemark(req.getRemark());
