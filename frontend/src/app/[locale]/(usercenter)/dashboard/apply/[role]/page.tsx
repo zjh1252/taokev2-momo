@@ -2,11 +2,19 @@
 
 import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { ROUTES } from '@/config/routes';
 import { ApplyStepLayout } from '@/features/role-apply/components/ApplyStepLayout';
 import { useRoleApplyState } from '@/features/role-apply/hooks/useRoleApplyState';
 import { submitRoleApply } from '@/features/role-apply/api/service';
 import { APPLYABLE_ROLES, type ApplyableRole } from '@/features/role-apply/api/types';
+import { useAuth } from '@/lib/auth/auth-context';
+
+/** 无需资质审核、申请即生效的角色 — 提交后直接进入用户中心 */
+const AUTO_APPROVE_ROLES: ReadonlySet<ApplyableRole> = new Set<ApplyableRole>([
+  'ENTERPRISE_BUYER',
+  'ASSISTANT',
+]);
 import { validateForm, getFirstError, type ValidationError, type FormValidationRules } from '@/lib/validation';
 import {
   EnterpriseBuyerForm,
@@ -56,6 +64,7 @@ export default function RoleApplyPage({ params }: { params: Promise<{ role: stri
   const { role: roleParam } = use(params);
   const router = useRouter();
   const { state, setFormData, clearState } = useRoleApplyState();
+  const { refreshUser, setActiveRole } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
@@ -111,6 +120,16 @@ export default function RoleApplyPage({ params }: { params: Promise<{ role: stri
     try {
       await submitRoleApply(role, formData);
       clearState();
+
+      // 免审核角色：刷新用户信息、自动切换到新角色，直接进入用户中心
+      if (AUTO_APPROVE_ROLES.has(role)) {
+        await refreshUser();
+        setActiveRole(role);
+        toast.success(`恭喜！您已成功获得「${roleMeta?.label || role}」角色`);
+        router.push(ROUTES.DASHBOARD);
+        return;
+      }
+
       router.push(`${ROUTES.UC_APPLY_SUCCESS}?role=${role}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : '提交失败，请稍后重试');

@@ -176,19 +176,10 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         title: '专家助理管理',
-        url: '#',
+        url: '/dashboard/assistants',
         icon: 'headset',
         isActive: false,
-        items: [
-          {
-            title: '助理列表',
-            url: '/dashboard/assistants'
-          },
-          {
-            title: '助理申请',
-            url: '/dashboard/assistants/applications'
-          }
-        ]
+        items: []
       }
     ]
   },
@@ -209,19 +200,10 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         title: '企业采购方管理',
-        url: '#',
+        url: '/dashboard/enterprise-buyers',
         icon: 'briefcase',
         isActive: false,
-        items: [
-          {
-            title: '企业采购方列表',
-            url: '/dashboard/enterprise-buyers'
-          },
-          {
-            title: '企业采购方申请',
-            url: '/dashboard/enterprise-buyers/applications'
-          }
-        ]
+        items: []
       }
     ]
   },

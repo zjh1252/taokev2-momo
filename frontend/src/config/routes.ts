@@ -35,6 +35,7 @@ export const ROUTES = {
   UC_ACCOUNT_VERIFY: '/dashboard/account/verify',
   UC_ACCOUNT_BIND: '/dashboard/account/bind',
   UC_ACCOUNT_SWITCH: '/dashboard/account/switch',
+  UC_ACCOUNT_PASSWORD: '/dashboard/account/password',
 
   // ---- 我的课程 ----
   UC_COURSES: '/dashboard/courses',

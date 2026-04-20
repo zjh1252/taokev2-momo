@@ -68,6 +68,7 @@ const NAV_ENTRIES: NavEntry[] = [
     children: [
       { label: '修改身份', href: ROUTES.UC_ACCOUNT_SWITCH },
       { label: '账号信息', href: ROUTES.UC_ACCOUNT_BASE },
+      { label: '修改密码', href: ROUTES.UC_ACCOUNT_PASSWORD },
       { label: '账号认证', href: ROUTES.UC_ACCOUNT_VERIFY },
       { label: '账号绑定', href: ROUTES.UC_ACCOUNT_BIND },
     ],

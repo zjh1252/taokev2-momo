@@ -19,6 +19,18 @@ public interface RoleApplyService {
     void apply(Integer userId, String roleCode);
 
     /**
+     * 用户发起某业务角色的入驻申请并自动通过（无需后台审核）。
+     * <p>
+     * 适用于无需资质认证的角色，如 ENTERPRISE_BUYER（企业培训采购方）、ASSISTANT（专家助理）。
+     * 申请后角色直接变为 status=1（生效），并发布 {@link com.taoke.common.events.user.ApplyPassedEvent}
+     * 以触发后续通知等领域副作用。
+     *
+     * @param userId   用户 ID
+     * @param roleCode 角色编码
+     */
+    void applyAndAutoApprove(Integer userId, String roleCode);
+
+    /**
      * 审批通过用户的角色申请。
      *
      * @param userId   用户 ID

@@ -50,13 +50,13 @@ public class AssistantServiceImpl implements AssistantService {
     }
 
     /**
-     * 申请成为专家助理 — 提交扩展信息并创建待审核角色记录
+     * 申请成为专家助理 — 无需资质认证，自动通过并发送角色生效通知
      */
     @Override
     @Transactional
     public void apply(Integer userId, AssistantRequest request) {
-        roleApplyService.apply(userId, BusinessRole.Code.ASSISTANT);
         saveOrUpdateExtension(userId, request);
+        roleApplyService.applyAndAutoApprove(userId, BusinessRole.Code.ASSISTANT);
     }
 
     @Override
