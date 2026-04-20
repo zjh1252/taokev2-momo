@@ -1,7 +1,7 @@
 ---
-name: tanstack-query
+
+## name: tanstack-query
 description: TanStack Query v5 data fetching patterns including useSuspenseQuery, useQuery, mutations, cache management, and API service integration. Use when fetching data, managing server state, or working with TanStack Query hooks.
----
 
 # TanStack Query Patterns
 
@@ -470,3 +470,4 @@ For more patterns, see:
 - [data-fetching.md](resources/data-fetching.md) - Advanced patterns
 - [cache-strategies.md](resources/cache-strategies.md) - Cache management
 - [mutation-patterns.md](resources/mutation-patterns.md) - Complex mutations
+

@@ -234,7 +234,7 @@ NEXT_PUBLIC_SENTRY_DISABLED="false"  # Set to "true" to disable in dev
 - Strict mode enabled
 - Use explicit return types for public functions
 - Prefer interface over type for object definitions
-- Use `@/*` alias for imports from src
+- Use `@/`* alias for imports from src
 
 ### Formatting (Prettier)
 
@@ -392,9 +392,10 @@ src/features/<name>/api/
   queries.ts    ← React Query options + query key factories (stable, never changes)
 ```
 
-**`service.ts` is the only file you modify when connecting to a real backend.** Queries and components import from it — they never change.
+`**service.ts` is the only file you modify when connecting to a real backend.** Queries and components import from it — they never change.
 
 #### Backend Patterns
+
 
 | Pattern                                            | How to implement                                                                            |
 | -------------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -403,6 +404,7 @@ src/features/<name>/api/
 | **BFF** (Next.js proxies to Laravel/Go/etc.)       | `service.ts` calls `/api/` routes via `apiClient`, route handlers proxy to external backend |
 | **Direct external API** (frontend-only)            | `service.ts` calls external URL via `fetch()`                                               |
 | **Mock** (default)                                 | `service.ts` calls in-memory fake data stores                                               |
+
 
 Route handlers at `src/app/api/` are ready for patterns 2 and 3. `src/lib/api-client.ts` provides a typed `fetch` wrapper.
 
@@ -644,6 +646,7 @@ export const Icons = {
 
 ### Available Icon Categories
 
+
 | Category        | Example Keys                                                                  |
 | --------------- | ----------------------------------------------------------------------------- |
 | General         | `check`, `close`, `search`, `settings`, `trash`, `spinner`, `info`, `warning` |
@@ -656,6 +659,7 @@ export const Icons = {
 | Theme           | `sun`, `moon`, `brightness`, `laptop`, `palette`                              |
 | Text formatting | `bold`, `italic`, `underline`, `text`                                         |
 | Data / Charts   | `trendingUp`, `trendingDown`, `eyeOff`, `adjustments`                         |
+
 
 ### Icon Showcase Page
 
@@ -751,4 +755,5 @@ See "Theming System" section above or `docs/themes.md`.
 9. **Page headers** - Always use `PageContainer` props (`pageTitle`, `pageDescription`, `pageHeaderAction`) for page headers. Never import `<Heading>` manually in pages — `PageContainer` handles that internally.
 10. **Forms** - Use TanStack Form via `useAppForm` from `@/components/ui/tanstack-form`. Never use `useState` inside `AppField` render props — extract stateful logic into separate components.
 11. **Button loading** - Use `<Button isLoading={isPending}>` for loading states. Uses CSS Grid overlap trick for zero layout shift. When `isLoading` is not passed, button behaves as default shadcn. `SubmitButton` in forms handles this automatically via form `isSubmitting` state.
-12. **Data layer** - Always go through the service layer: `types.ts` → `service.ts` → `queries.ts`. Components import types from `types.ts`, functions from `service.ts`, query options from `queries.ts`. Never import from `@/constants/mock-api*` directly in components.
+12. **Data layer** - Always go through the service layer: `types.ts` → `service.ts` → `queries.ts`. Components import types from `types.ts`, functions from `service.ts`, query options from `queries.ts`. Never import from `@/constants/mock-api`* directly in components.
+

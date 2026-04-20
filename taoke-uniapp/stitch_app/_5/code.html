@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>注册 - 淘课网</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#c7c6c6",
+                        "tertiary-container": "#a56800",
+                        "on-primary-fixed-variant": "#930002",
+                        "on-secondary-fixed-variant": "#464747",
+                        "inverse-surface": "#303030",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#ffddb8",
+                        "primary-container": "#e62117",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "on-tertiary-fixed": "#2a1700",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#fffeff",
+                        "primary-fixed-dim": "#ffb4a8",
+                        "on-background": "#1b1c1c",
+                        "surface-container-highest": "#e4e2e1",
+                        "on-surface": "#1b1c1c",
+                        "surface-bright": "#fbf9f8",
+                        "surface-variant": "#e4e2e1",
+                        "surface-dim": "#dcd9d9",
+                        "surface-container": "#f0eded",
+                        "inverse-on-surface": "#f3f0f0",
+                        "inverse-primary": "#ffb4a8",
+                        "tertiary": "#835200",
+                        "on-surface-variant": "#5e3f3b",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#fffeff",
+                        "primary-fixed": "#ffdad5",
+                        "outline-variant": "#e7bdb6",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#5e5e5e",
+                        "secondary-container": "#e1dfdf",
+                        "background": "#fbf9f8",
+                        "on-error": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#626262",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#e4e2e2",
+                        "primary": "#be0003",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "surface-container-high": "#eae8e7",
+                        "surface-container-low": "#f6f3f2",
+                        "on-secondary": "#ffffff",
+                        "surface": "#fbf9f8",
+                        "outline": "#926e69",
+                        "on-secondary-fixed": "#1b1c1c",
+                        "on-primary-fixed": "#410000",
+                        "surface-tint": "#c00003"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="page-root bg-surface font-body text-on-surface min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="nav-bar fixed top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-12 bg-surface-container-lowest shadow-sm border-b border-surface-variant">
+<button class="p-2 -ml-2 text-on-surface-variant active:opacity-70 transition-opacity">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline text-base font-semibold text-on-surface flex-1 text-center pr-8">注册</h1>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 pt-16 px-4 pb-8 flex flex-col items-center justify-center min-h-[calc(100vh-48px)]">
+<div class="auth-card w-full max-w-md bg-surface-container-lowest rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] p-6 space-y-6">
+<!-- Logo area -->
+<div class="flex justify-center mb-8">
+<div class="w-16 h-16 bg-primary-container rounded-2xl flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-on-primary text-3xl" data-icon="school" data-weight="fill">school</span>
+</div>
+</div>
+<!-- Form -->
+<div class="space-y-4">
+<div class="form-field relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-xl">smartphone</span>
+<input class="w-full pl-10 pr-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors text-on-surface placeholder:text-secondary text-sm" placeholder="请输入手机号" type="tel"/>
+</div>
+<div class="code-row flex gap-3">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-xl">verified_user</span>
+<input class="w-full pl-10 pr-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors text-on-surface placeholder:text-secondary text-sm" placeholder="请输入验证码" type="text"/>
+</div>
+<button class="px-4 py-3 border border-primary-fixed-dim text-primary-container rounded-lg text-sm font-medium hover:bg-error-container transition-colors whitespace-nowrap">
+                        获取验证码
+                    </button>
+</div>
+<div class="form-field relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-xl">lock</span>
+<input class="w-full pl-10 pr-10 py-3 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors text-on-surface placeholder:text-secondary text-sm" placeholder="请输入密码" type="password"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-xl">visibility_off</span>
+</button>
+</div>
+<div class="form-field relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-xl">lock_reset</span>
+<input class="w-full pl-10 pr-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors text-on-surface placeholder:text-secondary text-sm" placeholder="请再次输入密码" type="password"/>
+</div>
+</div>
+<!-- Agreement -->
+<div class="agreement flex items-start gap-2 pt-2">
+<div class="flex items-center h-5">
+<input class="w-4 h-4 text-primary-container bg-surface-container-low border-outline-variant rounded focus:ring-primary-container focus:ring-2" id="terms" type="checkbox"/>
+</div>
+<label class="text-xs text-secondary leading-relaxed" for="terms">
+                    我已阅读并同意
+                    <a class="text-primary-container hover:underline" href="#">《用户服务协议》</a>
+                    和
+                    <a class="text-primary-container hover:underline" href="#">《隐私权政策》</a>
+</label>
+</div>
+<!-- Submit Action -->
+<div class="pt-2">
+<button class="primary-btn w-full bg-primary-container text-on-primary-container py-3.5 rounded-lg font-semibold text-base shadow-md hover:bg-surface-tint active:scale-[0.98] transition-all">
+                    注册
+                </button>
+</div>
+<!-- Bottom Link -->
+<div class="text-center pt-4">
+<p class="text-sm text-secondary">
+                    已有账号？ <a class="text-primary-container font-medium hover:underline" href="#">去登录</a>
+</p>
+</div>
+</div>
+</main>
+</body></html>

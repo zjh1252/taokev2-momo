@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>淘课网 - 首页</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary": "#5e5e5e",
+                    "error": "#ba1a1a",
+                    "secondary-container": "#e1dfdf",
+                    "on-secondary": "#ffffff",
+                    "surface": "#fbf9f8",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#c00003",
+                    "on-tertiary-container": "#fffeff",
+                    "inverse-primary": "#ffb4a8",
+                    "primary-fixed": "#ffdad5",
+                    "secondary-fixed-dim": "#c7c6c6",
+                    "primary": "#be0003",
+                    "surface-dim": "#dcd9d9",
+                    "secondary-fixed": "#e4e2e2",
+                    "tertiary": "#835200",
+                    "on-secondary-fixed-variant": "#464747",
+                    "surface-container-low": "#f6f3f2",
+                    "surface-container": "#f0eded",
+                    "on-surface-variant": "#5e3f3b",
+                    "on-surface": "#1b1c1c",
+                    "inverse-surface": "#303030",
+                    "primary-container": "#e62117",
+                    "on-primary-container": "#fffeff",
+                    "on-tertiary-fixed": "#2a1700",
+                    "surface-container-high": "#eae8e7",
+                    "on-background": "#1b1c1c",
+                    "surface-bright": "#fbf9f8",
+                    "on-tertiary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "inverse-on-surface": "#f3f0f0",
+                    "surface-variant": "#e4e2e1",
+                    "surface-container-highest": "#e4e2e1",
+                    "tertiary-container": "#a56800",
+                    "primary-fixed-dim": "#ffb4a8",
+                    "on-tertiary-fixed-variant": "#653e00",
+                    "on-secondary-container": "#626262",
+                    "outline-variant": "#e7bdb6",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "surface-container-lowest": "#ffffff",
+                    "background": "#fbf9f8",
+                    "tertiary-fixed-dim": "#ffb95f",
+                    "tertiary-fixed": "#ffddb8",
+                    "outline": "#926e69",
+                    "on-primary-fixed-variant": "#930002",
+                    "on-primary-fixed": "#410000",
+                    "on-primary": "#ffffff",
+                    "error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {},
+            "fontFamily": {
+                    "headline": [
+                            "Manrope"
+                    ],
+                    "body": [
+                            "Inter"
+                    ],
+                    "label": [
+                            "Inter"
+                    ]
+            }
+        },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f7f9fc;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+        .pt-safe {
+            padding-top: env(safe-area-inset-top, 20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body text-on-background antialiased pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 h-12 bg-[#f7f9fc] dark:bg-slate-900 pt-safe">
+<button class="text-[#E62117] dark:text-red-500 hover:opacity-80 flex items-center justify-center p-2 -ml-2 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-container">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<h1 class="font-['Manrope'] font-bold text-lg text-xl font-black text-[#333333] dark:text-white flex-1 text-center">淘课网</h1>
+<button class="text-[#E62117] dark:text-red-500 hover:opacity-80 flex items-center justify-center p-2 -mr-2 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-container">
+<span class="font-bold tracking-widest">• • •</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-[calc(48px+env(safe-area-inset-top,20px))] px-4 space-y-6">
+<!-- search-bar -->
+<section class="search-bar mt-2">
+<div class="bg-surface-container-lowest rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex items-center p-1.5 border border-surface-variant/50">
+<button class="flex items-center gap-1 pl-3 pr-2 py-1 text-on-surface-variant font-medium text-sm focus:outline-none">
+                    讲师
+                    <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<div class="w-[1px] h-4 bg-surface-variant mx-1"></div>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 px-3 text-on-surface placeholder:text-on-surface-variant/60" placeholder="搜索感兴趣的内容" type="text"/>
+<button class="bg-primary-container text-on-primary-container w-9 h-9 rounded-full flex items-center justify-center shadow-md shadow-primary-container/20 focus:outline-none hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+</div>
+</section>
+<!-- Banner (banner-strip) -->
+<section class="banner-strip">
+<div class="bg-gradient-to-r from-[#E62117] to-[#FF8C00] rounded-2xl p-6 text-on-primary-container shadow-lg shadow-primary-container/20 relative overflow-hidden">
+<div class="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+<div class="absolute -left-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+<h2 class="font-headline font-bold text-2xl mb-2 relative z-10 leading-tight">提升企业核心竞争力<br/>从优质内训开始</h2>
+<p class="text-white/80 text-sm mb-5 relative z-10">精选行业大咖，定制化课程方案</p>
+<div class="flex gap-3 relative z-10">
+<button class="bg-surface-container-lowest text-primary-container px-4 py-2 rounded-full text-sm font-semibold shadow-sm hover:bg-surface transition-colors focus:outline-none focus:ring-2 focus:ring-white/50">
+                        立即预约
+                    </button>
+<button class="bg-white/20 border border-white/30 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50 backdrop-blur-sm">
+                        了解更多
+                    </button>
+</div>
+</div>
+</section>
+<!-- 最新案例 (case-strip) -->
+<section class="case-strip">
+<div class="bg-surface-container-lowest rounded-xl p-3 shadow-[0_2px_10px_rgba(0,0,0,0.03)] flex items-center gap-3 border border-surface-variant/30">
+<div class="flex items-center gap-1 text-primary-container font-bold text-sm shrink-0 whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">campaign</span>
+                    最新案例
+                </div>
+<div class="w-[1px] h-3 bg-surface-variant shrink-0"></div>
+<div class="flex-1 overflow-hidden relative h-5">
+<p class="text-sm text-on-surface-variant truncate absolute w-full transition-transform">某世界500强企业引入《卓越领导力》内训课程，满意度98%</p>
+</div>
+</div>
+</section>
+<!-- 推荐讲师 (instructor-scroll) -->
+<section class="instructor-scroll space-y-3">
+<div class="flex justify-between items-end px-1">
+<h3 class="font-headline font-bold text-lg text-on-surface">推荐专家</h3>
+<button class="text-xs text-on-surface-variant font-medium flex items-center hover:text-primary-container transition-colors">
+                    查看全部 <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+</button>
+</div>
+<div class="flex gap-4 overflow-x-auto hide-scrollbar pb-4 -mx-4 px-4 snap-x">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.04)] min-w-[160px] flex-shrink-0 snap-start border border-surface-variant/20 relative">
+<div class="absolute top-0 right-0 bg-[#E62117]/10 text-[#E62117] text-[10px] font-bold px-2 py-1 rounded-bl-lg rounded-tr-2xl">
+                        信得过
+                    </div>
+<div class="flex flex-col items-center text-center">
+<img alt="讲师头像" class="w-16 h-16 rounded-full object-cover mb-3 shadow-md border-2 border-surface-container-lowest" data-alt="professional corporate headshot of an asian male executive wearing a dark suit and tie, smiling confidently against a neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMz5H-uqUUl49RGti6ldtBzbGvSDKFwYWOdTEemEYbD2ORud3VThFv-I2ohA9nRGQZH42hnUN-zt_k3fkLJhZQU62P8dQ9__Dmr4tqJZGzvTgQx7ZENZdaJZdQVlsMudGC1NEWXhklsbjCCedTCtMKFD-fKf9yv3gpAfAaDkvw-XKrsK4-iZGFGEHsVmTTeHSd6Yv8o7eYp87kPKaCGf6qiQj5FthQJm-M8-1vCD8YOcvC2N-uAkClLLof7efRvojyPJH0p_rXCA"/>
+<h4 class="font-bold text-on-surface text-base leading-tight mb-1">张大卫</h4>
+<p class="text-xs text-on-surface-variant mb-2">资深领导力教练</p>
+<div class="flex items-center gap-0.5 text-[#f59e0b] mb-3">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<button class="w-full bg-primary-fixed/50 text-on-primary-fixed text-xs py-1.5 rounded-lg font-medium hover:bg-primary-fixed transition-colors">
+                            查看主页
+                        </button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.04)] min-w-[160px] flex-shrink-0 snap-start border border-surface-variant/20 relative">
+<div class="absolute top-0 right-0 bg-[#E62117]/10 text-[#E62117] text-[10px] font-bold px-2 py-1 rounded-bl-lg rounded-tr-2xl">
+                        信得过
+                    </div>
+<div class="flex flex-col items-center text-center">
+<img alt="讲师头像" class="w-16 h-16 rounded-full object-cover mb-3 shadow-md border-2 border-surface-container-lowest" data-alt="professional corporate headshot of an asian female executive wearing a light blazer, smiling warmly against a blurred office background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOLc1jTP7Ufx7vLv2EzM6j6Ajyckeo2PYmm7lHNLCQGdsODnJ3uPR41diZcWnqWfNeG89-1xYI3uSkXbU9NlNuJXaYGhGiTU4NEkIf4x-OdI86LD8Ygldy60mw1Cyjz1XAdPH9gBbgWGJPQxzc2r69QVpoeIGMLoyDQ8n46izHx9sp4R_SVNUuVQrQ2RHuzvWpNVbiyflb0QvzCxT0B-e-_dCtzoOR3N7vZCjMkuuxevqhKpE69krKE2a_BsRyfZmznyyjtbOSYA"/>
+<h4 class="font-bold text-on-surface text-base leading-tight mb-1">李雪梅</h4>
+<p class="text-xs text-on-surface-variant mb-2">敏捷管理专家</p>
+<div class="flex items-center gap-0.5 text-[#f59e0b] mb-3">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star_half</span>
+</div>
+<button class="w-full bg-primary-fixed/50 text-on-primary-fixed text-xs py-1.5 rounded-lg font-medium hover:bg-primary-fixed transition-colors">
+                            查看主页
+                        </button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.04)] min-w-[160px] flex-shrink-0 snap-start border border-surface-variant/20 relative">
+<div class="flex flex-col items-center text-center">
+<img alt="讲师头像" class="w-16 h-16 rounded-full object-cover mb-3 shadow-md border-2 border-surface-container-lowest" data-alt="professional headshot of a mature male executive wearing glasses and a suit, looking thoughtful against a bright window" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOy4kYEuPnTeFp7Y8ficTD__VLuIesL82LXazyVj-P-dmkjgn1HkwDuvuTkt-wR8rDm-BgRwe4ERcTdamco9peG-hk5qPd94ybt4pxVtXwr1AgO1wWkUQ1dWrvVN0-PSpdx3KzJsAhx75cA9sc7or34H7te68WahRAHt4I5W4x4gVPTxnlK-Gm3uBUo-e6Evgrzlo4CE1U9PPNmwPxWj-vANp6JHxmtiiD4TOKnqM2JXvVPV9k6pfQucre2S1RcR8QCMNFMblY8g"/>
+<h4 class="font-bold text-on-surface text-base leading-tight mb-1">王建国</h4>
+<p class="text-xs text-on-surface-variant mb-2">战略规划顾问</p>
+<div class="flex items-center gap-0.5 text-[#f59e0b] mb-3">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[12px]">star</span>
+</div>
+<button class="w-full bg-primary-fixed/50 text-on-primary-fixed text-xs py-1.5 rounded-lg font-medium hover:bg-primary-fixed transition-colors">
+                            查看主页
+                        </button>
+</div>
+</div>
+</div>
+</section>
+<!-- 推荐课程 (course-list) -->
+<section class="course-list space-y-4">
+<div class="flex justify-between items-end px-1">
+<h3 class="font-headline font-bold text-lg text-on-surface">推荐课程</h3>
+</div>
+<div class="space-y-3">
+<!-- Course Item 1 -->
+<article class="bg-surface-container-lowest p-3 rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-surface-variant/30 flex gap-4 active:scale-[0.98] transition-transform">
+<img alt="课程缩略图" class="w-24 h-24 rounded-xl object-cover shrink-0" data-alt="colleagues in a modern bright meeting room discussing strategy over a laptop and documents on a wooden table" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlvDMFZZrngSSOwRbLdZZaBrleYImDKrjm2rMGnA0TlSZIqZhspLII43FGlOELcYsTT67RRhQiIX3w8z8mFE4XChrddWt0O8KPEQlgwEGIPJlKI4xpKdGnLPhZDmJB7EhMSICrRaBaDWayWEIT45H7l1XgQC0UvhlY7nfUpq0pSnMzC5jfXmFp-7XUQoBebyUpRuaxdgMfd-MlG87CXu5Bi7KhjJoM70ttIzoGFOriQFYEho1V1DOu4iqxJp4zz9LdTYVEFXIAwQ"/>
+<div class="flex flex-col justify-between flex-1 py-0.5">
+<div>
+<h4 class="font-bold text-on-surface text-sm line-clamp-2 leading-tight mb-1">数智化转型背景下的组织效能提升与绩效管理</h4>
+<div class="flex items-center gap-2 text-[11px] text-on-surface-variant/80">
+<span class="flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">calendar_today</span> 10月24日</span>
+<span class="flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">location_on</span> 上海</span>
+</div>
+</div>
+<div class="flex justify-between items-end mt-2">
+<span class="text-[11px] text-on-surface-variant">讲师：张大卫</span>
+<span class="text-primary-container font-bold text-base">¥ 3,980</span>
+</div>
+</div>
+</article>
+<!-- Course Item 2 -->
+<article class="bg-surface-container-lowest p-3 rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-surface-variant/30 flex gap-4 active:scale-[0.98] transition-transform">
+<img alt="课程缩略图" class="w-24 h-24 rounded-xl object-cover shrink-0" data-alt="a presenter standing in front of a projection screen pointing at charts, audience seated in foreground slightly blurred" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXVXsJFLMj1CgQ0M8e3GCGCiynO7CqbsqNftXvgjSXj33aRIKNwgy6DlKYxLOPHofcesWDSYau1XOaZlZyQb7uq7u95nW5lK83PseWT1p55HsGqMJghHmtl9JryEcy7p02LRR0U4Gx1z8rOa8Rbh63s404qJSgCHkcG7tq-OvOVm4c_N3gC2-yDMZYqK0EwhQlusZraA-_oV_C_c3QuJDNPZAFLpIO5kHpb5a5hs3nfZ_xvhsy9If0kq32cJLw2ti6B4-4Cc5u6A"/>
+<div class="flex flex-col justify-between flex-1 py-0.5">
+<div>
+<h4 class="font-bold text-on-surface text-sm line-clamp-2 leading-tight mb-1">高管演讲与呈现技巧：如何用故事打动人心</h4>
+<div class="flex items-center gap-2 text-[11px] text-on-surface-variant/80">
+<span class="flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">calendar_today</span> 11月05日</span>
+<span class="flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">location_on</span> 北京</span>
+</div>
+</div>
+<div class="flex justify-between items-end mt-2">
+<span class="text-[11px] text-on-surface-variant">讲师：李雪梅</span>
+<span class="text-primary-container font-bold text-base">¥ 4,500</span>
+</div>
+</div>
+</article>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center pt-2 pb-safe bg-white dark:bg-slate-800 border-t border-[#e0e3e6] dark:border-slate-700 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] md:hidden">
+<button class="flex flex-col items-center justify-center text-[#E62117] dark:text-red-500 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none w-full py-1">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-['Manrope'] text-[12px] font-medium">首页</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#666666] dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none w-full py-1">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">psychology</span>
+<span class="font-['Manrope'] text-[12px] font-medium">专家</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#666666] dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none w-full py-1">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">school</span>
+<span class="font-['Manrope'] text-[12px] font-medium">公开课</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#666666] dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none w-full py-1">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">person</span>
+<span class="font-['Manrope'] text-[12px] font-medium">我的</span>
+</button>
+</nav>
+</body></html>
