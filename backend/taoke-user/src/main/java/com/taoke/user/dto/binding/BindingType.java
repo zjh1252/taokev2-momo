@@ -16,5 +16,7 @@ public enum BindingType {
     /** 经纪公司 ↔ 专家 */
     ENTERPRISE_AGENT_TRAINER,
     /** 机构 ↔ 员工 */
-    INSTITUTION_EMPLOYEE
+    INSTITUTION_EMPLOYEE,
+    /** 经纪公司 ↔ 经纪人（成员关系） */
+    ENTERPRISE_AGENT_MEMBER
 }

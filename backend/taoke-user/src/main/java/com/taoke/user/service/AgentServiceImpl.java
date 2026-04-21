@@ -1,7 +1,10 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.common.exception.BusinessException;
+import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.AgentService;
+import com.taoke.user.api.BindingService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.agent.AgentRequest;
 import com.taoke.user.dto.agent.AgentResponse;
@@ -33,6 +36,7 @@ public class AgentServiceImpl implements AgentService {
     private final AgentRepository agentRepository;
     private final AgentMapper agentMapper;
     private final RoleApplyService roleApplyService;
+    private final BindingService bindingService;
 
     @Override
     public AgentResponse getByUserId(Integer userId) {
@@ -50,13 +54,22 @@ public class AgentServiceImpl implements AgentService {
     }
 
     /**
-     * 申请成为专家经纪人 — 提交扩展信息并创建待审核角色记录
+     * 申请成为专家经纪人 — 必须选择目标经纪公司，由该公司在用户中心审核确认。
+     * <p>
+     * 不再走平台审核（不创建 sys_user_roles 待审核记录），改为直接创建一条
+     * ENTERPRISE_AGENT_MEMBER 绑定（status=PENDING, initiator=经纪人本人）；
+     * 经纪公司确认后由 {@link com.taoke.user.service.binding.BindingServiceImpl}
+     * 自动授予 AGENT 角色。
      */
     @Transactional
     @Override
     public void apply(Integer userId, AgentRequest request) {
-        roleApplyService.apply(userId, BusinessRole.Code.AGENT);
+        if (request == null || request.getEnterpriseAgentId() == null) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请选择目标经纪公司");
+        }
         saveOrUpdateExtension(userId, request);
+        bindingService.initiateEnterpriseAgentMemberFromAgent(
+                userId, request.getEnterpriseAgentId(), null);
     }
 
     @Override

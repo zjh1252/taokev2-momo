@@ -49,6 +49,43 @@ export async function rejectBindingByEmployee(id: number, reason?: string): Prom
   });
 }
 
+export async function confirmBindingByAgent(id: number): Promise<void> {
+  await apiPost<ApiResponse<null>>(`/agents/me/bindings/${id}/confirm`, undefined, {
+    headers: authHeaders(),
+  });
+}
+
+export async function rejectBindingByAgent(id: number, reason?: string): Promise<void> {
+  await apiPost<ApiResponse<null>>(`/agents/me/bindings/${id}/reject`, { reason }, {
+    headers: authHeaders(),
+  });
+}
+
+/* ---- 机构 / 经纪公司侧的审核别名（语义更清晰）---- */
+export async function approveEmployeeByInstitution(id: number): Promise<void> {
+  await apiPost<ApiResponse<null>>(`/institutions/me/employees/${id}/approve`, undefined, {
+    headers: authHeaders(),
+  });
+}
+
+export async function rejectEmployeeByInstitution(id: number, reason?: string): Promise<void> {
+  await apiPost<ApiResponse<null>>(`/institutions/me/employees/${id}/reject`, { reason }, {
+    headers: authHeaders(),
+  });
+}
+
+export async function approveAgentByEnterprise(id: number): Promise<void> {
+  await apiPost<ApiResponse<null>>(`/enterprise-agents/me/members/${id}/approve`, undefined, {
+    headers: authHeaders(),
+  });
+}
+
+export async function rejectAgentByEnterprise(id: number, reason?: string): Promise<void> {
+  await apiPost<ApiResponse<null>>(`/enterprise-agents/me/members/${id}/reject`, { reason }, {
+    headers: authHeaders(),
+  });
+}
+
 export async function unbind(type: BindingType, id: number): Promise<void> {
   await apiPost<ApiResponse<null>>(`/bindings/${type}/${id}/unbind`, undefined, {
     headers: authHeaders(),
@@ -115,6 +152,30 @@ export async function listAgentTrainers(): Promise<BindingItem[]> {
 
 export async function listAssistantTrainers(): Promise<BindingItem[]> {
   const res = await apiGet<ApiResponse<BindingItem[]>>(`/assistants/me/trainers`, {
+    headers: authHeaders(),
+  });
+  return res.data || [];
+}
+
+/** 经纪公司：我的经纪人（含 ACTIVE/PENDING/REJECTED/UNBOUND） */
+export async function listEnterpriseAgentMembers(): Promise<BindingItem[]> {
+  const res = await apiGet<ApiResponse<BindingItem[]>>(`/enterprise-agents/me/members`, {
+    headers: authHeaders(),
+  });
+  return res.data || [];
+}
+
+/** 经纪人：我的经纪公司（含 ACTIVE/PENDING/REJECTED/UNBOUND） */
+export async function listMyEnterpriseAgents(): Promise<BindingItem[]> {
+  const res = await apiGet<ApiResponse<BindingItem[]>>(`/agents/me/enterprises`, {
+    headers: authHeaders(),
+  });
+  return res.data || [];
+}
+
+/** 员工：我的机构（含 ACTIVE/PENDING/REJECTED/UNBOUND） */
+export async function listMyInstitutions(): Promise<BindingItem[]> {
+  const res = await apiGet<ApiResponse<BindingItem[]>>(`/employees/me/institutions`, {
     headers: authHeaders(),
   });
   return res.data || [];

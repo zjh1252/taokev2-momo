@@ -10,7 +10,25 @@ import {
   markAllNotificationsRead,
   type NotificationItem,
 } from '@/features/user-center/api/service';
-import { Trash2, Eye, X } from 'lucide-react';
+import { Trash2, Eye, X, ArrowRight } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
+
+/** 绑定 / 申请审核类通知的 type 集合 — 在消息列表里展示「前往处理」链接 */
+const BINDING_NOTIFICATION_TYPES = new Set<string>([
+  'BINDING_REQUEST',
+  'BINDING_APPROVED',
+  'BINDING_REJECTED',
+  'BINDING_UNBOUND',
+  'EMPLOYEE_APPLICATION',
+  'AGENT_APPLICATION',
+]);
+
+function isBindingNotification(item: NotificationItem): boolean {
+  if (!item.type) return false;
+  if (BINDING_NOTIFICATION_TYPES.has(item.type)) return true;
+  // 兼容服务端可能直接发的旧 type 名
+  return /BIND|APPLICATION|EMPLOYEE|AGENT/i.test(item.type);
+}
 
 /** 已发消息 mock 数据 */
 const SENT_MOCK: NotificationItem[] = [
@@ -206,13 +224,24 @@ export default function MessagesPage() {
                         {tab === 'received' ? '淘课网' : '培训机构A'}
                       </td>
                       <td className="px-4 py-4">
-                        <button
-                          type="button"
-                          onClick={() => handleViewDetail(item)}
-                          className={`${item.isRead === 0 ? 'font-medium' : ''} text-gray-800 hover:text-primary transition-colors cursor-pointer text-left`}
-                        >
-                          {item.title}
-                        </button>
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => handleViewDetail(item)}
+                            className={`${item.isRead === 0 ? 'font-medium' : ''} text-gray-800 hover:text-primary transition-colors cursor-pointer text-left`}
+                          >
+                            {item.title}
+                          </button>
+                          {item.relatedUrl && isBindingNotification(item) && (
+                            <Link
+                              href={item.relatedUrl}
+                              className="inline-flex items-center gap-1 text-xs text-primary hover:underline shrink-0"
+                            >
+                              <ArrowRight className="size-3.5" />
+                              前往处理
+                            </Link>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         {item.isRead === 0 ? (
@@ -277,12 +306,14 @@ export default function MessagesPage() {
             <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-gray-400">
               <span>发送时间：{new Date(detailItem.createdAt).toLocaleString('zh-CN')}</span>
               {detailItem.relatedUrl && (
-                <a
+                <Link
                   href={detailItem.relatedUrl}
-                  className="text-primary hover:underline"
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                  onClick={() => setDetailItem(null)}
                 >
-                  查看关联内容
-                </a>
+                  <ArrowRight className="size-3.5" />
+                  {isBindingNotification(detailItem) ? '前往处理' : '查看关联内容'}
+                </Link>
               )}
             </div>
           </div>

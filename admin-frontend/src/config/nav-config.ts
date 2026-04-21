@@ -120,11 +120,8 @@ export const navGroups: NavGroup[] = [
           {
             title: '机构员工列表',
             url: '/dashboard/institutions/employees'
-          },
-          {
-            title: '机构员工申请',
-            url: '/dashboard/institutions/employees/applications'
           }
+          // 机构员工申请已下放至机构在用户中心审核，平台不再受理
         ]
       }
     ]
@@ -141,11 +138,8 @@ export const navGroups: NavGroup[] = [
           {
             title: '经纪人列表',
             url: '/dashboard/agents'
-          },
-          {
-            title: '经纪人申请',
-            url: '/dashboard/agents/applications'
           }
+          // 经纪人申请已下放至经纪公司在用户中心审核，平台不再受理
         ]
       }
     ]

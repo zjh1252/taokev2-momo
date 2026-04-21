@@ -22,4 +22,10 @@ public class AgentRequest {
     /** 服务城市 ID 列表，JSON 数组字符串 */
     @Size(max = 512, message = "服务城市列表不超过512个字符")
     private String serviceCityIds;
+
+    /**
+     * 申请加入的目标经纪公司 ID（apply 时必填，save 时可空）。
+     * <p>用于经纪人主动申请加入经纪公司的新流程；不再走平台审核。
+     */
+    private Integer enterpriseAgentId;
 }

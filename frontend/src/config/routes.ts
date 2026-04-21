@@ -79,6 +79,12 @@ export const ROUTES = {
   // ---- 我的代理（专家） ----
   UC_MY_AGENTS: '/dashboard/my-agents',
 
+  // ---- 我的经纪公司（经纪人） ----
+  UC_MY_ENTERPRISE_AGENT: '/dashboard/my-enterprise-agent',
+
+  // ---- 我的经纪团队（经纪公司） ----
+  UC_MY_AGENTS_TEAM: '/dashboard/my-agents-team',
+
   // ---- 角色申请 ----
   UC_APPLY: '/dashboard/apply',
   UC_APPLY_SUCCESS: '/dashboard/apply/success',

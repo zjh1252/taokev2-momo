@@ -67,7 +67,6 @@ public class BindingController {
         return ApiResponse.ok();
     }
 
-    @RequireRole(BusinessRole.Code.INSTITUTION_EMPLOYEE)
     @Operation(summary = "员工：确认机构绑定请求")
     @PostMapping("/employees/me/bindings/{id}/confirm")
     public ApiResponse<Void> confirmEmployee(@PathVariable Integer id) {
@@ -75,13 +74,68 @@ public class BindingController {
         return ApiResponse.ok();
     }
 
-    @RequireRole(BusinessRole.Code.INSTITUTION_EMPLOYEE)
     @Operation(summary = "员工：拒绝机构绑定请求")
     @PostMapping("/employees/me/bindings/{id}/reject")
     public ApiResponse<Void> rejectEmployee(@PathVariable Integer id,
                                             @RequestBody(required = false) RejectBindingRequest body) {
         String reason = body != null ? body.getReason() : null;
         bindingService.reject(SecurityUtils.getCurrentUserId(), BindingType.INSTITUTION_EMPLOYEE, id, reason);
+        return ApiResponse.ok();
+    }
+
+    @Operation(summary = "经纪人：确认经纪公司绑定请求")
+    @PostMapping("/agents/me/bindings/{id}/confirm")
+    public ApiResponse<Void> confirmAgent(@PathVariable Integer id) {
+        bindingService.confirm(SecurityUtils.getCurrentUserId(), BindingType.ENTERPRISE_AGENT_MEMBER, id);
+        return ApiResponse.ok();
+    }
+
+    @Operation(summary = "经纪人：拒绝经纪公司绑定请求")
+    @PostMapping("/agents/me/bindings/{id}/reject")
+    public ApiResponse<Void> rejectAgent(@PathVariable Integer id,
+                                         @RequestBody(required = false) RejectBindingRequest body) {
+        String reason = body != null ? body.getReason() : null;
+        bindingService.reject(SecurityUtils.getCurrentUserId(), BindingType.ENTERPRISE_AGENT_MEMBER, id, reason);
+        return ApiResponse.ok();
+    }
+
+    // ------------------------------------------------------------
+    // 机构 / 经纪公司侧的审核别名 — 与上面的方法等价（双向流程统一入口）
+    // ------------------------------------------------------------
+
+    @RequireRole(BusinessRole.Code.INSTITUTION)
+    @Operation(summary = "机构：通过员工申请（员工主动申请的 PENDING 绑定）")
+    @PostMapping("/institutions/me/employees/{id}/approve")
+    public ApiResponse<Void> approveEmployeeByInstitution(@PathVariable Integer id) {
+        bindingService.confirm(SecurityUtils.getCurrentUserId(), BindingType.INSTITUTION_EMPLOYEE, id);
+        return ApiResponse.ok();
+    }
+
+    @RequireRole(BusinessRole.Code.INSTITUTION)
+    @Operation(summary = "机构：拒绝员工申请")
+    @PostMapping("/institutions/me/employees/{id}/reject")
+    public ApiResponse<Void> rejectEmployeeByInstitution(@PathVariable Integer id,
+                                                         @RequestBody(required = false) RejectBindingRequest body) {
+        String reason = body != null ? body.getReason() : null;
+        bindingService.reject(SecurityUtils.getCurrentUserId(), BindingType.INSTITUTION_EMPLOYEE, id, reason);
+        return ApiResponse.ok();
+    }
+
+    @RequireRole(BusinessRole.Code.ENTERPRISE_AGENT)
+    @Operation(summary = "经纪公司：通过经纪人申请（经纪人主动申请的 PENDING 绑定）")
+    @PostMapping("/enterprise-agents/me/members/{id}/approve")
+    public ApiResponse<Void> approveAgentByEnterprise(@PathVariable Integer id) {
+        bindingService.confirm(SecurityUtils.getCurrentUserId(), BindingType.ENTERPRISE_AGENT_MEMBER, id);
+        return ApiResponse.ok();
+    }
+
+    @RequireRole(BusinessRole.Code.ENTERPRISE_AGENT)
+    @Operation(summary = "经纪公司：拒绝经纪人申请")
+    @PostMapping("/enterprise-agents/me/members/{id}/reject")
+    public ApiResponse<Void> rejectAgentByEnterprise(@PathVariable Integer id,
+                                                     @RequestBody(required = false) RejectBindingRequest body) {
+        String reason = body != null ? body.getReason() : null;
+        bindingService.reject(SecurityUtils.getCurrentUserId(), BindingType.ENTERPRISE_AGENT_MEMBER, id, reason);
         return ApiResponse.ok();
     }
 
@@ -142,6 +196,27 @@ public class BindingController {
     @GetMapping("/enterprise-agents/me/trainers")
     public ApiResponse<List<BindingItemResponse>> listEnterpriseAgentTrainers() {
         return ApiResponse.ok(bindingService.listEnterpriseAgentTrainers(SecurityUtils.getCurrentUserId()));
+    }
+
+    @RequireRole(BusinessRole.Code.ENTERPRISE_AGENT)
+    @Operation(summary = "经纪公司：我的经纪人（含 ACTIVE/PENDING/REJECTED/UNBOUND）")
+    @GetMapping("/enterprise-agents/me/members")
+    public ApiResponse<List<BindingItemResponse>> listEnterpriseAgentMembers() {
+        return ApiResponse.ok(bindingService.listEnterpriseAgentMembers(SecurityUtils.getCurrentUserId()));
+    }
+
+    @RequireRole(BusinessRole.Code.AGENT)
+    @Operation(summary = "经纪人：我的经纪公司（含 ACTIVE/PENDING/REJECTED/UNBOUND）")
+    @GetMapping("/agents/me/enterprises")
+    public ApiResponse<List<BindingItemResponse>> listMyEnterpriseAgents() {
+        return ApiResponse.ok(bindingService.listMyEnterpriseAgents(SecurityUtils.getCurrentUserId()));
+    }
+
+    @RequireRole(BusinessRole.Code.INSTITUTION_EMPLOYEE)
+    @Operation(summary = "员工：我的机构（含 ACTIVE/PENDING/REJECTED/UNBOUND）")
+    @GetMapping("/employees/me/institutions")
+    public ApiResponse<List<BindingItemResponse>> listMyInstitutions() {
+        return ApiResponse.ok(bindingService.listMyInstitutions(SecurityUtils.getCurrentUserId()));
     }
 
     @RequireRole(BusinessRole.Code.AGENT)

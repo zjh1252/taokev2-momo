@@ -124,6 +124,8 @@ export interface AgentFormData {
   bio: string;
   specialties: string;
   serviceCityIds: string;
+  /** 申请加入的目标经纪公司 ID（必填） */
+  enterpriseAgentId: number | null;
 }
 
 export interface AssistantFormData {

@@ -76,4 +76,39 @@ public interface BindingService {
      * 助理视角：当前助理直接绑定的专家。
      */
     List<BindingItemResponse> listAssistantTrainers(Integer assistantUserId);
+
+    /**
+     * 员工主动申请加入机构（员工侧入口）。
+     * <p>不走平台审核，直接创建 PENDING 的 INSTITUTION_EMPLOYEE 绑定，并通知机构在用户中心审核。
+     *
+     * @param employeeUserId 员工用户 ID
+     * @param orgId          目标机构 ID
+     * @param note           备注（可空）
+     */
+    BindingItemResponse initiateInstitutionEmployeeFromEmployee(Integer employeeUserId, Integer orgId, String note);
+
+    /**
+     * 经纪人主动申请加入经纪公司（经纪人侧入口）。
+     * <p>不走平台审核，直接创建 PENDING 的 ENTERPRISE_AGENT_MEMBER 绑定，并通知经纪公司在用户中心审核。
+     *
+     * @param agentUserId      经纪人用户 ID
+     * @param enterpriseAgentId 目标经纪公司 ID
+     * @param note             备注（可空）
+     */
+    BindingItemResponse initiateEnterpriseAgentMemberFromAgent(Integer agentUserId, Integer enterpriseAgentId, String note);
+
+    /**
+     * 机构视角：经纪公司视角的待审核 / 已生效成员关系（经纪公司 ↔ 经纪人）。
+     */
+    List<BindingItemResponse> listEnterpriseAgentMembers(Integer enterpriseAgentUserId);
+
+    /**
+     * 经纪人视角：当前经纪人所在的经纪公司绑定（含 PENDING / ACTIVE / REJECTED / UNBOUND）。
+     */
+    List<BindingItemResponse> listMyEnterpriseAgents(Integer agentUserId);
+
+    /**
+     * 员工视角：当前员工绑定的所有机构（含 PENDING / ACTIVE / REJECTED / UNBOUND）。
+     */
+    List<BindingItemResponse> listMyInstitutions(Integer employeeUserId);
 }

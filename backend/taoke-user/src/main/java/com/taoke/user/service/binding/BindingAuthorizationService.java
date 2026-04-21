@@ -64,14 +64,13 @@ public class BindingAuthorizationService implements BindingAuthority {
             result.add(b.getTrainerUserId());
         }
 
-        // 3) 经纪人通过隶属经纪公司间接绑定（me ∈ enterprise_agent_members.agent_user_id）
-        Optional<EnterpriseAgentMember> memberOpt = enterpriseAgentMemberRepository.findByAgentUserId(operatorUserId);
-        memberOpt.ifPresent(m -> {
+        // 3) 经纪人通过隶属经纪公司间接绑定（me ∈ enterprise_agent_members.agent_user_id 且 ACTIVE）
+        for (EnterpriseAgentMember m : enterpriseAgentMemberRepository.findByAgentUserIdAndStatus(operatorUserId, ACTIVE)) {
             for (EnterpriseAgentTrainerBinding b :
                     enterpriseAgentTrainerBindingRepository.findByEnterpriseAgentIdAndStatus(m.getEnterpriseAgentId(), ACTIVE)) {
                 result.add(b.getTrainerUserId());
             }
-        });
+        }
 
         // 4) 助理直接绑定
         for (TrainerAssistantBinding b : trainerAssistantBindingRepository.findByAssistantUserIdAndStatus(operatorUserId, ACTIVE)) {

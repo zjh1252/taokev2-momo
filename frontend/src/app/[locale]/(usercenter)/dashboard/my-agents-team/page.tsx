@@ -9,18 +9,16 @@ import {
   CheckCircle2, XCircle,
 } from 'lucide-react';
 import {
-  listInstitutionEmployees,
+  listEnterpriseAgentMembers,
+  approveAgentByEnterprise,
+  rejectAgentByEnterprise,
   initiateBinding,
   unbind,
   lookupUserByPhone,
-  approveEmployeeByInstitution,
-  rejectEmployeeByInstitution,
-  type LookupUserResult,
-} from '@/features/binding/api/service';
-import {
   BINDING_STATUS,
   type BindingItem,
-} from '@/features/binding/api/types';
+} from '@/features/enterprise-agent/api/service';
+import type { LookupUserResult } from '@/features/binding/api/service';
 
 const STATUS_TABS: { key: string; label: string; value: number | undefined }[] = [
   { key: 'all', label: '全部', value: undefined },
@@ -38,12 +36,18 @@ const STATUS_BADGE: Record<number, string> = {
 };
 
 /**
- * 我的员工 — 培训机构视角
+ * 我的经纪人 — 经纪公司视角
+ * <p>
+ * <ul>
+ *   <li>支持「待我审核 / 已生效 / 已拒绝 / 已解绑」状态分页</li>
+ *   <li>支持 ?tab=pending-review 深链直达待审核 tab</li>
+ *   <li>「邀请新经纪人」 按手机号查找用户后发起 PENDING 绑定</li>
+ * </ul>
  *
  * @author Fangxinxin
- * @date 2026-04-21 17:30
+ * @date 2026-04-21 23:00
  */
-export default function MyEmployeesPage() {
+export default function MyAgentsTeamPage() {
   const search = useSearchParams();
   const initialTab = search.get('tab') ?? 'all';
 
@@ -56,7 +60,7 @@ export default function MyEmployeesPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      setItems(await listInstitutionEmployees());
+      setItems(await listEnterpriseAgentMembers());
     } finally {
       setLoading(false);
     }
@@ -83,7 +87,7 @@ export default function MyEmployeesPage() {
   const handleApprove = async (item: BindingItem) => {
     setActingId(item.id);
     try {
-      await approveEmployeeByInstitution(item.id);
+      await approveAgentByEnterprise(item.id);
       toast.success('已通过申请');
       await fetchData();
     } catch (err) {
@@ -97,7 +101,7 @@ export default function MyEmployeesPage() {
     const reason = prompt('请输入拒绝理由（可选）') ?? '';
     setActingId(item.id);
     try {
-      await rejectEmployeeByInstitution(item.id, reason || undefined);
+      await rejectAgentByEnterprise(item.id, reason || undefined);
       toast.success('已拒绝申请');
       await fetchData();
     } catch (err) {
@@ -108,7 +112,7 @@ export default function MyEmployeesPage() {
   };
 
   const handleUnbind = async (item: BindingItem) => {
-    if (!confirm('确定要解除该员工的绑定吗？')) return;
+    if (!confirm('确定要解除该经纪人的绑定吗？')) return;
     setActingId(item.id);
     try {
       await unbind(item.bindingType, item.id);
@@ -125,7 +129,7 @@ export default function MyEmployeesPage() {
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
       <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-bold text-gray-800">我的员工</h2>
+          <h2 className="text-lg font-bold text-gray-800">我的经纪人</h2>
           <span className="text-xs text-gray-400">{items.length} 位</span>
         </div>
         <button
@@ -134,7 +138,7 @@ export default function MyEmployeesPage() {
           className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
         >
           <Plus className="size-4" />
-          添加员工
+          邀请新经纪人
         </button>
       </div>
 
@@ -145,9 +149,7 @@ export default function MyEmployeesPage() {
             type="button"
             onClick={() => setTab(t.key)}
             className={`px-3.5 py-1.5 text-sm rounded-full transition-colors ${
-              tab === t.key
-                ? 'bg-primary text-white'
-                : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+              tab === t.key ? 'bg-primary text-white' : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
             }`}
           >
             {t.label}
@@ -169,7 +171,7 @@ export default function MyEmployeesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((item) => (
-              <EmployeeCard
+              <AgentCard
                 key={item.id}
                 item={item}
                 acting={actingId === item.id}
@@ -183,7 +185,7 @@ export default function MyEmployeesPage() {
       </div>
 
       {adding && (
-        <AddEmployeeDialog
+        <InviteAgentDialog
           onClose={() => setAdding(false)}
           onAdded={() => {
             setAdding(false);
@@ -195,7 +197,7 @@ export default function MyEmployeesPage() {
   );
 }
 
-function EmployeeCard({
+function AgentCard({
   item,
   acting,
   onApprove,
@@ -209,7 +211,7 @@ function EmployeeCard({
   onUnbind: (i: BindingItem) => void;
 }) {
   const status = item.status;
-  // 待我审核：员工主动申请的 PENDING 绑定
+  // 待我审核 = PENDING 且不是我发起
   const needsReview = status === BINDING_STATUS.PENDING && !item.iAmInitiator;
   return (
     <div className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -230,14 +232,14 @@ function EmployeeCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-medium text-gray-800 truncate">
-              {item.counterpartNickname || `员工#${item.counterpartUserId}`}
+              {item.counterpartNickname || `经纪人#${item.counterpartUserId}`}
             </span>
             <span className={`text-[11px] px-2 py-0.5 rounded-full border shrink-0 ${STATUS_BADGE[status] || ''}`}>
               {item.statusLabel}
             </span>
           </div>
           <div className="text-xs text-gray-400 mt-1">
-            {item.iAmInitiator ? '我方发起' : '对方发起'} · {item.createdAt?.slice(0, 10)}
+            {item.iAmInitiator ? '我方邀请' : '对方申请'} · {item.createdAt?.slice(0, 10)}
           </div>
           {item.note && <div className="text-xs text-gray-500 mt-1 line-clamp-2">备注：{item.note}</div>}
           {item.rejectReason && (
@@ -288,7 +290,7 @@ function EmployeeCard({
   );
 }
 
-function AddEmployeeDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+function InviteAgentDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
   const [phone, setPhone] = useState('');
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -319,11 +321,11 @@ function AddEmployeeDialog({ onClose, onAdded }: { onClose: () => void; onAdded:
     setSubmitting(true);
     try {
       await initiateBinding({
-        bindingType: 'INSTITUTION_EMPLOYEE',
+        bindingType: 'ENTERPRISE_AGENT_MEMBER',
         targetUserId: picked.id,
         note: note.trim() || undefined,
       });
-      toast.success('员工绑定请求已发送，等待对方确认');
+      toast.success('经纪人邀请已发送，等待对方确认');
       onAdded();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '发起失败');
@@ -336,7 +338,7 @@ function AddEmployeeDialog({ onClose, onAdded }: { onClose: () => void; onAdded:
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h3 className="font-bold text-gray-800">添加员工</h3>
+          <h3 className="font-bold text-gray-800">邀请新经纪人</h3>
           <button
             type="button"
             onClick={onClose}
@@ -347,13 +349,13 @@ function AddEmployeeDialog({ onClose, onAdded }: { onClose: () => void; onAdded:
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-sm text-gray-700 mb-1">员工手机号</label>
+            <label className="block text-sm text-gray-700 mb-1">经纪人手机号</label>
             <div className="flex gap-2">
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="请输入员工注册的手机号"
+                placeholder="请输入经纪人注册的手机号"
                 className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
               <button

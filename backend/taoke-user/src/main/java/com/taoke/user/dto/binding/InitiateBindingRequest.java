@@ -21,6 +21,7 @@ public class InitiateBindingRequest {
      * <ul>
      *   <li>AGENT_TRAINER / ASSISTANT_TRAINER / INSTITUTION_TRAINER / ENTERPRISE_AGENT_TRAINER：目标专家 user_id</li>
      *   <li>INSTITUTION_EMPLOYEE：目标员工 user_id（由机构发起）</li>
+     *   <li>ENTERPRISE_AGENT_MEMBER：目标经纪人 user_id（由经纪公司发起）</li>
      * </ul>
      */
     @NotNull

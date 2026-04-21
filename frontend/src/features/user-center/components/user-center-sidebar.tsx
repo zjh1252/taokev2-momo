@@ -106,13 +106,24 @@ const NAV_ENTRIES: NavEntry[] = [
   {
     kind: 'item', label: '我的机构', href: ROUTES.UC_MY_INSTITUTION, icon: <Building2 className="size-5" />,
     visibleForRoles: ['INSTITUTION_EMPLOYEE'],
-    isPlaceholder: true,
+  },
+
+  // ── 我的经纪公司（经纪人专属） ──
+  {
+    kind: 'item', label: '我的经纪公司', href: ROUTES.UC_MY_ENTERPRISE_AGENT, icon: <Briefcase className="size-5" />,
+    visibleForRoles: ['AGENT'],
   },
 
   // ── 我的员工（培训机构专属） ──
   {
     kind: 'item', label: '我的员工', href: ROUTES.UC_MY_EMPLOYEES, icon: <UserPlus className="size-5" />,
     visibleForRoles: ['INSTITUTION'],
+  },
+
+  // ── 我的经纪团队（经纪公司专属） ──
+  {
+    kind: 'item', label: '我的经纪人', href: ROUTES.UC_MY_AGENTS_TEAM, icon: <UserPlus className="size-5" />,
+    visibleForRoles: ['ENTERPRISE_AGENT'],
   },
 
   // ── 我的场地（培训机构专属） ──
