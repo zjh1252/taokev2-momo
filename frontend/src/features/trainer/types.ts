@@ -92,6 +92,7 @@ export interface TrainerDetail {
 /** 专家列表项（对应后端 TrainerListItemResponse） */
 export interface TrainerListItem {
   id: number;
+  userId?: number;
   name: string;
   avatar: string;
   title: string;

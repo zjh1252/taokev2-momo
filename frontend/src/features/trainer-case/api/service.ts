@@ -12,30 +12,35 @@ function authHeaders() {
   return { Authorization: `Bearer ${tokenData?.accessToken || ''}` };
 }
 
-/** 我的案例列表 */
-export async function getMyCases(): Promise<TrainerCase[]> {
+function buildQs(trainerUserId?: number) {
+  return trainerUserId ? `?trainerUserId=${trainerUserId}` : '';
+}
+
+/** 我的案例列表（trainerUserId 提供时表示代管模式） */
+export async function getMyCases(trainerUserId?: number): Promise<TrainerCase[]> {
   const res = await apiGet<ApiResponse<TrainerCase[]>>(
-    '/trainers/me/cases',
+    `/trainers/me/cases${buildQs(trainerUserId)}`,
     { headers: authHeaders() }
   );
   return res.data;
 }
 
 /** 我的案例详情 */
-export async function getMyCaseDetail(id: number): Promise<TrainerCase> {
+export async function getMyCaseDetail(id: number, trainerUserId?: number): Promise<TrainerCase> {
   const res = await apiGet<ApiResponse<TrainerCase>>(
-    `/trainers/me/cases/${id}`,
+    `/trainers/me/cases/${id}${buildQs(trainerUserId)}`,
     { headers: authHeaders() }
   );
   return res.data;
 }
 
-/** 创建案例 */
+/** 创建案例（trainerUserId 提供时以专家身份创建） */
 export async function createCase(
-  data: SaveTrainerCaseRequest
+  data: SaveTrainerCaseRequest,
+  trainerUserId?: number,
 ): Promise<TrainerCase> {
   const res = await apiPost<ApiResponse<TrainerCase>>(
-    '/trainers/me/cases',
+    `/trainers/me/cases${buildQs(trainerUserId)}`,
     data,
     { headers: authHeaders() }
   );
@@ -45,10 +50,11 @@ export async function createCase(
 /** 编辑案例 */
 export async function updateCase(
   id: number,
-  data: SaveTrainerCaseRequest
+  data: SaveTrainerCaseRequest,
+  trainerUserId?: number,
 ): Promise<TrainerCase> {
   const res = await apiPut<ApiResponse<TrainerCase>>(
-    `/trainers/me/cases/${id}`,
+    `/trainers/me/cases/${id}${buildQs(trainerUserId)}`,
     data,
     { headers: authHeaders() }
   );
@@ -56,8 +62,8 @@ export async function updateCase(
 }
 
 /** 删除案例 */
-export async function deleteCase(id: number): Promise<void> {
-  await apiDelete<ApiResponse<void>>(`/trainers/me/cases/${id}`, {
+export async function deleteCase(id: number, trainerUserId?: number): Promise<void> {
+  await apiDelete<ApiResponse<void>>(`/trainers/me/cases/${id}${buildQs(trainerUserId)}`, {
     headers: authHeaders()
   });
 }
@@ -65,10 +71,11 @@ export async function deleteCase(id: number): Promise<void> {
 /** 添加案例附件 */
 export async function addCaseFile(
   caseId: number,
-  data: { fileType: number; title?: string; fileUrl: string; thumbnailUrl?: string; width?: number; height?: number; duration?: number; fileSize?: number; sortOrder?: number }
+  data: { fileType: number; title?: string; fileUrl: string; thumbnailUrl?: string; width?: number; height?: number; duration?: number; fileSize?: number; sortOrder?: number },
+  trainerUserId?: number,
 ): Promise<TrainerCaseFile> {
   const res = await apiPost<ApiResponse<TrainerCaseFile>>(
-    `/trainers/me/cases/${caseId}/files`,
+    `/trainers/me/cases/${caseId}/files${buildQs(trainerUserId)}`,
     data,
     { headers: authHeaders() }
   );
@@ -78,10 +85,11 @@ export async function addCaseFile(
 /** 删除案例附件 */
 export async function deleteCaseFile(
   caseId: number,
-  fileId: number
+  fileId: number,
+  trainerUserId?: number,
 ): Promise<void> {
   await apiDelete<ApiResponse<void>>(
-    `/trainers/me/cases/${caseId}/files/${fileId}`,
+    `/trainers/me/cases/${caseId}/files/${fileId}${buildQs(trainerUserId)}`,
     { headers: authHeaders() }
   );
 }

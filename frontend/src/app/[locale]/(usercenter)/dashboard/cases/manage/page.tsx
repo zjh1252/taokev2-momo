@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/lib/auth/auth-context';
 import { getMyCases, deleteCase } from '@/features/trainer-case/api/service';
+import { TrainerSwitcher } from '@/features/binding/components/trainer-switcher';
 import {
   CaseStatus,
   CaseStatusLabelMap,
@@ -49,6 +50,7 @@ export default function ManageCasesPage() {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [trainerUserId, setTrainerUserId] = useState<number | undefined>(undefined);
 
   const filteredCases = activeTab === undefined
     ? cases
@@ -58,14 +60,14 @@ export default function ManageCasesPage() {
     if (!user) return;
     setLoading(true);
     try {
-      const list = await getMyCases();
+      const list = await getMyCases(trainerUserId);
       setCases(list || []);
     } catch {
       setCases([]);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, trainerUserId]);
 
   useEffect(() => {
     fetchCases();
@@ -75,7 +77,7 @@ export default function ManageCasesPage() {
     if (deleteId === null) return;
     setDeleting(true);
     try {
-      await deleteCase(deleteId);
+      await deleteCase(deleteId, trainerUserId);
       setDeleteId(null);
       fetchCases();
     } catch {
@@ -87,15 +89,20 @@ export default function ManageCasesPage() {
 
   return (
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
-      <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-lg font-bold text-gray-800">管理案例</h2>
-        <Link
-          href={ROUTES.UC_CASES_CREATE}
-          className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="size-4" />
-          发布新案例
-        </Link>
+        <div className="flex items-center gap-2">
+          <TrainerSwitcher value={trainerUserId} onChange={(uid) => setTrainerUserId(uid)} />
+          <Link
+            href={trainerUserId
+              ? `${ROUTES.UC_CASES_CREATE}?trainerUserId=${trainerUserId}`
+              : ROUTES.UC_CASES_CREATE}
+            className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="size-4" />
+            发布新案例
+          </Link>
+        </div>
       </div>
 
       <div className="px-6 pt-4 pb-2 flex gap-1 flex-wrap">

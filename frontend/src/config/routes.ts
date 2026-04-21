@@ -71,9 +71,13 @@ export const ROUTES = {
 
   // ---- 我的员工（培训机构） ----
   UC_MY_STAFF: '/dashboard/my-staff',
+  UC_MY_EMPLOYEES: '/dashboard/my-employees',
 
   // ---- 我的场地（培训机构） ----
   UC_MY_VENUES: '/dashboard/my-venues',
+
+  // ---- 我的代理（专家） ----
+  UC_MY_AGENTS: '/dashboard/my-agents',
 
   // ---- 角色申请 ----
   UC_APPLY: '/dashboard/apply',

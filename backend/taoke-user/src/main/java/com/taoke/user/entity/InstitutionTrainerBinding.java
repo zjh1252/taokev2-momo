@@ -36,4 +36,16 @@ public class InstitutionTrainerBinding extends BaseEntity {
     /** 确认时间 */
     @Column(name = "confirmed_at")
     private LocalDateTime confirmedAt;
+
+    /** 备注 */
+    @Column(name = "note", length = 500)
+    private String note;
+
+    /** 拒绝理由（status=REJECTED 时填充） */
+    @Column(name = "reject_reason", length = 500)
+    private String rejectReason;
+
+    /** 发起方用户 ID（用于审计） */
+    @Column(name = "initiator_user_id")
+    private Integer initiatorUserId;
 }

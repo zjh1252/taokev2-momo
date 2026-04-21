@@ -27,6 +27,8 @@ export interface MyVideoListParams {
   keyword?: string;
   page?: number;
   size?: number;
+  /** 代管模式：指定专家 user_id 时，列出该专家旗下视频 */
+  trainerUserId?: number;
 }
 
 // ==================== 录播课 CRUD ====================
@@ -39,6 +41,7 @@ export async function getMyVideos(
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.page) query.set('page', String(params.page));
   if (params.size) query.set('size', String(params.size));
+  if (params.trainerUserId) query.set('trainerUserId', String(params.trainerUserId));
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<VideoListItem>>>(
     `/videos/me${qs ? `?${qs}` : ''}`,
@@ -54,8 +57,12 @@ export async function getMyVideoDetail(id: number): Promise<VideoDetail> {
   return res.data;
 }
 
-export async function createVideo(data: SaveVideoRequest): Promise<VideoDetail> {
-  const res = await apiPost<ApiResponse<VideoDetail>>('/videos', data, {
+export async function createVideo(
+  data: SaveVideoRequest,
+  trainerUserId?: number,
+): Promise<VideoDetail> {
+  const url = trainerUserId ? `/videos?trainerUserId=${trainerUserId}` : '/videos';
+  const res = await apiPost<ApiResponse<VideoDetail>>(url, data, {
     headers: authHeaders(),
   });
   return res.data;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import CourseForm from '@/features/course/components/publisher/CourseForm';
@@ -17,14 +18,21 @@ import { Link } from '@/i18n/navigation';
  */
 export default function CreateCoursePage() {
   const router = useRouter();
+  const search = useSearchParams();
+  const trainerUserIdParam = search.get('trainerUserId');
+  const trainerUserId = trainerUserIdParam ? Number(trainerUserIdParam) : undefined;
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: SaveCourseRequest) => {
     setSubmitting(true);
     try {
-      await createCourse(data);
+      await createCourse(data, trainerUserId);
       alert('课程已保存为草稿');
-      router.push(ROUTES.UC_COURSES_MANAGE);
+      router.push(
+        trainerUserId
+          ? `${ROUTES.UC_COURSES_MANAGE}?trainerUserId=${trainerUserId}`
+          : ROUTES.UC_COURSES_MANAGE,
+      );
     } catch {
       alert('保存失败，请稍后重试');
     } finally {

@@ -18,6 +18,7 @@ import com.taoke.course.repository.video.VideoChapterRepository;
 import com.taoke.course.repository.video.VideoEnrollmentRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.repository.video.VideoSeriesRepository;
+import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.entity.Institution;
@@ -53,6 +54,7 @@ public class VideoServiceImpl implements VideoService {
     private final CategoryService categoryService;
     private final TrainerService trainerService;
     private final InstitutionService institutionService;
+    private final BindingAuthority bindingAuthority;
 
     // ==================== C 端发布者操作 ====================
 
@@ -655,13 +657,17 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    private Video getOwnedVideo(Integer videoId, Integer publisherId) {
+    private Video getOwnedVideo(Integer videoId, Integer operatorUserId) {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
-        if (!video.getPublisherId().equals(publisherId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此录播课");
+        if (video.getPublisherId().equals(operatorUserId)) {
+            return video;
         }
-        return video;
+        if (BusinessRole.Code.TRAINER.equals(video.getPublisherType())) {
+            bindingAuthority.requireCanManageTrainer(operatorUserId, video.getPublisherId());
+            return video;
+        }
+        throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此录播课");
     }
 
     private void assertEditable(Video video) {

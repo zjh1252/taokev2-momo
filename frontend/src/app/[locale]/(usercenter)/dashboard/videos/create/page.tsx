@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import VideoForm from '@/features/video/components/publisher/VideoForm';
@@ -13,12 +14,15 @@ import { toast } from 'sonner';
 
 export default function CreateVideoPage() {
   const router = useRouter();
+  const search = useSearchParams();
+  const trainerUserIdParam = search.get('trainerUserId');
+  const trainerUserId = trainerUserIdParam ? Number(trainerUserIdParam) : undefined;
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: SaveVideoRequest, videoFiles?: UploadedVideoItem[]) => {
     setSubmitting(true);
     try {
-      const video = await createVideo(data);
+      const video = await createVideo(data, trainerUserId);
 
       // SERIES 类型：批量创建章节
       if (data.videoType === 'SERIES' && videoFiles && videoFiles.length > 0) {
@@ -31,7 +35,11 @@ export default function CreateVideoPage() {
       }
 
       toast.success('录播课已提交，等待管理员审核');
-      router.push(ROUTES.UC_VIDEOS_MANAGE);
+      router.push(
+        trainerUserId
+          ? `${ROUTES.UC_VIDEOS_MANAGE}?trainerUserId=${trainerUserId}`
+          : ROUTES.UC_VIDEOS_MANAGE,
+      );
     } catch {
       // 平台层已统一处理错误提示
     } finally {

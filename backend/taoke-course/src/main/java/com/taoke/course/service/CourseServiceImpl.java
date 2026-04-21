@@ -15,6 +15,7 @@ import com.taoke.course.enums.CourseType;
 import com.taoke.course.mapper.CourseMapper;
 import com.taoke.course.repository.CoursePlanRepository;
 import com.taoke.course.repository.CourseRepository;
+import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.entity.Institution;
@@ -50,6 +51,7 @@ public class CourseServiceImpl implements CourseService {
     private final TrainerService trainerService;
     private final InstitutionService institutionService;
     private final RegionService regionService;
+    private final BindingAuthority bindingAuthority;
 
     // ==================== C 端发布者操作 ====================
 
@@ -664,14 +666,26 @@ public class CourseServiceImpl implements CourseService {
         }
     }
 
-    /** 获取发布者拥有的课程，不存在或非本人则抛异常 */
-    private Course getOwnedCourse(Integer courseId, Integer publisherId) {
+    /**
+     * 获取课程并校验当前操作者是否有权操作。
+     * <p>
+     * 通过条件之一：
+     * <ul>
+     *   <li>本人是发布者</li>
+     *   <li>课程归属专家（publisherType=TRAINER），且当前操作者通过绑定关系可代管该专家</li>
+     * </ul>
+     */
+    private Course getOwnedCourse(Integer courseId, Integer operatorUserId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "课程不存在"));
-        if (!course.getPublisherId().equals(publisherId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此课程");
+        if (course.getPublisherId().equals(operatorUserId)) {
+            return course;
         }
-        return course;
+        if (BusinessRole.Code.TRAINER.equals(course.getPublisherType())) {
+            bindingAuthority.requireCanManageTrainer(operatorUserId, course.getPublisherId());
+            return course;
+        }
+        throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此课程");
     }
 
     /** 仅草稿/驳回状态可编辑 */

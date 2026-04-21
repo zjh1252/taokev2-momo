@@ -11,6 +11,7 @@ import com.taoke.course.api.CourseService;
 import com.taoke.course.dto.course.CourseDetailVO;
 import com.taoke.course.dto.course.CourseListItemVO;
 import com.taoke.course.dto.course.SaveCourseRequest;
+import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.UserRoleService;
 import com.taoke.user.entity.UserRole;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +36,7 @@ public class CourseController {
 
     private final CourseService courseService;
     private final UserRoleService userRoleService;
+    private final BindingAuthority bindingAuthority;
 
     /** 可发布课程的角色集合 */
     private static final Set<String> PUBLISHER_ROLES = Set.of(
@@ -43,17 +45,28 @@ public class CourseController {
             BusinessRole.Code.INSTITUTION_EMPLOYEE
     );
 
-    @Operation(summary = "创建课程（保存为草稿）")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @Operation(summary = "创建课程（保存为草稿）",
+            description = "trainerUserId 提供时：以专家身份发布；操作者必须能代管该专家。否则按操作者自身角色发布。")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @PostMapping("/courses")
-    public ApiResponse<CourseDetailVO> create(@Valid @RequestBody SaveCourseRequest request) {
+    public ApiResponse<CourseDetailVO> create(@RequestParam(required = false) Integer trainerUserId,
+                                              @Valid @RequestBody SaveCourseRequest request) {
         Integer userId = SecurityUtils.getRequiredUserId();
-        String publisherType = resolvePublisherType(userId);
-        return ApiResponse.ok(courseService.create(userId, publisherType, request));
+        String publisherType;
+        Integer publisherId;
+        if (trainerUserId != null) {
+            bindingAuthority.requireCanManageTrainer(userId, trainerUserId);
+            publisherType = BusinessRole.Code.TRAINER;
+            publisherId = trainerUserId;
+        } else {
+            publisherType = resolvePublisherType(userId);
+            publisherId = userId;
+        }
+        return ApiResponse.ok(courseService.create(publisherId, publisherType, request));
     }
 
     @Operation(summary = "编辑课程")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @PutMapping("/courses/{id}")
     public ApiResponse<CourseDetailVO> update(@PathVariable Integer id,
                                               @Valid @RequestBody SaveCourseRequest request) {
@@ -61,21 +74,32 @@ public class CourseController {
         return ApiResponse.ok(courseService.update(id, userId, request));
     }
 
-    @Operation(summary = "我的课程列表")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @Operation(summary = "我的课程列表",
+            description = "trainerUserId 提供时：列出指定专家旗下的课程；否则列出当前操作者自己发布的课程。")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @GetMapping("/courses/me")
     public ApiResponse<PageResponse<CourseListItemVO>> myCourses(
+            @RequestParam(required = false) Integer trainerUserId,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "15") int size) {
         Integer userId = SecurityUtils.getRequiredUserId();
-        String publisherType = resolvePublisherType(userId);
-        return ApiResponse.ok(courseService.listByPublisher(userId, publisherType, status, keyword, page, size));
+        String publisherType;
+        Integer publisherId;
+        if (trainerUserId != null) {
+            bindingAuthority.requireCanManageTrainer(userId, trainerUserId);
+            publisherType = BusinessRole.Code.TRAINER;
+            publisherId = trainerUserId;
+        } else {
+            publisherType = resolvePublisherType(userId);
+            publisherId = userId;
+        }
+        return ApiResponse.ok(courseService.listByPublisher(publisherId, publisherType, status, keyword, page, size));
     }
 
     @Operation(summary = "我的课程详情")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @GetMapping("/courses/me/{id}")
     public ApiResponse<CourseDetailVO> myDetail(@PathVariable Integer id) {
         Integer userId = SecurityUtils.getRequiredUserId();
@@ -83,7 +107,7 @@ public class CourseController {
     }
 
     @Operation(summary = "提交审核")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @PutMapping("/courses/{id}/submit")
     public ApiResponse<Void> submit(@PathVariable Integer id) {
         Integer userId = SecurityUtils.getRequiredUserId();
@@ -92,7 +116,7 @@ public class CourseController {
     }
 
     @Operation(summary = "下架课程")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @PutMapping("/courses/{id}/unpublish")
     public ApiResponse<Void> unpublish(@PathVariable Integer id) {
         Integer userId = SecurityUtils.getRequiredUserId();
@@ -101,7 +125,7 @@ public class CourseController {
     }
 
     @Operation(summary = "删除课程")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @DeleteMapping("/courses/{id}")
     public ApiResponse<Void> delete(@PathVariable Integer id) {
         Integer userId = SecurityUtils.getRequiredUserId();

@@ -11,6 +11,7 @@ import com.taoke.course.api.VideoService;
 import com.taoke.course.dto.video.SaveVideoRequest;
 import com.taoke.course.dto.video.VideoDetailVO;
 import com.taoke.course.dto.video.VideoListItemVO;
+import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.UserRoleService;
 import com.taoke.user.entity.UserRole;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +36,7 @@ public class VideoController {
 
     private final VideoService videoService;
     private final UserRoleService userRoleService;
+    private final BindingAuthority bindingAuthority;
 
     /** 可发布录播课的角色集合 */
     private static final Set<String> PUBLISHER_ROLES = Set.of(
@@ -43,17 +45,28 @@ public class VideoController {
             BusinessRole.Code.INSTITUTION_EMPLOYEE
     );
 
-    @Operation(summary = "创建录播课（保存为草稿）")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @Operation(summary = "创建录播课（保存为草稿）",
+            description = "trainerUserId 提供时：以专家身份发布；操作者必须能代管该专家")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @PostMapping("/videos")
-    public ApiResponse<VideoDetailVO> create(@Valid @RequestBody SaveVideoRequest request) {
+    public ApiResponse<VideoDetailVO> create(@RequestParam(required = false) Integer trainerUserId,
+                                             @Valid @RequestBody SaveVideoRequest request) {
         Integer userId = SecurityUtils.getRequiredUserId();
-        String publisherType = resolvePublisherType(userId);
-        return ApiResponse.ok(videoService.create(userId, publisherType, request));
+        String publisherType;
+        Integer publisherId;
+        if (trainerUserId != null) {
+            bindingAuthority.requireCanManageTrainer(userId, trainerUserId);
+            publisherType = BusinessRole.Code.TRAINER;
+            publisherId = trainerUserId;
+        } else {
+            publisherType = resolvePublisherType(userId);
+            publisherId = userId;
+        }
+        return ApiResponse.ok(videoService.create(publisherId, publisherType, request));
     }
 
     @Operation(summary = "编辑录播课")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @PutMapping("/videos/{id}")
     public ApiResponse<VideoDetailVO> update(@PathVariable Integer id,
                                               @Valid @RequestBody SaveVideoRequest request) {
@@ -61,21 +74,32 @@ public class VideoController {
         return ApiResponse.ok(videoService.update(id, userId, request));
     }
 
-    @Operation(summary = "我的录播课列表")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @Operation(summary = "我的录播课列表",
+            description = "trainerUserId 提供时：列出指定专家的录播课；否则列出当前操作者发布的录播课")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @GetMapping("/videos/me")
     public ApiResponse<PageResponse<VideoListItemVO>> myVideos(
+            @RequestParam(required = false) Integer trainerUserId,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "15") int size) {
         Integer userId = SecurityUtils.getRequiredUserId();
-        String publisherType = resolvePublisherType(userId);
-        return ApiResponse.ok(videoService.listByPublisher(userId, publisherType, status, keyword, page, size));
+        String publisherType;
+        Integer publisherId;
+        if (trainerUserId != null) {
+            bindingAuthority.requireCanManageTrainer(userId, trainerUserId);
+            publisherType = BusinessRole.Code.TRAINER;
+            publisherId = trainerUserId;
+        } else {
+            publisherType = resolvePublisherType(userId);
+            publisherId = userId;
+        }
+        return ApiResponse.ok(videoService.listByPublisher(publisherId, publisherType, status, keyword, page, size));
     }
 
     @Operation(summary = "我的录播课详情")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @GetMapping("/videos/me/{id}")
     public ApiResponse<VideoDetailVO> myDetail(@PathVariable Integer id) {
         Integer userId = SecurityUtils.getRequiredUserId();
@@ -83,7 +107,7 @@ public class VideoController {
     }
 
     @Operation(summary = "提交审核")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @PutMapping("/videos/{id}/submit")
     public ApiResponse<Void> submit(@PathVariable Integer id) {
         Integer userId = SecurityUtils.getRequiredUserId();
@@ -92,7 +116,7 @@ public class VideoController {
     }
 
     @Operation(summary = "下架录播课")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @PutMapping("/videos/{id}/unpublish")
     public ApiResponse<Void> unpublish(@PathVariable Integer id) {
         Integer userId = SecurityUtils.getRequiredUserId();
@@ -101,7 +125,7 @@ public class VideoController {
     }
 
     @Operation(summary = "删除录播课")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @DeleteMapping("/videos/{id}")
     public ApiResponse<Void> delete(@PathVariable Integer id) {
         Integer userId = SecurityUtils.getRequiredUserId();

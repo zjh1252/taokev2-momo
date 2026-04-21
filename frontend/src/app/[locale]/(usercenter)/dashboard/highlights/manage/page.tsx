@@ -8,6 +8,7 @@ import {
   getMyHighlights,
   deleteHighlight,
 } from '@/features/trainer-highlight/api/service';
+import { TrainerSwitcher } from '@/features/binding/components/trainer-switcher';
 import {
   HighlightStatus,
   HighlightStatusLabelMap,
@@ -56,6 +57,7 @@ export default function ManageHighlightsPage() {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [trainerUserId, setTrainerUserId] = useState<number | undefined>(undefined);
 
   // Gallery 灯箱状态
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -70,14 +72,14 @@ export default function ManageHighlightsPage() {
     if (!user) return;
     setLoading(true);
     try {
-      const list = await getMyHighlights();
+      const list = await getMyHighlights(trainerUserId);
       setHighlights(list || []);
     } catch {
       setHighlights([]);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, trainerUserId]);
 
   useEffect(() => {
     fetchHighlights();
@@ -87,7 +89,7 @@ export default function ManageHighlightsPage() {
     if (deleteId === null) return;
     setDeleting(true);
     try {
-      await deleteHighlight(deleteId);
+      await deleteHighlight(deleteId, trainerUserId);
       setDeleteId(null);
       fetchHighlights();
     } catch {
@@ -111,15 +113,20 @@ export default function ManageHighlightsPage() {
 
   return (
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
-      <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-lg font-bold text-gray-800">管理精彩瞬间</h2>
-        <Link
-          href={ROUTES.UC_HIGHLIGHTS_CREATE}
-          className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="size-4" />
-          发布新瞬间
-        </Link>
+        <div className="flex items-center gap-2">
+          <TrainerSwitcher value={trainerUserId} onChange={(uid) => setTrainerUserId(uid)} />
+          <Link
+            href={trainerUserId
+              ? `${ROUTES.UC_HIGHLIGHTS_CREATE}?trainerUserId=${trainerUserId}`
+              : ROUTES.UC_HIGHLIGHTS_CREATE}
+            className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="size-4" />
+            发布新瞬间
+          </Link>
+        </div>
       </div>
 
       <div className="px-6 pt-4 pb-2 flex gap-1 flex-wrap">

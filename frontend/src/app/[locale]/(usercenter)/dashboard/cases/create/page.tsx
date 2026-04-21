@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { createCase, addCaseFile } from '@/features/trainer-case/api/service';
@@ -16,6 +17,9 @@ import { toast } from 'sonner';
 
 export default function CreateCasePage() {
   const router = useRouter();
+  const search = useSearchParams();
+  const trainerUserIdParam = search.get('trainerUserId');
+  const trainerUserId = trainerUserIdParam ? Number(trainerUserIdParam) : undefined;
   const [submitting, setSubmitting] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
 
@@ -71,7 +75,7 @@ export default function CreateCasePage() {
 
     setSubmitting(true);
     try {
-      const created = await createCase(form);
+      const created = await createCase(form, trainerUserId);
 
       // 逐个上传附件到子表
       for (let i = 0; i < files.length; i++) {
@@ -83,11 +87,15 @@ export default function CreateCasePage() {
           title: f.title || '',
           fileSize: f.fileSize,
           sortOrder: i,
-        });
+        }, trainerUserId);
       }
 
       toast.success('案例已创建');
-      router.push(ROUTES.UC_CASES_MANAGE);
+      router.push(
+        trainerUserId
+          ? `${ROUTES.UC_CASES_MANAGE}?trainerUserId=${trainerUserId}`
+          : ROUTES.UC_CASES_MANAGE,
+      );
     } catch {
       // 平台层已统一处理错误提示
     } finally {

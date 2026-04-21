@@ -5,6 +5,7 @@ import com.taoke.common.response.ApiResponse;
 import com.taoke.common.security.Public;
 import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
+import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.TrainerCaseService;
 import com.taoke.user.dto.trainercase.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,62 +28,74 @@ import java.util.List;
 public class TrainerCaseController {
 
     private final TrainerCaseService trainerCaseService;
+    private final BindingAuthority bindingAuthority;
+
+    /** trainerUserId 不传时回退到当前用户自身（兼容专家本人） */
+    private Integer effectiveTrainerUserId(Integer trainerUserId) {
+        return bindingAuthority.resolveTargetTrainerUserId(SecurityUtils.getCurrentUserId(), trainerUserId);
+    }
 
     // ==================== 自服务（内容管理角色） ====================
 
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
-    @Operation(summary = "我的案例列表")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
+    @Operation(summary = "我的案例列表（trainerUserId 可选，用于代管）")
     @GetMapping("/trainers/me/cases")
-    public ApiResponse<List<TrainerCaseResponse>> listMyCases() {
-        return ApiResponse.ok(trainerCaseService.listMyCases(SecurityUtils.getCurrentUserId()));
+    public ApiResponse<List<TrainerCaseResponse>> listMyCases(@RequestParam(required = false) Integer trainerUserId) {
+        return ApiResponse.ok(trainerCaseService.listMyCases(effectiveTrainerUserId(trainerUserId)));
     }
 
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @Operation(summary = "我的案例详情")
     @GetMapping("/trainers/me/cases/{id}")
-    public ApiResponse<TrainerCaseResponse> getMyCaseDetail(@PathVariable Integer id) {
-        return ApiResponse.ok(trainerCaseService.getMyCaseDetail(SecurityUtils.getCurrentUserId(), id));
+    public ApiResponse<TrainerCaseResponse> getMyCaseDetail(@PathVariable Integer id,
+                                                            @RequestParam(required = false) Integer trainerUserId) {
+        return ApiResponse.ok(trainerCaseService.getMyCaseDetail(effectiveTrainerUserId(trainerUserId), id));
     }
 
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @Operation(summary = "新增案例")
     @PostMapping("/trainers/me/cases")
-    public ApiResponse<TrainerCaseResponse> createCase(@Valid @RequestBody SaveTrainerCaseRequest request) {
-        return ApiResponse.ok(trainerCaseService.createCase(SecurityUtils.getCurrentUserId(), request));
+    public ApiResponse<TrainerCaseResponse> createCase(@RequestParam(required = false) Integer trainerUserId,
+                                                       @Valid @RequestBody SaveTrainerCaseRequest request) {
+        return ApiResponse.ok(trainerCaseService.createCase(effectiveTrainerUserId(trainerUserId), request));
     }
 
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @Operation(summary = "编辑案例")
     @PutMapping("/trainers/me/cases/{id}")
     public ApiResponse<TrainerCaseResponse> updateCase(@PathVariable Integer id,
+                                                       @RequestParam(required = false) Integer trainerUserId,
                                                        @Valid @RequestBody SaveTrainerCaseRequest request) {
-        return ApiResponse.ok(trainerCaseService.updateCase(SecurityUtils.getCurrentUserId(), id, request));
+        return ApiResponse.ok(trainerCaseService.updateCase(effectiveTrainerUserId(trainerUserId), id, request));
     }
 
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @Operation(summary = "删除案例")
     @DeleteMapping("/trainers/me/cases/{id}")
-    public ApiResponse<Void> deleteCase(@PathVariable Integer id) {
-        trainerCaseService.deleteCase(SecurityUtils.getCurrentUserId(), id);
+    public ApiResponse<Void> deleteCase(@PathVariable Integer id,
+                                        @RequestParam(required = false) Integer trainerUserId) {
+        trainerCaseService.deleteCase(effectiveTrainerUserId(trainerUserId), id);
         return ApiResponse.ok();
     }
 
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @Operation(summary = "添加案例文件")
     @PostMapping("/trainers/me/cases/{id}/files")
     public ApiResponse<TrainerCaseFileResponse> addCaseFile(
             @PathVariable Integer id,
+            @RequestParam(required = false) Integer trainerUserId,
             @Valid @RequestBody SaveTrainerCaseFileRequest request) {
         return ApiResponse.ok(trainerCaseService.addCaseFile(
-                SecurityUtils.getCurrentUserId(), id, request));
+                effectiveTrainerUserId(trainerUserId), id, request));
     }
 
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @Operation(summary = "删除案例文件")
     @DeleteMapping("/trainers/me/cases/{caseId}/files/{fileId}")
     public ApiResponse<Void> deleteCaseFile(@PathVariable Integer caseId,
-                                            @PathVariable Integer fileId) {
-        trainerCaseService.deleteCaseFile(SecurityUtils.getCurrentUserId(), caseId, fileId);
+                                            @PathVariable Integer fileId,
+                                            @RequestParam(required = false) Integer trainerUserId) {
+        trainerCaseService.deleteCaseFile(effectiveTrainerUserId(trainerUserId), caseId, fileId);
         return ApiResponse.ok();
     }
 

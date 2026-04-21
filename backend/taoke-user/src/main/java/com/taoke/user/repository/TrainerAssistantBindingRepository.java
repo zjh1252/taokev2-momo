@@ -16,4 +16,12 @@ public interface TrainerAssistantBindingRepository extends JpaRepository<Trainer
     Optional<TrainerAssistantBinding> findByTrainerUserId(Integer trainerUserId);
 
     Optional<TrainerAssistantBinding> findByAssistantUserId(Integer assistantUserId);
+
+    java.util.List<TrainerAssistantBinding> findAllByAssistantUserId(Integer assistantUserId);
+
+    java.util.List<TrainerAssistantBinding> findAllByTrainerUserId(Integer trainerUserId);
+
+    java.util.List<TrainerAssistantBinding> findByAssistantUserIdAndStatus(Integer assistantUserId, Integer status);
+
+    java.util.List<TrainerAssistantBinding> findByTrainerUserIdAndStatus(Integer trainerUserId, Integer status);
 }

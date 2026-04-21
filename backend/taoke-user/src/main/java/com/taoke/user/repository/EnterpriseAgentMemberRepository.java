@@ -19,4 +19,6 @@ public interface EnterpriseAgentMemberRepository extends JpaRepository<Enterpris
     Optional<EnterpriseAgentMember> findByAgentUserId(Integer agentUserId);
 
     Optional<EnterpriseAgentMember> findByEnterpriseAgentIdAndAgentUserId(Integer enterpriseAgentId, Integer agentUserId);
+
+    List<EnterpriseAgentMember> findByAgentUserIdIn(List<Integer> agentUserIds);
 }

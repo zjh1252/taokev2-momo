@@ -16,6 +16,9 @@ public class TrainerListItemResponse {
 
     private Integer id;
 
+    /** 用户 ID（用于绑定关系等以 userId 为目标的接口） */
+    private Integer userId;
+
     private String name;
     private String avatar;
     private String title;

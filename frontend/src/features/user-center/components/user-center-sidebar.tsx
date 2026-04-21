@@ -74,20 +74,10 @@ const NAV_ENTRIES: NavEntry[] = [
     ],
   },
 
-  // ── 角色特有：我的专家（经纪人/助理 有子菜单，机构/机构员工 为 flat 占位） ──
-  {
-    kind: 'group', label: '我的专家', icon: <Users className="size-5" />, separator: true,
-    visibleForRoles: ['AGENT', 'ASSISTANT'],
-    isPlaceholder: true,
-    children: [
-      { label: '专家列表', href: ROUTES.UC_MY_EXPERTS_LIST },
-      { label: '添加专家', href: ROUTES.UC_MY_EXPERTS_ADD },
-    ],
-  },
+  // ── 角色特有：我的专家（统一的列表 + 添加 + 状态筛选；机构员工为只读视图） ──
   {
     kind: 'item', label: '我的专家', href: ROUTES.UC_MY_EXPERTS, icon: <Users className="size-5" />,
-    visibleForRoles: ['INSTITUTION', 'INSTITUTION_EMPLOYEE'],
-    isPlaceholder: true,
+    visibleForRoles: ['AGENT', 'ASSISTANT', 'INSTITUTION', 'ENTERPRISE_AGENT', 'INSTITUTION_EMPLOYEE'],
   },
 
   // ── 我的业务（经纪人 和 经纪公司 子菜单略有不同） ──
@@ -121,16 +111,14 @@ const NAV_ENTRIES: NavEntry[] = [
 
   // ── 我的员工（培训机构专属） ──
   {
-    kind: 'item', label: '我的员工', href: ROUTES.UC_MY_STAFF, icon: <UserPlus className="size-5" />,
+    kind: 'item', label: '我的员工', href: ROUTES.UC_MY_EMPLOYEES, icon: <UserPlus className="size-5" />,
     visibleForRoles: ['INSTITUTION'],
-    isPlaceholder: true,
   },
 
   // ── 我的场地（培训机构专属） ──
   {
     kind: 'item', label: '我的场地', href: ROUTES.UC_MY_VENUES, icon: <MapPin className="size-5" />,
     visibleForRoles: ['INSTITUTION'],
-    isPlaceholder: true,
   },
 
   // ── 内容管理类（TRAINER / AGENT / ASSISTANT / INSTITUTION / INSTITUTION_EMPLOYEE） ──
@@ -165,6 +153,12 @@ const NAV_ENTRIES: NavEntry[] = [
       { label: '发布录播课', href: ROUTES.UC_VIDEOS_CREATE },
       { label: '管理录播课', href: ROUTES.UC_VIDEOS_MANAGE },
     ],
+  },
+
+  // ── 我的代理（专家专属） ──
+  {
+    kind: 'item', label: '我的代理', href: ROUTES.UC_MY_AGENTS, icon: <Handshake className="size-5" />,
+    visibleForRoles: ['TRAINER'],
   },
 
   // ── 通用：始终显示 ──

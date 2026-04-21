@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import {
@@ -18,6 +19,9 @@ import { toast } from 'sonner';
 
 export default function CreateHighlightPage() {
   const router = useRouter();
+  const search = useSearchParams();
+  const trainerUserIdParam = search.get('trainerUserId');
+  const trainerUserId = trainerUserIdParam ? Number(trainerUserIdParam) : undefined;
   const [submitting, setSubmitting] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
 
@@ -59,7 +63,7 @@ export default function CreateHighlightPage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const highlight = await createHighlight(form);
+      const highlight = await createHighlight(form, trainerUserId);
 
       // 逐个上传文件到子表
       for (let i = 0; i < files.length; i++) {
@@ -71,11 +75,15 @@ export default function CreateHighlightPage() {
           title: f.title || '',
           fileSize: f.fileSize,
           sortOrder: i,
-        });
+        }, trainerUserId);
       }
 
       toast.success('精彩瞬间已创建');
-      router.push(ROUTES.UC_HIGHLIGHTS_MANAGE);
+      router.push(
+        trainerUserId
+          ? `${ROUTES.UC_HIGHLIGHTS_MANAGE}?trainerUserId=${trainerUserId}`
+          : ROUTES.UC_HIGHLIGHTS_MANAGE,
+      );
     } catch {
       // 平台层已统一处理错误提示
     } finally {
