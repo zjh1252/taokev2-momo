@@ -21,6 +21,7 @@ import {
   BINDING_STATUS,
   type BindingItem,
 } from '@/features/binding/api/types';
+import { RejectReasonDialog } from '@/features/binding/components/reject-reason-dialog';
 
 const STATUS_TABS: { key: string; label: string; value: number | undefined }[] = [
   { key: 'all', label: '全部', value: undefined },
@@ -52,6 +53,7 @@ export default function MyEmployeesPage() {
   const [tab, setTab] = useState<string>(initialTab);
   const [adding, setAdding] = useState(false);
   const [actingId, setActingId] = useState<number | null>(null);
+  const [rejectingItem, setRejectingItem] = useState<BindingItem | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -93,12 +95,17 @@ export default function MyEmployeesPage() {
     }
   };
 
-  const handleReject = async (item: BindingItem) => {
-    const reason = prompt('请输入拒绝理由（可选）') ?? '';
-    setActingId(item.id);
+  const handleReject = (item: BindingItem) => {
+    setRejectingItem(item);
+  };
+
+  const submitReject = async (reason: string) => {
+    if (!rejectingItem) return;
+    setActingId(rejectingItem.id);
     try {
-      await rejectEmployeeByInstitution(item.id, reason || undefined);
+      await rejectEmployeeByInstitution(rejectingItem.id, reason || undefined);
       toast.success('已拒绝申请');
+      setRejectingItem(null);
       await fetchData();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '操作失败');
@@ -191,6 +198,21 @@ export default function MyEmployeesPage() {
           }}
         />
       )}
+
+      <RejectReasonDialog
+        open={!!rejectingItem}
+        onOpenChange={(v) => {
+          if (!v) setRejectingItem(null);
+        }}
+        title="拒绝员工申请"
+        description={
+          rejectingItem
+            ? `拒绝来自「${rejectingItem.counterpartNickname || `员工#${rejectingItem.counterpartUserId}`}」的入驻申请，可填写理由（可选）。`
+            : ''
+        }
+        loading={actingId === rejectingItem?.id}
+        onConfirm={submitReject}
+      />
     </section>
   );
 }
@@ -237,7 +259,7 @@ function EmployeeCard({
             </span>
           </div>
           <div className="text-xs text-gray-400 mt-1">
-            {item.iAmInitiator ? '我方发起' : '对方发起'} · {item.createdAt?.slice(0, 10)}
+            {item.iAmInitiator ? '我方发起邀请' : '对方发起申请'} · {item.createdAt?.slice(0, 10)}
           </div>
           {item.note && <div className="text-xs text-gray-500 mt-1 line-clamp-2">备注：{item.note}</div>}
           {item.rejectReason && (

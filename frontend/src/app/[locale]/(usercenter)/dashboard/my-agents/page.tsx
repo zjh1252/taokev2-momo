@@ -24,6 +24,7 @@ import {
   type BindingItem,
   type BindingType,
 } from '@/features/binding/api/types';
+import { RejectReasonDialog } from '@/features/binding/components/reject-reason-dialog';
 
 /**
  * 我的代理 — 专家视角
@@ -41,6 +42,7 @@ export default function MyAgentsPage() {
   const [active, setActive] = useState<BindingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<number | null>(null);
+  const [rejectingItem, setRejectingItem] = useState<BindingItem | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,12 +75,17 @@ export default function MyAgentsPage() {
     }
   };
 
-  const handleReject = async (item: BindingItem) => {
-    const reason = prompt('请输入拒绝理由（可选）') ?? '';
-    setActingId(item.id);
+  const handleReject = (item: BindingItem) => {
+    setRejectingItem(item);
+  };
+
+  const submitReject = async (reason: string) => {
+    if (!rejectingItem) return;
+    setActingId(rejectingItem.id);
     try {
-      await rejectBindingByTrainer(item.bindingType, item.id, reason || undefined);
+      await rejectBindingByTrainer(rejectingItem.bindingType, rejectingItem.id, reason || undefined);
       toast.success('已拒绝绑定');
+      setRejectingItem(null);
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '操作失败');
@@ -171,6 +178,21 @@ export default function MyAgentsPage() {
           )}
         </div>
       </div>
+
+      <RejectReasonDialog
+        open={!!rejectingItem}
+        onOpenChange={(v) => {
+          if (!v) setRejectingItem(null);
+        }}
+        title="拒绝绑定请求"
+        description={
+          rejectingItem
+            ? `拒绝来自「${rejectingItem.counterpartNickname || rejectingItem.counterpartOrgName || `用户#${rejectingItem.counterpartUserId}`}」的绑定请求，可填写理由（可选）。`
+            : ''
+        }
+        loading={actingId === rejectingItem?.id}
+        onConfirm={submitReject}
+      />
     </section>
   );
 }

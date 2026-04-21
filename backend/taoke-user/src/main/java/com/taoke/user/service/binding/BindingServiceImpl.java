@@ -249,8 +249,11 @@ public class BindingServiceImpl implements BindingService {
         if (b.getStatus() != null && Objects.equals(b.getStatus(), ACTIVE)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "已存在生效的绑定");
         }
-        if (b.getStatus() != null && Objects.equals(b.getStatus(), PENDING)) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "已有待处理的申请，请勿重复提交");
+        Integer instUser = inst.getUserId();
+        // 幂等：相同员工对相同机构已经处于 PENDING（且发起方就是员工本人），直接复用，不再抛错
+        if (b.getStatus() != null && Objects.equals(b.getStatus(), PENDING)
+                && Objects.equals(b.getInitiatorUserId(), employeeUserId)) {
+            return toResponse(b, BindingType.INSTITUTION_EMPLOYEE, instUser, employeeUserId);
         }
         b.setOrgId(orgId);
         b.setEmployeeUserId(employeeUserId);
@@ -261,7 +264,6 @@ public class BindingServiceImpl implements BindingService {
         b.setConfirmedAt(null);
         institutionEmployeeBindingRepository.save(b);
         // 通知机构主体
-        Integer instUser = inst.getUserId();
         notifyEmployeeApplication(instUser, employeeUserId, inst.getOrgName());
         return toResponse(b, BindingType.INSTITUTION_EMPLOYEE, instUser, employeeUserId);
     }
@@ -285,8 +287,10 @@ public class BindingServiceImpl implements BindingService {
         if (m.getStatus() != null && Objects.equals(m.getStatus(), ACTIVE)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "已存在生效的成员关系");
         }
-        if (m.getStatus() != null && Objects.equals(m.getStatus(), PENDING)) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "已有待处理的申请，请勿重复提交");
+        // 幂等：同一经纪人对同一公司已发起 PENDING 时直接返回，不再误报「重复提交」
+        if (m.getStatus() != null && Objects.equals(m.getStatus(), PENDING)
+                && Objects.equals(m.getInitiatorUserId(), agentUserId)) {
+            return toResponse(m, BindingType.ENTERPRISE_AGENT_MEMBER, ea.getUserId(), agentUserId);
         }
         m.setEnterpriseAgentId(enterpriseAgentId);
         m.setAgentUserId(agentUserId);
@@ -835,24 +839,38 @@ public class BindingServiceImpl implements BindingService {
      * </ul>
      */
     private void requireEmployeeBindingConfirmer(Integer operatorUserId, InstitutionEmployeeBinding b) {
+        Integer instUser = resolveInstitutionUserId(b.getOrgId());
+        // 历史/兼容：initiator_user_id 缺失时，机构与员工任一方均可处理（避免老数据卡住）
+        if (b.getInitiatorUserId() == null) {
+            if (Objects.equals(operatorUserId, instUser) || Objects.equals(operatorUserId, b.getEmployeeUserId())) {
+                return;
+            }
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权处理该绑定");
+        }
         if (Objects.equals(b.getInitiatorUserId(), b.getEmployeeUserId())) {
             // 员工主动申请：必须是机构主体
-            Integer instUser = resolveInstitutionUserId(b.getOrgId());
             if (!Objects.equals(operatorUserId, instUser)) {
                 throw new BusinessException(ErrorCode.FORBIDDEN, "只有机构主体可以处理员工申请");
             }
             return;
         }
-        // 默认（机构发起 / 历史数据）由员工本人处理
+        // 机构主动邀请：由员工本人确认
         if (!Objects.equals(b.getEmployeeUserId(), operatorUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权处理该绑定");
         }
     }
 
     private void requireEnterpriseAgentMemberConfirmer(Integer operatorUserId, EnterpriseAgentMember m) {
+        Integer eaUser = resolveEnterpriseAgentUserId(m.getEnterpriseAgentId());
+        // 历史/兼容：initiator_user_id 缺失时，经纪公司与经纪人任一方均可处理
+        if (m.getInitiatorUserId() == null) {
+            if (Objects.equals(operatorUserId, eaUser) || Objects.equals(operatorUserId, m.getAgentUserId())) {
+                return;
+            }
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权处理该绑定");
+        }
         if (Objects.equals(m.getInitiatorUserId(), m.getAgentUserId())) {
             // 经纪人主动申请：必须是经纪公司负责人
-            Integer eaUser = resolveEnterpriseAgentUserId(m.getEnterpriseAgentId());
             if (!Objects.equals(operatorUserId, eaUser)) {
                 throw new BusinessException(ErrorCode.FORBIDDEN, "只有经纪公司可以处理经纪人申请");
             }

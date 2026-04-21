@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -192,6 +193,37 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             return List.of();
         }
         return institutionRepository.findAllById(ids);
+    }
+
+    @Override
+    public List<Map<String, Object>> lookup(String keyword, int size) {
+        int limit = size > 0 ? Math.min(size, 50) : 20;
+        Specification<Institution> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            // 仅匹配已发布的机构
+            predicates.add(cb.equal(root.get("status"), 1));
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.trim() + "%";
+                predicates.add(cb.like(root.get("orgName"), pattern));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+        Pageable pageable = PageRequest.of(0, limit,
+                Sort.by(Sort.Direction.DESC, "sortOrder")
+                        .and(Sort.by(Sort.Direction.DESC, "viewCount"))
+                        .and(Sort.by(Sort.Direction.DESC, "id")));
+        Page<Institution> page = institutionRepository.findAll(spec, pageable);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Institution inst : page.getContent()) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", inst.getId());
+            item.put("userId", inst.getUserId());
+            item.put("orgName", inst.getOrgName());
+            item.put("association", inst.getAssociation());
+            item.put("address", inst.getAddress());
+            list.add(item);
+        }
+        return list;
     }
 
     @Override

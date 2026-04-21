@@ -18,6 +18,7 @@ import {
   BINDING_STATUS,
   type BindingItem,
 } from '@/features/agent/api/service';
+import { RejectReasonDialog } from '@/features/binding/components/reject-reason-dialog';
 
 /**
  * 我的经纪公司 — 经纪人视角
@@ -35,6 +36,7 @@ export default function MyEnterpriseAgentPage() {
   const [active, setActive] = useState<BindingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<number | null>(null);
+  const [rejectingItem, setRejectingItem] = useState<BindingItem | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,12 +66,17 @@ export default function MyEnterpriseAgentPage() {
     }
   };
 
-  const handleReject = async (item: BindingItem) => {
-    const reason = prompt('请输入拒绝理由（可选）') ?? '';
-    setActingId(item.id);
+  const handleReject = (item: BindingItem) => {
+    setRejectingItem(item);
+  };
+
+  const submitReject = async (reason: string) => {
+    if (!rejectingItem) return;
+    setActingId(rejectingItem.id);
     try {
-      await rejectBindingByAgent(item.id, reason || undefined);
+      await rejectBindingByAgent(rejectingItem.id, reason || undefined);
       toast.success('已拒绝邀请');
+      setRejectingItem(null);
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '操作失败');
@@ -157,6 +164,21 @@ export default function MyEnterpriseAgentPage() {
           )}
         </div>
       </div>
+
+      <RejectReasonDialog
+        open={!!rejectingItem}
+        onOpenChange={(v) => {
+          if (!v) setRejectingItem(null);
+        }}
+        title="拒绝公司邀请"
+        description={
+          rejectingItem
+            ? `拒绝来自「${rejectingItem.counterpartOrgName || `公司#${rejectingItem.counterpartUserId}`}」的邀请，可填写理由（可选）。`
+            : ''
+        }
+        loading={actingId === rejectingItem?.id}
+        onConfirm={submitReject}
+      />
     </section>
   );
 }
@@ -224,7 +246,7 @@ function Card({
           {item.note && <div className="text-xs text-gray-500 mt-1 line-clamp-2">备注：{item.note}</div>}
           {item.createdAt && (
             <div className="text-xs text-gray-400 mt-1">
-              {item.iAmInitiator ? '我方申请' : '公司邀请'} · {item.createdAt.slice(0, 16).replace('T', ' ')}
+              {item.iAmInitiator ? '我方发起申请' : '对方发起邀请'} · {item.createdAt.slice(0, 16).replace('T', ' ')}
             </div>
           )}
         </div>

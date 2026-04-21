@@ -227,7 +227,7 @@ function ExpertCard({
             </span>
           </div>
           <div className="text-xs text-gray-400 mt-1">
-            {item.iAmInitiator ? '我方发起' : '对方发起'} · {item.createdAt?.slice(0, 10)}
+            {item.iAmInitiator ? '我方发起邀请' : '对方发起申请'} · {item.createdAt?.slice(0, 10)}
           </div>
           {item.note && <div className="text-xs text-gray-500 mt-1 line-clamp-2">备注：{item.note}</div>}
           {item.rejectReason && (

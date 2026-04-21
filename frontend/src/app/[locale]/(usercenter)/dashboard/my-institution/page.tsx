@@ -18,6 +18,7 @@ import {
   BINDING_STATUS,
   type BindingItem,
 } from '@/features/institution-employee/api/service';
+import { RejectReasonDialog } from '@/features/binding/components/reject-reason-dialog';
 
 /**
  * 我的机构 — 机构员工视角
@@ -35,6 +36,7 @@ export default function MyInstitutionPage() {
   const [active, setActive] = useState<BindingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<number | null>(null);
+  const [rejectingItem, setRejectingItem] = useState<BindingItem | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,12 +66,17 @@ export default function MyInstitutionPage() {
     }
   };
 
-  const handleReject = async (item: BindingItem) => {
-    const reason = prompt('请输入拒绝理由（可选）') ?? '';
-    setActingId(item.id);
+  const handleReject = (item: BindingItem) => {
+    setRejectingItem(item);
+  };
+
+  const submitReject = async (reason: string) => {
+    if (!rejectingItem) return;
+    setActingId(rejectingItem.id);
     try {
-      await rejectBindingByEmployee(item.id, reason || undefined);
+      await rejectBindingByEmployee(rejectingItem.id, reason || undefined);
       toast.success('已拒绝邀请');
+      setRejectingItem(null);
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '操作失败');
@@ -157,6 +164,21 @@ export default function MyInstitutionPage() {
           )}
         </div>
       </div>
+
+      <RejectReasonDialog
+        open={!!rejectingItem}
+        onOpenChange={(v) => {
+          if (!v) setRejectingItem(null);
+        }}
+        title="拒绝机构邀请"
+        description={
+          rejectingItem
+            ? `拒绝来自「${rejectingItem.counterpartOrgName || `机构#${rejectingItem.counterpartUserId}`}」的邀请，可填写理由（可选）。`
+            : ''
+        }
+        loading={actingId === rejectingItem?.id}
+        onConfirm={submitReject}
+      />
     </section>
   );
 }
@@ -224,7 +246,7 @@ function InstitutionCard({
           {item.note && <div className="text-xs text-gray-500 mt-1 line-clamp-2">备注：{item.note}</div>}
           {item.createdAt && (
             <div className="text-xs text-gray-400 mt-1">
-              {item.iAmInitiator ? '我方申请' : '机构邀请'} · {item.createdAt.slice(0, 16).replace('T', ' ')}
+              {item.iAmInitiator ? '我方发起申请' : '对方发起邀请'} · {item.createdAt.slice(0, 16).replace('T', ' ')}
             </div>
           )}
         </div>

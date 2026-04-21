@@ -406,3 +406,18 @@
 - 前端：/trainers/[id] 改为 SSR 并发拉取 trainer / courses / videos / cases / books 真实数据
 - 前端：TrainerDetailContent 重写主页/主讲课程/授课案例/录播课/学员评价/著作 6 个 tab，全部接入真实数据；著作完全去掉价格与「免费」字样；学员评价角标使用 trainer.commentCount
 
+---
+
+2026-04-22 11:30
+**机构员工 / 经纪人 申请流程优化与历史绑定数据修复**
+
+- 后端 InstitutionService 新增 lookup(keyword,size) + InstitutionController 暴露 GET /institutions/lookup（@Public，按机构名模糊匹配，仅返回已发布机构的 id/userId/orgName/association/address）
+- 后端 BindingServiceImpl.initiateInstitutionEmployeeFromEmployee / initiateEnterpriseAgentMemberFromAgent 改为幂等：同一申请人对同一机构 / 经纪公司已存在 PENDING 时直接返回原绑定，不再误报「已有待处理的申请」
+- 后端 requireEmployeeBindingConfirmer / requireEnterpriseAgentMemberConfirmer：当 initiator_user_id IS NULL（V41 之前的旧绑定）时，机构 / 经纪公司与员工 / 经纪人任一方均可处理，避免老数据卡住「无权处理该绑定」
+- 新增 V42__backfill_binding_initiator.sql：把 user_institution_employee_bindings、user_enterprise_agent_members 中 initiator_user_id IS NULL 的旧记录回填为机构 / 经纪公司的 user_id
+- 前端 features/institution-employee/api/service.ts 新增 lookupInstitutions + InstitutionLookupItem 类型
+- 前端 InstitutionEmployeeForm 重写：移除「所属机构ID」输入框，改用 InstitutionPicker（与 EnterpriseAgentPicker 同款的关键字搜索 + 卡片选择）
+- 前端新增通用拒绝弹窗 features/binding/components/reject-reason-dialog.tsx（shadcn Dialog + Textarea，200 字限制 + loading 状态）
+- 前端替换所有 prompt('请输入拒绝理由（可选）') 为 RejectReasonDialog：my-employees / my-agents-team / my-enterprise-agent / my-institution / my-agents 共 5 个页面
+- 前端统一发起方文案：「我方发起」→「我方发起邀请」、「对方发起」→「对方发起申请」（机构/公司侧）；「我方申请」→「我方发起申请」、「机构/公司邀请」→「对方发起邀请」（员工/经纪人侧）；my-experts 同步对齐
+

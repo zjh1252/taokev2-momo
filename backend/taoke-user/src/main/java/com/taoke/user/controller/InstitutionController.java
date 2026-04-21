@@ -34,6 +34,15 @@ public class InstitutionController {
     // ==================== 公开接口 ====================
 
     @Public
+    @Operation(summary = "机构公开下拉/搜索（按 keyword 模糊匹配机构名）")
+    @GetMapping("/institutions/lookup")
+    public ApiResponse<java.util.List<java.util.Map<String, Object>>> lookup(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.ok(institutionService.lookup(keyword, size));
+    }
+
+    @Public
     @Operation(summary = "机构公开列表（分页 + 搜索）")
     @GetMapping("/institutions")
     public ApiResponse<PageResponse<InstitutionListItemResponse>> list(

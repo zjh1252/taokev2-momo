@@ -19,3 +19,44 @@ export {
 } from '@/features/binding/api/service';
 export { BINDING_STATUS } from '@/features/binding/api/types';
 export type { BindingItem } from '@/features/binding/api/types';
+
+import { apiGet } from '@/lib/http/client';
+
+interface ApiResponse<T> {
+  code: string;
+  message?: string;
+  data: T;
+}
+
+/**
+ * 机构下拉/搜索用的轻量条目。
+ */
+export interface InstitutionLookupItem {
+  id: number;
+  userId: number;
+  orgName?: string;
+  /** 是否培训协会 */
+  association?: boolean;
+  /** 详细地址 */
+  address?: string;
+}
+
+/**
+ * 公开接口 ── 按机构名关键字模糊搜索机构。
+ *
+ * @param keyword 机构名关键字（可空 → 返回最新的 N 条）
+ * @param size    最多返回的条目数（默认 20）
+ */
+export async function lookupInstitutions(
+  keyword?: string,
+  size = 20,
+): Promise<InstitutionLookupItem[]> {
+  const qs = new URLSearchParams();
+  if (keyword) qs.set('keyword', keyword);
+  qs.set('size', String(size));
+  const res = await apiGet<ApiResponse<InstitutionLookupItem[]>>(
+    `/institutions/lookup?${qs.toString()}`,
+    { silent: true },
+  );
+  return res.data || [];
+}
