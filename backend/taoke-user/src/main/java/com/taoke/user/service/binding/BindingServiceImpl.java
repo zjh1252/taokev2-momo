@@ -579,7 +579,10 @@ public class BindingServiceImpl implements BindingService {
     @Override
     @Transactional(readOnly = true)
     public List<BindingItemResponse> listManagedTrainers(Integer operatorUserId) {
-        Set<Integer> userIds = bindingAuthorizationService.listManagedTrainerUserIds(operatorUserId);
+        Set<Integer> userIds = new java.util.LinkedHashSet<>(bindingAuthorizationService.listManagedTrainerUserIds(operatorUserId));
+        // TrainerSwitcher 中「我自己」已单独占位，需把操作者自身从代管列表剔除，
+        // 避免双重职业（如同时是 TRAINER + AGENT）的用户看到自己出现两次。
+        userIds.remove(operatorUserId);
         if (userIds.isEmpty()) return List.of();
         Map<Integer, User> userMap = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));

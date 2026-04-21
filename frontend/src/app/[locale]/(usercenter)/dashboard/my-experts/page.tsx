@@ -202,7 +202,7 @@ function ExpertCard({
 }) {
   const status = item.status;
   return (
-    <div className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className="border border-slate-200 rounded-lg p-4 hover:border-primary/40 hover:shadow-md transition-all">
       <div className="flex gap-3">
         {item.counterpartAvatarUrl ? (
           <Image

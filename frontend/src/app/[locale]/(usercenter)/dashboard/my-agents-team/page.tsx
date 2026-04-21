@@ -236,7 +236,7 @@ function AgentCard({
   // 待我审核 = PENDING 且不是我发起
   const needsReview = status === BINDING_STATUS.PENDING && !item.iAmInitiator;
   return (
-    <div className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className="border border-slate-200 rounded-lg p-4 hover:border-primary/40 hover:shadow-md transition-all">
       <div className="flex gap-3">
         {item.counterpartAvatarUrl ? (
           <Image
@@ -288,7 +288,7 @@ function AgentCard({
               type="button"
               disabled={acting}
               onClick={() => onReject(item)}
-              className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-100 hover:border-slate-300 hover:text-gray-800 disabled:opacity-50 transition-colors"
             >
               <XCircle className="size-3.5" />
               拒绝
@@ -301,7 +301,7 @@ function AgentCard({
             type="button"
             disabled={acting}
             onClick={() => onUnbind(item)}
-            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 hover:text-red-600 disabled:opacity-50 transition-colors"
           >
             <X className="size-3.5" />
             {status === BINDING_STATUS.PENDING ? '撤回邀请' : '解除绑定'}

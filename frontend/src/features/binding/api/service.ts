@@ -17,7 +17,11 @@ function authHeaders(): Record<string, string> {
 /* ==================== 发起 / 确认 / 拒绝 / 解绑 ==================== */
 
 export async function initiateBinding(payload: InitiateBindingPayload): Promise<BindingItem> {
-  const res = await apiPost<ApiResponse<BindingItem>>(`/bindings`, payload, { headers: authHeaders() });
+  // silent: true 让调用方自行 toast，避免与 apiClient 的全局 toast 叠加成两次提示
+  const res = await apiPost<ApiResponse<BindingItem>>(`/bindings`, payload, {
+    headers: authHeaders(),
+    silent: true,
+  });
   return res.data;
 }
 
