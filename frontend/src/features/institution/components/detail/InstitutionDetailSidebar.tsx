@@ -1,62 +1,191 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { Link } from '@/i18n/navigation';
+import { Play, PenLine } from 'lucide-react';
 import type { InstitutionDetail } from '../../types';
+import {
+  getInstitutionSidebarOpenCourses,
+  getInstitutionSidebarVideos,
+  getHotOpenCourses,
+} from '../../api/service';
+import type { CourseListItem } from '@/features/course/api/types';
+import type { VideoListItem } from '@/features/video/api/types';
+import { useAuthGuard } from '@/lib/auth/auth-guard-context';
+import { useRouter } from '@/i18n/navigation';
 
 interface InstitutionDetailSidebarProps {
   institution: InstitutionDetail;
 }
 
+/**
+ * 机构详情页右侧栏
+ * <p>
+ * 依次展示：机构公开课（最多 6）、机构视频（最多 6）、热门公开课（最多 5），
+ * 以及一个「发布需求」大按钮，跳转用户中心需求创建页。
+ * </p>
+ */
 export function InstitutionDetailSidebar({ institution }: InstitutionDetailSidebarProps) {
-  return (
-    <aside className="w-full lg:w-[300px] shrink-0 flex flex-col gap-6">
-      {/* 机构信息摘要 */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="bg-slate-50 border-b border-slate-100 px-4 py-3 flex items-center">
-          <h3 className="font-bold text-primary text-[15px] border-l-2 border-primary pl-2 leading-none">
-            机构信息
-          </h3>
-        </div>
-        <div className="p-4 flex flex-col gap-3 text-xs text-slate-600">
-          <div className="flex items-start gap-2">
-            <span className="text-slate-400 shrink-0 w-16">擅长领域</span>
-            <span className="text-slate-700">{institution.specialties || '暂无'}</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-slate-400 shrink-0 w-16">擅长行业</span>
-            <span className="text-slate-700">{institution.industries || '暂无'}</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-slate-400 shrink-0 w-16">公开课数</span>
-            <span className="text-slate-700">{institution.openCourseCount}</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-slate-400 shrink-0 w-16">内训课数</span>
-            <span className="text-slate-700">{institution.innerCourseCount}</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-slate-400 shrink-0 w-16">机构人气</span>
-            <span className="text-primary font-bold">{institution.viewCount}</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-slate-400 shrink-0 w-16">机构评价</span>
-            <span className="text-primary font-bold">{institution.commentCount}条</span>
-          </div>
-        </div>
-      </div>
+  const router = useRouter();
+  const { requireAuth } = useAuthGuard();
+  const [openCourses, setOpenCourses] = useState<CourseListItem[]>([]);
+  const [videos, setVideos] = useState<VideoListItem[]>([]);
+  const [hotCourses, setHotCourses] = useState<CourseListItem[]>([]);
 
-      {/* AI 助手推荐区 */}
-      <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl shadow-sm border border-red-100 overflow-hidden p-5">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-red-400 flex items-center justify-center shadow-lg shadow-primary/30 shrink-0">
-            <span className="text-white text-lg">🤖</span>
-          </div>
-          <div>
-            <h3 className="text-slate-900 font-bold text-sm">AI 智能客服</h3>
-            <p className="text-slate-500 text-xs">为您推荐合适的培训方案</p>
-          </div>
-        </div>
-        <button className="w-full bg-primary hover:bg-primary/90 text-white font-semibold px-4 py-2 rounded-lg shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2 text-sm">
-          💬 立即对话 AI
-        </button>
-      </div>
+  useEffect(() => {
+    getInstitutionSidebarOpenCourses(institution.id)
+      .then(setOpenCourses)
+      .catch(() => setOpenCourses([]));
+    getInstitutionSidebarVideos(institution.id)
+      .then(setVideos)
+      .catch(() => setVideos([]));
+    getHotOpenCourses()
+      .then(setHotCourses)
+      .catch(() => setHotCourses([]));
+  }, [institution.id]);
+
+  const goPublishDemand = () => {
+    requireAuth(() => router.push('/dashboard/demands/create'));
+  };
+
+  return (
+    <aside className="w-full lg:w-[300px] shrink-0 flex flex-col gap-4">
+      {/* 机构公开课 */}
+      {openCourses.length > 0 && (
+        <SidebarCard title="机构公开课">
+          <ul className="divide-y divide-slate-100">
+            {openCourses.map((c) => (
+              <li key={c.id} className="py-2 first:pt-0 last:pb-0">
+                <Link
+                  href={`/opencourses/${c.id}`}
+                  className="flex items-center gap-3 group"
+                >
+                  {c.coverUrl ? (
+                    <Image
+                      src={c.coverUrl}
+                      alt={c.title}
+                      width={56}
+                      height={42}
+                      className="w-14 h-[42px] object-cover rounded border border-slate-200 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-[42px] bg-slate-100 rounded border border-slate-200 shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-[13px] font-medium text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
+                      {c.title}
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {c.enrollmentCount ?? 0} 人报名
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </SidebarCard>
+      )}
+
+      {/* 机构视频 */}
+      {videos.length > 0 && (
+        <SidebarCard title="机构视频">
+          <ul className="divide-y divide-slate-100">
+            {videos.map((v) => (
+              <li key={v.id} className="py-2 first:pt-0 last:pb-0">
+                <Link href={`/videos/${v.id}`} className="flex items-center gap-3 group">
+                  <div className="relative w-14 h-[42px] rounded border border-slate-200 overflow-hidden shrink-0 bg-slate-100">
+                    {v.coverUrl ? (
+                      <Image
+                        src={v.coverUrl}
+                        alt={v.title}
+                        width={56}
+                        height={42}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : null}
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <Play className="size-3.5 text-white fill-white" />
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-[13px] font-medium text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
+                      {v.title}
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {v.totalEpisodes ? `${v.totalEpisodes}节` : '—'}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </SidebarCard>
+      )}
+
+      {/* 热门公开课 */}
+      {hotCourses.length > 0 && (
+        <SidebarCard title="热门公开课">
+          <ul className="divide-y divide-slate-100">
+            {hotCourses.map((c) => (
+              <li key={c.id} className="py-2 first:pt-0 last:pb-0">
+                <Link
+                  href={`/opencourses/${c.id}`}
+                  className="flex items-center gap-3 group"
+                >
+                  {c.coverUrl ? (
+                    <Image
+                      src={c.coverUrl}
+                      alt={c.title}
+                      width={56}
+                      height={42}
+                      className="w-14 h-[42px] object-cover rounded border border-slate-200 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-[42px] bg-slate-100 rounded border border-slate-200 shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-[13px] font-medium text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
+                      {c.title}
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {c.enrollmentCount ?? 0} 人报名
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </SidebarCard>
+      )}
+
+      {/* 发布需求大按钮 */}
+      <button
+        onClick={goPublishDemand}
+        className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-gradient-to-r from-primary to-red-500 text-white font-bold text-base shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.01] transition-all"
+      >
+        <PenLine className="size-5" />
+        发布培训需求
+      </button>
     </aside>
+  );
+}
+
+function SidebarCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-slate-50 border-b border-slate-100 px-4 py-3 flex items-center">
+        <h3 className="font-bold text-primary text-[15px] border-l-2 border-primary pl-2 leading-none">
+          {title}
+        </h3>
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
   );
 }

@@ -44,4 +44,10 @@ public class CourseListItemVO {
 
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;
+
+    /** 最近一场开课时间（公开课列表展示用） */
+    private LocalDateTime nextPlanStartDate;
+
+    /** 最近一场开课城市名称（公开课列表展示用） */
+    private String nextPlanCity;
 }

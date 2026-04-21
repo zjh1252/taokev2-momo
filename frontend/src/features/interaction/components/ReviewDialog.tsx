@@ -19,10 +19,11 @@ import type { SubmitReviewPayload } from '../api/types';
 interface ReviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  scope: 'COURSE' | 'TRAINER';
+  scope: 'COURSE' | 'TRAINER' | 'INSTITUTION';
   courseId?: number;
   trainerUserId?: number;
-  /** 预填充的课程标题或专家姓名 */
+  institutionId?: number;
+  /** 预填充的课程标题、专家姓名或机构名称 */
   prefillTitle?: string;
   onSuccess?: () => void;
 }
@@ -68,6 +69,7 @@ export default function ReviewDialog({
   scope,
   courseId,
   trainerUserId,
+  institutionId,
   prefillTitle,
   onSuccess,
 }: ReviewDialogProps) {
@@ -110,6 +112,7 @@ export default function ReviewDialog({
       reviewScope: scope,
       courseId: scope === 'COURSE' ? courseId : undefined,
       trainerUserId: scope === 'TRAINER' ? trainerUserId : undefined,
+      institutionId: scope === 'INSTITUTION' ? institutionId : undefined,
       expertName,
       courseTitle,
       clientCompany,
@@ -140,7 +143,9 @@ export default function ReviewDialog({
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {scope === 'COURSE' ? '课程评价' : '专家评价'}
+            {scope === 'COURSE' && '课程评价'}
+            {scope === 'TRAINER' && '专家评价'}
+            {scope === 'INSTITUTION' && '机构评价'}
           </DialogTitle>
         </DialogHeader>
 

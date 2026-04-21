@@ -20,6 +20,7 @@ public class ReviewVO {
     private String reviewScope;
     private Integer courseId;
     private Integer trainerUserId;
+    private Integer institutionId;
 
     private String expertName;
     private LocalDate trainingDate;

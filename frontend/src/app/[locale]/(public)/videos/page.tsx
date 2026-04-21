@@ -3,6 +3,11 @@ import { Link } from '@/i18n/navigation';
 import { ChevronRight } from 'lucide-react';
 import { VideoListSection } from '@/features/video/components/list/VideoListSection';
 import { getVideoList, getVideoCategoryTree } from '@/features/video/api/service';
+import { getInstitutionDetail } from '@/features/institution/api/service';
+
+interface Props {
+  searchParams: Promise<{ institutionId?: string }>;
+}
 
 export async function generateMetadata() {
   const t = await getTranslations('video');
@@ -12,9 +17,13 @@ export async function generateMetadata() {
   };
 }
 
-export default async function VideosPage() {
-  const [initialData, categoryTree] = await Promise.all([
-    getVideoList({ page: 1, size: 15 }).catch(() => ({
+export default async function VideosPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const institutionId = sp.institutionId ? Number(sp.institutionId) : undefined;
+  const validInstitutionId = institutionId && !isNaN(institutionId) ? institutionId : undefined;
+
+  const [initialData, categoryTree, institution] = await Promise.all([
+    getVideoList({ page: 1, size: 15, institutionId: validInstitutionId }).catch(() => ({
       list: [],
       total: 0,
       page: 1,
@@ -22,6 +31,9 @@ export default async function VideosPage() {
       totalPages: 0,
     })),
     getVideoCategoryTree().catch(() => []),
+    validInstitutionId
+      ? getInstitutionDetail(validInstitutionId).catch(() => null)
+      : Promise.resolve(null),
   ]);
 
   return (
@@ -36,7 +48,12 @@ export default async function VideosPage() {
         <span className="text-slate-800 font-medium">录播课</span>
       </nav>
 
-      <VideoListSection initialData={initialData} categoryTree={categoryTree} />
+      <VideoListSection
+        initialData={initialData}
+        categoryTree={categoryTree}
+        initialInstitutionId={validInstitutionId}
+        initialInstitutionName={institution?.orgName}
+      />
     </main>
   );
 }

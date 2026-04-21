@@ -7,6 +7,8 @@ import type {
   InstitutionListItem,
   PageResponse,
 } from '../types';
+import type { CourseListItem } from '@/features/course/api/types';
+import type { VideoListItem } from '@/features/video/api/types';
 
 function authHeaders(): Record<string, string> {
   const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
@@ -61,5 +63,70 @@ export async function getInstitutionList(
  */
 export async function getInstitutionDetail(id: number): Promise<InstitutionDetail> {
   const res = await apiGet<ApiResponse<InstitutionDetail>>(`/institutions/${id}`);
+  return res.data;
+}
+
+/* ==================== 机构详情聚合接口 ==================== */
+
+/**
+ * 机构课程列表（分页，type=OPEN/INNER 区分公开课/内训课）
+ */
+export async function getInstitutionCourses(
+  institutionId: number,
+  type: 'OPEN' | 'INNER',
+  page = 1,
+  size = 10,
+): Promise<PageResponse<CourseListItem>> {
+  const qs = new URLSearchParams({ type, page: String(page), size: String(size) });
+  const res = await apiGet<ApiResponse<PageResponse<CourseListItem>>>(
+    `/institutions/${institutionId}/courses?${qs}`,
+  );
+  return res.data;
+}
+
+/**
+ * 机构录播课列表（分页）
+ */
+export async function getInstitutionVideos(
+  institutionId: number,
+  page = 1,
+  size = 10,
+): Promise<PageResponse<VideoListItem>> {
+  const qs = new URLSearchParams({ page: String(page), size: String(size) });
+  const res = await apiGet<ApiResponse<PageResponse<VideoListItem>>>(
+    `/institutions/${institutionId}/videos?${qs}`,
+  );
+  return res.data;
+}
+
+/**
+ * 机构详情页右侧栏：机构公开课（最多 6 条）
+ */
+export async function getInstitutionSidebarOpenCourses(
+  institutionId: number,
+): Promise<CourseListItem[]> {
+  const res = await apiGet<ApiResponse<CourseListItem[]>>(
+    `/institutions/${institutionId}/sidebar/open-courses`,
+  );
+  return res.data;
+}
+
+/**
+ * 机构详情页右侧栏：机构录播课（最多 6 条）
+ */
+export async function getInstitutionSidebarVideos(
+  institutionId: number,
+): Promise<VideoListItem[]> {
+  const res = await apiGet<ApiResponse<VideoListItem[]>>(
+    `/institutions/${institutionId}/sidebar/videos`,
+  );
+  return res.data;
+}
+
+/**
+ * 全平台热门公开课（最多 5 条）
+ */
+export async function getHotOpenCourses(): Promise<CourseListItem[]> {
+  const res = await apiGet<ApiResponse<CourseListItem[]>>('/opencourses/hot');
   return res.data;
 }

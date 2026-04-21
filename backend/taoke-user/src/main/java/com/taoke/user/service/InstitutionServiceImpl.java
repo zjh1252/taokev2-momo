@@ -4,6 +4,7 @@ import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
+import com.taoke.common.service.RegionService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.institution.InstitutionListItemResponse;
 import com.taoke.user.dto.institution.InstitutionPublicResponse;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 机构信息服务 — INSTITUTION 角色扩展信息管理。
@@ -39,6 +41,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     private final InstitutionRepository institutionRepository;
     private final InstitutionMapper institutionMapper;
     private final RoleApplyService roleApplyService;
+    private final RegionService regionService;
 
     @Override
     public InstitutionResponse getByUserId(Integer userId) {
@@ -105,6 +108,20 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         if (institution.getShowContact() == null || institution.getShowContact() != 1) {
             resp.setContactName(null);
             resp.setContactPhone(null);
+        }
+
+        // 回填省 / 市名称（详情头部「所在地」展示用）
+        List<Integer> regionIds = new ArrayList<>();
+        if (institution.getProvinceId() != null && institution.getProvinceId() > 0) {
+            regionIds.add(institution.getProvinceId());
+        }
+        if (institution.getCityId() != null && institution.getCityId() > 0) {
+            regionIds.add(institution.getCityId());
+        }
+        if (!regionIds.isEmpty()) {
+            Map<Integer, String> nameMap = regionService.getNamesByIds(regionIds);
+            resp.setProvinceName(nameMap.get(institution.getProvinceId()));
+            resp.setCityName(nameMap.get(institution.getCityId()));
         }
 
         return resp;
@@ -198,6 +215,8 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         if (request.getDistrictId() != null) ent.setDistrictId(request.getDistrictId());
         if (request.getTownId() != null) ent.setTownId(request.getTownId());
         if (request.getAddress() != null) ent.setAddress(request.getAddress());
+        if (request.getClientCases() != null) ent.setClientCases(request.getClientCases());
+        if (request.getSuccessCases() != null) ent.setSuccessCases(request.getSuccessCases());
 
         return institutionRepository.save(ent);
     }

@@ -68,13 +68,25 @@ public interface VideoService {
     VideoDetailVO getPublicDetail(Integer videoId);
 
     /**
-     * 公开录播课列表（仅已上架，支持分页、分类筛选、关键词搜索、排序）
+     * 公开录播课列表（仅已上架，支持分页、分类筛选、关键词搜索、排序、机构筛选）
      *
-     * @param sortBy 排序方式：default/price/score/time/viewCount/studentCount
+     * @param sortBy        排序方式：default/price/score/time/viewCount/studentCount
+     * @param institutionId 机构 ID，传入后仅返回 publisherType=INSTITUTION AND publisherId=institution.userId 的录播课；机构不存在返回空页
      */
     PageResponse<VideoListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                               String keyword, String sortBy,
+                                              Integer institutionId,
                                               int page, int size);
+
+    /**
+     * 机构详情页：分页拉取该机构发布的录播课，按 publishedAt DESC 排序。
+     */
+    PageResponse<VideoListItemVO> listByInstitution(Integer institutionId, int page, int size);
+
+    /**
+     * 机构详情页右侧栏：机构录播课（最多 6 条），按 publishedAt DESC 排序。
+     */
+    List<VideoListItemVO> listInstitutionSidebarVideos(Integer institutionId);
 
     // ==================== 后台管理 ====================
 

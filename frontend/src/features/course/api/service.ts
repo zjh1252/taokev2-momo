@@ -16,6 +16,8 @@ export interface CourseListParams {
   isOpen?: boolean;
   keyword?: string;
   sortBy?: string;
+  /** 机构 ID 过滤（仅返回该机构发布的课程） */
+  institutionId?: number;
 }
 
 /**
@@ -33,6 +35,7 @@ export async function getCourseList(
   if (params.isOpen !== undefined) query.set('isOpen', String(params.isOpen));
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sortBy) query.set('sortBy', params.sortBy);
+  if (params.institutionId) query.set('institutionId', String(params.institutionId));
 
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<CourseListItem>>>(

@@ -86,6 +86,10 @@ export interface CourseListItem {
   keywords: string;
   publishedAt: string;
   createdAt: string;
+  /** 最近一场开课时间（公开课列表展示用） */
+  nextPlanStartDate?: string;
+  /** 最近一场开课城市名称（公开课列表展示用） */
+  nextPlanCity?: string;
 }
 
 /** 创建/编辑课程请求体（对应后端 SaveCourseRequest） */

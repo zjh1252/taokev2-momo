@@ -46,4 +46,10 @@ public class InstitutionRequest {
 
     @Size(max = 200, message = "详细地址不超过200个字符")
     private String address;
+
+    /** 服务过的客户描述（部分客户，长文本） */
+    private String clientCases;
+
+    /** 成功案例（长文本） */
+    private String successCases;
 }

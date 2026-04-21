@@ -41,6 +41,8 @@ export interface ReviewItem {
   reviewScope: string;
   courseId: number | null;
   trainerUserId: number | null;
+  /** 被评机构 ID（仅 reviewScope=INSTITUTION 时填充） */
+  institutionId: number | null;
   expertName: string;
   trainingDate: string | null;
   courseDays: number | null;
@@ -61,9 +63,11 @@ export interface ReviewItem {
 
 /** 提交评价请求 */
 export interface SubmitReviewPayload {
-  reviewScope: 'COURSE' | 'TRAINER';
+  reviewScope: 'COURSE' | 'TRAINER' | 'INSTITUTION';
   courseId?: number;
   trainerUserId?: number;
+  /** 被评机构 ID（reviewScope=INSTITUTION 时必填，关联 user_institutions.id） */
+  institutionId?: number;
   expertName?: string;
   trainingDate?: string;
   courseDays?: number;

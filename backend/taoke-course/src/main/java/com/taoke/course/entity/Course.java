@@ -123,6 +123,10 @@ public class Course extends BaseEntity {
     @Column(name = "enrollment_count", nullable = false)
     private Integer enrollmentCount = 0;
 
+    /** 最近一次报名时间，用于近期热度排序 */
+    @Column(name = "last_enrolled_at")
+    private LocalDateTime lastEnrolledAt;
+
     /** 综合评分 */
     @Column(name = "score", nullable = false, precision = 3, scale = 2)
     private BigDecimal score = BigDecimal.ZERO;

@@ -18,7 +18,9 @@ import com.taoke.course.repository.video.VideoChapterRepository;
 import com.taoke.course.repository.video.VideoEnrollmentRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.repository.video.VideoSeriesRepository;
+import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
+import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.Trainer;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +52,7 @@ public class VideoServiceImpl implements VideoService {
     private final VideoMapper videoMapper;
     private final CategoryService categoryService;
     private final TrainerService trainerService;
+    private final InstitutionService institutionService;
 
     // ==================== C 端发布者操作 ====================
 
@@ -228,7 +231,20 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public PageResponse<VideoListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                                      String keyword, String sortBy,
+                                                     Integer institutionId,
                                                      int page, int size) {
+        // 机构过滤：先反查机构 user_id，机构不存在直接返回空页
+        final Integer institutionUserId;
+        if (institutionId != null) {
+            Integer resolved = resolveInstitutionUserId(institutionId);
+            if (resolved == null) {
+                return PageResponse.of(List.of(), 0, page, size);
+            }
+            institutionUserId = resolved;
+        } else {
+            institutionUserId = null;
+        }
+
         Specification<Video> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()));
@@ -247,6 +263,10 @@ public class VideoServiceImpl implements VideoService {
                         cb.like(root.get("teacherName"), like)
                 ));
             }
+            if (institutionUserId != null) {
+                predicates.add(cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION));
+                predicates.add(cb.equal(root.get("publisherId"), institutionUserId));
+            }
             return predicates.isEmpty()
                     ? cb.conjunction()
                     : cb.and(predicates.toArray(Predicate[]::new));
@@ -264,6 +284,58 @@ public class VideoServiceImpl implements VideoService {
                 .map(this::toListItemVO)
                 .toList();
         return PageResponse.of(items, videoPage.getTotalElements(), page, size);
+    }
+
+    @Override
+    public PageResponse<VideoListItemVO> listByInstitution(Integer institutionId, int page, int size) {
+        Integer institutionUserId = resolveInstitutionUserId(institutionId);
+        if (institutionUserId == null) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+
+        Specification<Video> spec = (root, cq, cb) -> cb.and(
+                cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()),
+                cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION),
+                cb.equal(root.get("publisherId"), institutionUserId)
+        );
+        Sort sort = Sort.by(Sort.Direction.DESC, "publishedAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        PageRequest pageable = PageRequest.of(page - 1, size, sort);
+        Page<Video> videoPage = videoRepository.findAll(spec, pageable);
+
+        if (videoPage.isEmpty()) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+        List<VideoListItemVO> items = videoPage.getContent().stream()
+                .map(this::toListItemVO)
+                .toList();
+        return PageResponse.of(items, videoPage.getTotalElements(), page, size);
+    }
+
+    @Override
+    public List<VideoListItemVO> listInstitutionSidebarVideos(Integer institutionId) {
+        Integer institutionUserId = resolveInstitutionUserId(institutionId);
+        if (institutionUserId == null) {
+            return List.of();
+        }
+        Specification<Video> spec = (root, cq, cb) -> cb.and(
+                cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()),
+                cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION),
+                cb.equal(root.get("publisherId"), institutionUserId)
+        );
+        Sort sort = Sort.by(Sort.Direction.DESC, "publishedAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        PageRequest pageable = PageRequest.of(0, 6, sort);
+        return videoRepository.findAll(spec, pageable).getContent().stream()
+                .map(this::toListItemVO)
+                .toList();
+    }
+
+    /** 根据机构 ID 反查 user_id；机构不存在返回 null。 */
+    private Integer resolveInstitutionUserId(Integer institutionId) {
+        if (institutionId == null) {
+            return null;
+        }
+        List<Institution> insts = institutionService.findByIds(List.of(institutionId));
+        return insts.isEmpty() ? null : insts.get(0).getUserId();
     }
 
     // ==================== 后台管理 ====================

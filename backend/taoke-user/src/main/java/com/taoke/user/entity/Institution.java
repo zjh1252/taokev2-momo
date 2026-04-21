@@ -134,6 +134,10 @@ public class Institution extends BaseEntity {
     @Column(name = "client_cases", columnDefinition = "text")
     private String clientCases;
 
+    /** 成功案例（长文本，机构详情页对外展示） */
+    @Column(name = "success_cases", columnDefinition = "text")
+    private String successCases;
+
     /** 是否培训协会 */
     @Column(name = "association", nullable = false, columnDefinition = "tinyint(1)")
     private Boolean association = false;

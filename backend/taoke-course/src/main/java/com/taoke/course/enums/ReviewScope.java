@@ -12,7 +12,8 @@ import lombok.Getter;
 public enum ReviewScope {
 
     COURSE("课程评价"),
-    TRAINER("专家评价");
+    TRAINER("专家评价"),
+    INSTITUTION("机构评价");
 
     private final String label;
 
