@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 机构场地保存请求体。
  *
@@ -30,6 +32,9 @@ public class InstitutionVenueRequest {
 
     @Size(max = 500)
     private String coverUrl;
+
+    /** 场地多图（最多 9 张），第一张可作为封面回填 coverUrl */
+    private List<String> images;
 
     @Size(max = 2000)
     private String description;

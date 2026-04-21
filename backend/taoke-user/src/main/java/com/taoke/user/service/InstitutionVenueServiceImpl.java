@@ -1,5 +1,6 @@
 package com.taoke.user.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.service.RegionService;
@@ -11,6 +12,7 @@ import com.taoke.user.entity.InstitutionVenue;
 import com.taoke.user.repository.InstitutionRepository;
 import com.taoke.user.repository.InstitutionVenueRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,9 +24,14 @@ import java.util.*;
  * @author Fangxinxin
  * @date 2026-04-21 17:00
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class InstitutionVenueServiceImpl implements InstitutionVenueService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    /** 单个场地最多 9 张图片，避免前端体验和存储压力 */
+    private static final int MAX_IMAGES = 9;
 
     private final InstitutionVenueRepository venueRepository;
     private final InstitutionRepository institutionRepository;
@@ -114,6 +121,33 @@ public class InstitutionVenueServiceImpl implements InstitutionVenueService {
         v.setCapacity(req.getCapacity());
         v.setCoverUrl(req.getCoverUrl());
         v.setDescription(req.getDescription());
+        v.setImages(serializeImages(req.getImages()));
+        // 兼容：未单独传 coverUrl 时，自动取首图作为封面
+        if ((req.getCoverUrl() == null || req.getCoverUrl().isBlank())
+                && req.getImages() != null && !req.getImages().isEmpty()) {
+            v.setCoverUrl(req.getImages().get(0));
+        }
+    }
+
+    /** 将图片 URL 列表序列化为 JSON；超过上限做截断；空列表存 null */
+    private String serializeImages(List<String> images) {
+        if (images == null || images.isEmpty()) {
+            return null;
+        }
+        List<String> cleaned = images.stream()
+                .filter(s -> s != null && !s.isBlank())
+                .distinct()
+                .limit(MAX_IMAGES)
+                .toList();
+        if (cleaned.isEmpty()) {
+            return null;
+        }
+        try {
+            return OBJECT_MAPPER.writeValueAsString(cleaned);
+        } catch (Exception ex) {
+            log.warn("序列化场地图片列表失败: {}", cleaned, ex);
+            return null;
+        }
     }
 
     private InstitutionVenueResponse enrichOne(InstitutionVenue v) {

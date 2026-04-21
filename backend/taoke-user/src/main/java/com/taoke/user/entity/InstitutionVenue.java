@@ -48,6 +48,10 @@ public class InstitutionVenue {
     @Column(length = 2000)
     private String description;
 
+    /** 场地图片 URL 列表（JSON 数组），与前端多图上传组件配合 */
+    @Column(columnDefinition = "json")
+    private String images;
+
     /** 1=启用 0=停用 */
     @Column(nullable = false)
     private Integer status;

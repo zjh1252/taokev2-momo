@@ -26,6 +26,8 @@ export interface VenueItem {
   address?: string;
   capacity?: number;
   coverUrl?: string;
+  /** 场地多图列表 */
+  images?: string[];
   description?: string;
   status: number;
   sortOrder: number;
@@ -41,6 +43,8 @@ export interface VenuePayload {
   address?: string;
   capacity?: number;
   coverUrl?: string;
+  /** 场地多图（最多 9 张） */
+  images?: string[];
   description?: string;
   status?: number;
   sortOrder?: number;
