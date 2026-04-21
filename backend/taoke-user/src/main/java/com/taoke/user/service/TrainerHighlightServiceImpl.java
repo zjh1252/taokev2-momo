@@ -48,7 +48,13 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         Trainer trainer = requireTrainer(userId);
         List<TrainerHighlight> highlights = highlightRepository
                 .findByTrainerIdOrderBySortOrderAsc(trainer.getId());
-        return toResponsesWithFiles(highlights);
+        List<TrainerHighlightResponse> list = toResponsesWithFiles(highlights);
+        // 填充归属专家信息，便于编辑页只读横幅展示
+        for (TrainerHighlightResponse r : list) {
+            r.setTrainerUserId(trainer.getUserId());
+            r.setTrainerName(trainer.getName());
+        }
+        return list;
     }
 
     @Override

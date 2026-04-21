@@ -6,6 +6,7 @@ import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/lib/auth/auth-context';
 import { getMyCases, deleteCase } from '@/features/trainer-case/api/service';
 import { TrainerSwitcher } from '@/features/binding/components/trainer-switcher';
+import { isDelegatingRole, selfPublishingAllowed } from '@/features/binding/lib/delegating-role';
 import {
   CaseStatus,
   CaseStatusLabelMap,
@@ -44,7 +45,9 @@ const STATUS_BADGE_STYLES: Record<number, string> = {
 };
 
 export default function ManageCasesPage() {
-  const { user } = useAuth();
+  const { user, activeRole } = useAuth();
+  const showSwitcher = isDelegatingRole(activeRole);
+  const hideSelfOption = showSwitcher && !selfPublishingAllowed(activeRole);
   const [activeTab, setActiveTab] = useState<number | undefined>(undefined);
   const [cases, setCases] = useState<TrainerCase[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,7 +95,13 @@ export default function ManageCasesPage() {
       <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-lg font-bold text-gray-800">管理案例</h2>
         <div className="flex items-center gap-2">
-          <TrainerSwitcher value={trainerUserId} onChange={(uid) => setTrainerUserId(uid)} />
+          {showSwitcher && (
+            <TrainerSwitcher
+              value={trainerUserId}
+              hideSelf={hideSelfOption}
+              onChange={(uid) => setTrainerUserId(uid)}
+            />
+          )}
           <Link
             href={trainerUserId
               ? `${ROUTES.UC_CASES_CREATE}?trainerUserId=${trainerUserId}`

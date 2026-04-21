@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import {
-  Users, Plus, Search, X, Loader2, Building2, AlertCircle,
+  Users, Plus, Search, X, Loader2, AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import {
@@ -15,14 +15,14 @@ import {
   listManagedTrainers,
   initiateBinding,
   unbind,
+  lookupUserByPhone,
+  type LookupUserResult,
 } from '@/features/binding/api/service';
 import {
   BINDING_STATUS,
   type BindingItem,
   type BindingType,
 } from '@/features/binding/api/types';
-import { getTrainerList } from '@/features/trainer/api/service';
-import type { TrainerListItem } from '@/features/trainer/types';
 
 const STATUS_TABS: { label: string; value: number | undefined }[] = [
   { label: '全部', value: undefined },
@@ -267,21 +267,23 @@ function AddExpertDialog({
   onClose: () => void;
   onAdded: () => void;
 }) {
-  const [keyword, setKeyword] = useState('');
-  const [results, setResults] = useState<TrainerListItem[]>([]);
+  const [phone, setPhone] = useState('');
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [picked, setPicked] = useState<TrainerListItem | null>(null);
+  const [picked, setPicked] = useState<LookupUserResult | null>(null);
   const [note, setNote] = useState('');
 
   const handleSearch = async () => {
-    if (!keyword.trim()) return;
+    if (!phone.trim()) {
+      toast.error('请先输入手机号');
+      return;
+    }
     setSearching(true);
     try {
-      const res = await getTrainerList({ keyword: keyword.trim(), size: 20 });
-      setResults(res.list || []);
+      setPicked(await lookupUserByPhone(phone.trim()));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '搜索失败');
+      setPicked(null);
+      toast.error(err instanceof Error ? err.message : '未找到该手机号对应用户，请确认对方已注册');
     } finally {
       setSearching(false);
     }
@@ -289,18 +291,14 @@ function AddExpertDialog({
 
   const handleSubmit = async () => {
     if (!picked) {
-      toast.error('请先选择一位专家');
-      return;
-    }
-    if (!picked.userId) {
-      toast.error('该专家缺少用户 ID，无法发起绑定');
+      toast.error('请先按手机号查找用户');
       return;
     }
     setSubmitting(true);
     try {
       await initiateBinding({
         bindingType,
-        targetUserId: picked.userId,
+        targetUserId: picked.id,
         note: note.trim() || undefined,
       });
       toast.success('绑定请求已发送，等待专家确认');
@@ -314,7 +312,7 @@ function AddExpertDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <h3 className="font-bold text-gray-800">添加专家</h3>
           <button
@@ -325,70 +323,49 @@ function AddExpertDialog({
             <X className="size-5" />
           </button>
         </div>
-        <div className="p-6 space-y-4 overflow-y-auto">
-          <div className="flex gap-2">
-            <input
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="按姓名/头衔搜索专家..."
-              className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            />
-            <button
-              type="button"
-              onClick={handleSearch}
-              disabled={searching}
-              className="inline-flex items-center gap-1 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50"
-            >
-              {searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
-              搜索
-            </button>
-          </div>
-
-          {results.length > 0 && (
-            <div className="border border-slate-200 rounded-lg max-h-64 overflow-y-auto divide-y divide-slate-100">
-              {results.map((t) => (
-                <button
-                  type="button"
-                  key={t.id}
-                  onClick={() => setPicked(t)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-50 transition-colors ${
-                    picked?.id === t.id ? 'bg-primary/5' : ''
-                  }`}
-                >
-                  {t.avatar ? (
-                    <Image
-                      src={t.avatar}
-                      alt={t.name}
-                      width={36}
-                      height={36}
-                      className="size-9 rounded-full object-cover bg-slate-100"
-                    />
-                  ) : (
-                    <div className="size-9 rounded-full bg-slate-100 text-slate-300 flex items-center justify-center">
-                      <Users className="size-4" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-800 truncate">{t.name}</div>
-                    <div className="text-xs text-gray-500 truncate">{t.title}</div>
-                  </div>
-                  {picked?.id === t.id && (
-                    <span className="text-xs text-primary font-bold shrink-0">已选</span>
-                  )}
-                </button>
-              ))}
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm text-gray-700 mb-1">专家手机号</label>
+            <div className="flex gap-2">
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="请输入对方注册的手机号"
+                className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={searching}
+                className="inline-flex items-center gap-1 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50"
+              >
+                {searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
+                查找
+              </button>
             </div>
-          )}
+          </div>
 
           {picked && (
             <div className="border border-primary/30 bg-primary/5 rounded-lg p-3 flex items-center gap-3">
-              <Building2 className="size-5 text-primary" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm">
-                  目标专家：<span className="font-medium">{picked.name}</span>
+              {picked.avatarUrl ? (
+                <Image
+                  src={picked.avatarUrl}
+                  alt={picked.nickname || ''}
+                  width={40}
+                  height={40}
+                  className="size-10 rounded-full object-cover bg-slate-100"
+                />
+              ) : (
+                <div className="size-10 rounded-full bg-slate-100 text-slate-300 flex items-center justify-center">
+                  <Users className="size-5" />
                 </div>
-                <div className="text-xs text-gray-500">{picked.title}</div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-gray-800 truncate">
+                  {picked.nickname || `用户#${picked.id}`}
+                </div>
+                <div className="text-xs text-gray-500">{picked.phone}</div>
               </div>
             </div>
           )}

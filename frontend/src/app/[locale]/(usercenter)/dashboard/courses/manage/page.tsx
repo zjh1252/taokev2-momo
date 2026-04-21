@@ -13,6 +13,7 @@ import {
   type MyCourseListParams,
 } from '@/features/course/api/publisher-service';
 import { TrainerSwitcher } from '@/features/binding/components/trainer-switcher';
+import { isDelegatingRole, selfPublishingAllowed } from '@/features/binding/lib/delegating-role';
 import {
   CourseStatus,
   CourseStatusLabelMap,
@@ -59,7 +60,9 @@ const PAGE_SIZE = 10;
  * @date 2026-04-07 11:00
  */
 export default function ManageCoursesPage() {
-  const { user } = useAuth();
+  const { user, activeRole } = useAuth();
+  const showSwitcher = isDelegatingRole(activeRole);
+  const hideSelfOption = showSwitcher && !selfPublishingAllowed(activeRole);
   const [activeTab, setActiveTab] = useState<number | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
   const [courses, setCourses] = useState<CourseListItem[]>([]);
@@ -142,13 +145,16 @@ export default function ManageCoursesPage() {
       <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-lg font-bold text-gray-800">管理课程</h2>
         <div className="flex items-center gap-2">
-          <TrainerSwitcher
-            value={trainerUserId}
-            onChange={(uid) => {
-              setTrainerUserId(uid);
-              setPage(1);
-            }}
-          />
+          {showSwitcher && (
+            <TrainerSwitcher
+              value={trainerUserId}
+              hideSelf={hideSelfOption}
+              onChange={(uid) => {
+                setTrainerUserId(uid);
+                setPage(1);
+              }}
+            />
+          )}
           <Link
             href={trainerUserId
               ? `${ROUTES.UC_COURSES_CREATE}?trainerUserId=${trainerUserId}`

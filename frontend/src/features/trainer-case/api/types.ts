@@ -7,6 +7,10 @@ export type ApiResponse<T> = {
 export type TrainerCase = {
   id: number;
   trainerId: number;
+  /** 专家所属 user_id（自服务详情返回，用于代管编辑场景的归属展示） */
+  trainerUserId?: number;
+  /** 专家昵称（同上） */
+  trainerName?: string;
   caseTitle: string;
   enterpriseName: string;
   industry: string | null;

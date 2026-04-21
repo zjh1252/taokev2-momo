@@ -17,6 +17,7 @@ import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
 import { FormField } from '@/components/FormField';
 import { toast } from 'sonner';
+import { OwnedTrainerBanner } from '@/features/binding/components/owned-trainer-banner';
 
 export default function EditHighlightPage({
   params: paramsPromise,
@@ -37,6 +38,8 @@ export default function EditHighlightPage({
   });
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [trainerUserId, setTrainerUserId] = useState<number | undefined>(undefined);
+  const [trainerName, setTrainerName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     (async () => {
@@ -44,6 +47,8 @@ export default function EditHighlightPage({
         const list = await getMyHighlights();
         const detail = list.find((h) => h.id === highlightId);
         if (detail) {
+          setTrainerUserId(detail.trainerUserId);
+          setTrainerName(detail.trainerName);
           setForm({
             title: detail.title || '',
             description: detail.description || '',
@@ -166,6 +171,7 @@ export default function EditHighlightPage({
       </div>
 
       <div className="px-6 py-6 max-w-2xl space-y-5">
+        <OwnedTrainerBanner trainerUserId={trainerUserId} trainerNameHint={trainerName} />
         <FormField label="标题">
           <input
             type="text"

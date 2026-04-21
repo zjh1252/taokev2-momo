@@ -1,25 +1,23 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { createCase, addCaseFile } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
-import { validateForm, getFirstError, type ValidationError, type FormValidationRules } from '@/lib/validation';
+import { validateForm, getFirstError, type FormValidationRules } from '@/lib/validation';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
 import { FormField } from '@/components/FormField';
 import { toast } from 'sonner';
+import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
 
 export default function CreateCasePage() {
   const router = useRouter();
-  const search = useSearchParams();
-  const trainerUserIdParam = search.get('trainerUserId');
-  const trainerUserId = trainerUserIdParam ? Number(trainerUserIdParam) : undefined;
+  const { trainerUserId, banner, valid } = usePublishingTarget('案例');
   const [submitting, setSubmitting] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
 
@@ -65,7 +63,10 @@ export default function CreateCasePage() {
   }, []);
 
   const handleSubmit = async () => {
-    // 表单验证
+    if (!valid) {
+      toast.error('请先在顶部选择要代发案例的专家');
+      return;
+    }
     const validation = validateForm(form, CASE_RULES);
     if (!validation.valid) {
       const firstError = getFirstError(validation.errors);
@@ -104,15 +105,17 @@ export default function CreateCasePage() {
   };
 
   return (
-    <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+    <section className="space-y-4">
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-4 flex items-center gap-3">
         <Link href={ROUTES.UC_CASES_MANAGE} className="text-gray-400 hover:text-gray-600">
           <ArrowLeft className="size-5" />
         </Link>
         <h2 className="text-lg font-bold text-gray-800">发布案例</h2>
       </div>
 
-      <div className="px-6 py-6 max-w-2xl space-y-5">
+      {banner}
+
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-6 max-w-2xl space-y-5">
         <FormField label="案例标题" required>
           <input
             type="text"

@@ -91,8 +91,14 @@ public class BindingServiceImpl implements BindingService {
         AgentTrainerBinding b = agentTrainerBindingRepository
                 .findByAgentUserIdAndTrainerUserId(agentUserId, trainerUserId)
                 .orElseGet(AgentTrainerBinding::new);
-        if (b.getStatus() != null && Objects.equals(b.getStatus(), ACTIVE)) {
+        // 仅对已持久化记录做"已存在/重复"判断，避免 transient 实例默认 status=1 触发误报
+        if (b.getId() != null && Objects.equals(b.getStatus(), ACTIVE)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "已存在生效的绑定");
+        }
+        // 幂等：同一发起方对同一目标已存在 PENDING 时直接返回
+        if (b.getId() != null && Objects.equals(b.getStatus(), PENDING)
+                && Objects.equals(b.getInitiatorUserId(), agentUserId)) {
+            return toResponse(b, BindingType.AGENT_TRAINER, agentUserId, trainerUserId);
         }
         b.setAgentUserId(agentUserId);
         b.setTrainerUserId(trainerUserId);
@@ -117,9 +123,16 @@ public class BindingServiceImpl implements BindingService {
         TrainerAssistantBinding b = trainerAssistantBindingRepository
                 .findByTrainerUserId(trainerUserId)
                 .orElseGet(TrainerAssistantBinding::new);
-        if (b.getStatus() != null && Objects.equals(b.getStatus(), ACTIVE)
+        // 仅对已持久化记录做冲突判断，避免 transient 实例默认值触发误报
+        if (b.getId() != null && Objects.equals(b.getStatus(), ACTIVE)
                 && !Objects.equals(b.getAssistantUserId(), assistantUserId)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "目标专家已绑定其他助理");
+        }
+        // 幂等：同一助理对同一专家已存在 PENDING 时直接返回
+        if (b.getId() != null && Objects.equals(b.getStatus(), PENDING)
+                && Objects.equals(b.getAssistantUserId(), assistantUserId)
+                && Objects.equals(b.getInitiatorUserId(), assistantUserId)) {
+            return toResponse(b, BindingType.ASSISTANT_TRAINER, assistantUserId, trainerUserId);
         }
         b.setTrainerUserId(trainerUserId);
         b.setAssistantUserId(assistantUserId);
@@ -140,8 +153,12 @@ public class BindingServiceImpl implements BindingService {
         InstitutionTrainerBinding b = institutionTrainerBindingRepository
                 .findByOrgIdAndTrainerUserId(inst.getId(), trainerUserId)
                 .orElseGet(InstitutionTrainerBinding::new);
-        if (b.getStatus() != null && Objects.equals(b.getStatus(), ACTIVE)) {
+        if (b.getId() != null && Objects.equals(b.getStatus(), ACTIVE)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "已存在生效的绑定");
+        }
+        if (b.getId() != null && Objects.equals(b.getStatus(), PENDING)
+                && Objects.equals(b.getInitiatorUserId(), operatorUserId)) {
+            return toResponse(b, BindingType.INSTITUTION_TRAINER, operatorUserId, trainerUserId);
         }
         b.setOrgId(inst.getId());
         b.setTrainerUserId(trainerUserId);
@@ -162,8 +179,12 @@ public class BindingServiceImpl implements BindingService {
         EnterpriseAgentTrainerBinding b = enterpriseAgentTrainerBindingRepository
                 .findByEnterpriseAgentIdAndTrainerUserId(ea.getId(), trainerUserId)
                 .orElseGet(EnterpriseAgentTrainerBinding::new);
-        if (b.getStatus() != null && Objects.equals(b.getStatus(), ACTIVE)) {
+        if (b.getId() != null && Objects.equals(b.getStatus(), ACTIVE)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "已存在生效的绑定");
+        }
+        if (b.getId() != null && Objects.equals(b.getStatus(), PENDING)
+                && Objects.equals(b.getInitiatorUserId(), operatorUserId)) {
+            return toResponse(b, BindingType.ENTERPRISE_AGENT_TRAINER, operatorUserId, trainerUserId);
         }
         b.setEnterpriseAgentId(ea.getId());
         b.setTrainerUserId(trainerUserId);
@@ -183,8 +204,12 @@ public class BindingServiceImpl implements BindingService {
         InstitutionEmployeeBinding b = institutionEmployeeBindingRepository
                 .findByOrgIdAndEmployeeUserId(inst.getId(), employeeUserId)
                 .orElseGet(InstitutionEmployeeBinding::new);
-        if (b.getStatus() != null && Objects.equals(b.getStatus(), ACTIVE)) {
+        if (b.getId() != null && Objects.equals(b.getStatus(), ACTIVE)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "已存在生效的绑定");
+        }
+        if (b.getId() != null && Objects.equals(b.getStatus(), PENDING)
+                && Objects.equals(b.getInitiatorUserId(), operatorUserId)) {
+            return toResponse(b, BindingType.INSTITUTION_EMPLOYEE, operatorUserId, employeeUserId);
         }
         b.setOrgId(inst.getId());
         b.setEmployeeUserId(employeeUserId);
@@ -204,8 +229,14 @@ public class BindingServiceImpl implements BindingService {
         EnterpriseAgentMember m = enterpriseAgentMemberRepository
                 .findByEnterpriseAgentIdAndAgentUserId(ea.getId(), agentUserId)
                 .orElseGet(EnterpriseAgentMember::new);
-        if (m.getStatus() != null && Objects.equals(m.getStatus(), ACTIVE)) {
+        // 仅对已持久化记录做"已存在"判断，避免 transient 实例默认 status=1 触发误报
+        if (m.getId() != null && Objects.equals(m.getStatus(), ACTIVE)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "已存在生效的成员关系");
+        }
+        // 幂等：相同公司对相同经纪人已发起 PENDING 时直接返回
+        if (m.getId() != null && Objects.equals(m.getStatus(), PENDING)
+                && Objects.equals(m.getInitiatorUserId(), operatorUserId)) {
+            return toResponse(m, BindingType.ENTERPRISE_AGENT_MEMBER, operatorUserId, agentUserId);
         }
         // 限制：经纪人最多 ACTIVE 绑定到一个经纪公司
         for (EnterpriseAgentMember other : enterpriseAgentMemberRepository.findByAgentUserIdAndStatus(agentUserId, ACTIVE)) {
@@ -246,12 +277,13 @@ public class BindingServiceImpl implements BindingService {
         InstitutionEmployeeBinding b = institutionEmployeeBindingRepository
                 .findByOrgIdAndEmployeeUserId(orgId, employeeUserId)
                 .orElseGet(InstitutionEmployeeBinding::new);
-        if (b.getStatus() != null && Objects.equals(b.getStatus(), ACTIVE)) {
+        // 仅对已持久化记录做判断，避免 transient 实例默认 status=1 触发误报
+        if (b.getId() != null && Objects.equals(b.getStatus(), ACTIVE)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "已存在生效的绑定");
         }
         Integer instUser = inst.getUserId();
         // 幂等：相同员工对相同机构已经处于 PENDING（且发起方就是员工本人），直接复用，不再抛错
-        if (b.getStatus() != null && Objects.equals(b.getStatus(), PENDING)
+        if (b.getId() != null && Objects.equals(b.getStatus(), PENDING)
                 && Objects.equals(b.getInitiatorUserId(), employeeUserId)) {
             return toResponse(b, BindingType.INSTITUTION_EMPLOYEE, instUser, employeeUserId);
         }
@@ -284,11 +316,12 @@ public class BindingServiceImpl implements BindingService {
         EnterpriseAgentMember m = enterpriseAgentMemberRepository
                 .findByEnterpriseAgentIdAndAgentUserId(enterpriseAgentId, agentUserId)
                 .orElseGet(EnterpriseAgentMember::new);
-        if (m.getStatus() != null && Objects.equals(m.getStatus(), ACTIVE)) {
+        // 仅对已持久化记录做判断，避免 transient 实例默认 status=1 触发误报
+        if (m.getId() != null && Objects.equals(m.getStatus(), ACTIVE)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "已存在生效的成员关系");
         }
         // 幂等：同一经纪人对同一公司已发起 PENDING 时直接返回，不再误报「重复提交」
-        if (m.getStatus() != null && Objects.equals(m.getStatus(), PENDING)
+        if (m.getId() != null && Objects.equals(m.getStatus(), PENDING)
                 && Objects.equals(m.getInitiatorUserId(), agentUserId)) {
             return toResponse(m, BindingType.ENTERPRISE_AGENT_MEMBER, ea.getUserId(), agentUserId);
         }

@@ -13,6 +13,7 @@ import {
   type MyVideoListParams,
 } from '@/features/video/api/publisher-service';
 import { TrainerSwitcher } from '@/features/binding/components/trainer-switcher';
+import { isDelegatingRole, selfPublishingAllowed } from '@/features/binding/lib/delegating-role';
 import {
   VideoStatus,
   VideoStatusLabelMap,
@@ -55,7 +56,9 @@ const STATUS_BADGE_STYLES: Record<number, string> = {
 const PAGE_SIZE = 10;
 
 export default function ManageVideosPage() {
-  const { user } = useAuth();
+  const { user, activeRole } = useAuth();
+  const showSwitcher = isDelegatingRole(activeRole);
+  const hideSelfOption = showSwitcher && !selfPublishingAllowed(activeRole);
   const [activeTab, setActiveTab] = useState<number | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
   const [videos, setVideos] = useState<VideoListItem[]>([]);
@@ -138,13 +141,16 @@ export default function ManageVideosPage() {
       <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-lg font-bold text-gray-800">管理录播课</h2>
         <div className="flex items-center gap-2">
-          <TrainerSwitcher
-            value={trainerUserId}
-            onChange={(uid) => {
-              setTrainerUserId(uid);
-              setPage(1);
-            }}
-          />
+          {showSwitcher && (
+            <TrainerSwitcher
+              value={trainerUserId}
+              hideSelf={hideSelfOption}
+              onChange={(uid) => {
+                setTrainerUserId(uid);
+                setPage(1);
+              }}
+            />
+          )}
           <Link
             href={trainerUserId
               ? `${ROUTES.UC_VIDEOS_CREATE}?trainerUserId=${trainerUserId}`

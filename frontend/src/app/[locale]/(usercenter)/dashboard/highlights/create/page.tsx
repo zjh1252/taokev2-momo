@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import {
@@ -16,12 +15,11 @@ import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
 import { FormField } from '@/components/FormField';
 import { toast } from 'sonner';
+import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
 
 export default function CreateHighlightPage() {
   const router = useRouter();
-  const search = useSearchParams();
-  const trainerUserIdParam = search.get('trainerUserId');
-  const trainerUserId = trainerUserIdParam ? Number(trainerUserIdParam) : undefined;
+  const { trainerUserId, banner, valid } = usePublishingTarget('精彩瞬间');
   const [submitting, setSubmitting] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
 
@@ -61,6 +59,10 @@ export default function CreateHighlightPage() {
   }, []);
 
   const handleSubmit = async () => {
+    if (!valid) {
+      toast.error('请先在顶部选择要代发精彩瞬间的专家');
+      return;
+    }
     setSubmitting(true);
     try {
       const highlight = await createHighlight(form, trainerUserId);
@@ -92,15 +94,17 @@ export default function CreateHighlightPage() {
   };
 
   return (
-    <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+    <section className="space-y-4">
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-4 flex items-center gap-3">
         <Link href={ROUTES.UC_HIGHLIGHTS_MANAGE} className="text-gray-400 hover:text-gray-600">
           <ArrowLeft className="size-5" />
         </Link>
         <h2 className="text-lg font-bold text-gray-800">发布精彩瞬间</h2>
       </div>
 
-      <div className="px-6 py-6 max-w-2xl space-y-5">
+      {banner}
+
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-6 max-w-2xl space-y-5">
         <FormField label="标题">
           <input
             type="text"

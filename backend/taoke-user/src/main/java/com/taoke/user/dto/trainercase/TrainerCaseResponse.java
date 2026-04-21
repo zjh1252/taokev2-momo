@@ -18,6 +18,10 @@ public class TrainerCaseResponse {
 
     private Integer id;
     private Integer trainerId;
+    /** 专家所属 user_id，用于代管角色编辑场景下的归属展示 */
+    private Integer trainerUserId;
+    /** 专家昵称，用于编辑场景下的归属展示 */
+    private String trainerName;
     private String caseTitle;
     private String enterpriseName;
     private String industry;

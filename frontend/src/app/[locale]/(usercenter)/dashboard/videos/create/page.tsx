@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import VideoForm from '@/features/video/components/publisher/VideoForm';
@@ -11,15 +10,18 @@ import type { SaveVideoRequest } from '@/features/video/api/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { toast } from 'sonner';
+import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
 
 export default function CreateVideoPage() {
   const router = useRouter();
-  const search = useSearchParams();
-  const trainerUserIdParam = search.get('trainerUserId');
-  const trainerUserId = trainerUserIdParam ? Number(trainerUserIdParam) : undefined;
+  const { trainerUserId, banner, valid } = usePublishingTarget('录播课');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: SaveVideoRequest, videoFiles?: UploadedVideoItem[]) => {
+    if (!valid) {
+      toast.error('请先在顶部选择要代发录播课的专家');
+      return;
+    }
     setSubmitting(true);
     try {
       const video = await createVideo(data, trainerUserId);
@@ -58,6 +60,7 @@ export default function CreateVideoPage() {
         </Link>
         <h1 className="text-lg font-bold text-gray-800">发布录播课</h1>
       </div>
+      {banner}
       <VideoForm onSubmit={handleSubmit} submitting={submitting} />
     </section>
   );
