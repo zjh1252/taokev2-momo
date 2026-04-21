@@ -329,6 +329,28 @@ public class VideoServiceImpl implements VideoService {
                 .toList();
     }
 
+    @Override
+    public PageResponse<VideoListItemVO> listByTrainerUserId(Integer trainerUserId, int page, int size) {
+        if (trainerUserId == null || trainerUserId <= 0) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+        Specification<Video> spec = (root, cq, cb) -> cb.and(
+                cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()),
+                cb.equal(root.get("publisherType"), BusinessRole.Code.TRAINER),
+                cb.equal(root.get("publisherId"), trainerUserId)
+        );
+        Sort sort = Sort.by(Sort.Direction.DESC, "publishedAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        PageRequest pageable = PageRequest.of(page - 1, size, sort);
+        Page<Video> videoPage = videoRepository.findAll(spec, pageable);
+        if (videoPage.isEmpty()) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+        List<VideoListItemVO> items = videoPage.getContent().stream()
+                .map(this::toListItemVO)
+                .toList();
+        return PageResponse.of(items, videoPage.getTotalElements(), page, size);
+    }
+
     /** 根据机构 ID 反查 user_id；机构不存在返回 null。 */
     private Integer resolveInstitutionUserId(Integer institutionId) {
         if (institutionId == null) {

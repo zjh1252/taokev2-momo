@@ -423,6 +423,26 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    public PageResponse<CourseListItemVO> listByTrainer(Integer trainerId, int page, int size) {
+        if (trainerId == null || trainerId <= 0) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+        Specification<Course> spec = (root, cq, cb) -> cb.and(
+                cb.equal(root.get("trainerId"), trainerId),
+                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue())
+        );
+        Sort sort = Sort.by(Sort.Direction.DESC, "publishedAt")
+                .and(Sort.by(Sort.Direction.DESC, "id"));
+        PageRequest pageable = PageRequest.of(page - 1, size, sort);
+        Page<Course> coursePage = courseRepository.findAll(spec, pageable);
+        if (coursePage.isEmpty()) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+        return PageResponse.of(assembleListItems(coursePage.getContent()),
+                coursePage.getTotalElements(), page, size);
+    }
+
+    @Override
     public List<RecommendedCourseVO> listRecommendedByTrainer(Integer trainerId) {
         if (trainerId == null || trainerId <= 0) {
             return List.of();

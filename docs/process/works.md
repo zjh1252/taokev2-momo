@@ -394,3 +394,15 @@
 - 更新 SearchIndexService.buildMapping()：所有 text 字段从 standard 改为 ik_max_word（索引）/ ik_smart（搜索）
 - 修复 date 字段格式：同时支持 ISO 格式（T 分隔）和空格分隔，解决显式 mapping 下日期解析失败问题
 
+---
+
+2026-04-21 11:00
+**专家详情页接入真实数据 + 评论计数同步**
+
+- V38 Flyway：新增 `user_trainer_books` 表（无审核流程）；按 `training_reviews` 已通过条数重算 `user_trainers` / `user_institutions` 的 `comment_count`，写法改为可重复执行（IF NOT EXISTS + INFORMATION_SCHEMA 列守卫 + 两步 UPDATE）
+- 后端：新增 TrainerBook 全套（Entity / Repository / DTO / Service / Controller），暴露自服务接口 `/trainers/me/books` 与公开接口 `/trainers/{id}/books`
+- 后端：ReviewServiceImpl 在审核通过/驳回/隐藏时调用 TrainerService.adjustCommentCountByUserId、InstitutionService.adjustCommentCount 同步 commentCount
+- 后端：新增公开聚合接口 `/trainers/{id}/courses`、`/trainers/{id}/videos`，分别按 trainerId / publisherType+publisherId 过滤
+- 前端：/trainers/[id] 改为 SSR 并发拉取 trainer / courses / videos / cases / books 真实数据
+- 前端：TrainerDetailContent 重写主页/主讲课程/授课案例/录播课/学员评价/著作 6 个 tab，全部接入真实数据；著作完全去掉价格与「免费」字样；学员评价角标使用 trainer.commentCount
+

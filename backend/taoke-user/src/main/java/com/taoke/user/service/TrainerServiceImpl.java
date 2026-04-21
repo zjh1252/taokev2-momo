@@ -507,6 +507,18 @@ public class TrainerServiceImpl implements TrainerService {
         return industryCategoryRepository.existsByCategoryId(categoryId);
     }
 
+    @Override
+    @Transactional
+    public void adjustCommentCountByUserId(Integer trainerUserId, int delta) {
+        if (trainerUserId == null || delta == 0) return;
+        trainerRepository.findByUserId(trainerUserId).ifPresent(t -> {
+            int cur = t.getCommentCount() == null ? 0 : t.getCommentCount();
+            int next = Math.max(0, cur + delta);
+            t.setCommentCount(next);
+            trainerRepository.save(t);
+        });
+    }
+
     /** 批量回填多个列表的 categoryName */
     @SafeVarargs
     private void fillCategoryNames(List<CategoryRefDTO>... lists) {

@@ -9,7 +9,11 @@ import type {
   CategoryTreeNode,
   RecommendedCourseItem,
   RecommendedTrainerItem,
+  TrainerBook,
 } from '../types';
+import type { CourseListItem } from '@/features/course/api/types';
+import type { VideoListItem } from '@/features/video/api/types';
+import type { TrainerCase } from '@/features/trainer-case/api/types';
 
 function authHeaders(): Record<string, string> {
   const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
@@ -104,4 +108,52 @@ export async function getCategoryTree(type: string): Promise<CategoryTreeNode[]>
     `/categories/tree?type=${encodeURIComponent(type)}`,
   );
   return res.data;
+}
+
+/* ==================== 专家详情页聚合接口 ==================== */
+
+/**
+ * 专家「主讲课程」 — 已上架课程，分页
+ */
+export async function getTrainerCourses(
+  trainerId: number,
+  page = 1,
+  size = 20,
+): Promise<PageResponse<CourseListItem>> {
+  const qs = new URLSearchParams({ page: String(page), size: String(size) });
+  const res = await apiGet<ApiResponse<PageResponse<CourseListItem>>>(
+    `/trainers/${trainerId}/courses?${qs}`,
+  );
+  return res.data;
+}
+
+/**
+ * 专家「录播课」 — 已上架视频，分页
+ */
+export async function getTrainerVideos(
+  trainerId: number,
+  page = 1,
+  size = 20,
+): Promise<PageResponse<VideoListItem>> {
+  const qs = new URLSearchParams({ page: String(page), size: String(size) });
+  const res = await apiGet<ApiResponse<PageResponse<VideoListItem>>>(
+    `/trainers/${trainerId}/videos?${qs}`,
+  );
+  return res.data;
+}
+
+/**
+ * 专家「授课案例」 — 已通过案例（公开）
+ */
+export async function getTrainerApprovedCases(trainerId: number): Promise<TrainerCase[]> {
+  const res = await apiGet<ApiResponse<TrainerCase[]>>(`/trainers/${trainerId}/cases`);
+  return res.data || [];
+}
+
+/**
+ * 专家「著作」 — 公开列表
+ */
+export async function getTrainerBooks(trainerId: number): Promise<TrainerBook[]> {
+  const res = await apiGet<ApiResponse<TrainerBook[]>>(`/trainers/${trainerId}/books`);
+  return res.data || [];
 }

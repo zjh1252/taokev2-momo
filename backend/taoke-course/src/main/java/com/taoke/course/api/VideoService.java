@@ -88,6 +88,13 @@ public interface VideoService {
      */
     List<VideoListItemVO> listInstitutionSidebarVideos(Integer institutionId);
 
+    /**
+     * 专家详情页：按专家 user_id 拉取其发布的录播课，分页，按 publishedAt DESC 排序。
+     *
+     * @param trainerUserId 专家所属的 user_id（注意：不是 user_trainers.id）
+     */
+    PageResponse<VideoListItemVO> listByTrainerUserId(Integer trainerUserId, int page, int size);
+
     // ==================== 后台管理 ====================
 
     /**

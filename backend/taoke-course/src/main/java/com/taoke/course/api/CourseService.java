@@ -117,6 +117,15 @@ public interface CourseService {
      */
     List<CourseListItemVO> listHotOpenCourses();
 
+    /**
+     * 专家详情页：按专家 ID 拉取其所有已上架课程（公开课 + 内训课），分页。
+     *
+     * @param trainerId 专家 ID（user_trainers.id）
+     * @param page      页码，从 1 开始
+     * @param size      每页条数
+     */
+    PageResponse<CourseListItemVO> listByTrainer(Integer trainerId, int page, int size);
+
     // ==================== 后台管理 ====================
 
     /**

@@ -1,16 +1,14 @@
-import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { getTrainerDetail } from '@/features/trainer/api/service';
+import {
+  getTrainerDetail,
+  getTrainerCourses,
+  getTrainerVideos,
+  getTrainerApprovedCases,
+  getTrainerBooks,
+} from '@/features/trainer/api/service';
 import { TrainerHero } from '@/features/trainer/components/detail/TrainerHero';
 import { TrainerDetailContent } from '@/features/trainer/components/detail/TrainerDetailContent';
 import { TrainerSidebar } from '@/features/trainer/components/detail/TrainerSidebar';
-import {
-  mockCourses,
-  mockCases,
-  mockClips,
-  mockReviews,
-  mockBooks,
-} from '@/features/trainer/data/mock';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -30,8 +28,9 @@ export async function generateMetadata({ params }: Props) {
 }
 
 /**
- * 专家详情页 — SSR，主数据从 GET /trainers/{id} 获取，
- * 子页签（课程/案例/评价等）暂用 mock 数据。
+ * 专家详情页 — SSR
+ * <p>主数据来自 GET /trainers/{id}；主讲课程/案例/录播课/著作并发拉取，
+ * 学员评价由 TrainerDetailContent 内部按需懒加载。</p>
  */
 export default async function TrainerDetailPage({ params }: Props) {
   const { id } = await params;
@@ -48,6 +47,14 @@ export default async function TrainerDetailPage({ params }: Props) {
     notFound();
   }
 
+  // 并发拉取子页签数据
+  const [coursesPage, videosPage, cases, books] = await Promise.all([
+    getTrainerCourses(trainerId, 1, 50).catch(() => ({ list: [], total: 0, page: 1, size: 50, totalPages: 0 })),
+    getTrainerVideos(trainerId, 1, 50).catch(() => ({ list: [], total: 0, page: 1, size: 50, totalPages: 0 })),
+    getTrainerApprovedCases(trainerId).catch(() => []),
+    getTrainerBooks(trainerId).catch(() => []),
+  ]);
+
   return (
     <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-6 space-y-6">
       <TrainerHero trainer={trainer} />
@@ -56,11 +63,10 @@ export default async function TrainerDetailPage({ params }: Props) {
         <div>
           <TrainerDetailContent
             trainer={trainer}
-            courses={mockCourses}
-            cases={mockCases}
-            clips={mockClips}
-            reviews={mockReviews}
-            books={mockBooks}
+            courses={coursesPage.list}
+            cases={cases}
+            videos={videosPage.list}
+            books={books}
           />
         </div>
         <TrainerSidebar trainer={trainer} />

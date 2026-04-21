@@ -201,3 +201,27 @@ export interface RecommendedTrainerItem {
   score?: number;
   isRecommended?: number;
 }
+
+/** 专家著作（对应后端 TrainerBookResponse） */
+export interface TrainerBook {
+  id: number;
+  trainerId: number;
+  title: string;
+  coverUrl?: string;
+  publisher?: string;
+  publishDate?: string;
+  description?: string;
+  buyUrl?: string;
+  sortOrder: number;
+}
+
+/** 保存著作请求 */
+export interface SaveTrainerBookRequest {
+  title: string;
+  coverUrl?: string;
+  publisher?: string;
+  publishDate?: string;
+  description?: string;
+  buyUrl?: string;
+  sortOrder?: number;
+}

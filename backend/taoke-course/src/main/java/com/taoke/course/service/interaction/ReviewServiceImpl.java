@@ -12,6 +12,8 @@ import com.taoke.course.entity.interaction.TrainingReview;
 import com.taoke.course.enums.ReviewScope;
 import com.taoke.course.enums.ReviewStatus;
 import com.taoke.course.repository.interaction.TrainingReviewRepository;
+import com.taoke.user.api.InstitutionService;
+import com.taoke.user.api.TrainerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +38,8 @@ public class ReviewServiceImpl {
     private final TrainingReviewRepository reviewRepository;
     private final InteractionTargetValidator targetValidator;
     private final ObjectMapper objectMapper;
+    private final TrainerService trainerService;
+    private final InstitutionService institutionService;
 
     /**
      * 提交评价（状态为 PENDING）
@@ -155,36 +159,75 @@ public class ReviewServiceImpl {
 
     /**
      * 审核通过
+     * <p>状态变化时同步累计评论数：原状态非 APPROVED → APPROVED 则 +1。</p>
      */
     @Transactional
     public void approveReview(Integer reviewId) {
         TrainingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+        int prev = review.getStatus() == null ? -1 : review.getStatus();
         review.setStatus(ReviewStatus.APPROVED.getValue());
         reviewRepository.save(review);
+        if (prev != ReviewStatus.APPROVED.getValue()) {
+            adjustTargetCommentCount(review, +1);
+        }
     }
 
     /**
      * 审核驳回
+     * <p>若原状态是 APPROVED → REJECTED，需 -1 同步累计评论数。</p>
      */
     @Transactional
     public void rejectReview(Integer reviewId, String reason) {
         TrainingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+        int prev = review.getStatus() == null ? -1 : review.getStatus();
         review.setStatus(ReviewStatus.REJECTED.getValue());
         review.setRejectReason(reason);
         reviewRepository.save(review);
+        if (prev == ReviewStatus.APPROVED.getValue()) {
+            adjustTargetCommentCount(review, -1);
+        }
     }
 
     /**
      * 隐藏评价
+     * <p>若原状态是 APPROVED → HIDDEN，需 -1 同步累计评论数。</p>
      */
     @Transactional
     public void hideReview(Integer reviewId) {
         TrainingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+        int prev = review.getStatus() == null ? -1 : review.getStatus();
         review.setStatus(ReviewStatus.HIDDEN.getValue());
         reviewRepository.save(review);
+        if (prev == ReviewStatus.APPROVED.getValue()) {
+            adjustTargetCommentCount(review, -1);
+        }
+    }
+
+    /**
+     * 按 review.scope 同步对应被评对象的 comment_count。
+     * <p>COURSE 暂未维护该字段，仅处理 TRAINER 与 INSTITUTION。</p>
+     */
+    private void adjustTargetCommentCount(TrainingReview review, int delta) {
+        if (review == null || delta == 0) return;
+        ReviewScope scope = ReviewScope.valueOf(review.getReviewScope());
+        switch (scope) {
+            case TRAINER -> {
+                if (review.getTrainerUserId() != null) {
+                    trainerService.adjustCommentCountByUserId(review.getTrainerUserId(), delta);
+                }
+            }
+            case INSTITUTION -> {
+                if (review.getInstitutionId() != null) {
+                    institutionService.adjustCommentCount(review.getInstitutionId(), delta);
+                }
+            }
+            case COURSE -> {
+                // courses 表暂未维护 comment_count，跳过
+            }
+        }
     }
 
     /**

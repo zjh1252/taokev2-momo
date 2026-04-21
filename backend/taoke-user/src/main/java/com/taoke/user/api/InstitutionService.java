@@ -94,4 +94,13 @@ public interface InstitutionService {
      * 根据机构 ID 列表批量查询机构
      */
     List<Institution> findByIds(java.util.Collection<Integer> ids);
+
+    /**
+     * 调整指定机构（user_institutions.id）的累计评论数。
+     * <p>用于评价审核状态变化时同步计数。delta 可正可负；最终值不会小于 0。</p>
+     *
+     * @param institutionId 机构 ID
+     * @param delta         增量
+     */
+    void adjustCommentCount(Integer institutionId, int delta);
 }

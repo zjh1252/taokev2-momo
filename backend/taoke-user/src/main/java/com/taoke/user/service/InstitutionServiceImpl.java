@@ -194,6 +194,18 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         return institutionRepository.findAllById(ids);
     }
 
+    @Override
+    @Transactional
+    public void adjustCommentCount(Integer institutionId, int delta) {
+        if (institutionId == null || delta == 0) return;
+        institutionRepository.findById(institutionId).ifPresent(inst -> {
+            int cur = inst.getCommentCount() == null ? 0 : inst.getCommentCount();
+            int next = Math.max(0, cur + delta);
+            inst.setCommentCount(next);
+            institutionRepository.save(inst);
+        });
+    }
+
     private Institution saveOrUpdateExtension(Integer userId, InstitutionRequest request) {
         Institution ent = institutionRepository.findByUserId(userId).orElseGet(() -> {
             Institution e = new Institution();
