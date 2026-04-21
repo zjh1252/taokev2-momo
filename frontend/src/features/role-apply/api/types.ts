@@ -93,8 +93,23 @@ export interface EnterpriseBuyerFormData {
   trainingTags: string;
 }
 
+/** 申请表单内嵌的著作条目（与后端 SaveTrainerBookRequest 对齐） */
+export interface TrainerBookFormItem {
+  title: string;
+  coverUrl?: string;
+  publisher?: string;
+  publishDate?: string;
+  description?: string;
+  buyUrl?: string;
+}
+
 export interface TrainerFormData {
+  /** 真实姓名 */
   name: string;
+  /** 授课姓名（对外展示，可与真实姓名不同） */
+  teachingName: string;
+  /** 头像 URL */
+  avatar: string;
   title: string;
   gender: number;
   phone: string;
@@ -103,12 +118,18 @@ export interface TrainerFormData {
   cityId: number | null;
   districtId: number | null;
   address: string;
+  /** 一句话介绍（80 字内） */
+  oneLineIntro: string;
   bio: string;
   /** 实战经历 / 从业背景（长文本） */
   background: string;
-  /** 部分客户（长文本，对外展示在专家详情页） */
+  /** 服务过客户（沿用 partialClients 字段，仅 label 改名） */
   partialClients: string;
   goodAt: string;
+  /** 擅长行业一级分类 ID 列表 */
+  industryCategoryIds: number[];
+  /** 擅长领域一级分类 ID 列表 */
+  expertiseCategoryIds: number[];
   expertiseTags: string;
   teachingStyle: string;
   experienceYears: number | null;
@@ -117,6 +138,18 @@ export interface TrainerFormData {
   quoteMax: number | null;
   quoteUnit: string;
   quoteRemark: string;
+  /** 淘课网售价（元/天） */
+  taokePrice: number | null;
+  /** 淘课网合作课酬（元/天） */
+  taokeCommission: number | null;
+  /** 我的著作（提交时整体替换） */
+  books: TrainerBookFormItem[];
+  /** 是否同意《淘课网注册专家合作协议》 */
+  agreementSigned: boolean;
+  /** 协议版本号，默认 v1 */
+  agreementVersion: string;
+  /** 简历 URL（AI 解析后回填，可选透传给后端） */
+  resumeUrl: string;
 }
 
 export interface AgentFormData {

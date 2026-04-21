@@ -2,6 +2,8 @@ package com.taoke.user.repository;
 
 import com.taoke.user.entity.TrainerBook;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
@@ -15,4 +17,9 @@ public interface TrainerBookRepository extends JpaRepository<TrainerBook, Intege
 
     /** 按专家 ID 取著作列表，sort_order 倒序、id 倒序 */
     List<TrainerBook> findByTrainerIdOrderBySortOrderDescIdDesc(Integer trainerId);
+
+    /** 按专家 ID 删除全部著作（用于 apply 时整体替换） */
+    @Modifying
+    @Query("delete from TrainerBook b where b.trainerId = :trainerId")
+    int deleteByTrainerId(Integer trainerId);
 }

@@ -43,7 +43,7 @@ export function useRoleApplyState() {
 
   const setSelectedRole = useCallback(
     (role: ApplyableRole) => {
-      persist({ ...state, selectedRole: role, formData: {} });
+      persist({ ...state, selectedRole: role, formData: defaultFormData(role) });
     },
     [state, persist],
   );
@@ -77,6 +77,49 @@ export function useRoleApplyState() {
     dismiss,
     isDismissed,
   };
+}
+
+/** 提供各角色表单的初始默认值（确保数组 / 布尔 / 版本号等字段就绪） */
+function defaultFormData(role: ApplyableRole): Record<string, unknown> {
+  switch (role) {
+    case 'TRAINER':
+      return {
+        name: '',
+        teachingName: '',
+        avatar: '',
+        title: '',
+        gender: 0,
+        phone: '',
+        email: '',
+        provinceId: null,
+        cityId: null,
+        districtId: null,
+        address: '',
+        oneLineIntro: '',
+        bio: '',
+        background: '',
+        partialClients: '',
+        goodAt: '',
+        industryCategoryIds: [],
+        expertiseCategoryIds: [],
+        expertiseTags: '',
+        teachingStyle: '',
+        experienceYears: null,
+        teachingYears: null,
+        quoteMin: null,
+        quoteMax: null,
+        quoteUnit: '',
+        quoteRemark: '',
+        taokePrice: null,
+        taokeCommission: null,
+        books: [],
+        agreementSigned: false,
+        agreementVersion: 'v1',
+        resumeUrl: '',
+      };
+    default:
+      return {};
+  }
 }
 
 /** 标记新用户待弹窗（LoginForm 调用） */

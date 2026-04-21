@@ -50,6 +50,7 @@ public class TrainerServiceImpl implements TrainerService {
     private final TrainerHonorRepository honorRepository;
     private final TrainerExpertiseCategoryRepository expertiseCategoryRepository;
     private final TrainerIndustryCategoryRepository industryCategoryRepository;
+    private final TrainerBookRepository trainerBookRepository;
     private final TrainerMapper trainerMapper;
     private final RoleApplyService roleApplyService;
     private final CategoryService categoryService;
@@ -280,8 +281,77 @@ public class TrainerServiceImpl implements TrainerService {
     @Transactional
     @Override
     public void apply(Integer userId, TrainerRequest request) {
+        // 必须勾选《淘课网注册专家合作协议》才能提交申请
+        if (request.getAgreementSigned() == null || !Boolean.TRUE.equals(request.getAgreementSigned())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID,
+                    "请先勾选并同意《淘课网注册专家合作协议》");
+        }
         roleApplyService.apply(userId, BusinessRole.Code.TRAINER);
-        saveOrUpdateMainTable(userId, request);
+        Trainer trainer = saveOrUpdateMainTable(userId, request);
+        // 一次性持久化擅长行业 / 擅长领域 / 著作，避免分步调用受 RequireRole(TRAINER active) 拦截
+        replaceExpertiseCategoriesByIds(trainer.getId(), request.getExpertiseCategoryIds());
+        replaceIndustryCategoriesByIds(trainer.getId(), request.getIndustryCategoryIds());
+        replaceBooks(trainer.getId(), request.getBooks());
+    }
+
+    /** 整体替换擅长领域分类（apply / save 通用） */
+    private void replaceExpertiseCategoriesByIds(Integer trainerId, List<Integer> categoryIds) {
+        if (categoryIds == null) return;
+        expertiseCategoryRepository.deleteByTrainerId(trainerId);
+        if (categoryIds.isEmpty()) return;
+        int sort = categoryIds.size();
+        List<TrainerExpertiseCategory> entities = new ArrayList<>(categoryIds.size());
+        for (Integer cid : categoryIds) {
+            if (cid == null) continue;
+            TrainerExpertiseCategory ec = new TrainerExpertiseCategory();
+            ec.setTrainerId(trainerId);
+            ec.setCategoryId(cid);
+            ec.setSortOrder(sort--);
+            entities.add(ec);
+        }
+        expertiseCategoryRepository.saveAll(entities);
+    }
+
+    /** 整体替换擅长行业分类（apply / save 通用） */
+    private void replaceIndustryCategoriesByIds(Integer trainerId, List<Integer> categoryIds) {
+        if (categoryIds == null) return;
+        industryCategoryRepository.deleteByTrainerId(trainerId);
+        if (categoryIds.isEmpty()) return;
+        int sort = categoryIds.size();
+        List<TrainerIndustryCategory> entities = new ArrayList<>(categoryIds.size());
+        for (Integer cid : categoryIds) {
+            if (cid == null) continue;
+            TrainerIndustryCategory ic = new TrainerIndustryCategory();
+            ic.setTrainerId(trainerId);
+            ic.setCategoryId(cid);
+            ic.setSortOrder(sort--);
+            entities.add(ic);
+        }
+        industryCategoryRepository.saveAll(entities);
+    }
+
+    /** 整体替换著作（apply 时一次性提交，简单可靠） */
+    private void replaceBooks(Integer trainerId, List<com.taoke.user.dto.trainerbook.SaveTrainerBookRequest> books) {
+        if (books == null) return;
+        trainerBookRepository.deleteByTrainerId(trainerId);
+        if (books.isEmpty()) return;
+        int sort = books.size();
+        List<TrainerBook> entities = new ArrayList<>(books.size());
+        for (com.taoke.user.dto.trainerbook.SaveTrainerBookRequest b : books) {
+            if (b == null || b.getTitle() == null || b.getTitle().isBlank()) continue;
+            TrainerBook tb = new TrainerBook();
+            tb.setTrainerId(trainerId);
+            tb.setTitle(b.getTitle());
+            tb.setCoverUrl(b.getCoverUrl());
+            tb.setPublisher(b.getPublisher());
+            tb.setPublishDate(b.getPublishDate());
+            tb.setDescription(b.getDescription());
+            tb.setBuyUrl(b.getBuyUrl());
+            tb.setSortOrder(b.getSortOrder() != null ? b.getSortOrder() : sort);
+            sort--;
+            entities.add(tb);
+        }
+        trainerBookRepository.saveAll(entities);
     }
 
     @Override
@@ -380,6 +450,7 @@ public class TrainerServiceImpl implements TrainerService {
         });
 
         if (req.getName() != null) trainer.setName(req.getName());
+        if (req.getTeachingName() != null) trainer.setTeachingName(req.getTeachingName());
         if (req.getAvatar() != null) trainer.setAvatar(req.getAvatar());
         if (req.getTitle() != null) trainer.setTitle(req.getTitle());
         if (req.getGender() != null) trainer.setGender(req.getGender());
@@ -392,6 +463,7 @@ public class TrainerServiceImpl implements TrainerService {
         if (req.getTownId() != null) trainer.setTownId(req.getTownId());
         if (req.getAddress() != null) trainer.setAddress(req.getAddress());
         if (req.getBio() != null) trainer.setBio(req.getBio());
+        if (req.getOneLineIntro() != null) trainer.setOneLineIntro(req.getOneLineIntro());
         if (req.getIntro() != null) trainer.setIntro(req.getIntro());
         if (req.getBackground() != null) trainer.setBackground(req.getBackground());
         if (req.getPartialClients() != null) trainer.setPartialClients(req.getPartialClients());
@@ -406,7 +478,22 @@ public class TrainerServiceImpl implements TrainerService {
         if (req.getQuoteMax() != null) trainer.setQuoteMax(req.getQuoteMax());
         if (req.getQuoteUnit() != null) trainer.setQuoteUnit(req.getQuoteUnit());
         if (req.getQuoteRemark() != null) trainer.setQuoteRemark(req.getQuoteRemark());
+        if (req.getTaokePrice() != null) trainer.setTaokePrice(req.getTaokePrice());
+        if (req.getTaokeCommission() != null) trainer.setTaokeCommission(req.getTaokeCommission());
+        if (req.getResumeUrl() != null) trainer.setResumeUrl(req.getResumeUrl());
         if (req.getBackgroundImage() != null) trainer.setBackgroundImage(req.getBackgroundImage());
+
+        // 协议签署：首次勾选时回写时间与版本，已有签署时间时不重复覆盖
+        if (Boolean.TRUE.equals(req.getAgreementSigned())) {
+            if (trainer.getAgreementSignedAt() == null) {
+                trainer.setAgreementSignedAt(java.time.LocalDateTime.now());
+            }
+            String version = req.getAgreementVersion();
+            if (version == null || version.isBlank()) {
+                version = "v1";
+            }
+            trainer.setAgreementVersion(version);
+        }
 
         return trainerRepository.save(trainer);
     }

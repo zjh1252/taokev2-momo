@@ -39,6 +39,8 @@
         <aliyun-oss.version>3.18.4</aliyun-oss.version>
         <nacos-config.version>2025.0.0.0</nacos-config.version>
         <elasticsearch.version>8.19.12</elasticsearch.version>
+        <poi.version>5.4.1</poi.version>
+        <pdfbox.version>3.0.4</pdfbox.version>
     </properties>
 
     <!-- 全局依赖：所有子模块自动继承 -->
@@ -130,6 +132,18 @@
                 <groupId>org.elasticsearch.client</groupId>
                 <artifactId>elasticsearch-rest-client</artifactId>
                 <version>${elasticsearch.version}</version>
+            </dependency>
+
+            <!-- 文档解析（DOCX / PDF），简历 AI 解析使用 -->
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>pdfbox</artifactId>
+                <version>${pdfbox.version}</version>
             </dependency>
 
             <!-- JWT -->
