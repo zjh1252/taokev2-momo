@@ -24,10 +24,12 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 机构信息服务 — INSTITUTION 角色扩展信息管理。
@@ -38,6 +40,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionService {
+
+    private static final String DEFAULT_AGREEMENT_VERSION = "v1";
 
     private final InstitutionRepository institutionRepository;
     private final InstitutionMapper institutionMapper;
@@ -59,6 +63,10 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     @Override
     @Transactional
     public void apply(Integer userId, InstitutionRequest request) {
+        if (request == null || !Boolean.TRUE.equals(request.getAgreementSigned())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID,
+                    "请先勾选并同意《淘课网注册培训机构合作协议》");
+        }
         roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION);
         saveOrUpdateExtension(userId, request);
     }
@@ -198,12 +206,27 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     @Override
     public List<Map<String, Object>> lookup(String keyword, int size) {
         int limit = size > 0 ? Math.min(size, 50) : 20;
+
+        // 关键字为纯数字时优先按 id 精确查（仍要求 status=1），未命中再走名称 LIKE
+        String trimmed = keyword == null ? null : keyword.trim();
+        if (trimmed != null && !trimmed.isEmpty() && trimmed.matches("\\d+")) {
+            try {
+                Integer id = Integer.parseInt(trimmed);
+                Institution exact = institutionRepository.findById(id).orElse(null);
+                if (exact != null && exact.getStatus() != null && exact.getStatus() == 1) {
+                    return List.of(toLookupItem(exact));
+                }
+            } catch (NumberFormatException ignored) {
+                // 长数字转 Integer 失败时退回模糊查
+            }
+        }
+
         Specification<Institution> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             // 仅匹配已发布的机构
             predicates.add(cb.equal(root.get("status"), 1));
-            if (keyword != null && !keyword.isBlank()) {
-                String pattern = "%" + keyword.trim() + "%";
+            if (trimmed != null && !trimmed.isEmpty()) {
+                String pattern = "%" + trimmed + "%";
                 predicates.add(cb.like(root.get("orgName"), pattern));
             }
             return cb.and(predicates.toArray(Predicate[]::new));
@@ -215,15 +238,19 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         Page<Institution> page = institutionRepository.findAll(spec, pageable);
         List<Map<String, Object>> list = new ArrayList<>();
         for (Institution inst : page.getContent()) {
-            Map<String, Object> item = new HashMap<>();
-            item.put("id", inst.getId());
-            item.put("userId", inst.getUserId());
-            item.put("orgName", inst.getOrgName());
-            item.put("association", inst.getAssociation());
-            item.put("address", inst.getAddress());
-            list.add(item);
+            list.add(toLookupItem(inst));
         }
         return list;
+    }
+
+    private Map<String, Object> toLookupItem(Institution inst) {
+        Map<String, Object> item = new HashMap<>();
+        item.put("id", inst.getId());
+        item.put("userId", inst.getUserId());
+        item.put("orgName", inst.getOrgName());
+        item.put("association", inst.getAssociation());
+        item.put("address", inst.getAddress());
+        return item;
     }
 
     @Override
@@ -247,8 +274,19 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
 
         if (request.getOrgName() != null) ent.setOrgName(request.getOrgName());
         if (request.getOrgType() != null) ent.setOrgType(request.getOrgType());
+        if (request.getLegalRepresentative() != null) ent.setLegalRepresentative(request.getLegalRepresentative());
         if (request.getLicenseNo() != null) ent.setLicenseNo(request.getLicenseNo());
+        if (request.getEstablishedAt() != null) ent.setEstablishedAt(request.getEstablishedAt());
+        if (request.getLogoUrl() != null) ent.setLogoUrl(request.getLogoUrl());
         if (request.getBio() != null) ent.setBio(request.getBio());
+        if (request.getIndustryCategoryIds() != null) {
+            ent.setIndustries(serializeCategoryIds(request.getIndustryCategoryIds()));
+        }
+        if (request.getExpertiseCategoryIds() != null) {
+            ent.setSpecialties(serializeCategoryIds(request.getExpertiseCategoryIds()));
+        }
+        if (request.getHasVenue() != null) ent.setHasVenue(request.getHasVenue());
+        if (request.getHasExperts() != null) ent.setHasExperts(request.getHasExperts());
         if (request.getHomepageConfig() != null) ent.setHomepageConfig(request.getHomepageConfig());
         if (request.getContactName() != null) ent.setContactName(request.getContactName());
         if (request.getContactPhone() != null) ent.setContactPhone(request.getContactPhone());
@@ -262,6 +300,27 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         if (request.getClientCases() != null) ent.setClientCases(request.getClientCases());
         if (request.getSuccessCases() != null) ent.setSuccessCases(request.getSuccessCases());
 
+        // 协议：首次同意时回写时间与版本，已签署不覆盖时间
+        if (Boolean.TRUE.equals(request.getAgreementSigned())) {
+            if (ent.getAgreementSignedAt() == null) {
+                ent.setAgreementSignedAt(LocalDateTime.now());
+            }
+            String version = request.getAgreementVersion();
+            ent.setAgreementVersion(version != null && !version.isBlank()
+                    ? version : DEFAULT_AGREEMENT_VERSION);
+        }
+
         return institutionRepository.save(ent);
+    }
+
+    /** 分类 ID 列表序列化为「1,2,3」逗号串；null/空均落 null。 */
+    private String serializeCategoryIds(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return null;
+        }
+        return ids.stream()
+                .filter(java.util.Objects::nonNull)
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
     }
 }

@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 机构扩展信息实体 — INSTITUTION 角色扩展信息。
@@ -33,6 +35,14 @@ public class Institution extends BaseEntity {
     /** 营业执照号 */
     @Column(name = "license_no", length = 64)
     private String licenseNo;
+
+    /** 法人代表 */
+    @Column(name = "legal_representative", length = 64)
+    private String legalRepresentative;
+
+    /** 机构成立日期 */
+    @Column(name = "established_at")
+    private LocalDate establishedAt;
 
     /** 机构简介（支持富文本） */
     @Column(name = "bio", columnDefinition = "text")
@@ -78,13 +88,21 @@ public class Institution extends BaseEntity {
     @Column(name = "address", nullable = false, length = 200)
     private String address = "";
 
-    /** 擅长领域，逗号分隔 */
+    /** 擅长领域 — 分类 ID 逗号串（一级多选，复用 TRAINER_EXPERTISE 分类树） */
     @Column(name = "specialties", length = 512)
     private String specialties;
 
-    /** 擅长行业，逗号分隔 */
+    /** 擅长行业 — 分类 ID 逗号串（一级多选，复用 TRAINER_INDUSTRY 分类树） */
     @Column(name = "industries", length = 512)
     private String industries;
+
+    /** 是否有场地：0=否，1=是 */
+    @Column(name = "has_venue", nullable = false, columnDefinition = "tinyint(1)")
+    private Integer hasVenue = 0;
+
+    /** 是否有专家：0=否，1=是 */
+    @Column(name = "has_experts", nullable = false, columnDefinition = "tinyint(1)")
+    private Integer hasExperts = 0;
 
     /** 综合评分（0.00-5.00） */
     @Column(name = "score", nullable = false, precision = 3, scale = 2)
@@ -141,4 +159,12 @@ public class Institution extends BaseEntity {
     /** 是否培训协会 */
     @Column(name = "association", nullable = false, columnDefinition = "tinyint(1)")
     private Boolean association = false;
+
+    /** 注册培训机构合作协议签署时间 */
+    @Column(name = "agreement_signed_at")
+    private LocalDateTime agreementSignedAt;
+
+    /** 协议版本号，默认 v1 */
+    @Column(name = "agreement_version", length = 32)
+    private String agreementVersion;
 }

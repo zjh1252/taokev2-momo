@@ -155,6 +155,41 @@ function defaultFormData(role: ApplyableRole): Record<string, unknown> {
         agreementSigned: false,
         agreementVersion: 'v1',
       };
+    case 'INSTITUTION':
+      return {
+        orgName: '',
+        orgType: 0,
+        legalRepresentative: '',
+        licenseNo: '',
+        establishedAt: '',
+        logoUrl: '',
+        bio: '',
+        industryCategoryIds: [],
+        expertiseCategoryIds: [],
+        clientCases: '',
+        hasVenue: 0,
+        hasExperts: 0,
+        contactName: '',
+        contactPhone: '',
+        showContact: 0,
+        provinceId: null,
+        cityId: null,
+        districtId: null,
+        townId: null,
+        address: '',
+        agreementSigned: false,
+        agreementVersion: 'v1',
+      };
+    case 'INSTITUTION_EMPLOYEE':
+      return {
+        realName: '',
+        contactPhone: '',
+        email: '',
+        serviceCities: [],
+        orgId: null,
+        agreementSigned: false,
+        agreementVersion: 'v1',
+      };
     default:
       return {};
   }

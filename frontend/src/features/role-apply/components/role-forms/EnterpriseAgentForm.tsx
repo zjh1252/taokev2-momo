@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Loader2, Upload, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import RegionCascader from '@/components/region-cascader';
 import type { EnterpriseAgentFormData } from '../../api/types';
@@ -10,7 +8,7 @@ import { FormField } from './FormField';
 import type { FormValidationRules } from '@/lib/validation';
 import { Validators } from '@/lib/validation';
 import AgreementCheckbox from '../AgreementCheckbox';
-import { uploadImage } from '@/features/course/api/publisher-service';
+import SingleImageUploader from '../SingleImageUploader';
 
 const COMPANY_SIZE_OPTIONS = ['1-50人', '51-200人', '201-500人', '501-1000人', '1000人以上'];
 
@@ -166,7 +164,8 @@ export function EnterpriseAgentForm({ data, onChange }: EnterpriseAgentFormProps
           资质文件
         </legend>
         <FormField label="营业执照" required>
-          <BusinessLicenseUploader
+          <SingleImageUploader
+            label="营业执照"
             value={data.qualificationDocUrl || ''}
             onChange={(url) => update({ qualificationDocUrl: url })}
           />
@@ -189,102 +188,6 @@ export function EnterpriseAgentForm({ data, onChange }: EnterpriseAgentFormProps
         />
       </fieldset>
     </div>
-  );
-}
-
-/**
- * 营业执照图片上传 — 单图，复用 /uploads/images 通用图片上传端点。
- */
-function BusinessLicenseUploader({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (url: string) => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('请上传图片文件');
-      return;
-    }
-    setUploading(true);
-    try {
-      const url = await uploadImage(file);
-      onChange(url);
-      toast.success('营业执照上传成功');
-    } catch {
-      toast.error('上传失败，请稍后重试');
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = '';
-    }
-  };
-
-  if (value) {
-    return (
-      <div className="flex items-start gap-3">
-        <div className="relative size-32 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="营业执照" className="size-full object-cover" />
-          <button
-            type="button"
-            onClick={() => onChange('')}
-            className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-red-500"
-            aria-label="移除营业执照"
-          >
-            <X className="size-3.5" />
-          </button>
-        </div>
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="text-sm text-primary hover:underline disabled:opacity-50"
-        >
-          {uploading ? '正在上传…' : '重新上传'}
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <button
-        type="button"
-        disabled={uploading}
-        onClick={() => inputRef.current?.click()}
-        className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 hover:border-primary hover:bg-primary/5 px-6 py-8 w-fit min-w-[160px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {uploading ? (
-          <>
-            <Loader2 className="size-6 text-primary animate-spin" />
-            <span className="text-sm text-gray-500">正在上传…</span>
-          </>
-        ) : (
-          <>
-            <Upload className="size-6 text-slate-400" />
-            <span className="text-sm text-gray-500">点击上传营业执照</span>
-          </>
-        )}
-      </button>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-      />
-    </>
   );
 }
 

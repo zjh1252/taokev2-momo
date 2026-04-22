@@ -223,24 +223,67 @@ export interface EnterpriseAgentFormData {
 }
 
 export interface InstitutionFormData {
+  /** 机构名称 */
   orgName: string;
+  /** 机构类型 */
   orgType: number;
+  /** 法人代表 */
+  legalRepresentative: string;
+  /** 营业执照号 */
   licenseNo: string;
+  /** 成立时间（YYYY-MM-DD） */
+  establishedAt: string;
+  /** 机构 Logo URL */
+  logoUrl: string;
+  /** 机构简介 */
   bio: string;
+  /** 擅长行业一级分类 ID 列表（复用 TRAINER_INDUSTRY 分类树） */
+  industryCategoryIds: number[];
+  /** 擅长领域一级分类 ID 列表（复用 TRAINER_EXPERTISE 分类树） */
+  expertiseCategoryIds: number[];
+  /** 我的客户（长文本） */
+  clientCases: string;
+  /** 是否有场地：0=否，1=是 */
+  hasVenue: number;
+  /** 是否有专家：0=否，1=是 */
+  hasExperts: number;
+  /** 联系人姓名 */
   contactName: string;
+  /** 联系电话 */
   contactPhone: string;
+  /** 是否公开联系方式：0=否，1=是 */
   showContact: number;
+  /** 4 级地区 */
   provinceId: number | null;
   cityId: number | null;
   districtId: number | null;
+  townId: number | null;
+  /** 详细地址 */
   address: string;
+  /** 是否同意《淘课网注册培训机构合作协议》 */
+  agreementSigned: boolean;
+  /** 协议版本号，默认 v1 */
+  agreementVersion: string;
 }
 
 export interface InstitutionEmployeeFormData {
+  /** 真实姓名 */
+  realName: string;
+  /** 联系电话 */
   contactPhone: string;
+  /** 常用邮箱 */
+  email: string;
+  /** 多服务城市（2 级联动） */
+  serviceCities: ServiceCityItem[];
+  /** 所属机构 ID */
   orgId: number | null;
-  position: string;
-  department: string;
+  /** 是否同意《淘课网注册培训机构员工合作协议》 */
+  agreementSigned: boolean;
+  /** 协议版本号，默认 v1 */
+  agreementVersion: string;
+  // ---- 历史字段（保留兼容） ----
+  position?: string;
+  department?: string;
 }
 
 /** 所有表单数据的联合类型 */
