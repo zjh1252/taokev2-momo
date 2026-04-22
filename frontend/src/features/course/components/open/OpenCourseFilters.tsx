@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Check } from 'lucide-react';
 import { apiGet } from '@/lib/http/client';
 import type { CategoryTreeNode } from '../../api/types';
 
@@ -11,26 +11,27 @@ import type { CategoryTreeNode } from '../../api/types';
  * <p>设计要点：</p>
  * <ul>
  *   <li>鼠标 hover 触发右侧浮层；浮层内所有可点元素显式给出 hover 颜色变化。</li>
- *   <li>所有维度变化通过 {@code onChange} 直接回调，由父组件统一持有 filter 对象。</li>
- *   <li>「综合筛选」直接映射后端 sortBy；「开课时间」支持快捷段 + 自定义日期；「价格区间」支持预设档 + 自定义。</li>
+ *   <li>「课程分类」「开课省市」均支持多选，点击即生效（再次点击取消）。</li>
+ *   <li>「开课时间」支持快捷段 + 自定义日期；「价格区间」支持预设档 + 自定义。</li>
+ *   <li>排序逻辑由顶部排序栏负责，本侧栏不再提供「综合筛选」入口。</li>
  *   <li>「开课省市」从 {@code GET /regions/children} 拉取省份列表。</li>
  * </ul>
  *
  * @author Fangxinxin
- * @date 2026-04-22 22:30
+ * @date 2026-04-22 23:10
  */
 
 /** 公开课列表所有可过滤维度（与 CourseListParams 子集对齐） */
 export interface OpenCourseFilterValue {
-  categoryId?: number;
-  categoryName?: string;
+  /** 一级课程分类 IDs（多选） */
+  categoryIds?: number[];
+  /** 多选展示文字（与 categoryIds 一一对应） */
+  categoryNames?: string[];
 
-  sortBy?: string;
-  /** 综合筛选选中标签：用于在 chips 中展示语义化文字 */
-  sortLabel?: string;
-
-  provinceId?: number;
-  provinceName?: string;
+  /** 开课省份 IDs（多选） */
+  provinceIds?: number[];
+  /** 多选展示文字（与 provinceIds 一一对应） */
+  provinceNames?: string[];
 
   /** 开课时间快捷段 key（thisWeek/thisMonth/nextThreeMonths） */
   timeQuick?: string;
@@ -55,13 +56,7 @@ interface OpenCourseFiltersProps {
   onChange: (value: OpenCourseFilterValue) => void;
 }
 
-type FilterKey =
-  | 'comprehensive'
-  | 'category'
-  | 'openCity'
-  | 'openTime'
-  | 'priceRange'
-  | 'enrollStatus';
+type FilterKey = 'category' | 'openCity' | 'openTime' | 'priceRange' | 'enrollStatus';
 
 interface FilterMeta {
   key: FilterKey;
@@ -70,20 +65,11 @@ interface FilterMeta {
 }
 
 const FILTER_ITEMS: FilterMeta[] = [
-  { key: 'comprehensive', label: '综合筛选', flyoutWidth: 320 },
-  { key: 'category', label: '课程分类', flyoutWidth: 400 },
-  { key: 'openCity', label: '开课省市', flyoutWidth: 520 },
+  { key: 'category', label: '课程分类', flyoutWidth: 420 },
+  { key: 'openCity', label: '开课省市', flyoutWidth: 540 },
   { key: 'openTime', label: '开课时间', flyoutWidth: 360 },
   { key: 'priceRange', label: '价格范围', flyoutWidth: 340 },
   { key: 'enrollStatus', label: '报名状态', flyoutWidth: 240 },
-];
-
-/** 综合筛选预设：直接映射后端 sortBy */
-const COMPREHENSIVE_OPTIONS: { label: string; sortBy: string }[] = [
-  { label: '默认', sortBy: 'default' },
-  { label: '最新发布', sortBy: 'time' },
-  { label: '最多人看', sortBy: 'viewCount' },
-  { label: '评分最高', sortBy: 'score' },
 ];
 
 /** 时间快捷段：与后端 PublicCourseQuery.timeQuick 解析对齐 */
@@ -129,6 +115,7 @@ async function fetchProvinces(): Promise<RegionItem[]> {
 export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseFiltersProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null);
   const [provinces, setProvinces] = useState<RegionItem[]>([]);
+
   const [customStart, setCustomStart] = useState(value.startTimeFrom || '');
   const [customEnd, setCustomEnd] = useState(value.startTimeTo || '');
   const [customPriceMin, setCustomPriceMin] = useState<string>(
@@ -163,20 +150,42 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
 
   const patch = (p: Partial<OpenCourseFilterValue>) => onChange({ ...value, ...p });
 
-  const handleSort = (label: string, sortBy: string) => {
-    patch({ sortLabel: label === '默认' ? undefined : label, sortBy: sortBy === 'default' ? undefined : sortBy });
-    closeFlyout();
+  /**
+   * 通用切换：在已选 ids 中翻转 id；同步重新计算 names。
+   * <p>不关闭浮层，方便用户连续多选。</p>
+   */
+  const toggleMultiSelect = (
+    field: 'categoryIds' | 'provinceIds',
+    nameField: 'categoryNames' | 'provinceNames',
+    id: number,
+    nameLookup: (id: number) => string | undefined,
+  ) => {
+    const currentIds = (value[field] as number[] | undefined) ?? [];
+    const idx = currentIds.indexOf(id);
+    let nextIds: number[];
+    if (idx >= 0) {
+      nextIds = currentIds.filter((x) => x !== id);
+    } else {
+      nextIds = [...currentIds, id];
+    }
+    const nextNames = nextIds
+      .map((nid) => nameLookup(nid))
+      .filter((n): n is string => Boolean(n));
+    patch({
+      [field]: nextIds.length > 0 ? nextIds : undefined,
+      [nameField]: nextNames.length > 0 ? nextNames : undefined,
+    } as Partial<OpenCourseFilterValue>);
   };
 
-  const handleCategory = (id?: number, name?: string) => {
-    patch({ categoryId: id, categoryName: name });
-    closeFlyout();
-  };
+  const toggleCategory = (id: number) =>
+    toggleMultiSelect('categoryIds', 'categoryNames', id, (nid) =>
+      categoryTree.find((c) => c.id === nid)?.name,
+    );
 
-  const handleProvince = (id?: number, name?: string) => {
-    patch({ provinceId: id, provinceName: name });
-    closeFlyout();
-  };
+  const toggleProvince = (id: number) =>
+    toggleMultiSelect('provinceIds', 'provinceNames', id, (nid) =>
+      provinces.find((p) => p.id === nid)?.name,
+    );
 
   const handleTimeQuick = (key: string, label: string) => {
     patch({
@@ -246,7 +255,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
                 activeFilter === item.key ? 'bg-slate-50' : 'hover:bg-slate-50'
               }`}
             >
-              <span className="font-semibold text-slate-800 text-sm group-hover:text-primary">
+              <span className="font-semibold text-slate-800 text-sm">
                 {item.label}
               </span>
               <ChevronRight
@@ -273,86 +282,65 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
             className="bg-white rounded-xl shadow-xl border border-slate-100 p-6 max-h-[70vh] overflow-y-auto"
             style={{ width: activeMeta.flyoutWidth }}
           >
-            {activeFilter === 'comprehensive' && (
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                {COMPREHENSIVE_OPTIONS.map((opt) => {
-                  const active =
-                    (opt.sortBy === 'default' && !value.sortBy) || value.sortBy === opt.sortBy;
+            {activeFilter === 'category' && (
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                {categoryTree.map((cat) => {
+                  const checked = (value.categoryIds ?? []).includes(cat.id);
                   return (
                     <button
-                      key={opt.label}
+                      key={cat.id}
                       type="button"
-                      onClick={() => handleSort(opt.label, opt.sortBy)}
-                      className={`text-left cursor-pointer transition-colors ${
-                        active
-                          ? 'text-primary font-medium'
-                          : 'text-slate-600 hover:text-primary'
+                      onClick={() => toggleCategory(cat.id)}
+                      className={`flex items-center gap-2 text-left cursor-pointer transition-colors px-1.5 py-1 rounded ${
+                        checked
+                          ? 'text-primary font-medium bg-primary/5'
+                          : 'text-slate-600 hover:text-primary hover:bg-primary/5'
                       }`}
                     >
-                      {opt.label}
+                      <span
+                        className={`inline-flex items-center justify-center w-4 h-4 rounded border shrink-0 transition-colors ${
+                          checked
+                            ? 'border-primary bg-primary text-white'
+                            : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {checked && <Check className="size-3" strokeWidth={3} />}
+                      </span>
+                      <span className="truncate">{cat.name}</span>
                     </button>
                   );
                 })}
               </div>
             )}
 
-            {activeFilter === 'category' && (
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                <button
-                  type="button"
-                  onClick={() => handleCategory(undefined, undefined)}
-                  className={`text-left cursor-pointer transition-colors ${
-                    !value.categoryId
-                      ? 'text-primary font-medium'
-                      : 'text-slate-600 hover:text-primary'
-                  }`}
-                >
-                  全部分类
-                </button>
-                {categoryTree.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => handleCategory(cat.id, cat.name)}
-                    className={`text-left cursor-pointer transition-colors ${
-                      value.categoryId === cat.id
-                        ? 'text-primary font-medium'
-                        : 'text-slate-600 hover:text-primary'
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
             {activeFilter === 'openCity' && (
               <div className="grid grid-cols-4 gap-x-3 gap-y-3 text-sm">
-                <button
-                  type="button"
-                  onClick={() => handleProvince(undefined, undefined)}
-                  className={`text-left cursor-pointer transition-colors ${
-                    !value.provinceId
-                      ? 'text-primary font-semibold'
-                      : 'text-slate-600 hover:text-primary'
-                  }`}
-                >
-                  全国
-                </button>
-                {provinces.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => handleProvince(p.id, p.name)}
-                    className={`text-left cursor-pointer transition-colors truncate ${
-                      value.provinceId === p.id
-                        ? 'text-primary font-medium'
-                        : 'text-slate-600 hover:text-primary'
-                    }`}
-                  >
-                    {p.name}
-                  </button>
-                ))}
+                {provinces.map((p) => {
+                  const checked = (value.provinceIds ?? []).includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => toggleProvince(p.id)}
+                      className={`flex items-center gap-2 text-left cursor-pointer transition-colors px-1.5 py-1 rounded ${
+                        checked
+                          ? 'text-primary font-medium bg-primary/5'
+                          : 'text-slate-600 hover:text-primary hover:bg-primary/5'
+                      }`}
+                    >
+                      <span
+                        className={`inline-flex items-center justify-center w-4 h-4 rounded border shrink-0 transition-colors ${
+                          checked
+                            ? 'border-primary bg-primary text-white'
+                            : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {checked && <Check className="size-3" strokeWidth={3} />}
+                      </span>
+                      <span className="truncate">{p.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -497,3 +485,4 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
     </div>
   );
 }
+

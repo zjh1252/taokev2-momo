@@ -84,31 +84,22 @@ export function OpenCourseCard({ course }: OpenCourseCardProps) {
             <span className="text-slate-400 min-w-[60px]">授课讲师：</span>
             <span className="text-slate-700">{course.trainerName || '-'}</span>
           </div>
-          <div className="flex items-start gap-1 md:col-span-2">
-            <span className="text-slate-400 min-w-[60px] shrink-0">课程分类：</span>
-            <div className="flex items-center gap-2 flex-wrap min-w-0">
-              <span className="text-slate-700">{course.categoryName || '-'}</span>
-              {course.keywords && (
-                <>
-                  <span className="text-slate-200">|</span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {course.keywords
-                      .split(/[,，、\s]+/)
-                      .filter((kw) => kw.trim())
-                      .slice(0, 6)
-                      .map((kw, idx) => (
-                        <span
-                          key={`${kw}-${idx}`}
-                          className="px-1.5 py-0.5 rounded bg-primary/5 text-primary text-[11px] border border-primary/10"
-                        >
-                          {kw.trim()}
-                        </span>
-                      ))}
-                  </div>
-                </>
-              )}
-            </div>
+          <div className="flex items-center gap-1 md:col-span-2">
+            <span className="text-slate-400 min-w-[60px]">课程分类：</span>
+            <span className="text-slate-700">{course.categoryName || '-'}</span>
           </div>
+          {course.keywords && (
+            <div className="flex items-center gap-1 md:col-span-2">
+              <span className="text-slate-400 min-w-[60px]">关键词：</span>
+              <span className="text-slate-700 truncate">
+                {course.keywords
+                  .split(/[,，、\s]+/)
+                  .map((kw) => kw.trim())
+                  .filter(Boolean)
+                  .join('，')}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </Link>

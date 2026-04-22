@@ -220,15 +220,17 @@ public class CourseServiceImpl implements CourseService {
 
         // 计划维度（开课省/市、开课时间、报名状态）—— 先一次性预查命中的 courseId 集合
         Set<Integer> planMatchedCourseIds = null;
-        boolean needPlanFilter = query.getProvinceId() != null
-                || query.getCityId() != null
+        boolean hasProvince = query.getProvinceIds() != null && !query.getProvinceIds().isEmpty();
+        boolean hasCity = query.getCityIds() != null && !query.getCityIds().isEmpty();
+        boolean needPlanFilter = hasProvince
+                || hasCity
                 || startFrom != null
                 || startTo != null
                 || (query.getEnrollStatus() != null && !query.getEnrollStatus().isBlank());
         if (needPlanFilter) {
             planMatchedCourseIds = findCourseIdsByPlanFilter(
-                    query.getProvinceId(),
-                    query.getCityId(),
+                    query.getProvinceIds(),
+                    query.getCityIds(),
                     startFrom,
                     startTo,
                     query.getEnrollStatus());
@@ -242,11 +244,11 @@ public class CourseServiceImpl implements CourseService {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()));
 
-            if (query.getCategoryId() != null) {
-                predicates.add(cb.equal(root.get("categoryId"), query.getCategoryId()));
+            if (query.getCategoryIds() != null && !query.getCategoryIds().isEmpty()) {
+                predicates.add(root.get("categoryId").in(query.getCategoryIds()));
             }
-            if (query.getSubCategoryId() != null) {
-                predicates.add(cb.equal(root.get("subCategoryId"), query.getSubCategoryId()));
+            if (query.getSubCategoryIds() != null && !query.getSubCategoryIds().isEmpty()) {
+                predicates.add(root.get("subCategoryId").in(query.getSubCategoryIds()));
             }
             if (query.getType() != null && !query.getType().isBlank()) {
                 predicates.add(cb.equal(root.get("type"), CourseType.valueOf(query.getType())));
@@ -316,8 +318,11 @@ public class CourseServiceImpl implements CourseService {
     /**
      * 按开课计划维度（省、市、时间区间、报名状态）筛选出命中的课程 ID 集合。
      * <p>方便上层 Specification 用 {@code course.id IN (...)} 拼接。</p>
+     *
+     * @param provinceIds 省份 ID 集合（OR 关系，传 null/empty 表示不过滤）
+     * @param cityIds     城市 ID 集合（OR 关系，传 null/empty 表示不过滤）
      */
-    private Set<Integer> findCourseIdsByPlanFilter(Integer provinceId, Integer cityId,
+    private Set<Integer> findCourseIdsByPlanFilter(List<Integer> provinceIds, List<Integer> cityIds,
                                                     LocalDate startFrom, LocalDate startTo,
                                                     String enrollStatus) {
         LocalDateTime now = LocalDateTime.now();
@@ -326,11 +331,11 @@ public class CourseServiceImpl implements CourseService {
 
         Specification<CoursePlan> spec = (root, cq, cb) -> {
             List<Predicate> ps = new ArrayList<>();
-            if (provinceId != null) {
-                ps.add(cb.equal(root.get("provinceId"), provinceId));
+            if (provinceIds != null && !provinceIds.isEmpty()) {
+                ps.add(root.get("provinceId").in(provinceIds));
             }
-            if (cityId != null) {
-                ps.add(cb.equal(root.get("cityId"), cityId));
+            if (cityIds != null && !cityIds.isEmpty()) {
+                ps.add(root.get("cityId").in(cityIds));
             }
             if (fromTs != null) {
                 ps.add(cb.greaterThanOrEqualTo(root.get("startTime"), fromTs));

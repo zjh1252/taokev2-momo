@@ -10,18 +10,20 @@ import type {
 export interface CourseListParams {
   page?: number;
   size?: number;
-  categoryId?: number;
-  subCategoryId?: number;
+  /** 一级分类 ID 集合（多选） */
+  categoryIds?: number[];
+  /** 二级分类 ID 集合（多选） */
+  subCategoryIds?: number[];
   type?: string;
   isOpen?: boolean;
   keyword?: string;
   sortBy?: string;
   /** 机构 ID 过滤（仅返回该机构发布的课程） */
   institutionId?: number;
-  /** 开课省份 ID（按开课计划过滤） */
-  provinceId?: number;
-  /** 开课城市 ID（按开课计划过滤） */
-  cityId?: number;
+  /** 开课省份 ID 集合（按开课计划过滤，多选） */
+  provinceIds?: number[];
+  /** 开课城市 ID 集合（按开课计划过滤，多选） */
+  cityIds?: number[];
   /** 开课时间起（YYYY-MM-DD） */
   startTimeFrom?: string;
   /** 开课时间止（YYYY-MM-DD） */
@@ -47,15 +49,23 @@ export async function getCourseList(
   const query = new URLSearchParams();
   if (params.page) query.set('page', String(params.page));
   if (params.size) query.set('size', String(params.size));
-  if (params.categoryId) query.set('categoryId', String(params.categoryId));
-  if (params.subCategoryId) query.set('subCategoryId', String(params.subCategoryId));
+  if (params.categoryIds && params.categoryIds.length > 0) {
+    params.categoryIds.forEach((id) => query.append('categoryIds', String(id)));
+  }
+  if (params.subCategoryIds && params.subCategoryIds.length > 0) {
+    params.subCategoryIds.forEach((id) => query.append('subCategoryIds', String(id)));
+  }
   if (params.type) query.set('type', params.type);
   if (params.isOpen !== undefined) query.set('isOpen', String(params.isOpen));
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sortBy) query.set('sortBy', params.sortBy);
   if (params.institutionId) query.set('institutionId', String(params.institutionId));
-  if (params.provinceId) query.set('provinceId', String(params.provinceId));
-  if (params.cityId) query.set('cityId', String(params.cityId));
+  if (params.provinceIds && params.provinceIds.length > 0) {
+    params.provinceIds.forEach((id) => query.append('provinceIds', String(id)));
+  }
+  if (params.cityIds && params.cityIds.length > 0) {
+    params.cityIds.forEach((id) => query.append('cityIds', String(id)));
+  }
   if (params.startTimeFrom) query.set('startTimeFrom', params.startTimeFrom);
   if (params.startTimeTo) query.set('startTimeTo', params.startTimeTo);
   if (params.timeQuick) query.set('timeQuick', params.timeQuick);

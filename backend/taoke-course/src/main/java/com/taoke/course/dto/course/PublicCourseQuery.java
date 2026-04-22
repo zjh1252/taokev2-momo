@@ -3,6 +3,7 @@ package com.taoke.course.dto.course;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 公开课程列表查询参数
@@ -22,11 +23,14 @@ import java.time.LocalDate;
 @Data
 public class PublicCourseQuery {
 
-    /** 一级分类 ID */
-    private Integer categoryId;
+    /**
+     * 一级分类 ID 集合（多选）。
+     * <p>请求示例：{@code ?categoryIds=1&categoryIds=2}。</p>
+     */
+    private List<Integer> categoryIds;
 
-    /** 二级分类 ID */
-    private Integer subCategoryId;
+    /** 二级分类 ID 集合（多选） */
+    private List<Integer> subCategoryIds;
 
     /** 课程类型：INTERNAL / OPEN_OFFLINE / OPEN_ONLINE */
     private String type;
@@ -45,11 +49,11 @@ public class PublicCourseQuery {
 
     // ---- 开课计划维度 ----
 
-    /** 开课省份 ID（来自最近一场开课计划） */
-    private Integer provinceId;
+    /** 开课省份 ID 集合（多选，按开课计划过滤；OR 关系） */
+    private List<Integer> provinceIds;
 
-    /** 开课城市 ID（来自最近一场开课计划） */
-    private Integer cityId;
+    /** 开课城市 ID 集合（多选，按开课计划过滤；OR 关系） */
+    private List<Integer> cityIds;
 
     /** 开课时间起（包含），按 plan.startTime 过滤 */
     private LocalDate startTimeFrom;

@@ -42,7 +42,7 @@ export function OpenCourseListSection({
   const [data, setData] = useState(initialData);
   const [filters, setFilters] = useState<OpenCourseFilterValue>({});
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
-  // 顶部排序栏的选择仅控制 sortBy；与 OpenCourseFilters 中的"综合筛选"共用 filters.sortBy
+  // 排序由顶部排序栏唯一控制
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
@@ -63,9 +63,7 @@ export function OpenCourseListSection({
             ? overrideInstitutionId
             : institutionId;
       const sortByValue = SORT_OPTIONS.find((o) => o.key === sort)?.sortBy ?? 'default';
-      // 顶部排序栏优先级高于综合筛选；只有顶部用 default 时才让综合筛选 sortBy 生效
-      const effectiveSortBy =
-        sortByValue !== 'default' ? sortByValue : f.sortBy ? f.sortBy : undefined;
+      const effectiveSortBy = sortByValue !== 'default' ? sortByValue : undefined;
 
       startTransition(async () => {
         try {
@@ -73,10 +71,10 @@ export function OpenCourseListSection({
             page,
             size: 15,
             isOpen: true,
-            categoryId: f.categoryId,
+            categoryIds: f.categoryIds,
             sortBy: effectiveSortBy,
             institutionId: instId,
-            provinceId: f.provinceId,
+            provinceIds: f.provinceIds,
             timeQuick: f.timeQuick,
             startTimeFrom: f.startTimeFrom,
             startTimeTo: f.startTimeTo,
@@ -131,7 +129,7 @@ export function OpenCourseListSection({
     fetchData(1, {}, 'default');
   }, [fetchData]);
 
-  // 当前已激活的过滤 chips（机构、分类、综合、省、时间、价格、报名状态）
+  // 当前已激活的过滤 chips（机构、分类、省、时间、价格、报名状态）
   const activeChips = useMemo<ActiveChip[]>(() => {
     const chips: ActiveChip[] = [];
     if (institutionId && initialInstitutionName) {
@@ -141,25 +139,42 @@ export function OpenCourseListSection({
         onRemove: () => filters,
       });
     }
-    if (filters.categoryId && filters.categoryName) {
-      chips.push({
-        key: 'category',
-        label: `分类：${filters.categoryName}`,
-        onRemove: () => ({ ...filters, categoryId: undefined, categoryName: undefined }),
+    // 多选分类：每个 id 一个 chip，独立移除
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+      filters.categoryIds.forEach((id, idx) => {
+        const name = filters.categoryNames?.[idx] ?? `#${id}`;
+        chips.push({
+          key: `category-${id}`,
+          label: `分类：${name}`,
+          onRemove: () => {
+            const ids = (filters.categoryIds ?? []).filter((x) => x !== id);
+            const names = (filters.categoryNames ?? []).filter((_, i) => i !== idx);
+            return {
+              ...filters,
+              categoryIds: ids.length > 0 ? ids : undefined,
+              categoryNames: names.length > 0 ? names : undefined,
+            };
+          },
+        });
       });
     }
-    if (filters.sortBy && filters.sortLabel) {
-      chips.push({
-        key: 'sortBy',
-        label: `综合：${filters.sortLabel}`,
-        onRemove: () => ({ ...filters, sortBy: undefined, sortLabel: undefined }),
-      });
-    }
-    if (filters.provinceId && filters.provinceName) {
-      chips.push({
-        key: 'province',
-        label: `开课省市：${filters.provinceName}`,
-        onRemove: () => ({ ...filters, provinceId: undefined, provinceName: undefined }),
+    // 多选省份：每个 id 一个 chip
+    if (filters.provinceIds && filters.provinceIds.length > 0) {
+      filters.provinceIds.forEach((id, idx) => {
+        const name = filters.provinceNames?.[idx] ?? `#${id}`;
+        chips.push({
+          key: `province-${id}`,
+          label: `开课省市：${name}`,
+          onRemove: () => {
+            const ids = (filters.provinceIds ?? []).filter((x) => x !== id);
+            const names = (filters.provinceNames ?? []).filter((_, i) => i !== idx);
+            return {
+              ...filters,
+              provinceIds: ids.length > 0 ? ids : undefined,
+              provinceNames: names.length > 0 ? names : undefined,
+            };
+          },
+        });
       });
     }
     if (filters.timeQuick && filters.timeQuickLabel) {
