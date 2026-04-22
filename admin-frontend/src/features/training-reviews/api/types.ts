@@ -23,6 +23,8 @@ export type AdminTrainingReview = {
   userId: number;
   rejectReason: string | null;
   submitterContact: string | null;
+  /** 关联对象展示名（课程标题 / 专家名 / 机构名） */
+  targetDisplayName: string | null;
 };
 
 export type TrainingReviewFilters = {

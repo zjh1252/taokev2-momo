@@ -50,4 +50,10 @@ public class AdminReviewVO {
     private String rejectReason;
     /** 提交人联系方式（管理端可见） */
     private String submitterContact;
+
+    /**
+     * 被评对象展示名（列表「关联对象」列）：课程标题 / 专家姓名 / 机构名称，
+     * <p>优先评价快照字段，缺省时由后台按 ID 批量回填。</p>
+     */
+    private String targetDisplayName;
 }

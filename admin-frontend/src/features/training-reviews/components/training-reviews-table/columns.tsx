@@ -27,12 +27,17 @@ function statusVariant(status: number) {
   }
 }
 
-function targetLabel(row: AdminTrainingReview): string {
+/** 无后端 targetDisplayName 时的兜底文案 */
+function targetLabelFallback(row: AdminTrainingReview): string {
   switch (row.reviewScope) {
     case 'COURSE':
-      return row.courseId != null ? `课程 #${row.courseId}` : '-';
+      return row.courseTitle?.trim()
+        || (row.courseId != null ? `课程 #${row.courseId}` : '-');
     case 'TRAINER':
-      return row.trainerUserId != null ? `专家 user ${row.trainerUserId}` : '-';
+      return (
+        row.expertName?.trim() ||
+        (row.trainerUserId != null ? `专家 #${row.trainerUserId}` : '-')
+      );
     case 'INSTITUTION':
       return row.institutionId != null ? `机构 #${row.institutionId}` : '-';
     default:
@@ -66,9 +71,16 @@ export const columns: ColumnDef<AdminTrainingReview>[] = [
   {
     id: 'target',
     header: '关联对象',
-    cell: ({ row }) => (
-      <div className='max-w-[140px] truncate'>{targetLabel(row.original)}</div>
-    )
+    cell: ({ row }) => {
+      const label =
+        row.original.targetDisplayName?.trim() ||
+        targetLabelFallback(row.original);
+      return (
+        <div className='max-w-[200px] truncate' title={label}>
+          {label}
+        </div>
+      );
+    }
   },
   {
     id: 'avgScore',
