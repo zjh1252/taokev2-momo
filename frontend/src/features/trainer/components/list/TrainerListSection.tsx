@@ -3,7 +3,6 @@
 import { useState, useCallback, useTransition } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { TrainerFilters, type TrainerFilterValue } from './TrainerFilters';
-import { TrainerFilterChips } from './TrainerFilterChips';
 import { TrainerCard } from './TrainerCard';
 import { TrainerRecommendedScroller } from './TrainerRecommendedScroller';
 import { TrainerCaseScroller } from './TrainerCaseScroller';
@@ -119,18 +118,18 @@ export function TrainerListSection({
         </div>
       </section>
 
-      {/* 中部：NEW 案例条（横向滚动，2 条/屏） */}
+      {/* 中部：NEW 案例条（每屏 2 条，每 8 秒向上步进） */}
       <TrainerCaseScroller initialItems={recentCases} />
 
-      {/* 已选筛选 chips */}
-      <TrainerFilterChips
-        value={filters}
-        onChange={handleFilterChange}
+      {/* 排序栏（同时承载已选筛选 chips） */}
+      <TrainerSortBar
+        sort={sort}
+        total={data.total}
+        filters={filters}
+        onChange={handleSortChange}
+        onFilterChange={handleFilterChange}
         onReset={handleReset}
       />
-
-      {/* 排序栏 */}
-      <TrainerSortBar sort={sort} total={data.total} onChange={handleSortChange} />
 
       {/* 列表（2 列网格，与老站布局一致） */}
       <div
