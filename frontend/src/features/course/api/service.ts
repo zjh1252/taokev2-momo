@@ -18,6 +18,24 @@ export interface CourseListParams {
   sortBy?: string;
   /** 机构 ID 过滤（仅返回该机构发布的课程） */
   institutionId?: number;
+  /** 开课省份 ID（按开课计划过滤） */
+  provinceId?: number;
+  /** 开课城市 ID（按开课计划过滤） */
+  cityId?: number;
+  /** 开课时间起（YYYY-MM-DD） */
+  startTimeFrom?: string;
+  /** 开课时间止（YYYY-MM-DD） */
+  startTimeTo?: string;
+  /** 时间快捷段：thisWeek / thisMonth / nextThreeMonths */
+  timeQuick?: string;
+  /** 最低价（含） */
+  priceMin?: number;
+  /** 最高价（含） */
+  priceMax?: number;
+  /** 1=仅看免费课程 */
+  isFree?: number;
+  /** 报名状态：ENROLLING / ENDED */
+  enrollStatus?: string;
 }
 
 /**
@@ -36,6 +54,21 @@ export async function getCourseList(
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sortBy) query.set('sortBy', params.sortBy);
   if (params.institutionId) query.set('institutionId', String(params.institutionId));
+  if (params.provinceId) query.set('provinceId', String(params.provinceId));
+  if (params.cityId) query.set('cityId', String(params.cityId));
+  if (params.startTimeFrom) query.set('startTimeFrom', params.startTimeFrom);
+  if (params.startTimeTo) query.set('startTimeTo', params.startTimeTo);
+  if (params.timeQuick) query.set('timeQuick', params.timeQuick);
+  if (params.priceMin !== undefined && params.priceMin !== null) {
+    query.set('priceMin', String(params.priceMin));
+  }
+  if (params.priceMax !== undefined && params.priceMax !== null) {
+    query.set('priceMax', String(params.priceMax));
+  }
+  if (params.isFree !== undefined && params.isFree !== null) {
+    query.set('isFree', String(params.isFree));
+  }
+  if (params.enrollStatus) query.set('enrollStatus', params.enrollStatus);
 
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<CourseListItem>>>(

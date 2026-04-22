@@ -1,12 +1,58 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { ChevronRight, Star } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { ChevronRight } from 'lucide-react';
+import { apiGet } from '@/lib/http/client';
 import type { CategoryTreeNode } from '../../api/types';
+
+/**
+ * 公开课列表 — 左侧多维筛选侧栏。
+ *
+ * <p>设计要点：</p>
+ * <ul>
+ *   <li>鼠标 hover 触发右侧浮层；浮层内所有可点元素显式给出 hover 颜色变化。</li>
+ *   <li>所有维度变化通过 {@code onChange} 直接回调，由父组件统一持有 filter 对象。</li>
+ *   <li>「综合筛选」直接映射后端 sortBy；「开课时间」支持快捷段 + 自定义日期；「价格区间」支持预设档 + 自定义。</li>
+ *   <li>「开课省市」从 {@code GET /regions/children} 拉取省份列表。</li>
+ * </ul>
+ *
+ * @author Fangxinxin
+ * @date 2026-04-22 22:30
+ */
+
+/** 公开课列表所有可过滤维度（与 CourseListParams 子集对齐） */
+export interface OpenCourseFilterValue {
+  categoryId?: number;
+  categoryName?: string;
+
+  sortBy?: string;
+  /** 综合筛选选中标签：用于在 chips 中展示语义化文字 */
+  sortLabel?: string;
+
+  provinceId?: number;
+  provinceName?: string;
+
+  /** 开课时间快捷段 key（thisWeek/thisMonth/nextThreeMonths） */
+  timeQuick?: string;
+  timeQuickLabel?: string;
+  /** 自定义开课时间起止（YYYY-MM-DD） */
+  startTimeFrom?: string;
+  startTimeTo?: string;
+
+  /** 价格预设档 label（用于 chips 展示） */
+  priceLabel?: string;
+  priceMin?: number;
+  priceMax?: number;
+  isFree?: number;
+
+  enrollStatus?: string;
+  enrollStatusLabel?: string;
+}
 
 interface OpenCourseFiltersProps {
   categoryTree: CategoryTreeNode[];
-  onFilterChange: (filters: { categoryId?: number }) => void;
+  value: OpenCourseFilterValue;
+  onChange: (value: OpenCourseFilterValue) => void;
 }
 
 type FilterKey =
@@ -15,47 +61,89 @@ type FilterKey =
   | 'openCity'
   | 'openTime'
   | 'priceRange'
-  | 'courseRating'
-  | 'enrollStatus'
-  | 'courseExtras';
+  | 'enrollStatus';
 
-interface FilterItem {
+interface FilterMeta {
   key: FilterKey;
   label: string;
   flyoutWidth: number;
 }
 
-const FILTER_ITEMS: FilterItem[] = [
-  { key: 'comprehensive', label: '综合筛选', flyoutWidth: 400 },
+const FILTER_ITEMS: FilterMeta[] = [
+  { key: 'comprehensive', label: '综合筛选', flyoutWidth: 320 },
   { key: 'category', label: '课程分类', flyoutWidth: 400 },
-  { key: 'openCity', label: '开课省市', flyoutWidth: 400 },
+  { key: 'openCity', label: '开课省市', flyoutWidth: 520 },
   { key: 'openTime', label: '开课时间', flyoutWidth: 360 },
-  { key: 'priceRange', label: '价格范围', flyoutWidth: 320 },
-  { key: 'courseRating', label: '课程评价', flyoutWidth: 240 },
-  { key: 'enrollStatus', label: '报名状态', flyoutWidth: 200 },
-  { key: 'courseExtras', label: '课程配套', flyoutWidth: 260 },
+  { key: 'priceRange', label: '价格范围', flyoutWidth: 340 },
+  { key: 'enrollStatus', label: '报名状态', flyoutWidth: 240 },
 ];
 
-const CITIES = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '南京'];
-const TIME_QUICK = ['本周内', '本月内', '近三个月', '周末班', '工作日班'];
-const PRICE_RANGES = ['免费', '1000以下', '1000-3000', '3000-5000', '5000以上'];
-const RATINGS = [
-  { stars: 5, label: '5星好评' },
-  { stars: 4, label: '4星及以上' },
-  { stars: 3, label: '3星及以上' },
+/** 综合筛选预设：直接映射后端 sortBy */
+const COMPREHENSIVE_OPTIONS: { label: string; sortBy: string }[] = [
+  { label: '默认', sortBy: 'default' },
+  { label: '最新发布', sortBy: 'time' },
+  { label: '最多人看', sortBy: 'viewCount' },
+  { label: '评分最高', sortBy: 'score' },
 ];
-const ENROLL_STATUSES = [
-  { color: 'bg-emerald-500', label: '正在报名中' },
-  { color: 'bg-blue-500', label: '已确认开班' },
-  { color: 'bg-orange-500', label: '名额紧张' },
-  { color: 'bg-slate-300', label: '报名已结束' },
-];
-const EXTRAS = ['提供教材', '包含午餐', '课后答疑', '颁发证书', '录播回放', '包住宿'];
 
-export function OpenCourseFilters({ categoryTree, onFilterChange }: OpenCourseFiltersProps) {
+/** 时间快捷段：与后端 PublicCourseQuery.timeQuick 解析对齐 */
+const TIME_QUICK_OPTIONS: { label: string; key: string }[] = [
+  { label: '本周内', key: 'thisWeek' },
+  { label: '本月内', key: 'thisMonth' },
+  { label: '近三个月', key: 'nextThreeMonths' },
+];
+
+/** 价格档预设 */
+const PRICE_PRESETS: {
+  label: string;
+  isFree?: number;
+  priceMin?: number;
+  priceMax?: number;
+}[] = [
+  { label: '免费', isFree: 1 },
+  { label: '1000以下', priceMax: 1000 },
+  { label: '1000-3000', priceMin: 1000, priceMax: 3000 },
+  { label: '3000-5000', priceMin: 3000, priceMax: 5000 },
+  { label: '5000以上', priceMin: 5000 },
+];
+
+/** 报名状态预设 — 仅保留可由开课计划判定的两类 */
+const ENROLL_STATUS_OPTIONS: { label: string; key: string; color: string }[] = [
+  { label: '正在报名中', key: 'ENROLLING', color: 'bg-emerald-500' },
+  { label: '报名已结束', key: 'ENDED', color: 'bg-slate-300' },
+];
+
+interface RegionItem {
+  id: number;
+  code: string;
+  name: string;
+  level: number;
+  hasChildren: boolean;
+}
+
+async function fetchProvinces(): Promise<RegionItem[]> {
+  const res = await apiGet<{ data: RegionItem[] }>(`/regions/children`);
+  return res.data || [];
+}
+
+export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseFiltersProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>();
-  const leaveTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const [provinces, setProvinces] = useState<RegionItem[]>([]);
+  const [customStart, setCustomStart] = useState(value.startTimeFrom || '');
+  const [customEnd, setCustomEnd] = useState(value.startTimeTo || '');
+  const [customPriceMin, setCustomPriceMin] = useState<string>(
+    value.priceMin?.toString() ?? '',
+  );
+  const [customPriceMax, setCustomPriceMax] = useState<string>(
+    value.priceMax?.toString() ?? '',
+  );
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    fetchProvinces()
+      .then(setProvinces)
+      .catch(() => {});
+  }, []);
 
   const handleMouseEnter = useCallback((key: FilterKey) => {
     if (leaveTimer.current) {
@@ -71,20 +159,80 @@ export function OpenCourseFilters({ categoryTree, onFilterChange }: OpenCourseFi
     }, 80);
   }, []);
 
-  const handleCategoryClick = useCallback(
-    (catId?: number) => {
-      setSelectedCategoryId(catId);
-      onFilterChange({ categoryId: catId });
-      setActiveFilter(null);
-    },
-    [onFilterChange],
-  );
+  const closeFlyout = () => setActiveFilter(null);
 
-  const activeItem = FILTER_ITEMS.find((i) => i.key === activeFilter);
+  const patch = (p: Partial<OpenCourseFilterValue>) => onChange({ ...value, ...p });
+
+  const handleSort = (label: string, sortBy: string) => {
+    patch({ sortLabel: label === '默认' ? undefined : label, sortBy: sortBy === 'default' ? undefined : sortBy });
+    closeFlyout();
+  };
+
+  const handleCategory = (id?: number, name?: string) => {
+    patch({ categoryId: id, categoryName: name });
+    closeFlyout();
+  };
+
+  const handleProvince = (id?: number, name?: string) => {
+    patch({ provinceId: id, provinceName: name });
+    closeFlyout();
+  };
+
+  const handleTimeQuick = (key: string, label: string) => {
+    patch({
+      timeQuick: key,
+      timeQuickLabel: label,
+      startTimeFrom: undefined,
+      startTimeTo: undefined,
+    });
+    setCustomStart('');
+    setCustomEnd('');
+    closeFlyout();
+  };
+
+  const handleCustomTimeApply = () => {
+    if (!customStart && !customEnd) return;
+    patch({
+      timeQuick: undefined,
+      timeQuickLabel: undefined,
+      startTimeFrom: customStart || undefined,
+      startTimeTo: customEnd || undefined,
+    });
+    closeFlyout();
+  };
+
+  const handlePricePreset = (preset: (typeof PRICE_PRESETS)[number]) => {
+    patch({
+      priceLabel: preset.label,
+      priceMin: preset.priceMin,
+      priceMax: preset.priceMax,
+      isFree: preset.isFree,
+    });
+    setCustomPriceMin(preset.priceMin?.toString() ?? '');
+    setCustomPriceMax(preset.priceMax?.toString() ?? '');
+    closeFlyout();
+  };
+
+  const handleCustomPriceApply = () => {
+    const min = customPriceMin ? Number(customPriceMin) : undefined;
+    const max = customPriceMax ? Number(customPriceMax) : undefined;
+    if (min === undefined && max === undefined) return;
+    if (min !== undefined && Number.isNaN(min)) return;
+    if (max !== undefined && Number.isNaN(max)) return;
+    const label = `${min ?? '不限'}-${max ?? '不限'}`;
+    patch({ priceLabel: label, priceMin: min, priceMax: max, isFree: undefined });
+    closeFlyout();
+  };
+
+  const handleEnrollStatus = (key: string, label: string) => {
+    patch({ enrollStatus: key, enrollStatusLabel: label });
+    closeFlyout();
+  };
+
+  const activeMeta = FILTER_ITEMS.find((f) => f.key === activeFilter);
 
   return (
     <div className="w-64 shrink-0 relative" onMouseLeave={handleMouseLeave}>
-      {/* 侧边栏 */}
       <aside className="bg-white rounded-xl shadow-sm border border-slate-100">
         {FILTER_ITEMS.map((item, index) => (
           <div
@@ -93,11 +241,14 @@ export function OpenCourseFilters({ categoryTree, onFilterChange }: OpenCourseFi
             onMouseEnter={() => handleMouseEnter(item.key)}
           >
             <button
-              className={`w-full flex items-center justify-between p-4 text-left transition-colors ${
+              type="button"
+              className={`w-full flex items-center justify-between p-4 text-left cursor-pointer transition-colors ${
                 activeFilter === item.key ? 'bg-slate-50' : 'hover:bg-slate-50'
               }`}
             >
-              <span className="font-semibold text-slate-800 text-sm">{item.label}</span>
+              <span className="font-semibold text-slate-800 text-sm group-hover:text-primary">
+                {item.label}
+              </span>
               <ChevronRight
                 className={`size-4 transition-colors ${
                   activeFilter === item.key ? 'text-primary' : 'text-slate-400'
@@ -108,8 +259,7 @@ export function OpenCourseFilters({ categoryTree, onFilterChange }: OpenCourseFi
         ))}
       </aside>
 
-      {/* 右侧浮层面板 */}
-      {activeFilter && activeItem && (
+      {activeFilter && activeMeta && (
         <div
           className="absolute left-full top-0 min-h-full pl-2 z-50"
           onMouseEnter={() => {
@@ -120,241 +270,230 @@ export function OpenCourseFilters({ categoryTree, onFilterChange }: OpenCourseFi
           }}
         >
           <div
-            className="bg-white rounded-xl shadow-xl border border-slate-100 p-6"
-            style={{ width: activeItem.flyoutWidth }}
+            className="bg-white rounded-xl shadow-xl border border-slate-100 p-6 max-h-[70vh] overflow-y-auto"
+            style={{ width: activeMeta.flyoutWidth }}
           >
-            <FlyoutContent
-              filterKey={activeFilter}
-              categoryTree={categoryTree}
-              selectedCategoryId={selectedCategoryId}
-              onCategoryClick={handleCategoryClick}
-            />
+            {activeFilter === 'comprehensive' && (
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                {COMPREHENSIVE_OPTIONS.map((opt) => {
+                  const active =
+                    (opt.sortBy === 'default' && !value.sortBy) || value.sortBy === opt.sortBy;
+                  return (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      onClick={() => handleSort(opt.label, opt.sortBy)}
+                      className={`text-left cursor-pointer transition-colors ${
+                        active
+                          ? 'text-primary font-medium'
+                          : 'text-slate-600 hover:text-primary'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {activeFilter === 'category' && (
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                <button
+                  type="button"
+                  onClick={() => handleCategory(undefined, undefined)}
+                  className={`text-left cursor-pointer transition-colors ${
+                    !value.categoryId
+                      ? 'text-primary font-medium'
+                      : 'text-slate-600 hover:text-primary'
+                  }`}
+                >
+                  全部分类
+                </button>
+                {categoryTree.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => handleCategory(cat.id, cat.name)}
+                    className={`text-left cursor-pointer transition-colors ${
+                      value.categoryId === cat.id
+                        ? 'text-primary font-medium'
+                        : 'text-slate-600 hover:text-primary'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeFilter === 'openCity' && (
+              <div className="grid grid-cols-4 gap-x-3 gap-y-3 text-sm">
+                <button
+                  type="button"
+                  onClick={() => handleProvince(undefined, undefined)}
+                  className={`text-left cursor-pointer transition-colors ${
+                    !value.provinceId
+                      ? 'text-primary font-semibold'
+                      : 'text-slate-600 hover:text-primary'
+                  }`}
+                >
+                  全国
+                </button>
+                {provinces.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleProvince(p.id, p.name)}
+                    className={`text-left cursor-pointer transition-colors truncate ${
+                      value.provinceId === p.id
+                        ? 'text-primary font-medium'
+                        : 'text-slate-600 hover:text-primary'
+                    }`}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeFilter === 'openTime' && (
+              <>
+                <div className="mb-5">
+                  <h4 className="text-sm font-bold text-slate-800 mb-3">快捷选择</h4>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {TIME_QUICK_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => handleTimeQuick(opt.key, opt.label)}
+                        className={`px-3 py-1.5 rounded cursor-pointer transition-colors ${
+                          value.timeQuick === opt.key
+                            ? 'bg-primary/10 text-primary border border-primary/30'
+                            : 'bg-slate-50 text-slate-600 hover:bg-primary/5 hover:text-primary border border-transparent'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 mb-3">自定义时间段</h4>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={customStart}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 px-3 focus:ring-primary focus:border-primary outline-none transition-all text-slate-600 cursor-pointer"
+                    />
+                    <span className="text-slate-400 shrink-0">-</span>
+                    <input
+                      type="date"
+                      value={customEnd}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 px-3 focus:ring-primary focus:border-primary outline-none transition-all text-slate-600 cursor-pointer"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCustomTimeApply}
+                    className="w-full mt-4 bg-primary text-white text-xs font-bold py-2 rounded-lg hover:opacity-90 transition-colors cursor-pointer"
+                  >
+                    确定
+                  </button>
+                </div>
+              </>
+            )}
+
+            {activeFilter === 'priceRange' && (
+              <>
+                <div className="mb-5">
+                  <h4 className="text-sm font-bold text-slate-800 mb-3">价格区间 (元)</h4>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {PRICE_PRESETS.map((preset) => {
+                      const active = value.priceLabel === preset.label;
+                      return (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => handlePricePreset(preset)}
+                          className={`px-3 py-1.5 rounded cursor-pointer transition-colors ${
+                            active
+                              ? 'bg-primary/10 text-primary border border-primary/30'
+                              : 'bg-slate-50 text-slate-600 hover:bg-primary/5 hover:text-primary border border-transparent'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 mb-3">自定义价格</h4>
+                  <div className="flex items-center gap-2">
+                    <div className="relative w-full">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+                        ¥
+                      </span>
+                      <input
+                        type="number"
+                        placeholder="最低价"
+                        value={customPriceMin}
+                        onChange={(e) => setCustomPriceMin(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 pl-7 pr-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                      />
+                    </div>
+                    <span className="text-slate-400 shrink-0">-</span>
+                    <div className="relative w-full">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+                        ¥
+                      </span>
+                      <input
+                        type="number"
+                        placeholder="最高价"
+                        value={customPriceMax}
+                        onChange={(e) => setCustomPriceMax(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 pl-7 pr-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCustomPriceApply}
+                    className="w-full mt-4 bg-primary text-white text-xs font-bold py-2 rounded-lg hover:opacity-90 transition-colors cursor-pointer"
+                  >
+                    确定
+                  </button>
+                </div>
+              </>
+            )}
+
+            {activeFilter === 'enrollStatus' && (
+              <div className="flex flex-col gap-1 text-sm">
+                {ENROLL_STATUS_OPTIONS.map((s) => {
+                  const active = value.enrollStatus === s.key;
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => handleEnrollStatus(s.key, s.label)}
+                      className={`px-3 py-2 rounded cursor-pointer transition-colors flex items-center gap-2 text-left ${
+                        active
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-primary'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${s.color}`} />
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
     </div>
   );
-}
-
-/* ---- 浮层内容子组件 ---- */
-
-function FlyoutContent({
-  filterKey,
-  categoryTree,
-  selectedCategoryId,
-  onCategoryClick,
-}: {
-  filterKey: FilterKey;
-  categoryTree: CategoryTreeNode[];
-  selectedCategoryId?: number;
-  onCategoryClick: (id?: number) => void;
-}) {
-  switch (filterKey) {
-    case 'comprehensive':
-      return (
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-          {['全部', '最新发布', '最多人看', '评分最高'].map((label) => (
-            <button
-              key={label}
-              className="text-left text-slate-600 hover:text-primary transition-colors"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      );
-
-    case 'category':
-      return (
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-          <button
-            onClick={() => onCategoryClick(undefined)}
-            className={`text-left transition-colors ${
-              !selectedCategoryId ? 'text-primary font-medium' : 'text-slate-600 hover:text-primary'
-            }`}
-          >
-            全部分类
-          </button>
-          {categoryTree.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => onCategoryClick(cat.id)}
-              className={`text-left transition-colors ${
-                selectedCategoryId === cat.id
-                  ? 'text-primary font-medium'
-                  : 'text-slate-600 hover:text-primary'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-      );
-
-    case 'openCity':
-      return (
-        <div className="grid grid-cols-3 gap-x-4 gap-y-4 text-sm">
-          {CITIES.map((city) => (
-            <button
-              key={city}
-              className="text-left text-slate-600 hover:text-primary transition-colors"
-            >
-              {city}
-            </button>
-          ))}
-        </div>
-      );
-
-    case 'openTime':
-      return (
-        <>
-          <div className="mb-5">
-            <h4 className="text-sm font-bold text-slate-800 mb-3">快捷选择</h4>
-            <div className="flex flex-wrap gap-2 text-xs">
-              {TIME_QUICK.map((label) => (
-                <button
-                  key={label}
-                  className="px-3 py-1.5 rounded bg-slate-50 hover:bg-primary/5 hover:text-primary text-slate-600 transition-colors"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-slate-800 mb-3">自定义时间段</h4>
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 px-3 focus:ring-primary focus:border-primary outline-none transition-all text-slate-600"
-              />
-              <span className="text-slate-400 shrink-0">-</span>
-              <input
-                type="date"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 px-3 focus:ring-primary focus:border-primary outline-none transition-all text-slate-600"
-              />
-            </div>
-            <button className="w-full mt-4 bg-primary text-white text-xs font-bold py-2 rounded-lg hover:opacity-90 transition-colors">
-              确定
-            </button>
-          </div>
-        </>
-      );
-
-    case 'priceRange':
-      return (
-        <>
-          <div className="mb-5">
-            <h4 className="text-sm font-bold text-slate-800 mb-3">价格区间 (元)</h4>
-            <div className="flex flex-wrap gap-2 text-xs">
-              {PRICE_RANGES.map((label) => (
-                <button
-                  key={label}
-                  className="px-3 py-1.5 rounded bg-slate-50 hover:bg-primary/5 hover:text-primary text-slate-600 transition-colors"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-slate-800 mb-3">自定义价格</h4>
-            <div className="flex items-center gap-2">
-              <div className="relative w-full">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
-                  ¥
-                </span>
-                <input
-                  type="number"
-                  placeholder="最低价"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 pl-7 pr-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                />
-              </div>
-              <span className="text-slate-400 shrink-0">-</span>
-              <div className="relative w-full">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
-                  ¥
-                </span>
-                <input
-                  type="number"
-                  placeholder="最高价"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 pl-7 pr-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                />
-              </div>
-            </div>
-            <button className="w-full mt-4 bg-primary text-white text-xs font-bold py-2 rounded-lg hover:opacity-90 transition-colors">
-              确定
-            </button>
-          </div>
-        </>
-      );
-
-    case 'courseRating':
-      return (
-        <div className="flex flex-col gap-2 text-sm">
-          {RATINGS.map((r) => (
-            <button
-              key={r.stars}
-              className="flex items-center justify-between p-2 rounded hover:bg-slate-50 transition-colors group/item"
-            >
-              <div className="flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`size-4 ${
-                      i < r.stars
-                        ? 'fill-amber-400 text-amber-400'
-                        : 'fill-none text-slate-300'
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-slate-500 text-xs group-hover/item:text-primary">
-                {r.label}
-              </span>
-            </button>
-          ))}
-        </div>
-      );
-
-    case 'enrollStatus':
-      return (
-        <div className="flex flex-col gap-1 text-sm">
-          {ENROLL_STATUSES.map((s) => (
-            <button
-              key={s.label}
-              className="px-3 py-2 rounded hover:bg-slate-50 text-slate-600 hover:text-primary transition-colors flex items-center gap-2 text-left"
-            >
-              <span className={`w-2 h-2 rounded-full shrink-0 ${s.color}`} />
-              {s.label}
-            </button>
-          ))}
-        </div>
-      );
-
-    case 'courseExtras':
-      return (
-        <>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {EXTRAS.map((label) => (
-              <label key={label} className="flex items-center gap-2 cursor-pointer group/chk">
-                <input
-                  type="checkbox"
-                  className="rounded border-slate-300 text-primary focus:ring-primary w-4 h-4"
-                />
-                <span className="text-slate-600 group-hover/chk:text-primary text-xs">
-                  {label}
-                </span>
-              </label>
-            ))}
-          </div>
-          <button className="w-full mt-4 bg-slate-100 text-slate-700 text-xs font-bold py-2 rounded-lg hover:bg-slate-200 transition-colors">
-            筛选配套
-          </button>
-        </>
-      );
-
-    default:
-      return null;
-  }
 }

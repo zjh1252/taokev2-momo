@@ -6,10 +6,12 @@ import com.taoke.common.security.Public;
 import com.taoke.course.api.CourseService;
 import com.taoke.course.dto.course.CourseDetailVO;
 import com.taoke.course.dto.course.CourseListItemVO;
+import com.taoke.course.dto.course.PublicCourseQuery;
 import com.taoke.course.dto.course.RecommendedCourseVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,19 +30,11 @@ public class PublicCourseController {
     private final CourseService courseService;
 
     @Public
-    @Operation(summary = "公开课程列表（分页、分类筛选、关键词搜索、排序、机构筛选）")
+    @Operation(summary = "公开课程列表",
+            description = "支持分类、类型、关键词、排序、机构、开课省/市、开课时间(含快捷段)、价格区间、报名状态等多维度过滤")
     @GetMapping("/courses")
-    public ApiResponse<PageResponse<CourseListItemVO>> list(
-            @RequestParam(required = false) Integer categoryId,
-            @RequestParam(required = false) Integer subCategoryId,
-            @RequestParam(required = false) String type,
-            @RequestParam(required = false) Boolean isOpen,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false) Integer institutionId,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "15") int size) {
-        return ApiResponse.ok(courseService.listPublic(categoryId, subCategoryId, type, isOpen, keyword, sortBy, institutionId, page, size));
+    public ApiResponse<PageResponse<CourseListItemVO>> list(@ParameterObject PublicCourseQuery query) {
+        return ApiResponse.ok(courseService.listPublic(query));
     }
 
     @Public
