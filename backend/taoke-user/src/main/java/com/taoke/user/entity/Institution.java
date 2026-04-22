@@ -97,11 +97,11 @@ public class Institution extends BaseEntity {
     private String industries;
 
     /** 是否有场地：0=否，1=是 */
-    @Column(name = "has_venue", nullable = false, columnDefinition = "tinyint(1)")
+    @Column(name = "has_venue", nullable = false, columnDefinition = "tinyint")
     private Integer hasVenue = 0;
 
     /** 是否有专家：0=否，1=是 */
-    @Column(name = "has_experts", nullable = false, columnDefinition = "tinyint(1)")
+    @Column(name = "has_experts", nullable = false, columnDefinition = "tinyint")
     private Integer hasExperts = 0;
 
     /** 综合评分（0.00-5.00） */
