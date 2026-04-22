@@ -5,6 +5,7 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.service.CategoryService;
+import com.taoke.common.service.RegionService;
 import com.taoke.course.api.CourseService;
 import com.taoke.course.dto.course.*;
 import com.taoke.course.entity.Course;
@@ -14,7 +15,10 @@ import com.taoke.course.enums.CourseType;
 import com.taoke.course.mapper.CourseMapper;
 import com.taoke.course.repository.CoursePlanRepository;
 import com.taoke.course.repository.CourseRepository;
+import com.taoke.user.api.BindingAuthority;
+import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
+import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.Trainer;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 课程管理服务 — CRUD + 状态流转 + 业务规则校验
@@ -44,6 +49,9 @@ public class CourseServiceImpl implements CourseService {
     private final CourseMapper courseMapper;
     private final CategoryService categoryService;
     private final TrainerService trainerService;
+    private final InstitutionService institutionService;
+    private final RegionService regionService;
+    private final BindingAuthority bindingAuthority;
 
     // ==================== C 端发布者操作 ====================
 
@@ -182,7 +190,20 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public PageResponse<CourseListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                                       String type, Boolean isOpen, String keyword,
-                                                      String sortBy, int page, int size) {
+                                                      String sortBy, Integer institutionId,
+                                                      int page, int size) {
+        // 机构筛选：先按 institutionId 反查 userId，作为 publisherType=INSTITUTION 的 publisherId
+        final Integer institutionUserId;
+        if (institutionId != null) {
+            List<Institution> insts = institutionService.findByIds(List.of(institutionId));
+            if (insts.isEmpty()) {
+                return PageResponse.of(List.of(), 0, page, size);
+            }
+            institutionUserId = insts.get(0).getUserId();
+        } else {
+            institutionUserId = null;
+        }
+
         Specification<Course> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()));
@@ -209,6 +230,10 @@ public class CourseServiceImpl implements CourseService {
                         cb.like(root.get("keywords"), like)
                 ));
             }
+            if (institutionUserId != null) {
+                predicates.add(cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION));
+                predicates.add(cb.equal(root.get("publisherId"), institutionUserId));
+            }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
 
@@ -220,10 +245,83 @@ public class CourseServiceImpl implements CourseService {
             return PageResponse.of(List.of(), 0, page, size);
         }
 
-        List<CourseListItemVO> items = coursePage.getContent().stream()
-                .map(this::toListItemVO)
-                .toList();
+        List<CourseListItemVO> items = assembleListItems(coursePage.getContent());
         return PageResponse.of(items, coursePage.getTotalElements(), page, size);
+    }
+
+    /**
+     * 批量装配课程列表项 VO，统一回填分类名/讲师名/最近一场开课信息（公开课用）。
+     *
+     * @param courses 课程实体列表
+     * @return 列表项 VO 集合，顺序与入参一致
+     */
+    public List<CourseListItemVO> assembleListItems(List<Course> courses) {
+        if (courses == null || courses.isEmpty()) {
+            return List.of();
+        }
+
+        // 批量分类名
+        Set<Integer> catIds = courses.stream()
+                .map(Course::getCategoryId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+        Map<Integer, String> catNameMap = catIds.isEmpty()
+                ? Map.of()
+                : categoryService.getNameMap(catIds);
+
+        // 批量讲师名
+        Set<Integer> trainerIds = courses.stream()
+                .map(Course::getTrainerId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+        Map<Integer, String> trainerNameMap = trainerIds.isEmpty()
+                ? Map.of()
+                : trainerService.findByIds(trainerIds).stream()
+                    .collect(Collectors.toMap(Trainer::getId, Trainer::getName));
+
+        // 批量最近一场公开课计划（仅公开课需要）
+        List<Integer> openCourseIds = courses.stream()
+                .filter(c -> c.getType() != null && c.getType().isOpen())
+                .map(Course::getId)
+                .toList();
+        Map<Integer, CoursePlan> nearestPlanMap = new HashMap<>();
+        if (!openCourseIds.isEmpty()) {
+            List<CoursePlan> plans = coursePlanRepository
+                    .findByCourseIdInAndStartTimeGreaterThanEqualOrderByStartTimeAsc(
+                            openCourseIds, LocalDateTime.now());
+            for (CoursePlan p : plans) {
+                nearestPlanMap.putIfAbsent(p.getCourseId(), p);
+            }
+        }
+
+        // 批量城市名
+        Set<Integer> cityIds = nearestPlanMap.values().stream()
+                .map(CoursePlan::getCityId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+        Map<Integer, String> cityNameMap = cityIds.isEmpty()
+                ? Map.of()
+                : regionService.getNamesByIds(cityIds);
+
+        return courses.stream().map(c -> {
+            CourseListItemVO vo = courseMapper.toListItemVO(c);
+            vo.setTypeLabel(c.getType().getLabel());
+            vo.setStatusLabel(CourseStatus.of(c.getStatus()).getLabel());
+            if (c.getCategoryId() != null && c.getCategoryId() > 0) {
+                vo.setCategoryName(catNameMap.get(c.getCategoryId()));
+            }
+            if (c.getTrainerId() != null && c.getTrainerId() > 0) {
+                vo.setTrainerName(trainerNameMap.get(c.getTrainerId()));
+            }
+            CoursePlan nearest = nearestPlanMap.get(c.getId());
+            if (nearest != null) {
+                vo.setNextPlanStartDate(nearest.getStartTime());
+                if (nearest.getCityId() != null && nearest.getCityId() > 0) {
+                    vo.setNextPlanCity(cityNameMap.get(nearest.getCityId()));
+                }
+            }
+            return vo;
+        }).toList();
     }
 
     /**
@@ -248,6 +346,125 @@ public class CourseServiceImpl implements CourseService {
                     .and(Sort.by(Sort.Direction.DESC, "publishedAt"))
                     .and(Sort.by(Sort.Direction.DESC, "id"));
         };
+    }
+
+    @Override
+    public PageResponse<CourseListItemVO> listByInstitution(Integer institutionId, String type,
+                                                             int page, int size) {
+        if (institutionId == null) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+        List<Institution> insts = institutionService.findByIds(List.of(institutionId));
+        if (insts.isEmpty()) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+        Integer institutionUserId = insts.get(0).getUserId();
+
+        Specification<Course> spec = (root, cq, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()));
+            predicates.add(cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION));
+            predicates.add(cb.equal(root.get("publisherId"), institutionUserId));
+
+            if ("OPEN".equalsIgnoreCase(type)) {
+                predicates.add(root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE));
+            } else if ("INNER".equalsIgnoreCase(type)) {
+                predicates.add(cb.equal(root.get("type"), CourseType.INTERNAL));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        // 默认按上线时间倒序展示（机构介绍 tab 用）
+        Sort sort = Sort.by(Sort.Direction.DESC, "publishedAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        PageRequest pageable = PageRequest.of(page - 1, size, sort);
+        Page<Course> coursePage = courseRepository.findAll(spec, pageable);
+
+        if (coursePage.isEmpty()) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+        return PageResponse.of(assembleListItems(coursePage.getContent()),
+                coursePage.getTotalElements(), page, size);
+    }
+
+    @Override
+    public List<CourseListItemVO> listInstitutionSidebarOpenCourses(Integer institutionId) {
+        if (institutionId == null) {
+            return List.of();
+        }
+        List<Institution> insts = institutionService.findByIds(List.of(institutionId));
+        if (insts.isEmpty()) {
+            return List.of();
+        }
+        Integer institutionUserId = insts.get(0).getUserId();
+
+        Specification<Course> spec = (root, cq, cb) -> cb.and(
+                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()),
+                cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION),
+                cb.equal(root.get("publisherId"), institutionUserId),
+                root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE)
+        );
+        // 排序：last_enrolled_at DESC（NULL 在最后），view_count DESC，id DESC
+        Sort sort = Sort.by(Sort.Direction.DESC, "lastEnrolledAt")
+                .and(Sort.by(Sort.Direction.DESC, "viewCount"))
+                .and(Sort.by(Sort.Direction.DESC, "id"));
+        PageRequest pageable = PageRequest.of(0, 6, sort);
+        return assembleListItems(courseRepository.findAll(spec, pageable).getContent());
+    }
+
+    @Override
+    public List<CourseListItemVO> listHotOpenCourses() {
+        Specification<Course> spec = (root, cq, cb) -> cb.and(
+                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()),
+                root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE)
+        );
+        Sort sort = Sort.by(Sort.Direction.DESC, "lastEnrolledAt")
+                .and(Sort.by(Sort.Direction.DESC, "createdAt"))
+                .and(Sort.by(Sort.Direction.DESC, "id"));
+        PageRequest pageable = PageRequest.of(0, 5, sort);
+        return assembleListItems(courseRepository.findAll(spec, pageable).getContent());
+    }
+
+    @Override
+    public PageResponse<CourseListItemVO> listByTrainer(Integer trainerId, int page, int size) {
+        if (trainerId == null || trainerId <= 0) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+        Specification<Course> spec = (root, cq, cb) -> cb.and(
+                cb.equal(root.get("trainerId"), trainerId),
+                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue())
+        );
+        Sort sort = Sort.by(Sort.Direction.DESC, "publishedAt")
+                .and(Sort.by(Sort.Direction.DESC, "id"));
+        PageRequest pageable = PageRequest.of(page - 1, size, sort);
+        Page<Course> coursePage = courseRepository.findAll(spec, pageable);
+        if (coursePage.isEmpty()) {
+            return PageResponse.of(List.of(), 0, page, size);
+        }
+        return PageResponse.of(assembleListItems(coursePage.getContent()),
+                coursePage.getTotalElements(), page, size);
+    }
+
+    @Override
+    public List<RecommendedCourseVO> listRecommendedByTrainer(Integer trainerId) {
+        if (trainerId == null || trainerId <= 0) {
+            return List.of();
+        }
+        Specification<Course> spec = (root, cq, cb) -> cb.and(
+                cb.equal(root.get("trainerId"), trainerId),
+                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue())
+        );
+        PageRequest pageable = PageRequest.of(0, 3,
+                Sort.by(Sort.Direction.DESC, "viewCount").and(Sort.by(Sort.Direction.DESC, "id")));
+        return courseRepository.findAll(spec, pageable).getContent().stream()
+                .map(course -> {
+                    RecommendedCourseVO vo = new RecommendedCourseVO();
+                    vo.setId(course.getId());
+                    vo.setTitle(course.getTitle());
+                    vo.setCoverUrl(course.getCoverUrl());
+                    vo.setViewCount(course.getViewCount());
+                    return vo;
+                })
+                .toList();
     }
 
     // ==================== 后台管理 ====================
@@ -449,14 +666,26 @@ public class CourseServiceImpl implements CourseService {
         }
     }
 
-    /** 获取发布者拥有的课程，不存在或非本人则抛异常 */
-    private Course getOwnedCourse(Integer courseId, Integer publisherId) {
+    /**
+     * 获取课程并校验当前操作者是否有权操作。
+     * <p>
+     * 通过条件之一：
+     * <ul>
+     *   <li>本人是发布者</li>
+     *   <li>课程归属专家（publisherType=TRAINER），且当前操作者通过绑定关系可代管该专家</li>
+     * </ul>
+     */
+    private Course getOwnedCourse(Integer courseId, Integer operatorUserId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "课程不存在"));
-        if (!course.getPublisherId().equals(publisherId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此课程");
+        if (course.getPublisherId().equals(operatorUserId)) {
+            return course;
         }
-        return course;
+        if (BusinessRole.Code.TRAINER.equals(course.getPublisherType())) {
+            bindingAuthority.requireCanManageTrainer(operatorUserId, course.getPublisherId());
+            return course;
+        }
+        throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此课程");
     }
 
     /** 仅草稿/驳回状态可编辑 */

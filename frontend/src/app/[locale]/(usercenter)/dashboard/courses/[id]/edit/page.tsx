@@ -7,6 +7,7 @@ import CourseForm from '@/features/course/components/publisher/CourseForm';
 import { getMyCourseDetail, updateCourse } from '@/features/course/api/publisher-service';
 import type { SaveCourseRequest, CourseDetail } from '@/features/course/api/types';
 import { ArrowLeft } from 'lucide-react';
+import { OwnedTrainerBanner } from '@/features/binding/components/owned-trainer-banner';
 
 /**
  * 编辑课程页面 — 加载已有课程数据并允许修改保存
@@ -76,6 +77,10 @@ export default function EditCoursePage({
         </Link>
         <h1 className="text-lg font-bold text-gray-800">编辑课程</h1>
       </div>
+      <OwnedTrainerBanner
+        trainerUserId={course.publisherType === 'TRAINER' ? course.publisherId : undefined}
+        trainerNameHint={course.trainerName}
+      />
       <CourseForm initialData={course} onSubmit={handleSubmit} submitting={submitting} />
     </section>
   );

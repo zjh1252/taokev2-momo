@@ -34,4 +34,24 @@ public class EnterpriseAgentMember extends BaseEntity {
     /** 加入时间 */
     @Column(name = "joined_at", nullable = false)
     private LocalDateTime joinedAt;
+
+    /** 绑定状态：1=ACTIVE 2=PENDING 3=UNBOUND 4=REJECTED；缺省按 1 处理（兼容旧数据） */
+    @Column(name = "status", nullable = false, columnDefinition = "tinyint")
+    private Integer status = 1;
+
+    /** 备注 */
+    @Column(name = "note", length = 500)
+    private String note;
+
+    /** 拒绝理由（status=REJECTED 时填充） */
+    @Column(name = "reject_reason", length = 500)
+    private String rejectReason;
+
+    /** 发起方用户 ID（用于审计） */
+    @Column(name = "initiator_user_id")
+    private Integer initiatorUserId;
+
+    /** 确认时间 */
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
 }

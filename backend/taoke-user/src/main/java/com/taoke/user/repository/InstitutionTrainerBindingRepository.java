@@ -19,4 +19,10 @@ public interface InstitutionTrainerBindingRepository extends JpaRepository<Insti
     List<InstitutionTrainerBinding> findByTrainerUserId(Integer trainerUserId);
 
     Optional<InstitutionTrainerBinding> findByOrgIdAndTrainerUserId(Integer orgId, Integer trainerUserId);
+
+    List<InstitutionTrainerBinding> findByOrgIdAndStatus(Integer orgId, Integer status);
+
+    List<InstitutionTrainerBinding> findByTrainerUserIdAndStatus(Integer trainerUserId, Integer status);
+
+    List<InstitutionTrainerBinding> findByOrgIdInAndStatus(List<Integer> orgIds, Integer status);
 }

@@ -29,6 +29,8 @@ public class TrainerPublicResponse {
     // ==================== 基础展示 ====================
 
     private String name;
+    /** 授课姓名（对外展示，可与真实姓名不同） */
+    private String teachingName;
     private String avatar;
     private String title;
     private Integer gender;
@@ -43,8 +45,12 @@ public class TrainerPublicResponse {
     // ==================== 专业信息 ====================
 
     private String bio;
+    /** 一句话介绍 */
+    private String oneLineIntro;
     private String intro;
     private String background;
+    /** 部分客户（长文本） */
+    private String partialClients;
     private String goodAt;
     private String specialties;
     private String expertiseTags;

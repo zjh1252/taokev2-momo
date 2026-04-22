@@ -41,9 +41,10 @@ public class ReviewController {
             @RequestParam String scope,
             @RequestParam(required = false) Integer courseId,
             @RequestParam(required = false) Integer trainerUserId,
+            @RequestParam(required = false) Integer institutionId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(reviewService.listPublicReviews(scope, courseId, trainerUserId, page, size));
+        return ApiResponse.ok(reviewService.listPublicReviews(scope, courseId, trainerUserId, institutionId, page, size));
     }
 
     @Operation(summary = "我的评价列表")

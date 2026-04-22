@@ -6,11 +6,14 @@ import com.taoke.course.dto.interaction.FavoriteVO;
 import com.taoke.course.entity.Course;
 import com.taoke.course.enums.InteractionTargetType;
 import com.taoke.course.repository.CourseRepository;
+import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.dto.trainer.TrainerResponse;
+import com.taoke.user.entity.Institution;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -25,6 +28,7 @@ public class InteractionTargetValidator {
 
     private final CourseRepository courseRepository;
     private final TrainerService trainerService;
+    private final InstitutionService institutionService;
 
     /**
      * 校验目标资源是否存在
@@ -43,8 +47,14 @@ public class InteractionTargetValidator {
                     throw new BusinessException(ErrorCode.INTERACTION_TARGET_NOT_FOUND);
                 }
             }
-            case INSTITUTION, CASE -> {
-                // TODO: 待机构/案例模块完善后补充校验逻辑
+            case INSTITUTION -> {
+                List<Institution> insts = institutionService.findByIds(List.of(targetId));
+                if (insts.isEmpty()) {
+                    throw new BusinessException(ErrorCode.INTERACTION_TARGET_NOT_FOUND);
+                }
+            }
+            case CASE -> {
+                // TODO: 待案例模块完善后补充校验逻辑
             }
         }
     }
@@ -74,8 +84,17 @@ public class InteractionTargetValidator {
                 } catch (Exception ignored) {
                 }
             }
-            case INSTITUTION, CASE -> {
-                // TODO: 待对应模块完善后补充
+            case INSTITUTION -> {
+                List<Institution> insts = institutionService.findByIds(List.of(targetId));
+                if (!insts.isEmpty()) {
+                    Institution inst = insts.get(0);
+                    vo.setTitle(inst.getOrgName());
+                    vo.setSubtitle(inst.getSpecialties());
+                    vo.setCoverUrl(inst.getLogoUrl());
+                }
+            }
+            case CASE -> {
+                // TODO: 待案例模块完善后补充
             }
         }
     }

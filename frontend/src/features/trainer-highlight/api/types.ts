@@ -22,6 +22,10 @@ export type TrainerHighlightFile = {
 export type TrainerHighlight = {
   id: number;
   trainerId: number;
+  /** 专家所属 user_id（仅自服务详情/列表返回，用于代管编辑场景的归属展示） */
+  trainerUserId?: number;
+  /** 专家昵称（同上） */
+  trainerName?: string;
   title: string | null;
   description: string | null;
   coverImage: string | null;

@@ -29,7 +29,7 @@ public class VideoChapterController {
     private final VideoService videoService;
 
     @Operation(summary = "获取录播课章节列表")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @GetMapping("/videos/{videoId}/chapters")
     public ApiResponse<List<VideoChapterVO>> list(@PathVariable Integer videoId,
                                                    @RequestParam(required = false) Integer seriesId) {
@@ -38,7 +38,7 @@ public class VideoChapterController {
     }
 
     @Operation(summary = "创建章节")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @PostMapping("/videos/{videoId}/chapters")
     public ApiResponse<VideoChapterVO> create(@PathVariable Integer videoId,
                                                @Valid @RequestBody SaveVideoChapterRequest request) {
@@ -47,7 +47,7 @@ public class VideoChapterController {
     }
 
     @Operation(summary = "批量创建章节")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @PostMapping("/videos/{videoId}/chapters/batch")
     public ApiResponse<List<VideoChapterVO>> batchCreate(
             @PathVariable Integer videoId,
@@ -57,7 +57,7 @@ public class VideoChapterController {
     }
 
     @Operation(summary = "编辑章节")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @PutMapping("/videos/{videoId}/chapters/{id}")
     public ApiResponse<VideoChapterVO> update(@PathVariable Integer videoId,
                                                @PathVariable Integer id,
@@ -67,7 +67,7 @@ public class VideoChapterController {
     }
 
     @Operation(summary = "删除章节")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @DeleteMapping("/videos/{videoId}/chapters/{id}")
     public ApiResponse<Void> delete(@PathVariable Integer videoId,
                                      @PathVariable Integer id) {

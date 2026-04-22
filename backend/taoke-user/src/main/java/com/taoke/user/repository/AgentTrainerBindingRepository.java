@@ -19,4 +19,10 @@ public interface AgentTrainerBindingRepository extends JpaRepository<AgentTraine
     List<AgentTrainerBinding> findByTrainerUserId(Integer trainerUserId);
 
     Optional<AgentTrainerBinding> findByAgentUserIdAndTrainerUserId(Integer agentUserId, Integer trainerUserId);
+
+    List<AgentTrainerBinding> findByAgentUserIdAndStatus(Integer agentUserId, Integer status);
+
+    List<AgentTrainerBinding> findByTrainerUserIdAndStatus(Integer trainerUserId, Integer status);
+
+    List<AgentTrainerBinding> findByAgentUserIdInAndStatus(List<Integer> agentUserIds, Integer status);
 }

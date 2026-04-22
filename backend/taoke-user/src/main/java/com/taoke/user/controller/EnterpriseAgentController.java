@@ -27,6 +27,15 @@ public class EnterpriseAgentController {
 
     private final EnterpriseAgentService enterpriseAgentService;
 
+    @com.taoke.common.security.Public
+    @Operation(summary = "经纪公司公开下拉/搜索（按 keyword 模糊匹配公司名）")
+    @GetMapping("/enterprise-agents/lookup")
+    public ApiResponse<java.util.List<java.util.Map<String, Object>>> lookup(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.ok(enterpriseAgentService.lookup(keyword, size));
+    }
+
     @Operation(summary = "获取专家经纪公司信息")
     @RequireRole(BusinessRole.Code.ENTERPRISE_AGENT)
     @GetMapping("/enterprise-agents/me")

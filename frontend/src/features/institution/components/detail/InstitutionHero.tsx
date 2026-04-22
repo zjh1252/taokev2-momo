@@ -97,7 +97,7 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
         </div>
 
         <div className="p-6 flex flex-col md:flex-row gap-8">
-          {/* Logo + 数据 */}
+          {/* Logo */}
           <div className="flex flex-col items-center gap-4 w-40 shrink-0">
             <div className="w-40 h-40 border border-slate-100 rounded-lg p-2 shadow-sm flex items-center justify-center">
               {institution.logoUrl ? (
@@ -112,14 +112,6 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
                   <span className="font-bold text-lg">{institution.orgName.slice(0, 4)}</span>
                 </div>
               )}
-            </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-600 w-full px-2">
-              <div>
-                课程：<span className="font-medium text-slate-900">{institution.openCourseCount + institution.innerCourseCount}</span>
-              </div>
-              <div>
-                评价：<span className="font-medium text-slate-900">{institution.commentCount}</span>
-              </div>
             </div>
           </div>
 
@@ -171,6 +163,15 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
             </div>
 
             <div className="grid grid-cols-1 gap-y-3 text-sm text-slate-600">
+              {(institution.provinceName || institution.cityName) && (
+                <div className="flex items-start">
+                  <span className="w-20 shrink-0 text-slate-400">所在地：</span>
+                  <span className="text-slate-800 inline-flex items-center gap-1">
+                    <MapPin className="size-4 text-slate-400" />
+                    {[institution.provinceName, institution.cityName].filter(Boolean).join(' / ')}
+                  </span>
+                </div>
+              )}
               {institution.specialties && (
                 <div className="flex items-start">
                   <span className="w-20 shrink-0 text-slate-400">擅长领域：</span>

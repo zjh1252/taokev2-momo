@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -79,6 +80,46 @@ public class RoleApplyServiceImpl implements RoleApplyService {
             case 4 -> throw new BusinessException(ErrorCode.ROLE_DISABLED);
             default -> throw new BusinessException(ErrorCode.INTERNAL_ERROR, "未知的角色状态: " + userRole.getStatus());
         }
+    }
+
+    /**
+     * 申请并自动通过 — 无需资质审核的角色（ENTERPRISE_BUYER / ASSISTANT）。
+     * <p>
+     * 状态流转：
+     * <ul>
+     *   <li>无记录 → 直接新建 status=1（生效）</li>
+     *   <li>status=3（驳回）→ 直接改为 status=1，并清空 rejectReason</li>
+     *   <li>status=2（待审核）→ 直接改为 status=1（兼容旧数据）</li>
+     *   <li>status=1（已生效）→ 抛 {@link ErrorCode#ROLE_ALREADY_ACTIVE}</li>
+     *   <li>status=4（已禁用）→ 抛 {@link ErrorCode#ROLE_DISABLED}</li>
+     * </ul>
+     * 角色生效后统一发布 {@link ApplyPassedEvent}，由 UserEventListener 触发通知等副作用。
+     *
+     * @param userId   用户 ID
+     * @param roleCode 角色编码
+     */
+    @Transactional
+    @Override
+    public void applyAndAutoApprove(Integer userId, String roleCode) {
+        UserRole userRole = userRoleRepository.findByUserIdAndRole(userId, roleCode).orElse(null);
+
+        if (userRole == null) {
+            userRole = new UserRole();
+            userRole.setUserId(userId);
+            userRole.setRole(roleCode);
+        } else {
+            switch (userRole.getStatus()) {
+                case 1 -> throw new BusinessException(ErrorCode.ROLE_ALREADY_ACTIVE);
+                case 4 -> throw new BusinessException(ErrorCode.ROLE_DISABLED);
+                default -> { /* 2/3 → 复用记录，下面统一改为 1 */ }
+            }
+        }
+        userRole.setStatus(1);
+        userRole.setRejectReason(null);
+        userRole.setApprovedAt(LocalDateTime.now());
+        userRoleRepository.save(userRole);
+
+        eventPublisher.publish(new ApplyPassedEvent(roleCode, userId));
     }
 
     /**

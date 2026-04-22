@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback, useTransition } from 'react';
-import { Search, ArrowUpDown } from 'lucide-react';
+import { Search, ArrowUpDown, X } from 'lucide-react';
+import { useRouter } from '@/i18n/navigation';
 import { VideoCard } from './VideoCard';
 import { getVideoList } from '../../api/service';
 import type { VideoListItem, PageResponse, CategoryTreeNode } from '../../api/types';
@@ -10,6 +11,8 @@ import { cn } from '@/lib/utils';
 interface VideoListSectionProps {
   initialData: PageResponse<VideoListItem>;
   categoryTree: CategoryTreeNode[];
+  initialInstitutionId?: number;
+  initialInstitutionName?: string;
 }
 
 const SORT_OPTIONS = [
@@ -22,17 +25,36 @@ const SORT_OPTIONS = [
 
 const PAGE_SIZE = 15;
 
-export function VideoListSection({ initialData, categoryTree }: VideoListSectionProps) {
+export function VideoListSection({
+  initialData,
+  categoryTree,
+  initialInstitutionId,
+  initialInstitutionName,
+}: VideoListSectionProps) {
+  const router = useRouter();
   const [data, setData] = useState(initialData);
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>();
+  const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
   const [sortKey, setSortKey] = useState('default');
   const [keyword, setKeyword] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
 
   const fetchData = useCallback(
-    (page: number, catId?: number, sort?: string, kw?: string) => {
+    (
+      page: number,
+      catId?: number,
+      sort?: string,
+      kw?: string,
+      overrideInstitutionId?: number | null,
+    ) => {
       const sortByValue = SORT_OPTIONS.find((o) => o.key === (sort ?? sortKey))?.sortBy ?? 'default';
+      const instId =
+        overrideInstitutionId === null
+          ? undefined
+          : overrideInstitutionId !== undefined
+            ? overrideInstitutionId
+            : institutionId;
       startTransition(async () => {
         try {
           const result = await getVideoList({
@@ -41,6 +63,7 @@ export function VideoListSection({ initialData, categoryTree }: VideoListSection
             categoryId: catId ?? selectedCategory,
             sortBy: sortByValue === 'default' ? undefined : sortByValue,
             keyword: (kw ?? keyword) || undefined,
+            institutionId: instId,
           });
           setData(result);
           setCurrentPage(page);
@@ -49,8 +72,14 @@ export function VideoListSection({ initialData, categoryTree }: VideoListSection
         }
       });
     },
-    [selectedCategory, sortKey, keyword],
+    [selectedCategory, sortKey, keyword, institutionId],
   );
+
+  const handleClearInstitution = useCallback(() => {
+    setInstitutionId(undefined);
+    fetchData(1, selectedCategory, sortKey, keyword, null);
+    router.replace('/videos');
+  }, [fetchData, router, selectedCategory, sortKey, keyword]);
 
   const handleCategoryChange = useCallback(
     (catId?: number) => {
@@ -82,6 +111,23 @@ export function VideoListSection({ initialData, categoryTree }: VideoListSection
 
   return (
     <div className="flex flex-col gap-4">
+      {/* 当前过滤 chip */}
+      {institutionId && initialInstitutionName && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-3 flex items-center gap-2 text-sm">
+          <span className="text-slate-500">当前筛选：</span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs">
+            机构：{initialInstitutionName}
+            <button
+              onClick={handleClearInstitution}
+              className="hover:text-primary/70 inline-flex items-center"
+              aria-label="清除机构筛选"
+            >
+              <X className="size-3" />
+            </button>
+          </span>
+        </div>
+      )}
+
       {/* 分类筛选栏 */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
         <div className="flex items-center gap-2 flex-wrap">

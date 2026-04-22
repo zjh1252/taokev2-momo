@@ -4,6 +4,7 @@ import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
+import com.taoke.common.service.RegionService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.institution.InstitutionListItemResponse;
 import com.taoke.user.dto.institution.InstitutionPublicResponse;
@@ -24,7 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 机构信息服务 — INSTITUTION 角色扩展信息管理。
@@ -39,6 +42,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     private final InstitutionRepository institutionRepository;
     private final InstitutionMapper institutionMapper;
     private final RoleApplyService roleApplyService;
+    private final RegionService regionService;
 
     @Override
     public InstitutionResponse getByUserId(Integer userId) {
@@ -105,6 +109,20 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         if (institution.getShowContact() == null || institution.getShowContact() != 1) {
             resp.setContactName(null);
             resp.setContactPhone(null);
+        }
+
+        // 回填省 / 市名称（详情头部「所在地」展示用）
+        List<Integer> regionIds = new ArrayList<>();
+        if (institution.getProvinceId() != null && institution.getProvinceId() > 0) {
+            regionIds.add(institution.getProvinceId());
+        }
+        if (institution.getCityId() != null && institution.getCityId() > 0) {
+            regionIds.add(institution.getCityId());
+        }
+        if (!regionIds.isEmpty()) {
+            Map<Integer, String> nameMap = regionService.getNamesByIds(regionIds);
+            resp.setProvinceName(nameMap.get(institution.getProvinceId()));
+            resp.setCityName(nameMap.get(institution.getCityId()));
         }
 
         return resp;
@@ -177,6 +195,49 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         return institutionRepository.findAllById(ids);
     }
 
+    @Override
+    public List<Map<String, Object>> lookup(String keyword, int size) {
+        int limit = size > 0 ? Math.min(size, 50) : 20;
+        Specification<Institution> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            // 仅匹配已发布的机构
+            predicates.add(cb.equal(root.get("status"), 1));
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.trim() + "%";
+                predicates.add(cb.like(root.get("orgName"), pattern));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+        Pageable pageable = PageRequest.of(0, limit,
+                Sort.by(Sort.Direction.DESC, "sortOrder")
+                        .and(Sort.by(Sort.Direction.DESC, "viewCount"))
+                        .and(Sort.by(Sort.Direction.DESC, "id")));
+        Page<Institution> page = institutionRepository.findAll(spec, pageable);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Institution inst : page.getContent()) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", inst.getId());
+            item.put("userId", inst.getUserId());
+            item.put("orgName", inst.getOrgName());
+            item.put("association", inst.getAssociation());
+            item.put("address", inst.getAddress());
+            list.add(item);
+        }
+        return list;
+    }
+
+    @Override
+    @Transactional
+    public void adjustCommentCount(Integer institutionId, int delta) {
+        if (institutionId == null || delta == 0) return;
+        institutionRepository.findById(institutionId).ifPresent(inst -> {
+            int cur = inst.getCommentCount() == null ? 0 : inst.getCommentCount();
+            int next = Math.max(0, cur + delta);
+            inst.setCommentCount(next);
+            institutionRepository.save(inst);
+        });
+    }
+
     private Institution saveOrUpdateExtension(Integer userId, InstitutionRequest request) {
         Institution ent = institutionRepository.findByUserId(userId).orElseGet(() -> {
             Institution e = new Institution();
@@ -198,6 +259,8 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         if (request.getDistrictId() != null) ent.setDistrictId(request.getDistrictId());
         if (request.getTownId() != null) ent.setTownId(request.getTownId());
         if (request.getAddress() != null) ent.setAddress(request.getAddress());
+        if (request.getClientCases() != null) ent.setClientCases(request.getClientCases());
+        if (request.getSuccessCases() != null) ent.setSuccessCases(request.getSuccessCases());
 
         return institutionRepository.save(ent);
     }

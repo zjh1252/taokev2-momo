@@ -78,8 +78,17 @@ public class InstitutionPublicResponse {
     /** 是否金牌推荐 */
     private Integer isRecommended;
 
-    /** 服务过的客户描述 */
+    /** 服务过的客户描述（部分客户） */
     private String clientCases;
+
+    /** 成功案例（长文本） */
+    private String successCases;
+
+    /** 省份名称（详情接口回填） */
+    private String provinceName;
+
+    /** 城市名称（详情接口回填） */
+    private String cityName;
 
     /** 是否培训协会 */
     private Boolean association;

@@ -1,6 +1,9 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.common.exception.BusinessException;
+import com.taoke.common.exception.ErrorCode;
+import com.taoke.user.api.BindingService;
 import com.taoke.user.api.InstitutionEmployeeService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.institutionemployee.InstitutionEmployeeRequest;
@@ -33,6 +36,7 @@ public class InstitutionEmployeeServiceImpl implements InstitutionEmployeeServic
     private final InstitutionEmployeeRepository institutionEmployeeRepository;
     private final InstitutionEmployeeMapper institutionEmployeeMapper;
     private final RoleApplyService roleApplyService;
+    private final BindingService bindingService;
 
     @Override
     public InstitutionEmployeeResponse getByUserId(Integer userId) {
@@ -46,11 +50,23 @@ public class InstitutionEmployeeServiceImpl implements InstitutionEmployeeServic
         return institutionEmployeeMapper.toResponse(saveOrUpdateExtension(userId, request));
     }
 
+    /**
+     * 员工主动申请加入机构。
+     * <p>
+     * 不再走平台审核（不创建 sys_user_roles 待审核记录），改为直接创建一条
+     * INSTITUTION_EMPLOYEE 绑定（status=PENDING, initiator=员工），由目标机构在
+     * 用户中心审核确认；机构确认后由 {@link com.taoke.user.service.binding.BindingServiceImpl}
+     * 自动授予 INSTITUTION_EMPLOYEE 角色。
+     */
     @Override
     @Transactional
     public void apply(Integer userId, InstitutionEmployeeRequest request) {
-        roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION_EMPLOYEE);
+        if (request == null || request.getOrgId() == null) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请选择目标机构");
+        }
+        // 先落档案（位置/部门），再发起 PENDING 绑定
         saveOrUpdateExtension(userId, request);
+        bindingService.initiateInstitutionEmployeeFromEmployee(userId, request.getOrgId(), null);
     }
 
     @Override

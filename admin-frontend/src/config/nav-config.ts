@@ -120,11 +120,8 @@ export const navGroups: NavGroup[] = [
           {
             title: '机构员工列表',
             url: '/dashboard/institutions/employees'
-          },
-          {
-            title: '机构员工申请',
-            url: '/dashboard/institutions/employees/applications'
           }
+          // 机构员工申请已下放至机构在用户中心审核，平台不再受理
         ]
       }
     ]
@@ -141,11 +138,8 @@ export const navGroups: NavGroup[] = [
           {
             title: '经纪人列表',
             url: '/dashboard/agents'
-          },
-          {
-            title: '经纪人申请',
-            url: '/dashboard/agents/applications'
           }
+          // 经纪人申请已下放至经纪公司在用户中心审核，平台不再受理
         ]
       }
     ]
@@ -176,19 +170,10 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         title: '专家助理管理',
-        url: '#',
+        url: '/dashboard/assistants',
         icon: 'headset',
         isActive: false,
-        items: [
-          {
-            title: '助理列表',
-            url: '/dashboard/assistants'
-          },
-          {
-            title: '助理申请',
-            url: '/dashboard/assistants/applications'
-          }
-        ]
+        items: []
       }
     ]
   },
@@ -209,19 +194,10 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         title: '企业采购方管理',
-        url: '#',
+        url: '/dashboard/enterprise-buyers',
         icon: 'briefcase',
         isActive: false,
-        items: [
-          {
-            title: '企业采购方列表',
-            url: '/dashboard/enterprise-buyers'
-          },
-          {
-            title: '企业采购方申请',
-            url: '/dashboard/enterprise-buyers/applications'
-          }
-        ]
+        items: []
       }
     ]
   },

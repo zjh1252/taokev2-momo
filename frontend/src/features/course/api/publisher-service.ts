@@ -26,6 +26,8 @@ export interface MyCourseListParams {
   keyword?: string;
   page?: number;
   size?: number;
+  /** 代管模式：指定专家 user_id 时，列出该专家旗下课程 */
+  trainerUserId?: number;
 }
 
 /** 我的课程列表 */
@@ -37,6 +39,7 @@ export async function getMyCourses(
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.page) query.set('page', String(params.page));
   if (params.size) query.set('size', String(params.size));
+  if (params.trainerUserId) query.set('trainerUserId', String(params.trainerUserId));
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<CourseListItem>>>(
     `/courses/me${qs ? `?${qs}` : ''}`,
@@ -53,9 +56,13 @@ export async function getMyCourseDetail(id: number): Promise<CourseDetail> {
   return res.data;
 }
 
-/** 创建课程（草稿） */
-export async function createCourse(data: SaveCourseRequest): Promise<CourseDetail> {
-  const res = await apiPost<ApiResponse<CourseDetail>>('/courses', data, {
+/** 创建课程（草稿）；trainerUserId 提供时以专家身份发布 */
+export async function createCourse(
+  data: SaveCourseRequest,
+  trainerUserId?: number,
+): Promise<CourseDetail> {
+  const url = trainerUserId ? `/courses?trainerUserId=${trainerUserId}` : '/courses';
+  const res = await apiPost<ApiResponse<CourseDetail>>(url, data, {
     headers: authHeaders(),
   });
   return res.data;

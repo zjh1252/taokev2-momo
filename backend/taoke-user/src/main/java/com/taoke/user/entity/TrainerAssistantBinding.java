@@ -40,4 +40,16 @@ public class TrainerAssistantBinding extends BaseEntity {
     /** 授权范围（JSON 数组） */
     @Column(name = "auth_scope", length = 512)
     private String authScope;
+
+    /** 备注 */
+    @Column(name = "note", length = 500)
+    private String note;
+
+    /** 拒绝理由（status=REJECTED 时填充） */
+    @Column(name = "reject_reason", length = 500)
+    private String rejectReason;
+
+    /** 发起方用户 ID（用于审计） */
+    @Column(name = "initiator_user_id")
+    private Integer initiatorUserId;
 }

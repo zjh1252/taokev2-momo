@@ -2,8 +2,7 @@ import 'server-only';
 import { serverFetch } from '@/lib/server-fetch';
 import type {
   AssistantFilters,
-  AssistantsResponse,
-  AssistantApplicationsResponse
+  AssistantsResponse
 } from './types';
 import { buildAssistantParams } from './service';
 
@@ -13,12 +12,4 @@ export async function getAssistantsFromServer(
   return serverFetch(
     `/admin/assistants?${buildAssistantParams(filters).toString()}`
   ) as Promise<AssistantsResponse>;
-}
-
-export async function getAssistantApplicationsFromServer(
-  filters: AssistantFilters
-): Promise<AssistantApplicationsResponse> {
-  return serverFetch(
-    `/admin/assistants/applications?${buildAssistantParams(filters).toString()}`
-  ) as Promise<AssistantApplicationsResponse>;
 }

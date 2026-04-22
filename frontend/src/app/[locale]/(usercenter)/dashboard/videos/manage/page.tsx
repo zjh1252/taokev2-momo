@@ -12,6 +12,8 @@ import {
   deleteVideo,
   type MyVideoListParams,
 } from '@/features/video/api/publisher-service';
+import { TrainerSwitcher } from '@/features/binding/components/trainer-switcher';
+import { isDelegatingRole, selfPublishingAllowed } from '@/features/binding/lib/delegating-role';
 import {
   VideoStatus,
   VideoStatusLabelMap,
@@ -54,13 +56,16 @@ const STATUS_BADGE_STYLES: Record<number, string> = {
 const PAGE_SIZE = 10;
 
 export default function ManageVideosPage() {
-  const { user } = useAuth();
+  const { user, activeRole } = useAuth();
+  const showSwitcher = isDelegatingRole(activeRole);
+  const hideSelfOption = showSwitcher && !selfPublishingAllowed(activeRole);
   const [activeTab, setActiveTab] = useState<number | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
   const [videos, setVideos] = useState<VideoListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [trainerUserId, setTrainerUserId] = useState<number | undefined>(undefined);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -73,6 +78,7 @@ export default function ManageVideosPage() {
         size: PAGE_SIZE,
         status: activeTab,
         keyword: keyword || undefined,
+        trainerUserId,
       };
       const res = await getMyVideos(params);
       setVideos(res.list || []);
@@ -83,7 +89,7 @@ export default function ManageVideosPage() {
     } finally {
       setLoading(false);
     }
-  }, [user, page, activeTab, keyword]);
+  }, [user, page, activeTab, keyword, trainerUserId]);
 
   useEffect(() => {
     fetchVideos();
@@ -132,15 +138,29 @@ export default function ManageVideosPage() {
   return (
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
       {/* 标题栏 */}
-      <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-lg font-bold text-gray-800">管理录播课</h2>
-        <Link
-          href={ROUTES.UC_VIDEOS_CREATE}
-          className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="size-4" />
-          发布新录播课
-        </Link>
+        <div className="flex items-center gap-2">
+          {showSwitcher && (
+            <TrainerSwitcher
+              value={trainerUserId}
+              hideSelf={hideSelfOption}
+              onChange={(uid) => {
+                setTrainerUserId(uid);
+                setPage(1);
+              }}
+            />
+          )}
+          <Link
+            href={trainerUserId
+              ? `${ROUTES.UC_VIDEOS_CREATE}?trainerUserId=${trainerUserId}`
+              : ROUTES.UC_VIDEOS_CREATE}
+            className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="size-4" />
+            发布新录播课
+          </Link>
+        </div>
       </div>
 
       {/* 状态 Tabs + 搜索 */}

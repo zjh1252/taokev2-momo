@@ -3,6 +3,7 @@ package com.taoke.course.api;
 import com.taoke.common.response.PageResponse;
 import com.taoke.course.dto.course.CourseDetailVO;
 import com.taoke.course.dto.course.CourseListItemVO;
+import com.taoke.course.dto.course.RecommendedCourseVO;
 import com.taoke.course.dto.course.SaveCourseRequest;
 import com.taoke.course.entity.Course;
 import com.taoke.course.entity.CoursePlan;
@@ -77,14 +78,53 @@ public interface CourseService {
     CourseDetailVO getPublicDetail(Integer courseId);
 
     /**
-     * 公开课程列表（仅已上架，支持分页、分类筛选、关键词搜索、排序）
+     * 公开课程列表（仅已上架，支持分页、分类筛选、关键词搜索、排序、机构筛选）
      *
-     * @param isOpen true=公开课(OPEN_OFFLINE/OPEN_ONLINE)，false=内训课(INTERNAL)，null=全部
-     * @param sortBy 排序方式：default=默认(权重+上线时间), price=价格升序, score=评分降序, time=上线时间降序, viewCount=人气降序
+     * @param isOpen        true=公开课(OPEN_OFFLINE/OPEN_ONLINE)，false=内训课(INTERNAL)，null=全部
+     * @param sortBy        排序方式：default=默认(权重+上线时间), price=价格升序, score=评分降序, time=上线时间降序, viewCount=人气降序
+     * @param institutionId 机构 ID，传入后仅返回 publisherType=INSTITUTION AND publisherId=institution.userId 的课程；机构不存在返回空页
      */
     PageResponse<CourseListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                               String type, Boolean isOpen, String keyword,
-                                              String sortBy, int page, int size);
+                                              String sortBy, Integer institutionId,
+                                              int page, int size);
+
+    /**
+     * 专家详情页推荐课程
+     * <p>规则：trainer_id = trainerId AND status = 已上架，按 view_count DESC 排序，最多 3 条。</p>
+     *
+     * @param trainerId 专家主表 ID（user_trainers.id）
+     */
+    List<RecommendedCourseVO> listRecommendedByTrainer(Integer trainerId);
+
+    /**
+     * 机构详情页：分页拉取该机构旗下的「公开课」或「内训课」
+     *
+     * @param institutionId 机构 ID（user_institutions.id）
+     * @param type          OPEN=公开课（含线上/线下），INNER=内训课
+     * @param page          页码，从 1 开始
+     * @param size          每页条数
+     */
+    PageResponse<CourseListItemVO> listByInstitution(Integer institutionId, String type, int page, int size);
+
+    /**
+     * 机构详情页右侧栏：机构公开课（最多 6 条），按 last_enrolled_at DESC, view_count DESC 排序。
+     */
+    List<CourseListItemVO> listInstitutionSidebarOpenCourses(Integer institutionId);
+
+    /**
+     * 机构详情页右侧栏：全平台「热门公开课」（最多 5 条），按 last_enrolled_at DESC, created_at DESC 排序。
+     */
+    List<CourseListItemVO> listHotOpenCourses();
+
+    /**
+     * 专家详情页：按专家 ID 拉取其所有已上架课程（公开课 + 内训课），分页。
+     *
+     * @param trainerId 专家 ID（user_trainers.id）
+     * @param page      页码，从 1 开始
+     * @param size      每页条数
+     */
+    PageResponse<CourseListItemVO> listByTrainer(Integer trainerId, int page, int size);
 
     // ==================== 后台管理 ====================
 

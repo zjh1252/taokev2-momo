@@ -3,18 +3,13 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
-import { Star, ChevronRight, Play } from 'lucide-react';
+import { Play, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import type {
-  TrainerDetail,
-  MockCourse,
-  MockCase,
-  MockClip,
-  MockReview,
-  MockBook,
-  MockRelatedTrainer,
-} from '../../types';
+import type { TrainerDetail, TrainerBook } from '../../types';
+import type { CourseListItem } from '@/features/course/api/types';
+import type { VideoListItem } from '@/features/video/api/types';
+import type { TrainerCase } from '@/features/trainer-case/api/types';
 import { getPublicReviews } from '@/features/interaction/api/service';
 import type { ReviewItem } from '@/features/interaction/api/types';
 import ReviewDialog from '@/features/interaction/components/ReviewDialog';
@@ -22,25 +17,23 @@ import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 
 interface TrainerDetailContentProps {
   trainer: TrainerDetail;
-  courses: MockCourse[];
-  cases: MockCase[];
-  clips: MockClip[];
-  reviews: MockReview[];
-  books: MockBook[];
-  relatedTrainers: MockRelatedTrainer[];
+  courses: CourseListItem[];
+  cases: TrainerCase[];
+  videos: VideoListItem[];
+  books: TrainerBook[];
 }
 
 interface TabConfig {
   id: string;
   label: string;
-  countKey?: 'courses' | 'cases' | 'clips' | 'reviews' | 'books';
+  countKey?: 'courses' | 'cases' | 'videos' | 'reviews' | 'books';
 }
 
 const TABS: TabConfig[] = [
   { id: 'home', label: '主页' },
   { id: 'courses', label: '主讲课程', countKey: 'courses' },
   { id: 'cases', label: '授课案例', countKey: 'cases' },
-  { id: 'clips', label: '录播课', countKey: 'clips' },
+  { id: 'videos', label: '录播课', countKey: 'videos' },
   { id: 'comments', label: '学员评价', countKey: 'reviews' },
   { id: 'books', label: '著作', countKey: 'books' },
 ];
@@ -58,19 +51,17 @@ export function TrainerDetailContent({
   trainer,
   courses,
   cases,
-  clips,
-  reviews,
+  videos,
   books,
-  relatedTrainers,
 }: TrainerDetailContentProps) {
   const [activeTab, setActiveTab] = useState<string>('home');
 
-  // 计算各标签的数量
+  // 学员评价角标：以专家累计已通过评论数为准（后端在评价审核通过时同步 +1）
   const counts = {
     courses: courses.length,
     cases: cases.length,
-    clips: clips.length,
-    reviews: reviews.length,
+    videos: videos.length,
+    reviews: trainer.commentCount ?? 0,
     books: books.length,
   };
 
@@ -110,21 +101,12 @@ export function TrainerDetailContent({
 
       {/* Tab 内容区 */}
       <div className="min-h-[800px]">
-        {activeTab === 'home' && (
-          <HomeView
-            trainer={trainer}
-            cases={cases}
-            clips={clips}
-            reviews={reviews}
-            books={books}
-            relatedTrainers={relatedTrainers}
-          />
-        )}
+        {activeTab === 'home' && <HomeView trainer={trainer} cases={cases} />}
         {activeTab === 'courses' && <CoursesView courses={courses} />}
         {activeTab === 'cases' && <CasesView cases={cases} />}
-        {activeTab === 'clips' && <ClipsView clips={clips} />}
+        {activeTab === 'videos' && <VideosView videos={videos} />}
         {activeTab === 'comments' && (
-          <ReviewsView reviews={reviews} trainerUserId={trainer.userId} trainerName={trainer.name} />
+          <ReviewsView trainerUserId={trainer.userId} trainerName={trainer.name} />
         )}
         {activeTab === 'books' && <BooksView books={books} />}
       </div>
@@ -137,17 +119,9 @@ export function TrainerDetailContent({
 function HomeView({
   trainer,
   cases,
-  clips,
-  reviews,
-  books,
-  relatedTrainers,
 }: {
   trainer: TrainerDetail;
-  cases: MockCase[];
-  clips: MockClip[];
-  reviews: MockReview[];
-  books: MockBook[];
-  relatedTrainers: MockRelatedTrainer[];
+  cases: TrainerCase[];
 }) {
   return (
     <div className="space-y-6">
@@ -173,6 +147,16 @@ function HomeView({
           <SectionTitle>实战经历</SectionTitle>
           <div className="text-[15px] leading-7 text-slate-600 whitespace-pre-line">
             {trainer.background}
+          </div>
+        </div>
+      )}
+
+      {/* 部分客户 */}
+      {trainer.partialClients && trainer.partialClients.trim() && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <SectionTitle>部分客户</SectionTitle>
+          <div className="text-[15px] leading-7 text-slate-600 whitespace-pre-line">
+            {trainer.partialClients}
           </div>
         </div>
       )}
@@ -255,7 +239,7 @@ function HomeView({
         </div>
       )}
 
-      {/* 授课案例 预览 */}
+      {/* 授课案例 预览（与「授课案例」tab 数据源一致，仅取前 3 条） */}
       {cases.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
@@ -267,18 +251,26 @@ function HomeView({
                 key={c.id}
                 className="rounded-lg border border-slate-200 overflow-hidden group hover:shadow-sm transition"
               >
-                <div className="aspect-[16/10] overflow-hidden">
-                  <Image
-                    src={c.image}
-                    alt={c.title}
-                    width={640}
-                    height={400}
-                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
-                  />
+                <div className="aspect-[16/10] overflow-hidden bg-slate-100">
+                  {c.coverImage ? (
+                    <Image
+                      src={c.coverImage}
+                      alt={c.caseTitle}
+                      width={640}
+                      height={400}
+                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                      暂无封面
+                    </div>
+                  )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-semibold text-[15px] line-clamp-2">{c.title}</h3>
-                  <p className="text-sm text-slate-500 mt-2 line-clamp-2">{c.description}</p>
+                  <h3 className="font-semibold text-[15px] line-clamp-2">{c.caseTitle}</h3>
+                  {c.description && (
+                    <p className="text-sm text-slate-500 mt-2 line-clamp-2">{c.description}</p>
+                  )}
                 </div>
               </article>
             ))}
@@ -286,44 +278,13 @@ function HomeView({
         </div>
       )}
 
-      {/* 相关讲师 */}
-      {relatedTrainers.length > 0 && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>相关讲师</SectionTitle>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {relatedTrainers.map((t) => (
-              <Link
-                key={t.id}
-                href={`/trainers/${t.id}`}
-                className="border border-slate-200 rounded-lg p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer group"
-              >
-                <Image
-                  src={t.avatar}
-                  alt={t.name}
-                  width={64}
-                  height={64}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm mb-3 group-hover:scale-105 transition-transform"
-                />
-                <h4 className="font-bold text-slate-900 group-hover:text-primary transition-colors text-[15px]">
-                  {t.name}
-                </h4>
-                <p className="text-[12px] text-slate-500 mt-1 line-clamp-1">{t.title}</p>
-                <div className="flex items-center text-[14px] mt-2 gap-1">
-                  <Star className="size-4 fill-[#FFD700] text-[#FFD700]" />
-                  <span className="text-slate-900 text-[12px] font-bold">{t.score}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 // ==================== 主讲课程视图 ====================
 
-function CoursesView({ courses }: { courses: MockCourse[] }) {
+function CoursesView({ courses }: { courses: CourseListItem[] }) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
@@ -332,47 +293,65 @@ function CoursesView({ courses }: { courses: MockCourse[] }) {
           <span className="text-slate-500 font-normal text-[15px] ml-2">共 {courses.length} 门</span>
         </h2>
       </div>
-      <div className="space-y-4">
-        {courses.map((course) => (
-          <div
-            key={course.id}
-            className="p-5 rounded-lg border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-sm transition"
-          >
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <span
-                  className={`px-2 py-0.5 text-[12px] rounded-sm font-medium ${
-                    course.type === 'copyright'
-                      ? 'bg-primary/10 text-primary border border-primary/20'
-                      : 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
-                  }`}
-                >
-                  {course.type === 'copyright' ? '版权课' : '内训课'}
-                </span>
-                <h3 className="font-bold text-[18px] text-slate-900 hover:text-primary cursor-pointer transition-colors">
-                  {course.title}
-                </h3>
+
+      {courses.length === 0 ? (
+        <p className="text-sm text-slate-400 py-12 text-center">暂无主讲课程</p>
+      ) : (
+        <div className="space-y-4">
+          {courses.map((course) => {
+            const isOpen = course.type === 'OPEN_OFFLINE' || course.type === 'OPEN_ONLINE';
+            return (
+              <div
+                key={course.id}
+                className="p-5 rounded-lg border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-sm transition"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span
+                      className={`px-2 py-0.5 text-[12px] rounded-sm font-medium ${
+                        isOpen
+                          ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
+                          : 'bg-primary/10 text-primary border border-primary/20'
+                      }`}
+                    >
+                      {course.typeLabel || (isOpen ? '公开课' : '内训课')}
+                    </span>
+                    <Link
+                      href={`/courses/${course.id}`}
+                      className="font-bold text-[18px] text-slate-900 hover:text-primary transition-colors line-clamp-1"
+                    >
+                      {course.title}
+                    </Link>
+                  </div>
+                  <p className="text-sm text-slate-500 mb-2">
+                    {course.categoryName ? `分类：${course.categoryName}` : ''}
+                    {course.durationDays ? ` ｜ 课时：${course.durationDays} 天` : ''}
+                    {course.hoursPerDay ? ` × ${course.hoursPerDay} 小时/天` : ''}
+                  </p>
+                  {course.keywords && (
+                    <p className="text-[13px] text-slate-500 line-clamp-2">{course.keywords}</p>
+                  )}
+                </div>
+                <div className="shrink-0">
+                  <Link
+                    href={`/courses/${course.id}`}
+                    className="px-6 py-2.5 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary font-medium w-full md:w-auto transition-colors inline-block text-center"
+                  >
+                    查看详情
+                  </Link>
+                </div>
               </div>
-              <p className="text-sm text-slate-500 mb-2">
-                适用对象：{course.target} ｜ 课时：{course.duration}
-              </p>
-              <p className="text-[13px] text-slate-500 line-clamp-2">{course.description}</p>
-            </div>
-            <div className="shrink-0">
-              <button className="px-6 py-2.5 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary font-medium w-full md:w-auto transition-colors">
-                查看详情
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 // ==================== 授课案例视图 ====================
 
-function CasesView({ cases }: { cases: MockCase[] }) {
+function CasesView({ cases }: { cases: TrainerCase[] }) {
   const byIndustry = cases.reduce(
     (acc, c) => {
       const key = c.industry || '其他';
@@ -380,7 +359,7 @@ function CasesView({ cases }: { cases: MockCase[] }) {
       acc[key].push(c);
       return acc;
     },
-    {} as Record<string, MockCase[]>,
+    {} as Record<string, TrainerCase[]>,
   );
 
   return (
@@ -390,96 +369,107 @@ function CasesView({ cases }: { cases: MockCase[] }) {
           授课案例 <span className="text-primary mx-1">{cases.length}</span> 个
         </h2>
       </div>
-      <div className="space-y-6">
-        {Object.entries(byIndustry).map(([industry, items]) => (
-          <div
-            key={industry}
-            className="flex flex-col md:flex-row gap-6 pb-6 border-b border-slate-200 border-dashed last:border-b-0"
-          >
-            <div className="w-full md:w-[120px] shrink-0 font-medium text-slate-900 flex items-center md:justify-center">
-              {industry}
-            </div>
-            <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-              {items.map((c) => (
-                <div key={c.id} className="group cursor-pointer">
-                  <div className="aspect-video overflow-hidden rounded border border-slate-200 mb-2 relative">
-                    <Image
-                      src={c.image}
-                      alt={c.title}
-                      width={300}
-                      height={200}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+
+      {cases.length === 0 ? (
+        <p className="text-sm text-slate-400 py-12 text-center">暂无授课案例</p>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(byIndustry).map(([industry, items]) => (
+            <div
+              key={industry}
+              className="flex flex-col md:flex-row gap-6 pb-6 border-b border-slate-200 border-dashed last:border-b-0"
+            >
+              <div className="w-full md:w-[120px] shrink-0 font-medium text-slate-900 flex items-center md:justify-center">
+                {industry}
+              </div>
+              <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                {items.map((c) => (
+                  <div key={c.id} className="group cursor-pointer">
+                    <div className="aspect-video overflow-hidden rounded border border-slate-200 mb-2 relative bg-slate-100">
+                      {c.coverImage ? (
+                        <Image
+                          src={c.coverImage}
+                          alt={c.caseTitle}
+                          width={300}
+                          height={200}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">
+                          暂无封面
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="text-[13px] text-slate-900 group-hover:text-primary transition-colors line-clamp-2 text-center">
+                      {c.caseTitle}
+                    </h3>
                   </div>
-                  <h3 className="text-[13px] text-slate-900 group-hover:text-primary transition-colors line-clamp-2 text-center">
-                    {c.title}
-                  </h3>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 // ==================== 录播课视图 ====================
 
-function ClipsView({ clips }: { clips: MockClip[] }) {
+function VideosView({ videos }: { videos: VideoListItem[] }) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
         <h2 className="text-[20px] font-bold text-slate-900">
           全部录播课{' '}
-          <span className="text-slate-500 font-normal text-[15px] ml-2">共 {clips.length} 门</span>
+          <span className="text-slate-500 font-normal text-[15px] ml-2">共 {videos.length} 门</span>
         </h2>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-        {clips.map((clip) => (
-          <article
-            key={clip.id}
-            className="rounded-lg overflow-hidden border border-slate-200 group cursor-pointer hover:shadow-sm transition"
-          >
-            <div className="aspect-video relative overflow-hidden">
-              <Image
-                src={clip.image}
-                alt={clip.title}
-                width={520}
-                height={293}
-                className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
-              />
-              {clip.type === 'video' && (
-                <>
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                  <span className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-white/90 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition shadow-sm">
-                    <Play className="size-5 fill-current" />
-                  </span>
-                  {clip.duration && (
-                    <span className="absolute bottom-2 right-2 bg-black/70 text-white text-[11px] px-1.5 py-0.5 rounded">
-                      {clip.duration}
-                    </span>
-                  )}
-                </>
-              )}
-              {clip.type === 'article' && (
-                <span className="absolute top-2 right-2 bg-primary/90 text-white text-[11px] px-1.5 py-0.5 rounded shadow-sm">
-                  图文
+
+      {videos.length === 0 ? (
+        <p className="text-sm text-slate-400 py-12 text-center">暂无录播课</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+          {videos.map((video) => (
+            <Link
+              key={video.id}
+              href={`/videos/${video.id}`}
+              className="rounded-lg overflow-hidden border border-slate-200 group cursor-pointer hover:shadow-sm transition block"
+            >
+              <div className="aspect-video relative overflow-hidden bg-slate-100">
+                {video.coverUrl ? (
+                  <Image
+                    src={video.coverUrl}
+                    alt={video.title}
+                    width={520}
+                    height={293}
+                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                    暂无封面
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                <span className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-white/90 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition shadow-sm">
+                  <Play className="size-5 fill-current" />
                 </span>
-              )}
-            </div>
-            <div className="p-3">
-              <h3 className="text-[14px] font-medium text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
-                {clip.title}
-              </h3>
-              <p className="text-[12px] text-slate-500 mt-1 flex justify-between">
-                <span>{clip.lessons}</span>
-                <span className="text-primary font-bold">{clip.price}</span>
-              </p>
-            </div>
-          </article>
-        ))}
-      </div>
+              </div>
+              <div className="p-3">
+                <h3 className="text-[14px] font-medium text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
+                  {video.title}
+                </h3>
+                <p className="text-[12px] text-slate-500 mt-1 flex justify-between">
+                  <span>{video.totalEpisodes ? `${video.totalEpisodes} 节` : video.videoTypeLabel}</span>
+                  <span className="text-primary font-bold">
+                    {video.isFree === 1 ? '免费' : `¥${Number(video.price).toFixed(2)}`}
+                  </span>
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -487,29 +477,26 @@ function ClipsView({ clips }: { clips: MockClip[] }) {
 // ==================== 学员评价视图 ====================
 
 function ReviewsView({
-  reviews: mockReviews,
   trainerUserId,
   trainerName,
 }: {
-  reviews: MockReview[];
   trainerUserId: number;
   trainerName: string;
 }) {
   const { requireAuth } = useAuthGuard();
-  const [apiReviews, setApiReviews] = useState<ReviewItem[]>([]);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
     getPublicReviews('TRAINER', { trainerUserId, page: 0, size: 50 })
       .then((page) => {
-        setApiReviews(page.list);
+        setReviews(page.list);
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
   }, [trainerUserId]);
 
-  const reviews = loaded ? apiReviews : [];
   const avgScore = reviews.length
     ? (reviews.reduce((sum, r) => sum + Number(r.avgScore), 0) / reviews.length).toFixed(1)
     : '0.0';
@@ -595,7 +582,7 @@ function ReviewsView({
         onSuccess={() => {
           toast.success('评价已提交，审核通过后将公开展示');
           getPublicReviews('TRAINER', { trainerUserId, page: 0, size: 50 })
-            .then((page) => setApiReviews(page.list))
+            .then((page) => setReviews(page.list))
             .catch(() => {});
         }}
       />
@@ -605,7 +592,7 @@ function ReviewsView({
 
 // ==================== 著作视图 ====================
 
-function BooksView({ books }: { books: MockBook[] }) {
+function BooksView({ books }: { books: TrainerBook[] }) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
@@ -614,28 +601,56 @@ function BooksView({ books }: { books: MockBook[] }) {
           <span className="text-slate-500 font-normal text-[15px] ml-2">共 {books.length} 本</span>
         </h2>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-        {books.map((book) => (
-          <div key={book.id} className="flex flex-col items-center group cursor-pointer">
-            <div className="w-full aspect-[3/4] bg-white border border-slate-200 p-1 shadow-sm group-hover:shadow-md transition-shadow">
-              <Image
-                src={book.image}
-                alt={book.title}
-                width={280}
-                height={373}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <h3 className="text-[14px] text-slate-900 mt-3 text-center line-clamp-2 group-hover:text-primary transition-colors">
-              {book.title}
-            </h3>
-            <p className="text-[12px] text-slate-500 mt-1">{book.publisher}</p>
-            <p className="text-[16px] text-primary font-bold mt-1">
-              {book.price > 0 ? `¥ ${book.price.toFixed(2)}` : '免费'}
-            </p>
-          </div>
-        ))}
-      </div>
+
+      {books.length === 0 ? (
+        <p className="text-sm text-slate-400 py-12 text-center">暂无著作</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {books.map((book) => {
+            const card = (
+              <>
+                <div className="w-full aspect-[3/4] bg-white border border-slate-200 p-1 shadow-sm group-hover:shadow-md transition-shadow">
+                  {book.coverUrl ? (
+                    <Image
+                      src={book.coverUrl}
+                      alt={book.title}
+                      width={280}
+                      height={373}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm bg-slate-50">
+                      暂无封面
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-[14px] text-slate-900 mt-3 text-center line-clamp-2 group-hover:text-primary transition-colors">
+                  {book.title}
+                </h3>
+                {book.publisher && (
+                  <p className="text-[12px] text-slate-500 mt-1 line-clamp-1">{book.publisher}</p>
+                )}
+              </>
+            );
+
+            return book.buyUrl ? (
+              <a
+                key={book.id}
+                href={book.buyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center group cursor-pointer"
+              >
+                {card}
+              </a>
+            ) : (
+              <div key={book.id} className="flex flex-col items-center group">
+                {card}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

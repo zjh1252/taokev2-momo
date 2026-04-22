@@ -12,6 +12,8 @@ import com.taoke.course.entity.interaction.TrainingReview;
 import com.taoke.course.enums.ReviewScope;
 import com.taoke.course.enums.ReviewStatus;
 import com.taoke.course.repository.interaction.TrainingReviewRepository;
+import com.taoke.user.api.InstitutionService;
+import com.taoke.user.api.TrainerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,28 +38,43 @@ public class ReviewServiceImpl {
     private final TrainingReviewRepository reviewRepository;
     private final InteractionTargetValidator targetValidator;
     private final ObjectMapper objectMapper;
+    private final TrainerService trainerService;
+    private final InstitutionService institutionService;
 
     /**
      * 提交评价（状态为 PENDING）
+     * <p>支持三种 scope：COURSE / TRAINER / INSTITUTION，对应字段必填校验在此完成。</p>
      */
     @Transactional
     public Integer submitReview(Integer userId, SubmitReviewRequest req) {
         ReviewScope scope = ReviewScope.valueOf(req.getReviewScope());
 
-        // 校验目标资源存在
-        if (scope == ReviewScope.COURSE && req.getCourseId() != null) {
+        // 校验目标资源存在 + 必填字段
+        if (scope == ReviewScope.COURSE) {
+            if (req.getCourseId() == null) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, "课程评价必须指定 courseId");
+            }
             targetValidator.validateTargetExists(
                     com.taoke.course.enums.InteractionTargetType.COURSE, req.getCourseId());
-        }
-        if (scope == ReviewScope.TRAINER && req.getTrainerUserId() != null) {
+        } else if (scope == ReviewScope.TRAINER) {
+            if (req.getTrainerUserId() == null) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, "专家评价必须指定 trainerUserId");
+            }
             targetValidator.validateTargetExists(
                     com.taoke.course.enums.InteractionTargetType.TRAINER, req.getTrainerUserId());
+        } else if (scope == ReviewScope.INSTITUTION) {
+            if (req.getInstitutionId() == null) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, "机构评价必须指定 institutionId");
+            }
+            targetValidator.validateTargetExists(
+                    com.taoke.course.enums.InteractionTargetType.INSTITUTION, req.getInstitutionId());
         }
 
         TrainingReview review = new TrainingReview();
         review.setReviewScope(scope.name());
         review.setCourseId(req.getCourseId());
         review.setTrainerUserId(req.getTrainerUserId());
+        review.setInstitutionId(req.getInstitutionId());
         review.setExpertName(req.getExpertName());
         review.setTrainingDate(req.getTrainingDate());
         review.setCourseDays(req.getCourseDays());
@@ -97,6 +114,7 @@ public class ReviewServiceImpl {
      */
     public PageResponse<ReviewVO> listPublicReviews(String scope, Integer courseId,
                                                      Integer trainerUserId,
+                                                     Integer institutionId,
                                                      int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
         Page<TrainingReview> reviewPage;
@@ -108,6 +126,8 @@ public class ReviewServiceImpl {
             reviewPage = reviewRepository.findByCourseIdAndStatusOrderByCreatedAtDesc(courseId, approvedStatus, pageable);
         } else if (reviewScope == ReviewScope.TRAINER && trainerUserId != null) {
             reviewPage = reviewRepository.findByTrainerUserIdAndStatusOrderByCreatedAtDesc(trainerUserId, approvedStatus, pageable);
+        } else if (reviewScope == ReviewScope.INSTITUTION && institutionId != null) {
+            reviewPage = reviewRepository.findByInstitutionIdAndStatusOrderByCreatedAtDesc(institutionId, approvedStatus, pageable);
         } else {
             reviewPage = reviewRepository.findByStatusOrderByCreatedAtDesc(approvedStatus, pageable);
         }
@@ -130,45 +150,84 @@ public class ReviewServiceImpl {
     public long countApprovedReviews(String scope, Integer targetId) {
         int approved = ReviewStatus.APPROVED.getValue();
         ReviewScope reviewScope = ReviewScope.valueOf(scope);
-        if (reviewScope == ReviewScope.COURSE) {
-            return reviewRepository.countByCourseIdAndStatus(targetId, approved);
-        } else {
-            return reviewRepository.countByTrainerUserIdAndStatus(targetId, approved);
-        }
+        return switch (reviewScope) {
+            case COURSE -> reviewRepository.countByCourseIdAndStatus(targetId, approved);
+            case TRAINER -> reviewRepository.countByTrainerUserIdAndStatus(targetId, approved);
+            case INSTITUTION -> reviewRepository.countByInstitutionIdAndStatus(targetId, approved);
+        };
     }
 
     /**
      * 审核通过
+     * <p>状态变化时同步累计评论数：原状态非 APPROVED → APPROVED 则 +1。</p>
      */
     @Transactional
     public void approveReview(Integer reviewId) {
         TrainingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+        int prev = review.getStatus() == null ? -1 : review.getStatus();
         review.setStatus(ReviewStatus.APPROVED.getValue());
         reviewRepository.save(review);
+        if (prev != ReviewStatus.APPROVED.getValue()) {
+            adjustTargetCommentCount(review, +1);
+        }
     }
 
     /**
      * 审核驳回
+     * <p>若原状态是 APPROVED → REJECTED，需 -1 同步累计评论数。</p>
      */
     @Transactional
     public void rejectReview(Integer reviewId, String reason) {
         TrainingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+        int prev = review.getStatus() == null ? -1 : review.getStatus();
         review.setStatus(ReviewStatus.REJECTED.getValue());
         review.setRejectReason(reason);
         reviewRepository.save(review);
+        if (prev == ReviewStatus.APPROVED.getValue()) {
+            adjustTargetCommentCount(review, -1);
+        }
     }
 
     /**
      * 隐藏评价
+     * <p>若原状态是 APPROVED → HIDDEN，需 -1 同步累计评论数。</p>
      */
     @Transactional
     public void hideReview(Integer reviewId) {
         TrainingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+        int prev = review.getStatus() == null ? -1 : review.getStatus();
         review.setStatus(ReviewStatus.HIDDEN.getValue());
         reviewRepository.save(review);
+        if (prev == ReviewStatus.APPROVED.getValue()) {
+            adjustTargetCommentCount(review, -1);
+        }
+    }
+
+    /**
+     * 按 review.scope 同步对应被评对象的 comment_count。
+     * <p>COURSE 暂未维护该字段，仅处理 TRAINER 与 INSTITUTION。</p>
+     */
+    private void adjustTargetCommentCount(TrainingReview review, int delta) {
+        if (review == null || delta == 0) return;
+        ReviewScope scope = ReviewScope.valueOf(review.getReviewScope());
+        switch (scope) {
+            case TRAINER -> {
+                if (review.getTrainerUserId() != null) {
+                    trainerService.adjustCommentCountByUserId(review.getTrainerUserId(), delta);
+                }
+            }
+            case INSTITUTION -> {
+                if (review.getInstitutionId() != null) {
+                    institutionService.adjustCommentCount(review.getInstitutionId(), delta);
+                }
+            }
+            case COURSE -> {
+                // courses 表暂未维护 comment_count，跳过
+            }
+        }
     }
 
     /**
@@ -185,6 +244,7 @@ public class ReviewServiceImpl {
         vo.setReviewScope(r.getReviewScope());
         vo.setCourseId(r.getCourseId());
         vo.setTrainerUserId(r.getTrainerUserId());
+        vo.setInstitutionId(r.getInstitutionId());
         vo.setExpertName(r.getExpertName());
         vo.setTrainingDate(r.getTrainingDate());
         vo.setCourseDays(r.getCourseDays());

@@ -29,7 +29,7 @@ public class VideoSeriesController {
     private final VideoService videoService;
 
     @Operation(summary = "获取录播课系列列表")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @GetMapping("/videos/{videoId}/series")
     public ApiResponse<List<VideoSeriesVO>> list(@PathVariable Integer videoId) {
         Integer userId = SecurityUtils.getRequiredUserId();
@@ -37,7 +37,7 @@ public class VideoSeriesController {
     }
 
     @Operation(summary = "创建系列")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @PostMapping("/videos/{videoId}/series")
     public ApiResponse<VideoSeriesVO> create(@PathVariable Integer videoId,
                                               @Valid @RequestBody SaveVideoSeriesRequest request) {
@@ -46,7 +46,7 @@ public class VideoSeriesController {
     }
 
     @Operation(summary = "编辑系列")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @PutMapping("/videos/{videoId}/series/{id}")
     public ApiResponse<VideoSeriesVO> update(@PathVariable Integer videoId,
                                               @PathVariable Integer id,
@@ -56,7 +56,7 @@ public class VideoSeriesController {
     }
 
     @Operation(summary = "删除系列")
-    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.INSTITUTION})
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @DeleteMapping("/videos/{videoId}/series/{id}")
     public ApiResponse<Void> delete(@PathVariable Integer videoId,
                                      @PathVariable Integer id) {

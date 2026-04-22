@@ -33,9 +33,13 @@ public class Trainer extends BaseEntity {
 
     // ==================== 基础信息 ====================
 
-    /** 讲师姓名 */
+    /** 讲师真实姓名 */
     @Column(name = "name", length = 100)
     private String name;
+
+    /** 授课姓名（对外展示，可与真实姓名不同） */
+    @Column(name = "teaching_name", length = 64)
+    private String teachingName;
 
     /** 头像 URL */
     @Column(name = "avatar", length = 500)
@@ -87,6 +91,10 @@ public class Trainer extends BaseEntity {
     @Column(name = "bio", columnDefinition = "text")
     private String bio;
 
+    /** 一句话介绍（80 字内简短自我介绍，对外展示） */
+    @Column(name = "one_line_intro", length = 255)
+    private String oneLineIntro;
+
     /** 详细介绍（富文本，支持美化格式） */
     @Column(name = "intro", columnDefinition = "longtext")
     private String intro;
@@ -94,6 +102,10 @@ public class Trainer extends BaseEntity {
     /** 从业经历/背景 */
     @Column(name = "background", columnDefinition = "text")
     private String background;
+
+    /** 部分客户（长文本，专家详情页对外展示） */
+    @Column(name = "partial_clients", columnDefinition = "text")
+    private String partialClients;
 
     /** 专长描述 */
     @Column(name = "good_at", columnDefinition = "text")
@@ -140,6 +152,28 @@ public class Trainer extends BaseEntity {
     /** 报价备注 */
     @Column(name = "quote_remark", length = 500)
     private String quoteRemark;
+
+    /** 淘课网售价（元/天） */
+    @Column(name = "taoke_price", precision = 10, scale = 2)
+    private BigDecimal taokePrice;
+
+    /** 淘课网合作课酬（元/天） */
+    @Column(name = "taoke_commission", precision = 10, scale = 2)
+    private BigDecimal taokeCommission;
+
+    // ==================== 协议与简历 ====================
+
+    /** 注册专家合作协议签署时间 */
+    @Column(name = "agreement_signed_at")
+    private LocalDateTime agreementSignedAt;
+
+    /** 协议版本号，默认 v1 */
+    @Column(name = "agreement_version", length = 32)
+    private String agreementVersion;
+
+    /** 最近一次上传简历的 URL */
+    @Column(name = "resume_url", length = 512)
+    private String resumeUrl;
 
     // ==================== 平台信息 ====================
 

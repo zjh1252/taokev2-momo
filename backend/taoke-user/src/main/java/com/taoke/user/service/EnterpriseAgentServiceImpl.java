@@ -12,13 +12,17 @@ import com.taoke.user.repository.EnterpriseAgentRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 专家经纪公司信息服务 — ENTERPRISE_AGENT 角色扩展信息管理。
@@ -73,6 +77,32 @@ public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
             return cb.and(predicates.toArray(Predicate[]::new));
         };
         return enterpriseAgentRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public List<Map<String, Object>> lookup(String keyword, int size) {
+        int limit = size > 0 ? Math.min(size, 50) : 20;
+        Specification<EnterpriseAgent> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.trim() + "%";
+                predicates.add(cb.like(root.get("companyName"), pattern));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "id"));
+        Page<EnterpriseAgent> page = enterpriseAgentRepository.findAll(spec, pageable);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (EnterpriseAgent ea : page.getContent()) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", ea.getId());
+            item.put("userId", ea.getUserId());
+            item.put("companyName", ea.getCompanyName());
+            item.put("legalPerson", ea.getLegalPerson());
+            item.put("contactName", ea.getContactName());
+            list.add(item);
+        }
+        return list;
     }
 
     @Override

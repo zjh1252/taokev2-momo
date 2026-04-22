@@ -19,6 +19,9 @@ public interface TrainingReviewRepository extends JpaRepository<TrainingReview, 
     /** 按专家查已通过的评价 */
     Page<TrainingReview> findByTrainerUserIdAndStatusOrderByCreatedAtDesc(Integer trainerUserId, Integer status, Pageable pageable);
 
+    /** 按机构查已通过的评价 */
+    Page<TrainingReview> findByInstitutionIdAndStatusOrderByCreatedAtDesc(Integer institutionId, Integer status, Pageable pageable);
+
     /** 我的评价列表 */
     Page<TrainingReview> findByUserIdOrderByCreatedAtDesc(Integer userId, Pageable pageable);
 
@@ -30,4 +33,7 @@ public interface TrainingReviewRepository extends JpaRepository<TrainingReview, 
 
     /** 统计某专家已通过评价数 */
     long countByTrainerUserIdAndStatus(Integer trainerUserId, Integer status);
+
+    /** 统计某机构已通过评价数 */
+    long countByInstitutionIdAndStatus(Integer institutionId, Integer status);
 }

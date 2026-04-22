@@ -18,21 +18,26 @@ function authHeaders() {
   return { Authorization: `Bearer ${tokenData?.accessToken || ''}` };
 }
 
-/** 我的精彩瞬间列表 */
-export async function getMyHighlights(): Promise<TrainerHighlight[]> {
+function buildQs(trainerUserId?: number) {
+  return trainerUserId ? `?trainerUserId=${trainerUserId}` : '';
+}
+
+/** 我的精彩瞬间列表（trainerUserId 提供时表示代管模式） */
+export async function getMyHighlights(trainerUserId?: number): Promise<TrainerHighlight[]> {
   const res = await apiGet<ApiResponse<TrainerHighlight[]>>(
-    '/trainers/me/highlights',
+    `/trainers/me/highlights${buildQs(trainerUserId)}`,
     { headers: authHeaders() }
   );
   return res.data;
 }
 
-/** 创建精彩瞬间 */
+/** 创建精彩瞬间（trainerUserId 提供时以专家身份创建） */
 export async function createHighlight(
-  data: SaveTrainerHighlightRequest
+  data: SaveTrainerHighlightRequest,
+  trainerUserId?: number,
 ): Promise<TrainerHighlight> {
   const res = await apiPost<ApiResponse<TrainerHighlight>>(
-    '/trainers/me/highlights',
+    `/trainers/me/highlights${buildQs(trainerUserId)}`,
     data,
     { headers: authHeaders() }
   );
@@ -42,10 +47,11 @@ export async function createHighlight(
 /** 编辑精彩瞬间 */
 export async function updateHighlight(
   id: number,
-  data: SaveTrainerHighlightRequest
+  data: SaveTrainerHighlightRequest,
+  trainerUserId?: number,
 ): Promise<TrainerHighlight> {
   const res = await apiPut<ApiResponse<TrainerHighlight>>(
-    `/trainers/me/highlights/${id}`,
+    `/trainers/me/highlights/${id}${buildQs(trainerUserId)}`,
     data,
     { headers: authHeaders() }
   );
@@ -53,8 +59,8 @@ export async function updateHighlight(
 }
 
 /** 删除精彩瞬间 */
-export async function deleteHighlight(id: number): Promise<void> {
-  await apiDelete<ApiResponse<void>>(`/trainers/me/highlights/${id}`, {
+export async function deleteHighlight(id: number, trainerUserId?: number): Promise<void> {
+  await apiDelete<ApiResponse<void>>(`/trainers/me/highlights/${id}${buildQs(trainerUserId)}`, {
     headers: authHeaders()
   });
 }
@@ -62,10 +68,11 @@ export async function deleteHighlight(id: number): Promise<void> {
 /** 添加文件到精彩瞬间 */
 export async function addHighlightFile(
   highlightId: number,
-  data: SaveTrainerHighlightFileRequest
+  data: SaveTrainerHighlightFileRequest,
+  trainerUserId?: number,
 ): Promise<TrainerHighlightFile> {
   const res = await apiPost<ApiResponse<TrainerHighlightFile>>(
-    `/trainers/me/highlights/${highlightId}/files`,
+    `/trainers/me/highlights/${highlightId}/files${buildQs(trainerUserId)}`,
     data,
     { headers: authHeaders() }
   );
@@ -75,10 +82,11 @@ export async function addHighlightFile(
 /** 删除精彩瞬间中的文件 */
 export async function deleteHighlightFile(
   highlightId: number,
-  fileId: number
+  fileId: number,
+  trainerUserId?: number,
 ): Promise<void> {
   await apiDelete<ApiResponse<void>>(
-    `/trainers/me/highlights/${highlightId}/files/${fileId}`,
+    `/trainers/me/highlights/${highlightId}/files/${fileId}${buildQs(trainerUserId)}`,
     { headers: authHeaders() }
   );
 }

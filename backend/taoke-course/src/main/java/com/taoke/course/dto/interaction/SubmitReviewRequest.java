@@ -16,7 +16,7 @@ import java.util.List;
 @Data
 public class SubmitReviewRequest {
 
-    /** 评价范围：COURSE / TRAINER */
+    /** 评价范围：COURSE / TRAINER / INSTITUTION */
     @NotBlank(message = "评价范围不能为空")
     private String reviewScope;
 
@@ -25,6 +25,9 @@ public class SubmitReviewRequest {
 
     /** 被评专家 user_id（scope=TRAINER 时必填） */
     private Integer trainerUserId;
+
+    /** 被评机构 ID（scope=INSTITUTION 时必填，关联 user_institutions.id） */
+    private Integer institutionId;
 
     /** 专家姓名 */
     private String expertName;

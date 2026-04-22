@@ -83,6 +83,13 @@ public class TrainerController {
         return ApiResponse.ok(trainerService.getPublicProfile(id));
     }
 
+    @Public
+    @Operation(summary = "专家详情页推荐相关专家（最多 3 条）")
+    @GetMapping("/trainers/{id}/recommended-trainers")
+    public ApiResponse<List<TrainerListItemResponse>> recommendedTrainers(@PathVariable Integer id) {
+        return ApiResponse.ok(trainerService.listRecommendedTrainers(id));
+    }
+
     // ==================== 教育经历 ====================
 
     @Operation(summary = "获取本人教育经历列表")

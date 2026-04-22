@@ -24,7 +24,7 @@ import java.time.LocalDate;
 @Table(name = "training_reviews")
 public class TrainingReview extends BaseEntity {
 
-    /** 评价范围：COURSE / TRAINER */
+    /** 评价范围：COURSE / TRAINER / INSTITUTION */
     @Column(name = "review_scope", nullable = false, length = 32)
     private String reviewScope;
 
@@ -35,6 +35,10 @@ public class TrainingReview extends BaseEntity {
     /** 被评专家 user_id（可空） */
     @Column(name = "trainer_user_id")
     private Integer trainerUserId;
+
+    /** 被评机构 ID（review_scope=INSTITUTION 时必填，关联 user_institutions.id） */
+    @Column(name = "institution_id")
+    private Integer institutionId;
 
     /** 关联订单 ID（MVP 阶段可为空） */
     @Column(name = "order_id")

@@ -10,15 +10,21 @@ import type { SaveVideoRequest } from '@/features/video/api/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { toast } from 'sonner';
+import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
 
 export default function CreateVideoPage() {
   const router = useRouter();
+  const { trainerUserId, banner, valid } = usePublishingTarget('录播课');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: SaveVideoRequest, videoFiles?: UploadedVideoItem[]) => {
+    if (!valid) {
+      toast.error('请先在顶部选择要代发录播课的专家');
+      return;
+    }
     setSubmitting(true);
     try {
-      const video = await createVideo(data);
+      const video = await createVideo(data, trainerUserId);
 
       // SERIES 类型：批量创建章节
       if (data.videoType === 'SERIES' && videoFiles && videoFiles.length > 0) {
@@ -31,7 +37,11 @@ export default function CreateVideoPage() {
       }
 
       toast.success('录播课已提交，等待管理员审核');
-      router.push(ROUTES.UC_VIDEOS_MANAGE);
+      router.push(
+        trainerUserId
+          ? `${ROUTES.UC_VIDEOS_MANAGE}?trainerUserId=${trainerUserId}`
+          : ROUTES.UC_VIDEOS_MANAGE,
+      );
     } catch {
       // 平台层已统一处理错误提示
     } finally {
@@ -50,6 +60,7 @@ export default function CreateVideoPage() {
         </Link>
         <h1 className="text-lg font-bold text-gray-800">发布录播课</h1>
       </div>
+      {banner}
       <VideoForm onSubmit={handleSubmit} submitting={submitting} />
     </section>
   );

@@ -127,19 +127,9 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
     { title: 'Dashboard', link: '/dashboard' },
     { title: '专家助理管理', link: '/dashboard/assistants' }
   ],
-  '/dashboard/assistants/applications': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: '专家助理管理', link: '/dashboard/assistants' },
-    { title: '助理申请', link: '/dashboard/assistants/applications' }
-  ],
   '/dashboard/enterprise-buyers': [
     { title: 'Dashboard', link: '/dashboard' },
     { title: '企业采购方管理', link: '/dashboard/enterprise-buyers' }
-  ],
-  '/dashboard/enterprise-buyers/applications': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: '企业采购方管理', link: '/dashboard/enterprise-buyers' },
-    { title: '企业采购方申请', link: '/dashboard/enterprise-buyers/applications' }
   ],
   '/dashboard/notifications': [
     { title: 'Dashboard', link: '/dashboard' },

@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 机构主体档案的查询、保存与角色申请能力（按用户维度）。
@@ -94,4 +95,23 @@ public interface InstitutionService {
      * 根据机构 ID 列表批量查询机构
      */
     List<Institution> findByIds(java.util.Collection<Integer> ids);
+
+    /**
+     * 调整指定机构（user_institutions.id）的累计评论数。
+     * <p>用于评价审核状态变化时同步计数。delta 可正可负；最终值不会小于 0。</p>
+     *
+     * @param institutionId 机构 ID
+     * @param delta         增量
+     */
+    void adjustCommentCount(Integer institutionId, int delta);
+
+    /**
+     * 公开下拉/搜索 — 按机构名关键字模糊匹配，仅返回已发布的机构。
+     * <p>给「机构员工申请」「绑定流程」等场景用，返回最少必要字段。
+     *
+     * @param keyword 机构名关键字（可空 → 返回最新的 N 条）
+     * @param size    最多返回的条目数（默认 20，上限 50）
+     * @return 简化后的机构列表（id / userId / orgName / association / address）
+     */
+    List<Map<String, Object>> lookup(String keyword, int size);
 }

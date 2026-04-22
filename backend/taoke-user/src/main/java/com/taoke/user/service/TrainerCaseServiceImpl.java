@@ -56,6 +56,8 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
         Trainer trainer = getTrainerByUserId(userId);
         TrainerCase entity = getCaseAndCheckOwner(caseId, trainer.getId());
         TrainerCaseResponse r = TrainerCaseResponse.from(entity);
+        r.setTrainerUserId(trainer.getUserId());
+        r.setTrainerName(trainer.getName());
         r.setFiles(getFileResponses(entity.getId()));
         return r;
     }

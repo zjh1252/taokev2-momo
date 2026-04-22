@@ -12,6 +12,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import RegionCascader from '@/components/region-cascader';
+import type { RegionValue } from '@/components/region-cascader';
+import {
+  validateForm,
+  Validators,
+  getFirstError,
+  type FormValidationRules,
+} from '@/lib/validation';
 import { submitTrainerMessage } from '../api/service';
 
 interface TrainerMessageDialogProps {
@@ -22,6 +30,50 @@ interface TrainerMessageDialogProps {
   onSuccess?: () => void;
 }
 
+interface MessageFormData extends Record<string, unknown> {
+  trainingTopic: string;
+  trainingGoal: string;
+  contactName: string;
+  contactMobile: string;
+  companyName: string;
+  companyPhone: string;
+  provinceId: number | null;
+  cityId: number | null;
+  districtId: number | null;
+  trainingDays: string;
+  email: string;
+  remark: string;
+}
+
+const MESSAGE_RULES: FormValidationRules<MessageFormData> = {
+  trainingTopic: { required: true, requiredMessage: '请输入培训主题（2~30字）' },
+  contactName: { required: true, requiredMessage: '请填写联系人姓名' },
+  contactMobile: {
+    required: true,
+    requiredMessage: '请填写联系手机',
+    validator: Validators.phone,
+  },
+  companyName: { required: true, requiredMessage: '请填写公司名称' },
+  provinceId: { required: true, requiredMessage: '请选择省份' },
+  cityId: { required: true, requiredMessage: '请选择城市' },
+  districtId: { required: true, requiredMessage: '请选择区/县' },
+};
+
+const INITIAL_FORM: MessageFormData = {
+  trainingTopic: '',
+  trainingGoal: '',
+  contactName: '',
+  contactMobile: '',
+  companyName: '',
+  companyPhone: '',
+  provinceId: null,
+  cityId: null,
+  districtId: null,
+  trainingDays: '',
+  email: '',
+  remark: '',
+};
+
 export default function TrainerMessageDialog({
   open,
   onOpenChange,
@@ -29,46 +81,25 @@ export default function TrainerMessageDialog({
   trainerName,
   onSuccess,
 }: TrainerMessageDialogProps) {
-  const [trainingTopic, setTrainingTopic] = useState('');
-  const [trainingGoal, setTrainingGoal] = useState('');
-  const [contactName, setContactName] = useState('');
-  const [contactMobile, setContactMobile] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [companyPhone, setCompanyPhone] = useState('');
-  const [trainingDays, setTrainingDays] = useState('');
-  const [email, setEmail] = useState('');
-  const [remark, setRemark] = useState('');
+  const [form, setForm] = useState<MessageFormData>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const update = (patch: Partial<MessageFormData>) => setForm((prev) => ({ ...prev, ...patch }));
+
   const resetForm = useCallback(() => {
-    setTrainingTopic('');
-    setTrainingGoal('');
-    setContactName('');
-    setContactMobile('');
-    setCompanyName('');
-    setCompanyPhone('');
-    setTrainingDays('');
-    setEmail('');
-    setRemark('');
+    setForm(INITIAL_FORM);
     setError('');
   }, []);
 
   const handleSubmit = async () => {
-    if (!trainingTopic || trainingTopic.length < 2) {
-      setError('培训主题至少2个字符');
+    const result = validateForm(form, MESSAGE_RULES);
+    if (!result.valid) {
+      setError(getFirstError(result.errors) || '请完善必填项');
       return;
     }
-    if (!contactName) {
-      setError('请填写联系人姓名');
-      return;
-    }
-    if (!contactMobile) {
-      setError('请填写联系手机');
-      return;
-    }
-    if (!companyName) {
-      setError('请填写公司名称');
+    if (form.trainingTopic.trim().length < 2) {
+      setError('培训主题至少 2 个字符');
       return;
     }
 
@@ -77,15 +108,18 @@ export default function TrainerMessageDialog({
     try {
       await submitTrainerMessage({
         trainerUserId,
-        trainingTopic,
-        trainingGoal: trainingGoal || undefined,
-        contactName,
-        contactMobile,
-        companyName,
-        companyPhone: companyPhone || undefined,
-        trainingDays: trainingDays || undefined,
-        email: email || undefined,
-        remark: remark || undefined,
+        trainingTopic: form.trainingTopic,
+        trainingGoal: form.trainingGoal || undefined,
+        contactName: form.contactName,
+        contactMobile: form.contactMobile,
+        companyName: form.companyName,
+        companyPhone: form.companyPhone || undefined,
+        provinceId: form.provinceId ?? undefined,
+        cityId: form.cityId ?? undefined,
+        districtId: form.districtId ?? undefined,
+        trainingDays: form.trainingDays || undefined,
+        email: form.email || undefined,
+        remark: form.remark || undefined,
       });
       resetForm();
       onOpenChange(false);
@@ -110,8 +144,8 @@ export default function TrainerMessageDialog({
           <div className="grid gap-1.5">
             <Label>培训主题 <span className="text-destructive">*</span></Label>
             <Input
-              value={trainingTopic}
-              onChange={(e) => setTrainingTopic(e.target.value)}
+              value={form.trainingTopic}
+              onChange={(e) => update({ trainingTopic: e.target.value })}
               placeholder="请输入培训主题（2~30字）"
               maxLength={30}
             />
@@ -120,8 +154,8 @@ export default function TrainerMessageDialog({
           <div className="grid gap-1.5">
             <Label>培训目标</Label>
             <Textarea
-              value={trainingGoal}
-              onChange={(e) => setTrainingGoal(e.target.value)}
+              value={form.trainingGoal}
+              onChange={(e) => update({ trainingGoal: e.target.value })}
               placeholder="请输入培训目标（选填）"
               rows={3}
             />
@@ -131,16 +165,16 @@ export default function TrainerMessageDialog({
             <div className="grid gap-1.5">
               <Label>联系人 <span className="text-destructive">*</span></Label>
               <Input
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
+                value={form.contactName}
+                onChange={(e) => update({ contactName: e.target.value })}
                 placeholder="姓名"
               />
             </div>
             <div className="grid gap-1.5">
               <Label>联系手机 <span className="text-destructive">*</span></Label>
               <Input
-                value={contactMobile}
-                onChange={(e) => setContactMobile(e.target.value)}
+                value={form.contactMobile}
+                onChange={(e) => update({ contactMobile: e.target.value })}
                 placeholder="手机号码"
               />
             </div>
@@ -150,35 +184,55 @@ export default function TrainerMessageDialog({
             <div className="grid gap-1.5">
               <Label>公司名称 <span className="text-destructive">*</span></Label>
               <Input
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
+                value={form.companyName}
+                onChange={(e) => update({ companyName: e.target.value })}
                 placeholder="公司名称"
               />
             </div>
             <div className="grid gap-1.5">
               <Label>公司电话</Label>
               <Input
-                value={companyPhone}
-                onChange={(e) => setCompanyPhone(e.target.value)}
+                value={form.companyPhone}
+                onChange={(e) => update({ companyPhone: e.target.value })}
                 placeholder="选填"
               />
             </div>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>所在地区 <span className="text-destructive">*</span></Label>
+            <RegionCascader
+              maxLevel={3}
+              requireDistrict
+              value={{
+                provinceId: form.provinceId ?? undefined,
+                cityId: form.cityId ?? undefined,
+                districtId: form.districtId ?? undefined,
+              }}
+              onChange={(val: RegionValue) =>
+                update({
+                  provinceId: val.provinceId ?? null,
+                  cityId: val.cityId ?? null,
+                  districtId: val.districtId ?? null,
+                })
+              }
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label>培训天数</Label>
               <Input
-                value={trainingDays}
-                onChange={(e) => setTrainingDays(e.target.value)}
+                value={form.trainingDays}
+                onChange={(e) => update({ trainingDays: e.target.value })}
                 placeholder="如：2天"
               />
             </div>
             <div className="grid gap-1.5">
               <Label>Email</Label>
               <Input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={form.email}
+                onChange={(e) => update({ email: e.target.value })}
                 placeholder="选填"
               />
             </div>
@@ -187,8 +241,8 @@ export default function TrainerMessageDialog({
           <div className="grid gap-1.5">
             <Label>备注</Label>
             <Textarea
-              value={remark}
-              onChange={(e) => setRemark(e.target.value)}
+              value={form.remark}
+              onChange={(e) => update({ remark: e.target.value })}
               placeholder="其他需要说明的情况（选填）"
               rows={2}
             />

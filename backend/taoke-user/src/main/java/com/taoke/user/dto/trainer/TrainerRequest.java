@@ -1,9 +1,11 @@
 package com.taoke.user.dto.trainer;
 
+import com.taoke.user.dto.trainerbook.SaveTrainerBookRequest;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 保存/更新专家档案请求（主表字段，子表通过独立端点保存）
@@ -16,8 +18,12 @@ public class TrainerRequest {
 
     // ==================== 基础信息 ====================
 
-    @Size(max = 100, message = "姓名不超过100个字符")
+    @Size(max = 100, message = "真实姓名不超过100个字符")
     private String name;
+
+    /** 授课姓名 */
+    @Size(max = 64, message = "授课姓名不超过64个字符")
+    private String teachingName;
 
     @Size(max = 500, message = "头像 URL 不超过500个字符")
     private String avatar;
@@ -50,11 +56,18 @@ public class TrainerRequest {
     /** 个人简介（支持富文本） */
     private String bio;
 
+    /** 一句话介绍（80 字内） */
+    @Size(max = 255, message = "一句话介绍不超过255个字符")
+    private String oneLineIntro;
+
     /** 详细介绍（富文本） */
     private String intro;
 
     /** 从业经历/背景 */
     private String background;
+
+    /** 部分客户（长文本） */
+    private String partialClients;
 
     /** 专长描述 */
     private String goodAt;
@@ -92,8 +105,38 @@ public class TrainerRequest {
     @Size(max = 500, message = "报价备注不超过500个字符")
     private String quoteRemark;
 
+    /** 淘课网售价（元/天） */
+    private BigDecimal taokePrice;
+
+    /** 淘课网合作课酬（元/天） */
+    private BigDecimal taokeCommission;
+
+    // ==================== 协议与简历 ====================
+
+    /** 是否勾选《淘课网注册专家合作协议》 */
+    private Boolean agreementSigned;
+
+    /** 协议版本号，前端默认传 v1 */
+    @Size(max = 32, message = "协议版本号不超过32个字符")
+    private String agreementVersion;
+
+    /** 最近一次上传简历的 URL */
+    @Size(max = 512, message = "简历 URL 不超过512个字符")
+    private String resumeUrl;
+
     // ==================== 平台展示 ====================
 
     @Size(max = 500, message = "背景图 URL 不超过500个字符")
     private String backgroundImage;
+
+    // ==================== 多选关联（apply 时一次性提交，避免分步调用受 RequireRole 拦截） ====================
+
+    /** 擅长行业一级分类 ID 列表 */
+    private List<Integer> industryCategoryIds;
+
+    /** 擅长领域一级分类 ID 列表 */
+    private List<Integer> expertiseCategoryIds;
+
+    /** 我的著作（一次性整体替换式保存） */
+    private List<SaveTrainerBookRequest> books;
 }

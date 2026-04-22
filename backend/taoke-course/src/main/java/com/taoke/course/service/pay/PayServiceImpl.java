@@ -148,18 +148,20 @@ public class PayServiceImpl {
                     item.getProductId(), userId, 1)) {
                 return;
             }
+            LocalDateTime now = LocalDateTime.now();
             CourseEnrollment enrollment = new CourseEnrollment();
             enrollment.setCourseId(item.getProductId());
             enrollment.setUserId(userId);
             enrollment.setOrderId(orderId);
             enrollment.setPricePaid(item.getSubtotal());
-            enrollment.setEnrolledAt(LocalDateTime.now());
+            enrollment.setEnrolledAt(now);
             enrollment.setStatus(1);
             courseEnrollmentRepository.save(enrollment);
 
-            // 更新课程报名人数
+            // 更新课程报名人数与最近报名时间（近期热度排序使用）
             courseRepository.findById(item.getProductId()).ifPresent(course -> {
                 course.setEnrollmentCount(course.getEnrollmentCount() + item.getQuantity());
+                course.setLastEnrolledAt(now);
                 courseRepository.save(course);
             });
 

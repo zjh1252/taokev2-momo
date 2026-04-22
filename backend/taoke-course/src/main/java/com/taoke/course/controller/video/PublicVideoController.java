@@ -33,16 +33,17 @@ public class PublicVideoController {
     private final CategoryService categoryService;
 
     @Public
-    @Operation(summary = "公开录播课列表（分页、分类筛选、关键词搜索、排序）")
+    @Operation(summary = "公开录播课列表（分页、分类筛选、关键词搜索、排序、机构筛选）")
     @GetMapping("/videos")
     public ApiResponse<PageResponse<VideoListItemVO>> list(
             @RequestParam(required = false) Integer categoryId,
             @RequestParam(required = false) Integer subCategoryId,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) Integer institutionId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "15") int size) {
-        return ApiResponse.ok(videoService.listPublic(categoryId, subCategoryId, keyword, sortBy, page, size));
+        return ApiResponse.ok(videoService.listPublic(categoryId, subCategoryId, keyword, sortBy, institutionId, page, size));
     }
 
     @Public

@@ -32,6 +32,10 @@ export interface InstitutionDetail {
   provinceId: number;
   cityId: number;
   districtId: number;
+  /** 省份名称（详情接口回填） */
+  provinceName?: string;
+  /** 城市名称（详情接口回填） */
+  cityName?: string;
   address?: string;
   contactName?: string;
   contactPhone?: string;
@@ -43,7 +47,10 @@ export interface InstitutionDetail {
   innerCourseCount: number;
   isCertified: number;
   isRecommended: number;
+  /** 服务过的客户描述（部分客户，长文本） */
   clientCases?: string;
+  /** 成功案例（长文本） */
+  successCases?: string;
   createdAt: string;
 }
 

@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth/auth-context';
  * 用户认证区域 — 顶部辅导航栏中使用的公共组件
  * <p>
  * 未登录 → "登录/注册" 链接<br/>
- * 已登录 → 圆圈头像 + 昵称 + 用户中心 + 我的主页(仅已生效专家) + 登出
+ * 已登录 → 圆圈头像 + 昵称 + 用户中心 + 我的主页(仅专家/机构角色激活时) + 登出
  * </p>
  *
  * @author Fangxinxin
@@ -18,7 +18,7 @@ import { useAuth } from '@/lib/auth/auth-context';
  */
 export function UserAuthArea() {
   const t = useTranslations('nav');
-  const { user, loading, logout, trainerPublicHomeHref } = useAuth();
+  const { user, loading, logout, publicHomeHref } = useAuth();
 
   if (loading) {
     return <div className="w-24 h-4 bg-slate-100 rounded animate-pulse" />;
@@ -68,11 +68,11 @@ export function UserAuthArea() {
         {t('userCenter')}
       </Link>
 
-      {trainerPublicHomeHref && (
+      {publicHomeHref && (
         <>
           <Separator />
           <Link
-            href={trainerPublicHomeHref}
+            href={publicHomeHref}
             className="hover:text-primary transition-colors"
           >
             {t('myPage')}

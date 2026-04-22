@@ -1,8 +1,7 @@
 import { apiClient } from '@/lib/api-client';
 import type {
   AssistantFilters,
-  AssistantsResponse,
-  AssistantApplicationsResponse
+  AssistantsResponse
 } from './types';
 
 export function buildAssistantParams(
@@ -21,30 +20,5 @@ export async function getAssistants(
 ): Promise<AssistantsResponse> {
   return apiClient<AssistantsResponse>(
     `/assistants?${buildAssistantParams(filters).toString()}`
-  );
-}
-
-export async function getAssistantApplications(
-  filters: AssistantFilters
-): Promise<AssistantApplicationsResponse> {
-  return apiClient<AssistantApplicationsResponse>(
-    `/assistants/applications?${buildAssistantParams(filters).toString()}`
-  );
-}
-
-export async function approveAssistantApplication(userId: number) {
-  return apiClient<{ code: number; message: string }>(
-    `/assistants/applications/${userId}/approve`,
-    { method: 'PUT' }
-  );
-}
-
-export async function rejectAssistantApplication(
-  userId: number,
-  reason: string
-) {
-  return apiClient<{ code: number; message: string }>(
-    `/assistants/applications/${userId}/reject`,
-    { method: 'PUT', body: JSON.stringify({ reason }) }
   );
 }

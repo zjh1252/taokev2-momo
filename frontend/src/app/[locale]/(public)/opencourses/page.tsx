@@ -3,6 +3,11 @@ import { Link } from '@/i18n/navigation';
 import { ChevronRight } from 'lucide-react';
 import { OpenCourseListSection } from '@/features/course/components/open/OpenCourseListSection';
 import { getCourseList, getCourseCategoryTree } from '@/features/course/api/service';
+import { getInstitutionDetail } from '@/features/institution/api/service';
+
+interface Props {
+  searchParams: Promise<{ institutionId?: string }>;
+}
 
 export async function generateMetadata() {
   const t = await getTranslations('course');
@@ -12,9 +17,18 @@ export async function generateMetadata() {
   };
 }
 
-export default async function OpenCoursesPage() {
-  const [initialData, categoryTree] = await Promise.all([
-    getCourseList({ page: 1, size: 15, isOpen: true }).catch(() => ({
+export default async function OpenCoursesPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const institutionId = sp.institutionId ? Number(sp.institutionId) : undefined;
+  const validInstitutionId = institutionId && !isNaN(institutionId) ? institutionId : undefined;
+
+  const [initialData, categoryTree, institution] = await Promise.all([
+    getCourseList({
+      page: 1,
+      size: 15,
+      isOpen: true,
+      institutionId: validInstitutionId,
+    }).catch(() => ({
       list: [],
       total: 0,
       page: 1,
@@ -22,6 +36,9 @@ export default async function OpenCoursesPage() {
       totalPages: 0,
     })),
     getCourseCategoryTree().catch(() => []),
+    validInstitutionId
+      ? getInstitutionDetail(validInstitutionId).catch(() => null)
+      : Promise.resolve(null),
   ]);
 
   return (
@@ -36,7 +53,12 @@ export default async function OpenCoursesPage() {
         <span className="text-slate-800 font-medium">公开课</span>
       </nav>
 
-      <OpenCourseListSection initialData={initialData} categoryTree={categoryTree} />
+      <OpenCourseListSection
+        initialData={initialData}
+        categoryTree={categoryTree}
+        initialInstitutionId={validInstitutionId}
+        initialInstitutionName={institution?.orgName}
+      />
     </main>
   );
 }

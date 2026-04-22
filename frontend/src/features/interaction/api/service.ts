@@ -84,11 +84,18 @@ export async function submitReview(payload: SubmitReviewPayload): Promise<number
 
 export async function getPublicReviews(
   scope: string,
-  opts: { courseId?: number; trainerUserId?: number; page?: number; size?: number },
+  opts: {
+    courseId?: number;
+    trainerUserId?: number;
+    institutionId?: number;
+    page?: number;
+    size?: number;
+  },
 ): Promise<PageData<ReviewItem>> {
   const params = new URLSearchParams({ scope });
   if (opts.courseId) params.set('courseId', String(opts.courseId));
   if (opts.trainerUserId) params.set('trainerUserId', String(opts.trainerUserId));
+  if (opts.institutionId) params.set('institutionId', String(opts.institutionId));
   params.set('page', String(opts.page ?? 0));
   params.set('size', String(opts.size ?? 10));
   const res = await apiGet<ApiResponse<PageData<ReviewItem>>>(

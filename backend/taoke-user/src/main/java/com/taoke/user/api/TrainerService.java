@@ -47,6 +47,17 @@ public interface TrainerService {
     TrainerPublicResponse getPublicProfile(Integer trainerId);
 
     /**
+     * 专家详情页推荐相关专家
+     * <p>
+     * 命中规则：与目标专家共享至少一个擅长领域分类或擅长行业分类；
+     * 排除自己；仅取已审核通过（status=2）；按 isRecommended DESC、score DESC 排序，最多 3 条。
+     * </p>
+     *
+     * @param trainerId 当前专家 ID
+     */
+    List<TrainerListItemResponse> listRecommendedTrainers(Integer trainerId);
+
+    /**
      * 保存或更新当前用户的专家主表档案
      */
     TrainerResponse save(Integer userId, TrainerRequest request);
@@ -114,4 +125,13 @@ public interface TrainerService {
      * 检查是否有专家关联了指定的擅长行业分类
      */
     boolean hasIndustryCategoryReference(Integer categoryId);
+
+    /**
+     * 调整指定专家（user_trainers.user_id）的累计评论数。
+     * <p>用于评价审核状态变化时同步计数。delta 可正可负；最终值不会小于 0。</p>
+     *
+     * @param trainerUserId 专家所属 user_id
+     * @param delta         增量（+1 表示新增一条已通过、-1 表示撤销/驳回）
+     */
+    void adjustCommentCountByUserId(Integer trainerUserId, int delta);
 }

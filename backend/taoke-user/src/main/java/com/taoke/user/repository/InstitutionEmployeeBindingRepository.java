@@ -17,4 +17,10 @@ public interface InstitutionEmployeeBindingRepository extends JpaRepository<Inst
     List<InstitutionEmployeeBinding> findByOrgId(Integer orgId);
 
     Optional<InstitutionEmployeeBinding> findByEmployeeUserId(Integer employeeUserId);
+
+    List<InstitutionEmployeeBinding> findByOrgIdAndStatus(Integer orgId, Integer status);
+
+    List<InstitutionEmployeeBinding> findByEmployeeUserIdAndStatus(Integer employeeUserId, Integer status);
+
+    Optional<InstitutionEmployeeBinding> findByOrgIdAndEmployeeUserId(Integer orgId, Integer employeeUserId);
 }

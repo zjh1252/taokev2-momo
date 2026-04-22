@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback, useTransition } from 'react';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, X } from 'lucide-react';
+import { useRouter } from '@/i18n/navigation';
 import { InnerCourseCard } from './InnerCourseCard';
 import { InnerCourseFilters } from './InnerCourseFilters';
 import { getCourseList } from '../../api/service';
@@ -10,6 +11,8 @@ import type { CourseListItem, PageResponse, CategoryTreeNode } from '../../api/t
 interface InnerCourseListSectionProps {
   initialData: PageResponse<CourseListItem>;
   categoryTree: CategoryTreeNode[];
+  initialInstitutionId?: number;
+  initialInstitutionName?: string;
 }
 
 const SORT_OPTIONS = [
@@ -17,17 +20,30 @@ const SORT_OPTIONS = [
   { key: 'rating', label: '评分', sortBy: 'score' },
 ];
 
-export function InnerCourseListSection({ initialData, categoryTree }: InnerCourseListSectionProps) {
+export function InnerCourseListSection({
+  initialData,
+  categoryTree,
+  initialInstitutionId,
+  initialInstitutionName,
+}: InnerCourseListSectionProps) {
+  const router = useRouter();
   const [data, setData] = useState(initialData);
   const [filters, setFilters] = useState<{ categoryId?: number }>({});
+  const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
 
   const fetchData = useCallback(
-    (page: number, newFilters?: typeof filters, overrideSortKey?: string) => {
+    (page: number, newFilters?: typeof filters, overrideSortKey?: string, overrideInstitutionId?: number | null) => {
       const f = newFilters ?? filters;
       const sort = overrideSortKey ?? sortKey;
+      const instId =
+        overrideInstitutionId === null
+          ? undefined
+          : overrideInstitutionId !== undefined
+            ? overrideInstitutionId
+            : institutionId;
       const sortByValue = SORT_OPTIONS.find((o) => o.key === sort)?.sortBy ?? 'default';
       startTransition(async () => {
         try {
@@ -37,6 +53,7 @@ export function InnerCourseListSection({ initialData, categoryTree }: InnerCours
             isOpen: false,
             categoryId: f.categoryId,
             sortBy: sortByValue === 'default' ? undefined : sortByValue,
+            institutionId: instId,
           });
           setData(result);
           setCurrentPage(page);
@@ -45,8 +62,14 @@ export function InnerCourseListSection({ initialData, categoryTree }: InnerCours
         }
       });
     },
-    [filters, sortKey],
+    [filters, sortKey, institutionId],
   );
+
+  const handleClearInstitution = useCallback(() => {
+    setInstitutionId(undefined);
+    fetchData(1, undefined, undefined, null);
+    router.replace('/innercourses');
+  }, [fetchData, router]);
 
   const handleFilterChange = useCallback(
     (newFilters: typeof filters) => {
@@ -77,6 +100,23 @@ export function InnerCourseListSection({ initialData, categoryTree }: InnerCours
       <InnerCourseFilters categoryTree={categoryTree} onFilterChange={handleFilterChange} />
 
       <div className="flex-1 flex flex-col gap-4">
+        {/* 当前过滤 chip */}
+        {institutionId && initialInstitutionName && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-3 flex items-center gap-2 text-sm">
+            <span className="text-slate-500">当前筛选：</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs">
+              机构：{initialInstitutionName}
+              <button
+                onClick={handleClearInstitution}
+                className="hover:text-primary/70 inline-flex items-center"
+                aria-label="清除机构筛选"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          </div>
+        )}
+
         {/* 排序栏 */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex items-center gap-2">
           {SORT_OPTIONS.map((opt) => (

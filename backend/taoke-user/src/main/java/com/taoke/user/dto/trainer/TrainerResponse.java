@@ -24,6 +24,8 @@ public class TrainerResponse {
     // ==================== 基础信息 ====================
 
     private String name;
+    /** 授课姓名（对外展示，可与真实姓名不同） */
+    private String teachingName;
     private String avatar;
     private String title;
     private Integer gender;
@@ -39,8 +41,12 @@ public class TrainerResponse {
     // ==================== 专业信息 ====================
 
     private String bio;
+    /** 一句话介绍 */
+    private String oneLineIntro;
     private String intro;
     private String background;
+    /** 部分客户（长文本） */
+    private String partialClients;
     private String goodAt;
     private String specialties;
     private String expertiseTags;
@@ -55,6 +61,16 @@ public class TrainerResponse {
     private BigDecimal quoteMax;
     private String quoteUnit;
     private String quoteRemark;
+    /** 淘课网售价（元/天） */
+    private BigDecimal taokePrice;
+    /** 淘课网合作课酬（元/天） */
+    private BigDecimal taokeCommission;
+
+    // ==================== 协议与简历 ====================
+
+    private LocalDateTime agreementSignedAt;
+    private String agreementVersion;
+    private String resumeUrl;
 
     // ==================== 平台信息 ====================
 

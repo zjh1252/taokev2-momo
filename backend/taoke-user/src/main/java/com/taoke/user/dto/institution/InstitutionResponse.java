@@ -28,6 +28,13 @@ public class InstitutionResponse {
     private Integer districtId;
     private Integer townId;
     private String address;
+
+    /** 服务过的客户描述（部分客户） */
+    private String clientCases;
+
+    /** 成功案例（长文本） */
+    private String successCases;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

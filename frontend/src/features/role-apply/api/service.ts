@@ -1,6 +1,7 @@
 import { apiPost } from '@/lib/http/client';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
+import { getApiBaseUrl } from '@/lib/env/client';
 import type {
   ApplyableRole,
   EnterpriseBuyerFormData,
@@ -57,6 +58,61 @@ export function applyInstitution(data: InstitutionFormData) {
 /** 机构员工申请 */
 export function applyInstitutionEmployee(data: InstitutionEmployeeFormData) {
   return apiPost('/institution-employees/apply', data, { headers: authHeaders() });
+}
+
+/** 简历解析返回结构（与后端 ResumeParseResult 对齐） */
+export interface ResumeParseResult {
+  realName?: string;
+  teachingName?: string;
+  oneLineIntro?: string;
+  credential?: string;
+  partialClients?: string;
+  phone?: string;
+  email?: string;
+  bio?: string;
+  background?: string;
+  teachingStyle?: string;
+  videos?: string[];
+  specialties?: string[];
+  industries?: string[];
+  resumeUrl?: string;
+}
+
+/** 简历上传 + 解析（multipart/form-data） */
+export async function uploadAndParseResume(file: File): Promise<{
+  fileUrl: string;
+  parseResult: ResumeParseResult;
+}> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const resp = await fetch(`${getApiBaseUrl()}/trainers/me/resume/parse-and-upload`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+  });
+  if (!resp.ok) {
+    let message = '简历上传或解析失败';
+    try {
+      const err = (await resp.json()) as { message?: string };
+      if (err?.message) message = err.message;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message);
+  }
+  const json = (await resp.json()) as {
+    data: { fileUrl: string; parseResult: ResumeParseResult };
+  };
+  return json.data;
+}
+
+/** 已上传简历再次按 URL 重新解析（不重新上传） */
+export function parseResumeByUrl(fileUrl: string) {
+  return apiPost<ResumeParseResult>(
+    '/trainers/me/resume/parse',
+    { fileUrl },
+    { headers: authHeaders() },
+  );
 }
 
 /** 根据角色编码调用对应的申请 API */

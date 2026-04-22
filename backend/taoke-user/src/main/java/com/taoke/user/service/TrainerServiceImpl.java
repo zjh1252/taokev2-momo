@@ -50,6 +50,7 @@ public class TrainerServiceImpl implements TrainerService {
     private final TrainerHonorRepository honorRepository;
     private final TrainerExpertiseCategoryRepository expertiseCategoryRepository;
     private final TrainerIndustryCategoryRepository industryCategoryRepository;
+    private final TrainerBookRepository trainerBookRepository;
     private final TrainerMapper trainerMapper;
     private final RoleApplyService roleApplyService;
     private final CategoryService categoryService;
@@ -210,6 +211,67 @@ public class TrainerServiceImpl implements TrainerService {
         return response;
     }
 
+    @Override
+    public List<TrainerListItemResponse> listRecommendedTrainers(Integer trainerId) {
+        if (trainerId == null || trainerId <= 0) {
+            return List.of();
+        }
+
+        // 命中当前专家的擅长领域 / 擅长行业分类 ID
+        List<Integer> expertiseIds = expertiseCategoryRepository
+                .findByTrainerIdOrderBySortOrder(trainerId).stream()
+                .map(TrainerExpertiseCategory::getCategoryId)
+                .toList();
+        List<Integer> industryIds = industryCategoryRepository
+                .findByTrainerIdOrderBySortOrder(trainerId).stream()
+                .map(TrainerIndustryCategory::getCategoryId)
+                .toList();
+        if (expertiseIds.isEmpty() && industryIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 候选专家 ID 集合：分别从两张关联表收集，再合并去重，剔除自己
+        Set<Integer> candidateIds = new HashSet<>();
+        if (!expertiseIds.isEmpty()) {
+            for (TrainerExpertiseCategory ec : expertiseCategoryRepository.findByCategoryIdIn(expertiseIds)) {
+                if (!Objects.equals(ec.getTrainerId(), trainerId)) {
+                    candidateIds.add(ec.getTrainerId());
+                }
+            }
+        }
+        if (!industryIds.isEmpty()) {
+            for (TrainerIndustryCategory ic : industryCategoryRepository.findByCategoryIdIn(industryIds)) {
+                if (!Objects.equals(ic.getTrainerId(), trainerId)) {
+                    candidateIds.add(ic.getTrainerId());
+                }
+            }
+        }
+        if (candidateIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 取候选专家中：状态=已通过（status=2），按推荐 + 评分倒序，最多 3 条
+        Specification<Trainer> spec = (root, cq, cb) -> cb.and(
+                root.get("id").in(candidateIds),
+                cb.equal(root.get("status"), 2)
+        );
+        PageRequest pageable = PageRequest.of(0, 3,
+                Sort.by(Sort.Direction.DESC, "isRecommended")
+                        .and(Sort.by(Sort.Direction.DESC, "score"))
+                        .and(Sort.by(Sort.Direction.DESC, "id")));
+        List<Trainer> trainers = trainerRepository.findAll(spec, pageable).getContent();
+        if (trainers.isEmpty()) {
+            return List.of();
+        }
+
+        // 组装列表项（不需要分类、地区名称，留空即可，前端只展示头像/姓名/头衔/评分）
+        return trainers.stream().map(t -> {
+            TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
+            item.setExpertiseCategories(List.of());
+            return item;
+        }).toList();
+    }
+
     @Transactional
     @Override
     public TrainerResponse save(Integer userId, TrainerRequest request) {
@@ -219,8 +281,77 @@ public class TrainerServiceImpl implements TrainerService {
     @Transactional
     @Override
     public void apply(Integer userId, TrainerRequest request) {
+        // 必须勾选《淘课网注册专家合作协议》才能提交申请
+        if (request.getAgreementSigned() == null || !Boolean.TRUE.equals(request.getAgreementSigned())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID,
+                    "请先勾选并同意《淘课网注册专家合作协议》");
+        }
         roleApplyService.apply(userId, BusinessRole.Code.TRAINER);
-        saveOrUpdateMainTable(userId, request);
+        Trainer trainer = saveOrUpdateMainTable(userId, request);
+        // 一次性持久化擅长行业 / 擅长领域 / 著作，避免分步调用受 RequireRole(TRAINER active) 拦截
+        replaceExpertiseCategoriesByIds(trainer.getId(), request.getExpertiseCategoryIds());
+        replaceIndustryCategoriesByIds(trainer.getId(), request.getIndustryCategoryIds());
+        replaceBooks(trainer.getId(), request.getBooks());
+    }
+
+    /** 整体替换擅长领域分类（apply / save 通用） */
+    private void replaceExpertiseCategoriesByIds(Integer trainerId, List<Integer> categoryIds) {
+        if (categoryIds == null) return;
+        expertiseCategoryRepository.deleteByTrainerId(trainerId);
+        if (categoryIds.isEmpty()) return;
+        int sort = categoryIds.size();
+        List<TrainerExpertiseCategory> entities = new ArrayList<>(categoryIds.size());
+        for (Integer cid : categoryIds) {
+            if (cid == null) continue;
+            TrainerExpertiseCategory ec = new TrainerExpertiseCategory();
+            ec.setTrainerId(trainerId);
+            ec.setCategoryId(cid);
+            ec.setSortOrder(sort--);
+            entities.add(ec);
+        }
+        expertiseCategoryRepository.saveAll(entities);
+    }
+
+    /** 整体替换擅长行业分类（apply / save 通用） */
+    private void replaceIndustryCategoriesByIds(Integer trainerId, List<Integer> categoryIds) {
+        if (categoryIds == null) return;
+        industryCategoryRepository.deleteByTrainerId(trainerId);
+        if (categoryIds.isEmpty()) return;
+        int sort = categoryIds.size();
+        List<TrainerIndustryCategory> entities = new ArrayList<>(categoryIds.size());
+        for (Integer cid : categoryIds) {
+            if (cid == null) continue;
+            TrainerIndustryCategory ic = new TrainerIndustryCategory();
+            ic.setTrainerId(trainerId);
+            ic.setCategoryId(cid);
+            ic.setSortOrder(sort--);
+            entities.add(ic);
+        }
+        industryCategoryRepository.saveAll(entities);
+    }
+
+    /** 整体替换著作（apply 时一次性提交，简单可靠） */
+    private void replaceBooks(Integer trainerId, List<com.taoke.user.dto.trainerbook.SaveTrainerBookRequest> books) {
+        if (books == null) return;
+        trainerBookRepository.deleteByTrainerId(trainerId);
+        if (books.isEmpty()) return;
+        int sort = books.size();
+        List<TrainerBook> entities = new ArrayList<>(books.size());
+        for (com.taoke.user.dto.trainerbook.SaveTrainerBookRequest b : books) {
+            if (b == null || b.getTitle() == null || b.getTitle().isBlank()) continue;
+            TrainerBook tb = new TrainerBook();
+            tb.setTrainerId(trainerId);
+            tb.setTitle(b.getTitle());
+            tb.setCoverUrl(b.getCoverUrl());
+            tb.setPublisher(b.getPublisher());
+            tb.setPublishDate(b.getPublishDate());
+            tb.setDescription(b.getDescription());
+            tb.setBuyUrl(b.getBuyUrl());
+            tb.setSortOrder(b.getSortOrder() != null ? b.getSortOrder() : sort);
+            sort--;
+            entities.add(tb);
+        }
+        trainerBookRepository.saveAll(entities);
     }
 
     @Override
@@ -319,6 +450,7 @@ public class TrainerServiceImpl implements TrainerService {
         });
 
         if (req.getName() != null) trainer.setName(req.getName());
+        if (req.getTeachingName() != null) trainer.setTeachingName(req.getTeachingName());
         if (req.getAvatar() != null) trainer.setAvatar(req.getAvatar());
         if (req.getTitle() != null) trainer.setTitle(req.getTitle());
         if (req.getGender() != null) trainer.setGender(req.getGender());
@@ -331,8 +463,10 @@ public class TrainerServiceImpl implements TrainerService {
         if (req.getTownId() != null) trainer.setTownId(req.getTownId());
         if (req.getAddress() != null) trainer.setAddress(req.getAddress());
         if (req.getBio() != null) trainer.setBio(req.getBio());
+        if (req.getOneLineIntro() != null) trainer.setOneLineIntro(req.getOneLineIntro());
         if (req.getIntro() != null) trainer.setIntro(req.getIntro());
         if (req.getBackground() != null) trainer.setBackground(req.getBackground());
+        if (req.getPartialClients() != null) trainer.setPartialClients(req.getPartialClients());
         if (req.getGoodAt() != null) trainer.setGoodAt(req.getGoodAt());
         if (req.getSpecialties() != null) trainer.setSpecialties(req.getSpecialties());
         if (req.getExpertiseTags() != null) trainer.setExpertiseTags(req.getExpertiseTags());
@@ -344,7 +478,22 @@ public class TrainerServiceImpl implements TrainerService {
         if (req.getQuoteMax() != null) trainer.setQuoteMax(req.getQuoteMax());
         if (req.getQuoteUnit() != null) trainer.setQuoteUnit(req.getQuoteUnit());
         if (req.getQuoteRemark() != null) trainer.setQuoteRemark(req.getQuoteRemark());
+        if (req.getTaokePrice() != null) trainer.setTaokePrice(req.getTaokePrice());
+        if (req.getTaokeCommission() != null) trainer.setTaokeCommission(req.getTaokeCommission());
+        if (req.getResumeUrl() != null) trainer.setResumeUrl(req.getResumeUrl());
         if (req.getBackgroundImage() != null) trainer.setBackgroundImage(req.getBackgroundImage());
+
+        // 协议签署：首次勾选时回写时间与版本，已有签署时间时不重复覆盖
+        if (Boolean.TRUE.equals(req.getAgreementSigned())) {
+            if (trainer.getAgreementSignedAt() == null) {
+                trainer.setAgreementSignedAt(java.time.LocalDateTime.now());
+            }
+            String version = req.getAgreementVersion();
+            if (version == null || version.isBlank()) {
+                version = "v1";
+            }
+            trainer.setAgreementVersion(version);
+        }
 
         return trainerRepository.save(trainer);
     }
@@ -443,6 +592,18 @@ public class TrainerServiceImpl implements TrainerService {
     @Override
     public boolean hasIndustryCategoryReference(Integer categoryId) {
         return industryCategoryRepository.existsByCategoryId(categoryId);
+    }
+
+    @Override
+    @Transactional
+    public void adjustCommentCountByUserId(Integer trainerUserId, int delta) {
+        if (trainerUserId == null || delta == 0) return;
+        trainerRepository.findByUserId(trainerUserId).ifPresent(t -> {
+            int cur = t.getCommentCount() == null ? 0 : t.getCommentCount();
+            int next = Math.max(0, cur + delta);
+            t.setCommentCount(next);
+            trainerRepository.save(t);
+        });
     }
 
     /** 批量回填多个列表的 categoryName */

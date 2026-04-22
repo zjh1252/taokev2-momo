@@ -51,8 +51,9 @@ public class EnterpriseBuyerServiceImpl implements com.taoke.user.api.Enterprise
     @Override
     @Transactional
     public void apply(Integer userId, EnterpriseBuyerRequest request) {
-        roleApplyService.apply(userId, BusinessRole.Code.ENTERPRISE_BUYER);
+        // 企业培训采购方无需资质认证 — 直接自动通过并发送角色生效通知
         saveOrUpdateExtension(userId, request);
+        roleApplyService.applyAndAutoApprove(userId, BusinessRole.Code.ENTERPRISE_BUYER);
     }
 
     @Override
