@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { Play, Star } from 'lucide-react';
 import { toast } from 'sonner';
@@ -54,7 +55,20 @@ export function TrainerDetailContent({
   videos,
   books,
 }: TrainerDetailContentProps) {
-  const [activeTab, setActiveTab] = useState<string>('home');
+  // 通过 ?tab=cases 等 query 直接深链激活某个 tab，便于其他页面跳过来落到对应 tab
+  const searchParams = useSearchParams();
+  const initialTab = (() => {
+    const t = searchParams?.get('tab');
+    return t && TABS.some((x) => x.id === t) ? t : 'home';
+  })();
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+  useEffect(() => {
+    const t = searchParams?.get('tab');
+    if (t && TABS.some((x) => x.id === t)) {
+      setActiveTab(t);
+    }
+  }, [searchParams]);
 
   // 学员评价角标：以专家累计已通过评论数为准（后端在评价审核通过时同步 +1）
   const counts = {
@@ -75,8 +89,9 @@ export function TrainerDetailContent({
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                className={`py-4 whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1.5 ${
                   activeTab === tab.id
                     ? 'text-primary border-b-2 border-primary font-bold'
                     : 'text-slate-600 hover:text-primary'
@@ -508,8 +523,9 @@ function ReviewsView({
           学员评价 <span className="text-primary mx-1">{reviews.length}</span> 个
         </h2>
         <button
+          type="button"
           onClick={() => requireAuth(() => setReviewOpen(true))}
-          className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition-colors"
+          className="px-4 py-2 rounded-md bg-primary text-white text-sm cursor-pointer hover:bg-primary/90 transition-colors"
         >
           我要评价
         </button>

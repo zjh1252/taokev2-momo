@@ -6,6 +6,7 @@ import { TRAINER_STATUS_MAP, TRAINER_STATUS_OPTIONS } from '../../api/types';
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import Image from 'next/image';
+import { RecommendSwitch } from './recommend-switch';
 
 function statusVariant(status: number) {
   switch (status) {
@@ -103,6 +104,18 @@ export const columns: ColumnDef<AdminTrainer>[] = [
     accessorKey: 'viewCount',
     header: '曝光量',
     cell: ({ cell }) => cell.getValue<number>()?.toLocaleString() ?? '0'
+  },
+  {
+    id: 'isRecommended',
+    accessorKey: 'isRecommended',
+    header: '推荐',
+    enableSorting: false,
+    cell: ({ row }) => (
+      <RecommendSwitch
+        trainerId={row.original.id}
+        value={row.original.isRecommended}
+      />
+    )
   },
   {
     accessorKey: 'createdAt',

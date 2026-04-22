@@ -51,6 +51,8 @@ export interface TrainerListParams {
   provinceId?: number;
   keyword?: string;
   sort?: string;
+  /** 质量承诺：1=仅显示信得过专家 */
+  isTrusted?: number;
 }
 
 /**
@@ -67,6 +69,7 @@ export async function getTrainerList(
   if (params.provinceId) query.set('provinceId', String(params.provinceId));
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sort) query.set('sort', params.sort);
+  if (params.isTrusted) query.set('isTrusted', String(params.isTrusted));
 
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<TrainerListItem>>>(
@@ -96,6 +99,40 @@ export async function getRecommendedTrainers(
 ): Promise<RecommendedTrainerItem[]> {
   const res = await apiGet<ApiResponse<RecommendedTrainerItem[]>>(
     `/trainers/${trainerId}/recommended-trainers`,
+  );
+  return res.data || [];
+}
+
+/**
+ * 获取专家列表页顶部推荐位（最多 9 条；不足时按 id 倒序补齐，允许重复）
+ */
+export async function getTopRecommendedTrainers(limit = 9): Promise<TrainerListItem[]> {
+  const res = await apiGet<ApiResponse<TrainerListItem[]>>(
+    `/trainers/recommended?limit=${limit}`,
+  );
+  return res.data || [];
+}
+
+/**
+ * 全平台最近的已审核案例（专家列表页中部滚动展示）
+ */
+export interface RecentTrainerCase {
+  id: number;
+  trainerId: number;
+  trainerUserId: number;
+  trainerName: string;
+  trainerAvatar: string | null;
+  /** 专家综合评分（来自 user_trainers.score），前端列表展示「★ 4.5」 */
+  trainerScore?: number | null;
+  caseTitle: string;
+  coverImage: string | null;
+  industry: string | null;
+  description: string | null;
+}
+
+export async function getRecentTrainerCases(limit = 10): Promise<RecentTrainerCase[]> {
+  const res = await apiGet<ApiResponse<RecentTrainerCase[]>>(
+    `/trainer-cases/recent?limit=${limit}`,
   );
   return res.data || [];
 }

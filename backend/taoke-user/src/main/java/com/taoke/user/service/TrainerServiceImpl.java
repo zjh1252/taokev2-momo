@@ -71,7 +71,8 @@ public class TrainerServiceImpl implements TrainerService {
                                                             Integer industryCategoryId,
                                                             Integer provinceId,
                                                             String keyword,
-                                                            String sort) {
+                                                            String sort,
+                                                            Integer isTrusted) {
         // 构建排序
         Sort jpaSort = "score".equals(sort)
                 ? Sort.by(Sort.Direction.DESC, "score").and(Sort.by(Sort.Direction.DESC, "id"))
@@ -82,7 +83,7 @@ public class TrainerServiceImpl implements TrainerService {
         PageRequest pageable = PageRequest.of(page - 1, size, jpaSort);
 
         // 第一段：查分页 ID（带动态条件）
-        Specification<Trainer> spec = buildListSpec(expertiseCategoryId, industryCategoryId, provinceId, keyword);
+        Specification<Trainer> spec = buildListSpec(expertiseCategoryId, industryCategoryId, provinceId, keyword, isTrusted);
         Page<Trainer> trainerPage = trainerRepository.findAll(spec, pageable);
 
         if (trainerPage.isEmpty()) {
@@ -148,13 +149,19 @@ public class TrainerServiceImpl implements TrainerService {
     private Specification<Trainer> buildListSpec(Integer expertiseCategoryId,
                                                  Integer industryCategoryId,
                                                  Integer provinceId,
-                                                 String keyword) {
+                                                 String keyword,
+                                                 Integer isTrusted) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), 2));
 
             if (provinceId != null) {
                 predicates.add(cb.equal(root.get("provinceId"), provinceId));
+            }
+
+            // 质量承诺：仅 isTrusted=1 时筛选「信得过」专家
+            if (isTrusted != null && isTrusted == 1) {
+                predicates.add(cb.equal(root.get("isTrusted"), 1));
             }
 
             if (keyword != null && !keyword.isBlank()) {
@@ -209,6 +216,54 @@ public class TrainerServiceImpl implements TrainerService {
         }
 
         return response;
+    }
+
+    @Transactional
+    @Override
+    public void setRecommended(Integer trainerId, Integer value) {
+        Trainer trainer = trainerRepository.findById(trainerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "专家不存在"));
+        trainer.setIsRecommended(value != null && value == 1 ? 1 : 0);
+        trainerRepository.save(trainer);
+    }
+
+    @Override
+    public List<TrainerListItemResponse> listRecommendedForTop(int limit) {
+        int target = limit > 0 ? limit : 9;
+
+        // 1) 优先取已推荐 + 已上架，按 sortOrder/score/id 倒序
+        Specification<Trainer> recSpec = (root, cq, cb) -> cb.and(
+                cb.equal(root.get("status"), 2),
+                cb.equal(root.get("isRecommended"), 1)
+        );
+        PageRequest recPageable = PageRequest.of(0, target,
+                Sort.by(Sort.Direction.DESC, "sortOrder")
+                        .and(Sort.by(Sort.Direction.DESC, "score"))
+                        .and(Sort.by(Sort.Direction.DESC, "id")));
+        List<Trainer> picked = new ArrayList<>(trainerRepository.findAll(recSpec, recPageable).getContent());
+
+        // 2) 不够 target 时，直接按 id 倒序取已上架专家补齐
+        //    业务约定：允许与已选重复，简单稳定，前端按位置渲染
+        if (picked.size() < target) {
+            Specification<Trainer> latestSpec = (root, cq, cb) -> cb.equal(root.get("status"), 2);
+            PageRequest latestPageable = PageRequest.of(0, target,
+                    Sort.by(Sort.Direction.DESC, "id"));
+            List<Trainer> latest = trainerRepository.findAll(latestSpec, latestPageable).getContent();
+            for (Trainer t : latest) {
+                if (picked.size() >= target) break;
+                picked.add(t);
+            }
+        }
+
+        if (picked.isEmpty()) {
+            return List.of();
+        }
+
+        return picked.stream().map(t -> {
+            TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
+            item.setExpertiseCategories(List.of());
+            return item;
+        }).toList();
     }
 
     @Override

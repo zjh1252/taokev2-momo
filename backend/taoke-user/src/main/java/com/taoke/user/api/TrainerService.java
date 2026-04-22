@@ -33,13 +33,15 @@ public interface TrainerService {
      * @param provinceId           省份 ID（可选）
      * @param keyword              搜索关键词（可选，匹配 name / title / expertiseTags）
      * @param sort                 排序方式：default / score
+     * @param isTrusted            质量承诺过滤：1=仅显示信得过专家，其他/null 不限
      */
     PageResponse<TrainerListItemResponse> listPublic(int page, int size,
                                                      Integer expertiseCategoryId,
                                                      Integer industryCategoryId,
                                                      Integer provinceId,
                                                      String keyword,
-                                                     String sort);
+                                                     String sort,
+                                                     Integer isTrusted);
 
     /**
      * 按专家 ID 查询公开档案（不含报价敏感字段）
@@ -125,6 +127,24 @@ public interface TrainerService {
      * 检查是否有专家关联了指定的擅长行业分类
      */
     boolean hasIndustryCategoryReference(Integer categoryId);
+
+    /**
+     * 切换专家推荐位（仅修改 is_recommended，幂等）
+     *
+     * @param trainerId 专家主键
+     * @param value     0=取消推荐，1=设为推荐
+     */
+    void setRecommended(Integer trainerId, Integer value);
+
+    /**
+     * C 端首页/列表页推荐专家位
+     * <p>
+     * 先取 {@code status=2 AND is_recommended=1}，按 sortOrder/score/id 倒序；
+     * 数量不够 {@code limit} 时，直接按 id 倒序取最新的 status=2 专家补齐
+     * （允许与已选重复，前端按 id 不去重；上层取前 limit 个）。
+     * </p>
+     */
+    List<TrainerListItemResponse> listRecommendedForTop(int limit);
 
     /**
      * 调整指定专家（user_trainers.user_id）的累计评论数。

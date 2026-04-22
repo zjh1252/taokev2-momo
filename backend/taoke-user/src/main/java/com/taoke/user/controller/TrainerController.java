@@ -71,9 +71,18 @@ public class TrainerController {
             @RequestParam(required = false) Integer industryCategoryId,
             @RequestParam(required = false) Integer provinceId,
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "default") String sort) {
+            @RequestParam(defaultValue = "default") String sort,
+            @RequestParam(required = false) Integer isTrusted) {
         return ApiResponse.ok(trainerService.listPublic(page, size,
-                expertiseCategoryId, industryCategoryId, provinceId, keyword, sort));
+                expertiseCategoryId, industryCategoryId, provinceId, keyword, sort, isTrusted));
+    }
+
+    @Public
+    @Operation(summary = "C 端首页/列表页推荐专家位（最多 limit 条；不足时按 id 倒序补齐，允许重复）")
+    @GetMapping("/trainers/recommended")
+    public ApiResponse<List<TrainerListItemResponse>> recommendedForTop(
+            @RequestParam(defaultValue = "9") int limit) {
+        return ApiResponse.ok(trainerService.listRecommendedForTop(limit));
     }
 
     @Public

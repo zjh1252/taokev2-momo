@@ -50,3 +50,14 @@ export async function rejectApplication(
     { method: 'PUT', body: JSON.stringify({ reason }) }
   );
 }
+
+/** 切换专家推荐位 */
+export async function setTrainerRecommended(
+  trainerId: number,
+  value: 0 | 1
+) {
+  return apiClient<{ code: number; message: string }>(
+    `/trainers/${trainerId}/recommend?value=${value}`,
+    { method: 'PATCH' }
+  );
+}
