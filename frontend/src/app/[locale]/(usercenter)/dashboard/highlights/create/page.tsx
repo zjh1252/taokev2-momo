@@ -16,6 +16,7 @@ import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-up
 import { FormField } from '@/components/FormField';
 import { toast } from 'sonner';
 import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
+import { AssistantPublishGuard } from '@/features/assistant/components/AssistantPublishGuard';
 
 export default function CreateHighlightPage() {
   const router = useRouter();
@@ -102,9 +103,10 @@ export default function CreateHighlightPage() {
         <h2 className="text-lg font-bold text-gray-800">发布精彩瞬间</h2>
       </div>
 
-      {banner}
+      <AssistantPublishGuard>
+        {banner}
 
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-6 max-w-2xl space-y-5">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-6 max-w-2xl space-y-5">
         <FormField label="标题">
           <input
             type="text"
@@ -183,7 +185,8 @@ export default function CreateHighlightPage() {
             取消
           </Link>
         </div>
-      </div>
+        </div>
+      </AssistantPublishGuard>
     </section>
   );
 }

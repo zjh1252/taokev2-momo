@@ -52,4 +52,12 @@ public class AdminTrainerController {
         adminTrainerService.rejectApplication(userId, request.getReason());
         return ApiResponse.ok(null);
     }
+
+    @Operation(summary = "切换专家推荐位（首页/列表页推荐位展示）")
+    @PatchMapping("/admin/trainers/{id}/recommend")
+    public ApiResponse<Void> setRecommended(@PathVariable Integer id,
+                                            @RequestParam Integer value) {
+        adminTrainerService.setRecommended(id, value);
+        return ApiResponse.ok(null);
+    }
 }

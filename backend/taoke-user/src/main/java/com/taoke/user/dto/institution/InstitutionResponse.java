@@ -2,6 +2,7 @@ package com.taoke.user.dto.institution;
 
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -16,8 +17,17 @@ public class InstitutionResponse {
     private Integer id;
     private String orgName;
     private Integer orgType;
+    private String legalRepresentative;
     private String licenseNo;
+    private LocalDate establishedAt;
+    private String logoUrl;
     private String bio;
+    /** 擅长行业 — 分类 ID 逗号串（前端解析为 number[]） */
+    private String industries;
+    /** 擅长领域 — 分类 ID 逗号串（前端解析为 number[]） */
+    private String specialties;
+    private Integer hasVenue;
+    private Integer hasExperts;
     private String homepageConfig;
     private String contactName;
     private String contactPhone;
@@ -34,6 +44,12 @@ public class InstitutionResponse {
 
     /** 成功案例（长文本） */
     private String successCases;
+
+    /** 注册培训机构合作协议签署时间 */
+    private LocalDateTime agreementSignedAt;
+
+    /** 协议版本号 */
+    private String agreementVersion;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

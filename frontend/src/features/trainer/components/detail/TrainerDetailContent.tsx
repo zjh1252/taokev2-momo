@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { Play, Star } from 'lucide-react';
 import { toast } from 'sonner';
@@ -54,7 +55,20 @@ export function TrainerDetailContent({
   videos,
   books,
 }: TrainerDetailContentProps) {
-  const [activeTab, setActiveTab] = useState<string>('home');
+  // 通过 ?tab=cases 等 query 直接深链激活某个 tab，便于其他页面跳过来落到对应 tab
+  const searchParams = useSearchParams();
+  const initialTab = (() => {
+    const t = searchParams?.get('tab');
+    return t && TABS.some((x) => x.id === t) ? t : 'home';
+  })();
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+  useEffect(() => {
+    const t = searchParams?.get('tab');
+    if (t && TABS.some((x) => x.id === t)) {
+      setActiveTab(t);
+    }
+  }, [searchParams]);
 
   // 学员评价角标：以专家累计已通过评论数为准（后端在评价审核通过时同步 +1）
   const counts = {
@@ -75,8 +89,9 @@ export function TrainerDetailContent({
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                className={`py-4 whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1.5 ${
                   activeTab === tab.id
                     ? 'text-primary border-b-2 border-primary font-bold'
                     : 'text-slate-600 hover:text-primary'
@@ -106,7 +121,12 @@ export function TrainerDetailContent({
         {activeTab === 'cases' && <CasesView cases={cases} />}
         {activeTab === 'videos' && <VideosView videos={videos} />}
         {activeTab === 'comments' && (
-          <ReviewsView trainerUserId={trainer.userId} trainerName={trainer.name} />
+          <ReviewsView
+            trainerUserId={trainer.userId}
+            trainerName={trainer.name}
+            courses={courses}
+            videos={videos}
+          />
         )}
         {activeTab === 'books' && <BooksView books={books} />}
       </div>
@@ -479,14 +499,46 @@ function VideosView({ videos }: { videos: VideoListItem[] }) {
 function ReviewsView({
   trainerUserId,
   trainerName,
+  courses,
+  videos,
 }: {
   trainerUserId: number;
   trainerName: string;
+  courses: CourseListItem[];
+  videos: VideoListItem[];
 }) {
   const { requireAuth } = useAuthGuard();
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+
+  // 培训主题候选项 = 主讲课程 + 录播课，作为"我要评价"弹窗下拉选项的来源
+  const topicOptions = [
+    ...courses.map((c) => {
+      const isOpen = c.type === 'OPEN_OFFLINE' || c.type === 'OPEN_ONLINE';
+      return {
+        type: 'COURSE' as const,
+        id: c.id,
+        title: c.title,
+        badge: c.typeLabel || (isOpen ? '公开课' : '内训课'),
+      };
+    }),
+    ...videos.map((v) => ({
+      type: 'VIDEO' as const,
+      id: v.id,
+      title: v.title,
+      badge: '录播课',
+    })),
+  ];
+
+  // 没有任何课程/录播课时禁止打开评价弹窗，避免无主题可选
+  const handleOpenReview = () => {
+    if (topicOptions.length === 0) {
+      toast.error('该专家暂无课程，不支持评价');
+      return;
+    }
+    requireAuth(() => setReviewOpen(true));
+  };
 
   useEffect(() => {
     getPublicReviews('TRAINER', { trainerUserId, page: 0, size: 50 })
@@ -508,8 +560,9 @@ function ReviewsView({
           学员评价 <span className="text-primary mx-1">{reviews.length}</span> 个
         </h2>
         <button
-          onClick={() => requireAuth(() => setReviewOpen(true))}
-          className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition-colors"
+          type="button"
+          onClick={handleOpenReview}
+          className="px-4 py-2 rounded-md bg-primary text-white text-sm cursor-pointer hover:bg-primary/90 transition-colors"
         >
           我要评价
         </button>
@@ -579,6 +632,7 @@ function ReviewsView({
         scope="TRAINER"
         trainerUserId={trainerUserId}
         prefillTitle={trainerName}
+        topicOptions={topicOptions}
         onSuccess={() => {
           toast.success('评价已提交，审核通过后将公开展示');
           getPublicReviews('TRAINER', { trainerUserId, page: 0, size: 50 })

@@ -51,7 +51,7 @@ export function InnerCourseListSection({
             page,
             size: 15,
             isOpen: false,
-            categoryId: f.categoryId,
+            categoryIds: f.categoryId ? [f.categoryId] : undefined,
             sortBy: sortByValue === 'default' ? undefined : sortByValue,
             institutionId: instId,
           });

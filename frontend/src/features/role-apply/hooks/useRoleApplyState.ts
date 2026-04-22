@@ -117,6 +117,79 @@ function defaultFormData(role: ApplyableRole): Record<string, unknown> {
         agreementVersion: 'v1',
         resumeUrl: '',
       };
+    case 'AGENT':
+      return {
+        realName: '',
+        contactPhone: '',
+        email: '',
+        serviceCities: [],
+        enterpriseAgentId: null,
+        agreementSigned: false,
+        agreementVersion: 'v1',
+      };
+    case 'ASSISTANT':
+      return {
+        realName: '',
+        contactPhone: '',
+        email: '',
+        serviceCities: [],
+        agreementSigned: false,
+        agreementVersion: 'v1',
+      };
+    case 'ENTERPRISE_AGENT':
+      return {
+        companyName: '',
+        licenseNo: '',
+        legalPerson: '',
+        industry: '',
+        companySize: '',
+        bio: '',
+        contactName: '',
+        contactPhone: '',
+        provinceId: null,
+        cityId: null,
+        districtId: null,
+        townId: null,
+        address: '',
+        qualificationDocUrl: '',
+        agreementSigned: false,
+        agreementVersion: 'v1',
+      };
+    case 'INSTITUTION':
+      return {
+        orgName: '',
+        orgType: 0,
+        legalRepresentative: '',
+        licenseNo: '',
+        establishedAt: '',
+        logoUrl: '',
+        bio: '',
+        industryCategoryIds: [],
+        expertiseCategoryIds: [],
+        clientCases: '',
+        hasVenue: 0,
+        hasExperts: 0,
+        contactName: '',
+        contactPhone: '',
+        showContact: 0,
+        provinceId: null,
+        cityId: null,
+        districtId: null,
+        townId: null,
+        address: '',
+        agreementSigned: false,
+        agreementVersion: 'v1',
+      };
+    case 'INSTITUTION_EMPLOYEE':
+      return {
+        realName: '',
+        contactPhone: '',
+        email: '',
+        serviceCities: [],
+        orgId: null,
+        agreementSigned: false,
+        agreementVersion: 'v1',
+      };
     default:
       return {};
   }

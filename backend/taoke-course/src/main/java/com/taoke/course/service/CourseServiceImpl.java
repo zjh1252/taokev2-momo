@@ -27,7 +27,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -188,14 +191,14 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public PageResponse<CourseListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
-                                                      String type, Boolean isOpen, String keyword,
-                                                      String sortBy, Integer institutionId,
-                                                      int page, int size) {
+    public PageResponse<CourseListItemVO> listPublic(PublicCourseQuery query) {
+        final int page = Math.max(1, query.getPage());
+        final int size = query.getSize() <= 0 ? 15 : query.getSize();
+
         // 机构筛选：先按 institutionId 反查 userId，作为 publisherType=INSTITUTION 的 publisherId
         final Integer institutionUserId;
-        if (institutionId != null) {
-            List<Institution> insts = institutionService.findByIds(List.of(institutionId));
+        if (query.getInstitutionId() != null) {
+            List<Institution> insts = institutionService.findByIds(List.of(query.getInstitutionId()));
             if (insts.isEmpty()) {
                 return PageResponse.of(List.of(), 0, page, size);
             }
@@ -204,27 +207,60 @@ public class CourseServiceImpl implements CourseService {
             institutionUserId = null;
         }
 
+        // 解析时间快捷段
+        LocalDate startFrom = query.getStartTimeFrom();
+        LocalDate startTo = query.getStartTimeTo();
+        if (query.getTimeQuick() != null && !query.getTimeQuick().isBlank()) {
+            LocalDate[] range = resolveTimeQuickRange(query.getTimeQuick());
+            if (range != null) {
+                startFrom = startFrom != null ? startFrom : range[0];
+                startTo = startTo != null ? startTo : range[1];
+            }
+        }
+
+        // 计划维度（开课省/市、开课时间、报名状态）—— 先一次性预查命中的 courseId 集合
+        Set<Integer> planMatchedCourseIds = null;
+        boolean hasProvince = query.getProvinceIds() != null && !query.getProvinceIds().isEmpty();
+        boolean hasCity = query.getCityIds() != null && !query.getCityIds().isEmpty();
+        boolean needPlanFilter = hasProvince
+                || hasCity
+                || startFrom != null
+                || startTo != null
+                || (query.getEnrollStatus() != null && !query.getEnrollStatus().isBlank());
+        if (needPlanFilter) {
+            planMatchedCourseIds = findCourseIdsByPlanFilter(
+                    query.getProvinceIds(),
+                    query.getCityIds(),
+                    startFrom,
+                    startTo,
+                    query.getEnrollStatus());
+            if (planMatchedCourseIds.isEmpty()) {
+                return PageResponse.of(List.of(), 0, page, size);
+            }
+        }
+
+        final Set<Integer> planIdsFinal = planMatchedCourseIds;
         Specification<Course> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()));
 
-            if (categoryId != null) {
-                predicates.add(cb.equal(root.get("categoryId"), categoryId));
+            if (query.getCategoryIds() != null && !query.getCategoryIds().isEmpty()) {
+                predicates.add(root.get("categoryId").in(query.getCategoryIds()));
             }
-            if (subCategoryId != null) {
-                predicates.add(cb.equal(root.get("subCategoryId"), subCategoryId));
+            if (query.getSubCategoryIds() != null && !query.getSubCategoryIds().isEmpty()) {
+                predicates.add(root.get("subCategoryId").in(query.getSubCategoryIds()));
             }
-            if (type != null && !type.isBlank()) {
-                predicates.add(cb.equal(root.get("type"), CourseType.valueOf(type)));
-            } else if (isOpen != null) {
-                if (isOpen) {
+            if (query.getType() != null && !query.getType().isBlank()) {
+                predicates.add(cb.equal(root.get("type"), CourseType.valueOf(query.getType())));
+            } else if (query.getIsOpen() != null) {
+                if (query.getIsOpen()) {
                     predicates.add(root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE));
                 } else {
                     predicates.add(cb.equal(root.get("type"), CourseType.INTERNAL));
                 }
             }
-            if (keyword != null && !keyword.isBlank()) {
-                String like = "%" + keyword.trim() + "%";
+            if (query.getKeyword() != null && !query.getKeyword().isBlank()) {
+                String like = "%" + query.getKeyword().trim() + "%";
                 predicates.add(cb.or(
                         cb.like(root.get("title"), like),
                         cb.like(root.get("keywords"), like)
@@ -234,10 +270,24 @@ public class CourseServiceImpl implements CourseService {
                 predicates.add(cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION));
                 predicates.add(cb.equal(root.get("publisherId"), institutionUserId));
             }
+            // 价格维度
+            if (query.getIsFree() != null && query.getIsFree() == 1) {
+                predicates.add(cb.equal(root.get("isFree"), 1));
+            }
+            if (query.getPriceMin() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("price"), query.getPriceMin()));
+            }
+            if (query.getPriceMax() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("price"), query.getPriceMax()));
+            }
+            // 计划维度命中集合
+            if (planIdsFinal != null) {
+                predicates.add(root.get("id").in(planIdsFinal));
+            }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
 
-        Sort sort = resolvePublicSort(sortBy);
+        Sort sort = resolvePublicSort(query.getSortBy());
         PageRequest pageable = PageRequest.of(page - 1, size, sort);
         Page<Course> coursePage = courseRepository.findAll(spec, pageable);
 
@@ -247,6 +297,83 @@ public class CourseServiceImpl implements CourseService {
 
         List<CourseListItemVO> items = assembleListItems(coursePage.getContent());
         return PageResponse.of(items, coursePage.getTotalElements(), page, size);
+    }
+
+    /**
+     * 将时间快捷段标识转换为日期区间。
+     *
+     * @param key thisWeek / thisMonth / nextThreeMonths
+     * @return 长度为 2 的数组 [from, to]，未识别返回 null
+     */
+    private LocalDate[] resolveTimeQuickRange(String key) {
+        LocalDate today = LocalDate.now();
+        return switch (key) {
+            case "thisWeek" -> new LocalDate[]{today, today.with(TemporalAdjusters.next(java.time.DayOfWeek.SUNDAY))};
+            case "thisMonth" -> new LocalDate[]{today, today.with(TemporalAdjusters.lastDayOfMonth())};
+            case "nextThreeMonths" -> new LocalDate[]{today, today.plusMonths(3)};
+            default -> null;
+        };
+    }
+
+    /**
+     * 按开课计划维度（省、市、时间区间、报名状态）筛选出命中的课程 ID 集合。
+     * <p>方便上层 Specification 用 {@code course.id IN (...)} 拼接。</p>
+     *
+     * @param provinceIds 省份 ID 集合（OR 关系，传 null/empty 表示不过滤）
+     * @param cityIds     城市 ID 集合（OR 关系，传 null/empty 表示不过滤）
+     */
+    private Set<Integer> findCourseIdsByPlanFilter(List<Integer> provinceIds, List<Integer> cityIds,
+                                                    LocalDate startFrom, LocalDate startTo,
+                                                    String enrollStatus) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime fromTs = startFrom != null ? startFrom.atStartOfDay() : null;
+        LocalDateTime toTs = startTo != null ? startTo.atTime(LocalTime.MAX) : null;
+
+        Specification<CoursePlan> spec = (root, cq, cb) -> {
+            List<Predicate> ps = new ArrayList<>();
+            if (provinceIds != null && !provinceIds.isEmpty()) {
+                ps.add(root.get("provinceId").in(provinceIds));
+            }
+            if (cityIds != null && !cityIds.isEmpty()) {
+                ps.add(root.get("cityId").in(cityIds));
+            }
+            if (fromTs != null) {
+                ps.add(cb.greaterThanOrEqualTo(root.get("startTime"), fromTs));
+            }
+            if (toTs != null) {
+                ps.add(cb.lessThanOrEqualTo(root.get("startTime"), toTs));
+            }
+            // ENROLLING：只看 startTime >= 当前时间的计划，命中即视为可报名
+            if ("ENROLLING".equalsIgnoreCase(enrollStatus)) {
+                ps.add(cb.greaterThanOrEqualTo(root.get("startTime"), now));
+            }
+            // ENDED：只看 startTime < 当前时间的计划；下方再排除掉那些"还存在未来计划"的课程
+            if ("ENDED".equalsIgnoreCase(enrollStatus)) {
+                ps.add(cb.lessThan(root.get("startTime"), now));
+            }
+            return ps.isEmpty() ? cb.conjunction() : cb.and(ps.toArray(Predicate[]::new));
+        };
+
+        // 一次性拉满匹配计划，按 courseId 去重
+        List<CoursePlan> plans = coursePlanRepository.findAll(spec);
+        Set<Integer> matched = plans.stream()
+                .map(CoursePlan::getCourseId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        // ENDED 还需排除"任意一条计划仍属未来"的课程
+        if ("ENDED".equalsIgnoreCase(enrollStatus) && !matched.isEmpty()) {
+            Specification<CoursePlan> futureSpec = (root, cq, cb) -> cb.and(
+                    root.get("courseId").in(matched),
+                    cb.greaterThanOrEqualTo(root.get("startTime"), now)
+            );
+            Set<Integer> withFuture = coursePlanRepository.findAll(futureSpec).stream()
+                    .map(CoursePlan::getCourseId)
+                    .collect(Collectors.toSet());
+            matched.removeAll(withFuture);
+        }
+
+        return matched;
     }
 
     /**

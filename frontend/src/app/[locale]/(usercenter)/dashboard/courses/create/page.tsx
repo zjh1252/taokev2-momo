@@ -10,6 +10,7 @@ import type { SaveCourseRequest } from '@/features/course/api/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
+import { AssistantPublishGuard } from '@/features/assistant/components/AssistantPublishGuard';
 
 /**
  * 发布课程页面 — 创建新课程（草稿）
@@ -54,8 +55,10 @@ export default function CreateCoursePage() {
         </Link>
         <h1 className="text-lg font-bold text-gray-800">发布新课程</h1>
       </div>
-      {banner}
-      <CourseForm onSubmit={handleSubmit} submitting={submitting} />
+      <AssistantPublishGuard>
+        {banner}
+        <CourseForm onSubmit={handleSubmit} submitting={submitting} />
+      </AssistantPublishGuard>
     </section>
   );
 }

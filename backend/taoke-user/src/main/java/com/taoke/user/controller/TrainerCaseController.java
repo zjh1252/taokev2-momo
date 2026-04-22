@@ -107,4 +107,12 @@ public class TrainerCaseController {
     public ApiResponse<List<TrainerCaseResponse>> listApprovedCases(@PathVariable Integer id) {
         return ApiResponse.ok(trainerCaseService.listApprovedCases(id));
     }
+
+    @Public
+    @Operation(summary = "全平台最近的已审核案例（用于专家列表页/首页轮播位）")
+    @GetMapping("/trainer-cases/recent")
+    public ApiResponse<List<TrainerCaseRecentResponse>> listRecentApproved(
+            @RequestParam(defaultValue = "10") int limit) {
+        return ApiResponse.ok(trainerCaseService.listRecentApproved(limit));
+    }
 }

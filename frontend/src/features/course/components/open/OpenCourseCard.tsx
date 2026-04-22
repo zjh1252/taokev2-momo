@@ -88,6 +88,18 @@ export function OpenCourseCard({ course }: OpenCourseCardProps) {
             <span className="text-slate-400 min-w-[60px]">课程分类：</span>
             <span className="text-slate-700">{course.categoryName || '-'}</span>
           </div>
+          {course.keywords && (
+            <div className="flex items-center gap-1 md:col-span-2">
+              <span className="text-slate-400 min-w-[60px]">关键词：</span>
+              <span className="text-slate-700 truncate">
+                {course.keywords
+                  .split(/[,，、\s]+/)
+                  .map((kw) => kw.trim())
+                  .filter(Boolean)
+                  .join('，')}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </Link>

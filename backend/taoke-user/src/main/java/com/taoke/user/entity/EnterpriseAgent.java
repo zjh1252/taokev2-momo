@@ -40,6 +40,10 @@ public class EnterpriseAgent extends BaseEntity {
     @Column(name = "company_size", length = 32)
     private String companySize;
 
+    /** 公司简介 */
+    @Column(name = "bio", columnDefinition = "text")
+    private String bio;
+
     /** 联系人姓名 */
     @Column(name = "contact_name", length = 64)
     private String contactName;
@@ -72,7 +76,15 @@ public class EnterpriseAgent extends BaseEntity {
     @Column(name = "address", nullable = false, length = 200)
     private String address = "";
 
-    /** 资质证明文件 URL */
+    /** 资质证明文件 URL（营业执照图片） */
     @Column(name = "qualification_doc_url", length = 512)
     private String qualificationDocUrl;
+
+    /** 注册经纪公司合作协议签署时间 */
+    @Column(name = "agreement_signed_at")
+    private java.time.LocalDateTime agreementSignedAt;
+
+    /** 协议版本号，默认 v1 */
+    @Column(name = "agreement_version", length = 32)
+    private String agreementVersion;
 }

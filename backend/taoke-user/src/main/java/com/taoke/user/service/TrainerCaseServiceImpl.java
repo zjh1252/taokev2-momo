@@ -159,6 +159,40 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
         }).toList();
     }
 
+    @Override
+    public List<TrainerCaseRecentResponse> listRecentApproved(int limit) {
+        int target = limit > 0 ? Math.min(limit, 50) : 10;
+        List<TrainerCase> cases = caseRepository.findRecentApproved(PageRequest.of(0, target));
+        if (cases.isEmpty()) {
+            return java.util.List.of();
+        }
+
+        // 反查 trainer 的 userId / name / avatar，便于前端点击跳转
+        java.util.Set<Integer> trainerIds = cases.stream()
+                .map(TrainerCase::getTrainerId)
+                .collect(java.util.stream.Collectors.toSet());
+        java.util.Map<Integer, Trainer> trainerMap = trainerRepository.findAllById(trainerIds).stream()
+                .collect(java.util.stream.Collectors.toMap(Trainer::getId, java.util.function.Function.identity()));
+
+        return cases.stream().map(c -> {
+            TrainerCaseRecentResponse r = new TrainerCaseRecentResponse();
+            r.setId(c.getId());
+            r.setTrainerId(c.getTrainerId());
+            r.setCaseTitle(c.getCaseTitle());
+            r.setCoverImage(c.getCoverImage());
+            r.setIndustry(c.getIndustry());
+            r.setDescription(c.getDescription());
+            Trainer t = trainerMap.get(c.getTrainerId());
+            if (t != null) {
+                r.setTrainerUserId(t.getUserId());
+                r.setTrainerName(t.getName());
+                r.setTrainerAvatar(t.getAvatar());
+                r.setTrainerScore(t.getScore());
+            }
+            return r;
+        }).toList();
+    }
+
     // ==================== 后台管理 ====================
 
     @Override

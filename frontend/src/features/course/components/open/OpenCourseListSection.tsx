@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useCallback, useTransition } from 'react';
-import { ChevronLeft, ChevronRight, ArrowUpDown, X } from 'lucide-react';
+import { useState, useCallback, useTransition, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, ArrowUpDown, X, RotateCcw } from 'lucide-react';
 import { useRouter } from '@/i18n/navigation';
 import { OpenCourseCard } from './OpenCourseCard';
-import { OpenCourseFilters } from './OpenCourseFilters';
+import { OpenCourseFilters, type OpenCourseFilterValue } from './OpenCourseFilters';
 import { getCourseList } from '../../api/service';
 import type { CourseListItem, PageResponse, CategoryTreeNode } from '../../api/types';
 
@@ -22,6 +22,16 @@ const SORT_OPTIONS = [
   { key: 'review', label: '评价', sortBy: 'score' },
 ];
 
+/** 已选 chip 单项 */
+interface ActiveChip {
+  /** 唯一 key 用于 react map */
+  key: string;
+  /** 展示文字（如 "分类：管理培训"） */
+  label: string;
+  /** 点击 X 时调用：返回需要 patch 的 filter 字段（多个字段一起重置） */
+  onRemove: () => OpenCourseFilterValue;
+}
+
 export function OpenCourseListSection({
   initialData,
   categoryTree,
@@ -30,14 +40,20 @@ export function OpenCourseListSection({
 }: OpenCourseListSectionProps) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
-  const [filters, setFilters] = useState<{ categoryId?: number }>({});
+  const [filters, setFilters] = useState<OpenCourseFilterValue>({});
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
+  // 排序由顶部排序栏唯一控制
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
 
   const fetchData = useCallback(
-    (page: number, newFilters?: typeof filters, overrideSortKey?: string, overrideInstitutionId?: number | null) => {
+    (
+      page: number,
+      newFilters?: OpenCourseFilterValue,
+      overrideSortKey?: string,
+      overrideInstitutionId?: number | null,
+    ) => {
       const f = newFilters ?? filters;
       const sort = overrideSortKey ?? sortKey;
       const instId =
@@ -47,15 +63,25 @@ export function OpenCourseListSection({
             ? overrideInstitutionId
             : institutionId;
       const sortByValue = SORT_OPTIONS.find((o) => o.key === sort)?.sortBy ?? 'default';
+      const effectiveSortBy = sortByValue !== 'default' ? sortByValue : undefined;
+
       startTransition(async () => {
         try {
           const result = await getCourseList({
             page,
             size: 15,
             isOpen: true,
-            categoryId: f.categoryId,
-            sortBy: sortByValue === 'default' ? undefined : sortByValue,
+            categoryIds: f.categoryIds,
+            sortBy: effectiveSortBy,
             institutionId: instId,
+            provinceIds: f.provinceIds,
+            timeQuick: f.timeQuick,
+            startTimeFrom: f.startTimeFrom,
+            startTimeTo: f.startTimeTo,
+            priceMin: f.priceMin,
+            priceMax: f.priceMax,
+            isFree: f.isFree,
+            enrollStatus: f.enrollStatus,
           });
           setData(result);
           setCurrentPage(page);
@@ -74,7 +100,7 @@ export function OpenCourseListSection({
   }, [fetchData, router]);
 
   const handleFilterChange = useCallback(
-    (newFilters: typeof filters) => {
+    (newFilters: OpenCourseFilterValue) => {
       setFilters(newFilters);
       fetchData(1, newFilters);
     },
@@ -97,38 +123,129 @@ export function OpenCourseListSection({
     [fetchData],
   );
 
+  const handleResetAll = useCallback(() => {
+    setFilters({});
+    setSortKey('default');
+    fetchData(1, {}, 'default');
+  }, [fetchData]);
+
+  // 当前已激活的过滤 chips（机构、分类、省、时间、价格、报名状态）
+  const activeChips = useMemo<ActiveChip[]>(() => {
+    const chips: ActiveChip[] = [];
+    if (institutionId && initialInstitutionName) {
+      chips.push({
+        key: 'institution',
+        label: `机构：${initialInstitutionName}`,
+        onRemove: () => filters,
+      });
+    }
+    // 多选分类：每个 id 一个 chip，独立移除
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+      filters.categoryIds.forEach((id, idx) => {
+        const name = filters.categoryNames?.[idx] ?? `#${id}`;
+        chips.push({
+          key: `category-${id}`,
+          label: `分类：${name}`,
+          onRemove: () => {
+            const ids = (filters.categoryIds ?? []).filter((x) => x !== id);
+            const names = (filters.categoryNames ?? []).filter((_, i) => i !== idx);
+            return {
+              ...filters,
+              categoryIds: ids.length > 0 ? ids : undefined,
+              categoryNames: names.length > 0 ? names : undefined,
+            };
+          },
+        });
+      });
+    }
+    // 多选省份：每个 id 一个 chip
+    if (filters.provinceIds && filters.provinceIds.length > 0) {
+      filters.provinceIds.forEach((id, idx) => {
+        const name = filters.provinceNames?.[idx] ?? `#${id}`;
+        chips.push({
+          key: `province-${id}`,
+          label: `开课省市：${name}`,
+          onRemove: () => {
+            const ids = (filters.provinceIds ?? []).filter((x) => x !== id);
+            const names = (filters.provinceNames ?? []).filter((_, i) => i !== idx);
+            return {
+              ...filters,
+              provinceIds: ids.length > 0 ? ids : undefined,
+              provinceNames: names.length > 0 ? names : undefined,
+            };
+          },
+        });
+      });
+    }
+    if (filters.timeQuick && filters.timeQuickLabel) {
+      chips.push({
+        key: 'timeQuick',
+        label: `开课时间：${filters.timeQuickLabel}`,
+        onRemove: () => ({ ...filters, timeQuick: undefined, timeQuickLabel: undefined }),
+      });
+    }
+    if (filters.startTimeFrom || filters.startTimeTo) {
+      const range = `${filters.startTimeFrom ?? '不限'} ~ ${filters.startTimeTo ?? '不限'}`;
+      chips.push({
+        key: 'timeRange',
+        label: `开课时间：${range}`,
+        onRemove: () => ({ ...filters, startTimeFrom: undefined, startTimeTo: undefined }),
+      });
+    }
+    if (filters.priceLabel || filters.priceMin !== undefined || filters.priceMax !== undefined || filters.isFree) {
+      const label = filters.priceLabel
+        ? filters.priceLabel
+        : `${filters.priceMin ?? '不限'} - ${filters.priceMax ?? '不限'}`;
+      chips.push({
+        key: 'price',
+        label: `价格：${label}`,
+        onRemove: () => ({
+          ...filters,
+          priceLabel: undefined,
+          priceMin: undefined,
+          priceMax: undefined,
+          isFree: undefined,
+        }),
+      });
+    }
+    if (filters.enrollStatus && filters.enrollStatusLabel) {
+      chips.push({
+        key: 'enrollStatus',
+        label: `报名状态：${filters.enrollStatusLabel}`,
+        onRemove: () => ({ ...filters, enrollStatus: undefined, enrollStatusLabel: undefined }),
+      });
+    }
+    return chips;
+  }, [filters, institutionId, initialInstitutionName]);
+
+  const handleRemoveChip = (chip: ActiveChip) => {
+    if (chip.key === 'institution') {
+      handleClearInstitution();
+      return;
+    }
+    const next = chip.onRemove();
+    handleFilterChange(next);
+  };
+
   return (
     <div className="flex gap-6 items-start">
-      <OpenCourseFilters categoryTree={categoryTree} onFilterChange={handleFilterChange} />
+      <OpenCourseFilters
+        categoryTree={categoryTree}
+        value={filters}
+        onChange={handleFilterChange}
+      />
 
       <div className="flex-1 flex flex-col gap-4">
-        {/* 当前过滤 chip */}
-        {institutionId && initialInstitutionName && (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-3 flex items-center gap-2 text-sm">
-            <span className="text-slate-500">当前筛选：</span>
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs">
-              机构：{initialInstitutionName}
-              <button
-                onClick={handleClearInstitution}
-                className="hover:text-primary/70 inline-flex items-center"
-                aria-label="清除机构筛选"
-              >
-                <X className="size-3" />
-              </button>
-            </span>
-          </div>
-        )}
-
         {/* 排序栏 */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex items-center gap-2">
           {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.key}
               onClick={() => handleSortChange(opt.key)}
-              className={`px-6 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-1 ${
+              className={`px-6 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-1 cursor-pointer ${
                 sortKey === opt.key
                   ? 'font-bold text-primary bg-primary/5'
-                  : 'font-medium text-slate-600 hover:bg-slate-50'
+                  : 'font-medium text-slate-600 hover:bg-slate-50 hover:text-primary'
               }`}
             >
               {opt.label}
@@ -139,6 +256,37 @@ export function OpenCourseListSection({
             共 <strong className="text-slate-900">{data.total}</strong> 门课程
           </span>
         </div>
+
+        {/* 已选过滤条件 chips 行 */}
+        {activeChips.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-3 py-2.5 flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-slate-500 shrink-0">已选条件：</span>
+            {activeChips.map((chip) => (
+              <span
+                key={chip.key}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs"
+              >
+                {chip.label}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveChip(chip)}
+                  className="hover:text-primary/70 inline-flex items-center cursor-pointer"
+                  aria-label={`移除 ${chip.label}`}
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={handleResetAll}
+              className="ml-auto inline-flex items-center gap-1 text-xs text-slate-500 hover:text-primary transition-colors cursor-pointer"
+            >
+              <RotateCcw className="size-3" />
+              重置
+            </button>
+          </div>
+        )}
 
         {/* 列表 */}
         <div className={`flex flex-col gap-3 transition-opacity ${isPending ? 'opacity-50' : ''}`}>
@@ -158,7 +306,7 @@ export function OpenCourseListSection({
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage <= 1}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
               >
                 <ChevronLeft className="size-4" />
               </button>
@@ -169,10 +317,10 @@ export function OpenCourseListSection({
                   <button
                     key={p}
                     onClick={() => handlePageChange(p)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg font-medium text-sm ${
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg font-medium text-sm cursor-pointer transition-colors ${
                       p === currentPage
                         ? 'bg-primary text-white shadow-sm'
-                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-primary'
                     }`}
                   >
                     {p}
@@ -182,7 +330,7 @@ export function OpenCourseListSection({
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= data.totalPages}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
               >
                 <ChevronRight className="size-4" />
               </button>

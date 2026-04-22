@@ -137,6 +137,13 @@ public class AdminTrainerService {
         roleApplyService.reject(userId, BusinessRole.Code.TRAINER, reason);
     }
 
+    /**
+     * 切换专家推荐位（仅修改 is_recommended）
+     */
+    public void setRecommended(Integer trainerId, Integer value) {
+        trainerService.setRecommended(trainerId, value);
+    }
+
     private AdminTrainerVO toTrainerVO(Trainer trainer) {
         AdminTrainerVO vo = new AdminTrainerVO();
         vo.setId(trainer.getId());

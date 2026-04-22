@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import RichTextEditor from '@/components/rich-text-editor';
 import RegionCascader, { type RegionValue } from '@/components/region-cascader';
@@ -144,8 +145,44 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
     setDraftPlans((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
   };
 
+  /**
+   * 校验单条开课计划的时间是否合法。
+   *
+   * <p>规则：</p>
+   * <ol>
+   *   <li>开始时间、结束时间均必填</li>
+   *   <li>结束时间必须晚于开始时间</li>
+   *   <li>结束时间不能早于当前时刻（已结束的计划不允许保存）</li>
+   * </ol>
+   *
+   * @return null 表示通过，否则返回错误提示
+   */
+  const validatePlanTime = (plan: CoursePlanDTO, idx: number): string | null => {
+    const label = `计划 ${idx + 1}`;
+    if (!plan.startTime) return `${label}：请填写开始时间`;
+    if (!plan.endTime) return `${label}：请填写结束时间`;
+    const start = new Date(plan.startTime);
+    const end = new Date(plan.endTime);
+    if (Number.isNaN(start.getTime())) return `${label}：开始时间格式无效`;
+    if (Number.isNaN(end.getTime())) return `${label}：结束时间格式无效`;
+    if (end.getTime() <= start.getTime()) {
+      return `${label}：结束时间必须晚于开始时间`;
+    }
+    if (end.getTime() < Date.now()) {
+      return `${label}：结束时间不能早于当前时刻`;
+    }
+    return null;
+  };
+
   // ---- Modal: 确认保存 ----
   const confirmPlans = () => {
+    for (let i = 0; i < draftPlans.length; i++) {
+      const err = validatePlanTime(draftPlans[i], i);
+      if (err) {
+        toast.error(err);
+        return;
+      }
+    }
     setPlanType(draftPlanType);
     setPlans(draftPlans);
     setHasPlan(1);

@@ -98,4 +98,12 @@ export const Validators = {
     }
     return undefined;
   },
+  /** 邮箱验证 */
+  email: (value: unknown) => {
+    const email = value as string;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return '请输入正确的邮箱地址';
+    }
+    return undefined;
+  },
 };

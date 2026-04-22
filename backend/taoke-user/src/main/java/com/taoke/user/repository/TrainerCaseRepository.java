@@ -30,4 +30,9 @@ public interface TrainerCaseRepository extends JpaRepository<TrainerCase, Intege
     Page<TrainerCase> adminSearch(@Param("trainerId") Integer trainerId,
                                   @Param("status") Integer status,
                                   Pageable pageable);
+
+    /** C 端：最近的已审核案例（专家列表页/首页轮播位用） */
+    @Query("SELECT c FROM TrainerCase c WHERE c.status = 1 " +
+            "ORDER BY c.sortOrder DESC, c.id DESC")
+    List<TrainerCase> findRecentApproved(Pageable pageable);
 }

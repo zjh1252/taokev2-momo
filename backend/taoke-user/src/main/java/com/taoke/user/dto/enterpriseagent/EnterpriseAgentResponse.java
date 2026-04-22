@@ -19,6 +19,7 @@ public class EnterpriseAgentResponse {
     private String legalPerson;
     private String industry;
     private String companySize;
+    private String bio;
     private String contactName;
     private String contactPhone;
     private String postCode;
@@ -28,6 +29,8 @@ public class EnterpriseAgentResponse {
     private Integer townId;
     private String address;
     private String qualificationDocUrl;
+    private LocalDateTime agreementSignedAt;
+    private String agreementVersion;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

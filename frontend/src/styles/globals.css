@@ -161,6 +161,30 @@
   font-weight: 600;
 }
 
+/* 专家列表页 — 推荐位/最新案例的无限横向滚动 */
+@keyframes trainerMarquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+.animate-trainer-marquee {
+  animation: trainerMarquee linear infinite;
+}
+@keyframes trainerMarqueeY {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+.animate-trainer-marquee-y {
+  animation: trainerMarqueeY linear infinite;
+}
+
 /* 角色申请表单统一输入框样式 */
 .form-input {
   @apply w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-sm text-gray-900

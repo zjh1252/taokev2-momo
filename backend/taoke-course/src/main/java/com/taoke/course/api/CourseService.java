@@ -3,6 +3,7 @@ package com.taoke.course.api;
 import com.taoke.common.response.PageResponse;
 import com.taoke.course.dto.course.CourseDetailVO;
 import com.taoke.course.dto.course.CourseListItemVO;
+import com.taoke.course.dto.course.PublicCourseQuery;
 import com.taoke.course.dto.course.RecommendedCourseVO;
 import com.taoke.course.dto.course.SaveCourseRequest;
 import com.taoke.course.entity.Course;
@@ -78,16 +79,18 @@ public interface CourseService {
     CourseDetailVO getPublicDetail(Integer courseId);
 
     /**
-     * 公开课程列表（仅已上架，支持分页、分类筛选、关键词搜索、排序、机构筛选）
+     * 公开课程列表（仅已上架）。
      *
-     * @param isOpen        true=公开课(OPEN_OFFLINE/OPEN_ONLINE)，false=内训课(INTERNAL)，null=全部
-     * @param sortBy        排序方式：default=默认(权重+上线时间), price=价格升序, score=评分降序, time=上线时间降序, viewCount=人气降序
-     * @param institutionId 机构 ID，传入后仅返回 publisherType=INSTITUTION AND publisherId=institution.userId 的课程；机构不存在返回空页
+     * <p>支持如下过滤维度（详见 {@link PublicCourseQuery}）：</p>
+     * <ul>
+     *   <li>分类 / 类型 / 公开课开关 / 关键词 / 机构</li>
+     *   <li>开课计划维度：开课省/市、开课时间范围（或 timeQuick 快捷段）</li>
+     *   <li>价格维度：priceMin / priceMax / isFree</li>
+     *   <li>报名状态：ENROLLING（存在未来开课计划） / ENDED（无未来开课计划）</li>
+     *   <li>排序方式 + 分页</li>
+     * </ul>
      */
-    PageResponse<CourseListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
-                                              String type, Boolean isOpen, String keyword,
-                                              String sortBy, Integer institutionId,
-                                              int page, int size);
+    PageResponse<CourseListItemVO> listPublic(PublicCourseQuery query);
 
     /**
      * 专家详情页推荐课程

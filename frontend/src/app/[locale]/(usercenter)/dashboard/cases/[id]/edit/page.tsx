@@ -20,6 +20,7 @@ import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-up
 import { FormField } from '@/components/FormField';
 import { toast } from 'sonner';
 import { OwnedTrainerBanner } from '@/features/binding/components/owned-trainer-banner';
+import { AssistantPublishGuard } from '@/features/assistant/components/AssistantPublishGuard';
 
 export default function EditCasePage({
   params: paramsPromise,
@@ -190,6 +191,7 @@ export default function EditCasePage({
       </div>
 
       <div className="px-6 py-6 max-w-2xl space-y-5">
+        <AssistantPublishGuard>
         <OwnedTrainerBanner trainerUserId={trainerUserId} trainerNameHint={trainerName} />
         <FormField label="案例标题" required>
           <input
@@ -327,6 +329,7 @@ export default function EditCasePage({
             取消
           </Link>
         </div>
+        </AssistantPublishGuard>
       </div>
     </section>
   );

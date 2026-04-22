@@ -10,6 +10,7 @@ import type { SaveVideoRequest, VideoDetail } from '@/features/video/api/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { OwnedTrainerBanner } from '@/features/binding/components/owned-trainer-banner';
+import { AssistantPublishGuard } from '@/features/assistant/components/AssistantPublishGuard';
 
 export default function EditVideoPage() {
   const router = useRouter();
@@ -73,11 +74,13 @@ export default function EditVideoPage() {
         </Link>
         <h1 className="text-lg font-bold text-gray-800">编辑录播课</h1>
       </div>
-      <OwnedTrainerBanner
-        trainerUserId={video.publisherType === 'TRAINER' ? video.publisherId : undefined}
-        trainerNameHint={video.trainerName}
-      />
-      <VideoForm initialData={video} onSubmit={handleSubmit} submitting={submitting} />
+      <AssistantPublishGuard>
+        <OwnedTrainerBanner
+          trainerUserId={video.publisherType === 'TRAINER' ? video.publisherId : undefined}
+          trainerNameHint={video.trainerName}
+        />
+        <VideoForm initialData={video} onSubmit={handleSubmit} submitting={submitting} />
+      </AssistantPublishGuard>
     </section>
   );
 }

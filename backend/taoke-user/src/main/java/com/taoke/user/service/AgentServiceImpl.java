@@ -1,5 +1,6 @@
 package com.taoke.user.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
@@ -8,18 +9,21 @@ import com.taoke.user.api.BindingService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.agent.AgentRequest;
 import com.taoke.user.dto.agent.AgentResponse;
+import com.taoke.user.dto.common.ServiceCityItem;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.Agent;
 import com.taoke.user.mapper.AgentMapper;
 import com.taoke.user.repository.AgentRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,9 +33,13 @@ import java.util.List;
  * @author Fangxinxin
  * @date 2026-03-31 18:00
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AgentServiceImpl implements AgentService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String DEFAULT_AGREEMENT_VERSION = "v1";
 
     private final AgentRepository agentRepository;
     private final AgentMapper agentMapper;
@@ -66,6 +74,10 @@ public class AgentServiceImpl implements AgentService {
     public void apply(Integer userId, AgentRequest request) {
         if (request == null || request.getEnterpriseAgentId() == null) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "请选择目标经纪公司");
+        }
+        if (!Boolean.TRUE.equals(request.getAgreementSigned())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID,
+                    "请先勾选并同意《淘课网注册专家经纪人合作协议》");
         }
         saveOrUpdateExtension(userId, request);
         bindingService.initiateEnterpriseAgentMemberFromAgent(
@@ -105,10 +117,40 @@ public class AgentServiceImpl implements AgentService {
             return a;
         });
 
+        if (request.getRealName() != null) agent.setRealName(request.getRealName());
+        if (request.getEmail() != null) agent.setEmail(request.getEmail());
+        if (request.getServiceCities() != null) {
+            agent.setServiceCities(serializeServiceCities(request.getServiceCities()));
+        }
+
+        // 历史字段：仅在前端显式提交时才更新
         if (request.getBio() != null) agent.setBio(request.getBio());
         if (request.getSpecialties() != null) agent.setSpecialties(request.getSpecialties());
         if (request.getServiceCityIds() != null) agent.setServiceCityIds(request.getServiceCityIds());
 
+        // 协议：首次同意时回写时间与版本，已签署则不覆盖时间
+        if (Boolean.TRUE.equals(request.getAgreementSigned())) {
+            if (agent.getAgreementSignedAt() == null) {
+                agent.setAgreementSignedAt(LocalDateTime.now());
+            }
+            String version = request.getAgreementVersion();
+            agent.setAgreementVersion(version != null && !version.isBlank()
+                    ? version : DEFAULT_AGREEMENT_VERSION);
+        }
+
         return agentRepository.save(agent);
+    }
+
+    /** 把多服务城市列表序列化成 JSON 字符串，失败时记录日志并返回空数组。 */
+    private String serializeServiceCities(List<ServiceCityItem> cities) {
+        if (cities == null || cities.isEmpty()) {
+            return "[]";
+        }
+        try {
+            return OBJECT_MAPPER.writeValueAsString(cities);
+        } catch (Exception ex) {
+            log.warn("序列化经纪人服务城市失败: {}", cities, ex);
+            return "[]";
+        }
     }
 }

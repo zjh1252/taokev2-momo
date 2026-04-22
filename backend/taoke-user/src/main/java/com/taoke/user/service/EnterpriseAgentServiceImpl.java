@@ -1,6 +1,8 @@
 package com.taoke.user.service;
 
 import com.taoke.common.enums.BusinessRole;
+import com.taoke.common.exception.BusinessException;
+import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.EnterpriseAgentService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.enterpriseagent.EnterpriseAgentRequest;
@@ -19,10 +21,12 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 专家经纪公司信息服务 — ENTERPRISE_AGENT 角色扩展信息管理。
@@ -33,6 +37,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
+
+    private static final String DEFAULT_AGREEMENT_VERSION = "v1";
 
     private final EnterpriseAgentRepository enterpriseAgentRepository;
     private final EnterpriseAgentMapper enterpriseAgentMapper;
@@ -53,6 +59,10 @@ public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
     @Override
     @Transactional
     public void apply(Integer userId, EnterpriseAgentRequest request) {
+        if (request == null || !Boolean.TRUE.equals(request.getAgreementSigned())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID,
+                    "请先勾选并同意《淘课网注册专家经纪公司合作协议》");
+        }
         roleApplyService.apply(userId, BusinessRole.Code.ENTERPRISE_AGENT);
         saveOrUpdateExtension(userId, request);
     }
@@ -82,6 +92,20 @@ public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
     @Override
     public List<Map<String, Object>> lookup(String keyword, int size) {
         int limit = size > 0 ? Math.min(size, 50) : 20;
+
+        // 关键字纯数字时优先按 ID 精确查找，命中即返回单条结果
+        if (keyword != null && !keyword.isBlank() && keyword.trim().matches("\\d+")) {
+            try {
+                Integer id = Integer.valueOf(keyword.trim());
+                Optional<EnterpriseAgent> exact = enterpriseAgentRepository.findById(id);
+                if (exact.isPresent()) {
+                    return List.of(toLookupItem(exact.get()));
+                }
+            } catch (NumberFormatException ignore) {
+                // 数字溢出 Integer 时降级到 LIKE 搜索
+            }
+        }
+
         Specification<EnterpriseAgent> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (keyword != null && !keyword.isBlank()) {
@@ -94,15 +118,19 @@ public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
         Page<EnterpriseAgent> page = enterpriseAgentRepository.findAll(spec, pageable);
         List<Map<String, Object>> list = new ArrayList<>();
         for (EnterpriseAgent ea : page.getContent()) {
-            Map<String, Object> item = new HashMap<>();
-            item.put("id", ea.getId());
-            item.put("userId", ea.getUserId());
-            item.put("companyName", ea.getCompanyName());
-            item.put("legalPerson", ea.getLegalPerson());
-            item.put("contactName", ea.getContactName());
-            list.add(item);
+            list.add(toLookupItem(ea));
         }
         return list;
+    }
+
+    private Map<String, Object> toLookupItem(EnterpriseAgent ea) {
+        Map<String, Object> item = new HashMap<>();
+        item.put("id", ea.getId());
+        item.put("userId", ea.getUserId());
+        item.put("companyName", ea.getCompanyName());
+        item.put("legalPerson", ea.getLegalPerson());
+        item.put("contactName", ea.getContactName());
+        return item;
     }
 
     @Override
@@ -125,6 +153,7 @@ public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
         if (request.getLegalPerson() != null) ent.setLegalPerson(request.getLegalPerson());
         if (request.getIndustry() != null) ent.setIndustry(request.getIndustry());
         if (request.getCompanySize() != null) ent.setCompanySize(request.getCompanySize());
+        if (request.getBio() != null) ent.setBio(request.getBio());
         if (request.getContactName() != null) ent.setContactName(request.getContactName());
         if (request.getContactPhone() != null) ent.setContactPhone(request.getContactPhone());
         if (request.getPostCode() != null) ent.setPostCode(request.getPostCode());
@@ -134,6 +163,16 @@ public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
         if (request.getTownId() != null) ent.setTownId(request.getTownId());
         if (request.getAddress() != null) ent.setAddress(request.getAddress());
         if (request.getQualificationDocUrl() != null) ent.setQualificationDocUrl(request.getQualificationDocUrl());
+
+        // 协议：首次同意时回写时间与版本
+        if (Boolean.TRUE.equals(request.getAgreementSigned())) {
+            if (ent.getAgreementSignedAt() == null) {
+                ent.setAgreementSignedAt(LocalDateTime.now());
+            }
+            String version = request.getAgreementVersion();
+            ent.setAgreementVersion(version != null && !version.isBlank()
+                    ? version : DEFAULT_AGREEMENT_VERSION);
+        }
 
         return enterpriseAgentRepository.save(ent);
     }
