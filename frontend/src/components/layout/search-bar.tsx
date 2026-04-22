@@ -20,17 +20,24 @@ export function SearchBar() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // 仅当 URL 中的 tab 是搜索分类的合法值时才采纳，避免与详情页等使用的 ?tab=xxx 冲突
+  const normalizeCategoryKey = (raw: string | null): string => {
+    if (raw && SEARCH_CATEGORIES.some((c) => c.key === raw)) return raw;
+    return 'trainer';
+  };
+
   const [keyword, setKeyword] = useState(searchParams.get('keyword') ?? '');
-  const [categoryKey, setCategoryKey] = useState<string>(searchParams.get('tab') ?? 'trainer');
+  const [categoryKey, setCategoryKey] = useState<string>(() =>
+    normalizeCategoryKey(searchParams.get('tab')),
+  );
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // URL 参数变化时同步回搜索框（如在搜索结果页切换 tab）
   useEffect(() => {
-    const urlKeyword = searchParams.get('keyword') ?? '';
-    const urlTab = searchParams.get('tab') ?? 'trainer';
-    setKeyword(urlKeyword);
-    setCategoryKey(urlTab);
+    setKeyword(searchParams.get('keyword') ?? '');
+    setCategoryKey(normalizeCategoryKey(searchParams.get('tab')));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   useEffect(() => {
@@ -43,7 +50,8 @@ export function SearchBar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentCategory = SEARCH_CATEGORIES.find((c) => c.key === categoryKey)!;
+  const currentCategory =
+    SEARCH_CATEGORIES.find((c) => c.key === categoryKey) ?? SEARCH_CATEGORIES[0];
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();

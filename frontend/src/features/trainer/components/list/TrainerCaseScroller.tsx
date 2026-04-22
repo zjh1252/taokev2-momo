@@ -6,23 +6,23 @@ import { Sparkles } from 'lucide-react';
 import { getRecentTrainerCases, type RecentTrainerCase } from '../../api/service';
 
 /**
- * 专家列表页「最新案例」步进式滚动条
+ * 专家列表页「最新案例」滚动条
  *
- * <p>展示规则（与老站对齐）：</p>
+ * <p>展示规则：</p>
  * <ul>
- *   <li>无标题/副标题，每屏 2 条；每条「NEW icon + 案例标题 + 评分」一行布局，无封面图。</li>
- *   <li>每 8 秒整体向上步进 1 行，到末尾无缝回到第 1 行；hover 暂停。</li>
+ *   <li>整块只占 1 行高，单行内并排显示 2 条案例。</li>
+ *   <li>每 8 秒整体向上步进一行，到末尾无缝回到第 1 行；hover 暂停。</li>
+ *   <li>每条只显示「主色 NEW icon + 案例标题 + 整数评分」。</li>
  *   <li>无数据时整块隐藏。点击行跳转到对应专家详情页 {@code ?tab=cases}。</li>
  * </ul>
  *
  * @author Fangxinxin
- * @date 2026-04-22 21:00
+ * @date 2026-04-22 22:00
  */
 
-const ROW_H = 48; // 单行高度（含上下 padding，与 .h-12 对应）
-const ROWS_PER_PAGE = 2; // 每屏 2 条
-const PAGE_H = ROW_H * ROWS_PER_PAGE; // 一屏高度
-const STEP_INTERVAL = 8000; // 每隔 8 秒整体向上滚动一屏
+const ROW_H = 48;
+const COLS = 2;
+const STEP_INTERVAL = 8000;
 const TRANSITION_MS = 600;
 
 export function TrainerCaseScroller({
@@ -33,7 +33,7 @@ export function TrainerCaseScroller({
   const [items, setItems] = useState<RecentTrainerCase[]>(initialItems ?? []);
   const [loaded, setLoaded] = useState(Boolean(initialItems));
 
-  const [page, setPage] = useState(0); // 已步进的虚拟屏数（可超过 totalPages）
+  const [row, setRow] = useState(0);
   const [enableAnim, setEnableAnim] = useState(true);
   const [paused, setPaused] = useState(false);
 
@@ -52,65 +52,79 @@ export function TrainerCaseScroller({
     };
   }, [initialItems]);
 
-  const total = items.length;
-  // 不足一屏时无需补齐空行（直接展示）；否则按 2 行/屏切换
-  const totalPages = Math.ceil(total / ROWS_PER_PAGE);
-  const enableStep = totalPages > 1;
+  // 把 items 切成 [[a,b],[c,d],...] 的二维行；不足 COLS 的最后一行用 null 占位
+  const rows: (RecentTrainerCase | null)[][] = [];
+  for (let i = 0; i < items.length; i += COLS) {
+    const slice: (RecentTrainerCase | null)[] = items.slice(i, i + COLS);
+    while (slice.length < COLS) slice.push(null);
+    rows.push(slice);
+  }
+
+  const totalRows = rows.length;
+  const enableStep = totalRows > 1;
 
   useEffect(() => {
     if (!enableStep || paused) return;
     const id = setInterval(() => {
       setEnableAnim(true);
-      setPage((p) => p + 1);
+      setRow((r) => r + 1);
     }, STEP_INTERVAL);
     return () => clearInterval(id);
   }, [enableStep, paused]);
 
-  // 走完最后一屏（含尾部补的首屏副本）后，瞬时跳回 0（无缝循环）
+  // 走到末尾「补帧」那一行后，瞬时跳回 0（无缝循环）
   useEffect(() => {
-    if (!enableStep || page < totalPages) return;
+    if (!enableStep || row < totalRows) return;
     const t = setTimeout(() => {
       setEnableAnim(false);
-      setPage(0);
+      setRow(0);
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setEnableAnim(true));
       });
     }, TRANSITION_MS + 30);
     return () => clearTimeout(t);
-  }, [page, totalPages, enableStep]);
+  }, [row, totalRows, enableStep]);
 
-  if (!loaded || total === 0) return null;
+  if (!loaded || items.length === 0) return null;
 
-  // 末尾补上首屏的内容，使最后一屏滚动后能"无缝接"回第一屏
-  const loopItems = enableStep ? [...items, ...items.slice(0, ROWS_PER_PAGE)] : items;
+  // 末尾补 1 行首屏内容用于无缝衔接
+  const loopRows = enableStep ? [...rows, rows[0]] : rows;
 
   return (
     <div
-      className="relative h-24 overflow-hidden bg-white border border-slate-100 rounded-xl shadow-sm"
+      className="relative h-12 overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
       <div
         className="flex flex-col"
         style={{
-          transform: `translateY(-${page * PAGE_H}px)`,
+          transform: `translateY(-${row * ROW_H}px)`,
           transition: enableAnim ? `transform ${TRANSITION_MS}ms ease-in-out` : 'none',
         }}
       >
-        {loopItems.map((c, idx) => (
-          <Link
-            key={`${c.id}-${idx}`}
-            href={`/trainers/${c.trainerId}?tab=cases`}
-            className="h-12 px-4 flex items-center gap-3 border-b border-slate-100 cursor-pointer hover:bg-primary/5 transition-colors group/item"
-          >
-            <Sparkles className="shrink-0 size-3.5 text-rose-500" />
-            <span className="flex-1 min-w-0 text-[14px] text-slate-800 line-clamp-1 group-hover/item:text-primary transition-colors">
-              {c.caseTitle}
-            </span>
-            <span className="shrink-0 text-[13px] font-semibold text-rose-500">
-              {formatScore(c)}分
-            </span>
-          </Link>
+        {loopRows.map((cells, rowIdx) => (
+          <div key={rowIdx} className="h-12 flex items-stretch gap-4">
+            {cells.map((c, colIdx) =>
+              c ? (
+                <Link
+                  key={`${c.id}-${colIdx}`}
+                  href={`/trainers/${c.trainerId}?tab=cases`}
+                  className="flex-1 min-w-0 px-4 flex items-center gap-3 cursor-pointer bg-white border border-slate-100 rounded-xl shadow-sm hover:border-primary/40 hover:shadow-md transition-all group/item"
+                >
+                  <Sparkles className="shrink-0 size-3.5 text-primary" />
+                  <span className="flex-1 min-w-0 text-[14px] text-slate-800 line-clamp-1 group-hover/item:text-primary transition-colors">
+                    {c.caseTitle}
+                  </span>
+                  <span className="shrink-0 text-[13px] font-semibold text-rose-500">
+                    {formatScore(c)}分
+                  </span>
+                </Link>
+              ) : (
+                <div key={`empty-${colIdx}`} className="flex-1" />
+              ),
+            )}
+          </div>
         ))}
       </div>
     </div>
@@ -118,8 +132,9 @@ export function TrainerCaseScroller({
 }
 
 function formatScore(c: RecentTrainerCase): string {
+  // 评分按整数展示（与列表页风格一致）
   const s = c.trainerScore;
-  if (s == null) return '0.00';
+  if (s == null) return '0';
   const n = typeof s === 'number' ? s : parseFloat(String(s));
-  return Number.isFinite(n) ? n.toFixed(2) : '0.00';
+  return Number.isFinite(n) ? String(Math.round(n)) : '0';
 }
