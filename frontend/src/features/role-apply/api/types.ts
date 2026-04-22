@@ -152,19 +152,51 @@ export interface TrainerFormData {
   resumeUrl: string;
 }
 
+/** 服务城市条目（与后端 com.taoke.user.dto.common.ServiceCityItem 对齐） */
+export interface ServiceCityItem {
+  provinceId: number | null;
+  cityId: number | null;
+  provinceName?: string;
+  cityName?: string;
+}
+
 export interface AgentFormData {
+  /** 真实姓名 */
+  realName: string;
+  /** 联系电话 */
   contactPhone: string;
-  bio: string;
-  specialties: string;
-  serviceCityIds: string;
+  /** 常用邮箱 */
+  email: string;
+  /** 多服务城市 */
+  serviceCities: ServiceCityItem[];
   /** 申请加入的目标经纪公司 ID（必填） */
   enterpriseAgentId: number | null;
+  /** 是否同意《淘课网注册专家经纪人合作协议》 */
+  agreementSigned: boolean;
+  /** 协议版本号，默认 v1 */
+  agreementVersion: string;
+  // ---- 历史字段（保留兼容，新表单不再收集） ----
+  bio?: string;
+  specialties?: string;
+  serviceCityIds?: string;
 }
 
 export interface AssistantFormData {
+  /** 真实姓名 */
+  realName: string;
+  /** 联系电话 */
   contactPhone: string;
-  bio: string;
-  authScope: string;
+  /** 常用邮箱 */
+  email: string;
+  /** 多服务城市 */
+  serviceCities: ServiceCityItem[];
+  /** 是否同意《淘课网注册专家助理合作协议》 */
+  agreementSigned: boolean;
+  /** 协议版本号，默认 v1 */
+  agreementVersion: string;
+  // ---- 历史字段（保留兼容） ----
+  bio?: string;
+  authScope?: string;
 }
 
 export interface EnterpriseAgentFormData {
@@ -173,13 +205,21 @@ export interface EnterpriseAgentFormData {
   legalPerson: string;
   industry: string;
   companySize: string;
+  /** 公司简介 */
+  bio: string;
   contactName: string;
   contactPhone: string;
   provinceId: number | null;
   cityId: number | null;
   districtId: number | null;
+  townId: number | null;
   address: string;
+  /** 营业执照图片 URL */
   qualificationDocUrl: string;
+  /** 是否同意《淘课网注册专家经纪公司合作协议》 */
+  agreementSigned: boolean;
+  /** 协议版本号，默认 v1 */
+  agreementVersion: string;
 }
 
 export interface InstitutionFormData {

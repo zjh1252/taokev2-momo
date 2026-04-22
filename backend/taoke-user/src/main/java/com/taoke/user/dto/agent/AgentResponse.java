@@ -14,9 +14,16 @@ import java.time.LocalDateTime;
 public class AgentResponse {
 
     private Integer id;
+    private String realName;
+    private String email;
     private String bio;
     private String specialties;
+    /** 历史字段：服务城市 ID 列表 JSON 字符串 */
     private String serviceCityIds;
+    /** 多服务城市结构化 JSON 字符串：{@code [{provinceId,cityId,provinceName,cityName}]} */
+    private String serviceCities;
+    private LocalDateTime agreementSignedAt;
+    private String agreementVersion;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

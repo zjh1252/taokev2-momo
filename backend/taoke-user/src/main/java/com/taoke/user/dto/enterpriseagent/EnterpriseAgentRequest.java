@@ -27,6 +27,9 @@ public class EnterpriseAgentRequest {
     @Size(max = 32, message = "公司规模不超过32个字符")
     private String companySize;
 
+    /** 公司简介 */
+    private String bio;
+
     @Size(max = 64, message = "联系人姓名不超过64个字符")
     private String contactName;
 
@@ -46,4 +49,11 @@ public class EnterpriseAgentRequest {
 
     @Size(max = 512, message = "资质证明文件 URL 不超过512个字符")
     private String qualificationDocUrl;
+
+    /** 是否同意《淘课网注册专家经纪公司合作协议》（apply 时必须为 true） */
+    private Boolean agreementSigned;
+
+    /** 协议版本号，前端默认 v1 */
+    @Size(max = 32, message = "协议版本号不超过32个字符")
+    private String agreementVersion;
 }

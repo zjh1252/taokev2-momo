@@ -14,8 +14,14 @@ import java.time.LocalDateTime;
 public class AssistantResponse {
 
     private Integer id;
+    private String realName;
+    private String email;
     private String bio;
     private String authScope;
+    /** 多服务城市结构化 JSON 字符串：{@code [{provinceId,cityId,provinceName,cityName}]} */
+    private String serviceCities;
+    private LocalDateTime agreementSignedAt;
+    private String agreementVersion;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
