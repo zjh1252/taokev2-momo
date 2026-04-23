@@ -19,8 +19,10 @@ import type { UserProfileResponse, RoleInfo } from '@/features/user/api/types';
 export interface AuthUser {
   id: number;
   nickname: string;
+  realName: string | null;
   avatarUrl: string | null;
   phone: string;
+  studyTags: string | null;
   roles: RoleInfo[];
 }
 
@@ -62,8 +64,10 @@ function toAuthUser(profile: UserProfileResponse): AuthUser {
   return {
     id: profile.id,
     nickname: profile.nickname || profile.phone || '用户',
+    realName: profile.realName || null,
     avatarUrl: profile.avatarUrl || null,
     phone: profile.phone,
+    studyTags: profile.studyTags || null,
     roles: profile.roles,
   };
 }

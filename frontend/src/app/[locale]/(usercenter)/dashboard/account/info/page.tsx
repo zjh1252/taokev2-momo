@@ -14,7 +14,7 @@ export default function AccountInfoPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace(ROUTES.UC_ACCOUNT_SWITCH);
+    router.replace(ROUTES.UC_ACCOUNT_BASE);
   }, [router]);
 
   return null;

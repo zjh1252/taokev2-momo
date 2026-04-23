@@ -104,6 +104,35 @@ export const navGroups: NavGroup[] = [
     label: '',
     items: [
       {
+        title: '资质认证管理',
+        url: '#',
+        icon: 'badgeCheck',
+        isActive: false,
+        items: [
+          {
+            title: '实名认证',
+            url: '/dashboard/trainers/certifications/real-name'
+          },
+          {
+            title: '专业认证',
+            url: '/dashboard/trainers/certifications/professional'
+          },
+          {
+            title: '学历认证',
+            url: '/dashboard/trainers/certifications/education'
+          },
+          {
+            title: '工作认证',
+            url: '/dashboard/trainers/certifications/work'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
         title: '机构管理',
         url: '#',
         icon: 'building',

@@ -37,6 +37,10 @@ public class User extends BaseEntity {
     @Column(name = "avatar_url", length = 512)
     private String avatarUrl;
 
+    /** 学习标签（个人学员，逗号分隔关键词） */
+    @Column(name = "study_tags", length = 500)
+    private String studyTags;
+
     @Column(name = "gender", nullable = false, columnDefinition = "tinyint")
     private Integer gender = 0;
 

@@ -32,9 +32,9 @@ export default function AccountBasePage() {
   const { user, refreshUser } = useAuth();
 
   const [nickname, setNickname] = useState(user?.nickname || '');
+  const [realName, setRealName] = useState(user?.realName || '');
   const [phone] = useState(user?.phone || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
-  const [tags, setTags] = useState('AI办公应用, 销售技能');
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -63,9 +63,9 @@ export default function AccountBasePage() {
 
     setSavingProfile(true);
     try {
-      await updateProfile(tokenData.accessToken, { nickname, avatarUrl });
+      await updateProfile(tokenData.accessToken, { nickname, realName, avatarUrl });
       await refreshUser();
-      toast.success('账号信息保存成功');
+      toast.success('基础信息保存成功');
     } catch {
       toast.error('保存失败，请重试');
     } finally {
@@ -77,9 +77,9 @@ export default function AccountBasePage() {
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 min-h-[500px] p-6">
       <div className="flex items-start justify-between">
         <div>
-          <div className="text-xl font-bold text-gray-900">账号信息</div>
+          <div className="text-xl font-bold text-gray-900">基础信息</div>
           <div className="text-sm text-gray-500 mt-2">
-            支持修改昵称、头像、手机号、学习标签。
+            支持修改昵称、真实姓名、头像。手机号为注册号码，不可修改。
           </div>
         </div>
 
@@ -131,25 +131,25 @@ export default function AccountBasePage() {
             className="w-full border border-slate-300 rounded px-3 py-2"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
+            placeholder="请输入昵称"
           />
         </label>
         <label className="text-sm block">
+          <span className="block text-gray-600 mb-1">真实姓名</span>
+          <input
+            className="w-full border border-slate-300 rounded px-3 py-2"
+            value={realName}
+            onChange={(e) => setRealName(e.target.value)}
+            placeholder="请输入真实姓名"
+          />
+        </label>
+        <label className="text-sm md:col-span-2 block">
           <span className="block text-gray-600 mb-1">手机号</span>
           <input
             className="w-full border border-slate-300 rounded px-3 py-2 bg-slate-50"
             value={phone}
             readOnly
           />
-        </label>
-        <label className="text-sm md:col-span-2 block">
-          <span className="block text-gray-600 mb-1">学习标签</span>
-          <input
-            className="w-full border border-slate-300 rounded px-3 py-2"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="多个标签用逗号分隔"
-          />
-          {/* TODO: 学习标签功能待后端支持 */}
         </label>
       </div>
 
@@ -160,7 +160,7 @@ export default function AccountBasePage() {
           disabled={savingProfile}
           className="bg-primary text-white px-6 py-3 rounded hover:bg-primary/90 disabled:opacity-50 transition-colors font-bold"
         >
-          {savingProfile ? '保存中...' : '保存账号信息'}
+          {savingProfile ? '保存中...' : '保存基础信息'}
         </button>
       </div>
     </section>

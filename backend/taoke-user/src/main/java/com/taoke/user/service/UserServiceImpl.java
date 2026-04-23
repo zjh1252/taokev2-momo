@@ -62,8 +62,14 @@ public class UserServiceImpl implements UserService {
         if (request.getNickname() != null) {
             user.setNickname(request.getNickname());
         }
+        if (request.getRealName() != null) {
+            user.setRealName(request.getRealName());
+        }
         if (request.getAvatarUrl() != null) {
             user.setAvatarUrl(request.getAvatarUrl());
+        }
+        if (request.getStudyTags() != null) {
+            user.setStudyTags(request.getStudyTags());
         }
         if (request.getGender() != null) {
             user.setGender(request.getGender());

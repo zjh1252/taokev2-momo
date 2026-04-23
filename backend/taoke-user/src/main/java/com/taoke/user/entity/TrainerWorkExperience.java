@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 专家工作经历实体
@@ -41,6 +42,22 @@ public class TrainerWorkExperience extends BaseEntity {
     /** 工作描述 */
     @Column(name = "job_description", columnDefinition = "text")
     private String jobDescription;
+
+    /** 证明文件 URL（劳动合同/名片/工牌等） */
+    @Column(name = "proof_file", length = 500)
+    private String proofFile;
+
+    /** 审核状态：1=待审核 2=已通过 3=已驳回 */
+    @Column(name = "status", nullable = false, columnDefinition = "tinyint")
+    private Integer status = 1;
+
+    /** 驳回原因 */
+    @Column(name = "reject_reason", length = 255)
+    private String rejectReason;
+
+    /** 最近一次审核时间 */
+    @Column(name = "audited_at")
+    private LocalDateTime auditedAt;
 
     /** 排序值 */
     @Column(name = "sort_order", nullable = false)

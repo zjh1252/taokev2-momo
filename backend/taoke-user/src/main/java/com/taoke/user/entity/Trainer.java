@@ -85,6 +85,58 @@ public class Trainer extends BaseEntity {
     @Column(name = "address", length = 200)
     private String address;
 
+    // ==================== 实名认证 ====================
+
+    /** 身份证号 */
+    @Column(name = "id_card_no", length = 32)
+    private String idCardNo;
+
+    /** 身份证人像面 URL */
+    @Column(name = "id_card_front", length = 500)
+    private String idCardFront;
+
+    /** 身份证国徽面 URL */
+    @Column(name = "id_card_back", length = 500)
+    private String idCardBack;
+
+    /** 实名认证状态：NULL=未提交 1=待审核 2=已通过 3=已驳回 */
+    @Column(name = "real_name_status", columnDefinition = "tinyint")
+    private Integer realNameStatus;
+
+    /** 实名认证驳回原因 */
+    @Column(name = "real_name_reject_reason", length = 255)
+    private String realNameRejectReason;
+
+    /** 实名认证最近一次提交时间 */
+    @Column(name = "real_name_submitted_at")
+    private LocalDateTime realNameSubmittedAt;
+
+    /** 实名认证最近一次审核时间 */
+    @Column(name = "real_name_audited_at")
+    private LocalDateTime realNameAuditedAt;
+
+    // ==================== 专业认证 ====================
+
+    /** 专业认证附件 URL 列表（JSON 数组） */
+    @Column(name = "certification_files", columnDefinition = "json")
+    private String certificationFiles;
+
+    /** 专业认证状态：NULL=未提交 1=待审核 2=已通过 3=已驳回 */
+    @Column(name = "professional_status", columnDefinition = "tinyint")
+    private Integer professionalStatus;
+
+    /** 专业认证驳回原因 */
+    @Column(name = "professional_reject_reason", length = 255)
+    private String professionalRejectReason;
+
+    /** 专业认证最近一次提交时间 */
+    @Column(name = "professional_submitted_at")
+    private LocalDateTime professionalSubmittedAt;
+
+    /** 专业认证最近一次审核时间 */
+    @Column(name = "professional_audited_at")
+    private LocalDateTime professionalAuditedAt;
+
     // ==================== 专业信息 ====================
 
     /** 个人简介（支持富文本） */

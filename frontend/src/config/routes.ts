@@ -32,10 +32,16 @@ export const ROUTES = {
   UC_ALLIANCE_721: '/dashboard/alliance/721',
   UC_ACCOUNT_INFO: '/dashboard/account/info',
   UC_ACCOUNT_BASE: '/dashboard/account/base',
+  UC_ACCOUNT_MORE: '/dashboard/account/more',
   UC_ACCOUNT_VERIFY: '/dashboard/account/verify',
   UC_ACCOUNT_BIND: '/dashboard/account/bind',
   UC_ACCOUNT_SWITCH: '/dashboard/account/switch',
   UC_ACCOUNT_PASSWORD: '/dashboard/account/password',
+  // 专家四维度资质认证
+  UC_ACCOUNT_CERT_REAL_NAME: '/dashboard/account/certification/real-name',
+  UC_ACCOUNT_CERT_PROFESSIONAL: '/dashboard/account/certification/professional',
+  UC_ACCOUNT_CERT_EDUCATION: '/dashboard/account/certification/education',
+  UC_ACCOUNT_CERT_WORK: '/dashboard/account/certification/work',
 
   // ---- 我的课程 ----
   UC_COURSES: '/dashboard/courses',

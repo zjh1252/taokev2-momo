@@ -6,6 +6,7 @@ import com.taoke.common.eventbus.DomainEventListener;
 import com.taoke.common.events.user.ApplyPassedEvent;
 import com.taoke.common.events.user.ApplyRejectedEvent;
 import com.taoke.common.events.user.NewUserRegisteredEvent;
+import com.taoke.common.events.user.TrainerCertificationAuditedEvent;
 import com.taoke.user.api.NotificationService;
 import com.taoke.user.repository.InstitutionRepository;
 import com.taoke.user.repository.TrainerRepository;
@@ -117,6 +118,58 @@ public class UserEventListener {
                 roleName + "入驻申请未通过",
                 "很遗憾，您的" + roleName + "入驻申请未通过审核。原因：" + reason + "。您可以修改资料后重新提交。",
                 String.valueOf(userId), null);
+    }
+
+    /**
+     * 专家资质认证审核结果 — 发送站内信给专家。
+     * <p>
+     * 维度文案：实名认证 / 专业认证 / 学历认证 / 工作认证；
+     * 通过则提示「已通过」，驳回则附带原因；点击跳转专家用户中心相应认证页面。
+     */
+    @DomainEventListener
+    public void onTrainerCertificationAudited(TrainerCertificationAuditedEvent event) {
+        Integer userId = event.getTrainerUserId();
+        String dimensionLabel = certDimensionLabel(event.getDimension());
+        String routeUrl = certDimensionRoute(event.getDimension());
+
+        log.info("收到专家资质认证审核事件: userId={}, dimension={}, approved={}, recordId={}, eventId={}",
+                userId, event.getDimension(), event.isApproved(), event.getRecordId(), event.getEventId());
+
+        String title;
+        String content;
+        if (event.isApproved()) {
+            title = dimensionLabel + "已通过";
+            String summary = (event.getSummary() == null || event.getSummary().isBlank())
+                    ? "" : "（" + event.getSummary() + "）";
+            content = "您提交的" + dimensionLabel + summary + "已审核通过。";
+        } else {
+            title = dimensionLabel + "未通过";
+            String summary = (event.getSummary() == null || event.getSummary().isBlank())
+                    ? "" : "（" + event.getSummary() + "）";
+            String reason = event.getRejectReason() == null ? "" : event.getRejectReason();
+            content = "您提交的" + dimensionLabel + summary + "未通过审核。原因：" + reason + "。您可以修改后重新提交。";
+        }
+
+        notificationService.send(userId, NotificationType.APPLY_RESULT,
+                title, content,
+                event.getRecordId() == null ? null : String.valueOf(event.getRecordId()),
+                routeUrl);
+    }
+
+    private String certDimensionLabel(String dim) {
+        if (TrainerCertificationAuditedEvent.Dimension.REAL_NAME.equals(dim)) return "实名认证";
+        if (TrainerCertificationAuditedEvent.Dimension.PROFESSIONAL.equals(dim)) return "专业认证";
+        if (TrainerCertificationAuditedEvent.Dimension.EDUCATION.equals(dim)) return "学历认证";
+        if (TrainerCertificationAuditedEvent.Dimension.WORK.equals(dim)) return "工作认证";
+        return "资质认证";
+    }
+
+    private String certDimensionRoute(String dim) {
+        if (TrainerCertificationAuditedEvent.Dimension.REAL_NAME.equals(dim)) return "/dashboard/account/certification/real-name";
+        if (TrainerCertificationAuditedEvent.Dimension.PROFESSIONAL.equals(dim)) return "/dashboard/account/certification/professional";
+        if (TrainerCertificationAuditedEvent.Dimension.EDUCATION.equals(dim)) return "/dashboard/account/certification/education";
+        if (TrainerCertificationAuditedEvent.Dimension.WORK.equals(dim)) return "/dashboard/account/certification/work";
+        return "/dashboard";
     }
 
     private String getRoleName(String roleCode) {

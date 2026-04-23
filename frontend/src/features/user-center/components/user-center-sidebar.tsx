@@ -31,6 +31,9 @@ import { cn } from '@/lib/utils';
 /** 内容管理类菜单可见的角色集合 */
 const CONTENT_ROLES = ['TRAINER', 'AGENT', 'ASSISTANT', 'INSTITUTION', 'INSTITUTION_EMPLOYEE'];
 
+/** 个人学员角色码（"更多信息"仅对其可见） */
+const LEARNER_ROLES = ['BUYER'];
+
 type NavItem = {
   kind: 'item';
   label: string;
@@ -43,11 +46,17 @@ type NavItem = {
   isPlaceholder?: boolean;
 };
 
+/** 子菜单节点：可以是叶子（带 href）或二级折叠组（含 children） */
+type NavLeaf = { label: string; href: string; visibleForRoles?: string[] };
+type NavChild =
+  | NavLeaf
+  | { label: string; children: NavLeaf[]; visibleForRoles?: string[] };
+
 type NavGroup = {
   kind: 'group';
   label: string;
   icon: React.ReactNode;
-  children: { label: string; href: string }[];
+  children: NavChild[];
   separator?: boolean;
   visibleForRoles?: string[];
   isPlaceholder?: boolean;
@@ -66,11 +75,23 @@ const NAV_ENTRIES: NavEntry[] = [
   {
     kind: 'group', label: '我的账号', icon: <UserCog className="size-5" />, separator: true,
     children: [
-      { label: '修改身份', href: ROUTES.UC_ACCOUNT_SWITCH },
-      { label: '账号信息', href: ROUTES.UC_ACCOUNT_BASE },
-      { label: '修改密码', href: ROUTES.UC_ACCOUNT_PASSWORD },
-      { label: '账号认证', href: ROUTES.UC_ACCOUNT_VERIFY },
+      // 身份信息 = 二级折叠组（按角色显示子项）
+      {
+        label: '身份信息',
+        children: [
+          { label: '基础信息', href: ROUTES.UC_ACCOUNT_BASE },
+          // 个人学员才有「更多信息」
+          { label: '更多信息', href: ROUTES.UC_ACCOUNT_MORE, visibleForRoles: LEARNER_ROLES },
+          // 专家：资质认证 4 项
+          { label: '实名认证', href: ROUTES.UC_ACCOUNT_CERT_REAL_NAME, visibleForRoles: ['TRAINER'] },
+          { label: '专业认证', href: ROUTES.UC_ACCOUNT_CERT_PROFESSIONAL, visibleForRoles: ['TRAINER'] },
+          { label: '学历认证', href: ROUTES.UC_ACCOUNT_CERT_EDUCATION, visibleForRoles: ['TRAINER'] },
+          { label: '工作认证', href: ROUTES.UC_ACCOUNT_CERT_WORK, visibleForRoles: ['TRAINER'] },
+        ],
+      },
       { label: '账号绑定', href: ROUTES.UC_ACCOUNT_BIND },
+      { label: '修改密码', href: ROUTES.UC_ACCOUNT_PASSWORD },
+      { label: '修改身份', href: ROUTES.UC_ACCOUNT_SWITCH },
     ],
   },
 
@@ -198,16 +219,61 @@ export function UserCenterSidebar() {
   const pathname = usePathname();
   const { activeRole } = useAuth();
 
+  /** 子菜单按 visibleForRoles 过滤 */
+  const filterChildren = (children: NavChild[]) =>
+    children
+      .filter((c) => !c.visibleForRoles || c.visibleForRoles.includes(activeRole))
+      .map((c) => {
+        if ('children' in c) {
+          return { ...c, children: c.children.filter((sc) => true) };
+        }
+        return c;
+      })
+      // 二级组若所有子项被过滤为空，则隐藏
+      .filter((c) => !('children' in c) || c.children.length > 0);
+
   const visibleEntries = useMemo(
-    () => NAV_ENTRIES.filter((e) => !e.visibleForRoles || e.visibleForRoles.includes(activeRole)),
+    () =>
+      NAV_ENTRIES.filter((e) => !e.visibleForRoles || e.visibleForRoles.includes(activeRole))
+        .map((e) => {
+          if (e.kind === 'group') {
+            return { ...e, children: filterChildren(e.children) };
+          }
+          return e;
+        })
+        .filter((e) => e.kind !== 'group' || (e as NavGroup).children.length > 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [activeRole],
   );
+
+  const childActiveHrefs = (children: NavChild[]): string[] => {
+    const out: string[] = [];
+    for (const c of children) {
+      if ('href' in c) out.push(c.href);
+      else out.push(...c.children.map((sc) => sc.href));
+    }
+    return out;
+  };
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     for (const entry of visibleEntries) {
-      if (entry.kind === 'group' && entry.children.some((c) => pathname === c.href)) {
+      if (entry.kind === 'group' && childActiveHrefs(entry.children).some((h) => pathname === h)) {
         init[entry.label] = true;
+      }
+    }
+    return init;
+  });
+
+  // 二级折叠组展开状态（key: 父组label::子组label）
+  const [expandedSubGroups, setExpandedSubGroups] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const entry of visibleEntries) {
+      if (entry.kind !== 'group') continue;
+      for (const child of entry.children) {
+        if ('children' in child && child.children.some((sc) => sc.href === pathname)) {
+          init[`${entry.label}::${child.label}`] = true;
+        }
       }
     }
     return init;
@@ -215,6 +281,11 @@ export function UserCenterSidebar() {
 
   const toggleGroup = (label: string) => {
     setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const toggleSubGroup = (parentLabel: string, childLabel: string) => {
+    const key = `${parentLabel}::${childLabel}`;
+    setExpandedSubGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const isActive = (href: string) => pathname === href;
@@ -253,7 +324,8 @@ export function UserCenterSidebar() {
             }
 
             const expanded = !!expandedGroups[entry.label];
-            const groupActive = entry.children.some((c) => isActive(c.href));
+            const allChildHrefs = childActiveHrefs(entry.children);
+            const groupActive = allChildHrefs.some((h) => isActive(h));
 
             return (
               <div key={entry.label + (entry.visibleForRoles?.join('') ?? '')} className="relative">
@@ -285,19 +357,65 @@ export function UserCenterSidebar() {
                 </button>
                 {expanded && (
                   <div className="flex flex-col bg-slate-50/50">
-                    {entry.children.map((child) => (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={cn(
-                          'pl-[52px] pr-6 py-2.5 text-[13px] text-gray-500 hover:text-primary hover:bg-red-50/50 transition-colors border-l-4 border-transparent',
-                          isActive(child.href) &&
-                            'text-primary font-bold !border-l-primary bg-red-50/50',
-                        )}
-                      >
-                        {child.label}
-                      </Link>
-                    ))}
+                    {entry.children.map((child) => {
+                      // 二级折叠组
+                      if ('children' in child) {
+                        const subKey = `${entry.label}::${child.label}`;
+                        const subExpanded = !!expandedSubGroups[subKey];
+                        const subActive = child.children.some((sc) => isActive(sc.href));
+                        return (
+                          <div key={subKey}>
+                            <button
+                              type="button"
+                              onClick={() => toggleSubGroup(entry.label, child.label)}
+                              className={cn(
+                                'w-full flex items-center justify-between pl-[52px] pr-6 py-2.5 text-[13px] text-gray-500 hover:text-primary hover:bg-red-50/50 transition-colors border-l-4 border-transparent',
+                                subActive && 'text-primary font-medium',
+                              )}
+                            >
+                              <span>{child.label}</span>
+                              <ChevronDown
+                                className={cn(
+                                  'size-3.5 transition-transform',
+                                  subExpanded && 'rotate-180',
+                                )}
+                              />
+                            </button>
+                            {subExpanded && (
+                              <div className="flex flex-col">
+                                {child.children.map((sc) => (
+                                  <Link
+                                    key={sc.href}
+                                    href={sc.href}
+                                    className={cn(
+                                      'pl-[72px] pr-6 py-2 text-[12px] text-gray-500 hover:text-primary hover:bg-red-50/50 transition-colors border-l-4 border-transparent',
+                                      isActive(sc.href) &&
+                                        'text-primary font-bold !border-l-primary bg-red-50/50',
+                                    )}
+                                  >
+                                    {sc.label}
+                                  </Link>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      // 普通叶子
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          className={cn(
+                            'pl-[52px] pr-6 py-2.5 text-[13px] text-gray-500 hover:text-primary hover:bg-red-50/50 transition-colors border-l-4 border-transparent',
+                            isActive(child.href) &&
+                              'text-primary font-bold !border-l-primary bg-red-50/50',
+                          )}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>

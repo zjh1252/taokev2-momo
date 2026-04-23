@@ -49,6 +49,9 @@ public interface TrainerMapper {
     @Mapping(target = "trainerId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "rejectReason", ignore = true)
+    @Mapping(target = "auditedAt", ignore = true)
     TrainerEducation toEducationEntity(TrainerEducationDTO dto);
 
     // ==================== 工作经历 ====================
@@ -60,6 +63,9 @@ public interface TrainerMapper {
     @Mapping(target = "trainerId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "rejectReason", ignore = true)
+    @Mapping(target = "auditedAt", ignore = true)
     TrainerWorkExperience toWorkExperienceEntity(TrainerWorkExperienceDTO dto);
 
     // ==================== 荣誉资质 ====================

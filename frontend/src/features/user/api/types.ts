@@ -18,6 +18,8 @@ export interface UserProfileResponse {
   nickname: string | null;
   realName: string | null;
   avatarUrl: string | null;
+  /** 学习标签（个人学员），逗号分隔关键词 */
+  studyTags: string | null;
   gender: number | null;
   postCode: string | null;
   provinceId: number | null;

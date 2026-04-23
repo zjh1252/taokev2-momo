@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 专家工作经历 DTO（输入/输出复用）
@@ -31,6 +32,19 @@ public class TrainerWorkExperienceDTO {
     private LocalDate endDate;
 
     private String jobDescription;
+
+    /** 证明文件 URL（劳动合同/名片/工牌等） */
+    @Size(max = 500, message = "证明文件 URL 不超过500个字符")
+    private String proofFile;
+
+    /** 审核状态：1=待审核 2=已通过 3=已驳回（保存接口忽略，仅用于回显） */
+    private Integer status;
+
+    /** 驳回原因（仅回显） */
+    private String rejectReason;
+
+    /** 最近一次审核时间（仅回显） */
+    private LocalDateTime auditedAt;
 
     private Integer sortOrder = 0;
 }

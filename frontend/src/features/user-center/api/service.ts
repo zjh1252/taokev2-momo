@@ -55,7 +55,13 @@ export function markAllNotificationsRead(token: string) {
  */
 export function updateProfile(
   token: string,
-  data: { nickname?: string; avatarUrl?: string; gender?: number },
+  data: {
+    nickname?: string;
+    realName?: string;
+    avatarUrl?: string;
+    gender?: number;
+    studyTags?: string;
+  },
 ) {
   return apiPut<ApiResult>('/users/me', data, {
     headers: { Authorization: `Bearer ${token}` },

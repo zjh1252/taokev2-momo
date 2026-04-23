@@ -1,6 +1,8 @@
 package com.taoke.user.repository;
 
 import com.taoke.user.entity.TrainerWorkExperience;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
@@ -19,4 +21,8 @@ public interface TrainerWorkExperienceRepository extends JpaRepository<TrainerWo
     List<TrainerWorkExperience> findByTrainerIdInOrderBySortOrder(Collection<Integer> trainerIds);
 
     void deleteByTrainerId(Integer trainerId);
+
+    Page<TrainerWorkExperience> findByStatus(Integer status, Pageable pageable);
+
+    Page<TrainerWorkExperience> findAll(Pageable pageable);
 }

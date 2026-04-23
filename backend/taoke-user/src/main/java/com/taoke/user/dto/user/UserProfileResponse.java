@@ -20,6 +20,8 @@ public class UserProfileResponse {
     private String nickname;
     private String realName;
     private String avatarUrl;
+    /** 学习标签（个人学员，逗号分隔关键词） */
+    private String studyTags;
     private Integer gender;
     private String postCode;
     private Integer provinceId;
