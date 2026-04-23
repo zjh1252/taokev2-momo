@@ -111,7 +111,11 @@ export default function EducationCertPage() {
           ) : (
             <ul className="divide-y divide-slate-100 border border-slate-200 rounded-md">
               {records.map((r) => (
-                <li key={r.id} className="px-4 py-3 flex items-start justify-between gap-3">
+                <li
+                  key={r.id}
+                  className="px-4 py-3 flex items-start justify-between gap-3 hover:bg-slate-50 transition-colors cursor-pointer"
+                  onClick={() => handleEdit(r)}
+                >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-slate-800">{r.schoolName}</span>
@@ -131,11 +135,11 @@ export default function EducationCertPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       onClick={() => handleEdit(r)}
-                      className="text-slate-500 hover:text-primary"
+                      className="text-slate-500 hover:text-primary hover:bg-primary/10 rounded p-1.5 transition-colors"
                       aria-label="编辑"
                     >
                       <Pencil className="size-4" />
@@ -143,7 +147,7 @@ export default function EducationCertPage() {
                     <button
                       type="button"
                       onClick={() => r.id && handleDelete(r.id)}
-                      className="text-slate-500 hover:text-red-500"
+                      className="text-slate-500 hover:text-red-500 hover:bg-red-50 rounded p-1.5 transition-colors"
                       aria-label="删除"
                     >
                       <Trash2 className="size-4" />

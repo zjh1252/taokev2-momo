@@ -51,7 +51,7 @@ export default function ProfessionalCertPage() {
         next.push(url);
       }
       setFiles(next);
-      toast.success('附件已添加');
+      // 上传完成后缩略图会立即出现，无需额外 toast，避免与「提交成功」重复
     } catch {
       toast.error('上传失败，请重试');
     } finally {

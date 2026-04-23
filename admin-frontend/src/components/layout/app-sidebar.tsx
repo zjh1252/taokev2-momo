@@ -50,7 +50,12 @@ export default function AppSidebar() {
             <SidebarMenu>
               {group.items.map((item) => {
                 const Icon = item.icon ? Icons[item.icon] : Icons.logo;
-                const hasSubActive = item.items?.some((sub) => pathname === sub.url || pathname.startsWith(sub.url + '/'));
+                const hasSubActive = item.items?.some((sub) => {
+                  if (pathname === sub.url || pathname.startsWith(sub.url + '/')) return true;
+                  return sub.items?.some(
+                    (g) => pathname === g.url || pathname.startsWith(g.url + '/'),
+                  );
+                });
                 return item?.items && item?.items?.length > 0 ? (
                   <Collapsible
                     key={item.title}
@@ -68,15 +73,67 @@ export default function AppSidebar() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <SidebarMenuSub>
-                          {item.items?.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton asChild isActive={pathname === subItem.url || pathname.startsWith(subItem.url + '/')}>
-                                <Link href={subItem.url}>
-                                  <span>{subItem.title}</span>
-                                </Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
+                          {item.items?.map((subItem) => {
+                            const hasGrandChildren = subItem.items && subItem.items.length > 0;
+                            const grandChildActive = subItem.items?.some(
+                              (g) => pathname === g.url || pathname.startsWith(g.url + '/'),
+                            );
+                            if (hasGrandChildren) {
+                              return (
+                                <Collapsible
+                                  key={subItem.title}
+                                  asChild
+                                  defaultOpen={grandChildActive}
+                                  className='group/sub-collapsible'
+                                >
+                                  <SidebarMenuSubItem>
+                                    <CollapsibleTrigger asChild>
+                                      <SidebarMenuSubButton
+                                        className='cursor-pointer hover:bg-sidebar-accent/60'
+                                        isActive={grandChildActive}
+                                      >
+                                        <span>{subItem.title}</span>
+                                        <Icons.chevronRight className='ml-auto size-3.5 transition-transform duration-200 group-data-[state=open]/sub-collapsible:rotate-90' />
+                                      </SidebarMenuSubButton>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                      <SidebarMenuSub className='mr-0 pr-0'>
+                                        {subItem.items?.map((grandChild) => (
+                                          <SidebarMenuSubItem key={grandChild.title}>
+                                            <SidebarMenuSubButton
+                                              asChild
+                                              isActive={
+                                                pathname === grandChild.url ||
+                                                pathname.startsWith(grandChild.url + '/')
+                                              }
+                                              className='hover:bg-sidebar-accent/60'
+                                            >
+                                              <Link href={grandChild.url}>
+                                                <span>{grandChild.title}</span>
+                                              </Link>
+                                            </SidebarMenuSubButton>
+                                          </SidebarMenuSubItem>
+                                        ))}
+                                      </SidebarMenuSub>
+                                    </CollapsibleContent>
+                                  </SidebarMenuSubItem>
+                                </Collapsible>
+                              );
+                            }
+                            return (
+                              <SidebarMenuSubItem key={subItem.title}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  isActive={pathname === subItem.url || pathname.startsWith(subItem.url + '/')}
+                                  className='hover:bg-sidebar-accent/60'
+                                >
+                                  <Link href={subItem.url}>
+                                    <span>{subItem.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
                         </SidebarMenuSub>
                       </CollapsibleContent>
                     </SidebarMenuItem>

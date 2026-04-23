@@ -95,35 +95,29 @@ export const navGroups: NavGroup[] = [
           {
             title: '精彩瞬间管理',
             url: '/dashboard/trainers/highlights'
-          }
-        ]
-      }
-    ]
-  },
-  {
-    label: '',
-    items: [
-      {
-        title: '资质认证管理',
-        url: '#',
-        icon: 'badgeCheck',
-        isActive: false,
-        items: [
-          {
-            title: '实名认证',
-            url: '/dashboard/trainers/certifications/real-name'
           },
+          // 资质认证管理（含 4 个孙菜单）
           {
-            title: '专业认证',
-            url: '/dashboard/trainers/certifications/professional'
-          },
-          {
-            title: '学历认证',
-            url: '/dashboard/trainers/certifications/education'
-          },
-          {
-            title: '工作认证',
-            url: '/dashboard/trainers/certifications/work'
+            title: '资质认证管理',
+            url: '#',
+            items: [
+              {
+                title: '实名认证',
+                url: '/dashboard/trainers/certifications/real-name'
+              },
+              {
+                title: '专业认证',
+                url: '/dashboard/trainers/certifications/professional'
+              },
+              {
+                title: '学历认证',
+                url: '/dashboard/trainers/certifications/education'
+              },
+              {
+                title: '工作认证',
+                url: '/dashboard/trainers/certifications/work'
+              }
+            ]
           }
         ]
       }

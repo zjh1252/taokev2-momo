@@ -5,6 +5,8 @@ import { FileText, Image as ImageIcon, Loader2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadCertFile } from '@/features/user-center/api/cert-service';
 
+// 仅在上传失败时弹 toast；成功无 toast，由调用方在「整体提交」时统一提示，避免与提交成功 toast 叠出现两个
+
 export interface CertFileUploaderProps {
   /** 已上传文件 URL；空字符串表示未上传 */
   value: string;
@@ -36,7 +38,7 @@ export function CertFileUploader({
     try {
       const url = await uploadCertFile(file);
       onChange(url);
-      toast.success(`${label}上传成功`);
+      // 不在此处弹成功 toast，避免与「整体提交成功」toast 重复叠出现
     } catch {
       toast.error(`${label}上传失败，请重试`);
     } finally {
@@ -57,7 +59,7 @@ export function CertFileUploader({
             <button
               type="button"
               onClick={() => onChange('')}
-              className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-red-500"
+              className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-red-500 transition-colors"
               aria-label={`移除${label}`}
             >
               <X className="size-3.5" />

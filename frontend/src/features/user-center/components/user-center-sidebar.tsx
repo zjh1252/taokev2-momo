@@ -219,13 +219,18 @@ export function UserCenterSidebar() {
   const pathname = usePathname();
   const { activeRole } = useAuth();
 
-  /** 子菜单按 visibleForRoles 过滤 */
+  /** 子菜单按 visibleForRoles 过滤（含三级孙菜单按角色过滤） */
   const filterChildren = (children: NavChild[]) =>
     children
       .filter((c) => !c.visibleForRoles || c.visibleForRoles.includes(activeRole))
       .map((c) => {
         if ('children' in c) {
-          return { ...c, children: c.children.filter((sc) => true) };
+          return {
+            ...c,
+            children: c.children.filter(
+              (sc) => !sc.visibleForRoles || sc.visibleForRoles.includes(activeRole),
+            ),
+          };
         }
         return c;
       })
