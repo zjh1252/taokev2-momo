@@ -1,7 +1,7 @@
 {
     "name" : "taoke-uniapp",
     "appid" : "",
-    "description" : "",
+    "description" : "淘课网移动端（H5 / 微信小程序 / Android / iOS）",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,
@@ -56,5 +56,25 @@
         },
         "usingComponents" : true
     },
-    "vueVersion" : "3"
+    "vueVersion" : "3",
+    /* H5 端配置 */
+    "h5" : {
+        "title" : "淘课网",
+        "router" : {
+            "mode" : "hash",
+            "base" : "/"
+        },
+        "devServer" : {
+            "port" : 5173,
+            "https" : false,
+            "proxy" : {
+                "/api" : {
+                    "target" : "http://localhost:8080",
+                    "changeOrigin" : true,
+                    "secure" : false,
+                    "pathRewrite" : { "^/api" : "" }
+                }
+            }
+        }
+    }
 }

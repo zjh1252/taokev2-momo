@@ -1,0 +1,75 @@
+// ============================================================
+// 淘课网 uniapp 设计令牌（Design Tokens）
+// 所有颜色 / 圆角 / 阴影 / 字号在业务页面中只准引用本文件中的变量
+// 与 PC 端 home_frontend-demo 主色保持一致
+// ============================================================
+
+// 主色与状态色
+$tk-primary:         #E62117;
+$tk-primary-pressed: #C41C14;
+$tk-primary-soft:    rgba(230, 33, 23, 0.10);
+$tk-primary-fixed:   #FFDAD5;
+$tk-error:           #BA1A1A;
+$tk-success:         #16A34A;
+$tk-warning:         #F59E0B;
+
+// 背景与卡片
+$tk-bg-page:   #F7F9FC;
+$tk-bg-card:   #FFFFFF;
+$tk-bg-mask:   rgba(0, 0, 0, 0.45);
+
+// 文本
+$tk-text-1:    #1B1C1C; // 主字
+$tk-text-2:    #666666; // 次级
+$tk-text-3:    #5E5E5E;
+$tk-text-4:    #999999; // 弱化 / placeholder
+$tk-text-on-primary: #FFFFFF;
+
+// 分割线 / 边框
+$tk-divider:        #E0E3E6;
+$tk-divider-light:  #EAEAEA;
+$tk-border:         #E4E2E1;
+
+// 评分
+$tk-star:           #F59E0B;
+
+// 圆角
+$tk-radius-xs:   8rpx;
+$tk-radius-sm:   12rpx;
+$tk-radius-md:   24rpx;
+$tk-radius-lg:   32rpx;   // Stitch rounded-2xl
+$tk-radius-xl:   48rpx;
+$tk-radius-full: 9999rpx;
+
+// 阴影
+$tk-shadow-card:    0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+$tk-shadow-card-md: 0 4rpx 30rpx rgba(0, 0, 0, 0.06);
+$tk-shadow-pop:     0 8rpx 32rpx rgba(0, 0, 0, 0.08);
+$tk-shadow-primary: 0 8rpx 24rpx rgba(230, 33, 23, 0.20);
+
+// 字号（rpx）
+$tk-fs-xs:  20rpx;
+$tk-fs-sm:  24rpx;
+$tk-fs-md:  28rpx;  // 默认正文（14px）
+$tk-fs-lg:  32rpx;  // 16px
+$tk-fs-xl:  36rpx;  // 18px
+$tk-fs-2xl: 44rpx;
+$tk-fs-3xl: 56rpx;
+
+// 行高
+$tk-lh-tight:  1.2;
+$tk-lh-normal: 1.5;
+$tk-lh-relaxed:1.7;
+
+// 间距
+$tk-sp-1: 8rpx;
+$tk-sp-2: 16rpx;
+$tk-sp-3: 24rpx;
+$tk-sp-4: 32rpx;
+$tk-sp-5: 40rpx;
+$tk-sp-6: 48rpx;
+$tk-sp-8: 64rpx;
+
+// 顶栏 / 底部栏高度
+$tk-navbar-h: 88rpx;
+$tk-tabbar-h: 100rpx;

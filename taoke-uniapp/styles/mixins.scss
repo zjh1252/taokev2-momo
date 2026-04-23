@@ -1,0 +1,51 @@
+@import './tokens.scss';
+
+// 单行省略
+@mixin tk-ellipsis-1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// 多行省略（参数：行数）
+@mixin tk-ellipsis($line: 2) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: $line;
+  overflow: hidden;
+  word-break: break-all;
+}
+
+// 安全区底部内边距（兼容 iOS 旧版）
+@mixin tk-safe-bottom($extra: 0) {
+  padding-bottom: calc(#{$extra} + constant(safe-area-inset-bottom));
+  padding-bottom: calc(#{$extra} + env(safe-area-inset-bottom));
+}
+
+// 安全区顶部
+@mixin tk-safe-top($extra: 0) {
+  padding-top: calc(#{$extra} + constant(safe-area-inset-top));
+  padding-top: calc(#{$extra} + env(safe-area-inset-top));
+}
+
+// 卡片基础
+@mixin tk-card($radius: $tk-radius-lg, $padding: $tk-sp-3) {
+  background: $tk-bg-card;
+  border-radius: $radius;
+  padding: $padding;
+  box-shadow: $tk-shadow-card;
+}
+
+// hairline 1 物理像素分割线（iOS Retina）
+@mixin tk-hairline-bottom($color: $tk-divider) {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 1px;
+    background: $color;
+    transform-origin: 0 100%;
+    transform: scaleY(0.5);
+  }
+}

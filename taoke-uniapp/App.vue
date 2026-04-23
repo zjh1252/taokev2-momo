@@ -1,32 +1,35 @@
-<script>
-	export default {
-		onLaunch: function() {
-			console.warn('当前组件仅支持 uni_modules 目录结构 ，请升级 HBuilderX 到 3.1.0 版本以上！')
-			console.log('App Launch')
-		},
-		onShow: function() {
-			console.log('App Show')
-		},
-		onHide: function() {
-			console.log('App Hide')
-		}
-	}
+<script setup>
+import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
+import { useUserStore } from '@/stores/user';
+
+onLaunch(() => {
+  // App 启动时回填登录态
+  const userStore = useUserStore();
+  userStore.bootstrap();
+  console.log('[App] Launch');
+});
+
+onShow(() => {
+  console.log('[App] Show');
+});
+
+onHide(() => {
+  console.log('[App] Hide');
+});
 </script>
 
 <style lang="scss">
-	/*每个页面公共css */
-	@import '@/uni_modules/uni-scss/index.scss';
-	/* #ifndef APP-NVUE */
-	@import '@/static/customicons.css';
-	// 设置整个项目的背景色
-	page {
-		background-color: #f5f5f5;
-	}
+@import '@/uni_modules/uni-scss/index.scss';
+@import '@/styles/common.scss';
 
-	/* #endif */
-	.example-info {
-		font-size: 14px;
-		color: #333;
-		padding: 10px;
-	}
+/* #ifndef APP-NVUE */
+page {
+  background-color: $tk-bg-page;
+  color: $tk-text-1;
+  font-size: $tk-fs-md;
+  line-height: $tk-lh-normal;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+               "Helvetica Neue", Helvetica, "Microsoft YaHei", sans-serif;
+}
+/* #endif */
 </style>
