@@ -11,6 +11,8 @@ import type {
 /**
  * 后台 — 专家资质认证审核 API（客户端版本）。
  *
+ * <p>客户端只调 BFF 同源 `/api/trainers/certifications/...`，BFF 再转发到后端 `/admin/trainers/certifications/...`。</p>
+ *
  * @author Fangxinxin
  * @date 2026-04-16 20:00
  */
@@ -29,20 +31,20 @@ export function buildCertParams(filters: CertFilters): URLSearchParams {
 export function getRealNameCerts(filters: CertFilters) {
   const params = buildCertParams(filters);
   return apiClient<CertPageResponse<AdminRealNameCert>>(
-    `/admin/trainers/certifications/real-name?${params.toString()}`
+    `/trainers/certifications/real-name?${params.toString()}`
   );
 }
 
 export function approveRealName(trainerId: number) {
   return apiClient<{ code: number; message: string }>(
-    `/admin/trainers/certifications/real-name/${trainerId}/approve`,
+    `/trainers/certifications/real-name/${trainerId}/approve`,
     { method: 'PUT' }
   );
 }
 
 export function rejectRealName(trainerId: number, reason: string) {
   return apiClient<{ code: number; message: string }>(
-    `/admin/trainers/certifications/real-name/${trainerId}/reject`,
+    `/trainers/certifications/real-name/${trainerId}/reject`,
     { method: 'PUT', body: JSON.stringify({ reason }) }
   );
 }
@@ -52,20 +54,20 @@ export function rejectRealName(trainerId: number, reason: string) {
 export function getProfessionalCerts(filters: CertFilters) {
   const params = buildCertParams(filters);
   return apiClient<CertPageResponse<AdminProfessionalCert>>(
-    `/admin/trainers/certifications/professional?${params.toString()}`
+    `/trainers/certifications/professional?${params.toString()}`
   );
 }
 
 export function approveProfessional(trainerId: number) {
   return apiClient<{ code: number; message: string }>(
-    `/admin/trainers/certifications/professional/${trainerId}/approve`,
+    `/trainers/certifications/professional/${trainerId}/approve`,
     { method: 'PUT' }
   );
 }
 
 export function rejectProfessional(trainerId: number, reason: string) {
   return apiClient<{ code: number; message: string }>(
-    `/admin/trainers/certifications/professional/${trainerId}/reject`,
+    `/trainers/certifications/professional/${trainerId}/reject`,
     { method: 'PUT', body: JSON.stringify({ reason }) }
   );
 }
@@ -75,20 +77,20 @@ export function rejectProfessional(trainerId: number, reason: string) {
 export function getEducationCerts(filters: CertFilters) {
   const params = buildCertParams(filters);
   return apiClient<CertPageResponse<AdminEducationCert>>(
-    `/admin/trainers/certifications/educations?${params.toString()}`
+    `/trainers/certifications/educations?${params.toString()}`
   );
 }
 
 export function approveEducation(id: number) {
   return apiClient<{ code: number; message: string }>(
-    `/admin/trainers/certifications/educations/${id}/approve`,
+    `/trainers/certifications/educations/${id}/approve`,
     { method: 'PUT' }
   );
 }
 
 export function rejectEducation(id: number, reason: string) {
   return apiClient<{ code: number; message: string }>(
-    `/admin/trainers/certifications/educations/${id}/reject`,
+    `/trainers/certifications/educations/${id}/reject`,
     { method: 'PUT', body: JSON.stringify({ reason }) }
   );
 }
@@ -98,20 +100,20 @@ export function rejectEducation(id: number, reason: string) {
 export function getWorkCerts(filters: CertFilters) {
   const params = buildCertParams(filters);
   return apiClient<CertPageResponse<AdminWorkCert>>(
-    `/admin/trainers/certifications/work-experiences?${params.toString()}`
+    `/trainers/certifications/work-experiences?${params.toString()}`
   );
 }
 
 export function approveWork(id: number) {
   return apiClient<{ code: number; message: string }>(
-    `/admin/trainers/certifications/work-experiences/${id}/approve`,
+    `/trainers/certifications/work-experiences/${id}/approve`,
     { method: 'PUT' }
   );
 }
 
 export function rejectWork(id: number, reason: string) {
   return apiClient<{ code: number; message: string }>(
-    `/admin/trainers/certifications/work-experiences/${id}/reject`,
+    `/trainers/certifications/work-experiences/${id}/reject`,
     { method: 'PUT', body: JSON.stringify({ reason }) }
   );
 }

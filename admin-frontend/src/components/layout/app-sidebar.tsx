@@ -89,7 +89,7 @@ export default function AppSidebar() {
                                   <SidebarMenuSubItem>
                                     <CollapsibleTrigger asChild>
                                       <SidebarMenuSubButton
-                                        className='cursor-pointer hover:bg-sidebar-accent/60'
+                                        className='cursor-pointer hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors'
                                         isActive={grandChildActive}
                                       >
                                         <span>{subItem.title}</span>
@@ -106,7 +106,7 @@ export default function AppSidebar() {
                                                 pathname === grandChild.url ||
                                                 pathname.startsWith(grandChild.url + '/')
                                               }
-                                              className='hover:bg-sidebar-accent/60'
+                                              className='hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors'
                                             >
                                               <Link href={grandChild.url}>
                                                 <span>{grandChild.title}</span>
@@ -125,7 +125,7 @@ export default function AppSidebar() {
                                 <SidebarMenuSubButton
                                   asChild
                                   isActive={pathname === subItem.url || pathname.startsWith(subItem.url + '/')}
-                                  className='hover:bg-sidebar-accent/60'
+                                  className='hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors'
                                 >
                                   <Link href={subItem.url}>
                                     <span>{subItem.title}</span>

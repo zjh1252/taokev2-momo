@@ -306,7 +306,7 @@ export function UserCenterSidebar() {
                   key={entry.href + entry.label}
                   href={entry.href}
                   className={cn(
-                    'flex items-center gap-3 px-6 py-3.5 text-gray-600 hover:bg-slate-50 hover:text-primary transition-colors border-l-4 border-transparent',
+                    'flex items-center gap-3 px-6 py-3.5 text-gray-600 hover:bg-slate-100 hover:text-primary transition-colors border-l-4 border-transparent',
                     isActive(entry.href) &&
                       'bg-red-50/50 text-primary font-bold !border-l-primary',
                   )}
@@ -338,7 +338,7 @@ export function UserCenterSidebar() {
                   type="button"
                   onClick={() => toggleGroup(entry.label)}
                   className={cn(
-                    'w-full flex items-center justify-between px-6 py-3.5 text-gray-600 hover:bg-slate-50 hover:text-primary transition-colors border-l-4 border-transparent',
+                    'w-full flex items-center justify-between px-6 py-3.5 text-gray-600 hover:bg-slate-100 hover:text-primary transition-colors cursor-pointer border-l-4 border-transparent',
                     entry.separator && 'border-t border-slate-100',
                     groupActive && 'text-primary font-bold',
                   )}
@@ -374,7 +374,7 @@ export function UserCenterSidebar() {
                               type="button"
                               onClick={() => toggleSubGroup(entry.label, child.label)}
                               className={cn(
-                                'w-full flex items-center justify-between pl-[52px] pr-6 py-2.5 text-[13px] text-gray-500 hover:text-primary hover:bg-red-50/50 transition-colors border-l-4 border-transparent',
+                                'w-full flex items-center justify-between pl-[52px] pr-6 py-2.5 text-[13px] text-gray-500 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer border-l-4 border-transparent',
                                 subActive && 'text-primary font-medium',
                               )}
                             >
@@ -393,7 +393,7 @@ export function UserCenterSidebar() {
                                     key={sc.href}
                                     href={sc.href}
                                     className={cn(
-                                      'pl-[72px] pr-6 py-2 text-[12px] text-gray-500 hover:text-primary hover:bg-red-50/50 transition-colors border-l-4 border-transparent',
+                                      'pl-[72px] pr-6 py-2 text-[12px] text-gray-500 hover:text-primary hover:bg-slate-100 transition-colors border-l-4 border-transparent',
                                       isActive(sc.href) &&
                                         'text-primary font-bold !border-l-primary bg-red-50/50',
                                     )}
@@ -412,7 +412,7 @@ export function UserCenterSidebar() {
                           key={child.href}
                           href={child.href}
                           className={cn(
-                            'pl-[52px] pr-6 py-2.5 text-[13px] text-gray-500 hover:text-primary hover:bg-red-50/50 transition-colors border-l-4 border-transparent',
+                            'pl-[52px] pr-6 py-2.5 text-[13px] text-gray-500 hover:text-primary hover:bg-slate-100 transition-colors border-l-4 border-transparent',
                             isActive(child.href) &&
                               'text-primary font-bold !border-l-primary bg-red-50/50',
                           )}
