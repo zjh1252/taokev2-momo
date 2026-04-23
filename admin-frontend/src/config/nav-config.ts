@@ -143,6 +143,16 @@ export const navGroups: NavGroup[] = [
           {
             title: '机构员工列表',
             url: '/dashboard/institutions/employees'
+          },
+          {
+            title: '资质认证管理',
+            url: '#',
+            items: [
+              {
+                title: '公司资料审核',
+                url: '/dashboard/institutions/certifications/company-info'
+              }
+            ]
           }
           // 机构员工申请已下放至机构在用户中心审核，平台不再受理
         ]
@@ -161,6 +171,16 @@ export const navGroups: NavGroup[] = [
           {
             title: '经纪人列表',
             url: '/dashboard/agents'
+          },
+          {
+            title: '资质认证管理',
+            url: '#',
+            items: [
+              {
+                title: '工作认证审核',
+                url: '/dashboard/agents/certifications/work'
+              }
+            ]
           }
           // 经纪人申请已下放至经纪公司在用户中心审核，平台不再受理
         ]
@@ -183,6 +203,16 @@ export const navGroups: NavGroup[] = [
           {
             title: '经纪公司申请',
             url: '/dashboard/enterprise-agents/applications'
+          },
+          {
+            title: '资质认证管理',
+            url: '#',
+            items: [
+              {
+                title: '资质认证审核',
+                url: '/dashboard/enterprise-agents/certifications/qualification'
+              }
+            ]
           }
         ]
       }

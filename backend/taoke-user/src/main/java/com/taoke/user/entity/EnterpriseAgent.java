@@ -80,6 +80,31 @@ public class EnterpriseAgent extends BaseEntity {
     @Column(name = "qualification_doc_url", length = 512)
     private String qualificationDocUrl;
 
+    // ============ 资质认证（公司Logo + 营业执照）— 整体审核 ============
+
+    /** 公司 Logo URL */
+    @Column(name = "cert_logo_url", length = 512)
+    private String certLogoUrl;
+
+    /**
+     * 资质认证状态：NULL=未提交 1=待审核 2=已通过 3=已驳回
+     * <p>对应 user_enterprise_agents.cert_status</p>
+     */
+    @Column(name = "cert_status", columnDefinition = "tinyint")
+    private Integer certStatus;
+
+    /** 资质认证驳回原因 */
+    @Column(name = "cert_reject_reason", length = 255)
+    private String certRejectReason;
+
+    /** 资质认证最近一次提交时间 */
+    @Column(name = "cert_submitted_at")
+    private java.time.LocalDateTime certSubmittedAt;
+
+    /** 资质认证最近一次审核时间 */
+    @Column(name = "cert_audited_at")
+    private java.time.LocalDateTime certAuditedAt;
+
     /** 注册经纪公司合作协议签署时间 */
     @Column(name = "agreement_signed_at")
     private java.time.LocalDateTime agreementSignedAt;

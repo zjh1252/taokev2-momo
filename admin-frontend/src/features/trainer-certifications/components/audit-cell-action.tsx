@@ -34,6 +34,8 @@ interface AuditCellActionProps {
   onApprove: () => Promise<unknown>;
   /** 驳回操作（接收原因） */
   onReject: (reason: string) => Promise<unknown>;
+  /** 操作成功后用于失效缓存的 queryKey 前缀，默认走专家资质 certKeys.all */
+  invalidateKey?: readonly unknown[];
 }
 
 /**
@@ -46,12 +48,14 @@ export function AuditCellAction({
   status,
   subjectLabel,
   onApprove,
-  onReject
+  onReject,
+  invalidateKey
 }: AuditCellActionProps) {
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState('');
   const queryClient = useQueryClient();
+  const queryKey = invalidateKey ?? certKeys.all;
 
   const isPending = status === 1;
 
@@ -60,7 +64,7 @@ export function AuditCellAction({
     onSuccess: () => {
       toast.success('审核已通过');
       setApproveOpen(false);
-      void queryClient.invalidateQueries({ queryKey: certKeys.all });
+      void queryClient.invalidateQueries({ queryKey });
     },
     onError: () => toast.error('操作失败')
   });
@@ -71,7 +75,7 @@ export function AuditCellAction({
       toast.success('已驳回');
       setRejectOpen(false);
       setReason('');
-      void queryClient.invalidateQueries({ queryKey: certKeys.all });
+      void queryClient.invalidateQueries({ queryKey });
     },
     onError: () => toast.error('操作失败')
   });

@@ -167,4 +167,72 @@ public class Institution extends BaseEntity {
     /** 协议版本号，默认 v1 */
     @Column(name = "agreement_version", length = 32)
     private String agreementVersion;
+
+    // ============ 公司资料认证 — 整体审核字段 ============
+
+    /** 公司性质：国企/民营/外资/合资/事业单位/其他 */
+    @Column(name = "company_nature", length = 32)
+    private String companyNature;
+
+    /** 公司网址 */
+    @Column(name = "website", length = 255)
+    private String website;
+
+    /** 机构规模 */
+    @Column(name = "company_size", length = 32)
+    private String companySize;
+
+    /** 年营业额（如：500-1000万） */
+    @Column(name = "annual_revenue", length = 64)
+    private String annualRevenue;
+
+    /** 注册资本 */
+    @Column(name = "registered_capital", length = 64)
+    private String registeredCapital;
+
+    /** 公开课最高佣金比例 0-100 */
+    @Column(name = "max_commission_rate", precision = 5, scale = 2)
+    private java.math.BigDecimal maxCommissionRate;
+
+    /** 可接受付款方式 — JSON 字符串数组（如 ["对公转账","支付宝","微信"]） */
+    @Column(name = "payment_methods", columnDefinition = "json")
+    private String paymentMethods;
+
+    /** 是否有版权课：0=否 1=是 */
+    @Column(name = "has_copyright_course", columnDefinition = "tinyint")
+    private Integer hasCopyrightCourse = 0;
+
+    /** 银行卡号 */
+    @Column(name = "bank_card_no", length = 64)
+    private String bankCardNo;
+
+    /** 开户行 */
+    @Column(name = "bank_name", length = 128)
+    private String bankName;
+
+    /** 开户行支行 */
+    @Column(name = "bank_branch", length = 128)
+    private String bankBranch;
+
+    /** 营业执照附件 URL（license_no 是号码字符串） */
+    @Column(name = "license_doc_url", length = 512)
+    private String licenseDocUrl;
+
+    /**
+     * 公司资料整体审核状态：NULL=未提交 1=待审核 2=已通过 3=已驳回
+     */
+    @Column(name = "company_info_status", columnDefinition = "tinyint")
+    private Integer companyInfoStatus;
+
+    /** 公司资料驳回原因 */
+    @Column(name = "company_info_reject_reason", length = 255)
+    private String companyInfoRejectReason;
+
+    /** 公司资料最近一次提交时间 */
+    @Column(name = "company_info_submitted_at")
+    private LocalDateTime companyInfoSubmittedAt;
+
+    /** 公司资料最近一次审核时间 */
+    @Column(name = "company_info_audited_at")
+    private LocalDateTime companyInfoAuditedAt;
 }

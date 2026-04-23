@@ -87,6 +87,12 @@ const NAV_ENTRIES: NavEntry[] = [
           { label: '专业认证', href: ROUTES.UC_ACCOUNT_CERT_PROFESSIONAL, visibleForRoles: ['TRAINER'] },
           { label: '学历认证', href: ROUTES.UC_ACCOUNT_CERT_EDUCATION, visibleForRoles: ['TRAINER'] },
           { label: '工作认证', href: ROUTES.UC_ACCOUNT_CERT_WORK, visibleForRoles: ['TRAINER'] },
+          // 经纪人：工作认证（多记录）
+          { label: '工作认证', href: ROUTES.UC_ACCOUNT_AGENT_WORK_CERT, visibleForRoles: ['AGENT'] },
+          // 经纪公司：资质认证（公司Logo + 营业执照）
+          { label: '资质认证', href: ROUTES.UC_ACCOUNT_AGENCY_QUALIFICATION, visibleForRoles: ['ENTERPRISE_AGENT'] },
+          // 培训机构：公司资料
+          { label: '公司资料', href: ROUTES.UC_ACCOUNT_INSTITUTION_COMPANY_INFO, visibleForRoles: ['INSTITUTION'] },
         ],
       },
       { label: '账号绑定', href: ROUTES.UC_ACCOUNT_BIND },

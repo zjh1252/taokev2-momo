@@ -42,6 +42,10 @@ export const ROUTES = {
   UC_ACCOUNT_CERT_PROFESSIONAL: '/dashboard/account/certification/professional',
   UC_ACCOUNT_CERT_EDUCATION: '/dashboard/account/certification/education',
   UC_ACCOUNT_CERT_WORK: '/dashboard/account/certification/work',
+  // 三角色身份信息认证
+  UC_ACCOUNT_AGENT_WORK_CERT: '/dashboard/account/certification/agent/work',
+  UC_ACCOUNT_AGENCY_QUALIFICATION: '/dashboard/account/certification/agency/qualification',
+  UC_ACCOUNT_INSTITUTION_COMPANY_INFO: '/dashboard/account/certification/institution/company-info',
 
   // ---- 我的课程 ----
   UC_COURSES: '/dashboard/courses',

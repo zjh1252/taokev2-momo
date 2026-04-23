@@ -3,8 +3,11 @@ package com.taoke.user.eventlistener;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.enums.NotificationType;
 import com.taoke.common.eventbus.DomainEventListener;
+import com.taoke.common.events.user.AgentWorkCertificationAuditedEvent;
 import com.taoke.common.events.user.ApplyPassedEvent;
 import com.taoke.common.events.user.ApplyRejectedEvent;
+import com.taoke.common.events.user.EnterpriseAgentCertificationAuditedEvent;
+import com.taoke.common.events.user.InstitutionCompanyInfoAuditedEvent;
 import com.taoke.common.events.user.NewUserRegisteredEvent;
 import com.taoke.common.events.user.TrainerCertificationAuditedEvent;
 import com.taoke.user.api.NotificationService;
@@ -170,6 +173,76 @@ public class UserEventListener {
         if (TrainerCertificationAuditedEvent.Dimension.EDUCATION.equals(dim)) return "/dashboard/account/certification/education";
         if (TrainerCertificationAuditedEvent.Dimension.WORK.equals(dim)) return "/dashboard/account/certification/work";
         return "/dashboard";
+    }
+
+    /** 经纪人工作认证审核结果 → 站内信。 */
+    @DomainEventListener
+    public void onAgentWorkCertificationAudited(AgentWorkCertificationAuditedEvent event) {
+        sendCertificationNotice(
+                event.getAgentUserId(),
+                "工作认证",
+                event.getSummary(),
+                event.getRejectReason(),
+                event.isApproved(),
+                event.getRecordId(),
+                "/dashboard/account/certification/agent/work");
+    }
+
+    /** 经纪公司资质认证审核结果 → 站内信。 */
+    @DomainEventListener
+    public void onEnterpriseAgentCertificationAudited(EnterpriseAgentCertificationAuditedEvent event) {
+        sendCertificationNotice(
+                event.getEnterpriseAgentUserId(),
+                "资质认证",
+                event.getSummary(),
+                event.getRejectReason(),
+                event.isApproved(),
+                event.getEnterpriseAgentId(),
+                "/dashboard/account/certification/agency/qualification");
+    }
+
+    /** 培训机构「公司资料」审核结果 → 站内信。 */
+    @DomainEventListener
+    public void onInstitutionCompanyInfoAudited(InstitutionCompanyInfoAuditedEvent event) {
+        sendCertificationNotice(
+                event.getInstitutionUserId(),
+                "公司资料",
+                event.getSummary(),
+                event.getRejectReason(),
+                event.isApproved(),
+                event.getInstitutionId(),
+                "/dashboard/account/certification/institution/company-info");
+    }
+
+    /**
+     * 通用认证审核站内信发送。
+     *
+     * @param userId       目标用户 ID
+     * @param dimensionLabel 维度文案（实名认证 / 工作认证 等）
+     * @param summary      业务摘要（公司名 / 单位名）
+     * @param rejectReason 驳回原因
+     * @param approved     是否通过
+     * @param recordId     业务记录 ID
+     * @param routeUrl     站内信跳转路径
+     */
+    private void sendCertificationNotice(Integer userId, String dimensionLabel, String summary,
+                                         String rejectReason, boolean approved, Integer recordId, String routeUrl) {
+        if (userId == null) return;
+        String summaryText = (summary == null || summary.isBlank()) ? "" : "（" + summary + "）";
+        String title;
+        String content;
+        if (approved) {
+            title = dimensionLabel + "已通过";
+            content = "您提交的" + dimensionLabel + summaryText + "已审核通过。";
+        } else {
+            title = dimensionLabel + "未通过";
+            String reason = rejectReason == null ? "" : rejectReason;
+            content = "您提交的" + dimensionLabel + summaryText + "未通过审核。原因：" + reason + "。您可以修改后重新提交。";
+        }
+        notificationService.send(userId, NotificationType.APPLY_RESULT,
+                title, content,
+                recordId == null ? null : String.valueOf(recordId),
+                routeUrl);
     }
 
     private String getRoleName(String roleCode) {
