@@ -36,3 +36,4 @@ tmp
 .cursor/debug*
 
 frontend/public/uploads
+.claude/worktrees
