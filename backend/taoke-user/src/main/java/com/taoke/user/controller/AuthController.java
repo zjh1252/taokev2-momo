@@ -54,6 +54,27 @@ public class AuthController {
     }
 
     @Public
+    @Operation(summary = "账号 + 密码登录")
+    @PostMapping("/auth/login/username")
+    public ApiResponse<TokenResponse> loginByUsername(@Valid @RequestBody UsernameLoginRequest request) {
+        return ApiResponse.ok(authService.loginByUsername(request));
+    }
+
+    @Public
+    @Operation(summary = "账号 + 密码注册")
+    @PostMapping("/auth/register/username")
+    public ApiResponse<TokenResponse> registerByUsername(@Valid @RequestBody UsernameRegisterRequest request) {
+        return ApiResponse.ok(authService.registerByUsername(request));
+    }
+
+    @Public
+    @Operation(summary = "账号可用性预检")
+    @GetMapping("/auth/username/available")
+    public ApiResponse<Boolean> isUsernameAvailable(@RequestParam String username) {
+        return ApiResponse.ok(authService.isUsernameAvailable(username));
+    }
+
+    @Public
     @Operation(summary = "刷新 Token")
     @PostMapping("/auth/refresh")
     public ApiResponse<TokenResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {

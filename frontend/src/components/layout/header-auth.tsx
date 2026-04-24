@@ -26,12 +26,21 @@ export function UserAuthArea() {
 
   if (!user) {
     return (
-      <Link
-        href={ROUTES.LOGIN}
-        className="hover:text-primary transition-colors"
-      >
-        {t('loginRegister')}
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link
+          href={ROUTES.LOGIN}
+          className="hover:text-primary transition-colors"
+        >
+          {t('login')}
+        </Link>
+        <Separator />
+        <Link
+          href={ROUTES.REGISTER}
+          className="hover:text-primary transition-colors"
+        >
+          {t('register')}
+        </Link>
+      </div>
     );
   }
 

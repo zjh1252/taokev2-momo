@@ -19,6 +19,10 @@ import java.time.LocalDateTime;
 @Table(name = "sys_users")
 public class User extends BaseEntity {
 
+    /** 登录账号（字母/数字/下划线，4-32 位，与手机号二选一） */
+    @Column(name = "username", length = 32, unique = true)
+    private String username;
+
     @Column(name = "phone", length = 20, unique = true)
     private String phone;
 

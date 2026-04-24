@@ -155,6 +155,60 @@ public class AuthServiceImpl implements AuthService {
         return generateTokens(user);
     }
 
+    @Override
+    public TokenResponse loginByUsername(UsernameLoginRequest request) {
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        checkAccountStatus(user);
+
+        if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
+            throw new BusinessException(ErrorCode.PASSWORD_NOT_SET);
+        }
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.PASSWORD_INCORRECT);
+        }
+
+        return generateTokens(user);
+    }
+
+    @Transactional
+    @Override
+    public TokenResponse registerByUsername(UsernameRegisterRequest request) {
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new BusinessException(ErrorCode.USERNAME_TAKEN);
+        }
+
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        String nickname = request.getNickname();
+        user.setNickname(nickname == null || nickname.isBlank() ? request.getUsername() : nickname);
+        user.setStatus(1);
+        user.setRegOrigin(1);
+        user = userRepository.save(user);
+
+        UserRole buyerRole = new UserRole();
+        buyerRole.setUserId(user.getId());
+        buyerRole.setRole(BusinessRole.Code.BUYER);
+        buyerRole.setStatus(1);
+        buyerRole.setApprovedAt(LocalDateTime.now());
+        userRoleRepository.save(buyerRole);
+
+        TokenResponse tokenResponse = generateTokens(user);
+        tokenResponse.setNewUser(true);
+        publishAfterCommit(new NewUserRegisteredEvent(user.getId(), null));
+        return tokenResponse;
+    }
+
+    @Override
+    public boolean isUsernameAvailable(String username) {
+        if (username == null || !username.matches("^[a-zA-Z0-9_]{4,32}$")) {
+            return false;
+        }
+        return !userRepository.existsByUsername(username);
+    }
+
     /**
      * 忘记密码 — 通过手机验证码重置密码
      */

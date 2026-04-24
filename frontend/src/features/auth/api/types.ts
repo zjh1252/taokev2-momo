@@ -11,6 +11,19 @@ export interface SmsLoginPayload {
   code: string;
 }
 
+/** 账号 + 密码登录请求 */
+export interface UsernameLoginPayload {
+  username: string;
+  password: string;
+}
+
+/** 账号 + 密码注册请求 */
+export interface UsernameRegisterPayload {
+  username: string;
+  password: string;
+  nickname?: string;
+}
+
 /** 登录/刷新 Token 响应 */
 export interface TokenResponse {
   accessToken: string;

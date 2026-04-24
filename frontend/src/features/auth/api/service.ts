@@ -1,5 +1,12 @@
 import { apiPost, apiGet } from '@/lib/http/client';
-import type { SendCodePayload, SmsLoginPayload, TokenResponse, ApiResult } from './types';
+import type {
+  SendCodePayload,
+  SmsLoginPayload,
+  TokenResponse,
+  ApiResult,
+  UsernameLoginPayload,
+  UsernameRegisterPayload,
+} from './types';
 
 /**
  * 发送短信验证码
@@ -29,4 +36,30 @@ export function smsLogin(phone: string, code: string) {
  */
 export function getMockCode(phone: string) {
   return apiGet<ApiResult<string>>(`/auth/mock/code?phone=${encodeURIComponent(phone)}`);
+}
+
+/**
+ * 账号 + 密码登录
+ * POST /auth/login/username
+ */
+export function usernameLogin(payload: UsernameLoginPayload) {
+  return apiPost<ApiResult<TokenResponse>>('/auth/login/username', payload);
+}
+
+/**
+ * 账号 + 密码注册
+ * POST /auth/register/username
+ */
+export function usernameRegister(payload: UsernameRegisterPayload) {
+  return apiPost<ApiResult<TokenResponse>>('/auth/register/username', payload);
+}
+
+/**
+ * 账号可用性预检
+ * GET /auth/username/available?username=xxx
+ */
+export function checkUsernameAvailable(username: string) {
+  return apiGet<ApiResult<boolean>>(
+    `/auth/username/available?username=${encodeURIComponent(username)}`,
+  );
 }

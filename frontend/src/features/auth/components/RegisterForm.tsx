@@ -1,48 +1,113 @@
 'use client';
 
-import { useState, useCallback, useEffect, type FormEvent } from 'react';
+import { useState, useCallback, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
-import { ArrowRight, UserPlus } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowRight, User, Lock, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
+import { storage } from '@/lib/storage';
+import { useAuth } from '@/lib/auth/auth-context';
+import { TOKEN_KEY } from '@/lib/auth/constants';
+import { markNewUserPending } from '@/features/role-apply/hooks/useRoleApplyState';
+import { usernameRegister, checkUsernameAvailable } from '../api/service';
 
-const NICKNAME_MIN = 2;
-const NICKNAME_MAX = 20;
-const PHONE_LENGTH = 11;
-const CODE_LENGTH = 6;
-const COUNTDOWN_SECONDS = 60;
+const USERNAME_MIN = 4;
+const USERNAME_MAX = 32;
+const PASSWORD_MIN = 6;
+const PASSWORD_MAX = 32;
+const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 export function RegisterForm() {
   const t = useTranslations('auth.register');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { refreshUser } = useAuth();
 
-  const [nickname, setNickname] = useState('');
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
-  const [countdown, setCountdown] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
 
-  const nicknameValid = nickname.trim().length >= NICKNAME_MIN && nickname.trim().length <= NICKNAME_MAX;
-  const canSendCode = phone.length === PHONE_LENGTH && countdown === 0;
-  const canSubmit = nicknameValid && phone.length === PHONE_LENGTH && code.length === CODE_LENGTH && agreed;
+  const usernameFormatValid =
+    username.length >= USERNAME_MIN &&
+    username.length <= USERNAME_MAX &&
+    USERNAME_REGEX.test(username);
+  const passwordValid = password.length >= PASSWORD_MIN && password.length <= PASSWORD_MAX;
+  const passwordsMatch = password === confirmPassword;
+  const canSubmit =
+    usernameFormatValid &&
+    usernameStatus !== 'taken' &&
+    usernameStatus !== 'invalid' &&
+    passwordValid &&
+    passwordsMatch &&
+    agreed &&
+    !submitting;
 
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdown]);
+  const handleUsernameBlur = useCallback(async () => {
+    if (!username) {
+      setUsernameStatus('idle');
+      return;
+    }
+    if (!usernameFormatValid) {
+      setUsernameStatus('invalid');
+      return;
+    }
+    setUsernameStatus('checking');
+    try {
+      const res = await checkUsernameAvailable(username);
+      setUsernameStatus(res.data ? 'available' : 'taken');
+    } catch {
+      setUsernameStatus('idle');
+    }
+  }, [username, usernameFormatValid]);
 
-  const handleSendCode = useCallback(() => {
-    if (!canSendCode) return;
-    // TODO: 调用发送验证码接口
-    setCountdown(COUNTDOWN_SECONDS);
-  }, [canSendCode]);
-
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    // TODO: 调用注册接口
+    setError('');
+    setSubmitting(true);
+    try {
+      const res = await usernameRegister({ username, password });
+      const token = res.data;
+      storage.set(TOKEN_KEY, {
+        accessToken: token.accessToken,
+        refreshToken: token.refreshToken,
+        expiresIn: token.expiresIn,
+        tokenType: token.tokenType,
+      });
+      await refreshUser();
+      if (token.newUser === true) {
+        markNewUserPending();
+      }
+      const redirect = searchParams.get('redirect');
+      router.push(redirect || '/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('registerError'));
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  const usernameHintText = (() => {
+    if (usernameStatus === 'taken') return t('usernameTaken');
+    if (usernameStatus === 'invalid') return t('usernameInvalid');
+    return t('usernameHint');
+  })();
+  const usernameHintClass = cn(
+    'text-[11px] mt-1',
+    usernameStatus === 'taken' || usernameStatus === 'invalid'
+      ? 'text-red-500'
+      : usernameStatus === 'available'
+        ? 'text-green-500'
+        : 'text-muted-foreground/70',
+  );
 
   return (
     <>
@@ -51,75 +116,90 @@ export function RegisterForm() {
         <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
       </div>
 
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* 昵称 */}
+        {/* 账号 */}
         <div className="space-y-2">
           <label className="block text-xs font-semibold text-muted-foreground tracking-widest uppercase">
-            {t('nicknameLabel')}
+            {t('usernameLabel')}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-4">
-              <UserPlus className="size-4 text-muted-foreground/60" />
+              <User className="size-4 text-muted-foreground/60" />
             </div>
             <input
               type="text"
-              maxLength={NICKNAME_MAX}
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder={t('nicknamePlaceholder')}
+              name="username"
+              autoComplete="username"
+              maxLength={USERNAME_MAX}
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value.trim());
+                setUsernameStatus('idle');
+              }}
+              onBlur={handleUsernameBlur}
+              placeholder={t('usernamePlaceholder')}
               className="w-full h-12 pl-11 pr-4 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-foreground text-base placeholder:text-muted-foreground/50 transition-all outline-none"
             />
           </div>
+          <p className={usernameHintClass}>
+            {usernameStatus === 'checking' ? '检查中…' : usernameHintText}
+          </p>
         </div>
 
-        {/* 手机号 */}
+        {/* 密码 */}
         <div className="space-y-2">
           <label className="block text-xs font-semibold text-muted-foreground tracking-widest uppercase">
-            {t('phoneLabel')}
+            {t('passwordLabel')}
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pr-3 border-r border-border/30">
-              <span className="text-foreground font-medium text-sm">+86</span>
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4">
+              <Lock className="size-4 text-muted-foreground/60" />
             </div>
             <input
-              type="tel"
-              maxLength={PHONE_LENGTH}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-              placeholder={t('phonePlaceholder')}
-              className="w-full h-12 pl-16 pr-4 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-foreground text-base placeholder:text-muted-foreground/50 transition-all outline-none"
+              type="password"
+              name="new-password"
+              autoComplete="new-password"
+              maxLength={PASSWORD_MAX}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={t('passwordPlaceholder')}
+              className="w-full h-12 pl-11 pr-4 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-foreground text-base placeholder:text-muted-foreground/50 transition-all outline-none"
             />
           </div>
+          {password.length > 0 && !passwordValid && (
+            <p className="text-[11px] mt-1 text-red-500">{t('passwordTooShort')}</p>
+          )}
         </div>
 
-        {/* 验证码 */}
+        {/* 确认密码 */}
         <div className="space-y-2">
           <label className="block text-xs font-semibold text-muted-foreground tracking-widest uppercase">
-            {t('codeLabel')}
+            {t('confirmPasswordLabel')}
           </label>
-          <div className="flex gap-3">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4">
+              <Lock className="size-4 text-muted-foreground/60" />
+            </div>
             <input
-              type="text"
-              maxLength={CODE_LENGTH}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              placeholder={t('codePlaceholder')}
-              className="flex-1 h-12 px-4 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-foreground text-base placeholder:text-muted-foreground/50 transition-all outline-none"
+              type="password"
+              name="confirm-password"
+              autoComplete="new-password"
+              maxLength={PASSWORD_MAX}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder={t('confirmPasswordPlaceholder')}
+              className="w-full h-12 pl-11 pr-4 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-foreground text-base placeholder:text-muted-foreground/50 transition-all outline-none"
             />
-            <button
-              type="button"
-              onClick={handleSendCode}
-              disabled={!canSendCode}
-              className={cn(
-                'h-12 px-6 whitespace-nowrap font-bold text-sm rounded-xl transition-colors',
-                canSendCode
-                  ? 'text-primary hover:bg-primary/5 cursor-pointer'
-                  : 'text-muted-foreground cursor-not-allowed',
-              )}
-            >
-              {countdown > 0 ? t('codeSent', { seconds: countdown }) : t('getCode')}
-            </button>
           </div>
+          {confirmPassword.length > 0 && !passwordsMatch && (
+            <p className="text-[11px] mt-1 text-red-500">{t('passwordMismatch')}</p>
+          )}
         </div>
 
         {/* 用户协议 */}
@@ -152,8 +232,14 @@ export function RegisterForm() {
               : 'opacity-60 cursor-not-allowed',
           )}
         >
-          <span>{t('submit')}</span>
-          <ArrowRight className="size-4" />
+          {submitting ? (
+            <Loader2 className="size-5 animate-spin" />
+          ) : (
+            <>
+              <span>{t('submit')}</span>
+              <ArrowRight className="size-4" />
+            </>
+          )}
         </button>
       </form>
 

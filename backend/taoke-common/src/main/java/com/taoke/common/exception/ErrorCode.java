@@ -47,6 +47,8 @@ public enum ErrorCode {
     ROLE_APPLICATION_PENDING(400, 10013, "已有进行中的申请，请等待审核"),
     ROLE_ALREADY_ACTIVE(400, 10014, "已拥有该角色"),
     ROLE_DISABLED(403, 10015, "角色已被禁用，请联系管理员"),
+    USERNAME_TAKEN(400, 10016, "该账号已被占用"),
+    USERNAME_INVALID(400, 10017, "账号格式不正确（4-32 位字母/数字/下划线）"),
 
     /* ==================== 权限 101xx ==================== */
     UNAUTHORIZED(401, 10101, "请先登录"),
