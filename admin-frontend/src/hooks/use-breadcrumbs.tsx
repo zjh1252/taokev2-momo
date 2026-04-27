@@ -15,6 +15,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   product: '课程管理',
   courses: '课程管理',
   plans: '排课管理',
+  'training-reviews': '培训评价管理',
   videos: '录播课管理',
   trainers: '专家管理',
   institutions: '机构管理',
@@ -57,6 +58,10 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
     { title: 'Dashboard', link: '/dashboard' },
     { title: '课程管理', link: '/dashboard/courses' },
     { title: '排课管理', link: '/dashboard/courses/plans' }
+  ],
+  '/dashboard/training-reviews': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '培训评价管理', link: '/dashboard/training-reviews' }
   ],
   '/dashboard/videos': [
     { title: 'Dashboard', link: '/dashboard' },

@@ -17,7 +17,9 @@ export const searchParams = {
   category: parseAsString,
   enabled: parseAsString,
   role: parseAsString,
-  sort: parseAsString
+  sort: parseAsString,
+  /** 培训评价管理：COURSE / TRAINER / INSTITUTION */
+  reviewScope: parseAsString
 };
 
 export const searchParamsCache = createSearchParamsCache(searchParams);

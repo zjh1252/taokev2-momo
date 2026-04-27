@@ -4,6 +4,7 @@ import com.taoke.course.entity.interaction.TrainingReview;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 /**
  * 培训评价持久化
@@ -11,7 +12,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * @author Fangxinxin
  * @date 2026-04-08 14:00
  */
-public interface TrainingReviewRepository extends JpaRepository<TrainingReview, Integer> {
+public interface TrainingReviewRepository extends JpaRepository<TrainingReview, Integer>,
+        JpaSpecificationExecutor<TrainingReview> {
 
     /** 按课程查已通过的评价 */
     Page<TrainingReview> findByCourseIdAndStatusOrderByCreatedAtDesc(Integer courseId, Integer status, Pageable pageable);

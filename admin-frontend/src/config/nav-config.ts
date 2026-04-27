@@ -58,6 +58,18 @@ export const navGroups: NavGroup[] = [
     label: '',
     items: [
       {
+        title: '培训评价管理',
+        url: '/dashboard/training-reviews',
+        icon: 'star',
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
         title: '录播课管理',
         url: '#',
         icon: 'video',

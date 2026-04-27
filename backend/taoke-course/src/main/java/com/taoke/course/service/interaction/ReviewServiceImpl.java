@@ -17,11 +17,16 @@ import com.taoke.user.api.TrainerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -236,6 +241,40 @@ public class ReviewServiceImpl {
     public Page<TrainingReview> listPendingReviews(int page, int size) {
         return reviewRepository.findByStatusOrderByCreatedAtDesc(
                 ReviewStatus.PENDING.getValue(), PageRequest.of(page, size));
+    }
+
+    /**
+     * 管理后台分页查询（可选按状态、评价范围过滤）
+     * <p>{@code page} 为 1-based，与后台其他列表接口一致。</p>
+     *
+     * @param status       审核状态，{@code null} 表示全部
+     * @param reviewScope  评价范围 COURSE/TRAINER/INSTITUTION，{@code null} 或空串表示全部
+     */
+    public Page<TrainingReview> adminListReviews(Integer status, String reviewScope, int page, int size) {
+        int pageOneBased = page < 1 ? 1 : page;
+
+        final String scopeForFilter;
+        if (reviewScope == null || reviewScope.isBlank()) {
+            scopeForFilter = null;
+        } else {
+            String trimmed = reviewScope.trim();
+            ReviewScope.valueOf(trimmed);
+            scopeForFilter = trimmed;
+        }
+
+        Specification<TrainingReview> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (scopeForFilter != null) {
+                predicates.add(cb.equal(root.get("reviewScope"), scopeForFilter));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        PageRequest pageable = PageRequest.of(pageOneBased - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return reviewRepository.findAll(spec, pageable);
     }
 
     private ReviewVO toVO(TrainingReview r) {
