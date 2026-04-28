@@ -62,7 +62,15 @@ public class BindingServiceImpl implements BindingService {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "绑定类型与目标用户 ID 必填");
         }
         if (Objects.equals(operatorUserId, req.getTargetUserId())) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "不能向自己发起绑定");
+            // 按绑定类型给更具体的提示文案，便于前端 toast 直接展示
+            String msg = switch (req.getBindingType()) {
+                case ENTERPRISE_AGENT_MEMBER -> "不能邀请自己作为经纪人";
+                case INSTITUTION_EMPLOYEE -> "不能邀请自己作为员工";
+                case AGENT_TRAINER, ASSISTANT_TRAINER, INSTITUTION_TRAINER, ENTERPRISE_AGENT_TRAINER ->
+                        "不能邀请自己作为专家";
+                default -> "不能向自己发起绑定";
+            };
+            throw new BusinessException(ErrorCode.PARAM_INVALID, msg);
         }
         // 校验目标用户存在
         userRepository.findById(req.getTargetUserId())
@@ -207,10 +215,19 @@ public class BindingServiceImpl implements BindingService {
         if (b.getId() != null && Objects.equals(b.getStatus(), ACTIVE)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "已存在生效的绑定");
         }
-        if (b.getId() != null && Objects.equals(b.getStatus(), PENDING)
-                && Objects.equals(b.getInitiatorUserId(), operatorUserId)) {
-            return toResponse(b, BindingType.INSTITUTION_EMPLOYEE, operatorUserId, employeeUserId);
+        // 重复邀请拦截：双方之间已存在进行中的邀请记录（无论谁发起）
+        if (b.getId() != null && Objects.equals(b.getStatus(), PENDING)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID,
+                    "对方与你已存在进行中的邀请记录，请到「我的员工」查看");
         }
+        // 限制：员工已 ACTIVE 绑定到其他机构 → 阻止本次邀请，与员工反向申请流程对齐
+        institutionEmployeeBindingRepository.findByEmployeeUserIdAndStatus(employeeUserId, ACTIVE)
+                .stream().findFirst().ifPresent(active -> {
+                    if (!Objects.equals(active.getOrgId(), inst.getId())) {
+                        throw new BusinessException(ErrorCode.PARAM_INVALID,
+                                "该员工已隶属其他机构，请其先解绑");
+                    }
+                });
         b.setOrgId(inst.getId());
         b.setEmployeeUserId(employeeUserId);
         b.setStatus(PENDING);
@@ -233,10 +250,10 @@ public class BindingServiceImpl implements BindingService {
         if (m.getId() != null && Objects.equals(m.getStatus(), ACTIVE)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "已存在生效的成员关系");
         }
-        // 幂等：相同公司对相同经纪人已发起 PENDING 时直接返回
-        if (m.getId() != null && Objects.equals(m.getStatus(), PENDING)
-                && Objects.equals(m.getInitiatorUserId(), operatorUserId)) {
-            return toResponse(m, BindingType.ENTERPRISE_AGENT_MEMBER, operatorUserId, agentUserId);
+        // 重复邀请拦截：双方之间已存在进行中的邀请记录（无论谁发起），不再覆盖也不幂等返回
+        if (m.getId() != null && Objects.equals(m.getStatus(), PENDING)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID,
+                    "对方与你已存在进行中的邀请记录，请到「我的经纪人」查看");
         }
         // 限制：经纪人最多 ACTIVE 绑定到一个经纪公司
         for (EnterpriseAgentMember other : enterpriseAgentMemberRepository.findByAgentUserIdAndStatus(agentUserId, ACTIVE)) {
@@ -267,6 +284,10 @@ public class BindingServiceImpl implements BindingService {
         }
         Institution inst = institutionRepository.findById(orgId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PARAM_INVALID, "目标机构不存在"));
+        // 机构负责人不能作为自己机构的员工
+        if (Objects.equals(inst.getUserId(), employeeUserId)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "不能申请加入自己负责的机构");
+        }
         // 不允许员工已存在 ACTIVE 绑定到其他机构
         institutionEmployeeBindingRepository.findByEmployeeUserIdAndStatus(employeeUserId, ACTIVE)
                 .stream().findFirst().ifPresent(active -> {
@@ -308,6 +329,10 @@ public class BindingServiceImpl implements BindingService {
         }
         EnterpriseAgent ea = enterpriseAgentRepository.findById(enterpriseAgentId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PARAM_INVALID, "目标经纪公司不存在"));
+        // 经纪公司负责人不能作为自己公司的经纪人
+        if (Objects.equals(ea.getUserId(), agentUserId)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "不能申请加入自己负责的经纪公司");
+        }
         for (EnterpriseAgentMember other : enterpriseAgentMemberRepository.findByAgentUserIdAndStatus(agentUserId, ACTIVE)) {
             if (!Objects.equals(other.getEnterpriseAgentId(), enterpriseAgentId)) {
                 throw new BusinessException(ErrorCode.PARAM_INVALID, "您已隶属其他经纪公司，请先解绑");
@@ -430,7 +455,7 @@ public class BindingServiceImpl implements BindingService {
                     b.getNote(), b.getRejectReason(), b.getInitiatorUserId(), b.getCreatedAt(), b.getConfirmedAt());
             // 这里以「专家」作为对端展示
             fillCounterpart(r, b.getTrainerUserId(), BindingType.INSTITUTION_TRAINER, false);
-            r.setIAmInitiator(Objects.equals(b.getInitiatorUserId(), institutionUserId));
+            r.setIfInitiator(Objects.equals(b.getInitiatorUserId(), institutionUserId));
             result.add(r);
         }
         result.sort(Comparator.comparing(BindingItemResponse::getCreatedAt,
@@ -450,7 +475,7 @@ public class BindingServiceImpl implements BindingService {
                     b.getNote(), b.getRejectReason(), b.getInitiatorUserId(), b.getCreatedAt(), b.getConfirmedAt());
             // 对端展示「员工」
             fillCounterpart(r, b.getEmployeeUserId(), BindingType.INSTITUTION_EMPLOYEE, false);
-            r.setIAmInitiator(Objects.equals(b.getInitiatorUserId(), institutionUserId));
+            r.setIfInitiator(Objects.equals(b.getInitiatorUserId(), institutionUserId));
             result.add(r);
         }
         result.sort(Comparator.comparing(BindingItemResponse::getCreatedAt,
@@ -469,7 +494,7 @@ public class BindingServiceImpl implements BindingService {
             BindingItemResponse r = baseResponse(b.getId(), BindingType.ENTERPRISE_AGENT_TRAINER, b.getStatus(),
                     b.getNote(), b.getRejectReason(), b.getInitiatorUserId(), b.getCreatedAt(), b.getConfirmedAt());
             fillCounterpart(r, b.getTrainerUserId(), BindingType.ENTERPRISE_AGENT_TRAINER, false);
-            r.setIAmInitiator(Objects.equals(b.getInitiatorUserId(), enterpriseAgentUserId));
+            r.setIfInitiator(Objects.equals(b.getInitiatorUserId(), enterpriseAgentUserId));
             result.add(r);
         }
         result.sort(Comparator.comparing(BindingItemResponse::getCreatedAt,
@@ -486,7 +511,7 @@ public class BindingServiceImpl implements BindingService {
             BindingItemResponse r = baseResponse(b.getId(), BindingType.AGENT_TRAINER, b.getStatus(),
                     b.getNote(), b.getRejectReason(), b.getInitiatorUserId(), b.getCreatedAt(), b.getConfirmedAt());
             fillCounterpart(r, b.getTrainerUserId(), BindingType.AGENT_TRAINER, false);
-            r.setIAmInitiator(Objects.equals(b.getInitiatorUserId(), agentUserId));
+            r.setIfInitiator(Objects.equals(b.getInitiatorUserId(), agentUserId));
             result.add(r);
         }
         result.sort(Comparator.comparing(BindingItemResponse::getCreatedAt,
@@ -503,7 +528,7 @@ public class BindingServiceImpl implements BindingService {
             BindingItemResponse r = baseResponse(b.getId(), BindingType.ASSISTANT_TRAINER, b.getStatus(),
                     b.getNote(), b.getRejectReason(), b.getInitiatorUserId(), b.getCreatedAt(), b.getConfirmedAt());
             fillCounterpart(r, b.getTrainerUserId(), BindingType.ASSISTANT_TRAINER, false);
-            r.setIAmInitiator(Objects.equals(b.getInitiatorUserId(), assistantUserId));
+            r.setIfInitiator(Objects.equals(b.getInitiatorUserId(), assistantUserId));
             result.add(r);
         }
         result.sort(Comparator.comparing(BindingItemResponse::getCreatedAt,
@@ -524,7 +549,7 @@ public class BindingServiceImpl implements BindingService {
             // 对端展示「经纪人」
             fillCounterpart(r, m.getAgentUserId(), BindingType.ENTERPRISE_AGENT_MEMBER, false);
             r.setCounterpartOrgName(ea.getCompanyName());
-            r.setIAmInitiator(Objects.equals(m.getInitiatorUserId(), enterpriseAgentUserId));
+            r.setIfInitiator(Objects.equals(m.getInitiatorUserId(), enterpriseAgentUserId));
             result.add(r);
         }
         result.sort(Comparator.comparing(BindingItemResponse::getCreatedAt,
@@ -544,7 +569,7 @@ public class BindingServiceImpl implements BindingService {
             fillCounterpart(r, eaUser, BindingType.ENTERPRISE_AGENT_MEMBER, true);
             enterpriseAgentRepository.findById(m.getEnterpriseAgentId())
                     .ifPresent(ea -> r.setCounterpartOrgName(ea.getCompanyName()));
-            r.setIAmInitiator(Objects.equals(m.getInitiatorUserId(), agentUserId));
+            r.setIfInitiator(Objects.equals(m.getInitiatorUserId(), agentUserId));
             result.add(r);
         }
         result.sort(Comparator.comparing(BindingItemResponse::getCreatedAt,
@@ -567,7 +592,7 @@ public class BindingServiceImpl implements BindingService {
                 fillCounterpart(r, instUser, BindingType.INSTITUTION_EMPLOYEE, true);
                 institutionRepository.findById(b.getOrgId())
                         .ifPresent(inst -> r.setCounterpartOrgName(inst.getOrgName()));
-                r.setIAmInitiator(Objects.equals(b.getInitiatorUserId(), employeeUserId));
+                r.setIfInitiator(Objects.equals(b.getInitiatorUserId(), employeeUserId));
                 result.add(r);
             }
         }

@@ -36,7 +36,13 @@ export interface BindingItem {
   note?: string;
   rejectReason?: string;
   initiatorUserId?: number;
-  iAmInitiator?: boolean;
+  /**
+   * 当前用户是否为发起方
+   *
+   * <p>命名为 ifInitiator 而非 iAmInitiator 是为了规避 Java Bean Introspector 的大小写陷阱，
+   * 详见 BindingItemResponse 后端字段注释。</p>
+   */
+  ifInitiator?: boolean;
   createdAt?: string;
   confirmedAt?: string;
 }

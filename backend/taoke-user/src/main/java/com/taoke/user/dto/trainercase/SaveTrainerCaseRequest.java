@@ -33,8 +33,8 @@ public class SaveTrainerCaseRequest {
 
     private String trainingEffect;
 
-    /** 受训人数（>=0） */
-    @Min(value = 0, message = "受训人数需为大于等于 0 的整数")
+    /** 受训人数（>=1，未填写时为 null） */
+    @Min(value = 1, message = "受训人数需为大于等于 1 的整数")
     private Integer traineeCount;
 
     /** 培训地点 - 省 ID（必填） */

@@ -12,7 +12,7 @@ import {
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
 import { validateForm, getFirstError } from '@/lib/validation';
-import { CASE_RULES } from '../../create/page';
+import { CASE_RULES, traineeCountValidator } from '../../create/page';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
@@ -287,12 +287,16 @@ export default function EditCasePage({
           <FormField label="受训人数">
             <input
               type="number"
-              min={0}
+              min={1}
               step={1}
               value={form.traineeCount ?? ''}
               onChange={(e) =>
                 updateField('traineeCount', e.target.value ? Number(e.target.value) : undefined)
               }
+              onBlur={() => {
+                const err = traineeCountValidator(form.traineeCount);
+                if (err) toast.warning(err);
+              }}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </FormField>

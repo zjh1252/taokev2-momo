@@ -22,13 +22,31 @@ import {
   type BindingItem,
 } from '@/features/binding/api/types';
 import { RejectReasonDialog } from '@/features/binding/components/reject-reason-dialog';
+import { getDisplayStatusLabel } from '@/features/binding/lib/status-label';
+import { useAuth } from '@/lib/auth/auth-context';
 
-const STATUS_TABS: { key: string; label: string; value: number | undefined }[] = [
-  { key: 'all', label: '全部', value: undefined },
-  { key: 'pending-review', label: '待我审核', value: BINDING_STATUS.PENDING },
-  { key: 'active', label: '已生效', value: BINDING_STATUS.ACTIVE },
-  { key: 'rejected', label: '已拒绝', value: BINDING_STATUS.REJECTED },
-  { key: 'unbound', label: '已解绑', value: BINDING_STATUS.UNBOUND },
+/**
+ * 列表 tab：培训机构视角
+ * <ul>
+ *   <li>「待我审核」仅显示对方发起、等待我处理的 PENDING（ifInitiator=false）</li>
+ *   <li>「待对方确认」显示我自己发起、等待员工确认的 PENDING（ifInitiator=true）</li>
+ * </ul>
+ */
+const STATUS_TABS: { key: string; label: string; predicate?: (b: BindingItem) => boolean }[] = [
+  { key: 'all', label: '全部' },
+  {
+    key: 'pending-review',
+    label: '待我审核',
+    predicate: (b) => b.status === BINDING_STATUS.PENDING && !b.ifInitiator,
+  },
+  {
+    key: 'pending-mine',
+    label: '待对方确认',
+    predicate: (b) => b.status === BINDING_STATUS.PENDING && !!b.ifInitiator,
+  },
+  { key: 'active', label: '已生效', predicate: (b) => b.status === BINDING_STATUS.ACTIVE },
+  { key: 'rejected', label: '已拒绝', predicate: (b) => b.status === BINDING_STATUS.REJECTED },
+  { key: 'unbound', label: '已解绑', predicate: (b) => b.status === BINDING_STATUS.UNBOUND },
 ];
 
 const STATUS_BADGE: Record<number, string> = {
@@ -70,14 +88,14 @@ export default function MyEmployeesPage() {
 
   const filtered = useMemo(() => {
     const t = STATUS_TABS.find((x) => x.key === tab);
-    if (!t || t.value == null) return items;
-    return items.filter((b) => b.status === t.value);
+    if (!t || !t.predicate) return items;
+    return items.filter(t.predicate);
   }, [items, tab]);
 
   const counts = useMemo(() => {
     const m: Record<string, number> = { all: items.length };
     for (const t of STATUS_TABS) {
-      if (t.value != null) m[t.key] = items.filter((b) => b.status === t.value).length;
+      if (t.predicate) m[t.key] = items.filter(t.predicate).length;
     }
     return m;
   }, [items]);
@@ -232,7 +250,7 @@ function EmployeeCard({
 }) {
   const status = item.status;
   // 待我审核：员工主动申请的 PENDING 绑定
-  const needsReview = status === BINDING_STATUS.PENDING && !item.iAmInitiator;
+  const needsReview = status === BINDING_STATUS.PENDING && !item.ifInitiator;
   return (
     <div className="border border-slate-200 rounded-lg p-4 hover:border-primary/40 hover:shadow-md transition-all">
       <div className="flex gap-3">
@@ -255,11 +273,11 @@ function EmployeeCard({
               {item.counterpartNickname || `员工#${item.counterpartUserId}`}
             </span>
             <span className={`text-[11px] px-2 py-0.5 rounded-full border shrink-0 ${STATUS_BADGE[status] || ''}`}>
-              {item.statusLabel}
+              {getDisplayStatusLabel(item)}
             </span>
           </div>
           <div className="text-xs text-gray-400 mt-1">
-            {item.iAmInitiator ? '我方发起邀请' : '对方发起申请'} · {item.createdAt?.slice(0, 10)}
+            {item.ifInitiator ? '我方发起邀请' : '对方发起申请'} · {item.createdAt?.slice(0, 10)}
           </div>
           {item.note && <div className="text-xs text-gray-500 mt-1 line-clamp-2">备注：{item.note}</div>}
           {item.rejectReason && (
@@ -294,7 +312,7 @@ function EmployeeCard({
           </>
         )}
         {(status === BINDING_STATUS.ACTIVE
-          || (status === BINDING_STATUS.PENDING && item.iAmInitiator)) && (
+          || (status === BINDING_STATUS.PENDING && item.ifInitiator)) && (
           <button
             type="button"
             disabled={acting}
@@ -311,6 +329,7 @@ function EmployeeCard({
 }
 
 function AddEmployeeDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+  const { user } = useAuth();
   const [phone, setPhone] = useState('');
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -324,7 +343,14 @@ function AddEmployeeDialog({ onClose, onAdded }: { onClose: () => void; onAdded:
     }
     setSearching(true);
     try {
-      setPicked(await lookupUserByPhone(phone.trim()));
+      const found = await lookupUserByPhone(phone.trim());
+      // 即时拦截自邀请，避免点提交后才被后端兜底拒绝
+      if (user?.id != null && found.id === user.id) {
+        setPicked(null);
+        toast.error('不能邀请自己作为员工');
+        return;
+      }
+      setPicked(found);
     } catch (err) {
       setPicked(null);
       toast.error(err instanceof Error ? err.message : '未找到对应用户');

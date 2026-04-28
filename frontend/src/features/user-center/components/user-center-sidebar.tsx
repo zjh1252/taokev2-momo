@@ -29,7 +29,14 @@ import {
 import { cn } from '@/lib/utils';
 
 /** 内容管理类菜单可见的角色集合 */
-const CONTENT_ROLES = ['TRAINER', 'AGENT', 'ASSISTANT', 'INSTITUTION', 'INSTITUTION_EMPLOYEE'];
+const CONTENT_ROLES = [
+  'TRAINER',
+  'AGENT',
+  'ASSISTANT',
+  'INSTITUTION',
+  'INSTITUTION_EMPLOYEE',
+  'ENTERPRISE_AGENT',
+];
 
 /** 个人学员角色码（"更多信息"仅对其可见） */
 const LEARNER_ROLES = ['BUYER'];

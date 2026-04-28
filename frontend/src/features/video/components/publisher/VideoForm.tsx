@@ -5,6 +5,7 @@ import Image from 'next/image';
 import RichTextEditor from '@/components/rich-text-editor';
 import { getVideoCategoryTree } from '@/features/video/api/service';
 import { uploadImage, uploadVideoFile } from '@/features/video/api/publisher-service';
+import { extractVideoFirstFrame } from '@/features/video/lib/extract-first-frame';
 import type {
   VideoType,
   CategoryTreeNode,
@@ -54,6 +55,14 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   const [uploadingCover, setUploadingCover] = useState(false);
   const [catDropdownOpen, setCatDropdownOpen] = useState(false);
 
+  /**
+   * 用户是否手动上传/调整过封面。一旦为 true，
+   * 后续视频上传不再覆盖封面（避免冲掉用户的选择）。
+   */
+  const [coverManual, setCoverManual] = useState<boolean>(!!initialData?.coverUrl);
+  /** 自动抽帧封面状态：避免重复触发 */
+  const [autoCoverGenerating, setAutoCoverGenerating] = useState(false);
+
   // SINGLE 类型：单个视频
   const [uploadingSingleVideo, setUploadingSingleVideo] = useState(false);
   const [singleVideoFileName, setSingleVideoFileName] = useState('');
@@ -74,6 +83,7 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
     try {
       const url = await uploadImage(file);
       setCoverUrl(url);
+      setCoverManual(true);
     } catch {
       toast.error('封面上传失败');
     } finally {
@@ -81,11 +91,37 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
     }
   }, []);
 
+  /**
+   * 视频上传成功后，若用户尚未手动设置过封面，自动从首帧抽取并上传作为封面。
+   *
+   * @param file 本地视频文件，用于抽帧
+   */
+  const autoGenerateCoverFromVideo = useCallback(async (file: File) => {
+    if (coverManual || coverUrl || autoCoverGenerating) return;
+    setAutoCoverGenerating(true);
+    setUploadingCover(true);
+    try {
+      const blob = await extractVideoFirstFrame(file);
+      const url = await uploadImage(blob, 'video-cover.jpg');
+      // 二次校验：如果在抽帧期间用户已手动上传，不要覆盖
+      setCoverUrl((prev) => (prev ? prev : url));
+      toast.success('已根据视频首帧自动生成封面，可在下方更换');
+    } catch (err) {
+      // 抽帧失败属于非关键路径，仅做轻提示
+      console.warn('自动生成封面失败：', err);
+    } finally {
+      setAutoCoverGenerating(false);
+      setUploadingCover(false);
+    }
+  }, [coverManual, coverUrl, autoCoverGenerating]);
+
   const handleUploadSingleVideo = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingSingleVideo(true);
     setSingleVideoFileName(file.name);
+    // 同时启动首帧抽取（与视频上传并行，互不阻塞）
+    void autoGenerateCoverFromVideo(file);
     try {
       const url = await uploadVideoFile(file);
       setVideoUrl(url);
@@ -94,12 +130,13 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
     } finally {
       setUploadingSingleVideo(false);
     }
-  }, []);
+  }, [autoGenerateCoverFromVideo]);
 
   const handleUploadSeriesVideos = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const startIndex = seriesVideos.length;
     const newItems = Array.from(files).map((f) => ({
       fileName: f.name,
       url: '',
@@ -107,9 +144,14 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
     }));
     setSeriesVideos((prev) => [...prev, ...newItems]);
 
+    // 当列表为空时，把第一个视频文件作为封面自动抽帧候选
+    if (startIndex === 0 && files[0]) {
+      void autoGenerateCoverFromVideo(files[0]);
+    }
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const itemIndex = seriesVideos.length + i;
+      const itemIndex = startIndex + i;
       try {
         const url = await uploadVideoFile(file);
         setSeriesVideos((prev) =>
@@ -128,7 +170,7 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
     }
     // 清空 input
     e.target.value = '';
-  }, [seriesVideos.length]);
+  }, [seriesVideos.length, autoGenerateCoverFromVideo]);
 
   const removeSeriesVideo = (idx: number) => {
     setSeriesVideos((prev) => prev.filter((_, i) => i !== idx));
@@ -421,7 +463,11 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
               <Image src={coverUrl} alt="封面" width={200} height={150} className="rounded-lg object-cover border border-slate-200" />
               <button
                 type="button"
-                onClick={() => setCoverUrl('')}
+                onClick={() => {
+                  setCoverUrl('');
+                  // 移除后允许下一次视频上传重新自动抽帧
+                  setCoverManual(false);
+                }}
                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5"
               >
                 <X className="size-3.5" />
@@ -440,7 +486,9 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
               )}
             </label>
           )}
-          <p className="text-xs text-slate-400 mt-1">建议尺寸：400 x 300</p>
+          <p className="text-xs text-slate-400 mt-1">
+            建议尺寸：400 x 300 ；上传视频后将自动取首帧作为封面，您也可手动上传替换。
+          </p>
         </div>
       </div>
 

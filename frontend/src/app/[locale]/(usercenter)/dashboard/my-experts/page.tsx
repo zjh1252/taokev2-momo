@@ -23,6 +23,7 @@ import {
   type BindingItem,
   type BindingType,
 } from '@/features/binding/api/types';
+import { getDisplayStatusLabel } from '@/features/binding/lib/status-label';
 
 const STATUS_TABS: { label: string; value: number | undefined }[] = [
   { label: '全部', value: undefined },
@@ -223,11 +224,11 @@ function ExpertCard({
               {item.counterpartNickname || `专家#${item.counterpartUserId}`}
             </span>
             <span className={`text-[11px] px-2 py-0.5 rounded-full border shrink-0 ${STATUS_BADGE[status] || ''}`}>
-              {item.statusLabel}
+              {getDisplayStatusLabel(item)}
             </span>
           </div>
           <div className="text-xs text-gray-400 mt-1">
-            {item.iAmInitiator ? '我方发起邀请' : '对方发起申请'} · {item.createdAt?.slice(0, 10)}
+            {item.ifInitiator ? '我方发起邀请' : '对方发起申请'} · {item.createdAt?.slice(0, 10)}
           </div>
           {item.note && <div className="text-xs text-gray-500 mt-1 line-clamp-2">备注：{item.note}</div>}
           {item.rejectReason && (
@@ -240,14 +241,16 @@ function ExpertCard({
       </div>
       {!readOnly && (
         <div className="mt-3 flex flex-wrap gap-2 justify-end">
-          {(status === BINDING_STATUS.ACTIVE || status === BINDING_STATUS.PENDING) && (
+          {/* 仅在 ACTIVE 或自己发起的 PENDING 上显示撤回/解绑 — 与 my-agents-team 视角一致 */}
+          {(status === BINDING_STATUS.ACTIVE
+            || (status === BINDING_STATUS.PENDING && item.ifInitiator)) && (
             <button
               type="button"
               onClick={() => onUnbind(item)}
               className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
             >
               <X className="size-3.5" />
-              {status === BINDING_STATUS.PENDING ? '撤回' : '解除绑定'}
+              {status === BINDING_STATUS.PENDING ? '撤回邀请' : '解除绑定'}
             </button>
           )}
         </div>
@@ -267,6 +270,7 @@ function AddExpertDialog({
   onClose: () => void;
   onAdded: () => void;
 }) {
+  const { user } = useAuth();
   const [phone, setPhone] = useState('');
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -280,7 +284,14 @@ function AddExpertDialog({
     }
     setSearching(true);
     try {
-      setPicked(await lookupUserByPhone(phone.trim()));
+      const found = await lookupUserByPhone(phone.trim());
+      // 即时拦截自邀请，避免点提交后才被后端兜底拒绝
+      if (user?.id != null && found.id === user.id) {
+        setPicked(null);
+        toast.error('不能邀请自己作为专家');
+        return;
+      }
+      setPicked(found);
     } catch (err) {
       setPicked(null);
       toast.error(err instanceof Error ? err.message : '未找到该手机号对应用户，请确认对方已注册');

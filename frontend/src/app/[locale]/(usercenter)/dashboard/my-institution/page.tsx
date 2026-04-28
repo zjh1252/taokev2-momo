@@ -42,7 +42,7 @@ export default function MyInstitutionPage() {
     setLoading(true);
     try {
       const list = await listMyInstitutions();
-      setPending(list.filter((b) => b.status === BINDING_STATUS.PENDING && !b.iAmInitiator));
+      setPending(list.filter((b) => b.status === BINDING_STATUS.PENDING && !b.ifInitiator));
       setActive(list.filter((b) => b.status === BINDING_STATUS.ACTIVE));
     } finally {
       setLoading(false);
@@ -246,7 +246,7 @@ function InstitutionCard({
           {item.note && <div className="text-xs text-gray-500 mt-1 line-clamp-2">备注：{item.note}</div>}
           {item.createdAt && (
             <div className="text-xs text-gray-400 mt-1">
-              {item.iAmInitiator ? '我方发起申请' : '对方发起邀请'} · {item.createdAt.slice(0, 16).replace('T', ' ')}
+              {item.ifInitiator ? '我方发起申请' : '对方发起邀请'} · {item.createdAt.slice(0, 16).replace('T', ' ')}
             </div>
           )}
         </div>

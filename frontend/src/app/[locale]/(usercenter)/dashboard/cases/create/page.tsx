@@ -211,12 +211,16 @@ export default function CreateCasePage() {
           <FormField label="受训人数">
             <input
               type="number"
-              min={0}
+              min={1}
               step={1}
               value={form.traineeCount ?? ''}
               onChange={(e) =>
                 updateField('traineeCount', e.target.value ? Number(e.target.value) : undefined)
               }
+              onBlur={() => {
+                const err = traineeCountValidator(form.traineeCount);
+                if (err) toast.warning(err);
+              }}
               placeholder="如：50"
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
@@ -317,10 +321,15 @@ const positiveIdValidator = (msg: string) => (v: unknown) => {
   return Number.isFinite(n) && n > 0 ? undefined : msg;
 };
 
-const traineeCountValidator = (v: unknown) => {
+/**
+ * 受训人数校验：未填写时跳过；填写时必须是 >=1 的正整数。
+ *
+ * <p>导出供 edit 页等场景复用，便于失焦时统一提示。</p>
+ */
+export const traineeCountValidator = (v: unknown): string | undefined => {
   if (v === undefined || v === null || v === '') return undefined;
   const n = Number(v);
-  return Number.isInteger(n) && n >= 0 ? undefined : '受训人数需为大于等于 0 的整数';
+  return Number.isInteger(n) && n >= 1 ? undefined : '受训人数需为大于等于 1 的整数';
 };
 
 export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
