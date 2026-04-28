@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { AdminTrainerCase } from '../../api/types';
@@ -30,9 +31,12 @@ export const columns: ColumnDef<AdminTrainerCase>[] = [
     accessorKey: 'caseTitle',
     header: '案例标题',
     cell: ({ row }) => (
-      <div className='max-w-[200px] truncate font-medium'>
+      <Link
+        href={`/dashboard/trainers/cases/${row.original.id}`}
+        className='max-w-[200px] truncate font-medium text-primary hover:underline block'
+      >
         {row.original.caseTitle}
-      </div>
+      </Link>
     )
   },
   {

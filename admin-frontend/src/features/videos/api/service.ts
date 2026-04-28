@@ -1,5 +1,9 @@
 import { apiClient } from '@/lib/api-client';
-import type { VideoFilters, VideosResponse } from './types';
+import type {
+  VideoFilters,
+  VideosResponse,
+  VideoDetailResponse,
+} from './types';
 
 export function buildVideoParams(filters: VideoFilters): URLSearchParams {
   const params = new URLSearchParams();
@@ -16,6 +20,11 @@ export async function getVideos(
 ): Promise<VideosResponse> {
   const params = buildVideoParams(filters);
   return apiClient<VideosResponse>(`/videos?${params.toString()}`);
+}
+
+/** 客户端：录播课详情 */
+export async function getVideoDetail(id: number): Promise<VideoDetailResponse> {
+  return apiClient<VideoDetailResponse>(`/videos/${id}`);
 }
 
 /** 审核通过 */

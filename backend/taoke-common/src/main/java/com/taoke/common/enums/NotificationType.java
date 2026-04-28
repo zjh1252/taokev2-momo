@@ -22,6 +22,7 @@ public enum NotificationType {
     VIDEO_PURCHASED("录播课被购买"),
     CASE_REVIEW("案例审核结果"),
     HIGHLIGHT_REVIEW("精彩瞬间审核结果"),
+    REVIEW_AUDIT("评价审核结果"),
     DEMAND_STATUS("需求状态变更"),
     BINDING_REQUEST("绑定关系请求"),
     BINDING_RESULT("绑定关系结果");

@@ -154,6 +154,7 @@ export const Icons = {
 
   // Communication
   chat: IconMessage,
+  message: IconMessage,
   notification: IconBell,
   phone: IconPhone,
   video: IconVideo,

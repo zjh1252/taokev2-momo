@@ -37,7 +37,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   settings: '系统设置',
   cases: '案例管理',
   highlights: '精彩瞬间管理',
-  'sensitive-words': '敏感词管理'
+  'sensitive-words': '敏感词管理',
+  'trainer-messages': '留言管理'
 };
 
 const routeMapping: Record<string, BreadcrumbItem[]> = {
@@ -85,6 +86,10 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
     { title: 'Dashboard', link: '/dashboard' },
     { title: '专家管理', link: '/dashboard/trainers' },
     { title: '精彩瞬间管理', link: '/dashboard/trainers/highlights' }
+  ],
+  '/dashboard/trainer-messages': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '留言管理', link: '/dashboard/trainer-messages' }
   ],
   '/dashboard/sensitive-words': [
     { title: 'Dashboard', link: '/dashboard' },

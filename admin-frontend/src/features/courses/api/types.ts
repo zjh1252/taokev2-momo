@@ -22,6 +22,66 @@ export type AdminCourse = {
   createdAt: string;
 };
 
+/** 课程详情中的开课计划（对齐后端 CoursePlanDTO） */
+export type CoursePlanItem = {
+  id: number;
+  startTime: string;
+  endTime: string;
+  provinceId: number | null;
+  cityId: number | null;
+  districtId: number | null;
+  address: string | null;
+  onlineUrl: string | null;
+  sortOrder: number | null;
+};
+
+/** 课程详情（对齐后端 CourseDetailVO） */
+export type AdminCourseDetail = {
+  id: number;
+  title: string;
+  type: string;
+  typeLabel: string;
+  publisherId: number | null;
+  publisherType: string | null;
+  publisherName: string | null;
+  categoryId: number | null;
+  categoryName: string | null;
+  subCategoryId: number | null;
+  subCategoryName: string | null;
+  coverUrl: string | null;
+  intro: string | null;
+  syllabus: string | null;
+  audience: string | null;
+  highlights: string | null;
+  durationDays: number | null;
+  hoursPerDay: number | null;
+  price: number | null;
+  originalPrice: number | null;
+  keywords: string | null;
+  trainerId: number | null;
+  trainerName: string | null;
+  isFeatured: number;
+  isFree: number;
+  hasPlan: number;
+  status: number;
+  statusLabel: string;
+  rejectReason: string | null;
+  sortOrder: number;
+  viewCount: number;
+  enrollmentCount: number;
+  score: number | null;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  plans: CoursePlanItem[] | null;
+};
+
+export type CourseDetailResponse = {
+  code: number;
+  message: string;
+  data: AdminCourseDetail;
+};
+
 /** 后台排课计划列表项（对齐 AdminCoursePlanVO） */
 export type AdminCoursePlan = {
   id: number;

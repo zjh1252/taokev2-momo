@@ -19,12 +19,24 @@ export type AdminTrainerCase = {
 export type TrainerCaseDetail = {
   id: number;
   trainerId: number;
+  trainerUserId: number | null;
+  trainerName: string | null;
   caseTitle: string;
   enterpriseName: string;
   industry: string | null;
   trainingTopic: string | null;
   trainingEffect: string | null;
   traineeCount: number | null;
+  /** 培训地点 - 省 ID */
+  provinceId: number | null;
+  /** 培训地点 - 市 ID */
+  cityId: number | null;
+  /** 培训地点 - 区/县 ID */
+  districtId: number | null;
+  /** 培训地点 - 镇/街道 ID */
+  townId: number | null;
+  /** 培训地点 - 详细地址 */
+  trainingAddress: string | null;
   trainingDate: string | null;
   description: string | null;
   coverImage: string | null;
@@ -41,6 +53,7 @@ export type TrainerCaseDetail = {
 export type TrainerCaseFile = {
   id: number;
   caseId: number;
+  /** 文件类型：1=图片, 2=视频 */
   fileType: number;
   title: string | null;
   description: string | null;
@@ -50,7 +63,11 @@ export type TrainerCaseFile = {
   height: number | null;
   duration: number | null;
   fileSize: number | null;
+  autoExtracted: boolean | null;
   sortOrder: number;
+  status: number | null;
+  rejectReason: string | null;
+  viewCount: number | null;
   createdAt: string;
 };
 

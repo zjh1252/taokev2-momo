@@ -3,6 +3,10 @@ package com.taoke.course.service.interaction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.taoke.common.eventbus.EventPublisher;
+import com.taoke.common.events.review.ReviewApprovedEvent;
+import com.taoke.common.events.review.ReviewHiddenEvent;
+import com.taoke.common.events.review.ReviewRejectedEvent;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
@@ -45,6 +49,7 @@ public class ReviewServiceImpl {
     private final ObjectMapper objectMapper;
     private final TrainerService trainerService;
     private final InstitutionService institutionService;
+    private final EventPublisher eventPublisher;
 
     /**
      * 提交评价（状态为 PENDING）
@@ -176,6 +181,13 @@ public class ReviewServiceImpl {
         if (prev != ReviewStatus.APPROVED.getValue()) {
             adjustTargetCommentCount(review, +1);
         }
+        eventPublisher.publish(new ReviewApprovedEvent(
+                review.getId(),
+                review.getUserId(),
+                review.getReviewScope(),
+                resolveTargetId(review),
+                resolveTargetTitle(review)
+        ));
     }
 
     /**
@@ -193,6 +205,14 @@ public class ReviewServiceImpl {
         if (prev == ReviewStatus.APPROVED.getValue()) {
             adjustTargetCommentCount(review, -1);
         }
+        eventPublisher.publish(new ReviewRejectedEvent(
+                review.getId(),
+                review.getUserId(),
+                review.getReviewScope(),
+                resolveTargetId(review),
+                resolveTargetTitle(review),
+                reason
+        ));
     }
 
     /**
@@ -209,6 +229,39 @@ public class ReviewServiceImpl {
         if (prev == ReviewStatus.APPROVED.getValue()) {
             adjustTargetCommentCount(review, -1);
         }
+        eventPublisher.publish(new ReviewHiddenEvent(
+                review.getId(),
+                review.getUserId(),
+                review.getReviewScope(),
+                resolveTargetId(review),
+                resolveTargetTitle(review)
+        ));
+    }
+
+    /**
+     * 取出评价对应的被评对象 ID（依据 scope 字段映射）
+     */
+    private Integer resolveTargetId(TrainingReview review) {
+        if (review == null || review.getReviewScope() == null) return null;
+        return switch (ReviewScope.valueOf(review.getReviewScope())) {
+            case COURSE -> review.getCourseId();
+            case TRAINER -> review.getTrainerUserId();
+            case INSTITUTION -> review.getInstitutionId();
+        };
+    }
+
+    /**
+     * 评价标题摘要 — 用于通知文案展示。
+     * <p>优先使用评价填写的 {@code courseTitle} / {@code expertName} 等字段，
+     * 取不到时返回空串，由消费者按 scope + targetId 自行兜底。</p>
+     */
+    private String resolveTargetTitle(TrainingReview review) {
+        if (review == null || review.getReviewScope() == null) return "";
+        return switch (ReviewScope.valueOf(review.getReviewScope())) {
+            case COURSE -> review.getCourseTitle() != null ? review.getCourseTitle() : "";
+            case TRAINER -> review.getExpertName() != null ? review.getExpertName() : "";
+            case INSTITUTION -> review.getClientCompany() != null ? review.getClientCompany() : "";
+        };
     }
 
     /**

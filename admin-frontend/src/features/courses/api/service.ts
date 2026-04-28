@@ -3,7 +3,8 @@ import type {
   CourseFilters,
   PlanFilters,
   CoursesResponse,
-  PlansResponse
+  PlansResponse,
+  CourseDetailResponse
 } from './types';
 
 export function buildCourseParams(filters: CourseFilters): URLSearchParams {
@@ -31,6 +32,11 @@ export async function getCourses(
 ): Promise<CoursesResponse> {
   const params = buildCourseParams(filters);
   return apiClient<CoursesResponse>(`/courses?${params.toString()}`);
+}
+
+/** 客户端：课程详情 */
+export async function getCourseDetail(id: number): Promise<CourseDetailResponse> {
+  return apiClient<CourseDetailResponse>(`/courses/${id}`);
 }
 
 /** 客户端：排课计划列表 */

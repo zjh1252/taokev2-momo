@@ -26,6 +26,85 @@ export type AdminVideo = {
   createdAt: string;
 };
 
+/** 录播课章节（对齐 VideoChapterVO） */
+export type VideoChapter = {
+  id: number;
+  videoId: number;
+  seriesId: number | null;
+  title: string;
+  description: string | null;
+  videoUrl: string | null;
+  coverUrl: string | null;
+  duration: number;
+  fileSize: number | null;
+  sortOrder: number;
+  isPreview: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** 录播课系列（对齐 VideoSeriesVO） */
+export type VideoSeries = {
+  id: number;
+  videoId: number;
+  title: string;
+  description: string | null;
+  coverUrl: string | null;
+  sortOrder: number;
+  chapterCount: number;
+  createdAt: string;
+  updatedAt: string;
+  chapters: VideoChapter[] | null;
+};
+
+/** 录播课详情（对齐后端 VideoDetailVO） */
+export type AdminVideoDetail = {
+  id: number;
+  title: string;
+  videoType: string;
+  videoTypeLabel: string;
+  publisherId: number | null;
+  publisherType: string | null;
+  publisherName: string | null;
+  categoryId: number | null;
+  categoryName: string | null;
+  subCategoryId: number | null;
+  subCategoryName: string | null;
+  coverUrl: string | null;
+  intro: string | null;
+  videoUrl: string | null;
+  externalUrl: string | null;
+  teacherName: string | null;
+  trainerId: number | null;
+  trainerName: string | null;
+  price: number | null;
+  originalPrice: number | null;
+  isFree: number;
+  keywords: string | null;
+  duration: number;
+  totalEpisodes: number;
+  isFeatured: number;
+  status: number;
+  statusLabel: string;
+  rejectReason: string | null;
+  sortOrder: number;
+  viewCount: number;
+  enrollmentCount: number;
+  studentCount: number;
+  score: number | null;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  seriesList: VideoSeries[] | null;
+  standaloneChapters: VideoChapter[] | null;
+};
+
+export type VideoDetailResponse = {
+  code: number;
+  message: string;
+  data: AdminVideoDetail;
+};
+
 export type VideoFilters = {
   page?: number;
   limit?: number;

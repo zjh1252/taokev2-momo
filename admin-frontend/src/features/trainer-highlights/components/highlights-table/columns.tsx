@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { AdminTrainerHighlight } from '../../api/types';
@@ -56,10 +57,13 @@ export const columns: ColumnDef<AdminTrainerHighlight>[] = [
   {
     accessorKey: 'title',
     header: '标题',
-    cell: ({ cell }) => (
-      <div className='max-w-[160px] truncate'>
-        {cell.getValue<string>() || '-'}
-      </div>
+    cell: ({ row }) => (
+      <Link
+        href={`/dashboard/trainers/highlights/${row.original.id}`}
+        className='max-w-[160px] truncate font-medium text-primary hover:underline block'
+      >
+        {row.original.title || '未命名'}
+      </Link>
     )
   },
   {

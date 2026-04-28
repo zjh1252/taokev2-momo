@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { AdminCourse } from '../../api/types';
@@ -39,7 +40,12 @@ export const columns: ColumnDef<AdminCourse>[] = [
     ),
     cell: ({ row }) => (
       <div className='flex flex-col'>
-        <span className='font-medium line-clamp-1'>{row.original.title}</span>
+        <Link
+          href={`/dashboard/courses/${row.original.id}`}
+          className='font-medium text-primary hover:underline line-clamp-1'
+        >
+          {row.original.title}
+        </Link>
         <span className='text-muted-foreground text-xs'>
           {row.original.typeLabel}
           {row.original.trainerName && ` · ${row.original.trainerName}`}

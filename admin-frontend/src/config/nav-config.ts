@@ -258,6 +258,18 @@ export const navGroups: NavGroup[] = [
     label: '',
     items: [
       {
+        title: '留言管理',
+        url: '/dashboard/trainer-messages',
+        icon: 'message',
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
         title: '企业采购方管理',
         url: '/dashboard/enterprise-buyers',
         icon: 'briefcase',
