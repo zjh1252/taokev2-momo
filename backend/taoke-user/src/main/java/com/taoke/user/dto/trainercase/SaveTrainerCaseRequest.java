@@ -1,6 +1,8 @@
 package com.taoke.user.dto.trainercase;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -31,7 +33,29 @@ public class SaveTrainerCaseRequest {
 
     private String trainingEffect;
 
+    /** 受训人数（>=0） */
+    @Min(value = 0, message = "受训人数需为大于等于 0 的整数")
     private Integer traineeCount;
+
+    /** 培训地点 - 省 ID（必填） */
+    @NotNull(message = "请选择培训地点（省份）")
+    private Integer provinceId;
+
+    /** 培训地点 - 市 ID（必填） */
+    @NotNull(message = "请选择培训地点（城市）")
+    private Integer cityId;
+
+    /** 培训地点 - 区/县 ID（必填） */
+    @NotNull(message = "请选择培训地点（区/县）")
+    private Integer districtId;
+
+    /** 培训地点 - 镇/街道 ID（选填） */
+    private Integer townId;
+
+    /** 培训地点 - 详细地址（必填） */
+    @NotBlank(message = "请填写详细地址")
+    @Size(max = 255, message = "详细地址不能超过255字")
+    private String trainingAddress;
 
     private LocalDate trainingDate;
 

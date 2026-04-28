@@ -69,7 +69,8 @@ public class CourseServiceImpl implements CourseService {
         applyRequest(course, request, type);
         course.setPublisherId(publisherId);
         course.setPublisherType(publisherType);
-        course.setStatus(CourseStatus.DRAFT.getValue());
+        // 创建即提交审核：发布者点击「提交审核」后课程直接进入待审核状态
+        course.setStatus(CourseStatus.PENDING.getValue());
 
         // 专家发布时自动绑定 trainerId
         if (BusinessRole.Code.TRAINER.equals(publisherType)) {
@@ -93,6 +94,8 @@ public class CourseServiceImpl implements CourseService {
         validatePlans(type, request.getPlans());
 
         applyRequest(course, request, type);
+        // 编辑后统一回到待审核：保存即提交，无论原状态是 DRAFT / PENDING / REJECTED 还是 PUBLISHED / UNPUBLISHED
+        course.setStatus(CourseStatus.PENDING.getValue());
         course = courseRepository.save(course);
 
         // 整体替换开课计划
@@ -815,11 +818,19 @@ public class CourseServiceImpl implements CourseService {
         throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此课程");
     }
 
-    /** 仅草稿/驳回状态可编辑 */
+    /**
+     * 课程编辑允许的状态：
+     * <ul>
+     *   <li>DRAFT — 历史草稿数据，仍可继续编辑并提交审核</li>
+     *   <li>PENDING — 审核中也允许编辑（编辑后保持 PENDING）</li>
+     *   <li>REJECTED — 驳回后修改重新提交</li>
+     *   <li>PUBLISHED / UNPUBLISHED — 已上架/已下架仍可修改内容，保存后回到 PENDING 等待复审</li>
+     * </ul>
+     */
     private void assertEditable(Course course) {
-        int status = course.getStatus();
-        if (status != CourseStatus.DRAFT.getValue() && status != CourseStatus.REJECTED.getValue()) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的课程可编辑");
+        // 当前所有状态均可编辑（保存后由 update 方法统一回到 PENDING）
+        if (course.getStatus() == null) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "课程状态异常，无法编辑");
         }
     }
 

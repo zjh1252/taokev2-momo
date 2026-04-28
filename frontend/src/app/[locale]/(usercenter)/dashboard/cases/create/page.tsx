@@ -12,9 +12,10 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
 import { FormField } from '@/components/FormField';
+import RegionCascader, { type RegionValue } from '@/components/region-cascader';
 import { toast } from 'sonner';
 import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
-import { AssistantPublishGuard } from '@/features/assistant/components/AssistantPublishGuard';
+import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
 
 export default function CreateCasePage() {
   const router = useRouter();
@@ -22,13 +23,19 @@ export default function CreateCasePage() {
   const [submitting, setSubmitting] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
 
-  const [form, setForm] = useState<SaveTrainerCaseRequest>({
+  // 使用 Partial 以便 ID 在未选择时保持 undefined，便于必填校验
+  const [form, setForm] = useState<Partial<SaveTrainerCaseRequest>>({
     caseTitle: '',
     enterpriseName: '',
     industry: '',
     trainingTopic: '',
     trainingEffect: '',
     traineeCount: undefined,
+    provinceId: undefined,
+    cityId: undefined,
+    districtId: undefined,
+    townId: undefined,
+    trainingAddress: '',
     trainingDate: '',
     description: '',
     coverImage: '',
@@ -38,7 +45,7 @@ export default function CreateCasePage() {
 
   const updateField = <K extends keyof SaveTrainerCaseRequest>(
     key: K,
-    value: SaveTrainerCaseRequest[K],
+    value: SaveTrainerCaseRequest[K] | undefined,
   ) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +75,7 @@ export default function CreateCasePage() {
       toast.error('请先在顶部选择要代发案例的专家');
       return;
     }
-    const validation = validateForm(form, CASE_RULES);
+    const validation = validateForm(form as SaveTrainerCaseRequest, CASE_RULES);
     if (!validation.valid) {
       const firstError = getFirstError(validation.errors);
       toast.error(firstError || '请完善必填信息');
@@ -77,7 +84,7 @@ export default function CreateCasePage() {
 
     setSubmitting(true);
     try {
-      const created = await createCase(form, trainerUserId);
+      const created = await createCase(form as SaveTrainerCaseRequest, trainerUserId);
 
       // 逐个上传附件到子表
       for (let i = 0; i < files.length; i++) {
@@ -114,7 +121,7 @@ export default function CreateCasePage() {
         <h2 className="text-lg font-bold text-gray-800">发布案例</h2>
       </div>
 
-      <AssistantPublishGuard>
+      <BoundPublisherGuard>
         {banner}
 
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-6 max-w-2xl space-y-5">
@@ -159,6 +166,39 @@ export default function CreateCasePage() {
           </FormField>
         </div>
 
+        <FormField label="培训地点" required>
+          <RegionCascader
+            value={{
+              provinceId: form.provinceId,
+              cityId: form.cityId,
+              districtId: form.districtId,
+              townId: form.townId,
+            }}
+            onChange={(v: RegionValue) =>
+              setForm((prev) => ({
+                ...prev,
+                provinceId: v.provinceId,
+                cityId: v.cityId,
+                districtId: v.districtId,
+                townId: v.townId,
+              }))
+            }
+            maxLevel={4}
+            requireDistrict
+          />
+        </FormField>
+
+        <FormField label="详细地址" required>
+          <input
+            type="text"
+            value={form.trainingAddress || ''}
+            onChange={(e) => updateField('trainingAddress', e.target.value)}
+            maxLength={200}
+            placeholder="街道、楼宇号等"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          />
+        </FormField>
+
         <div className="grid grid-cols-2 gap-4">
           <FormField label="培训日期">
             <input
@@ -171,6 +211,8 @@ export default function CreateCasePage() {
           <FormField label="受训人数">
             <input
               type="number"
+              min={0}
+              step={1}
               value={form.traineeCount ?? ''}
               onChange={(e) =>
                 updateField('traineeCount', e.target.value ? Number(e.target.value) : undefined)
@@ -262,7 +304,7 @@ export default function CreateCasePage() {
           </Link>
         </div>
         </div>
-      </AssistantPublishGuard>
+      </BoundPublisherGuard>
     </section>
   );
 }
@@ -270,7 +312,40 @@ export default function CreateCasePage() {
 /**
  * 案例表单验证规则
  */
+const positiveIdValidator = (msg: string) => (v: unknown) => {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) && n > 0 ? undefined : msg;
+};
+
+const traineeCountValidator = (v: unknown) => {
+  if (v === undefined || v === null || v === '') return undefined;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 0 ? undefined : '受训人数需为大于等于 0 的整数';
+};
+
 export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
   caseTitle: { required: true, requiredMessage: '请输入案例标题' },
   enterpriseName: { required: true, requiredMessage: '请输入企业名称' },
+  provinceId: {
+    required: true,
+    requiredMessage: '请选择培训地点（省份）',
+    validator: positiveIdValidator('请选择培训地点（省份）'),
+  },
+  cityId: {
+    required: true,
+    requiredMessage: '请选择培训地点（城市）',
+    validator: positiveIdValidator('请选择培训地点（城市）'),
+  },
+  districtId: {
+    required: true,
+    requiredMessage: '请选择培训地点（区/县）',
+    validator: positiveIdValidator('请选择培训地点（区/县）'),
+  },
+  trainingAddress: {
+    required: true,
+    requiredMessage: '请填写详细地址',
+  },
+  traineeCount: {
+    validator: traineeCountValidator,
+  },
 };

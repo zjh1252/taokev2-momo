@@ -97,10 +97,22 @@ export async function deleteCourse(id: number): Promise<void> {
   });
 }
 
-/** 上传图片（用于封面等） */
-export async function uploadImage(file: File): Promise<string> {
+/**
+ * 上传图片（用于封面等）。
+ *
+ * <p>同时接受 {@code File} 和 {@code Blob}（裁剪后通常是 Blob），
+ * 当传入 Blob 时会用 {@code filename} 作为附件文件名（默认 cover.jpg）。</p>
+ */
+export async function uploadImage(
+  file: File | Blob,
+  filename = 'cover.jpg',
+): Promise<string> {
   const formData = new FormData();
-  formData.append('file', file);
+  if (file instanceof File) {
+    formData.append('file', file);
+  } else {
+    formData.append('file', file, filename);
+  }
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
   const resp = await fetch(`${API_BASE_URL}/uploads/images`, {
     method: 'POST',

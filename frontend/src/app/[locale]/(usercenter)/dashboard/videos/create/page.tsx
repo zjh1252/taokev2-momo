@@ -11,7 +11,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { toast } from 'sonner';
 import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
-import { AssistantPublishGuard } from '@/features/assistant/components/AssistantPublishGuard';
+import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
 
 export default function CreateVideoPage() {
   const router = useRouter();
@@ -61,10 +61,10 @@ export default function CreateVideoPage() {
         </Link>
         <h1 className="text-lg font-bold text-gray-800">发布录播课</h1>
       </div>
-      <AssistantPublishGuard>
+      <BoundPublisherGuard>
         {banner}
         <VideoForm onSubmit={handleSubmit} submitting={submitting} />
-      </AssistantPublishGuard>
+      </BoundPublisherGuard>
     </section>
   );
 }

@@ -51,6 +51,26 @@ public class TrainerCase extends BaseEntity {
     @Column(name = "trainee_count")
     private Integer traineeCount;
 
+    /** 培训地点 - 省 ID */
+    @Column(name = "province_id")
+    private Integer provinceId;
+
+    /** 培训地点 - 市 ID */
+    @Column(name = "city_id")
+    private Integer cityId;
+
+    /** 培训地点 - 区/县 ID */
+    @Column(name = "district_id")
+    private Integer districtId;
+
+    /** 培训地点 - 镇/街道 ID（选填） */
+    @Column(name = "town_id")
+    private Integer townId;
+
+    /** 培训地点 - 详细地址 */
+    @Column(name = "training_address", length = 255)
+    private String trainingAddress;
+
     /** 培训日期 */
     @Column(name = "training_date")
     private LocalDate trainingDate;

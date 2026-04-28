@@ -91,7 +91,7 @@ function PublishingTargetBanner({
           )}
           {!required && (
             <span className="text-gray-400 ml-1">
-              选择「我自己」即以本机构主体名义发布
+              选择「我自己」即以本机构 / 经纪公司主体名义发布
             </span>
           )}
         </span>

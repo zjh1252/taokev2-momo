@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import Image from 'next/image';
 import RichTextEditor from '@/components/rich-text-editor';
 import RegionCascader, { type RegionValue } from '@/components/region-cascader';
+import { ImageCropperUploader } from '@/components/image-cropper-uploader';
 import { getCourseCategoryTree } from '@/features/course/api/service';
-import { uploadImage } from '@/features/course/api/publisher-service';
 import type {
   CourseType,
   CategoryTreeNode,
@@ -15,8 +14,6 @@ import type {
   CourseDetail,
 } from '@/features/course/api/types';
 import {
-  ImagePlus,
-  X,
   Plus,
   Trash2,
   ChevronDown,
@@ -95,22 +92,6 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
 
   useEffect(() => {
     getCourseCategoryTree().then(setCategoryTree).catch(() => {});
-  }, []);
-
-  // ---- 封面上传 ----
-  const [uploading, setUploading] = useState(false);
-  const handleCoverUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = await uploadImage(file);
-      setCoverUrl(url);
-    } catch {
-      alert('封面上传失败');
-    } finally {
-      setUploading(false);
-    }
   }, []);
 
   // ---- Modal: 打开 ----
@@ -262,29 +243,13 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
           </FieldRow>
 
           <FieldRow label="课程封面">
-            <div className="flex items-center gap-4">
-              {coverUrl ? (
-                <div className="relative w-[200px] h-[125px] rounded-lg overflow-hidden border border-slate-200">
-                  <Image src={coverUrl} alt="封面" width={200} height={125} className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => setCoverUrl('')} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 hover:bg-black/70">
-                    <X className="size-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <label className="w-[200px] h-[125px] border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-red-50/30 transition-colors">
-                  <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
-                  {uploading ? (
-                    <div className="animate-spin rounded-full size-6 border-2 border-primary border-t-transparent" />
-                  ) : (
-                    <>
-                      <ImagePlus className="size-6 text-gray-400" />
-                      <span className="text-xs text-gray-400 mt-1">上传封面</span>
-                      <span className="text-[10px] text-gray-300 mt-0.5">建议 16:10 比例</span>
-                    </>
-                  )}
-                </label>
-              )}
-            </div>
+            <ImageCropperUploader
+              value={coverUrl}
+              onChange={setCoverUrl}
+              aspect={16 / 9}
+              allowFreeAspect
+              previewClassName="w-[200px] h-[125px] rounded-lg"
+            />
           </FieldRow>
 
           <FieldRow label="课程时长">
@@ -386,7 +351,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
         <div className="flex items-center justify-end gap-4 pt-4 border-t border-slate-200">
           <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 bg-primary text-white px-8 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60">
             {submitting && <div className="animate-spin rounded-full size-4 border-2 border-white border-t-transparent" />}
-            {initialData ? '保存修改' : '保存草稿'}
+            {initialData ? '保存并提交审核' : '提交审核'}
           </button>
         </div>
       </form>

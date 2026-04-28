@@ -275,6 +275,11 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
         entity.setTrainingTopic(req.getTrainingTopic() != null ? req.getTrainingTopic() : "");
         entity.setTrainingEffect(req.getTrainingEffect());
         entity.setTraineeCount(req.getTraineeCount());
+        entity.setProvinceId(req.getProvinceId());
+        entity.setCityId(req.getCityId());
+        entity.setDistrictId(req.getDistrictId());
+        entity.setTownId(req.getTownId());
+        entity.setTrainingAddress(req.getTrainingAddress());
         entity.setTrainingDate(req.getTrainingDate());
         entity.setDescription(req.getDescription());
         entity.setCoverImage(req.getCoverImage() != null ? req.getCoverImage() : "");

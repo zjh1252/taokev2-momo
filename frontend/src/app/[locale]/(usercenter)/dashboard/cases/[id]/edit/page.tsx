@@ -18,9 +18,10 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
 import { FormField } from '@/components/FormField';
+import RegionCascader, { type RegionValue } from '@/components/region-cascader';
 import { toast } from 'sonner';
 import { OwnedTrainerBanner } from '@/features/binding/components/owned-trainer-banner';
-import { AssistantPublishGuard } from '@/features/assistant/components/AssistantPublishGuard';
+import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
 
 export default function EditCasePage({
   params: paramsPromise,
@@ -34,13 +35,19 @@ export default function EditCasePage({
   const [submitting, setSubmitting] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
 
-  const [form, setForm] = useState<SaveTrainerCaseRequest>({
+  // 使用 Partial 以便 ID 在初始/未选择时保持 undefined，便于必填校验
+  const [form, setForm] = useState<Partial<SaveTrainerCaseRequest>>({
     caseTitle: '',
     enterpriseName: '',
     industry: '',
     trainingTopic: '',
     trainingEffect: '',
     traineeCount: undefined,
+    provinceId: undefined,
+    cityId: undefined,
+    districtId: undefined,
+    townId: undefined,
+    trainingAddress: '',
     trainingDate: '',
     description: '',
     coverImage: '',
@@ -63,6 +70,11 @@ export default function EditCasePage({
           trainingTopic: detail.trainingTopic || '',
           trainingEffect: detail.trainingEffect || '',
           traineeCount: detail.traineeCount ?? undefined,
+          provinceId: detail.provinceId ?? undefined,
+          cityId: detail.cityId ?? undefined,
+          districtId: detail.districtId ?? undefined,
+          townId: detail.townId ?? undefined,
+          trainingAddress: detail.trainingAddress || '',
           trainingDate: detail.trainingDate || '',
           description: detail.description || '',
           coverImage: detail.coverImage || '',
@@ -88,7 +100,7 @@ export default function EditCasePage({
 
   const updateField = <K extends keyof SaveTrainerCaseRequest>(
     key: K,
-    value: SaveTrainerCaseRequest[K],
+    value: SaveTrainerCaseRequest[K] | undefined,
   ) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,7 +164,7 @@ export default function EditCasePage({
 
   const handleSubmit = async () => {
     // 表单验证
-    const validation = validateForm(form, CASE_RULES);
+    const validation = validateForm(form as SaveTrainerCaseRequest, CASE_RULES);
     if (!validation.valid) {
       const firstError = getFirstError(validation.errors);
       toast.error(firstError || '请完善必填信息');
@@ -161,7 +173,7 @@ export default function EditCasePage({
 
     setSubmitting(true);
     try {
-      await updateCase(caseId, form);
+      await updateCase(caseId, form as SaveTrainerCaseRequest);
       toast.success('案例已更新');
       router.push(ROUTES.UC_CASES_MANAGE);
     } catch {
@@ -191,7 +203,7 @@ export default function EditCasePage({
       </div>
 
       <div className="px-6 py-6 max-w-2xl space-y-5">
-        <AssistantPublishGuard>
+        <BoundPublisherGuard>
         <OwnedTrainerBanner trainerUserId={trainerUserId} trainerNameHint={trainerName} />
         <FormField label="案例标题" required>
           <input
@@ -230,6 +242,39 @@ export default function EditCasePage({
           </FormField>
         </div>
 
+        <FormField label="培训地点" required>
+          <RegionCascader
+            value={{
+              provinceId: form.provinceId,
+              cityId: form.cityId,
+              districtId: form.districtId,
+              townId: form.townId,
+            }}
+            onChange={(v: RegionValue) =>
+              setForm((prev) => ({
+                ...prev,
+                provinceId: v.provinceId,
+                cityId: v.cityId,
+                districtId: v.districtId,
+                townId: v.townId,
+              }))
+            }
+            maxLevel={4}
+            requireDistrict
+          />
+        </FormField>
+
+        <FormField label="详细地址" required>
+          <input
+            type="text"
+            value={form.trainingAddress || ''}
+            onChange={(e) => updateField('trainingAddress', e.target.value)}
+            maxLength={200}
+            placeholder="街道、楼宇号等"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          />
+        </FormField>
+
         <div className="grid grid-cols-2 gap-4">
           <FormField label="培训日期">
             <input
@@ -242,6 +287,8 @@ export default function EditCasePage({
           <FormField label="受训人数">
             <input
               type="number"
+              min={0}
+              step={1}
               value={form.traineeCount ?? ''}
               onChange={(e) =>
                 updateField('traineeCount', e.target.value ? Number(e.target.value) : undefined)
@@ -329,7 +376,7 @@ export default function EditCasePage({
             取消
           </Link>
         </div>
-        </AssistantPublishGuard>
+        </BoundPublisherGuard>
       </div>
     </section>
   );

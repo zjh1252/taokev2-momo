@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
+import { toast } from 'sonner';
 import { useRouter, Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import CourseForm from '@/features/course/components/publisher/CourseForm';
@@ -8,7 +9,7 @@ import { getMyCourseDetail, updateCourse } from '@/features/course/api/publisher
 import type { SaveCourseRequest, CourseDetail } from '@/features/course/api/types';
 import { ArrowLeft } from 'lucide-react';
 import { OwnedTrainerBanner } from '@/features/binding/components/owned-trainer-banner';
-import { AssistantPublishGuard } from '@/features/assistant/components/AssistantPublishGuard';
+import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
 
 /**
  * 编辑课程页面 — 加载已有课程数据并允许修改保存
@@ -39,10 +40,10 @@ export default function EditCoursePage({
     setSubmitting(true);
     try {
       await updateCourse(courseId, data);
-      alert('课程已保存');
+      toast.success('已保存并提交审核，请等待平台审核');
       router.push(ROUTES.UC_COURSES_MANAGE);
     } catch {
-      alert('保存失败，请稍后重试');
+      toast.error('保存失败，请稍后重试');
     } finally {
       setSubmitting(false);
     }
@@ -78,13 +79,13 @@ export default function EditCoursePage({
         </Link>
         <h1 className="text-lg font-bold text-gray-800">编辑课程</h1>
       </div>
-      <AssistantPublishGuard>
+      <BoundPublisherGuard>
         <OwnedTrainerBanner
           trainerUserId={course.publisherType === 'TRAINER' ? course.publisherId : undefined}
           trainerNameHint={course.trainerName}
         />
         <CourseForm initialData={course} onSubmit={handleSubmit} submitting={submitting} />
-      </AssistantPublishGuard>
+      </BoundPublisherGuard>
     </section>
   );
 }

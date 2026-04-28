@@ -17,6 +17,16 @@ export type TrainerCase = {
   trainingTopic: string | null;
   trainingEffect: string | null;
   traineeCount: number | null;
+  /** 培训地点 - 省 ID */
+  provinceId: number | null;
+  /** 培训地点 - 市 ID */
+  cityId: number | null;
+  /** 培训地点 - 区/县 ID */
+  districtId: number | null;
+  /** 培训地点 - 镇/街道 ID（选填） */
+  townId: number | null;
+  /** 培训地点 - 详细地址 */
+  trainingAddress: string | null;
   trainingDate: string | null;
   description: string | null;
   coverImage: string | null;
@@ -53,6 +63,16 @@ export type SaveTrainerCaseRequest = {
   trainingTopic?: string;
   trainingEffect?: string;
   traineeCount?: number;
+  /** 培训地点 - 省 ID（必填） */
+  provinceId: number;
+  /** 培训地点 - 市 ID（必填） */
+  cityId: number;
+  /** 培训地点 - 区/县 ID（必填） */
+  districtId: number;
+  /** 培训地点 - 镇/街道 ID（选填） */
+  townId?: number;
+  /** 培训地点 - 详细地址（必填） */
+  trainingAddress: string;
   trainingDate?: string;
   description?: string;
   coverImage?: string;

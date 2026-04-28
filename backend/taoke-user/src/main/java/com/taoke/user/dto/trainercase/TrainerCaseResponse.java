@@ -28,6 +28,16 @@ public class TrainerCaseResponse {
     private String trainingTopic;
     private String trainingEffect;
     private Integer traineeCount;
+    /** 培训地点 - 省 ID */
+    private Integer provinceId;
+    /** 培训地点 - 市 ID */
+    private Integer cityId;
+    /** 培训地点 - 区/县 ID */
+    private Integer districtId;
+    /** 培训地点 - 镇/街道 ID */
+    private Integer townId;
+    /** 培训地点 - 详细地址 */
+    private String trainingAddress;
     private LocalDate trainingDate;
     private String description;
     private String coverImage;
@@ -52,6 +62,11 @@ public class TrainerCaseResponse {
         r.setTrainingTopic(entity.getTrainingTopic());
         r.setTrainingEffect(entity.getTrainingEffect());
         r.setTraineeCount(entity.getTraineeCount());
+        r.setProvinceId(entity.getProvinceId());
+        r.setCityId(entity.getCityId());
+        r.setDistrictId(entity.getDistrictId());
+        r.setTownId(entity.getTownId());
+        r.setTrainingAddress(entity.getTrainingAddress());
         r.setTrainingDate(entity.getTrainingDate());
         r.setDescription(entity.getDescription());
         r.setCoverImage(entity.getCoverImage());

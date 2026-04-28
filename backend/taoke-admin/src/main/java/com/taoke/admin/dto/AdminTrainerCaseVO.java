@@ -23,6 +23,17 @@ public class AdminTrainerCaseVO {
     private String industry;
     private String trainingTopic;
     private String coverImage;
+    private Integer traineeCount;
+    /** 培训地点 - 省 ID */
+    private Integer provinceId;
+    /** 培训地点 - 市 ID */
+    private Integer cityId;
+    /** 培训地点 - 区/县 ID */
+    private Integer districtId;
+    /** 培训地点 - 镇/街道 ID */
+    private Integer townId;
+    /** 培训地点 - 详细地址 */
+    private String trainingAddress;
     private Integer sortOrder;
     private Integer status;
     private String rejectReason;
@@ -40,6 +51,12 @@ public class AdminTrainerCaseVO {
         vo.setIndustry(entity.getIndustry());
         vo.setTrainingTopic(entity.getTrainingTopic());
         vo.setCoverImage(entity.getCoverImage());
+        vo.setTraineeCount(entity.getTraineeCount());
+        vo.setProvinceId(entity.getProvinceId());
+        vo.setCityId(entity.getCityId());
+        vo.setDistrictId(entity.getDistrictId());
+        vo.setTownId(entity.getTownId());
+        vo.setTrainingAddress(entity.getTrainingAddress());
         vo.setSortOrder(entity.getSortOrder());
         vo.setStatus(entity.getStatus());
         vo.setRejectReason(entity.getRejectReason());

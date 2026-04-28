@@ -10,10 +10,10 @@ import type { SaveCourseRequest } from '@/features/course/api/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
-import { AssistantPublishGuard } from '@/features/assistant/components/AssistantPublishGuard';
+import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
 
 /**
- * 发布课程页面 — 创建新课程（草稿）
+ * 发布课程页面 — 创建新课程（保存即提交审核）
  *
  * @author Fangxinxin
  * @date 2026-04-07 12:30
@@ -31,7 +31,7 @@ export default function CreateCoursePage() {
     setSubmitting(true);
     try {
       await createCourse(data, trainerUserId);
-      toast.success('课程已保存为草稿');
+      toast.success('已提交审核，请等待平台审核');
       router.push(
         trainerUserId
           ? `${ROUTES.UC_COURSES_MANAGE}?trainerUserId=${trainerUserId}`
@@ -55,10 +55,10 @@ export default function CreateCoursePage() {
         </Link>
         <h1 className="text-lg font-bold text-gray-800">发布新课程</h1>
       </div>
-      <AssistantPublishGuard>
+      <BoundPublisherGuard>
         {banner}
         <CourseForm onSubmit={handleSubmit} submitting={submitting} />
-      </AssistantPublishGuard>
+      </BoundPublisherGuard>
     </section>
   );
 }
