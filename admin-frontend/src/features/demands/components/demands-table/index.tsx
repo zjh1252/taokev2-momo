@@ -11,7 +11,7 @@ import { columns } from './columns';
 export function DemandsTable() {
   const [params] = useQueryStates({
     page: parseAsInteger.withDefault(1),
-    perPage: parseAsInteger.withDefault(20),
+    perPage: parseAsInteger.withDefault(10),
     keyword: parseAsString,
     status: parseAsString,
     demandType: parseAsString

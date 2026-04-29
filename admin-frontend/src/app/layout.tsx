@@ -2,19 +2,14 @@ import Providers from '@/components/layout/providers';
 import { Toaster } from '@/components/ui/sonner';
 import { fontVariables } from '@/components/themes/font.config';
 import { DEFAULT_THEME, THEMES } from '@/components/themes/theme.config';
+import ThemeColorMeta from '@/components/themes/theme-color-meta';
 import ThemeProvider from '@/components/themes/theme-provider';
 import { cn } from '@/lib/utils';
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
-import Script from 'next/script';
 import NextTopLoader from 'nextjs-toploader';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '../styles/globals.css';
-
-const META_THEME_COLORS = {
-  light: '#ffffff',
-  dark: '#09090b'
-};
 
 export const metadata: Metadata = {
   title: 'Next Shadcn',
@@ -22,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: META_THEME_COLORS.light
+  themeColor: '#ffffff'
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -40,15 +35,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           fontVariables
         )}
       >
-        <Script id='theme-color-meta' strategy='beforeInteractive'>
-          {`
-              try {
-                if (localStorage.theme === 'dark' || ((!('theme' in localStorage) || localStorage.theme === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '${META_THEME_COLORS.dark}')
-                }
-              } catch (_) {}
-            `}
-        </Script>
         <NextTopLoader color='var(--primary)' showSpinner={false} />
         <NuqsAdapter>
           <ThemeProvider
@@ -58,6 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             disableTransitionOnChange
             enableColorScheme
           >
+            <ThemeColorMeta />
             <Providers activeThemeValue={themeToApply}>
               <Toaster />
               {children}
