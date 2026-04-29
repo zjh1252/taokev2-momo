@@ -1,6 +1,22 @@
 import http from '@/utils/request';
 
 /**
+ * 专家分页列表
+ * @param {Object} params - 后端 PublicTrainerQuery：
+ *   keyword / expertiseCategoryId / industryCategoryId / provinceId / cityId
+ *   isTrusted / sort / page / size
+ */
+export const listTrainers = (params) => http.get('/trainers', params);
+
+/** 推荐专家 */
+export const listRecommendedTrainers = (limit = 10) =>
+  http.get('/trainers/recommended', { limit });
+
+/** 同领域推荐专家（详情页底部） */
+export const listSameExpertiseTrainers = (id) =>
+  http.get(`/trainers/${id}/recommended-trainers`);
+
+/**
  * 专家详情（公开主页）
  */
 export const getTrainerDetail = (id) => http.get(`/trainers/${id}`);

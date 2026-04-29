@@ -52,7 +52,7 @@ taoke-uniapp/
 ```
 
 **命名约定**：
-- 公共组件统一 `Tk*` 前缀（`TkIcon` / `TkNavBar` / `TkSearchBar` / `TkCourseCard` / `TkExpertCard` / `TkCategoryGrid` / `TkBottomActions` / `TkEmpty` / `TkLoading`）
+- 公共组件统一 `Tk*` 前缀（`TkIcon` / `TkNavBar` / `TkSearchBar` / `TkCourseCard` / `TkExpertCard` / `TkSection` / `TkEmpty` / `TkLoading`）
 - 页面文件 `kebab-case.vue`
 - API 方法名采用动宾命名（`fetchCourseList` / `loginByPassword`）
 
@@ -175,6 +175,9 @@ const TIMEOUT = config.timeout;
 - **prod**：当前是占位域名 `https://api.taoke.com`，上线前替换；小程序还需在公众平台配合法域名白名单
 - **环境切换**：HBuilderX 「运行 → 浏览器/小程序模拟器」自动注 `NODE_ENV=development`；「发行」自动注 `NODE_ENV=production`，无需额外脚本
 
+> **重要约束 · 不要在 manifest.json 里写 `h5.devServer.proxy = "/api": ...`**
+> 项目目录里有 `taoke-uniapp/api/` 文件夹（API 模块）。若给 `/api` 配代理，Vite dev server 加载 `@/api/auth.js` 等模块的 URL（`/api/auth.js`）会被代理规则贪婪拦截，丢给后端 → 后端没有 `/auth.js` 接口 → 500，整个 app 启动 JS 模块加载失败、白屏。dev 直连 `http://localhost:8080` 已经走 CORS，不需要任何 proxy。
+
 ### 5.2 拦截规则
 
 - 请求拦截：自动注入 `Authorization: Bearer ${token}`
@@ -223,14 +226,32 @@ const TIMEOUT = config.timeout;
 - [ ] 没有 `document` / `window` / `localStorage`
 - [ ] H5 + 微信开发者工具模拟器双端跑过
 
-## 9. 当前进度（Iteration 1 已完成）
+## 9. 当前进度
 
+### Iteration 1 已完成
 - 基础设施：`uni.scss` / `styles/{tokens,mixins,common}.scss` / `pages.json` 原生 tabBar / `App.vue` + Pinia
 - 配置层：[configs/env.js](configs/env.js)（dev/prod 环境矩阵）+ [configs/index.js](configs/index.js)（跨端组装）
-- 网络与状态：[utils/request.js](utils/request.js)（baseURL/timeout 已接 configs）、[utils/auth.js](utils/auth.js)、[stores/user.js](stores/user.js)
+- 网络与状态：[utils/request.js](utils/request.js)（baseURL/timeout 已接 configs）、[utils/auth.js](utils/auth.js)、[utils/asset.js](utils/asset.js)（CDN 兜底）、[stores/user.js](stores/user.js)
 - API 模块：[api/auth.js](api/auth.js)、[api/user.js](api/user.js)、[api/course.js](api/course.js)、[api/expert.js](api/expert.js)、[api/interaction.js](api/interaction.js)
 - 公共组件：`TkIcon` / `TkNavBar` / `TkSearchBar` / `TkCourseCard` / `TkExpertCard` / `TkEmpty` / `TkLoading`
-- 首页 [pages/home/index.vue](pages/home/index.vue) 完整实现（接口失败自动回退 mock），其余 6 页占位
+- 工程化：[.gitignore](.gitignore) 覆盖 HBuilderX/CLI 双产物
+- 首页 [pages/home/index.vue](pages/home/index.vue) 完整实现（接口失败自动回退 mock）
+
+### Iteration 2 已完成
+- 新增组件：`TkSection`（详情页用的卡片式分组容器）
+- 扩展 API：[api/expert.js](api/expert.js) 增加 `listTrainers` / `listRecommendedTrainers` / `listSameExpertiseTrainers`
+- 扩展 mock：[utils/mock.js](utils/mock.js) 新增 `MOCK_VIDEO_CATEGORIES` / `MOCK_TRAINER_LIST` / `MOCK_TRAINER_DETAIL` / `MOCK_COURSE_DETAIL`
+- **专家列表** [pages/expert/list.vue](pages/expert/list.vue)：搜索 + 5 维筛选条 + NEW 条 + 行式 TkExpertCard 列表 + 下拉刷新 + 上拉加载
+- **专家详情** [pages/expert/detail.vue](pages/expert/detail.vue)：渐变 hero + 信息卡 + 4 项统计 + 标签云 + 7 个内容 section（简介 / 授课特色 / 客户 / 教育 / 工作 / 推荐课程 / 案例）+ 吸底 3 按钮 + 收藏接口
+- **公开课列表** [pages/course/list.vue](pages/course/list.vue)：搜索 + 8 宫格分类（接 `/videos/categories`，失败回落 mock）+ 课程列表（双层兜底：`/courses` → `/opencourses/hot` → mock）+ 上拉加载
+- **课程详情** [pages/course/detail.vue](pages/course/detail.vue)：大图封面 + 标题/日期/地点/价格 + 讲师卡（点击跳转专家详情）+ 介绍 / 大纲 / 适合人群 / 亮点 / 期次列表 + 吸底 3 按钮 + 收藏接口
+
+### Iteration 3 鉴权完成（与 frontend Web 端 UX 对齐）
+- 修复 dev 启动死循环 bug：删除 [manifest.json](manifest.json) 中 `h5.devServer.proxy = "/api"`，避免 Vite 模块 URL `/api/*.js` 被代理误拦截
+- 扩展 [api/auth.js](api/auth.js)：新增 `loginByUsername` / `registerByUsername` / `checkUsernameAvailable` / `getMockCode`；修正 `sendCode` payload 字段为后端最新签名 `{ target, type, sendType }`
+- 扩展 [stores/user.js](stores/user.js)：`loginByUsername` / `registerByUsername`（注册成功直接返 token 自动登录）
+- **登录页** [pages/auth/login.vue](pages/auth/login.vue)：双 Tab（手机号 / 账号）+ 11 位手机号 + 6 位短信码 + 60s 倒计时 + dev mock 验证码弹窗（自动填入 + 复制按钮）+ 协议勾选 + 内联红条错误 + 渐变红主按钮
+- **注册页** [pages/auth/register.vue](pages/auth/register.vue)：用户名 blur 后调 `/auth/username/available` 校验可用性（idle/checking/available/taken/invalid 五态）+ 密码 + 确认密码（实时一致校验）+ 协议勾选 + 自动登录
 
 ## 10. 已知 TODO
 
@@ -239,11 +260,16 @@ const TIMEOUT = config.timeout;
 - [ ] **微信小程序 appid**：[configs/index.js](configs/index.js) 的 `wxAppId` 与 [manifest.json](manifest.json) 的 `mp-weixin.appid` 需同步填写
 - [ ] **真机调试 IP**：小程序模拟器 / App 真机预览时 `localhost` 指设备本身，需把 [configs/env.js](configs/env.js) 中 `development.API_BASE_URL_NATIVE` 改成开发者机器局域网 IP；多人协作时考虑用 `configs/local.js`（gitignore）覆盖
 - [ ] **CLI 切换后改 env 来源**：升级到 `@dcloudio/vite-plugin-uni` 后，新建 `.env.development` / `.env.production`，把 [configs/env.js](configs/env.js) 中 `ENV_MAP` 改为读 `import.meta.env.VITE_*`，业务代码无需改动
-- [ ] **清理 manifest devServer.proxy**：dev 已直连 `http://localhost:8080`，[manifest.json](manifest.json) 中 `h5.devServer.proxy` 配置已闲置，可在确认无依赖后移除
 - [ ] **UnoCSS 接入**：项目升级为 CLI（`@dcloudio/vite-plugin-uni`）后引入 `@uni-helper/unocss-preset-uni`，让 Tailwind 风格类直接可用
 - [ ] **iconfont 扩展**：业务深入后若 `uni-icons` 内置图标不够，从 iconfont.cn 自建项目，扩展 `TkIcon` 的 NAME_MAP
 - [ ] **首页 banner 接口**：等后端 CMS 接口或对照 [frontend](../frontend) 现有调用方式替换 mock
 - [ ] **搜索跨页传参**：当前 `onSearch` 只 switchTab，关键字未传到目标 tab 页，待用 store 或 event-bus 实现
+- [ ] **专家列表筛选实参**：[pages/expert/list.vue](pages/expert/list.vue) 的 5 维筛选条（类别/行业/省份/评分/特色）当前用文字 actionSheet 选择，提交给后端时仍是文字（应是 `expertiseCategoryId` 等数值）；待对接后端字典接口（[CategoryController](../backend) 等）后改为 id 提交
+- [ ] **课程详情报名/咨询**：`onEnroll` / `onConsult` 当前只是 toast，Iteration 4 接订单（`/orders` `/payments` `/cart/items`）+ 客服 IM
+- [ ] **协议页**：登录/注册页的《用户服务协议》《隐私政策》当前只 toast"建设中"，需补 `pages/legal/terms.vue` 与 `pages/legal/privacy.vue`
+- [ ] **忘记密码**：登录页未挂"忘记密码"入口，后端 `/auth/reset-password` 已就绪，待 Iteration 3+ 加流程页
+- [ ] **专家案例详情页**：当前案例条目只 toast，待新增 `pages/expert/case-detail.vue`（参考 [TrainerCaseResponse.files[]](../backend/taoke-user/src/main/java/com/taoke/user/dto/response)，含图片/视频画廊）
+- [ ] **课程视频播放器**：`/videos/{id}` 接口已有，待 Iteration 3 加视频列表 tab + 视频详情页（uni-app `<video>` 组件 + 进度上报）
 
 ## 11. 禁止事项
 

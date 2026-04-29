@@ -18,7 +18,8 @@ const ENV_MAP = {
     API_BASE_URL: 'http://localhost:8080',
     // 小程序模拟器 / App 真机预览时 localhost 指设备本身，需改成开发者机器局域网 IP（如 http://192.168.1.100:8080）
     API_BASE_URL_NATIVE: 'http://localhost:8080',
-    CDN_BASE_URL: 'http://localhost:9000/taoke',
+    // 没有独立 CDN 时留空：toAssetUrl() 会自动 fallback 到 baseURL 由后端兜底
+    CDN_BASE_URL: '',
     MOCK_SMS: true,
     LOG_LEVEL: 'debug',
   },
@@ -26,7 +27,8 @@ const ENV_MAP = {
     // TODO: 上线前替换为真实生产域名
     API_BASE_URL: 'https://api.taoke.com',
     API_BASE_URL_NATIVE: 'https://api.taoke.com',
-    CDN_BASE_URL: 'https://cdn.taoke.com',
+    // 上线如未单独部署 CDN，留空让 toAssetUrl() fallback 到 API 域名
+    CDN_BASE_URL: '',
     MOCK_SMS: false,
     LOG_LEVEL: 'error',
   },

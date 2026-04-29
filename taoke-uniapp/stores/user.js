@@ -43,20 +43,41 @@ export const useUserStore = defineStore('user', {
     },
 
     /**
-     * 密码登录
+     * 账号 + 密码登录（推荐，与 frontend 对齐）
      */
-    async loginByPassword({ account, password }) {
-      const data = await authApi.loginByPassword({ account, password });
+    async loginByUsername({ username, password }) {
+      const data = await authApi.loginByUsername({ username, password });
       this.applyToken(data);
       await this.fetchProfile();
       return data;
     },
 
     /**
-     * 短信验证码登录
+     * 账号 + 密码注册（推荐，与 frontend 对齐）
+     * 成功后接口直接返回 TokenResponse，自动登录
+     */
+    async registerByUsername({ username, password, nickname }) {
+      const data = await authApi.registerByUsername({ username, password, nickname });
+      this.applyToken(data);
+      await this.fetchProfile();
+      return data;
+    },
+
+    /**
+     * 短信验证码登录（手机号未注册时后端自动注册）
      */
     async loginBySms({ phone, code }) {
       const data = await authApi.loginBySms({ phone, code });
+      this.applyToken(data);
+      await this.fetchProfile();
+      return data;
+    },
+
+    /**
+     * @deprecated 旧版"账号+密码"登录（兼容老接口 /auth/login）
+     */
+    async loginByPassword({ account, password }) {
+      const data = await authApi.loginByPassword({ account, password });
       this.applyToken(data);
       await this.fetchProfile();
       return data;
