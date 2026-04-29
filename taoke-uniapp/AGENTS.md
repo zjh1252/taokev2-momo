@@ -35,6 +35,7 @@ taoke-uniapp/
 ├── api/                   # 按域拆分的接口模块（auth.js / user.js / course.js / interaction.js ...）
 ├── components/            # 全局公共组件（Tk* 前缀）
 ├── configs/               # 全局配置（env.js 环境矩阵 / index.js 跨端组装）
+├── constants/             # 业务常量（与后端枚举对齐：role.js / ...）
 ├── pages/
 │   ├── home/              # tab 1
 │   ├── expert/            # tab 2 + 详情

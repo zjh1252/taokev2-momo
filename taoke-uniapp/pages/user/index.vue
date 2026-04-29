@@ -195,6 +195,7 @@ import { onShow } from '@dcloudio/uni-app';
 import { useUserStore } from '@/stores/user';
 import * as notificationApi from '@/api/notification';
 import * as interactionApi from '@/api/interaction';
+import { roleLabels as toRoleLabels } from '@/constants/role';
 
 const sysInfo = uni.getSystemInfoSync();
 const navBarH = (sysInfo.statusBarHeight || 20) + 44;
@@ -202,22 +203,8 @@ const userStore = useUserStore();
 
 const stats = ref({ learning: 0, favorites: 0, messages: 0, unread: 0 });
 
-// 后端业务角色 code → 中文
-const ROLE_LABELS = {
-  STUDENT: '学员',
-  TRAINER: '专家',
-  INSTITUTION: '培训机构',
-  AGENT: '经纪人',
-  AGENCY: '经纪公司',
-  ENTERPRISE: '企业',
-};
-
-const roleLabels = computed(() =>
-  (userStore.roleCodes || [])
-    .map((code) => ROLE_LABELS[code] || code)
-    .filter(Boolean)
-    .slice(0, 4),
-);
+// 后端业务角色 code → 中文（11 种全量映射统一在 @/constants/role）
+const roleLabels = computed(() => toRoleLabels(userStore.roleCodes).slice(0, 4));
 
 const userIdLabel = computed(() => {
   const id = userStore.profile?.id;
