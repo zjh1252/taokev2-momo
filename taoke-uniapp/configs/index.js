@@ -10,7 +10,7 @@
  *   - config.assetBaseURL  : 静态资源域名（utils/asset.js → toAssetUrl 用，业务代码不直接读）
  */
 
-import { ENV, IS_DEV, IS_PROD, ENV_NAME } from './env';
+import { ENV, IS_DEV, IS_TEST, IS_PROD, ENV_NAME } from './env';
 
 let baseURL = '';
 let assetBaseURL = '';
@@ -28,6 +28,7 @@ assetBaseURL = ENV.ASSET_BASE_URL_NATIVE;
 const config = {
   envName: ENV_NAME,
   isDev: IS_DEV,
+  isTest: IS_TEST,
   isProd: IS_PROD,
 
   baseURL,
@@ -42,4 +43,4 @@ const config = {
 };
 
 export default config;
-export { ENV_NAME, IS_DEV, IS_PROD };
+export { ENV_NAME, IS_DEV, IS_TEST, IS_PROD };

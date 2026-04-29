@@ -171,15 +171,33 @@ const baseURL = config.baseURL;
 const TIMEOUT = config.timeout;
 ```
 
-平台分支与环境矩阵全部收敛到 [configs/index.js](configs/index.js) + [configs/env.js](configs/env.js)：
+平台分支与环境矩阵全部收敛到 [configs/index.js](configs/index.js) + [configs/env.js](configs/env.js)，三档环境（dev / test / prod）：
 
-- **dev**：H5 / 小程序 / App 统一直连 `http://localhost:8080`（后端 [CorsFilterConfig](../backend/taoke-app/src/main/java/com/taoke/app/filter/CorsFilterConfig.java) 默认 `allowed-origins=*`）
-- **小程序模拟器 / App 真机预览**：`localhost` 指设备本身，需把 `configs/env.js` 中 `development.API_BASE_URL_NATIVE` 改为开发者机器局域网 IP（如 `http://192.168.1.100:8080`）
-- **prod**：当前是占位域名 `https://api.taoke.com`，上线前替换；小程序还需在公众平台配合法域名白名单
-- **环境切换**：HBuilderX 「运行 → 浏览器/小程序模拟器」自动注 `NODE_ENV=development`；「发行」自动注 `NODE_ENV=production`，无需额外脚本
+| 环境 | API_BASE_URL | ASSET_BASE_URL | 触发方式 |
+|---|---|---|---|
+| development | `http://localhost:8080` | `http://localhost:8080` | HBuilderX「运行 → 浏览器/小程序模拟器」自动注 `NODE_ENV=development` |
+| test | `https://v2.taoke.com/backend-api` | `https://v2.taoke.com` | HBuilderX 没有原生 test 档，靠 `configs/env.js` 顶部的 `APP_ENV_OVERRIDE = 'test'` 手动切（详见 §11.2 打 test apk） |
+| production | `https://api.taoke.com` *(占位)* | `https://cdn.taoke.com` *(占位)* | HBuilderX「发行」自动注 `NODE_ENV=production` |
+
+- **小程序模拟器 / App 真机 dev 预览**：`localhost` 指设备本身，需把 `configs/env.js` 中 `development.API_BASE_URL_NATIVE` 改为开发者机器局域网 IP（如 `http://192.168.1.100:8080`）
+- **小程序合法域名白名单**：test / prod 环境的 API 与资源域名都需在微信公众平台预先添加 request / downloadFile 域名（`https://v2.taoke.com` 等）
+- **prod 占位域名**上线前替换为真实生产域名
 
 > **重要约束 · 不要在 manifest.json 里写 `h5.devServer.proxy = "/api": ...`**
 > 项目目录里有 `taoke-uniapp/api/` 文件夹（API 模块）。若给 `/api` 配代理，Vite dev server 加载 `@/api/auth.js` 等模块的 URL（`/api/auth.js`）会被代理规则贪婪拦截，丢给后端 → 后端没有 `/auth.js` 接口 → 500，整个 app 启动 JS 模块加载失败、白屏。dev 直连 `http://localhost:8080` 已经走 CORS，不需要任何 proxy。
+
+> **重要约束 · 不要在 manifest.json 里写 `h5.devServer.proxy = "/api": ...`**
+> 项目目录里有 `taoke-uniapp/api/` 文件夹（API 模块）。若给 `/api` 配代理，Vite dev server 加载 `@/api/auth.js` 等模块的 URL（`/api/auth.js`）会被代理规则贪婪拦截，丢给后端 → 后端没有 `/auth.js` 接口 → 500，整个 app 启动 JS 模块加载失败、白屏。dev 直连 `http://localhost:8080` 已经走 CORS，不需要任何 proxy。
+
+业务侧拿环境的姿势（不要直接读 `process.env`）：
+
+```js
+import config, { ENV_NAME, IS_DEV, IS_TEST, IS_PROD } from '@/configs';
+config.baseURL        // API
+config.assetBaseURL   // 静态资源
+config.envName        // 'development' | 'test' | 'production'
+config.isDev / isTest / isProd
+```
 
 ### 5.2 拦截规则
 
@@ -261,6 +279,19 @@ import { toAssetUrl } from '@/utils/asset';
 - 启动微信小程序：HBuilderX 运行 → 微信开发者工具
 - 跨域：dev 默认直连 `http://localhost:8080`，依赖后端 `CorsFilterConfig` 的 `allowed-origins=*`；不再依赖 vite proxy（[manifest.json](manifest.json) 中残留的 `h5.devServer.proxy` 配置已闲置，可清理，见 §10 TODO）
 
+## 7.A 打包发布
+
+详细 SOP 见 [打包.md](打包.md)，覆盖：
+- 三档环境矩阵 + `APP_ENV_OVERRIDE` 切换开关
+- 打 test apk / prod apk 完整步骤（HBuilderX 云打包）
+- 打小程序（test/prod）+ 公众平台域名白名单
+- 打 H5（nginx 部署）
+- App 图标 / 启动图配置（HBuilderX 可视化向导）
+- 自有证书生成（keytool）+ 应用市场上架要点
+- 打包前 / 打包后自检清单
+
+> ⚠️ **打 test 包后最容易忘的事**：把 `configs/env.js` 顶部的 `APP_ENV_OVERRIDE` 改回 `''`，否则下次本地 dev 启动也会走 test 域。
+
 ## 8. 提交前自检清单
 
 - [ ] 没有 `material-symbols-outlined` 字符串
@@ -317,7 +348,7 @@ import { toAssetUrl } from '@/utils/asset';
 
 ## 10. 已知 TODO
 
-- [ ] **真实生产域名补全**：[configs/env.js](configs/env.js) 中 `production` 段的 `API_BASE_URL` / `API_BASE_URL_NATIVE` / `ASSET_BASE_URL` / `ASSET_BASE_URL_NATIVE` 当前是占位（`https://api.taoke.com` / `https://cdn.taoke.com`），上线前替换
+- [ ] **真实生产域名补全**：[configs/env.js](configs/env.js) 中 `production` 段的 `API_BASE_URL` / `API_BASE_URL_NATIVE` / `ASSET_BASE_URL` / `ASSET_BASE_URL_NATIVE` 当前是占位（`https://api.taoke.com` / `https://cdn.taoke.com`），上线前替换；test 段已对齐 [frontend/.env.test](../frontend/.env.test) 使用 `https://v2.taoke.com/backend-api` + `https://v2.taoke.com`，无需调整
 - [ ] **微信小程序 appid**：[configs/index.js](configs/index.js) 的 `wxAppId` 与 [manifest.json](manifest.json) 的 `mp-weixin.appid` 需同步填写
 - [ ] **真机调试 IP**：小程序模拟器 / App 真机预览时 `localhost` 指设备本身，需把 [configs/env.js](configs/env.js) 中 `development.API_BASE_URL_NATIVE` 改成开发者机器局域网 IP；多人协作时考虑用 `configs/local.js`（gitignore）覆盖
 - [ ] **CLI 切换后改 env 来源**：升级到 `@dcloudio/vite-plugin-uni` 后，新建 `.env.development` / `.env.production`，把 [configs/env.js](configs/env.js) 中 `ENV_MAP` 改为读 `import.meta.env.VITE_*`，业务代码无需改动

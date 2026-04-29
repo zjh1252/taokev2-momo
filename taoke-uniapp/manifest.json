@@ -1,7 +1,7 @@
 {
     "name" : "taoke-uniapp",
-    "appid" : "",
-    "description" : "淘课网移动端（H5 / 微信小程序 / Android / iOS）",
+    "appid" : "__UNI__F1BEFB2",
+    "description" : "淘课网APP",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,
@@ -42,7 +42,21 @@
             },
             "ios" : {},
             /* ios打包配置 */
-            "sdkConfigs" : {}
+            "sdkConfigs" : {},
+            "icons" : {
+                "android" : {
+                    "hdpi" : "static/tabbar/course-active.png",
+                    "xhdpi" : "static/tabbar/course-active.png",
+                    "xxhdpi" : "static/tabbar/course-active.png",
+                    "xxxhdpi" : "static/tabbar/course-active.png"
+                },
+                "ios" : {
+                    "appstore" : "",
+                    "iphone" : {
+                        "app@2x" : "static/tabbar/course-active.png"
+                    }
+                }
+            }
         }
     },
     /* SDK配置 */
@@ -68,5 +82,7 @@
             "port" : 5173,
             "https" : false
         }
-    }
+    },
+    "locale" : "zh-Hans",
+    "fallbackLocale" : "zh-Hans"
 }

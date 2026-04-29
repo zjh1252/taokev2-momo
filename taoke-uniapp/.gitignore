@@ -1,6 +1,10 @@
 # ===== 构建产物 =====
 # HBuilderX 编译/打包输出（dev/build 全平台产物）
 unpackage/
+# 例外：App 图标 / 启动图是 HBuilderX 通过可视化向导生成的"源资产"，不是构建产物，必须进 git
+!unpackage/res/
+!unpackage/res/icons/
+!unpackage/res/icons/**
 # CLI 模式（二期切 @dcloudio/vite-plugin-uni）的输出
 dist/
 
