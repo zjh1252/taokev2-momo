@@ -751,6 +751,7 @@ public class CourseServiceImpl implements CourseService {
         if (req.getSummary() != null) course.setSummary(req.getSummary());
         if (req.getSyllabus() != null) course.setSyllabus(req.getSyllabus());
         if (req.getMaterialUrl() != null) course.setMaterialUrl(req.getMaterialUrl());
+        if (req.getMaterialText() != null) course.setMaterialText(req.getMaterialText());
         if (req.getAudience() != null) course.setAudience(req.getAudience());
         if (req.getHighlights() != null) course.setHighlights(req.getHighlights());
         if (req.getDurationDays() != null) course.setDurationDays(req.getDurationDays());

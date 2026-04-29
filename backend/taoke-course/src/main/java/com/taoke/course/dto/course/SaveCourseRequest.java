@@ -45,6 +45,9 @@ public class SaveCourseRequest {
     /** 课程资料文件 URL（doc/docx/pdf） */
     private String materialUrl;
 
+    /** 课程资料抽取后的全文（由「AI 解析课程资料」流程产生，前端缓存后随表单回传） */
+    private String materialText;
+
     /** 目标受众（原适用人群） */
     private String audience;
 

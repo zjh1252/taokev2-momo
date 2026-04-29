@@ -67,6 +67,10 @@ public class Course extends BaseEntity {
     @Column(name = "material_url", length = 500)
     private String materialUrl;
 
+    /** 课程资料抽取后的全文，供 AI 解析或后续重跑使用 */
+    @Column(name = "material_text", columnDefinition = "longtext")
+    private String materialText;
+
     /** 适用人群 */
     @Column(name = "audience", columnDefinition = "text")
     private String audience;

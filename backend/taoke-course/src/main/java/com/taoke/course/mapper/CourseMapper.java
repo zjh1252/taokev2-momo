@@ -40,6 +40,7 @@ public class CourseMapper {
         vo.setSummary(course.getSummary());
         vo.setSyllabus(course.getSyllabus());
         vo.setMaterialUrl(course.getMaterialUrl());
+        vo.setMaterialText(course.getMaterialText());
         vo.setAudience(course.getAudience());
         vo.setHighlights(course.getHighlights());
         vo.setDurationDays(course.getDurationDays());

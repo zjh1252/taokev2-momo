@@ -7,6 +7,7 @@ import type {
   CourseListItem,
   CourseDetail,
   SaveCourseRequest,
+  AiParseMaterialResult,
 } from './types';
 
 /**
@@ -127,7 +128,7 @@ export async function uploadImage(
 /**
  * 上传课程资料文件（doc/docx/pdf）— 走通用 /uploads/files 接口。
  *
- * <p>本方法仅完成上传并返回文件可访问 URL，AI 解析逻辑由调用方后续接入。</p>
+ * <p>本方法仅完成上传并返回文件可访问 URL，AI 解析逻辑由 {@link parseCourseMaterial} 提供。</p>
  */
 export async function uploadCourseMaterial(file: File): Promise<string> {
   const formData = new FormData();
@@ -143,4 +144,42 @@ export async function uploadCourseMaterial(file: File): Promise<string> {
   if (!resp.ok) throw new Error('上传失败');
   const json = (await resp.json()) as ApiResponse<{ url: string }>;
   return json.data.url;
+}
+
+/**
+ * AI 解析课程资料：上传 doc/docx/pdf，后端抽取全文并调用 LLM 提取结构化字段。
+ *
+ * <p>错误处理：</p>
+ * <ul>
+ *   <li>HTTP 503（{@code AI_NOT_ENABLED}）→ 抛出包含 {@code AI_NOT_ENABLED} 标记的 Error，
+ *       供调用方区分「能力未启用」和普通失败</li>
+ *   <li>其他非 2xx → 抛出包含后端 message 的 Error</li>
+ * </ul>
+ */
+export async function parseCourseMaterial(file: File): Promise<AiParseMaterialResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+  const resp = await fetch(`${API_BASE_URL}/courses/ai/parse-material`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+  });
+  if (!resp.ok) {
+    let message = '解析失败';
+    try {
+      const errJson = (await resp.json()) as { code?: number; message?: string };
+      if (errJson?.message) message = errJson.message;
+      if (resp.status === 503 || errJson?.code === 90030) {
+        const e = new Error(errJson?.message || 'AI 能力暂未启用');
+        (e as Error & { code?: string }).code = 'AI_NOT_ENABLED';
+        throw e;
+      }
+    } catch (parseErr) {
+      if ((parseErr as Error & { code?: string })?.code === 'AI_NOT_ENABLED') throw parseErr;
+    }
+    throw new Error(message);
+  }
+  const json = (await resp.json()) as ApiResponse<AiParseMaterialResult>;
+  return json.data;
 }

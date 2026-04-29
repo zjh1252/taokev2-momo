@@ -34,6 +34,7 @@ public class CourseDetailVO {
     private String summary;
     private String syllabus;
     private String materialUrl;
+    private String materialText;
     private String audience;
     private String highlights;
 

@@ -58,6 +58,15 @@ taoke:
   cors:
     allowed-origins: '*'
     allow-credentials: false
+  # AI 能力（开发环境默认禁用，将 enabled 改为 true 并填入真实 base-url + api-key 后启用）
+  ai:
+    enabled: false
+    base-url: https://api.openai.com/v1
+    api-key: ''
+    model: gpt-4o-mini
+    temperature: 0.2
+    timeout-ms: 60000
+    max-input-chars: 50000
 
 logging:
   level:

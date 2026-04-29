@@ -6,13 +6,14 @@ import RichTextEditor from '@/components/rich-text-editor';
 import RegionCascader, { type RegionValue } from '@/components/region-cascader';
 import { ImageCropperUploader } from '@/components/image-cropper-uploader';
 import { getCourseCategoryTree } from '@/features/course/api/service';
-import { uploadCourseMaterial } from '@/features/course/api/publisher-service';
+import { parseCourseMaterial } from '@/features/course/api/publisher-service';
 import type {
   CourseType,
   CategoryTreeNode,
   SaveCourseRequest,
   CoursePlanDTO,
   CourseDetail,
+  AiParsedFields,
 } from '@/features/course/api/types';
 import {
   Plus,
@@ -65,6 +66,8 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
   const [highlights, setHighlights] = useState(initialData?.highlights || '');
   // 课程资料上传后保存的 URL（来源于「AI 解析课程资料」按钮）
   const [materialUrl, setMaterialUrl] = useState(initialData?.materialUrl || '');
+  // AI 抽取后的全文，提交时随 SaveCourseRequest 一起回传，供后端持久化
+  const [materialText, setMaterialText] = useState(initialData?.materialText || '');
 
   // ---- 公开课计划控制 ----
   const [hasPlan, setHasPlan] = useState(initialData?.hasPlan || 0);
@@ -195,6 +198,29 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
     }
   };
 
+  /**
+   * 接收「AI 解析课程资料」返回的字段并回填表单。
+   *
+   * <p>策略：仅在 AI 返回非空时覆盖对应字段；用户主动点击 AI 解析意味着接受自动填充。
+   * AI 抽取出的全文同时写入 {@code materialText} state，提交表单时随 SaveCourseRequest 一起回传后端。</p>
+   */
+  const handleAiParsed = (parsed: AiParsedFields, fullText: string) => {
+    setMaterialText(fullText);
+    if (parsed.title) setTitle(parsed.title);
+    if (parsed.durationDays && parsed.durationDays >= 1) setDurationDays(parsed.durationDays);
+    if (parsed.totalHours && parsed.totalHours >= 1) setTotalHours(parsed.totalHours);
+    if (parsed.categoryId) {
+      setCategoryId(parsed.categoryId);
+      setSubCategoryId(0);
+    }
+    if (parsed.keywords && parsed.keywords.length > 0) {
+      setKeywords(parsed.keywords.slice(0, 3).join('，'));
+    }
+    if (parsed.audience) setAudience(parsed.audience);
+    if (parsed.summary) setSummary(parsed.summary);
+    if (parsed.syllabus) setSyllabus(parsed.syllabus);
+  };
+
   // ---- 提交 ----
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,6 +241,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
       summary: summary.trim(),
       syllabus: syllabus || undefined,
       materialUrl: materialUrl || undefined,
+      materialText: materialText || undefined,
       audience: audience.trim() || undefined,
       highlights: highlights.trim() || undefined,
       durationDays,
@@ -237,7 +264,11 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
         <FormSection
           title="基本信息"
           headerRight={
-            <MaterialUploadButton value={materialUrl} onChange={setMaterialUrl} />
+            <MaterialUploadButton
+              value={materialUrl}
+              onChange={setMaterialUrl}
+              onAiParsed={handleAiParsed}
+            />
           }
         >
           <FieldRow label="课程标题" required>
@@ -611,30 +642,51 @@ function FieldRow({ label, required, children }: { label: string; required?: boo
 
 /* ---- 「AI 解析课程资料」上传按钮 ----
  *
- * <p>支持 doc / docx / pdf 文件上传。本期仅完成上传并保存 URL，
- * AI 解析能力待后续接入；上传成功后通过 toast 给出提示。</p>
+ * <p>支持 doc / docx / pdf 文件上传。后端会：</p>
+ * <ol>
+ *   <li>把文件落到对象存储并返回 URL（写入 materialUrl）</li>
+ *   <li>抽取全文（写入 materialText，前端缓存后随表单回传）</li>
+ *   <li>调用 LLM 提取课程标题/时长/分类/关键词/受众/简介/大纲</li>
+ *   <li>用 AI 返回的 categoryName 在 COURSE_CATEGORY 中精确匹配并填 categoryId</li>
+ * </ol>
+ *
+ * <p>解析结果通过 {@code onAiParsed} 回调返回给父组件回填表单。</p>
  */
-function MaterialUploadButton({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+function MaterialUploadButton({
+  value,
+  onChange,
+  onAiParsed,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+  onAiParsed: (parsed: AiParsedFields, fullText: string) => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [parsing, setParsing] = useState(false);
 
   const accept = '.doc,.docx,.pdf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
   const handleFile = async (file: File) => {
-    setUploading(true);
+    setParsing(true);
     try {
-      const url = await uploadCourseMaterial(file);
-      onChange(url);
-      toast.success('上传成功，AI 解析能力待接入');
-    } catch {
-      toast.error('上传失败，请稍后重试');
+      const result = await parseCourseMaterial(file);
+      onChange(result.materialUrl);
+      onAiParsed(result.parsed, result.materialText);
+      toast.success('AI 解析完成，请检查并补充表单');
+    } catch (err) {
+      const e = err as Error & { code?: string };
+      if (e?.code === 'AI_NOT_ENABLED') {
+        toast.error(e.message || 'AI 能力暂未启用，请联系管理员配置');
+      } else {
+        toast.error(e?.message ? `解析失败：${e.message}` : '解析失败，请稍后重试');
+      }
     } finally {
-      setUploading(false);
+      setParsing(false);
       if (inputRef.current) inputRef.current.value = '';
     }
   };
 
-  // 已上传：展示文件名 + 重新上传 / 移除
+  // 已上传：展示文件名 + 重新解析 / 移除
   if (value) {
     const fileName = decodeURIComponent(value.split('/').pop() || '课程资料');
     return (
@@ -651,15 +703,15 @@ function MaterialUploadButton({ value, onChange }: { value: string; onChange: (u
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          disabled={uploading}
+          disabled={parsing}
           className="text-xs text-primary hover:underline disabled:opacity-50"
         >
-          {uploading ? '上传中…' : '重新上传'}
+          {parsing ? 'AI 解析中…' : '重新解析'}
         </button>
         <button
           type="button"
           onClick={() => onChange('')}
-          disabled={uploading}
+          disabled={parsing}
           className="text-gray-400 hover:text-red-500 disabled:opacity-50"
           aria-label="移除已上传的课程资料"
         >
@@ -681,13 +733,13 @@ function MaterialUploadButton({ value, onChange }: { value: string; onChange: (u
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        disabled={uploading}
+        disabled={parsing}
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-primary/30 text-primary hover:bg-primary/5 text-xs font-medium transition-colors disabled:opacity-50"
       >
-        {uploading ? (
+        {parsing ? (
           <>
             <Loader2 className="size-3.5 animate-spin" />
-            <span>上传中…</span>
+            <span>AI 解析中…</span>
           </>
         ) : (
           <>

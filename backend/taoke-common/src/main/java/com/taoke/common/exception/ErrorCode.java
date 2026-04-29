@@ -126,6 +126,11 @@ public enum ErrorCode {
     /* ==================== 内容审查 ==================== */
     CONTENT_CHECK_FAILED(422, 100422, "内容审查未通过"),
 
+    /* ==================== AI 能力 900xx ==================== */
+    AI_NOT_ENABLED(503, 90030, "AI 解析能力未启用，请联系管理员配置"),
+    AI_CALL_FAILED(503, 90031, "AI 服务调用失败，请稍后重试"),
+    AI_PARSE_FAILED(500, 90032, "AI 返回内容解析失败"),
+
     INTERNAL_ERROR(500, 99999, "系统繁忙，请稍后再试");
 
     /** HTTP 状态码（控制 ResponseEntity 的 status） */

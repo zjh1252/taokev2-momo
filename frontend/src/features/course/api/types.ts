@@ -106,6 +106,8 @@ export interface SaveCourseRequest {
   syllabus?: string;
   /** 课程资料文件 URL（doc/docx/pdf） */
   materialUrl?: string;
+  /** 课程资料抽取后的全文（由 AI 解析流程产生，提交时回传供后端持久化） */
+  materialText?: string;
   audience?: string;
   highlights?: string;
   durationDays?: number;
@@ -152,6 +154,8 @@ export interface CourseDetail {
   summary: string;
   syllabus: string;
   materialUrl: string;
+  /** 课程资料抽取后的全文（由 AI 解析流程产生） */
+  materialText: string;
   audience: string;
   highlights: string;
   durationDays: number;
@@ -175,4 +179,30 @@ export interface CourseDetail {
   createdAt: string;
   updatedAt: string;
   plans: CoursePlan[];
+}
+
+/** AI 解析返回的可回填字段集合（对应后端 AiParseMaterialResultVO.ParsedFields） */
+export interface AiParsedFields {
+  title?: string;
+  durationDays?: number;
+  totalHours?: number;
+  /** 一级分类 ID（后端 categoryName 匹配 COURSE_CATEGORY 后填充；匹配不上为 undefined） */
+  categoryId?: number;
+  /** AI 原始返回的分类名（调试 / 展示用） */
+  categoryName?: string;
+  /** 关键词，最多 3 个 */
+  keywords?: string[];
+  audience?: string;
+  summary?: string;
+  syllabus?: string;
+}
+
+/** AI 解析课程资料接口的响应（对应后端 AiParseMaterialResultVO） */
+export interface AiParseMaterialResult {
+  /** 上传后文件 URL */
+  materialUrl: string;
+  /** 抽取后的全文（前端缓存，提交表单时回传） */
+  materialText: string;
+  /** AI 提取的结构化字段 */
+  parsed: AiParsedFields;
 }
