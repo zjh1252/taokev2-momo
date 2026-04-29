@@ -8,7 +8,7 @@
     - 大图封面
     - 标题 + 日期/地点 元数据
     - 价格行
-    - 讲师卡（头像 + 姓名 + 查看讲师）
+    - 专家卡（头像 + 姓名 + 查看专家）
     - 课程介绍（intro）
     - 课程大纲（syllabus，按行渲染）
     - 适合人群（audience）
@@ -77,7 +77,7 @@
           </view>
         </view>
 
-        <!-- 讲师卡 -->
+        <!-- 专家卡 -->
         <view v-if="course.trainerName" class="trainer-card" @tap="goTrainer">
           <view class="trainer-card__left">
             <image v-if="course.trainerAvatar" class="trainer-card__avatar" :src="course.trainerAvatar" mode="aspectFill" />
@@ -90,7 +90,7 @@
             </view>
           </view>
           <view class="trainer-card__more">
-            <text class="trainer-card__more-txt">查看讲师</text>
+            <text class="trainer-card__more-txt">查看专家</text>
             <TkIcon name="chevron-right" :size="22" color="#E62117" />
           </view>
         </view>
@@ -232,7 +232,7 @@ async function onRefresh() {
 function goTrainer() {
   const tid = course.value.trainerId || course.value.publisherId;
   if (!tid) {
-    uni.showToast({ title: '讲师信息暂不可用', icon: 'none' });
+    uni.showToast({ title: '专家信息暂不可用', icon: 'none' });
     return;
   }
   uni.navigateTo({ url: `/pages/expert/detail?id=${tid}` });
@@ -398,7 +398,7 @@ onLoad((opt) => {
   }
 }
 
-// 讲师卡
+// 专家卡
 .trainer-card {
   display: flex;
   align-items: center;

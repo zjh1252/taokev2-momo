@@ -1,6 +1,6 @@
 <!--
   我的收藏（GET /interaction/favorites）
-  - 4 Tab：课程 / 讲师 / 机构 / 案例（targetType: COURSE / TRAINER / INSTITUTION / CASE）
+  - 4 Tab：课程 / 专家 / 机构 / 案例（targetType: COURSE / TRAINER / INSTITUTION / CASE）
   - 分页 0-based，size 20，上拉加载更多
   - 取消收藏：长按或点 X 按钮 → 二次确认 → DELETE /interaction/favorites
   - 卡片点击跳对应详情
@@ -88,7 +88,7 @@ const navBarH = (sysInfo.statusBarHeight || 20) + 44;
 
 const TABS = [
   { key: 'COURSE',      label: '课程' },
-  { key: 'TRAINER',     label: '讲师' },
+  { key: 'TRAINER',     label: '专家' },
   { key: 'INSTITUTION', label: '机构' },
   { key: 'CASE',        label: '案例' },
 ];

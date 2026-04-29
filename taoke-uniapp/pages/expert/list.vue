@@ -5,7 +5,7 @@
     - 自定义顶栏（左 search / 中标题 / 右 notification）
     - 搜索栏（不带分类）
     - 横向筛选条：类别 / 行业 / 省份 / 评分 / 特色
-    - NEW 条：最新讲师入驻（单行省略）
+    - NEW 条：最新专家入驻（单行省略）
     - 专家列表：TkExpertCard variant="row"，纵向
     - 下拉刷新 + 上拉加载更多
 -->
@@ -30,7 +30,7 @@
         <TkSearchBar
           v-model="kw"
           :categories="[]"
-          placeholder="请输入讲师名字"
+          placeholder="请输入专家名字"
           @search="onSearch"
         />
 
@@ -91,10 +91,10 @@ const filters = reactive([
   { key: 'industryCategoryId',  label: '行业', value: '', options: ['互联网', '金融', '制造业', '零售'] },
   { key: 'provinceId',          label: '省份', value: '', options: ['北京', '上海', '广州', '深圳', '杭州'] },
   { key: 'sort',                label: '评分', value: '', options: ['评分最高', '评论最多', '最新入驻'] },
-  { key: 'isTrusted',           label: '特色', value: '', options: ['信得过', '签约讲师', '版权课程'] },
+  { key: 'isTrusted',           label: '特色', value: '', options: ['信得过', '签约专家', '版权课程'] },
 ]);
 
-const newcomerTip = ref('最新讲师入驻：张伟杰教授 - 数字化转型实战专家，开启企业数字化新篇章...');
+const newcomerTip = ref('最新专家入驻：张伟杰教授 - 数字化转型实战专家，开启企业数字化新篇章...');
 
 const list = ref([]);
 const loading = ref(false);

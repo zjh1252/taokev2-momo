@@ -1,13 +1,13 @@
 <!--
   TkSearchBar —— 胶囊搜索框
-  - 左侧分类下拉（"讲师"/"公开课" 等）
+  - 左侧分类下拉（"专家"/"公开课" 等）
   - 中间输入框
   - 右侧圆形搜索按钮
 
   用法：
     <TkSearchBar
       v-model="kw"
-      :categories="['讲师','公开课']"
+      :categories="['专家','公开课']"
       v-model:category="cat"
       placeholder="搜索感兴趣的内容"
       @search="onSearch"

@@ -246,7 +246,7 @@ const TIMEOUT = config.timeout;
 - **专家列表** [pages/expert/list.vue](pages/expert/list.vue)：搜索 + 5 维筛选条 + NEW 条 + 行式 TkExpertCard 列表 + 下拉刷新 + 上拉加载
 - **专家详情** [pages/expert/detail.vue](pages/expert/detail.vue)：渐变 hero + 信息卡 + 4 项统计 + 标签云 + 7 个内容 section（简介 / 授课特色 / 客户 / 教育 / 工作 / 推荐课程 / 案例）+ 吸底 3 按钮 + 收藏接口
 - **公开课列表** [pages/course/list.vue](pages/course/list.vue)：搜索 + 8 宫格分类（接 `/videos/categories`，失败回落 mock）+ 课程列表（双层兜底：`/courses` → `/opencourses/hot` → mock）+ 上拉加载
-- **课程详情** [pages/course/detail.vue](pages/course/detail.vue)：大图封面 + 标题/日期/地点/价格 + 讲师卡（点击跳转专家详情）+ 介绍 / 大纲 / 适合人群 / 亮点 / 期次列表 + 吸底 3 按钮 + 收藏接口
+- **课程详情** [pages/course/detail.vue](pages/course/detail.vue)：大图封面 + 标题/日期/地点/价格 + 专家卡（点击跳转专家详情）+ 介绍 / 大纲 / 适合人群 / 亮点 / 期次列表 + 吸底 3 按钮 + 收藏接口
 
 ### Iteration 3 鉴权完成（与 frontend Web 端 UX 对齐）
 - 修复 dev 启动死循环 bug：删除 [manifest.json](manifest.json) 中 `h5.devServer.proxy = "/api"`，避免 Vite 模块 URL `/api/*.js` 被代理误拦截
@@ -267,13 +267,13 @@ const TIMEOUT = config.timeout;
 - **我的首页** [pages/user/index.vue](pages/user/index.vue)：渐变红 hero（头像 + 昵称 + 角色徽标）+ 数据卡（在学/收藏/消息）+ 两组菜单 + 退出（带二次 modal 确认）；onShow 拉未读数和收藏 total
 - **基础信息** [pages/user/profile.vue](pages/user/profile.vue)：头像选择上传（uni.chooseImage → /uploads/avatars，与保存解耦，frontend 一致）+ 昵称 + 真实姓名 + 性别（男/女/保密）+ 学习标签 + 只读手机号；保存按钮在 dirty 时启用
 - **修改密码** [pages/user/password.vue](pages/user/password.vue)：旧/新/确认三段密码（旧密码可空兼容手机号一键注册），三个独立 show/hide 切换；前端 6-32 位长度校验
-- **我的收藏** [pages/favorite/list.vue](pages/favorite/list.vue)：4 Tab（COURSE / TRAINER / INSTITUTION / CASE，与 frontend 一致）；分页 0-based size 20；点击跳详情、长按或 X 按钮取消收藏（带 modal 二次确认）；讲师卡片用圆形封面
+- **我的收藏** [pages/favorite/list.vue](pages/favorite/list.vue)：4 Tab（COURSE / TRAINER / INSTITUTION / CASE，与 frontend 一致）；分页 0-based size 20；点击跳详情、长按或 X 按钮取消收藏（带 modal 二次确认）；专家卡片用圆形封面
 - **消息中心** [pages/message/list.vue](pages/message/list.vue)：列表分页 1-based size 20；未读条目左侧红条 + 右下红点；点击未读自动 markRead；type 智能映射图标颜色（订单/课程/收藏/绑定/系统）；底部抽屉详情 + 关联链接跳转；顶栏右侧"全部已读"
 - 路由注册：[pages.json](pages.json) 增加 `pages/user/profile`、`pages/user/password`、`pages/favorite/list`、`pages/message/list` 4 条
+- **tabBar 图标对齐设计稿**：用 PowerShell + WPF + Material Icons 24×24 SVG path 直接渲染 96×96 透明底 PNG（`home` / `badge` / `school` / `person`，灰 `#888888` / 红 `#E62117` 双色 8 张），覆盖 `static/tabbar/*.png`；自动化脚本固化为 [static/tabbar/generate-tabbar-icons.ps1](static/tabbar/generate-tabbar-icons.ps1)，下次换图标可重跑；同时清理 `static/c1.png ~ c9.png` 9 个数字占位图
 
 ## 10. 已知 TODO
 
-- [ ] **tabBar 图标**：当前用 `static/c1.png ~ c8.png` 作占位（设计上不匹配），需替换为 4 组（默认/激活）红灰单色 PNG，尺寸 81×81 @3x，放 `static/tabbar/`
 - [ ] **真实生产域名补全**：[configs/env.js](configs/env.js) 中 `production` 段的 `API_BASE_URL` / `API_BASE_URL_NATIVE` / `CDN_BASE_URL` 当前是占位（`https://api.taoke.com` / `https://cdn.taoke.com`），上线前替换
 - [ ] **微信小程序 appid**：[configs/index.js](configs/index.js) 的 `wxAppId` 与 [manifest.json](manifest.json) 的 `mp-weixin.appid` 需同步填写
 - [ ] **真机调试 IP**：小程序模拟器 / App 真机预览时 `localhost` 指设备本身，需把 [configs/env.js](configs/env.js) 中 `development.API_BASE_URL_NATIVE` 改成开发者机器局域网 IP；多人协作时考虑用 `configs/local.js`（gitignore）覆盖

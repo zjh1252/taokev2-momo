@@ -9,7 +9,7 @@ export const listCourses = (query) => http.get('/courses', query);
 /** 课程详情 */
 export const getCourseDetail = (id) => http.get(`/courses/${id}`);
 
-/** 推荐课程（按讲师） */
+/** 推荐课程（按专家） */
 export const getRecommendedByTrainer = (trainerId) =>
   http.get(`/trainers/${trainerId}/recommended-courses`);
 

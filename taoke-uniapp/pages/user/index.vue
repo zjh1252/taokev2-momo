@@ -205,7 +205,7 @@ const stats = ref({ learning: 0, favorites: 0, messages: 0, unread: 0 });
 // 后端业务角色 code → 中文
 const ROLE_LABELS = {
   STUDENT: '学员',
-  TRAINER: '专家讲师',
+  TRAINER: '专家',
   INSTITUTION: '培训机构',
   AGENT: '经纪人',
   AGENCY: '经纪公司',

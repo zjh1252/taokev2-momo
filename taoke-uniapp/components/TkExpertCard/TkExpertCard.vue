@@ -19,13 +19,13 @@
       <image class="tk-expert__avatar" :src="avatarUrl" mode="aspectFill" />
       <view v-if="variant === 'row'" class="tk-expert__head-info">
         <text class="tk-expert__name">{{ expert.nickname || expert.name }}</text>
-        <text class="tk-expert__title">{{ expert.title || '资深讲师' }}</text>
+        <text class="tk-expert__title">{{ expert.title || '资深专家' }}</text>
       </view>
     </view>
 
     <template v-if="variant === 'grid'">
       <text class="tk-expert__name">{{ expert.nickname || expert.name }}</text>
-      <text class="tk-expert__title">{{ expert.title || '资深讲师' }}</text>
+      <text class="tk-expert__title">{{ expert.title || '资深专家' }}</text>
       <view class="tk-expert__rating">
         <TkIcon
           v-for="i in 5"

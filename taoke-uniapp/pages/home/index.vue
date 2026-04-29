@@ -4,7 +4,7 @@
 
   区块：
   - 自定义顶栏（菜单 / 标题 / 更多）
-  - 搜索栏（讲师/公开课分类切换）
+  - 搜索栏（专家/公开课分类切换）
   - Banner（渐变卡 + 双按钮）
   - 最新案例 横向跑马灯（简化为单行省略）
   - 推荐专家（横向滚动卡片）
@@ -24,7 +24,7 @@
         <TkSearchBar
           v-model="kw"
           v-model:category="cat"
-          :categories="['讲师', '公开课']"
+          :categories="['专家', '公开课']"
           @search="onSearch"
         />
 
@@ -109,7 +109,7 @@ const sysInfo = uni.getSystemInfoSync();
 const navBarHeight = (sysInfo.statusBarHeight || 20) + 44;
 
 const kw = ref('');
-const cat = ref('讲师');
+const cat = ref('专家');
 
 const banner = ref(MOCK_BANNER);
 const latestCase = ref(MOCK_LATEST_CASE);
@@ -160,7 +160,7 @@ function normalizeCourse(v) {
 
 function onSearch(v) {
   uni.switchTab({
-    url: cat.value === '专家' || cat.value === '讲师'
+    url: cat.value === '专家'
       ? '/pages/expert/list'
       : '/pages/course/list',
   });

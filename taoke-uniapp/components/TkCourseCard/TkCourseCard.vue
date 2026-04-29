@@ -1,6 +1,6 @@
 <!--
   TkCourseCard —— 课程列表项卡
-  - 横向布局：左缩略图 + 右标题/日期/地点/讲师/价格
+  - 横向布局：左缩略图 + 右标题/日期/地点/专家/价格
   - 用于：首页推荐课程、公开课列表
 
   数据契约（兼容 CourseListItemVO）：
@@ -30,7 +30,7 @@
         </view>
       </view>
       <view class="tk-course-card__bottom">
-        <text class="tk-course-card__trainer" v-if="course.trainerName">讲师：{{ course.trainerName }}</text>
+        <text class="tk-course-card__trainer" v-if="course.trainerName">专家：{{ course.trainerName }}</text>
         <text class="tk-course-card__price">¥ {{ formatPrice(course.price) }}</text>
       </view>
     </view>

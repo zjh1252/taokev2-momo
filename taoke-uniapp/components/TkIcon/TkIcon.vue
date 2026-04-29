@@ -48,7 +48,7 @@ const NAME_MAP = {
   'chevron-right': 'right',
   // tab 区
   home:    'home',
-  expert:  'staff',         // 专家（员工/讲师）
+  expert:  'staff',         // 专家
   course:  'medal',         // 公开课
   person:  'person',
   user:    'person',
