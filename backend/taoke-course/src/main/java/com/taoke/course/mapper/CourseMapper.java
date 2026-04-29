@@ -37,11 +37,13 @@ public class CourseMapper {
         vo.setSubCategoryId(course.getSubCategoryId());
         vo.setCoverUrl(course.getCoverUrl());
         vo.setIntro(course.getIntro());
+        vo.setSummary(course.getSummary());
         vo.setSyllabus(course.getSyllabus());
+        vo.setMaterialUrl(course.getMaterialUrl());
         vo.setAudience(course.getAudience());
         vo.setHighlights(course.getHighlights());
         vo.setDurationDays(course.getDurationDays());
-        vo.setHoursPerDay(course.getHoursPerDay());
+        vo.setTotalHours(course.getTotalHours());
         vo.setPrice(course.getPrice());
         vo.setOriginalPrice(course.getOriginalPrice());
         vo.setKeywords(course.getKeywords());
@@ -73,7 +75,7 @@ public class CourseMapper {
         vo.setCoverUrl(course.getCoverUrl());
         vo.setCategoryId(course.getCategoryId());
         vo.setDurationDays(course.getDurationDays());
-        vo.setHoursPerDay(course.getHoursPerDay());
+        vo.setTotalHours(course.getTotalHours());
         vo.setPrice(course.getPrice());
         vo.setOriginalPrice(course.getOriginalPrice());
         vo.setIsFeatured(course.getIsFeatured());

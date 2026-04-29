@@ -346,7 +346,7 @@ function CoursesView({ courses }: { courses: CourseListItem[] }) {
                   <p className="text-sm text-slate-500 mb-2">
                     {course.categoryName ? `分类：${course.categoryName}` : ''}
                     {course.durationDays ? ` ｜ 课时：${course.durationDays} 天` : ''}
-                    {course.hoursPerDay ? ` × ${course.hoursPerDay} 小时/天` : ''}
+                    {course.totalHours ? ` 共 ${course.totalHours} 小时` : ''}
                   </p>
                   {course.keywords && (
                     <p className="text-[13px] text-slate-500 line-clamp-2">{course.keywords}</p>

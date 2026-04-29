@@ -55,9 +55,17 @@ public class Course extends BaseEntity {
     @Column(name = "intro", columnDefinition = "longtext")
     private String intro;
 
+    /** 课程简介（短文本） */
+    @Column(name = "summary", length = 500)
+    private String summary;
+
     /** 课程大纲（富文本 HTML） */
     @Column(name = "syllabus", columnDefinition = "longtext")
     private String syllabus;
+
+    /** 课程资料文件 URL（doc/docx/pdf） */
+    @Column(name = "material_url", length = 500)
+    private String materialUrl;
 
     /** 适用人群 */
     @Column(name = "audience", columnDefinition = "text")
@@ -71,9 +79,9 @@ public class Course extends BaseEntity {
     @Column(name = "duration_days")
     private Integer durationDays = 0;
 
-    /** 每天课时（小时/天） */
-    @Column(name = "hours_per_day", precision = 4, scale = 1)
-    private BigDecimal hoursPerDay = BigDecimal.ZERO;
+    /** 课程总时长（小时） */
+    @Column(name = "total_hours", precision = 5, scale = 1)
+    private BigDecimal totalHours = BigDecimal.ZERO;
 
     /** 课程价格 */
     @Column(name = "price", precision = 10, scale = 2)

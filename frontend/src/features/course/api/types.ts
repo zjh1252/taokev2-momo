@@ -70,7 +70,7 @@ export interface CourseListItem {
   categoryId: number;
   categoryName: string;
   durationDays: number;
-  hoursPerDay: number;
+  totalHours: number;
   price: number;
   originalPrice: number;
   isFeatured: number;
@@ -101,11 +101,16 @@ export interface SaveCourseRequest {
   subCategoryId?: number;
   coverUrl?: string;
   intro: string;
+  /** 课程简介（短文本，必填） */
+  summary?: string;
   syllabus?: string;
+  /** 课程资料文件 URL（doc/docx/pdf） */
+  materialUrl?: string;
   audience?: string;
   highlights?: string;
   durationDays?: number;
-  hoursPerDay?: number;
+  /** 课程总时长（小时） */
+  totalHours?: number;
   price?: number;
   originalPrice?: number;
   keywords?: string;
@@ -144,11 +149,13 @@ export interface CourseDetail {
   subCategoryName: string;
   coverUrl: string;
   intro: string;
+  summary: string;
   syllabus: string;
+  materialUrl: string;
   audience: string;
   highlights: string;
   durationDays: number;
-  hoursPerDay: number;
+  totalHours: number;
   price: number;
   originalPrice: number;
   keywords: string;

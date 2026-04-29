@@ -31,12 +31,14 @@ public class CourseDetailVO {
 
     private String coverUrl;
     private String intro;
+    private String summary;
     private String syllabus;
+    private String materialUrl;
     private String audience;
     private String highlights;
 
     private Integer durationDays;
-    private BigDecimal hoursPerDay;
+    private BigDecimal totalHours;
     private BigDecimal price;
     private BigDecimal originalPrice;
     private String keywords;

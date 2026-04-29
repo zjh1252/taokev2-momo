@@ -35,20 +35,27 @@ public class SaveCourseRequest {
     @NotBlank(message = "课程介绍不能为空")
     private String intro;
 
+    /** 课程简介（短文本） */
+    @NotBlank(message = "课程简介不能为空")
+    private String summary;
+
     /** 课程大纲（富文本 HTML） */
     private String syllabus;
 
-    /** 适用人群 */
+    /** 课程资料文件 URL（doc/docx/pdf） */
+    private String materialUrl;
+
+    /** 目标受众（原适用人群） */
     private String audience;
 
-    /** 课程亮点/收益 */
+    /** 课程收益（原课程亮点） */
     private String highlights;
 
     /** 课程天数 */
     private Integer durationDays;
 
-    /** 每天课时（小时/天） */
-    private BigDecimal hoursPerDay;
+    /** 课程总时长（小时） */
+    private BigDecimal totalHours;
 
     /** 课程价格 */
     private BigDecimal price;

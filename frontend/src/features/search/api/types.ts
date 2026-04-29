@@ -54,7 +54,7 @@ export interface SearchResultItem {
   highlights?: string;
   keywords?: string;
   durationDays?: number;
-  hoursPerDay?: number;
+  totalHours?: number;
   price?: number;
   originalPrice?: number;
   isFeatured?: number;

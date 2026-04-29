@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import RichTextEditor from '@/components/rich-text-editor';
 import RegionCascader, { type RegionValue } from '@/components/region-cascader';
 import { ImageCropperUploader } from '@/components/image-cropper-uploader';
 import { getCourseCategoryTree } from '@/features/course/api/service';
+import { uploadCourseMaterial } from '@/features/course/api/publisher-service';
 import type {
   CourseType,
   CategoryTreeNode,
@@ -20,6 +21,11 @@ import {
   MapPin,
   Monitor,
   CalendarDays,
+  Sparkles,
+  Upload,
+  FileText,
+  Loader2,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -48,13 +54,17 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
   const [subCategoryId, setSubCategoryId] = useState<number>(initialData?.subCategoryId || 0);
   const [coverUrl, setCoverUrl] = useState(initialData?.coverUrl || '');
   const [durationDays, setDurationDays] = useState(initialData?.durationDays || 1);
-  const [hoursPerDay, setHoursPerDay] = useState(initialData?.hoursPerDay || 6);
+  // 课程总时长（小时），与课程天数为两个独立字段
+  const [totalHours, setTotalHours] = useState<number>(initialData?.totalHours || 6);
   const [price, setPrice] = useState(initialData?.price || 0);
   const [originalPrice, setOriginalPrice] = useState(initialData?.originalPrice || 0);
   const [isFree, setIsFree] = useState(initialData?.isFree || 0);
+  const [isFeatured, setIsFeatured] = useState<number>(initialData?.isFeatured || 0);
   const [keywords, setKeywords] = useState(initialData?.keywords || '');
   const [audience, setAudience] = useState(initialData?.audience || '');
   const [highlights, setHighlights] = useState(initialData?.highlights || '');
+  // 课程资料上传后保存的 URL（来源于「AI 解析课程资料」按钮）
+  const [materialUrl, setMaterialUrl] = useState(initialData?.materialUrl || '');
 
   // ---- 公开课计划控制 ----
   const [hasPlan, setHasPlan] = useState(initialData?.hasPlan || 0);
@@ -70,6 +80,8 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
   // ---- 富文本 ----
   const [intro, setIntro] = useState(initialData?.intro || '');
   const [syllabus, setSyllabus] = useState(initialData?.syllabus || '');
+  // ---- 课程简介（与课程介绍同级独立区块） ----
+  const [summary, setSummary] = useState(initialData?.summary || '');
 
   // ---- 已确认的开课计划 ----
   const [plans, setPlans] = useState<CoursePlanDTO[]>(
@@ -186,8 +198,11 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
   // ---- 提交 ----
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) { alert('请填写课程标题'); return; }
-    if (!intro || intro === '<p><br></p>') { alert('请填写课程介绍'); return; }
+    if (!title.trim()) { toast.error('请填写课程标题'); return; }
+    if (!durationDays || durationDays < 1) { toast.error('课程天数至少 1 天'); return; }
+    if (!totalHours || totalHours < 1) { toast.error('课程总时长至少 1 小时'); return; }
+    if (!summary.trim()) { toast.error('请填写课程简介'); return; }
+    if (!intro || intro === '<p><br></p>') { toast.error('请填写课程介绍'); return; }
 
     const effectiveType: CourseType = hasPlan ? planType : 'INTERNAL';
     const data: SaveCourseRequest = {
@@ -197,14 +212,17 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
       subCategoryId: subCategoryId || undefined,
       coverUrl: coverUrl || undefined,
       intro,
+      summary: summary.trim(),
       syllabus: syllabus || undefined,
+      materialUrl: materialUrl || undefined,
       audience: audience.trim() || undefined,
       highlights: highlights.trim() || undefined,
-      durationDays: durationDays || undefined,
-      hoursPerDay: hoursPerDay || undefined,
+      durationDays,
+      totalHours,
       price: isFree ? 0 : price || undefined,
       originalPrice: isFree ? 0 : originalPrice || undefined,
       isFree,
+      isFeatured,
       hasPlan,
       keywords: keywords.trim() || undefined,
       plans: hasPlan ? plans : undefined,
@@ -216,7 +234,12 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
     <>
       <form onSubmit={handleFormSubmit} className="space-y-8">
         {/* ===== 区块1：基本信息 ===== */}
-        <FormSection title="基本信息">
+        <FormSection
+          title="基本信息"
+          headerRight={
+            <MaterialUploadButton value={materialUrl} onChange={setMaterialUrl} />
+          }
+        >
           <FieldRow label="课程标题" required>
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="输入课程标题，建议 10-40 个字" maxLength={80} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
           </FieldRow>
@@ -252,12 +275,25 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
             />
           </FieldRow>
 
-          <FieldRow label="课程时长">
-            <div className="flex items-center gap-3">
-              <input type="number" min={1} value={durationDays} onChange={(e) => setDurationDays(Number(e.target.value))} className="w-20 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
-              <span className="text-sm text-gray-500">天</span>
-              <input type="number" min={0} step={0.5} value={hoursPerDay} onChange={(e) => setHoursPerDay(Number(e.target.value))} className="w-20 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
-              <span className="text-sm text-gray-500">小时/天</span>
+          <FieldRow label="课程时长" required>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                value={durationDays}
+                onChange={(e) => setDurationDays(Math.max(1, Number(e.target.value) || 1))}
+                className="w-20 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+              <span className="text-sm text-gray-500">天 等于</span>
+              <input
+                type="number"
+                min={1}
+                step={0.5}
+                value={totalHours}
+                onChange={(e) => setTotalHours(Math.max(1, Number(e.target.value) || 1))}
+                className="w-20 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+              <span className="text-sm text-gray-500">小时</span>
             </div>
           </FieldRow>
 
@@ -324,25 +360,47 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
             </div>
           </FieldRow>
 
+          <FieldRow label="是否主打课程">
+            <input
+              type="checkbox"
+              checked={isFeatured === 1}
+              onChange={(e) => setIsFeatured(e.target.checked ? 1 : 0)}
+              className="rounded border-slate-300 text-primary focus:ring-primary cursor-pointer"
+            />
+          </FieldRow>
+
           <FieldRow label="关键词">
             <input type="text" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="多个关键词用逗号分隔" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
           </FieldRow>
 
-          <FieldRow label="适用人群">
+          <FieldRow label="目标受众">
             <textarea value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="描述本课程适用的目标人群" rows={2} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" />
           </FieldRow>
 
-          <FieldRow label="课程亮点">
+          <FieldRow label="课程收益">
             <textarea value={highlights} onChange={(e) => setHighlights(e.target.value)} placeholder="描述课程核心亮点和收益" rows={2} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" />
           </FieldRow>
         </FormSection>
 
-        {/* ===== 区块2：课程介绍 ===== */}
+        {/* ===== 区块2：课程简介（短文本） ===== */}
+        <FormSection title="课程简介" required>
+          <textarea
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            placeholder="一段话简明介绍课程，建议 50-200 字"
+            rows={3}
+            maxLength={500}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+          />
+          <div className="text-xs text-gray-400 text-right mt-1">{summary.length} / 500</div>
+        </FormSection>
+
+        {/* ===== 区块3：课程介绍（富文本详细） ===== */}
         <FormSection title="课程介绍" required>
           <RichTextEditor value={intro} onChange={setIntro} placeholder="输入课程详细介绍..." />
         </FormSection>
 
-        {/* ===== 区块3：课程大纲 ===== */}
+        {/* ===== 区块4：课程大纲 ===== */}
         <FormSection title="课程大纲">
           <RichTextEditor value={syllabus} onChange={setSyllabus} placeholder="输入课程大纲..." minHeight={200} />
         </FormSection>
@@ -510,14 +568,26 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
 }
 
 /* ---- 表单区块容器 ---- */
-function FormSection({ title, required, children }: { title: string; required?: boolean; children: React.ReactNode }) {
+function FormSection({
+  title,
+  required,
+  headerRight,
+  children,
+}: {
+  title: string;
+  required?: boolean;
+  /** 标题行右侧自定义内容（如 AI 解析按钮） */
+  headerRight?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-      <div className="px-6 py-3.5 border-b border-slate-100 bg-slate-50/50">
+      <div className="px-6 py-3.5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
         <h3 className="text-sm font-bold text-gray-700">
           {title}
           {required && <span className="text-red-500 ml-1">*</span>}
         </h3>
+        {headerRight && <div className="flex items-center">{headerRight}</div>}
       </div>
       <div className="px-6 py-5">{children}</div>
     </div>
@@ -536,5 +606,104 @@ function FieldRow({ label, required, children }: { label: string; required?: boo
       </div>
       <div className="flex-1">{children}</div>
     </div>
+  );
+}
+
+/* ---- 「AI 解析课程资料」上传按钮 ----
+ *
+ * <p>支持 doc / docx / pdf 文件上传。本期仅完成上传并保存 URL，
+ * AI 解析能力待后续接入；上传成功后通过 toast 给出提示。</p>
+ */
+function MaterialUploadButton({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const accept = '.doc,.docx,.pdf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+  const handleFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadCourseMaterial(file);
+      onChange(url);
+      toast.success('上传成功，AI 解析能力待接入');
+    } catch {
+      toast.error('上传失败，请稍后重试');
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  // 已上传：展示文件名 + 重新上传 / 移除
+  if (value) {
+    const fileName = decodeURIComponent(value.split('/').pop() || '课程资料');
+    return (
+      <div className="flex items-center gap-2">
+        <a
+          href={value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs text-slate-700 max-w-[180px]"
+        >
+          <FileText className="size-3.5 text-slate-500 shrink-0" />
+          <span className="truncate">{fileName}</span>
+        </a>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="text-xs text-primary hover:underline disabled:opacity-50"
+        >
+          {uploading ? '上传中…' : '重新上传'}
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          disabled={uploading}
+          className="text-gray-400 hover:text-red-500 disabled:opacity-50"
+          aria-label="移除已上传的课程资料"
+        >
+          <X className="size-3.5" />
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={accept}
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-primary/30 text-primary hover:bg-primary/5 text-xs font-medium transition-colors disabled:opacity-50"
+      >
+        {uploading ? (
+          <>
+            <Loader2 className="size-3.5 animate-spin" />
+            <span>上传中…</span>
+          </>
+        ) : (
+          <>
+            <Sparkles className="size-3.5" />
+            <span>AI 解析课程资料</span>
+            <Upload className="size-3.5" />
+          </>
+        )}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+      />
+    </>
   );
 }

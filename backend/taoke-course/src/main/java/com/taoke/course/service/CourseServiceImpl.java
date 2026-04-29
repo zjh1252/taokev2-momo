@@ -748,11 +748,13 @@ public class CourseServiceImpl implements CourseService {
         if (req.getSubCategoryId() != null) course.setSubCategoryId(req.getSubCategoryId());
         if (req.getCoverUrl() != null) course.setCoverUrl(req.getCoverUrl());
         course.setIntro(req.getIntro());
+        if (req.getSummary() != null) course.setSummary(req.getSummary());
         if (req.getSyllabus() != null) course.setSyllabus(req.getSyllabus());
+        if (req.getMaterialUrl() != null) course.setMaterialUrl(req.getMaterialUrl());
         if (req.getAudience() != null) course.setAudience(req.getAudience());
         if (req.getHighlights() != null) course.setHighlights(req.getHighlights());
         if (req.getDurationDays() != null) course.setDurationDays(req.getDurationDays());
-        if (req.getHoursPerDay() != null) course.setHoursPerDay(req.getHoursPerDay());
+        if (req.getTotalHours() != null) course.setTotalHours(req.getTotalHours());
         if (req.getPrice() != null) course.setPrice(req.getPrice());
         if (req.getOriginalPrice() != null) course.setOriginalPrice(req.getOriginalPrice());
         if (req.getKeywords() != null) course.setKeywords(req.getKeywords());

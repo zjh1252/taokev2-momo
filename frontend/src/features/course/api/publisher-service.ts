@@ -123,3 +123,24 @@ export async function uploadImage(
   const json = await resp.json() as ApiResponse<{ url: string }>;
   return json.data.url;
 }
+
+/**
+ * 上传课程资料文件（doc/docx/pdf）— 走通用 /uploads/files 接口。
+ *
+ * <p>本方法仅完成上传并返回文件可访问 URL，AI 解析逻辑由调用方后续接入。</p>
+ */
+export async function uploadCourseMaterial(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+  const resp = await fetch(`${API_BASE_URL}/uploads/files`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${storage.get<{ accessToken?: string }>(TOKEN_KEY)?.accessToken || ''}`,
+    },
+    body: formData,
+  });
+  if (!resp.ok) throw new Error('上传失败');
+  const json = (await resp.json()) as ApiResponse<{ url: string }>;
+  return json.data.url;
+}

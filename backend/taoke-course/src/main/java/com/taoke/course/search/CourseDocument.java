@@ -31,7 +31,7 @@ public class CourseDocument extends BaseDocument {
     private String keywords;
 
     private Integer durationDays;
-    private BigDecimal hoursPerDay;
+    private BigDecimal totalHours;
     private BigDecimal price;
     private BigDecimal originalPrice;
 

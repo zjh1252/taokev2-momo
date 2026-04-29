@@ -24,7 +24,7 @@ public class CourseListItemVO {
     private String categoryName;
 
     private Integer durationDays;
-    private BigDecimal hoursPerDay;
+    private BigDecimal totalHours;
     private BigDecimal price;
     private BigDecimal originalPrice;
 

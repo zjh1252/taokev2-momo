@@ -129,7 +129,7 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
         doc.setKeywords(course.getKeywords());
 
         doc.setDurationDays(course.getDurationDays());
-        doc.setHoursPerDay(course.getHoursPerDay());
+        doc.setTotalHours(course.getTotalHours());
         doc.setPrice(course.getPrice());
         doc.setOriginalPrice(course.getOriginalPrice());
 

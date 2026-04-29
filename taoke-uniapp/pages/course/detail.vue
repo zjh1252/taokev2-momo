@@ -54,7 +54,7 @@
               <text class="meta-card__txt">{{ course.nextPlanCity }}</text>
             </view>
             <view v-if="course.durationDays" class="meta-card__item">
-              <text class="meta-card__txt">{{ course.durationDays }} 天 · 每天 {{ course.hoursPerDay || '6' }} 小时</text>
+              <text class="meta-card__txt">{{ course.durationDays }} 天 · 共 {{ course.totalHours || '6' }} 小时</text>
             </view>
           </view>
 

@@ -213,7 +213,7 @@ export const MOCK_COURSE_DETAIL = {
   trainerName: '王健林',
   publisherName: '淘课企业大学',
   durationDays: 2,
-  hoursPerDay: 6,
+  totalHours: 12,
   price: 2500,
   originalPrice: 3200,
   isFree: 0,

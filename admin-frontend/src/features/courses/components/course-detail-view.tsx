@@ -105,10 +105,10 @@ export function CourseDetailView({ detail }: { detail: AdminCourseDetail }) {
                 <span>{detail.durationDays} 天</span>
               </div>
             )}
-            {detail.hoursPerDay != null && (
+            {detail.totalHours != null && (
               <div>
-                <span className='text-muted-foreground'>每日课时：</span>
-                <span>{detail.hoursPerDay} 小时</span>
+                <span className='text-muted-foreground'>课程总时长：</span>
+                <span>{detail.totalHours} 小时</span>
               </div>
             )}
             <div>

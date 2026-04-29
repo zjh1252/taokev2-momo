@@ -50,11 +50,13 @@ export type AdminCourseDetail = {
   subCategoryName: string | null;
   coverUrl: string | null;
   intro: string | null;
+  summary: string | null;
   syllabus: string | null;
+  materialUrl: string | null;
   audience: string | null;
   highlights: string | null;
   durationDays: number | null;
-  hoursPerDay: number | null;
+  totalHours: number | null;
   price: number | null;
   originalPrice: number | null;
   keywords: string | null;

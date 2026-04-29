@@ -11,8 +11,8 @@ interface CourseHeroProps {
 export function CourseHero({ course }: CourseHeroProps) {
   const t = useTranslations('course.detail');
   const isOpen = course.type === 'OPEN_OFFLINE' || course.type === 'OPEN_ONLINE';
-  const totalHours = course.durationDays && course.hoursPerDay
-    ? (course.durationDays * course.hoursPerDay).toFixed(0)
+  const totalHoursDisplay = course.totalHours
+    ? Number(course.totalHours).toFixed(0)
     : null;
 
   return (
@@ -48,7 +48,7 @@ export function CourseHero({ course }: CourseHeroProps) {
           {t('duration')}：
           <span className="text-slate-800 font-medium">
             {course.durationDays || '-'} {t('daysUnit')}
-            {totalHours && ` / ${totalHours} ${t('hoursUnit')}`}
+            {totalHoursDisplay && ` / ${totalHoursDisplay} ${t('hoursUnit')}`}
           </span>
         </div>
         <div className="text-slate-500">
