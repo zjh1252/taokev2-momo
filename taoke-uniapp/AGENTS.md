@@ -206,6 +206,48 @@ const TIMEOUT = config.timeout;
 
 > 首页 Banner / CMS 轮播 暂无独立接口，参考 [frontend](../frontend) 的方案（多用 `/opencourses/hot` 顶替）。
 
+### 5.4 资源 URL（assetBaseURL，独立于 API 域名）
+
+API 入口（`baseURL` / 由 `utils/request.js` 使用）和静态资源入口（`assetBaseURL` / 由 `utils/asset.js` 使用）是**两个独立的语义**，配置上必须分开，不允许"为空就兜底用 baseURL"这种隐式行为。
+
+- **API 入口**：`config.baseURL`，对应 `ENV.API_BASE_URL` / `ENV.API_BASE_URL_NATIVE`，仅用于 `uni.request` 拼接接口路径
+- **资源入口**：`config.assetBaseURL`，对应 `ENV.ASSET_BASE_URL` / `ENV.ASSET_BASE_URL_NATIVE`，仅用于 `<image src>`、`<video src>` 等渲染后端返回的相对路径
+- dev 阶段二者通常同域（`http://localhost:8080`），仍要在 `configs/env.js` **显式各自声明**
+- prod 上 CDN 后二者拆域（如 `api.taoke.com` / `cdn.taoke.com`），无需改业务代码
+
+**业务侧用法**（统一通过 [utils/asset.js](utils/asset.js) 暴露的 `toAssetUrl`）：
+
+```js
+import { toAssetUrl } from '@/utils/asset';
+
+// template
+<image :src="toAssetUrl(course.coverUrl)" mode="aspectFill" />
+<image :src="toAssetUrl(trainer.avatar)" mode="aspectFill" />
+```
+
+`toAssetUrl(path)` 行为：
+
+1. 完整 URL（`https://...`） / 协议相对（`//...`） / data URI / 本地临时路径（`blob:` / `wxfile:` / `file:`）→ 原样返回
+2. 站内路径（`/uploads/x.png` 或 `uploads/x.png`）→ 拼 `assetBaseURL` 前缀
+3. `assetBaseURL` 未配置 → console.warn 并原样返回（**不静默兜底**，便于及时发现配置遗漏）
+
+**强制使用点**（凡是后端返回的图片/文件字段，渲染前必过 `toAssetUrl`）：
+
+| 位置 | 字段 | 处理 |
+|---|---|---|
+| `TkAvatar` | `src` prop | 组件内部已包，外部传 raw 即可 |
+| `TkExpertCard` | `expert.avatar` | 组件内部已包 |
+| `TkCourseCard` | `course.coverUrl` | 组件内部已包 |
+| `pages/expert/detail` | `trainer.avatar` / `trainer.backgroundImage` / `cs.coverImage` | 模板里手动 `toAssetUrl(...)` |
+| `pages/course/detail` | `course.coverUrl` / `course.trainerAvatar` | 模板里手动 `toAssetUrl(...)` |
+| `pages/favorite/list` | `item.coverUrl` | 模板里手动 `toAssetUrl(...)` |
+
+**不要包**：
+
+- `/static/...`：uniapp 框架资源，相对路径直接走打包产物
+- mock 用的完整外链（`https://avatars.githubusercontent.com/...`）：`toAssetUrl` 会自动放过
+- 用户 `chooseImage` 后的临时本地路径：正则会放过 `blob:` / `wxfile:` / `file:`
+
 ## 6. 路由与导航
 
 - TabBar 4 项使用 **uni-app 原生 tabBar**（`pages.json` 配置），共需 8 张 PNG（每 tab 灰/红 2 张，81×81 @3x，放 `static/tabbar/`）
@@ -233,7 +275,7 @@ const TIMEOUT = config.timeout;
 ### Iteration 1 已完成
 - 基础设施：`uni.scss` / `styles/{tokens,mixins,common}.scss` / `pages.json` 原生 tabBar / `App.vue` + Pinia
 - 配置层：[configs/env.js](configs/env.js)（dev/prod 环境矩阵）+ [configs/index.js](configs/index.js)（跨端组装）
-- 网络与状态：[utils/request.js](utils/request.js)（baseURL/timeout 已接 configs）、[utils/auth.js](utils/auth.js)、[utils/asset.js](utils/asset.js)（CDN 兜底）、[stores/user.js](stores/user.js)
+- 网络与状态：[utils/request.js](utils/request.js)（baseURL/timeout 已接 configs）、[utils/auth.js](utils/auth.js)、[utils/asset.js](utils/asset.js)（资源 URL 拼装，见 §5.4）、[stores/user.js](stores/user.js)
 - API 模块：[api/auth.js](api/auth.js)、[api/user.js](api/user.js)、[api/course.js](api/course.js)、[api/expert.js](api/expert.js)、[api/interaction.js](api/interaction.js)
 - 公共组件：`TkIcon` / `TkNavBar` / `TkSearchBar` / `TkCourseCard` / `TkExpertCard` / `TkEmpty` / `TkLoading`
 - 工程化：[.gitignore](.gitignore) 覆盖 HBuilderX/CLI 双产物
@@ -274,7 +316,7 @@ const TIMEOUT = config.timeout;
 
 ## 10. 已知 TODO
 
-- [ ] **真实生产域名补全**：[configs/env.js](configs/env.js) 中 `production` 段的 `API_BASE_URL` / `API_BASE_URL_NATIVE` / `CDN_BASE_URL` 当前是占位（`https://api.taoke.com` / `https://cdn.taoke.com`），上线前替换
+- [ ] **真实生产域名补全**：[configs/env.js](configs/env.js) 中 `production` 段的 `API_BASE_URL` / `API_BASE_URL_NATIVE` / `ASSET_BASE_URL` / `ASSET_BASE_URL_NATIVE` 当前是占位（`https://api.taoke.com` / `https://cdn.taoke.com`），上线前替换
 - [ ] **微信小程序 appid**：[configs/index.js](configs/index.js) 的 `wxAppId` 与 [manifest.json](manifest.json) 的 `mp-weixin.appid` 需同步填写
 - [ ] **真机调试 IP**：小程序模拟器 / App 真机预览时 `localhost` 指设备本身，需把 [configs/env.js](configs/env.js) 中 `development.API_BASE_URL_NATIVE` 改成开发者机器局域网 IP；多人协作时考虑用 `configs/local.js`（gitignore）覆盖
 - [ ] **CLI 切换后改 env 来源**：升级到 `@dcloudio/vite-plugin-uni` 后，新建 `.env.development` / `.env.production`，把 [configs/env.js](configs/env.js) 中 `ENV_MAP` 改为读 `import.meta.env.VITE_*`，业务代码无需改动

@@ -39,6 +39,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { toAssetUrl } from '@/utils/asset';
 
 const props = defineProps({
   course: { type: Object, required: true },
@@ -46,7 +47,7 @@ const props = defineProps({
 const emit = defineEmits(['tap']);
 
 const FALLBACK_COVER = '/static/logo.png';
-const cover = computed(() => props.course.coverUrl || props.course.cover || FALLBACK_COVER);
+const cover = computed(() => toAssetUrl(props.course.coverUrl || props.course.cover) || FALLBACK_COVER);
 
 function formatPrice(p) {
   if (p == null || p === '') return '面议';

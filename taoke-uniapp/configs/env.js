@@ -9,17 +9,26 @@
  *   - 新建 .env.development / .env.production
  *   - 把下方 ENV_MAP 的取值改为 import.meta.env.VITE_*，业务代码无需改动
  *
- * 字段命名与 [frontend/.env.example](../../frontend/.env.example) 对齐
+ * 命名约定：
+ *   - API_BASE_URL          : 后端 API 入口（被 utils/request.js 使用）
+ *   - API_BASE_URL_NATIVE   : 小程序/真机预览专用（localhost 在设备上不通）
+ *   - ASSET_BASE_URL        : 静态资源域名（图片 / 上传文件 / CDN，被 utils/asset.js 使用）
+ *
+ * API 与 Asset 是两个独立的语义：
+ *   - dev   ：通常二者同域（http://localhost:8080），但仍要"显式声明"，不做隐式兜底
+ *   - prod  ：二者可能拆分（API 走 api.x.com，资源走 cdn.x.com），便于独立扩容/防盗链
  */
 
 const ENV_MAP = {
   development: {
-    // H5 / 浏览器场景：本机后端 8080，后端 CorsFilterConfig 默认 allowed-origins=*
+    // 后端 API 入口
     API_BASE_URL: 'http://localhost:8080',
     // 小程序模拟器 / App 真机预览时 localhost 指设备本身，需改成开发者机器局域网 IP（如 http://192.168.1.100:8080）
     API_BASE_URL_NATIVE: 'http://localhost:8080',
-    // 没有独立 CDN 时留空：toAssetUrl() 会自动 fallback 到 baseURL 由后端兜底
-    CDN_BASE_URL: '',
+    // 静态资源域名（dev 阶段后端就是资源源站，显式写出来）
+    ASSET_BASE_URL: 'http://localhost:8080',
+    ASSET_BASE_URL_NATIVE: 'http://localhost:8080',
+
     MOCK_SMS: true,
     LOG_LEVEL: 'debug',
   },
@@ -27,8 +36,10 @@ const ENV_MAP = {
     // TODO: 上线前替换为真实生产域名
     API_BASE_URL: 'https://api.taoke.com',
     API_BASE_URL_NATIVE: 'https://api.taoke.com',
-    // 上线如未单独部署 CDN，留空让 toAssetUrl() fallback 到 API 域名
-    CDN_BASE_URL: '',
+    // 上线建议 API / 资源拆域：API 走 api.x.com，资源走 cdn.x.com
+    ASSET_BASE_URL: 'https://cdn.taoke.com',
+    ASSET_BASE_URL_NATIVE: 'https://cdn.taoke.com',
+
     MOCK_SMS: false,
     LOG_LEVEL: 'error',
   },

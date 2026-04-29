@@ -46,7 +46,7 @@
             v-if="item.coverUrl"
             class="fav__cover"
             :class="{ 'fav__cover--round': activeKey === 'TRAINER' }"
-            :src="item.coverUrl"
+            :src="toAssetUrl(item.coverUrl)"
             mode="aspectFill"
           />
           <view
@@ -82,6 +82,7 @@ import { ref, computed } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import * as interactionApi from '@/api/interaction';
 import { useUserStore } from '@/stores/user';
+import { toAssetUrl } from '@/utils/asset';
 
 const sysInfo = uni.getSystemInfoSync();
 const navBarH = (sysInfo.statusBarHeight || 20) + 44;

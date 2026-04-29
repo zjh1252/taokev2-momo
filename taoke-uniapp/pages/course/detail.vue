@@ -33,7 +33,7 @@
       <view class="page__inner">
         <!-- 封面 -->
         <view class="cover">
-          <image v-if="course.coverUrl" class="cover__img" :src="course.coverUrl" mode="aspectFill" />
+          <image v-if="course.coverUrl" class="cover__img" :src="toAssetUrl(course.coverUrl)" mode="aspectFill" />
           <view v-else class="cover__placeholder">
             <TkIcon name="image" :size="80" color="#bbb" />
           </view>
@@ -80,7 +80,7 @@
         <!-- 专家卡 -->
         <view v-if="course.trainerName" class="trainer-card" @tap="goTrainer">
           <view class="trainer-card__left">
-            <image v-if="course.trainerAvatar" class="trainer-card__avatar" :src="course.trainerAvatar" mode="aspectFill" />
+            <image v-if="course.trainerAvatar" class="trainer-card__avatar" :src="toAssetUrl(course.trainerAvatar)" mode="aspectFill" />
             <view v-else class="trainer-card__avatar trainer-card__avatar--placeholder">
               <TkIcon name="staff" :size="40" color="#bbb" />
             </view>
@@ -162,6 +162,7 @@ import { onLoad } from '@dcloudio/uni-app';
 import * as courseApi from '@/api/course';
 import * as interactionApi from '@/api/interaction';
 import { MOCK_COURSE_DETAIL } from '@/utils/mock';
+import { toAssetUrl } from '@/utils/asset';
 
 const sysInfo = uni.getSystemInfoSync();
 const navBarH = (sysInfo.statusBarHeight || 20) + 44;

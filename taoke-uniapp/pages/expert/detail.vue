@@ -23,7 +23,7 @@
       <image
         v-if="trainer.backgroundImage || trainer.avatar"
         class="hero__bg"
-        :src="trainer.backgroundImage || trainer.avatar"
+        :src="toAssetUrl(trainer.backgroundImage || trainer.avatar)"
         mode="aspectFill"
       />
       <view class="hero__mask" />
@@ -47,7 +47,7 @@
         <!-- 信息卡 -->
         <view class="info-card">
           <view class="info-card__row">
-            <image class="info-card__avatar" :src="trainer.avatar" mode="aspectFill" />
+            <image class="info-card__avatar" :src="toAssetUrl(trainer.avatar)" mode="aspectFill" />
             <view class="info-card__main">
               <view class="info-card__name-row">
                 <text class="info-card__name">{{ trainer.name || '—' }}</text>
@@ -158,7 +158,7 @@
         <TkSection v-if="cases.length" title="授课案例">
           <view class="case-list">
             <view v-for="cs in cases" :key="cs.id" class="case-card" @tap="onCaseTap(cs)">
-              <image v-if="cs.coverImage" class="case-card__img" :src="cs.coverImage" mode="aspectFill" />
+              <image v-if="cs.coverImage" class="case-card__img" :src="toAssetUrl(cs.coverImage)" mode="aspectFill" />
               <view class="case-card__body">
                 <text class="case-card__title">{{ cs.caseTitle }}</text>
                 <text v-if="cs.enterpriseName || cs.industry" class="case-card__meta">{{ cs.enterpriseName }}<text v-if="cs.enterpriseName && cs.industry"> · </text>{{ cs.industry }}</text>
@@ -194,6 +194,7 @@ import { onLoad } from '@dcloudio/uni-app';
 import * as expertApi from '@/api/expert';
 import * as interactionApi from '@/api/interaction';
 import { MOCK_TRAINER_DETAIL, MOCK_COURSES } from '@/utils/mock';
+import { toAssetUrl } from '@/utils/asset';
 
 const heroH = 360;
 

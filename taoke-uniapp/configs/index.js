@@ -2,18 +2,27 @@
  * 全局应用配置 —— 业务代码统一通过 `import config from '@/configs'` 取值
  *
  * 平台分支用 #ifdef 在编译期裁剪：
- *   - H5 走 ENV.API_BASE_URL（dev 直连 http://localhost:8080，依赖后端 CORS=*）
- *   - 小程序 / App 走 ENV.API_BASE_URL_NATIVE（真机调试需改为局域网 IP）
+ *   - H5         : 走 ENV.API_BASE_URL / ENV.ASSET_BASE_URL（dev 直连后端，依赖后端 CORS=*）
+ *   - 小程序/App : 走 _NATIVE 变体（真机调试需改为局域网 IP）
+ *
+ * 暴露字段：
+ *   - config.baseURL       : 后端 API 入口（utils/request.js 用）
+ *   - config.assetBaseURL  : 静态资源域名（utils/asset.js → toAssetUrl 用，业务代码不直接读）
  */
 
 import { ENV, IS_DEV, IS_PROD, ENV_NAME } from './env';
 
 let baseURL = '';
+let assetBaseURL = '';
+
 // #ifdef H5
 baseURL = ENV.API_BASE_URL;
+assetBaseURL = ENV.ASSET_BASE_URL;
 // #endif
+
 // #ifdef MP-WEIXIN || APP-PLUS
 baseURL = ENV.API_BASE_URL_NATIVE;
+assetBaseURL = ENV.ASSET_BASE_URL_NATIVE;
 // #endif
 
 const config = {
@@ -22,7 +31,7 @@ const config = {
   isProd: IS_PROD,
 
   baseURL,
-  cdnBaseURL: ENV.CDN_BASE_URL,
+  assetBaseURL,
   timeout: 15000,
 
   mockSms: ENV.MOCK_SMS,

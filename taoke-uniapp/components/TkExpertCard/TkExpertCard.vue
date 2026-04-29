@@ -68,6 +68,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { toAssetUrl } from '@/utils/asset';
 
 const props = defineProps({
   expert:  { type: Object, required: true },
@@ -76,7 +77,7 @@ const props = defineProps({
 const emit = defineEmits(['tap']);
 
 const FALLBACK_AVATAR = '/static/logo.png';
-const avatarUrl = computed(() => props.expert.avatar || FALLBACK_AVATAR);
+const avatarUrl = computed(() => toAssetUrl(props.expert.avatar) || FALLBACK_AVATAR);
 
 function onTap() {
   emit('tap', props.expert);

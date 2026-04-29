@@ -18,7 +18,7 @@
     <image
       v-if="hasImage"
       class="avatar__img"
-      :src="src"
+      :src="resolvedSrc"
       mode="aspectFill"
       @error="onError"
     />
@@ -30,6 +30,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { toAssetUrl } from '@/utils/asset';
 
 const props = defineProps({
   src:       { type: String, default: '' },
@@ -45,7 +46,8 @@ const failed = ref(false);
 
 watch(() => props.src, () => { failed.value = false; });
 
-const hasImage = computed(() => !!props.src && !failed.value);
+const resolvedSrc = computed(() => toAssetUrl(props.src));
+const hasImage = computed(() => !!resolvedSrc.value && !failed.value);
 
 const sizeRpx = computed(() => {
   const n = Number(props.size);

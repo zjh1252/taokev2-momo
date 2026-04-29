@@ -11,9 +11,9 @@
   <view class="page">
     <TkNavBar title="我的" :title-color="'#fff'" :icon-color="'#fff'" transparent />
 
-    <scroll-view scroll-y class="page__scroll" :style="{ paddingTop: navBarH + 'px' }">
-      <!-- 顶部红色 Hero -->
-      <view class="hero" :style="{ paddingTop: navBarH + 'px' }">
+    <scroll-view scroll-y class="page__scroll">
+      <!-- 顶部红色 Hero（沉浸式：红色一直延伸到屏幕顶部，TkNavBar 透明浮在上面） -->
+      <view class="hero" :style="{ paddingTop: (navBarH + 12) + 'px' }">
         <!-- 已登录：头像 + 昵称 + 角色 -->
         <view v-if="userStore.isLoggedIn" class="hero__user">
           <TkAvatar
@@ -301,9 +301,9 @@ function confirmLogout() {
 // Hero
 .hero {
   position: relative;
+  z-index: 0;
   background: linear-gradient(135deg, $tk-primary 0%, #FF6B35 100%);
-  padding: $tk-sp-3 $tk-sp-4 100rpx;
-  margin-top: -1px; // 补丁：避免与上方 navbar 之间出现 1px 缝隙
+  padding: 0 $tk-sp-4 100rpx; // padding-top 由 inline style 控制（navBarH + 12px）
 
   &__user {
     display: flex;
@@ -385,8 +385,10 @@ function confirmLogout() {
   }
 }
 
-// 数据卡 —— 与 hero 重叠 1/3
+// 数据卡 —— 与 hero 重叠 1/3（白卡叠红底）
 .stats {
+  position: relative;
+  z-index: 1; // 保险：确保整张白卡（含 box-shadow）绘制在 hero 红色之上
   margin-top: -60rpx;
   background: $tk-bg-card;
   border-radius: $tk-radius-lg;
