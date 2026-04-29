@@ -1,24 +1,28 @@
+/**
+ * 用户自服务 /users/me
+ *
+ * 通知相关已搬迁至 api/notification.js
+ * 文件上传 (/uploads/*) 见 api/upload.js
+ */
 import http from '@/utils/request';
 
-/** 获取当前用户资料 */
+/** 获取当前用户资料 GET /users/me */
 export const getMyProfile = () => http.get('/users/me');
 
-/** 更新当前用户资料 */
+/**
+ * 更新当前用户资料 PUT /users/me
+ * 后端可接受字段：nickname / realName / avatarUrl / studyTags /
+ *                 gender / postCode / provinceId / cityId / districtId / townId / address
+ */
 export const updateMyProfile = (data) => http.put('/users/me', data);
 
-/** 修改密码 */
+/** 修改密码 PUT /users/me/password */
 export const changePassword = ({ oldPassword, newPassword }) =>
   http.put('/users/me/password', { oldPassword, newPassword });
 
-/** 修改手机号 */
-export const changePhone = ({ newPhone, code }) =>
-  http.put('/users/me/phone', { newPhone, code });
-
-/** 通知列表 */
-export const listNotifications = (params) => http.get('/notifications', params);
-
-/** 未读数 */
-export const getUnreadCount = () => http.get('/notifications/unread-count');
-
-/** 标记已读 */
-export const markRead = (id) => http.put(`/notifications/${id}/read`);
+/**
+ * 修改手机号 PUT /users/me/phone
+ * 后端 ChangePhoneRequest：oldPhoneCode + newPhone + newPhoneCode
+ */
+export const changePhone = ({ oldPhoneCode, newPhone, newPhoneCode }) =>
+  http.put('/users/me/phone', { oldPhoneCode, newPhone, newPhoneCode });

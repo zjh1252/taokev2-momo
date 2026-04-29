@@ -39,8 +39,10 @@ taoke-uniapp/
 │   ├── home/              # tab 1
 │   ├── expert/            # tab 2 + 详情
 │   ├── course/            # tab 3 + 详情
-│   ├── user/              # tab 4
-│   └── auth/              # 登录 / 注册
+│   ├── user/              # tab 4 + profile/password
+│   ├── auth/              # 登录 / 注册
+│   ├── favorite/          # 我的收藏（4 Tab）
+│   └── message/           # 消息中心
 ├── stores/                # Pinia stores（user / dict / cart ...）
 ├── static/
 │   ├── tabbar/            # 原生 tabBar 图标（每 tab 灰/红 2 张 PNG，81×81 @3x）
@@ -52,7 +54,7 @@ taoke-uniapp/
 ```
 
 **命名约定**：
-- 公共组件统一 `Tk*` 前缀（`TkIcon` / `TkNavBar` / `TkSearchBar` / `TkCourseCard` / `TkExpertCard` / `TkSection` / `TkEmpty` / `TkLoading`）
+- 公共组件统一 `Tk*` 前缀（`TkIcon` / `TkNavBar` / `TkSearchBar` / `TkCourseCard` / `TkExpertCard` / `TkSection` / `TkEmpty` / `TkLoading` / `TkAvatar` / `TkActionBar` / `TkActionBtn` / `TkFilterBar`）
 - 页面文件 `kebab-case.vue`
 - API 方法名采用动宾命名（`fetchCourseList` / `loginByPassword`）
 
@@ -253,6 +255,22 @@ const TIMEOUT = config.timeout;
 - **登录页** [pages/auth/login.vue](pages/auth/login.vue)：双 Tab（手机号 / 账号）+ 11 位手机号 + 6 位短信码 + 60s 倒计时 + dev mock 验证码弹窗（自动填入 + 复制按钮）+ 协议勾选 + 内联红条错误 + 渐变红主按钮
 - **注册页** [pages/auth/register.vue](pages/auth/register.vue)：用户名 blur 后调 `/auth/username/available` 校验可用性（idle/checking/available/taken/invalid 五态）+ 密码 + 确认密码（实时一致校验）+ 协议勾选 + 自动登录
 
+### Iteration 3 用户中心 + 工程化（A + C 两条线一并完成）
+**C 工程化（详情页/列表页公共组件抽离）**
+- 新增 `TkActionBar` + `TkActionBtn`（吸底操作栏 + 单个按钮，支持 ghost / primary / secondary）；修复 [pages/expert/detail.vue](pages/expert/detail.vue) + [pages/course/detail.vue](pages/course/detail.vue) 两处的重复 `.action-bar` 实现
+- 新增 `TkFilterBar`（横滚多维筛选条，内置 actionSheet）；重构 [pages/expert/list.vue](pages/expert/list.vue) 删除约 30 行 SCSS / template
+- 新增 `TkAvatar`（圆头像 + nickname 首字符兜底，失败回落，bordered 选项）
+
+**A 用户中心**
+- 修复 [stores/user.js](stores/user.js) 中 `avatar` getter bug（应读 `profile.avatarUrl` 而非 `profile.avatar`）；新增 `roleCodes` getter + `updateProfile(payload)` action
+- API 重组：拆出 [api/upload.js](api/upload.js)（uni.uploadFile 封装 + ApiResponse 解包，含 `uploadAvatar` / `uploadImage`）和 [api/notification.js](api/notification.js)（`listNotifications` / `getUnreadCount` / `markRead` / `markAllRead`），[api/user.js](api/user.js) 瘦身只留 `/users/me` 五个接口；修正 `changePhone` 入参为后端 `oldPhoneCode / newPhone / newPhoneCode`
+- **我的首页** [pages/user/index.vue](pages/user/index.vue)：渐变红 hero（头像 + 昵称 + 角色徽标）+ 数据卡（在学/收藏/消息）+ 两组菜单 + 退出（带二次 modal 确认）；onShow 拉未读数和收藏 total
+- **基础信息** [pages/user/profile.vue](pages/user/profile.vue)：头像选择上传（uni.chooseImage → /uploads/avatars，与保存解耦，frontend 一致）+ 昵称 + 真实姓名 + 性别（男/女/保密）+ 学习标签 + 只读手机号；保存按钮在 dirty 时启用
+- **修改密码** [pages/user/password.vue](pages/user/password.vue)：旧/新/确认三段密码（旧密码可空兼容手机号一键注册），三个独立 show/hide 切换；前端 6-32 位长度校验
+- **我的收藏** [pages/favorite/list.vue](pages/favorite/list.vue)：4 Tab（COURSE / TRAINER / INSTITUTION / CASE，与 frontend 一致）；分页 0-based size 20；点击跳详情、长按或 X 按钮取消收藏（带 modal 二次确认）；讲师卡片用圆形封面
+- **消息中心** [pages/message/list.vue](pages/message/list.vue)：列表分页 1-based size 20；未读条目左侧红条 + 右下红点；点击未读自动 markRead；type 智能映射图标颜色（订单/课程/收藏/绑定/系统）；底部抽屉详情 + 关联链接跳转；顶栏右侧"全部已读"
+- 路由注册：[pages.json](pages.json) 增加 `pages/user/profile`、`pages/user/password`、`pages/favorite/list`、`pages/message/list` 4 条
+
 ## 10. 已知 TODO
 
 - [ ] **tabBar 图标**：当前用 `static/c1.png ~ c8.png` 作占位（设计上不匹配），需替换为 4 组（默认/激活）红灰单色 PNG，尺寸 81×81 @3x，放 `static/tabbar/`
@@ -269,7 +287,13 @@ const TIMEOUT = config.timeout;
 - [ ] **协议页**：登录/注册页的《用户服务协议》《隐私政策》当前只 toast"建设中"，需补 `pages/legal/terms.vue` 与 `pages/legal/privacy.vue`
 - [ ] **忘记密码**：登录页未挂"忘记密码"入口，后端 `/auth/reset-password` 已就绪，待 Iteration 3+ 加流程页
 - [ ] **专家案例详情页**：当前案例条目只 toast，待新增 `pages/expert/case-detail.vue`（参考 [TrainerCaseResponse.files[]](../backend/taoke-user/src/main/java/com/taoke/user/dto/response)，含图片/视频画廊）
-- [ ] **课程视频播放器**：`/videos/{id}` 接口已有，待 Iteration 3 加视频列表 tab + 视频详情页（uni-app `<video>` 组件 + 进度上报）
+- [ ] **课程视频播放器**：`/videos/{id}` 接口已有，待下个迭代加视频列表 tab + 视频详情页（uni-app `<video>` 组件 + 进度上报，对应 `/learning/*`）
+- [ ] **后端收藏分页对齐**：`/interaction/favorites` 当前 page **0-based**，与 `/notifications`、`/learning/*` 的 **1-based** 不一致；建议后端统一为 1-based，前端 [pages/favorite/list.vue](pages/favorite/list.vue) 同步改
+- [ ] **第三方登录**：微信 / 支付宝 / 企微绑定后端尚未提供（frontend 也是 UI 占位）；`pages/user/index.vue` 的"账号绑定"入口当前只 toast
+- [ ] **修改身份页**：后端 `BuyerController` 仍是空类，frontend 已有该页但未走真实后端；移动端入口当前只 toast
+- [ ] **课程报名 / 学习记录**：我的首页"在学课程"数始终为 0，待对接 `/learning/courses` 接口
+- [ ] **机构 / 案例详情**：收藏页跳转 INSTITUTION / CASE 仅 toast，待补对应详情页路由
+- [ ] **修改手机号 / 邮箱**：后端 `PUT /users/me/phone` 已就绪（双验证码），uni-app 暂未挂入口；邮箱后端 `UpdateProfileRequest` 不含字段，需后端先开口
 
 ## 11. 禁止事项
 

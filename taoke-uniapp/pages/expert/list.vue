@@ -35,20 +35,7 @@
         />
 
         <!-- 横向筛选条 -->
-        <scroll-view scroll-x class="filter-row" show-scrollbar="false">
-          <view class="filter-row__inner">
-            <view
-              v-for="f in filters"
-              :key="f.key"
-              class="filter-row__item"
-              :class="{ 'is-active': f.value !== '' && f.value != null }"
-              @tap="openFilter(f)"
-            >
-              <text class="filter-row__txt">{{ f.label }}{{ f.value ? '·' + f.value : '' }}</text>
-              <TkIcon name="expand-more" :size="22" color="#999" />
-            </view>
-          </view>
-        </scroll-view>
+        <TkFilterBar :filters="filters" @change="loadList(true)" />
 
         <!-- NEW 条 -->
         <view class="new-strip">
@@ -193,17 +180,6 @@ function onSearch() {
   loadList(true);
 }
 
-function openFilter(f) {
-  const items = ['全部', ...f.options];
-  uni.showActionSheet({
-    itemList: items,
-    success: (res) => {
-      f.value = res.tapIndex === 0 ? '' : f.options[res.tapIndex - 1];
-      loadList(true);
-    },
-  });
-}
-
 onMounted(() => loadList(true));
 </script>
 
@@ -225,38 +201,7 @@ onMounted(() => loadList(true));
   }
 }
 
-.filter-row {
-  width: 100%;
-  background: $tk-bg-card;
-  border-radius: $tk-radius-md;
-  padding: $tk-sp-2 0;
-  box-shadow: $tk-shadow-card;
-
-  &__inner {
-    display: inline-flex;
-    align-items: center;
-    gap: $tk-sp-3;
-    padding: 0 $tk-sp-3;
-  }
-
-  &__item {
-    display: inline-flex;
-    align-items: center;
-    gap: 4rpx;
-    flex-shrink: 0;
-    padding: 8rpx 0;
-  }
-  &__txt {
-    font-size: $tk-fs-sm;
-    color: $tk-text-1;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-  &__item.is-active &__txt {
-    color: $tk-primary;
-    font-weight: 600;
-  }
-}
+// 筛选条 → 已抽至 TkFilterBar 公共组件
 
 .new-strip {
   display: flex;

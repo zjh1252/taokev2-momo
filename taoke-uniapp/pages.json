@@ -55,6 +55,34 @@
         "navigationStyle": "custom",
         "navigationBarTitleText": "注册"
       }
+    },
+    {
+      "path": "pages/user/profile",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "基础信息"
+      }
+    },
+    {
+      "path": "pages/user/password",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "修改密码"
+      }
+    },
+    {
+      "path": "pages/favorite/list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的收藏"
+      }
+    },
+    {
+      "path": "pages/message/list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "消息中心"
+      }
     }
   ],
 

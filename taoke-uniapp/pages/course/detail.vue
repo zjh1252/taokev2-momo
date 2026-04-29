@@ -140,19 +140,17 @@
     </scroll-view>
 
     <!-- 吸底操作栏 -->
-    <view class="action-bar">
-      <view class="action-bar__btn action-bar__btn--ghost" @tap="onConsult">
-        <TkIcon name="chat" :size="32" color="#666" />
-        <text class="action-bar__btn-txt">咨询客服</text>
-      </view>
-      <view class="action-bar__btn action-bar__btn--ghost" @tap="onFavorite">
-        <TkIcon name="heart" :filled="favorited" :size="32" :color="favorited ? '#E62117' : '#666'" />
-        <text class="action-bar__btn-txt">{{ favorited ? '已收藏' : '收藏' }}</text>
-      </view>
-      <view class="action-bar__btn action-bar__btn--primary" @tap="onEnroll">
-        <text class="action-bar__btn-txt action-bar__btn-txt--primary">立即报名</text>
-      </view>
-    </view>
+    <TkActionBar>
+      <TkActionBtn icon="chat" label="咨询客服" @tap="onConsult" />
+      <TkActionBtn
+        icon="heart"
+        :icon-filled="favorited"
+        :icon-color="favorited ? '#E62117' : '#666'"
+        :label="favorited ? '已收藏' : '收藏'"
+        @tap="onFavorite"
+      />
+      <TkActionBtn label="立即报名" type="primary" @tap="onEnroll" />
+    </TkActionBar>
 
     <TkLoading v-if="loading && !course.id" />
   </view>
@@ -516,50 +514,5 @@ onLoad((opt) => {
   }
 }
 
-// 吸底操作栏
-.action-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 99;
-  background: $tk-bg-card;
-  border-top: 2rpx solid $tk-divider-light;
-  padding: $tk-sp-2 $tk-sp-3;
-  display: flex;
-  align-items: center;
-  gap: $tk-sp-2;
-  @include tk-safe-bottom($tk-sp-2);
-
-  &__btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 80rpx;
-    border-radius: $tk-radius-md;
-
-    &--ghost {
-      flex-direction: column;
-      gap: 0;
-      flex: 0 0 auto;
-      width: 120rpx;
-      background: transparent;
-    }
-    &--primary {
-      flex: 1;
-      background: $tk-primary;
-      box-shadow: $tk-shadow-primary;
-    }
-  }
-  &__btn-txt {
-    font-size: $tk-fs-xs;
-    color: $tk-text-2;
-
-    &--primary {
-      font-size: $tk-fs-md;
-      color: #fff;
-      font-weight: 700;
-    }
-  }
-}
+// 吸底操作栏 → 已抽至 TkActionBar / TkActionBtn 公共组件
 </style>

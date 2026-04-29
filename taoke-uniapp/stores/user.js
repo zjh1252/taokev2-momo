@@ -26,7 +26,10 @@ export const useUserStore = defineStore('user', {
   getters: {
     isLoggedIn: (state) => !!state.token,
     nickname: (state) => state.profile?.nickname || state.profile?.phone || '',
-    avatar: (state) => state.profile?.avatar || '',
+    /** 头像 URL，后端字段为 avatarUrl，兼容旧字段 avatar */
+    avatar: (state) => state.profile?.avatarUrl || state.profile?.avatar || '',
+    /** 业务角色码列表（来自 profile.roles[].role） */
+    roleCodes: (state) => (state.profile?.roles || []).map((r) => r?.role).filter(Boolean),
   },
 
   actions: {
@@ -102,6 +105,19 @@ export const useUserStore = defineStore('user', {
         // 拉取失败可能是 token 已失效，由 request 拦截器处理跳转
         return null;
       }
+    },
+
+    /**
+     * 修改当前用户资料（PUT /users/me）；成功后乐观更新 profile + 缓存
+     */
+    async updateProfile(payload) {
+      await userApi.updateMyProfile(payload);
+      const next = { ...(this.profile || {}), ...payload };
+      this.profile = next;
+      try { uni.setStorageSync(PROFILE_KEY, next); } catch (_) {}
+      // 静默从后端拉一份兜底（角色 / 时间戳等只能后端给）
+      this.fetchProfile();
+      return next;
     },
 
     /**
