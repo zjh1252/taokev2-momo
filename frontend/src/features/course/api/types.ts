@@ -181,7 +181,11 @@ export interface CourseDetail {
   plans: CoursePlan[];
 }
 
-/** AI 解析返回的可回填字段集合（对应后端 AiParseMaterialResultVO.ParsedFields） */
+/**
+ * AI 解析返回的可回填字段集合（对应后端 AiParseMaterialResultVO.ParsedFields）。
+ *
+ * <p>课程简介（summary）与课程大纲（syllabus）不在 AI 提取范围内，由用户自行撰写。</p>
+ */
 export interface AiParsedFields {
   title?: string;
   durationDays?: number;
@@ -193,8 +197,6 @@ export interface AiParsedFields {
   /** 关键词，最多 3 个 */
   keywords?: string[];
   audience?: string;
-  summary?: string;
-  syllabus?: string;
 }
 
 /** AI 解析课程资料接口的响应（对应后端 AiParseMaterialResultVO） */

@@ -34,6 +34,9 @@ public class AiParseMaterialResultVO {
      * AI 提取后的可回填字段集合。
      *
      * <p>未能识别的字段统一返回 null / 空字符串 / 空数组，由前端决定是否覆盖表单。</p>
+     *
+     * <p>注意：课程简介（summary）与课程大纲（syllabus）不在 AI 提取范围内，
+     * 由用户自行撰写。</p>
      */
     @Data
     public static class ParsedFields {
@@ -51,9 +54,5 @@ public class AiParseMaterialResultVO {
         private List<String> keywords;
         /** 目标受众 */
         private String audience;
-        /** 课程简介（短文本） */
-        private String summary;
-        /** 课程大纲（结构化文本） */
-        private String syllabus;
     }
 }

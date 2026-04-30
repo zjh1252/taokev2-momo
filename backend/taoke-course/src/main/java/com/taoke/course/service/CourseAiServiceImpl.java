@@ -65,8 +65,6 @@ public class CourseAiServiceImpl implements CourseAiService {
             - categoryName   (string|null): 一级课程分类名，必须严格从以下候选中选择最匹配的一项，没有把握就留空：[%s]
             - keywords       (array<string>): 提炼最多 3 个关键词，按重要性排序
             - audience       (string): 目标受众（适用人群）
-            - summary        (string): 课程简介，一段话不超过 200 字
-            - syllabus       (string): 课程大纲，按模块/章节列出要点，使用换行表达层级，不要使用 markdown 标记
 
             严格要求：
             1. 输出必须是合法 JSON 对象，键名严格按上面的英文名；
@@ -108,8 +106,6 @@ public class CourseAiServiceImpl implements CourseAiService {
         parsed.setDurationDays(raw.getDurationDays());
         parsed.setTotalHours(raw.getTotalHours());
         parsed.setAudience(blankToNull(raw.getAudience()));
-        parsed.setSummary(blankToNull(raw.getSummary()));
-        parsed.setSyllabus(blankToNull(raw.getSyllabus()));
 
         // 关键词裁切到最多 3 个
         if (raw.getKeywords() != null && !raw.getKeywords().isEmpty()) {
@@ -194,7 +190,5 @@ public class CourseAiServiceImpl implements CourseAiService {
         private String categoryName;
         private List<String> keywords;
         private String audience;
-        private String summary;
-        private String syllabus;
     }
 }

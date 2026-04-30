@@ -203,6 +203,8 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
    *
    * <p>策略：仅在 AI 返回非空时覆盖对应字段；用户主动点击 AI 解析意味着接受自动填充。
    * AI 抽取出的全文同时写入 {@code materialText} state，提交表单时随 SaveCourseRequest 一起回传后端。</p>
+   *
+   * <p>课程简介（summary）与课程大纲（syllabus）不在 AI 回填范围内，由用户自行撰写。</p>
    */
   const handleAiParsed = (parsed: AiParsedFields, fullText: string) => {
     setMaterialText(fullText);
@@ -217,8 +219,6 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
       setKeywords(parsed.keywords.slice(0, 3).join('，'));
     }
     if (parsed.audience) setAudience(parsed.audience);
-    if (parsed.summary) setSummary(parsed.summary);
-    if (parsed.syllabus) setSyllabus(parsed.syllabus);
   };
 
   // ---- 提交 ----
