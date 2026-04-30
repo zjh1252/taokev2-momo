@@ -60,12 +60,12 @@ taoke:
     allow-credentials: false
   # AI 能力（开发环境默认禁用，将 enabled 改为 true 并填入真实 base-url + api-key 后启用）
   ai:
-    enabled: false
-    base-url: https://api.openai.com/v1
-    api-key: ''
-    model: gpt-4o-mini
+    enabled: true
+    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api-key: 'sk-4b2e518d30534adcb6c5f7ea6239c591'
+    model: qwen3.6-plus
     temperature: 0.2
-    timeout-ms: 60000
+    timeout-ms: 1200000
     max-input-chars: 50000
 
 logging:
