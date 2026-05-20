@@ -1,6 +1,7 @@
 package com.taoke.user.dto.trainer;
 
 import com.taoke.user.dto.trainerbook.SaveTrainerBookRequest;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -50,6 +51,17 @@ public class TrainerRequest {
 
     @Size(max = 200, message = "详细地址不超过200个字符")
     private String address;
+
+    /**
+     * 身份证号（18 位）。
+     * <p>专家入驻为实名认证场景，最少在入驻阶段记录该字段；后续 RealName 认证可上传证件照辅助核验。</p>
+     */
+    @Pattern(
+            regexp = "^$|^[1-9]\\d{5}(18|19|20)\\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\\d{3}[0-9Xx]$",
+            message = "身份证号格式不正确"
+    )
+    @Size(max = 32, message = "身份证号不超过32个字符")
+    private String idCardNo;
 
     // ==================== 专业信息 ====================
 

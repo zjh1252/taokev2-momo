@@ -41,14 +41,16 @@ public class RoleApplyServiceImpl implements RoleApplyService {
     );
 
     /**
-     * 提交角色申请（新申请 / 驳回后重新提交）。
+     * 提交角色申请（新申请 / 驳回后重新提交 / 已生效用户主动重审）。
      * <p>
      * 状态流转：
      * <ul>
      *   <li>无记录 → 新建 status=2</li>
      *   <li>status=3（驳回）→ 改回 status=2，清空 rejectReason</li>
+     *   <li>status=1（已生效）→ 改回 status=2，进入「重新审核」流程，
+     *       期间角色仍按 status&ne;1 处理（{@code SecurityUserService} 只加载 status=1 的角色，
+     *       因此用户在审核期间将丧失该角色的自服务权限，与首次申请逻辑保持一致）</li>
      *   <li>status=2 → 抛异常（已有进行中的申请）</li>
-     *   <li>status=1 → 抛异常（已拥有该角色）</li>
      *   <li>status=4 → 抛异常（角色已被禁用）</li>
      * </ul>
      *
@@ -75,8 +77,13 @@ public class RoleApplyServiceImpl implements RoleApplyService {
                 userRole.setRejectReason(null);
                 userRoleRepository.save(userRole);
             }
+            case 1 -> {
+                // 已生效角色重新提交资料 → 进入重新审核
+                userRole.setStatus(2);
+                userRole.setRejectReason(null);
+                userRoleRepository.save(userRole);
+            }
             case 2 -> throw new BusinessException(ErrorCode.ROLE_APPLICATION_PENDING);
-            case 1 -> throw new BusinessException(ErrorCode.ROLE_ALREADY_ACTIVE);
             case 4 -> throw new BusinessException(ErrorCode.ROLE_DISABLED);
             default -> throw new BusinessException(ErrorCode.INTERNAL_ERROR, "未知的角色状态: " + userRole.getStatus());
         }

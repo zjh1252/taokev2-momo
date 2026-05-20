@@ -15,7 +15,7 @@ const AUTO_APPROVE_ROLES: ReadonlySet<ApplyableRole> = new Set<ApplyableRole>([
   'ENTERPRISE_BUYER',
   'ASSISTANT',
 ]);
-import { validateForm, getFirstError, type ValidationError, type FormValidationRules } from '@/lib/validation';
+import { validateForm, getFirstError, type FormValidationRules } from '@/lib/validation';
 import {
   EnterpriseBuyerForm,
   TrainerApplyForm,
@@ -66,8 +66,6 @@ export default function RoleApplyPage({ params }: { params: Promise<{ role: stri
   const { state, setFormData, clearState } = useRoleApplyState();
   const { refreshUser, setActiveRole } = useAuth();
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   const role = roleParam.toUpperCase() as ApplyableRole;
   const roleMeta = APPLYABLE_ROLES.find((r) => r.code === role);
@@ -103,16 +101,12 @@ export default function RoleApplyPage({ params }: { params: Promise<{ role: stri
   };
 
   const handleSubmit = async () => {
-    setError('');
-    setValidationErrors([]);
-
-    // 表单验证
+    // 表单验证：失败时仅 toast 提示，避免顶部红条占位
     const rules = VALIDATION_RULES_MAP[role];
     const validation = validateForm(formData, rules);
     if (!validation.valid) {
-      setValidationErrors(validation.errors);
       const firstError = getFirstError(validation.errors);
-      setError(firstError || '请完善必填信息');
+      toast.error(firstError || '请完善必填信息');
       return;
     }
 
@@ -132,28 +126,21 @@ export default function RoleApplyPage({ params }: { params: Promise<{ role: stri
 
       router.push(`${ROUTES.UC_APPLY_SUCCESS}?role=${role}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '提交失败，请稍后重试');
+      toast.error(err instanceof Error ? err.message : '提交失败，请稍后重试');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <>
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-          {error}
-        </div>
-      )}
-      <ApplyStepLayout
-        role={role}
-        currentStep={1}
-        onBack={handleBack}
-        onSubmit={handleSubmit}
-        submitting={submitting}
-      >
-        <FormComponent data={formData} onChange={handleFormChange} />
-      </ApplyStepLayout>
-    </>
+    <ApplyStepLayout
+      role={role}
+      currentStep={1}
+      onBack={handleBack}
+      onSubmit={handleSubmit}
+      submitting={submitting}
+    >
+      <FormComponent data={formData} onChange={handleFormChange} />
+    </ApplyStepLayout>
   );
 }

@@ -517,6 +517,7 @@ public class TrainerServiceImpl implements TrainerService {
         if (req.getDistrictId() != null) trainer.setDistrictId(req.getDistrictId());
         if (req.getTownId() != null) trainer.setTownId(req.getTownId());
         if (req.getAddress() != null) trainer.setAddress(req.getAddress());
+        if (req.getIdCardNo() != null) trainer.setIdCardNo(req.getIdCardNo());
         if (req.getBio() != null) trainer.setBio(req.getBio());
         if (req.getOneLineIntro() != null) trainer.setOneLineIntro(req.getOneLineIntro());
         if (req.getIntro() != null) trainer.setIntro(req.getIntro());
