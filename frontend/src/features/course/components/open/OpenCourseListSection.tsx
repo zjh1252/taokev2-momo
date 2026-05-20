@@ -13,6 +13,13 @@ interface OpenCourseListSectionProps {
   categoryTree: CategoryTreeNode[];
   initialInstitutionId?: number;
   initialInstitutionName?: string;
+  /**
+   * 锁定的城市 ID 集合（来自 /cities/[pinyin] 跳转），不在左侧筛选器里出现，
+   * 与 institutionId 类似：作为「上下文」固定参与查询；点 chip 上的 X 后跳回 /opencourses 清除。
+   */
+  initialCityIds?: number[];
+  /** 锁定城市的展示名集合，与 initialCityIds 一一对应（chip 文本「开课城市：南通」） */
+  initialCityNames?: string[];
 }
 
 const SORT_OPTIONS = [
@@ -37,11 +44,17 @@ export function OpenCourseListSection({
   categoryTree,
   initialInstitutionId,
   initialInstitutionName,
+  initialCityIds,
+  initialCityNames,
 }: OpenCourseListSectionProps) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
   const [filters, setFilters] = useState<OpenCourseFilterValue>({});
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
+  /** 锁定城市 IDs：来自城市频道页跳转，存在时随每次查询一起送给后端 */
+  const [lockedCityIds, setLockedCityIds] = useState<number[] | undefined>(
+    initialCityIds && initialCityIds.length > 0 ? initialCityIds : undefined,
+  );
   // 排序由顶部排序栏唯一控制
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,6 +88,7 @@ export function OpenCourseListSection({
             sortBy: effectiveSortBy,
             institutionId: instId,
             provinceIds: f.provinceIds,
+            cityIds: lockedCityIds,
             timeQuick: f.timeQuick,
             startTimeFrom: f.startTimeFrom,
             startTimeTo: f.startTimeTo,
@@ -90,7 +104,7 @@ export function OpenCourseListSection({
         }
       });
     },
-    [filters, sortKey, institutionId],
+    [filters, sortKey, institutionId, lockedCityIds],
   );
 
   const handleClearInstitution = useCallback(() => {
@@ -98,6 +112,13 @@ export function OpenCourseListSection({
     fetchData(1, undefined, undefined, null);
     router.replace('/opencourses');
   }, [fetchData, router]);
+
+  /** 清除锁定城市，跳回不带 cityIds 的 /opencourses */
+  const handleClearCity = useCallback(() => {
+    setLockedCityIds(undefined);
+    // 直接路由刷新，重新 SSR 不带 cityIds 的列表，避免与本组件内 fetch 并发争抢
+    router.replace('/opencourses');
+  }, [router]);
 
   const handleFilterChange = useCallback(
     (newFilters: OpenCourseFilterValue) => {
@@ -129,9 +150,20 @@ export function OpenCourseListSection({
     fetchData(1, {}, 'default');
   }, [fetchData]);
 
-  // 当前已激活的过滤 chips（机构、分类、省、时间、价格、报名状态）
+  // 当前已激活的过滤 chips（城市、机构、分类、省、时间、价格、报名状态）
   const activeChips = useMemo<ActiveChip[]>(() => {
     const chips: ActiveChip[] = [];
+    // 锁定城市 chips（从城市频道页跳转而来）
+    if (lockedCityIds && lockedCityIds.length > 0) {
+      lockedCityIds.forEach((id, idx) => {
+        const name = initialCityNames?.[idx] ?? `#${id}`;
+        chips.push({
+          key: `locked-city-${id}`,
+          label: `开课城市：${name}`,
+          onRemove: () => filters,
+        });
+      });
+    }
     if (institutionId && initialInstitutionName) {
       chips.push({
         key: 'institution',
@@ -216,11 +248,15 @@ export function OpenCourseListSection({
       });
     }
     return chips;
-  }, [filters, institutionId, initialInstitutionName]);
+  }, [filters, institutionId, initialInstitutionName, lockedCityIds, initialCityNames]);
 
   const handleRemoveChip = (chip: ActiveChip) => {
     if (chip.key === 'institution') {
       handleClearInstitution();
+      return;
+    }
+    if (chip.key.startsWith('locked-city-')) {
+      handleClearCity();
       return;
     }
     const next = chip.onRemove();

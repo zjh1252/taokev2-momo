@@ -40,3 +40,4 @@ frontend/public/uploads
 
 /docs-new
 AGENTS.md
+*.log

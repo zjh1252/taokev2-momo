@@ -1,12 +1,24 @@
+'use client';
+
 import { Brain, Sparkles, Headphones } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
+import { useAuth } from '@/lib/auth/auth-context';
 
 /**
  * AI 智能匹配培训资源 Banner — 红色背景 + 图标 + 两个 CTA 按钮
+ *
+ * <p>「发布需求」按钮与悬浮栏的发布需求保持一致：未登录跳 /login，已登录跳 /dashboard/demands/create。</p>
  */
 export function AiMatchBanner() {
   const t = useTranslations('home');
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  const gotoPublishDemand = () => {
+    if (loading) return;
+    router.push(user ? '/dashboard/demands/create' : '/login');
+  };
 
   return (
     <section className="bg-primary rounded-lg p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-red-500/10">
@@ -28,13 +40,14 @@ export function AiMatchBanner() {
           <Headphones className="size-5" />
           {t('aiMatch.ctaService')}
         </Link>
-        <Link
-          href="/publish"
-          className="flex-1 md:flex-none bg-primary/80 text-white font-bold px-8 py-4 rounded-lg flex items-center justify-center gap-2 border border-white/20 hover:bg-primary/70 transition-all text-sm"
+        <button
+          type="button"
+          onClick={gotoPublishDemand}
+          className="flex-1 md:flex-none bg-primary/80 text-white font-bold px-8 py-4 rounded-lg flex items-center justify-center gap-2 border border-white/20 hover:bg-primary/70 transition-all text-sm cursor-pointer"
         >
           <Sparkles className="size-5" />
           {t('aiMatch.ctaPublish')}
-        </Link>
+        </button>
       </div>
     </section>
   );

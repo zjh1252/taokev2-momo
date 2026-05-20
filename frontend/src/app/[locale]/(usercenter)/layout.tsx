@@ -1,4 +1,5 @@
 import { AppFooter } from '@/components/layout/app-footer';
+import { FloatingActions } from '@/components/layout/floating-actions';
 import { UserCenterHeader } from '@/features/user-center/components/user-center-header';
 import { UserCenterSidebar } from '@/features/user-center/components/user-center-sidebar';
 import { UserCenterBreadcrumb } from '@/features/user-center/components/user-center-breadcrumb';
@@ -25,6 +26,8 @@ export default function UserCenterLayout({
         <div className="flex-1 min-w-0 flex flex-col gap-6">{children}</div>
       </main>
       <AppFooter />
+      {/* 右侧悬浮工具栏：回到顶部 / 电话 / 智能客服 / 发布需求 — 用户中心同样展示 */}
+      <FloatingActions />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getCourseDetail } from '@/features/course/api/service';
 import { CourseHero } from '@/features/course/components/detail/CourseHero';
 import { CourseSidebar } from '@/features/course/components/detail/CourseSidebar';
@@ -42,6 +43,14 @@ export default async function OpenCourseDetailPage({ params }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-6">
+      {/* 面包屑导航 — 首页 > 公开课 > 当前课程 */}
+      <PageBreadcrumb
+        items={[
+          { label: '公开课', href: '/opencourses' },
+          { label: course.title || '公开课详情' },
+        ]}
+      />
+
       <CourseHero course={course} />
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">

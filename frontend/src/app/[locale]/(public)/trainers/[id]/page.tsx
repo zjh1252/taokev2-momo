@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import {
   getTrainerDetail,
   getTrainerCourses,
@@ -57,6 +58,14 @@ export default async function TrainerDetailPage({ params }: Props) {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-6 space-y-6">
+      {/* 面包屑导航 — 首页 > 培训专家 > 当前专家 */}
+      <PageBreadcrumb
+        items={[
+          { label: '培训专家', href: '/trainers' },
+          { label: trainer.name || '专家详情' },
+        ]}
+      />
+
       <TrainerHero trainer={trainer} />
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_280px] xl:grid-cols-[1fr_300px] gap-6 items-start">

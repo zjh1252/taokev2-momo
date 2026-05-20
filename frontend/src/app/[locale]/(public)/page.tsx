@@ -15,6 +15,8 @@ import {
   upcomingPublicCourses,
 } from '@/features/home/data/mock';
 import { getCategoryTree } from '@/features/course/api/service';
+import { getActiveCities } from '@/features/city/api/service';
+import { CityChannelCard } from '@/features/city/components/CityChannelCard';
 
 export async function generateMetadata() {
   const t = await getTranslations('common');
@@ -22,11 +24,14 @@ export async function generateMetadata() {
 }
 
 /**
- * 首页 — SSR，分类侧栏已接入后端 API，其他区块仍使用 mock
+ * 首页 — SSR，分类侧栏与城市频道已接入后端 API，其他区块仍使用 mock
  * TODO: 将其余 mock 数据替换为 fetch('/api/...') 调用
  */
 export default async function HomePage() {
-  const expertiseCategories = await getCategoryTree('TRAINER_EXPERTISE').catch(() => []);
+  const [expertiseCategories, activeCities] = await Promise.all([
+    getCategoryTree('TRAINER_EXPERTISE').catch(() => []),
+    getActiveCities(9).catch(() => []),
+  ]);
 
   const experts = featuredExperts;
   const cases = featuredCases;
@@ -41,7 +46,12 @@ export default async function HomePage() {
       <CasesSection cases={cases} />
       <CoursesSection courses={internalCourses} />
       <PublicCoursesSection courses={publicCourses} />
-      <AiEngagementBanner />
+
+      {/* 底部：左侧 banner（70%）+ 右侧城市频道入口（30%），fr 比例分配以避开 gap 引起的溢出 */}
+      <section className="grid grid-cols-1 lg:grid-cols-[7fr_3fr] gap-4 items-stretch">
+        <AiEngagementBanner />
+        <CityChannelCard cities={activeCities} />
+      </section>
     </div>
   );
 }
