@@ -163,6 +163,7 @@ export default function AccountBasePage() {
           {savingProfile ? '保存中...' : '保存基础信息'}
         </button>
       </div>
+
     </section>
   );
 }

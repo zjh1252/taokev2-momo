@@ -215,10 +215,21 @@ export default function AccountSwitchPage() {
                       </span>
                     )}
                     {isRejected && (
-                      <span className="inline-flex items-center gap-1 text-red-600 font-medium">
-                        <span className="size-1.5 rounded-full bg-red-500" />
-                        已驳回
-                      </span>
+                      <>
+                        <span className="inline-flex items-center gap-1 text-red-600 font-medium">
+                          <span className="size-1.5 rounded-full bg-red-500" />
+                          已驳回
+                        </span>
+                        {applyableRoleCodes.has(role.code) && (
+                          <button
+                            type="button"
+                            onClick={() => handleApply(role.code)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-primary border border-primary/40 hover:bg-primary hover:text-white font-medium cursor-pointer transition-colors"
+                          >
+                            重新申请
+                          </button>
+                        )}
+                      </>
                     )}
                     {!isActive && !isPending && !isRejected && applyableRoleCodes.has(role.code) && (
                       <button

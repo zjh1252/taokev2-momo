@@ -1,5 +1,4 @@
-import { Link } from '@/i18n/navigation';
-import { ChevronRight } from 'lucide-react';
+import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { InstitutionListSection } from '@/features/institution/components/list/InstitutionListSection';
 import { getInstitutionList } from '@/features/institution/api/service';
 
@@ -24,14 +23,8 @@ export default async function AssociationsPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
-      <nav className="flex text-sm text-slate-500 gap-2 items-center">
-        <span>你的位置：</span>
-        <Link href="/" className="hover:text-primary transition-colors">
-          首页
-        </Link>
-        <ChevronRight className="size-4" />
-        <span className="text-slate-800 font-medium">培训协会</span>
-      </nav>
+      {/* 面包屑导航 — 公共组件 */}
+      <PageBreadcrumb items={[{ label: '培训协会' }]} />
 
       <InstitutionListSection
         initialData={initialData}

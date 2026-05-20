@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
-import { GraduationCap } from 'lucide-react';
 import { ROUTES } from '@/config/routes';
 import { SearchBar } from './search-bar';
 
@@ -28,10 +28,17 @@ export function AppHeader() {
   return (
     <nav className="h-[80px] w-full bg-white/90 backdrop-blur-md sticky top-[29px] z-40 shadow-sm px-8 flex flex-col justify-center transition-all duration-300">
       <div className="max-w-7xl w-full mx-auto flex items-center justify-between h-full">
-        {/* 左侧：Logo */}
+        {/* 左侧：Logo（新版品牌 logo + 文字标题） */}
         <div className="flex items-center gap-6 shrink-0">
           <Link href={ROUTES.HOME} className="flex items-center gap-2">
-            <GraduationCap className="size-8 text-primary" strokeWidth={2.5} />
+            <Image
+              src="/statics/images/taoke-new-logo.jpg"
+              alt="淘课网 Logo"
+              width={40}
+              height={40}
+              className="size-10 rounded-md object-contain"
+              priority
+            />
             <span className="text-2xl font-black tracking-tighter text-slate-900">
               淘课网
             </span>

@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
-import { Link } from '@/i18n/navigation';
-import { ChevronRight } from 'lucide-react';
+import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { SearchResultSection } from '@/features/search/components/SearchResultSection';
 
 export async function generateMetadata() {
@@ -14,14 +13,8 @@ export default async function SearchPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
-      <nav className="flex text-sm text-slate-500 gap-2 items-center">
-        <span>你的位置：</span>
-        <Link href="/" className="hover:text-primary transition-colors">
-          首页
-        </Link>
-        <ChevronRight className="size-4" />
-        <span className="text-slate-800 font-medium">{t('breadcrumb')}</span>
-      </nav>
+      {/* 面包屑导航 — 公共组件 */}
+      <PageBreadcrumb items={[{ label: t('breadcrumb') }]} />
 
       <Suspense fallback={<SearchSkeleton />}>
         <SearchResultSection />

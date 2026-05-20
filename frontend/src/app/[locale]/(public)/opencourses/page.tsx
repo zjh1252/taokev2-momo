@@ -1,12 +1,17 @@
 import { getTranslations } from 'next-intl/server';
-import { Link } from '@/i18n/navigation';
-import { ChevronRight } from 'lucide-react';
+import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { OpenCourseListSection } from '@/features/course/components/open/OpenCourseListSection';
 import { getCourseList, getCourseCategoryTree } from '@/features/course/api/service';
 import { getInstitutionDetail } from '@/features/institution/api/service';
 
 interface Props {
-  searchParams: Promise<{ institutionId?: string }>;
+  searchParams: Promise<{
+    institutionId?: string;
+    /** 锁定城市 ID（来自 /cities/[pinyin] 跳转，单选） */
+    cityIds?: string | string[];
+    /** 锁定城市展示名（与 cityIds 一一对应） */
+    cityName?: string | string[];
+  }>;
 }
 
 export async function generateMetadata() {
@@ -17,10 +22,26 @@ export async function generateMetadata() {
   };
 }
 
+/** searchParams 里 cityIds 可能是 string 或 string[]，归一化为 number[] */
+function normalizeCityIds(raw: string | string[] | undefined): number[] {
+  if (!raw) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr
+    .map((s) => Number(s))
+    .filter((n) => Number.isFinite(n) && n > 0);
+}
+
+function normalizeCityNames(raw: string | string[] | undefined): string[] {
+  if (!raw) return [];
+  return Array.isArray(raw) ? raw : [raw];
+}
+
 export default async function OpenCoursesPage({ searchParams }: Props) {
   const sp = await searchParams;
   const institutionId = sp.institutionId ? Number(sp.institutionId) : undefined;
   const validInstitutionId = institutionId && !isNaN(institutionId) ? institutionId : undefined;
+  const cityIds = normalizeCityIds(sp.cityIds);
+  const cityNames = normalizeCityNames(sp.cityName);
 
   const [initialData, categoryTree, institution] = await Promise.all([
     getCourseList({
@@ -28,6 +49,7 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
       size: 15,
       isOpen: true,
       institutionId: validInstitutionId,
+      cityIds: cityIds.length > 0 ? cityIds : undefined,
     }).catch(() => ({
       list: [],
       total: 0,
@@ -43,21 +65,16 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
-      {/* 面包屑导航 */}
-      <nav className="flex text-sm text-slate-500 gap-2 items-center">
-        <span>你的位置：</span>
-        <Link href="/" className="hover:text-primary transition-colors">
-          首页
-        </Link>
-        <ChevronRight className="size-4" />
-        <span className="text-slate-800 font-medium">公开课</span>
-      </nav>
+      {/* 面包屑导航 — 公共组件 */}
+      <PageBreadcrumb items={[{ label: '公开课' }]} />
 
       <OpenCourseListSection
         initialData={initialData}
         categoryTree={categoryTree}
         initialInstitutionId={validInstitutionId}
         initialInstitutionName={institution?.orgName}
+        initialCityIds={cityIds.length > 0 ? cityIds : undefined}
+        initialCityNames={cityNames.length > 0 ? cityNames : undefined}
       />
     </main>
   );

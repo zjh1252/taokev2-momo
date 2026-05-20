@@ -8,14 +8,37 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
  */
 export const USE_SECURE_COOKIE = process.env.COOKIE_SECURE === 'true';
 
+/** 统一响应体结构 */
+export interface ApiResponseBody<T> {
+  code: number;
+  message: string;
+  data: T;
+}
+
 /**
- * 服务端 fetch 封装，自动携带 accessToken 并处理后端统一响应格式
- * 仅用于 Route Handler / Server Component
+ * 服务端 fetch 封装，自动携带 accessToken 并解析后端统一响应。
+ * <p>仅用于 Route Handler / Server Component。当后端返回非 2xx 时仍返回业务体，
+ * 由调用方判断；若需要把后端 HTTP status 透传给浏览器，请改用
+ * {@link serverFetchWithStatus}。</p>
  */
 export async function serverFetch<T>(
   endpoint: string,
   options?: RequestInit
-): Promise<{ code: number; message: string; data: T }> {
+): Promise<ApiResponseBody<T>> {
+  const { body } = await serverFetchWithStatus<T>(endpoint, options);
+  return body;
+}
+
+/**
+ * 带 HTTP status 的服务端 fetch。
+ * <p>BFF Route Handler 用这个版本可以把后端的 4xx/5xx 透传给浏览器，
+ * 避免错误被 {@code NextResponse.json(body)} 包成默认 200，
+ * 导致前端 mutation 进不了 onError、toast 看不到具体错误。</p>
+ */
+export async function serverFetchWithStatus<T>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<{ status: number; body: ApiResponseBody<T> }> {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('access_token')?.value;
 
@@ -33,6 +56,16 @@ export async function serverFetch<T>(
     headers
   });
 
-  const json = await res.json();
-  return json;
+  // 业务异常也带 JSON body，统一用 .json()；解析失败时降级为通用错误体
+  let body: ApiResponseBody<T>;
+  try {
+    body = (await res.json()) as ApiResponseBody<T>;
+  } catch {
+    body = {
+      code: res.status === 404 ? 90002 : -1,
+      message: `后端响应解析失败（HTTP ${res.status}）`,
+      data: undefined as unknown as T,
+    };
+  }
+  return { status: res.status, body };
 }

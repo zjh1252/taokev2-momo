@@ -114,6 +114,8 @@ export interface TrainerFormData {
   gender: number;
   phone: string;
   email: string;
+  /** 身份证号（18 位，专家入驻时必填，用于后续实名认证） */
+  idCardNo: string;
   provinceId: number | null;
   cityId: number | null;
   districtId: number | null;

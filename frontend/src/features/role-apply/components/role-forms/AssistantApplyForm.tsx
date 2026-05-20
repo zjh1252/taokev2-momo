@@ -9,6 +9,8 @@ import type { FormValidationRules } from '@/lib/validation';
 import { Validators } from '@/lib/validation';
 import ServiceCitiesEditor from '../ServiceCitiesEditor';
 import AgreementCheckbox from '../AgreementCheckbox';
+import { useProfilePrefill } from '../../hooks/useProfilePrefill';
+import { getMyAssistantProfileAsForm } from '../../api/service';
 
 interface AssistantApplyFormProps {
   data: Partial<AssistantFormData>;
@@ -27,6 +29,15 @@ interface AssistantApplyFormProps {
 export function AssistantApplyForm({ data, onChange }: AssistantApplyFormProps) {
   const { user } = useAuth();
   const update = (patch: Partial<AssistantFormData>) => onChange({ ...data, ...patch });
+
+  // 已生效（status=1）的助理用户进入「修改资料」流程时自动回填档案
+  useProfilePrefill<AssistantFormData>({
+    role: 'ASSISTANT',
+    data,
+    onChange,
+    fetcher: getMyAssistantProfileAsForm,
+    isEmpty: (d) => !d.realName && !d.email,
+  });
 
   useEffect(() => {
     if (!data.contactPhone && user?.phone) {

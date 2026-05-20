@@ -37,3 +37,7 @@ tmp
 
 frontend/public/uploads
 .claude/worktrees
+
+/docs-new
+AGENTS.md
+*.log

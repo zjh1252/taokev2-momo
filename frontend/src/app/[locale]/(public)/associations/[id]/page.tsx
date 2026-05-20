@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
-import { Link } from '@/i18n/navigation';
-import { ChevronRight } from 'lucide-react';
+import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getInstitutionDetail } from '@/features/institution/api/service';
 import { InstitutionHero } from '@/features/institution/components/detail/InstitutionHero';
 import { InstitutionDetailTabs } from '@/features/institution/components/detail/InstitutionDetailTabs';
@@ -43,18 +42,14 @@ export default async function AssociationDetailPage({ params }: Props) {
 
   return (
     <main className="max-w-7xl w-full mx-auto px-8 pb-12">
-      <nav className="flex items-center text-xs text-slate-500 py-4">
-        <span className="mr-2">你的位置：</span>
-        <Link href="/" className="hover:text-primary transition-colors">
-          首页
-        </Link>
-        <ChevronRight className="size-3 mx-1" />
-        <Link href="/associations" className="hover:text-primary transition-colors">
-          培训协会
-        </Link>
-        <ChevronRight className="size-3 mx-1" />
-        <span className="text-slate-800 font-medium">{institution.orgName}</span>
-      </nav>
+      {/* 面包屑导航 — 公共组件：首页 > 培训协会 > 当前协会 */}
+      <PageBreadcrumb
+        className="py-4"
+        items={[
+          { label: '培训协会', href: '/associations' },
+          { label: institution.orgName || '协会详情' },
+        ]}
+      />
 
       <div className="flex flex-col gap-6">
         <InstitutionHero institution={institution} />

@@ -37,6 +37,8 @@ public class TrainerResponse {
     private Integer districtId;
     private Integer townId;
     private String address;
+    /** 身份证号（专家本人可见，用于回写表单） */
+    private String idCardNo;
 
     // ==================== 专业信息 ====================
 

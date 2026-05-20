@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { Link } from '@/i18n/navigation';
-import { ChevronRight } from 'lucide-react';
+import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getVideoDetail } from '@/features/video/api/service';
 import { VideoDetailShell } from '@/features/video/components/detail/VideoDetailShell';
 import { VideoHero } from '@/features/video/components/detail/VideoHero';
@@ -39,19 +38,13 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
-      {/* 面包屑 */}
-      <nav className="flex text-sm text-slate-500 gap-2 items-center">
-        <span>你的位置：</span>
-        <Link href="/" className="hover:text-primary transition-colors">
-          首页
-        </Link>
-        <ChevronRight className="size-4" />
-        <Link href="/videos" className="hover:text-primary transition-colors">
-          录播课
-        </Link>
-        <ChevronRight className="size-4" />
-        <span className="text-slate-800 font-medium line-clamp-1">{video.title}</span>
-      </nav>
+      {/* 面包屑导航 — 公共组件：首页 > 录播课 > 当前视频 */}
+      <PageBreadcrumb
+        items={[
+          { label: '录播课', href: '/videos' },
+          { label: video.title || '录播课详情' },
+        ]}
+      />
 
       <VideoDetailShell video={video}>
         {/* Hero：内嵌 Video.js，与目录共用播放源 */}

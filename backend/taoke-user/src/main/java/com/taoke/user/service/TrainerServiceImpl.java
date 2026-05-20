@@ -55,6 +55,8 @@ public class TrainerServiceImpl implements TrainerService {
     private final RoleApplyService roleApplyService;
     private final CategoryService categoryService;
     private final RegionService regionService;
+    /** 头像统一存到 sys_users.avatar_url，保存专家档案时一并更新 User 表 */
+    private final UserRepository userRepository;
 
     @Override
     public TrainerResponse getByUserId(Integer userId) {
@@ -506,7 +508,13 @@ public class TrainerServiceImpl implements TrainerService {
 
         if (req.getName() != null) trainer.setName(req.getName());
         if (req.getTeachingName() != null) trainer.setTeachingName(req.getTeachingName());
-        if (req.getAvatar() != null) trainer.setAvatar(req.getAvatar());
+        // 头像统一写到 sys_users.avatar_url；trainer.avatar 字段不再写入（V65 后弃用）
+        if (req.getAvatar() != null) {
+            userRepository.findById(userId).ifPresent(u -> {
+                u.setAvatarUrl(req.getAvatar());
+                userRepository.save(u);
+            });
+        }
         if (req.getTitle() != null) trainer.setTitle(req.getTitle());
         if (req.getGender() != null) trainer.setGender(req.getGender());
         if (req.getPhone() != null) trainer.setPhone(req.getPhone());
@@ -517,6 +525,7 @@ public class TrainerServiceImpl implements TrainerService {
         if (req.getDistrictId() != null) trainer.setDistrictId(req.getDistrictId());
         if (req.getTownId() != null) trainer.setTownId(req.getTownId());
         if (req.getAddress() != null) trainer.setAddress(req.getAddress());
+        if (req.getIdCardNo() != null) trainer.setIdCardNo(req.getIdCardNo());
         if (req.getBio() != null) trainer.setBio(req.getBio());
         if (req.getOneLineIntro() != null) trainer.setOneLineIntro(req.getOneLineIntro());
         if (req.getIntro() != null) trainer.setIntro(req.getIntro());
@@ -560,6 +569,14 @@ public class TrainerServiceImpl implements TrainerService {
     private TrainerResponse assembleFullResponse(Trainer trainer) {
         TrainerResponse response = trainerMapper.toResponse(trainer);
         Integer trainerId = trainer.getId();
+
+        // 头像统一以 sys_users.avatar_url 为准（覆盖 mapper 从 trainer.avatar 同步过来的旧值）
+        if (trainer.getUserId() != null) {
+            userRepository.findById(trainer.getUserId())
+                    .map(User::getAvatarUrl)
+                    .filter(s -> s != null && !s.isBlank())
+                    .ifPresent(response::setAvatar);
+        }
 
         response.setEducations(
                 trainerMapper.toEducationDTOList(educationRepository.findByTrainerIdOrderBySortOrder(trainerId)));

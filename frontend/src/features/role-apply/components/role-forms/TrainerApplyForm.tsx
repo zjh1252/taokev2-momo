@@ -17,14 +17,17 @@ import { Validators } from '@/lib/validation';
 import { ResumeUploader } from '../ResumeUploader';
 import { CategoryMultiSelect } from '../CategoryMultiSelect';
 import { TrainerBooksEditor } from '../TrainerBooksEditor';
-import type { ResumeParseResult } from '../../api/service';
+import { getMyTrainerProfileAsForm, type ResumeParseResult } from '../../api/service';
+import { useProfilePrefill } from '../../hooks/useProfilePrefill';
 
 const GENDER_OPTIONS = [
   { value: 1, label: '男' },
   { value: 2, label: '女' },
 ];
 
-const QUOTE_UNIT_OPTIONS = ['元/天', '元/半天', '元/小时', '面议'];
+/** 18 位身份证号格式正则（前 6 位地区码、4 位年份 18/19/20、月份、日期、3 位序号、最后 1 位校验码 0-9 或 X/x） */
+const ID_CARD_REGEX =
+  /^[1-9]\d{5}(18|19|20)\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$/;
 
 interface TrainerApplyFormProps {
   data: Partial<TrainerFormData>;
@@ -66,6 +69,15 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
       onChange({ ...data, phone: user.phone });
     }
   }, [user?.phone]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 已生效（status=1）的专家用户进入「修改资料」流程时自动回填档案
+  useProfilePrefill<TrainerFormData>({
+    role: 'TRAINER',
+    data,
+    onChange,
+    fetcher: getMyTrainerProfileAsForm,
+    isEmpty: (d) => !d.name && !d.teachingName && !d.idCardNo,
+  });
 
   // 简历解析回填：仅覆盖空字段，避免覆盖用户已编辑的内容
   const handleParsed = (result: ResumeParseResult) => {
@@ -240,11 +252,28 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
                 className="form-input"
               />
             </FormField>
+            <div className="md:col-span-2">
+              <FormField label="身份证号" required>
+                <input
+                  type="text"
+                  value={data.idCardNo || ''}
+                  onChange={(e) => update({ idCardNo: e.target.value.trim() })}
+                  placeholder="18 位身份证号"
+                  maxLength={18}
+                  className="form-input"
+                  inputMode="text"
+                  autoComplete="off"
+                />
+                <div className="text-xs text-gray-400 mt-1">
+                  用于实名认证，提交后将妥善保密
+                </div>
+              </FormField>
+            </div>
           </div>
         </div>
       </fieldset>
 
-      {/* 常驻城市 */}
+      {/* 常驻城市（省/市必填，区县选填） */}
       <fieldset>
         <legend className="text-base font-bold text-gray-900 mb-4 pb-2 border-b border-slate-100">
           常驻城市
@@ -252,18 +281,23 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
         <div className="grid grid-cols-1 gap-y-4">
           <FormField label="请选择常驻城市" required>
             <RegionCascader
-              maxLevel={2}
+              maxLevel={3}
               value={{
                 provinceId: data.provinceId ?? undefined,
                 cityId: data.cityId ?? undefined,
+                districtId: data.districtId ?? undefined,
               }}
               onChange={(val: RegionValue) =>
                 update({
                   provinceId: val.provinceId ?? null,
                   cityId: val.cityId ?? null,
+                  districtId: val.districtId ?? null,
                 })
               }
             />
+            <div className="text-xs text-gray-400 mt-1">
+              省 / 市必选；区 / 县可选
+            </div>
           </FormField>
         </div>
       </fieldset>
@@ -386,50 +420,13 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
         />
       </fieldset>
 
-      {/* 报价信息 */}
+      {/* 报价信息 — 与「淘课网售价/课酬」语义重合的「最低/最高报价 + 报价单位」三字段已下线，
+          数据库列 quote_min / quote_max / quote_unit 保留以兼容历史数据，不再通过表单收集。 */}
       <fieldset>
         <legend className="text-base font-bold text-gray-900 mb-4 pb-2 border-b border-slate-100">
           报价信息
         </legend>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-          <FormField label="最低报价">
-            <input
-              type="number"
-              min={0}
-              value={data.quoteMin ?? ''}
-              onChange={(e) =>
-                update({ quoteMin: e.target.value ? Number(e.target.value) : null })
-              }
-              placeholder="￥"
-              className="form-input"
-            />
-          </FormField>
-          <FormField label="最高报价">
-            <input
-              type="number"
-              min={0}
-              value={data.quoteMax ?? ''}
-              onChange={(e) =>
-                update({ quoteMax: e.target.value ? Number(e.target.value) : null })
-              }
-              placeholder="￥"
-              className="form-input"
-            />
-          </FormField>
-          <FormField label="报价单位">
-            <select
-              value={data.quoteUnit || ''}
-              onChange={(e) => update({ quoteUnit: e.target.value })}
-              className="form-input"
-            >
-              <option value="">请选择</option>
-              {QUOTE_UNIT_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </FormField>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           <FormField label="淘课网售价（元/天）" required>
             <input
               type="number"
@@ -456,7 +453,7 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
               className="form-input"
             />
           </FormField>
-          <div className="md:col-span-3">
+          <div className="md:col-span-2">
             <FormField label="报价备注">
               <input
                 type="text"
@@ -516,6 +513,14 @@ export const TRAINER_RULES: FormValidationRules<TrainerFormData> = {
     validator: Validators.phone,
   },
   email: { required: true, requiredMessage: '请输入常用邮箱' },
+  idCardNo: {
+    required: true,
+    requiredMessage: '请输入身份证号',
+    validator: (value) =>
+      typeof value === 'string' && ID_CARD_REGEX.test(value)
+        ? undefined
+        : '身份证号格式不正确，请输入 18 位身份证',
+  },
   provinceId: { required: true, requiredMessage: '请选择省份' },
   cityId: { required: true, requiredMessage: '请选择城市' },
   oneLineIntro: { required: true, requiredMessage: '请填写一句话介绍' },

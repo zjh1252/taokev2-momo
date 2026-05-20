@@ -21,6 +21,9 @@ public interface RegionRepository extends JpaRepository<Region, Integer> {
     /** 按区划编码精确查询 */
     Optional<Region> findByCode(String code);
 
+    /** 按拼音（en_name）精确查询，主要用于城市频道页路由解析 */
+    Optional<Region> findByEnName(String enName);
+
     /** 按名称模糊搜索，可选限定层级，限制返回条数 */
     @Query("SELECT r FROM Region r WHERE r.name LIKE %:keyword% "
             + "AND (:level IS NULL OR r.level = :level) "

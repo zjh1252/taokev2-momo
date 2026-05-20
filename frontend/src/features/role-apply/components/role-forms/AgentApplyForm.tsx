@@ -11,8 +11,11 @@ import {
   type EnterpriseAgentLookupItem,
 } from '@/features/agent/api/service';
 import { Building2, Loader2, Check } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 import ServiceCitiesEditor from '../ServiceCitiesEditor';
 import AgreementCheckbox from '../AgreementCheckbox';
+import { useProfilePrefill } from '../../hooks/useProfilePrefill';
+import { getMyAgentProfileAsForm } from '../../api/service';
 
 interface AgentApplyFormProps {
   data: Partial<AgentFormData>;
@@ -31,6 +34,15 @@ interface AgentApplyFormProps {
 export function AgentApplyForm({ data, onChange }: AgentApplyFormProps) {
   const { user } = useAuth();
   const update = (patch: Partial<AgentFormData>) => onChange({ ...data, ...patch });
+
+  // 已生效（status=1）的经纪人用户进入「修改资料」流程时自动回填档案
+  useProfilePrefill<AgentFormData>({
+    role: 'AGENT',
+    data,
+    onChange,
+    fetcher: getMyAgentProfileAsForm,
+    isEmpty: (d) => !d.realName && !d.email,
+  });
 
   // 自动以用户注册手机号兜底「联系电话」
   useEffect(() => {
@@ -131,9 +143,12 @@ function EnterpriseAgentPicker({
   const [loading, setLoading] = useState(false);
   const [picked, setPicked] = useState<EnterpriseAgentLookupItem | null>(null);
   const [open, setOpen] = useState(false);
+  /** 是否至少触发过一次搜索，用于决定是否展示「未匹配 → 去申请」CTA */
+  const [searched, setSearched] = useState(false);
 
   const search = useCallback(async (kw: string) => {
     setLoading(true);
+    setSearched(true);
     try {
       const data = await lookupEnterpriseAgents(kw, 20);
       setList(data);
@@ -142,15 +157,16 @@ function EnterpriseAgentPicker({
     }
   }, []);
 
-  useEffect(() => {
-    search('');
-  }, [search]);
+  // 取消默认 useEffect 自动搜索 — 只在用户点搜索按钮或回车时才发起请求
 
   const handlePick = (it: EnterpriseAgentLookupItem) => {
     setPicked(it);
     onPick(it);
     setOpen(false);
   };
+
+  // 已搜索过 + 列表为空 → 显示「申请专家经纪公司」CTA
+  const showEmptyCta = open && !loading && searched && list.length === 0;
 
   return (
     <div>
@@ -172,7 +188,9 @@ function EnterpriseAgentPicker({
             onClick={() => {
               setPicked(null);
               onPick(null);
-              setOpen(true);
+              setOpen(false);
+              setSearched(false);
+              setList([]);
             }}
             className="text-xs text-primary hover:underline shrink-0"
           >
@@ -186,9 +204,14 @@ function EnterpriseAgentPicker({
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), search(keyword), setOpen(true))}
-              onFocus={() => setOpen(true)}
-              placeholder="输入公司编号或公司名称"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  search(keyword);
+                  setOpen(true);
+                }
+              }}
+              placeholder="输入公司名称，点击搜索"
               className="form-input flex-1"
             />
             <button
@@ -208,8 +231,16 @@ function EnterpriseAgentPicker({
                 <div className="flex items-center justify-center py-6 text-gray-400 text-sm">
                   <Loader2 className="size-4 animate-spin mr-2" /> 加载中…
                 </div>
-              ) : list.length === 0 ? (
-                <div className="text-center text-sm text-gray-400 py-6">未找到匹配的经纪公司</div>
+              ) : showEmptyCta ? (
+                <div className="px-4 py-5 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="text-sm text-gray-500">未找到匹配的经纪公司</div>
+                  <Link
+                    href="/dashboard/apply/ENTERPRISE_AGENT"
+                    className="inline-flex items-center gap-1 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90"
+                  >
+                    申请专家经纪公司
+                  </Link>
+                </div>
               ) : (
                 list.map((it) => (
                   <button

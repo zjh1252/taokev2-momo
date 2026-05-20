@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { storage } from '@/lib/storage';
 import { useAuth } from '@/lib/auth/auth-context';
 import type { ApplyableRole } from '../api/types';
@@ -35,6 +35,24 @@ export function useRoleApplyState() {
     const saved = storage.get<RoleApplyState>(storageKey(uid));
     return saved || { selectedRole: null, formData: {} };
   });
+
+  /**
+   * 已水合的 uid — 避免 user 异步加载导致首次 mount 时 uid=undefined
+   * 读到 `_anon` key、而 switch 页写入的是 `_{userId}` key 的不一致问题。
+   *
+   * <p>当 uid 从 undefined 变为真实 ID 时，用真实用户的 storage 数据补一次
+   * setStateInner，让从其它页面 push 进来的 formData 能正确回填到表单。</p>
+   */
+  const hydratedUidRef = useRef<number | undefined>(uid);
+  useEffect(() => {
+    if (uid === undefined) return;
+    if (hydratedUidRef.current === uid) return;
+    hydratedUidRef.current = uid;
+    const saved = storage.get<RoleApplyState>(storageKey(uid));
+    if (saved) {
+      setStateInner(saved);
+    }
+  }, [uid]);
 
   const persist = useCallback((next: RoleApplyState) => {
     storage.set(storageKey(uid), next);

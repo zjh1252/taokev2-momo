@@ -278,6 +278,11 @@ function AgentCard({
               {getDisplayStatusLabel(item)}
             </span>
           </div>
+          {/* 真实姓名 / 电话：与 my-employees / my-experts / my-agents 保持一致；无值占位为空 */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 mt-1">
+            <span>真实姓名：{item.counterpartRealName || ''}</span>
+            <span>电话：{item.counterpartPhone || ''}</span>
+          </div>
           <div className="text-xs text-gray-400 mt-1">
             {item.ifInitiator ? '我方发起邀请' : '对方发起申请'} · {item.createdAt?.slice(0, 10)}
           </div>

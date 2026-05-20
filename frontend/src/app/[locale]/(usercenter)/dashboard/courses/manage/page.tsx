@@ -335,24 +335,27 @@ function CourseCard({
 
       {/* 操作按钮 */}
       <div className="flex flex-col gap-2 shrink-0 justify-center">
+        {/* 编辑：除「待审核」外的所有状态都允许编辑；后端 update 时若原状态为
+            PUBLISHED/UNPUBLISHED 等会自动回到 PENDING 走重新审核 */}
+        {!isPending && (
+          <Link
+            href={`/dashboard/courses/${course.id}/edit`}
+            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
+            title={isPublished ? '编辑后将回到待审核状态' : undefined}
+          >
+            <Edit className="size-3.5" />
+            编辑
+          </Link>
+        )}
         {(isDraft || isRejected) && (
-          <>
-            <Link
-              href={`/dashboard/courses/${course.id}/edit`}
-              className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
-            >
-              <Edit className="size-3.5" />
-              编辑
-            </Link>
-            <button
-              type="button"
-              onClick={() => onSubmit(course.id)}
-              className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-primary text-white hover:bg-primary/90 transition-colors"
-            >
-              <Send className="size-3.5" />
-              提交审核
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => onSubmit(course.id)}
+            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-primary text-white hover:bg-primary/90 transition-colors"
+          >
+            <Send className="size-3.5" />
+            提交审核
+          </button>
         )}
         {isPublished && (
           <button

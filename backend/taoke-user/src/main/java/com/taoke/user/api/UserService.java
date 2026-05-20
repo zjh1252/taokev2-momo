@@ -86,4 +86,37 @@ public interface UserService {
      * @return 用户列表
      */
     List<User> findAllByIds(List<Integer> ids);
+
+    /**
+     * 注销账号（硬删除）。
+     * <p>会同步删除：</p>
+     * <ul>
+     *   <li>sys_users 本身（不留 status=3 标记，直接物理删除）</li>
+     *   <li>sys_user_roles 所有角色记录</li>
+     *   <li>用户作为「主体」的各业务子表（user_trainers / user_agents / user_assistants /
+     *       user_enterprise_agents / user_institutions / user_institution_employees /
+     *       user_buyers / user_enterprise_buyers）</li>
+     *   <li>所有绑定关系（agent_trainer / assistant_trainer / institution_trainer /
+     *       institution_employee / enterprise_agent_trainer / enterprise_agent_member）</li>
+     * </ul>
+     * <p>OSS 文件等远端资源暂不联动删除，仅删除数据库记录。</p>
+     *
+     * @throws com.taoke.common.exception.BusinessException 当账号下仍有进行中的订单、已上架课程、
+     *                                                     待结算提现等阻断业务时拒绝注销
+     */
+    void deleteOwnAccount(Integer userId);
+
+    /**
+     * 注销单一身份（硬删除）。
+     * <p>仅可注销非默认 BUYER 角色，会删除：</p>
+     * <ul>
+     *   <li>sys_user_roles 中该角色记录</li>
+     *   <li>对应业务子表记录</li>
+     *   <li>该角色相关的绑定关系</li>
+     * </ul>
+     *
+     * @param userId   当前用户 ID
+     * @param roleCode 要注销的角色编码（如 TRAINER / AGENT / ...）
+     */
+    void withdrawRole(Integer userId, String roleCode);
 }

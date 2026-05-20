@@ -29,6 +29,13 @@ public class Region extends BaseEntity {
     @Column(name = "name", nullable = false, length = 765)
     private String name;
 
+    /**
+     * 行政区拼音（用于 URL 路由，仅省/市两级回填）。
+     * <p>区/县/街道级（level>=3）为 NULL；直辖市下「市辖区」用「省级拼音-1」形式（如 beijing-1）以保证唯一。</p>
+     */
+    @Column(name = "en_name", length = 80)
+    private String enName;
+
     /** 父级区划编码，顶级省份的 parentCode 为 "0" */
     @Column(name = "parent_code", nullable = false, columnDefinition = "CHAR(36)")
     private String parentCode;

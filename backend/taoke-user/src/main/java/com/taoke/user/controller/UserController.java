@@ -52,4 +52,18 @@ public class UserController {
         userService.changePhone(SecurityUtils.getRequiredUserId(), request);
         return ApiResponse.ok(null);
     }
+
+    @Operation(summary = "注销账号（硬删除当前用户全部记录）")
+    @DeleteMapping("/users/me")
+    public ApiResponse<Void> deleteOwnAccount() {
+        userService.deleteOwnAccount(SecurityUtils.getRequiredUserId());
+        return ApiResponse.ok(null);
+    }
+
+    @Operation(summary = "注销单一身份（仅限非默认 BUYER 角色）")
+    @DeleteMapping("/users/me/roles/{roleCode}")
+    public ApiResponse<Void> withdrawRole(@PathVariable String roleCode) {
+        userService.withdrawRole(SecurityUtils.getRequiredUserId(), roleCode);
+        return ApiResponse.ok(null);
+    }
 }
