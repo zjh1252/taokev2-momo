@@ -100,6 +100,21 @@ const NAV_ENTRIES: NavEntry[] = [
           { label: '资质认证', href: ROUTES.UC_ACCOUNT_AGENCY_QUALIFICATION, visibleForRoles: ['ENTERPRISE_AGENT'] },
           // 培训机构：公司资料
           { label: '公司资料', href: ROUTES.UC_ACCOUNT_INSTITUTION_COMPANY_INFO, visibleForRoles: ['INSTITUTION'] },
+          // 注销：非默认 BUYER 角色才能注销「身份」；所有角色都能注销账号
+          {
+            label: '注销身份',
+            href: ROUTES.UC_ACCOUNT_WITHDRAW_ROLE,
+            visibleForRoles: [
+              'ENTERPRISE_BUYER',
+              'TRAINER',
+              'AGENT',
+              'ASSISTANT',
+              'ENTERPRISE_AGENT',
+              'INSTITUTION',
+              'INSTITUTION_EMPLOYEE',
+            ],
+          },
+          { label: '注销账号', href: ROUTES.UC_ACCOUNT_DELETE },
         ],
       },
       { label: '账号绑定', href: ROUTES.UC_ACCOUNT_BIND },

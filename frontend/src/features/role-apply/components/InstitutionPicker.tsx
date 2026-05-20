@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { Building2, Check, Loader2, Search } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { Building2, Check, Loader2 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import {
   lookupInstitutions,
@@ -45,10 +45,7 @@ export default function InstitutionPicker({ value, onPick }: InstitutionPickerPr
     }
   }, []);
 
-  // 初次加载默认拉一批，便于快速选择
-  useEffect(() => {
-    search('');
-  }, [search]);
+  // 取消默认搜索 — 仅在用户点搜索按钮或回车时才触发请求
 
   const handlePick = (it: InstitutionLookupItem) => {
     setPicked(it);
@@ -76,7 +73,9 @@ export default function InstitutionPicker({ value, onPick }: InstitutionPickerPr
           onClick={() => {
             setPicked(null);
             onPick(null);
-            setOpen(true);
+            setOpen(false);
+            setSearched(false);
+            setList([]);
           }}
           className="text-xs text-primary hover:underline shrink-0"
         >
@@ -86,31 +85,26 @@ export default function InstitutionPicker({ value, onPick }: InstitutionPickerPr
     );
   }
 
-  // 关键字非空 & 已搜索过 & 列表为空 → 显示「未检索到」CTA
-  const showEmptyCta =
-    open && !loading && searched && list.length === 0 && keyword.trim().length > 0;
+  // 已搜索过 & 列表为空 → 显示「未检索到 + 去申请机构」CTA（不再要求关键字非空）
+  const showEmptyCta = open && !loading && searched && list.length === 0;
 
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-          <input
-            type="text"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                search(keyword);
-                setOpen(true);
-              }
-            }}
-            onFocus={() => setOpen(true)}
-            placeholder="输入机构编号或机构名称"
-            className="form-input pl-9"
-          />
-        </div>
+        <input
+          type="text"
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              search(keyword);
+              setOpen(true);
+            }
+          }}
+          placeholder="输入机构名称，点击搜索"
+          className="form-input flex-1"
+        />
         <button
           type="button"
           onClick={() => {
@@ -120,7 +114,7 @@ export default function InstitutionPicker({ value, onPick }: InstitutionPickerPr
           disabled={loading}
           className="inline-flex items-center gap-1 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50"
         >
-          {loading ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
+          {loading ? <Loader2 className="size-4 animate-spin" /> : null}
           搜索
         </button>
       </div>
@@ -132,19 +126,17 @@ export default function InstitutionPicker({ value, onPick }: InstitutionPickerPr
               <Loader2 className="size-4 animate-spin mr-2" /> 加载中…
             </div>
           ) : showEmptyCta ? (
-            <div className="px-4 py-5 text-center space-y-3">
-              <div className="text-sm text-gray-500">
-                未检索到该机构，是否注册为培训机构？
-              </div>
+            <div className="px-4 py-5 flex items-center justify-between gap-3 flex-wrap">
+              <div className="text-sm text-gray-500">未找到匹配的机构</div>
               <Link
                 href="/dashboard/apply/INSTITUTION"
                 className="inline-flex items-center gap-1 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90"
               >
-                去申请培训机构
+                申请培训机构
               </Link>
             </div>
           ) : list.length === 0 ? (
-            <div className="text-center text-sm text-gray-400 py-6">未找到匹配的机构</div>
+            <div className="text-center text-sm text-gray-400 py-6">请输入关键字后点击搜索</div>
           ) : (
             list.map((it) => (
               <button

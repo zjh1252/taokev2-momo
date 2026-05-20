@@ -31,6 +31,12 @@ export interface BindingItem {
   counterpartRole?: string;
   counterpartRoleLabel?: string;
   counterpartNickname?: string;
+  /** 对方账号名（登录用户名，可能为空） */
+  counterpartUsername?: string;
+  /** 对方真实姓名（如已实名/已填写） */
+  counterpartRealName?: string;
+  /** 对方手机号 */
+  counterpartPhone?: string;
   counterpartAvatarUrl?: string;
   counterpartOrgName?: string;
   note?: string;

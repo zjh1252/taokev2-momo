@@ -37,6 +37,9 @@ export const ROUTES = {
   UC_ACCOUNT_BIND: '/dashboard/account/bind',
   UC_ACCOUNT_SWITCH: '/dashboard/account/switch',
   UC_ACCOUNT_PASSWORD: '/dashboard/account/password',
+  // 注销
+  UC_ACCOUNT_WITHDRAW_ROLE: '/dashboard/account/withdraw-role',
+  UC_ACCOUNT_DELETE: '/dashboard/account/delete-account',
   // 专家四维度资质认证
   UC_ACCOUNT_CERT_REAL_NAME: '/dashboard/account/certification/real-name',
   UC_ACCOUNT_CERT_PROFESSIONAL: '/dashboard/account/certification/professional',

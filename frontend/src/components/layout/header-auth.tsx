@@ -6,6 +6,21 @@ import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/lib/auth/auth-context';
 
+/** 当前激活角色 code → 中文展示名（顶部昵称后缀使用） */
+const ROLE_LABELS: Record<string, string> = {
+  BUYER: '个人学员',
+  ENTERPRISE_BUYER: '企业采购',
+  TRAINER: '专家',
+  AGENT: '经纪人',
+  ASSISTANT: '助理',
+  ENTERPRISE_AGENT: '经纪公司',
+  INSTITUTION: '机构',
+  INSTITUTION_EMPLOYEE: '机构员工',
+  PLATFORM_AUDITOR: '审核员',
+  PLATFORM_CS: '客服',
+  SUPER_ADMIN: '超管',
+};
+
 /**
  * 用户认证区域 — 顶部辅导航栏中使用的公共组件
  * <p>
@@ -18,7 +33,8 @@ import { useAuth } from '@/lib/auth/auth-context';
  */
 export function UserAuthArea() {
   const t = useTranslations('nav');
-  const { user, loading, logout, publicHomeHref } = useAuth();
+  const { user, loading, logout, publicHomeHref, activeRole } = useAuth();
+  const roleSuffix = activeRole && ROLE_LABELS[activeRole] ? `（${ROLE_LABELS[activeRole]}）` : '';
 
   if (loading) {
     return <div className="w-24 h-4 bg-slate-100 rounded animate-pulse" />;
@@ -63,9 +79,10 @@ export function UserAuthArea() {
         </div>
       )}
 
-      {/* 昵称 */}
-      <span className="text-slate-700 font-medium max-w-[72px] truncate">
+      {/* 昵称 + 当前激活角色（如「淘客（专家）」），便于多角色用户辨识当前身份 */}
+      <span className="text-slate-700 font-medium max-w-[160px] truncate">
         {user.nickname}
+        {roleSuffix && <span className="text-slate-500 ml-1">{roleSuffix}</span>}
       </span>
 
       <Separator />

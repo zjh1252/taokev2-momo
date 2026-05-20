@@ -36,6 +36,9 @@ public class BindingServiceImpl implements BindingService {
     private final TrainerRepository trainerRepository;
     private final InstitutionRepository institutionRepository;
     private final EnterpriseAgentRepository enterpriseAgentRepository;
+    private final AgentRepository agentRepository;
+    private final AssistantRepository assistantRepository;
+    private final InstitutionEmployeeRepository institutionEmployeeRepository;
     private final AgentTrainerBindingRepository agentTrainerBindingRepository;
     private final TrainerAssistantBindingRepository trainerAssistantBindingRepository;
     private final InstitutionTrainerBindingRepository institutionTrainerBindingRepository;
@@ -1263,9 +1266,47 @@ public class BindingServiceImpl implements BindingService {
             userRepository.findById(counterpartUserId).ifPresent(u -> {
                 r.setCounterpartNickname(u.getNickname() != null && !u.getNickname().isBlank()
                         ? u.getNickname() : u.getRealName());
+                r.setCounterpartUsername(u.getUsername());
+                r.setCounterpartRealName(u.getRealName());
+                r.setCounterpartPhone(u.getPhone());
                 r.setCounterpartAvatarUrl(u.getAvatarUrl());
             });
+            // sys_users.real_name 在专家/机构等角色入驻时不会被自动写入；
+            // 入驻表单里的「真实姓名」实际存到各业务子表（user_trainers.name / user_agents.real_name / ...）。
+            // 这里在 sys_users.real_name 为空时按 counterpartRole 去对应子表 fallback，让前端展示更稳定。
+            if (r.getCounterpartRealName() == null || r.getCounterpartRealName().isBlank()) {
+                String fallback = resolveRealNameFromRoleTable(counterpartUserId, role);
+                if (fallback != null && !fallback.isBlank()) {
+                    r.setCounterpartRealName(fallback);
+                }
+            }
         }
+    }
+
+    /**
+     * 按角色去对应业务子表读「真实姓名」字段。
+     * <ul>
+     *   <li>TRAINER → user_trainers.name</li>
+     *   <li>AGENT → user_agents.real_name</li>
+     *   <li>ASSISTANT → user_assistants.real_name</li>
+     *   <li>INSTITUTION_EMPLOYEE → user_institution_employees.real_name</li>
+     *   <li>INSTITUTION → user_institutions.contact_name</li>
+     *   <li>ENTERPRISE_AGENT → user_enterprise_agents.contact_name</li>
+     * </ul>
+     */
+    private String resolveRealNameFromRoleTable(Integer userId, BusinessRole role) {
+        if (role == null) return null;
+        return switch (role) {
+            case TRAINER -> trainerRepository.findByUserId(userId).map(t -> t.getName()).orElse(null);
+            case AGENT -> agentRepository.findByUserId(userId).map(a -> a.getRealName()).orElse(null);
+            case ASSISTANT -> assistantRepository.findByUserId(userId).map(a -> a.getRealName()).orElse(null);
+            case INSTITUTION_EMPLOYEE -> institutionEmployeeRepository.findByUserId(userId)
+                    .map(e -> e.getRealName()).orElse(null);
+            case INSTITUTION -> institutionRepository.findByUserId(userId).map(i -> i.getContactName()).orElse(null);
+            case ENTERPRISE_AGENT -> enterpriseAgentRepository.findByUserId(userId)
+                    .map(ea -> ea.getContactName()).orElse(null);
+            default -> null;
+        };
     }
 
     private BusinessRole inferCounterpartRole(BindingType type, boolean counterpartIsRoleSide) {

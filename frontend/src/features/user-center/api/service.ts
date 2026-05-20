@@ -1,5 +1,26 @@
-import { apiGet, apiPut } from '@/lib/http/client';
+import { apiDelete, apiGet, apiPut } from '@/lib/http/client';
 import type { ApiResult, UserProfileResponse } from '@/features/user/api/types';
+
+/**
+ * 注销账号（硬删除当前用户全部记录）。
+ * <p>服务端会同步删除 sys_users / sys_user_roles / 所有业务子表 / 所有绑定关系；
+ * 已上传的 OSS 文件不联动清理。成功后调用方应清掉本地 token 并跳转登录。</p>
+ */
+export function deleteOwnAccount(token: string) {
+  return apiDelete<ApiResult>('/users/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+/**
+ * 注销单一身份（如 TRAINER / AGENT / ...）。
+ * <p>BUYER 角色无法单独注销 — 服务端会返回错误。</p>
+ */
+export function withdrawRole(token: string, roleCode: string) {
+  return apiDelete<ApiResult>(`/users/me/roles/${encodeURIComponent(roleCode)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
 
 /**
  * 修改密码

@@ -37,6 +37,15 @@ public class BindingItemResponse {
     /** 对方昵称 */
     private String counterpartNickname;
 
+    /** 对方账号名（登录用户名，可能为空） */
+    private String counterpartUsername;
+
+    /** 对方真实姓名（如已实名/已填写） */
+    private String counterpartRealName;
+
+    /** 对方手机号 */
+    private String counterpartPhone;
+
     /** 对方头像 */
     private String counterpartAvatarUrl;
 

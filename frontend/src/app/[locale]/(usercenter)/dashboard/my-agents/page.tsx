@@ -264,6 +264,11 @@ function BindingCard({
               联系人：{item.counterpartNickname}
             </div>
           )}
+          {/* 真实姓名 / 电话：无值时占位为空，便于一行式辨识 */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 mt-1">
+            <span>真实姓名：{item.counterpartRealName || ''}</span>
+            <span>电话：{item.counterpartPhone || ''}</span>
+          </div>
           {item.note && (
             <div className="text-xs text-gray-500 mt-1 line-clamp-2">备注：{item.note}</div>
           )}
