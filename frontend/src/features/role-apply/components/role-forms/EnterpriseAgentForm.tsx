@@ -9,6 +9,8 @@ import type { FormValidationRules } from '@/lib/validation';
 import { Validators } from '@/lib/validation';
 import AgreementCheckbox from '../AgreementCheckbox';
 import SingleImageUploader from '../SingleImageUploader';
+import { useProfilePrefill } from '../../hooks/useProfilePrefill';
+import { getMyEnterpriseAgentProfileAsForm } from '../../api/service';
 
 const COMPANY_SIZE_OPTIONS = ['1-50人', '51-200人', '201-500人', '501-1000人', '1000人以上'];
 
@@ -27,6 +29,15 @@ interface EnterpriseAgentFormProps {
 export function EnterpriseAgentForm({ data, onChange }: EnterpriseAgentFormProps) {
   const { user } = useAuth();
   const update = (patch: Partial<EnterpriseAgentFormData>) => onChange({ ...data, ...patch });
+
+  // 已生效（status=1）的经纪公司用户进入「修改资料」流程时自动回填档案
+  useProfilePrefill<EnterpriseAgentFormData>({
+    role: 'ENTERPRISE_AGENT',
+    data,
+    onChange,
+    fetcher: getMyEnterpriseAgentProfileAsForm,
+    isEmpty: (d) => !d.companyName && !d.licenseNo,
+  });
 
   useEffect(() => {
     if (!data.contactPhone && user?.phone) {

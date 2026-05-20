@@ -21,8 +21,25 @@ export function CellAction({ data }: CellActionProps) {
   const queryClient = useQueryClient();
   const isPending = data.status === 2;
 
-  const approveMutation = useMutation({ mutationFn: () => approveEAApplication(data.userId), onSuccess: () => { toast.success('审核通过'); setApproveOpen(false); void queryClient.invalidateQueries({ queryKey: eaKeys.all }); }, onError: () => toast.error('操作失败') });
-  const rejectMutation = useMutation({ mutationFn: () => rejectEAApplication(data.userId, reason), onSuccess: () => { toast.success('已驳回'); setRejectOpen(false); setReason(''); void queryClient.invalidateQueries({ queryKey: eaKeys.all }); }, onError: () => toast.error('操作失败') });
+  const approveMutation = useMutation({
+    mutationFn: () => approveEAApplication(data.userId),
+    onSuccess: () => {
+      toast.success('审核通过');
+      setApproveOpen(false);
+      void queryClient.invalidateQueries({ queryKey: eaKeys.all });
+    },
+    onError: (err: Error) => toast.error(err?.message || '操作失败'),
+  });
+  const rejectMutation = useMutation({
+    mutationFn: () => rejectEAApplication(data.userId, reason),
+    onSuccess: () => {
+      toast.success('已驳回');
+      setRejectOpen(false);
+      setReason('');
+      void queryClient.invalidateQueries({ queryKey: eaKeys.all });
+    },
+    onError: (err: Error) => toast.error(err?.message || '操作失败'),
+  });
 
   return (
     <>

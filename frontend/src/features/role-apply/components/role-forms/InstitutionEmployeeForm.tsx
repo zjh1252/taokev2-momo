@@ -9,6 +9,8 @@ import { Validators } from '@/lib/validation';
 import ServiceCitiesEditor from '../ServiceCitiesEditor';
 import AgreementCheckbox from '../AgreementCheckbox';
 import InstitutionPicker from '../InstitutionPicker';
+import { useProfilePrefill } from '../../hooks/useProfilePrefill';
+import { getMyInstitutionEmployeeProfileAsForm } from '../../api/service';
 
 interface InstitutionEmployeeFormProps {
   data: Partial<InstitutionEmployeeFormData>;
@@ -28,6 +30,15 @@ interface InstitutionEmployeeFormProps {
 export function InstitutionEmployeeForm({ data, onChange }: InstitutionEmployeeFormProps) {
   const { user } = useAuth();
   const update = (patch: Partial<InstitutionEmployeeFormData>) => onChange({ ...data, ...patch });
+
+  // 已生效（status=1）的机构员工进入「修改资料」流程时自动回填档案
+  useProfilePrefill<InstitutionEmployeeFormData>({
+    role: 'INSTITUTION_EMPLOYEE',
+    data,
+    onChange,
+    fetcher: getMyInstitutionEmployeeProfileAsForm,
+    isEmpty: (d) => !d.realName && !d.email,
+  });
 
   useEffect(() => {
     if (!data.contactPhone && user?.phone) {

@@ -13,6 +13,8 @@ import {
 import { Building2, Loader2, Check } from 'lucide-react';
 import ServiceCitiesEditor from '../ServiceCitiesEditor';
 import AgreementCheckbox from '../AgreementCheckbox';
+import { useProfilePrefill } from '../../hooks/useProfilePrefill';
+import { getMyAgentProfileAsForm } from '../../api/service';
 
 interface AgentApplyFormProps {
   data: Partial<AgentFormData>;
@@ -31,6 +33,15 @@ interface AgentApplyFormProps {
 export function AgentApplyForm({ data, onChange }: AgentApplyFormProps) {
   const { user } = useAuth();
   const update = (patch: Partial<AgentFormData>) => onChange({ ...data, ...patch });
+
+  // 已生效（status=1）的经纪人用户进入「修改资料」流程时自动回填档案
+  useProfilePrefill<AgentFormData>({
+    role: 'AGENT',
+    data,
+    onChange,
+    fetcher: getMyAgentProfileAsForm,
+    isEmpty: (d) => !d.realName && !d.email,
+  });
 
   // 自动以用户注册手机号兜底「联系电话」
   useEffect(() => {

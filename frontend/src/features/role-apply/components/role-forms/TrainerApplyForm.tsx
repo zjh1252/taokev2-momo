@@ -18,6 +18,7 @@ import { ResumeUploader } from '../ResumeUploader';
 import { CategoryMultiSelect } from '../CategoryMultiSelect';
 import { TrainerBooksEditor } from '../TrainerBooksEditor';
 import { getMyTrainerProfileAsForm, type ResumeParseResult } from '../../api/service';
+import { useProfilePrefill } from '../../hooks/useProfilePrefill';
 
 const GENDER_OPTIONS = [
   { value: 1, label: '男' },
@@ -62,8 +63,6 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
   const update = (patch: Partial<TrainerFormData>) => onChange({ ...data, ...patch });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  /** 是否已尝试回写已有档案 — 仅对已生效 TRAINER 角色的用户执行一次，避免重复拉取 */
-  const profileLoadedRef = useRef(false);
 
   useEffect(() => {
     if (!data.phone && user?.phone) {
@@ -71,31 +70,14 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
     }
   }, [user?.phone]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /**
-   * 已生效 TRAINER 角色用户进入「修改资料」流程时，自动拉取后端档案回写表单。
-   * <p>仅在 store 中尚无表单数据（用户名为空）时回写，避免覆盖用户已编辑的内容。
-   * 拉取失败（如无 TRAINER 角色生效）静默忽略，按空白表单走新申请流程。</p>
-   */
-  useEffect(() => {
-    if (profileLoadedRef.current) return;
-    const hasActiveTrainerRole = (user?.roles || []).some(
-      (r) => r.role === 'TRAINER' && r.status === 1,
-    );
-    if (!hasActiveTrainerRole) return;
-    // store 已有数据时不覆盖（避免用户来回切页时丢失编辑）
-    if (data.name || data.teachingName || data.idCardNo) return;
-
-    profileLoadedRef.current = true;
-    getMyTrainerProfileAsForm()
-      .then((profile) => {
-        if (!profile) return;
-        // 合并到当前 data，已有字段不覆盖
-        onChange({ ...profile, ...data });
-      })
-      .catch(() => {
-        // 静默：用户体验上等同空白表单
-      });
-  }, [user?.roles]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 已生效（status=1）的专家用户进入「修改资料」流程时自动回填档案
+  useProfilePrefill<TrainerFormData>({
+    role: 'TRAINER',
+    data,
+    onChange,
+    fetcher: getMyTrainerProfileAsForm,
+    isEmpty: (d) => !d.name && !d.teachingName && !d.idCardNo,
+  });
 
   // 简历解析回填：仅覆盖空字段，避免覆盖用户已编辑的内容
   const handleParsed = (result: ResumeParseResult) => {

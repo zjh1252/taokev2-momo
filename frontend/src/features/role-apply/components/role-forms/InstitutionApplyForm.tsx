@@ -10,6 +10,8 @@ import { Validators } from '@/lib/validation';
 import AgreementCheckbox from '../AgreementCheckbox';
 import SingleImageUploader from '../SingleImageUploader';
 import { CategoryMultiSelect } from '../CategoryMultiSelect';
+import { useProfilePrefill } from '../../hooks/useProfilePrefill';
+import { getMyInstitutionProfileAsForm } from '../../api/service';
 
 const ORG_TYPE_OPTIONS = [
   { value: 1, label: '综合培训机构' },
@@ -39,6 +41,15 @@ interface InstitutionApplyFormProps {
 export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormProps) {
   const { user } = useAuth();
   const update = (patch: Partial<InstitutionFormData>) => onChange({ ...data, ...patch });
+
+  // 已生效（status=1）的机构用户进入「修改资料」流程时自动回填档案
+  useProfilePrefill<InstitutionFormData>({
+    role: 'INSTITUTION',
+    data,
+    onChange,
+    fetcher: getMyInstitutionProfileAsForm,
+    isEmpty: (d) => !d.orgName && !d.licenseNo,
+  });
 
   useEffect(() => {
     if (!data.contactPhone && user?.phone) {

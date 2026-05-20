@@ -9,6 +9,8 @@ import type { EnterpriseBuyerFormData } from '../../api/types';
 import { FormField } from './FormField';
 import type { FormValidationRules } from '@/lib/validation';
 import { Validators } from '@/lib/validation';
+import { useProfilePrefill } from '../../hooks/useProfilePrefill';
+import { getMyEnterpriseBuyerProfileAsForm } from '../../api/service';
 
 const COMPANY_SIZE_OPTIONS = ['1-50人', '51-200人', '201-500人', '501-1000人', '1000人以上'];
 
@@ -33,6 +35,15 @@ export function EnterpriseBuyerForm({ data, onChange }: EnterpriseBuyerFormProps
   const { user } = useAuth();
   const update = (patch: Partial<EnterpriseBuyerFormData>) => onChange({ ...data, ...patch });
   const [industryCategories, setIndustryCategories] = useState<CategoryNode[]>([]);
+
+  // 已生效（status=1）的企业采购方用户进入「修改资料」流程时自动回填档案
+  useProfilePrefill<EnterpriseBuyerFormData>({
+    role: 'ENTERPRISE_BUYER',
+    data,
+    onChange,
+    fetcher: getMyEnterpriseBuyerProfileAsForm,
+    isEmpty: (d) => !d.companyName && !d.contactName,
+  });
 
   // 自动填入注册手机号
   useEffect(() => {

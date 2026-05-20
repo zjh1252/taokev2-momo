@@ -12,6 +12,7 @@ import type {
   EnterpriseAgentFormData,
   InstitutionFormData,
   InstitutionEmployeeFormData,
+  ServiceCityItem,
 } from './types';
 
 /**
@@ -208,6 +209,290 @@ export async function getMyTrainerProfileAsForm(): Promise<Partial<TrainerFormDa
       industryCategoryIds: (t.industryCategories ?? []).map((c) => c.categoryId),
       expertiseCategoryIds: (t.expertiseCategories ?? []).map((c) => c.categoryId),
       books: t.books ?? [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** 解析后端 serviceCities JSON 字符串为前端结构化数组 */
+function parseServiceCities(raw: string | undefined | null): ServiceCityItem[] {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((it) => it && typeof it === 'object')
+      .map((it) => ({
+        provinceId: it.provinceId ?? null,
+        cityId: it.cityId ?? null,
+        provinceName: it.provinceName,
+        cityName: it.cityName,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// ===== 各角色「修改资料」自动回填 =====
+
+interface AgentFullProfile {
+  realName?: string;
+  email?: string;
+  bio?: string;
+  specialties?: string;
+  serviceCities?: string;
+  agreementVersion?: string;
+}
+
+/** 经纪人档案 → AgentFormData */
+export async function getMyAgentProfileAsForm(): Promise<Partial<AgentFormData> | null> {
+  try {
+    const res = await apiGet<ApiResponse<AgentFullProfile>>('/agents/me', {
+      headers: authHeaders(),
+      silent: true,
+    });
+    const t = res.data;
+    if (!t) return null;
+    return {
+      realName: t.realName ?? '',
+      email: t.email ?? '',
+      bio: t.bio ?? '',
+      specialties: t.specialties ?? '',
+      serviceCities: parseServiceCities(t.serviceCities),
+      agreementVersion: t.agreementVersion ?? 'v1',
+      agreementSigned: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+interface AssistantFullProfile {
+  realName?: string;
+  email?: string;
+  bio?: string;
+  authScope?: string;
+  serviceCities?: string;
+  agreementVersion?: string;
+}
+
+/** 助理档案 → AssistantFormData */
+export async function getMyAssistantProfileAsForm(): Promise<Partial<AssistantFormData> | null> {
+  try {
+    const res = await apiGet<ApiResponse<AssistantFullProfile>>('/assistants/me', {
+      headers: authHeaders(),
+      silent: true,
+    });
+    const t = res.data;
+    if (!t) return null;
+    return {
+      realName: t.realName ?? '',
+      email: t.email ?? '',
+      bio: t.bio ?? '',
+      authScope: t.authScope ?? '',
+      serviceCities: parseServiceCities(t.serviceCities),
+      agreementVersion: t.agreementVersion ?? 'v1',
+      agreementSigned: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+interface EnterpriseAgentFullProfile {
+  companyName?: string;
+  licenseNo?: string;
+  legalPerson?: string;
+  industry?: string;
+  companySize?: string;
+  bio?: string;
+  contactName?: string;
+  contactPhone?: string;
+  provinceId?: number;
+  cityId?: number;
+  districtId?: number;
+  townId?: number;
+  address?: string;
+  qualificationDocUrl?: string;
+  agreementVersion?: string;
+}
+
+/** 专家经纪公司档案 → EnterpriseAgentFormData */
+export async function getMyEnterpriseAgentProfileAsForm(): Promise<Partial<EnterpriseAgentFormData> | null> {
+  try {
+    const res = await apiGet<ApiResponse<EnterpriseAgentFullProfile>>('/enterprise-agents/me', {
+      headers: authHeaders(),
+      silent: true,
+    });
+    const t = res.data;
+    if (!t) return null;
+    return {
+      companyName: t.companyName ?? '',
+      licenseNo: t.licenseNo ?? '',
+      legalPerson: t.legalPerson ?? '',
+      industry: t.industry ?? '',
+      companySize: t.companySize ?? '',
+      bio: t.bio ?? '',
+      contactName: t.contactName ?? '',
+      contactPhone: t.contactPhone ?? '',
+      provinceId: t.provinceId ?? null,
+      cityId: t.cityId ?? null,
+      districtId: t.districtId ?? null,
+      townId: t.townId ?? null,
+      address: t.address ?? '',
+      qualificationDocUrl: t.qualificationDocUrl ?? '',
+      agreementVersion: t.agreementVersion ?? 'v1',
+      agreementSigned: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+interface EnterpriseBuyerFullProfile {
+  companyName?: string;
+  industry?: string;
+  companySize?: string;
+  contactName?: string;
+  contactPhone?: string;
+  provinceId?: number;
+  cityId?: number;
+  districtId?: number;
+  townId?: number;
+  address?: string;
+  trainingTags?: string;
+}
+
+/** 企业培训采购方档案 → EnterpriseBuyerFormData */
+export async function getMyEnterpriseBuyerProfileAsForm(): Promise<Partial<EnterpriseBuyerFormData> | null> {
+  try {
+    const res = await apiGet<ApiResponse<EnterpriseBuyerFullProfile>>('/enterprise-buyers/me', {
+      headers: authHeaders(),
+      silent: true,
+    });
+    const t = res.data;
+    if (!t) return null;
+    return {
+      companyName: t.companyName ?? '',
+      industry: t.industry ?? '',
+      companySize: t.companySize ?? '',
+      contactName: t.contactName ?? '',
+      contactPhone: t.contactPhone ?? '',
+      provinceId: t.provinceId ?? null,
+      cityId: t.cityId ?? null,
+      districtId: t.districtId ?? null,
+      townId: t.townId ?? null,
+      address: t.address ?? '',
+      trainingTags: t.trainingTags ?? '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+interface InstitutionFullProfile {
+  orgName?: string;
+  orgType?: number;
+  legalRepresentative?: string;
+  licenseNo?: string;
+  establishedAt?: string;
+  logoUrl?: string;
+  bio?: string;
+  industries?: string;
+  specialties?: string;
+  hasVenue?: number;
+  hasExperts?: number;
+  contactName?: string;
+  contactPhone?: string;
+  showContact?: number;
+  provinceId?: number;
+  cityId?: number;
+  districtId?: number;
+  townId?: number;
+  address?: string;
+  clientCases?: string;
+  agreementVersion?: string;
+}
+
+/** 机构档案 → InstitutionFormData */
+export async function getMyInstitutionProfileAsForm(): Promise<Partial<InstitutionFormData> | null> {
+  try {
+    const res = await apiGet<ApiResponse<InstitutionFullProfile>>('/institutions/me', {
+      headers: authHeaders(),
+      silent: true,
+    });
+    const t = res.data;
+    if (!t) return null;
+    // industries / specialties 后端是 JSON 字符串（id 数组），尝试解析为 number[]
+    const parseIdList = (raw: string | undefined): number[] => {
+      if (!raw) return [];
+      try {
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr.filter((x) => typeof x === 'number') : [];
+      } catch {
+        return [];
+      }
+    };
+    return {
+      orgName: t.orgName ?? '',
+      orgType: t.orgType ?? 0,
+      legalRepresentative: t.legalRepresentative ?? '',
+      licenseNo: t.licenseNo ?? '',
+      establishedAt: t.establishedAt ?? '',
+      logoUrl: t.logoUrl ?? '',
+      bio: t.bio ?? '',
+      industryCategoryIds: parseIdList(t.industries),
+      expertiseCategoryIds: parseIdList(t.specialties),
+      clientCases: t.clientCases ?? '',
+      hasVenue: t.hasVenue ?? 0,
+      hasExperts: t.hasExperts ?? 0,
+      contactName: t.contactName ?? '',
+      contactPhone: t.contactPhone ?? '',
+      showContact: t.showContact ?? 0,
+      provinceId: t.provinceId ?? null,
+      cityId: t.cityId ?? null,
+      districtId: t.districtId ?? null,
+      townId: t.townId ?? null,
+      address: t.address ?? '',
+      agreementVersion: t.agreementVersion ?? 'v1',
+      agreementSigned: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+interface InstitutionEmployeeFullProfile {
+  orgId?: number;
+  realName?: string;
+  contactPhone?: string;
+  email?: string;
+  serviceCities?: string;
+  agreementVersion?: string;
+  position?: string;
+  department?: string;
+}
+
+/** 机构员工档案 → InstitutionEmployeeFormData */
+export async function getMyInstitutionEmployeeProfileAsForm(): Promise<Partial<InstitutionEmployeeFormData> | null> {
+  try {
+    const res = await apiGet<ApiResponse<InstitutionEmployeeFullProfile>>('/institution-employees/me', {
+      headers: authHeaders(),
+      silent: true,
+    });
+    const t = res.data;
+    if (!t) return null;
+    return {
+      realName: t.realName ?? '',
+      contactPhone: t.contactPhone ?? '',
+      email: t.email ?? '',
+      serviceCities: parseServiceCities(t.serviceCities),
+      orgId: t.orgId ?? null,
+      position: t.position ?? '',
+      department: t.department ?? '',
+      agreementVersion: t.agreementVersion ?? 'v1',
+      agreementSigned: true,
     };
   } catch {
     return null;
