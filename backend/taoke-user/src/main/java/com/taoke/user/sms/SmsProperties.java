@@ -25,6 +25,18 @@ public class SmsProperties {
     /** 验证码有效期（分钟） */
     private int expireMinutes = 5;
 
+    /** 同一号码两次发送的最小间隔（秒） */
+    private int intervalSeconds = 60;
+
+    /** 频率限制窗口（分钟） */
+    private int windowMinutes = 5;
+
+    /** 单个号码在窗口内最多发送条数 */
+    private int maxPerWindow = 3;
+
+    /** 单个 IP 一小时内最多发送条数 */
+    private int ipMaxPerHour = 20;
+
     /** 老站短信网关（uc.91pxb.com）配置 */
     private Pxb pxb = new Pxb();
 

@@ -1,6 +1,8 @@
 export type LoginPayload = {
   phone: string;
   password: string;
+  /** 滑块验证通过后的一次性令牌（后台登录始终需要） */
+  captchaToken?: string;
 };
 
 export type RegisterPayload = {

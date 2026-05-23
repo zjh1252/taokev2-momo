@@ -3,6 +3,8 @@ export interface SendCodePayload {
   target: string;
   type: 'LOGIN' | 'REGISTER' | 'RESET_PASSWORD';
   sendType: 'SMS';
+  /** 滑块验证通过后的一次性令牌（后端开启卡点时必填） */
+  captchaToken?: string;
 }
 
 /** 短信登录请求 */
@@ -15,6 +17,8 @@ export interface SmsLoginPayload {
 export interface UsernameLoginPayload {
   username: string;
   password: string;
+  /** 滑块验证通过后的一次性令牌（密码错 1 次后必填） */
+  captchaToken?: string;
 }
 
 /** 账号 + 密码注册请求 */

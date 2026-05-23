@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import { markNewUserPending } from '@/features/role-apply/hooks/useRoleApplyState';
 import { sendCode, register, getMockCode } from '../api/service';
+import { withCaptcha } from '@/lib/captcha';
 
 const PHONE_LENGTH = 11;
 const CODE_LENGTH = 6;
@@ -19,8 +20,9 @@ const COUNTDOWN_SECONDS = 60;
 const PASSWORD_MIN = 6;
 const PASSWORD_MAX = 32;
 const PHONE_REGEX = /^1[3-9]\d{9}$/;
-const IS_MOCK_SMS = process.env.NODE_ENV === 'development'
-  || process.env.NEXT_PUBLIC_MOCK_SMS === 'true';
+// dev 默认开启 mock 验证码自动填充；用真实短信(pxb)联调时可设 NEXT_PUBLIC_MOCK_SMS=false 关闭
+const IS_MOCK_SMS = process.env.NEXT_PUBLIC_MOCK_SMS === 'true'
+  || (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_MOCK_SMS !== 'false');
 
 /**
  * 注册表单 — 手机号 + 验证码 + 密码（账号即手机号，统一接入 UCenter）
@@ -65,7 +67,8 @@ export function RegisterForm() {
     if (!canSendCode) return;
     setSendingCode(true);
     try {
-      await sendCode(phone, 'REGISTER');
+      // 发码前先过滑块（withCaptcha 在后端要求时自动弹出）
+      await withCaptcha((token, silent) => sendCode(phone, 'REGISTER', token, { silent }));
       setCountdown(COUNTDOWN_SECONDS);
       if (IS_MOCK_SMS) {
         try {

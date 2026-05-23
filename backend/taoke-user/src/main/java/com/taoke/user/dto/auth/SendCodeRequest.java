@@ -22,4 +22,7 @@ public class SendCodeRequest {
 
     /** 发送渠道：SMS / EMAIL，默认 SMS */
     private String sendType = "SMS";
+
+    /** 滑块验证通过后的一次性令牌（C 端发码前必须先过滑块） */
+    private String captchaToken;
 }

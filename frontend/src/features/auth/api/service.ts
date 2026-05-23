@@ -16,13 +16,19 @@ import type {
  * @param phone 手机号
  * @param type  用途：登录 / 注册 / 找回密码，默认登录
  */
-export function sendCode(phone: string, type: SendCodePayload['type'] = 'LOGIN') {
+export function sendCode(
+  phone: string,
+  type: SendCodePayload['type'] = 'LOGIN',
+  captchaToken?: string,
+  opts?: { silent?: boolean },
+) {
   const payload: SendCodePayload = {
     target: phone,
     type,
     sendType: 'SMS',
+    captchaToken,
   };
-  return apiPost<ApiResult>('/auth/send-code', payload);
+  return apiPost<ApiResult>('/auth/send-code', payload, { silent: opts?.silent });
 }
 
 /**
@@ -47,15 +53,18 @@ export function smsLogin(phone: string, code: string) {
  * GET /auth/mock/code?phone=xxx
  */
 export function getMockCode(phone: string) {
-  return apiGet<ApiResult<string>>(`/auth/mock/code?phone=${encodeURIComponent(phone)}`);
+  // 仅 dev 便捷自动填充；非 mock 模式（如真实 pxb 短信）下该接口会失败，静默处理不弹 toast
+  return apiGet<ApiResult<string>>(`/auth/mock/code?phone=${encodeURIComponent(phone)}`, {
+    silent: true,
+  });
 }
 
 /**
  * 账号 + 密码登录
  * POST /auth/login/username
  */
-export function usernameLogin(payload: UsernameLoginPayload) {
-  return apiPost<ApiResult<TokenResponse>>('/auth/login/username', payload);
+export function usernameLogin(payload: UsernameLoginPayload, opts?: { silent?: boolean }) {
+  return apiPost<ApiResult<TokenResponse>>('/auth/login/username', payload, { silent: opts?.silent });
 }
 
 /**

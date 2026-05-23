@@ -61,27 +61,22 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Override
     public TokenResponse loginByPassword(LoginRequest request) {
-        // 开关开启：交由 UCenter 校验。UCenter 以用户名为登录标识，
-        // 若本地已能按手机号查到用户（含其 UCenter 用户名），优先用用户名登录，
-        // 更可靠；否则退化为直接用手机号（依赖 UCenter 支持手机号登录）。
         if (ucenterProperties.isEnabled()) {
-            String account = userRepository.findByPhone(request.getPhone())
-                    .map(User::getUsername)
-                    .filter(u -> u != null && !u.isBlank())
-                    .orElse(request.getPhone());
+            User local = userRepository.findByPhone(request.getPhone()).orElse(null);
+            // 平台/本地管理账号（有本地密码、未关联 UCenter，如超管）始终走本地校验，不经 UCenter
+            if (isLocalManagedAccount(local)) {
+                return loginLocally(local, request.getPassword());
+            }
+            // 业务用户交给 UCenter；优先用本地已知的 UCenter 用户名，否则用手机号
+            String account = (local != null && local.getUsername() != null && !local.getUsername().isBlank())
+                    ? local.getUsername()
+                    : request.getPhone();
             return ucenterLogin(account, request.getPassword());
         }
 
         User user = userRepository.findByPhone(request.getPhone())
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
-
-        checkAccountStatus(user);
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new BusinessException(ErrorCode.PASSWORD_INCORRECT);
-        }
-
-        return generateTokens(user);
+        return loginLocally(user, request.getPassword());
     }
 
     /**
@@ -237,24 +232,22 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Override
     public TokenResponse loginByUsername(UsernameLoginRequest request) {
-        // 开关开启：账号 + 密码交由 UCenter 校验
         if (ucenterProperties.isEnabled()) {
+            User local = userRepository.findByUsername(request.getUsername()).orElse(null);
+            // 平台/本地管理账号始终走本地校验
+            if (isLocalManagedAccount(local)) {
+                return loginLocally(local, request.getPassword());
+            }
+            // 账号既可为老社区用户名也可为手机号，交给 UCenter 解析
             return ucenterLogin(request.getUsername(), request.getPassword());
         }
 
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
-
-        checkAccountStatus(user);
-
         if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
             throw new BusinessException(ErrorCode.PASSWORD_NOT_SET);
         }
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new BusinessException(ErrorCode.PASSWORD_INCORRECT);
-        }
-
-        return generateTokens(user);
+        return loginLocally(user, request.getPassword());
     }
 
     @Transactional
@@ -324,6 +317,29 @@ public class AuthServiceImpl implements AuthService {
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+    }
+
+    /**
+     * 是否为本地管理账号：有本地密码且未关联 UCenter（如超管/平台账号、UCenter 接入前的本地账号）。
+     * 这类账号即使开启 UCenter 也走本地校验，避免被丢给 UCenter 而无法登录。
+     */
+    private boolean isLocalManagedAccount(User user) {
+        return user != null
+                && user.getUcUid() == null
+                && user.getPasswordHash() != null
+                && !user.getPasswordHash().isEmpty();
+    }
+
+    /** 本地 bcrypt 密码校验并签发令牌。 */
+    private TokenResponse loginLocally(User user, String rawPassword) {
+        checkAccountStatus(user);
+        if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
+            throw new BusinessException(ErrorCode.PASSWORD_NOT_SET);
+        }
+        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.PASSWORD_INCORRECT);
+        }
+        return generateTokens(user);
     }
 
     /* ==================== UCenter 接入辅助 ==================== */

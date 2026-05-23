@@ -4,6 +4,9 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.ApiResponse;
 import com.taoke.common.security.Public;
+import com.taoke.user.captcha.CaptchaProperties;
+import com.taoke.user.captcha.CaptchaTokenStore;
+import com.taoke.user.captcha.LoginFailCounter;
 import com.taoke.user.dto.auth.*;
 import com.taoke.user.api.AuthService;
 import com.taoke.user.api.VerificationCodeService;
@@ -31,11 +34,21 @@ public class AuthController {
     private final AuthService authService;
     private final VerificationCodeService verificationCodeService;
     private final SmsProvider smsProvider;
+    private final CaptchaTokenStore captchaTokenStore;
+    private final LoginFailCounter loginFailCounter;
+    private final CaptchaProperties captchaProperties;
 
+    /**
+     * 手机号 + 密码登录（后台管理登录走此接口）。后台登录始终要求滑块验证。
+     */
     @Public
-    @Operation(summary = "手机号 + 密码登录")
+    @Operation(summary = "手机号 + 密码登录（后台，始终需滑块）")
     @PostMapping("/auth/login")
     public ApiResponse<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+        // 后台登录：始终强制滑块验证
+        if (captchaProperties.isEnabled() && !captchaTokenStore.consume(request.getCaptchaToken())) {
+            throw new BusinessException(ErrorCode.CAPTCHA_REQUIRED);
+        }
         return ApiResponse.ok(authService.loginByPassword(request));
     }
 
@@ -53,11 +66,38 @@ public class AuthController {
         return ApiResponse.ok(authService.register(request));
     }
 
+    /**
+     * 账号 + 密码登录（C 端）。密码错误 1 次后要求滑块验证；登录成功清零失败计数。
+     */
     @Public
-    @Operation(summary = "账号 + 密码登录")
+    @Operation(summary = "账号 + 密码登录（C 端，错 1 次后需滑块）")
     @PostMapping("/auth/login/username")
-    public ApiResponse<TokenResponse> loginByUsername(@Valid @RequestBody UsernameLoginRequest request) {
-        return ApiResponse.ok(authService.loginByUsername(request));
+    public ApiResponse<TokenResponse> loginByUsername(@Valid @RequestBody UsernameLoginRequest request,
+                                                      HttpServletRequest httpRequest) {
+        String ip = getClientIp(httpRequest);
+        String account = request.getUsername();
+        boolean captchaOn = captchaProperties.isEnabled();
+
+        // 已有失败记录（达阈值）→ 必须先过滑块
+        if (captchaOn
+                && loginFailCounter.count(account, ip) >= captchaProperties.getLoginFailThreshold()
+                && !captchaTokenStore.consume(request.getCaptchaToken())) {
+            throw new BusinessException(ErrorCode.CAPTCHA_REQUIRED);
+        }
+
+        try {
+            TokenResponse token = authService.loginByUsername(request);
+            if (captchaOn) {
+                loginFailCounter.reset(account, ip);
+            }
+            return ApiResponse.ok(token);
+        } catch (BusinessException e) {
+            // 密码错误累加失败次数，前端据 CAPTCHA_REQUIRED / 本次失败后展示滑块
+            if (captchaOn && e.getErrorCode() == ErrorCode.PASSWORD_INCORRECT) {
+                loginFailCounter.increment(account, ip);
+            }
+            throw e;
+        }
     }
 
     @Public
@@ -82,9 +122,13 @@ public class AuthController {
     }
 
     @Public
-    @Operation(summary = "发送验证码")
+    @Operation(summary = "发送验证码（C 端，发码前需滑块）")
     @PostMapping("/auth/send-code")
     public ApiResponse<Void> sendCode(@Valid @RequestBody SendCodeRequest request, HttpServletRequest httpRequest) {
+        // C 端发短信前始终强制滑块验证（防刷 + 保护短信网关）
+        if (captchaProperties.isEnabled() && !captchaTokenStore.consume(request.getCaptchaToken())) {
+            throw new BusinessException(ErrorCode.CAPTCHA_REQUIRED);
+        }
         String ip = getClientIp(httpRequest);
         verificationCodeService.sendCode(request.getTarget(), request.getType(), request.getSendType(), ip);
         return ApiResponse.ok(null);
@@ -132,14 +176,11 @@ public class AuthController {
         @Operation(summary = "查询 Mock 验证码（仅 dev 环境）")
         @GetMapping("/auth/mock/code")
         public ApiResponse<String> getMockCode(@RequestParam String phone) {
+            // 非 mock 模式（如真实 pxb 短信）下不报错，返回空，前端便捷自动填充自然跳过
             if (!(smsProvider instanceof MockSmsProvider mockProvider)) {
-                throw new BusinessException(ErrorCode.PARAM_INVALID, "当前非 mock 模式");
+                return ApiResponse.ok(null);
             }
-            String code = mockProvider.getCode(phone);
-            if (code == null) {
-                throw new BusinessException(ErrorCode.CAPTCHA_EXPIRED);
-            }
-            return ApiResponse.ok(code);
+            return ApiResponse.ok(mockProvider.getCode(phone));
         }
     }
 }

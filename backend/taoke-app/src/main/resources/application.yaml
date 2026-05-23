@@ -53,6 +53,11 @@ taoke:
     provider: pxb
     code-length: 6
     expire-minutes: 5
+    # 频率限制（接入真实短信后防刷、避免触发服务方限流）
+    interval-seconds: 60      # 同一号码两次发送最小间隔
+    window-minutes: 5         # 频率窗口
+    max-per-window: 3         # 窗口内单号码最多 3 条
+    ip-max-per-hour: 20       # 单 IP 每小时上限
     # 老站短信网关（uc.91pxb.com）凭据，全环境通用（捞自老站 AliSendSms）
     pxb:
       # 网关 http 会 301 跳 https，直接用 https 避免重定向
@@ -74,6 +79,10 @@ taoke:
     charset: utf-8
     timeout-ms: 10000
     user-agent: Taoke-UCenter-Client/2.0
+  # 滑块行为验证码（tianai-captcha）。前端接入完成前先关闭，接好后置 true 启用
+  captcha:
+    enabled: true
+    login-fail-threshold: 1
   event:
     enabled: true
     exchange: taoke.events
@@ -96,6 +105,25 @@ taoke:
     temperature: 0.2
     timeout-ms: 60000
     max-input-chars: 50000
+
+# 滑块验证码（tianai-captcha）自身配置，详见 cloud.tianai.captcha.autoconfiguration.ImageCaptchaProperties
+# 注意：此为 tianai 顶层 captcha.* 前缀；启用/卡点开关是另一套 taoke.captcha.*
+captcha:
+  # Redis 中验证数据 key 前缀（项目已用 Redis，会自动落 Redis，分布式/重启安全）
+  prefix: captcha:slider
+  # 加载自带默认图片资源（未提供自定义资源时必须开启，否则没有滑块底图）
+  init-default-resource: true
+  expire:
+    # 验证数据过期时间（毫秒），滑块 2 分钟足够
+    default: 120000
+  # 预生成缓存，提升出图性能
+  local-cache-enabled: false
+  local-cache-size: 20
+  local-cache-wait-time: 5000
+  local-cache-period: 2000
+  secondary:
+    # 二次校验用我们自己的一次性 token（CaptchaTokenStore），不用 tianai 内置
+    enabled: false
 
 # Actuator 健康检查
 management:

@@ -108,39 +108,42 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
     }
 
     private void checkRateLimit(String target, String ip) {
-        // 60 秒间隔
-        String minuteKey = RATE_LIMIT_PREFIX + target + ":min";
+        // 最小发送间隔
+        String minuteKey = RATE_LIMIT_PREFIX + target + ":interval";
         if (Boolean.TRUE.equals(redisTemplate.hasKey(minuteKey))) {
-            throw new BusinessException(ErrorCode.CAPTCHA_RATE_LIMIT, "请60秒后再试");
+            throw new BusinessException(ErrorCode.CAPTCHA_RATE_LIMIT,
+                    "请" + smsProperties.getIntervalSeconds() + "秒后再试");
         }
 
-        // 同一号码 1 小时上限 10 次
-        String hourKey = RATE_LIMIT_PREFIX + target + ":hour";
-        String hourCount = redisTemplate.opsForValue().get(hourKey);
-        if (hourCount != null && Integer.parseInt(hourCount) >= 10) {
-            throw new BusinessException(ErrorCode.CAPTCHA_RATE_LIMIT, "该号码1小时内发送次数已达上限");
+        // 同一号码窗口内上限（默认 5 分钟最多 3 条）
+        String windowKey = RATE_LIMIT_PREFIX + target + ":window";
+        String windowCount = redisTemplate.opsForValue().get(windowKey);
+        if (windowCount != null && Integer.parseInt(windowCount) >= smsProperties.getMaxPerWindow()) {
+            throw new BusinessException(ErrorCode.CAPTCHA_RATE_LIMIT,
+                    smsProperties.getWindowMinutes() + "分钟内最多发送 "
+                            + smsProperties.getMaxPerWindow() + " 条，请稍后再试");
         }
 
-        // 同一 IP 1 小时上限 20 次
+        // 同一 IP 1 小时上限
         if (ip != null) {
             String ipKey = RATE_LIMIT_PREFIX + "ip:" + ip + ":hour";
             String ipCount = redisTemplate.opsForValue().get(ipKey);
-            if (ipCount != null && Integer.parseInt(ipCount) >= 20) {
+            if (ipCount != null && Integer.parseInt(ipCount) >= smsProperties.getIpMaxPerHour()) {
                 throw new BusinessException(ErrorCode.CAPTCHA_RATE_LIMIT, "当前网络发送次数已达上限");
             }
         }
     }
 
     private void incrementRateLimit(String target, String ip) {
-        // 60 秒间隔标记
-        String minuteKey = RATE_LIMIT_PREFIX + target + ":min";
-        redisTemplate.opsForValue().set(minuteKey, "1", 60, TimeUnit.SECONDS);
+        // 最小间隔标记
+        String minuteKey = RATE_LIMIT_PREFIX + target + ":interval";
+        redisTemplate.opsForValue().set(minuteKey, "1", smsProperties.getIntervalSeconds(), TimeUnit.SECONDS);
 
-        // 小时计数
-        String hourKey = RATE_LIMIT_PREFIX + target + ":hour";
-        Long count = redisTemplate.opsForValue().increment(hourKey);
+        // 窗口计数（首次写入时设置过期）
+        String windowKey = RATE_LIMIT_PREFIX + target + ":window";
+        Long count = redisTemplate.opsForValue().increment(windowKey);
         if (count != null && count == 1) {
-            redisTemplate.expire(hourKey, 1, TimeUnit.HOURS);
+            redisTemplate.expire(windowKey, smsProperties.getWindowMinutes(), TimeUnit.MINUTES);
         }
 
         // IP 小时计数

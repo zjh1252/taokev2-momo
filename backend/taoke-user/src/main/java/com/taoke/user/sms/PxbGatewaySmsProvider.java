@@ -80,8 +80,15 @@ public class PxbGatewaySmsProvider implements SmsProvider {
             JsonNode json = objectMapper.readTree(response.body());
             int err = json.path("err").asInt(0);
             if (err != 0) {
-                log.warn("[PXB-SMS] 发送失败 phone={} resp={}", phone, response.body());
-                throw new BusinessException(ErrorCode.SMS_SEND_FAILED);
+                // 提取网关返回的具体原因（多为发送服务方限流/号码异常），细化错误提示
+                String reason = firstNonBlank(
+                        json.path("msg").asText(null),
+                        json.path("message").asText(null),
+                        json.path("data").asText(null));
+                log.warn("[PXB-SMS] 发送失败 phone={} err={} reason={} resp={}", phone, err, reason, response.body());
+                throw (reason != null)
+                        ? new BusinessException(ErrorCode.SMS_SEND_FAILED, "短信发送失败：" + reason)
+                        : new BusinessException(ErrorCode.SMS_SEND_FAILED);
             }
             log.info("[PXB-SMS] 验证码已发送 phone={} resp={}", phone, response.body());
         } catch (BusinessException e) {
@@ -141,5 +148,15 @@ public class PxbGatewaySmsProvider implements SmsProvider {
             return "";
         }
         return s.endsWith("/") ? s.substring(0, s.length() - 1) : s;
+    }
+
+    /** 返回首个非空白字符串，全部为空则返回 null。 */
+    private static String firstNonBlank(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isBlank() && !"null".equals(v)) {
+                return v.trim();
+            }
+        }
+        return null;
     }
 }
