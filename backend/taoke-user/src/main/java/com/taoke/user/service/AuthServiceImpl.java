@@ -15,6 +15,9 @@ import com.taoke.user.repository.UserRoleRepository;
 import com.taoke.user.security.JwtUtils;
 import com.taoke.user.security.PermissionCacheService;
 import com.taoke.user.security.SecurityUserService;
+import com.taoke.user.ucenter.UcLoginResult;
+import com.taoke.user.ucenter.UcenterClient;
+import com.taoke.user.ucenter.UcenterProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,7 +28,9 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -47,12 +52,26 @@ public class AuthServiceImpl implements AuthService {
     private final SecurityUserService securityUserService;
     private final PermissionCacheService permissionCacheService;
     private final EventPublisher eventPublisher;
+    private final UcenterProperties ucenterProperties;
+    private final UcenterClient ucenterClient;
 
     @Value("${taoke.jwt.access-token-expire-ms:7200000}")
     private long accessTokenExpireMs;
 
+    @Transactional
     @Override
     public TokenResponse loginByPassword(LoginRequest request) {
+        // 开关开启：交由 UCenter 校验。UCenter 以用户名为登录标识，
+        // 若本地已能按手机号查到用户（含其 UCenter 用户名），优先用用户名登录，
+        // 更可靠；否则退化为直接用手机号（依赖 UCenter 支持手机号登录）。
+        if (ucenterProperties.isEnabled()) {
+            String account = userRepository.findByPhone(request.getPhone())
+                    .map(User::getUsername)
+                    .filter(u -> u != null && !u.isBlank())
+                    .orElse(request.getPhone());
+            return ucenterLogin(account, request.getPassword());
+        }
+
         User user = userRepository.findByPhone(request.getPhone())
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
 
@@ -78,20 +97,26 @@ public class AuthServiceImpl implements AuthService {
 
         boolean isNewUser = false;
         User user = userRepository.findByPhone(request.getPhone()).orElse(null);
-        if (user == null) {
-            isNewUser = true;
-            user = new User();
-            user.setPhone(request.getPhone());
-            user.setStatus(1);
-            user.setRegOrigin(1);
-            user = userRepository.save(user);
 
-            UserRole buyerRole = new UserRole();
-            buyerRole.setUserId(user.getId());
-            buyerRole.setRole(BusinessRole.Code.BUYER);
-            buyerRole.setStatus(1);
-            buyerRole.setApprovedAt(LocalDateTime.now());
-            userRoleRepository.save(buyerRole);
+        if (user == null) {
+            // 账号体系以 UCenter 为准：开关开启时验证码注册/登录也要落到 UCenter
+            if (ucenterProperties.isEnabled()) {
+                UcLoginResult found = ucenterClient.lookupByMobile(request.getPhone());
+                if (found.success()) {
+                    // 老用户：懒补建并关联（provisionFromUcenter 内部会建角色并发事件，from_source=2）
+                    user = provisionFromUcenter(found);
+                } else {
+                    // 新手机号：在 UCenter 注册（随机密码）并回填 uc_uid（from_source=1）
+                    user = registerSmsUserToUcenter(request.getPhone());
+                    isNewUser = true;
+                }
+            } else {
+                user = createLocalSmsUser(request.getPhone());
+                isNewUser = true;
+            }
+        } else if (ucenterProperties.isEnabled() && user.getUcUid() == null) {
+            // 老的本地-only 用户：尝试按手机号反查 UCenter 回填 uc_uid
+            backfillUcUidByPhone(user);
         }
 
         checkAccountStatus(user);
@@ -105,6 +130,55 @@ public class AuthServiceImpl implements AuthService {
         return tokenResponse;
     }
 
+    /** 本地直建验证码用户（未接入 UCenter 时的原逻辑）。 */
+    private User createLocalSmsUser(String phone) {
+        User user = new User();
+        user.setPhone(phone);
+        user.setStatus(1);
+        user.setRegOrigin(1);
+        user = userRepository.save(user);
+        addBuyerRole(user.getId());
+        return user;
+    }
+
+    /**
+     * 新手机号通过验证码注册到 UCenter（随机密码），回填 uc_uid，from_source=1。
+     * 不在此处发用户注册事件，由调用方按 isNewUser 统一发布。
+     */
+    private User registerSmsUserToUcenter(String phone) {
+        String username = generateInternalUsername();
+        String randomPassword = generateRandomPassword();
+        int ucUid = ucenterRegister(username, randomPassword, "", phone);
+
+        User user = new User();
+        user.setPhone(phone);
+        user.setUsername(username);
+        user.setUcUid(ucUid);
+        user.setUserSource(1);
+        user.setStatus(1);
+        user.setRegOrigin(1);
+        user = userRepository.save(user);
+        addBuyerRole(user.getId());
+        return user;
+    }
+
+    /** 老的本地-only 用户登录时，尝试按手机号反查 UCenter 回填 uc_uid / username。 */
+    private void backfillUcUidByPhone(User user) {
+        try {
+            UcLoginResult found = ucenterClient.lookupByMobile(user.getPhone());
+            if (found.success()) {
+                user.setUcUid(found.ucUid());
+                if ((user.getUsername() == null || user.getUsername().isBlank())
+                        && found.username() != null && !found.username().isBlank()) {
+                    user.setUsername(found.username());
+                }
+                userRepository.save(user);
+            }
+        } catch (Exception e) {
+            log.warn("按手机号反查 UCenter 回填失败：phone={}", user.getPhone(), e);
+        }
+    }
+
     @Transactional
     @Override
     public TokenResponse register(RegisterRequest request) {
@@ -116,18 +190,23 @@ public class AuthServiceImpl implements AuthService {
 
         User user = new User();
         user.setPhone(request.getPhone());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setNickname(request.getNickname());
         user.setStatus(1);
         user.setRegOrigin(1);
-        user = userRepository.save(user);
 
-        UserRole buyerRole = new UserRole();
-        buyerRole.setUserId(user.getId());
-        buyerRole.setRole(BusinessRole.Code.BUYER);
-        buyerRole.setStatus(1);
-        buyerRole.setApprovedAt(LocalDateTime.now());
-        userRoleRepository.save(buyerRole);
+        if (ucenterProperties.isEnabled()) {
+            // UCenter 无空用户名，按老站习惯生成内部用户名；手机号写入 UCenter mobile
+            String username = generateInternalUsername();
+            int ucUid = ucenterRegister(username, request.getPassword(), "", request.getPhone());
+            user.setUsername(username);
+            user.setUcUid(ucUid);
+            user.setUserSource(1);
+        } else {
+            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        }
+
+        user = userRepository.save(user);
+        addBuyerRole(user.getId());
 
         TokenResponse tokenResponse = generateTokens(user);
         tokenResponse.setNewUser(true);
@@ -155,8 +234,14 @@ public class AuthServiceImpl implements AuthService {
         return generateTokens(user);
     }
 
+    @Transactional
     @Override
     public TokenResponse loginByUsername(UsernameLoginRequest request) {
+        // 开关开启：账号 + 密码交由 UCenter 校验
+        if (ucenterProperties.isEnabled()) {
+            return ucenterLogin(request.getUsername(), request.getPassword());
+        }
+
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
 
@@ -179,21 +264,23 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.USERNAME_TAKEN);
         }
 
+        String nickname = request.getNickname();
         User user = new User();
         user.setUsername(request.getUsername());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        String nickname = request.getNickname();
         user.setNickname(nickname == null || nickname.isBlank() ? request.getUsername() : nickname);
         user.setStatus(1);
         user.setRegOrigin(1);
-        user = userRepository.save(user);
 
-        UserRole buyerRole = new UserRole();
-        buyerRole.setUserId(user.getId());
-        buyerRole.setRole(BusinessRole.Code.BUYER);
-        buyerRole.setStatus(1);
-        buyerRole.setApprovedAt(LocalDateTime.now());
-        userRoleRepository.save(buyerRole);
+        if (ucenterProperties.isEnabled()) {
+            int ucUid = ucenterRegister(request.getUsername(), request.getPassword(), "", null);
+            user.setUcUid(ucUid);
+            user.setUserSource(1);
+        } else {
+            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        }
+
+        user = userRepository.save(user);
+        addBuyerRole(user.getId());
 
         TokenResponse tokenResponse = generateTokens(user);
         tokenResponse.setNewUser(true);
@@ -221,8 +308,167 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
 
         checkAccountStatus(user);
+
+        // UCenter 关联用户：改密同步到 UCenter（忽略旧密码），本地不存储密码
+        if (ucenterProperties.isEnabled() && user.getUcUid() != null) {
+            if (user.getUsername() == null || user.getUsername().isBlank()) {
+                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "账号信息不完整，无法重置密码");
+            }
+            int rc = ucenterClient.editPassword(user.getUsername(), "", request.getNewPassword(), true);
+            if (rc < 0) {
+                log.warn("UCenter 重置密码失败：username={} rc={}", user.getUsername(), rc);
+                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE);
+            }
+            return;
+        }
+
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+    }
+
+    /* ==================== UCenter 接入辅助 ==================== */
+
+    /**
+     * 通过 UCenter 校验账号密码并签发本地令牌。
+     * 校验通过后按 uc_uid 关联本地用户；不存在则懒补建（user_source=2）。
+     *
+     * @param account     登录标识（用户名 / 手机号）
+     * @param rawPassword 明文密码
+     */
+    private TokenResponse ucenterLogin(String account, String rawPassword) {
+        UcLoginResult result = ucenterClient.login(account, rawPassword);
+        if (!result.success()) {
+            if (result.status() == -2) {
+                throw new BusinessException(ErrorCode.PASSWORD_INCORRECT);
+            }
+            throw new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND);
+        }
+
+        User user = userRepository.findByUcUid(result.ucUid())
+                .orElseGet(() -> provisionFromUcenter(result));
+
+        checkAccountStatus(user);
+        return generateTokens(user);
+    }
+
+    /**
+     * 老用户首次在新站登录时，按 UCenter 返回资料懒补建本地账号。
+     * 优先关联已存在的本地账号（手机号/用户名/邮箱），避免唯一键冲突；否则新建（user_source=2）。
+     */
+    private User provisionFromUcenter(UcLoginResult result) {
+        String mobile = blankToNull(result.mobile());
+        String username = blankToNull(result.username());
+        String email = blankToNull(result.email());
+
+        User existing = null;
+        if (mobile != null) {
+            existing = userRepository.findByPhone(mobile).orElse(null);
+        }
+        if (existing == null && username != null) {
+            existing = userRepository.findByUsername(username).orElse(null);
+        }
+        if (existing == null && email != null) {
+            existing = userRepository.findByEmail(email).orElse(null);
+        }
+        if (existing != null) {
+            existing.setUcUid(result.ucUid());
+            return userRepository.save(existing);
+        }
+
+        User user = new User();
+        user.setUcUid(result.ucUid());
+        user.setUserSource(2);
+        user.setUsername(username);
+        user.setPhone(mobile);
+        user.setEmail(email);
+        user.setNickname(username != null ? username : (mobile != null ? mobile : "用户" + result.ucUid()));
+        user.setStatus(1);
+        user.setRegOrigin(1);
+        user = userRepository.save(user);
+
+        addBuyerRole(user.getId());
+        publishAfterCommit(new NewUserRegisteredEvent(user.getId(), user.getPhone()));
+        return user;
+    }
+
+    /**
+     * 向 UCenter 注册并返回 uc_uid；失败按错误码映射业务异常。
+     */
+    private int ucenterRegister(String username, String rawPassword, String email, String mobile) {
+        int ucUid = ucenterClient.register(username, rawPassword, email, mobile);
+        if (ucUid > 0) {
+            return ucUid;
+        }
+        // 记录确切返回码，便于核对 UCenter 行为（对齐老站 regErrorMsg）
+        log.warn("UCenter 注册失败：username={} mobile={} rc={}", username, mobile, ucUid);
+        switch (ucUid) {
+            case -8:
+                throw new BusinessException(ErrorCode.ACCOUNT_EXISTS, "该手机号已注册，请直接登录");
+            case -3:
+                throw new BusinessException(ErrorCode.USERNAME_TAKEN);
+            case -6:
+                throw new BusinessException(ErrorCode.ACCOUNT_EXISTS, "该邮箱已被注册");
+            case -7:
+                // 手机检查失败：UCenter 注册强制要求有效手机号，多见于手机号已被占用 / 未提供手机号
+                throw new BusinessException(ErrorCode.ACCOUNT_EXISTS, "该手机号已注册或不可用，请直接登录");
+            case -9:
+            case -10:
+                throw new BusinessException(ErrorCode.INVALID_PHONE);
+            case -1:
+            case -2:
+                throw new BusinessException(ErrorCode.USERNAME_INVALID);
+            case -4:
+            case -5:
+                throw new BusinessException(ErrorCode.UCENTER_REGISTER_FAILED, "邮箱不可用");
+            default:
+                throw new BusinessException(ErrorCode.UCENTER_REGISTER_FAILED);
+        }
+    }
+
+    /**
+     * 生成内部用户名（手机号注册时使用，沿用老站 TPC_ 前缀风格），确保本地唯一。
+     */
+    private String generateInternalUsername() {
+        String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        for (int attempt = 0; attempt < 20; attempt++) {
+            StringBuilder sb = new StringBuilder("TPC_");
+            for (int i = 0; i < 6; i++) {
+                sb.append((char) ('A' + ThreadLocalRandom.current().nextInt(26)));
+            }
+            String username = sb.append(date).toString();
+            if (!userRepository.existsByUsername(username)) {
+                return username;
+            }
+        }
+        throw new BusinessException(ErrorCode.UCENTER_REGISTER_FAILED, "用户名生成失败，请重试");
+    }
+
+    /**
+     * 生成随机密码（验证码注册时写入 UCenter，用户自身不感知，后续可走找回密码重设）。
+     */
+    private String generateRandomPassword() {
+        String pool = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$%";
+        StringBuilder sb = new StringBuilder(16);
+        for (int i = 0; i < 16; i++) {
+            sb.append(pool.charAt(ThreadLocalRandom.current().nextInt(pool.length())));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 为用户补默认 BUYER 角色（生效状态）。
+     */
+    private void addBuyerRole(Integer userId) {
+        UserRole buyerRole = new UserRole();
+        buyerRole.setUserId(userId);
+        buyerRole.setRole(BusinessRole.Code.BUYER);
+        buyerRole.setStatus(1);
+        buyerRole.setApprovedAt(LocalDateTime.now());
+        userRoleRepository.save(buyerRole);
+    }
+
+    private static String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
     }
 
     private TokenResponse generateTokens(User user) {

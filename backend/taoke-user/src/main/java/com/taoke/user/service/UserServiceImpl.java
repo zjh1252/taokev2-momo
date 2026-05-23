@@ -28,6 +28,8 @@ import com.taoke.user.repository.TrainerAssistantBindingRepository;
 import com.taoke.user.repository.TrainerRepository;
 import com.taoke.user.repository.UserRepository;
 import com.taoke.user.repository.UserRoleRepository;
+import com.taoke.user.ucenter.UcenterClient;
+import com.taoke.user.ucenter.UcenterProperties;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -55,6 +57,8 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final VerificationCodeService verificationCodeService;
     private final UserMapper userMapper;
+    private final UcenterProperties ucenterProperties;
+    private final UcenterClient ucenterClient;
     // 注销账号 / 注销身份所需的全部角色子表 + 绑定表
     private final TrainerRepository trainerRepository;
     private final AgentRepository agentRepository;
@@ -136,6 +140,26 @@ public class UserServiceImpl implements UserService {
     @Override
     public void changePassword(Integer userId, ChangePasswordRequest request) {
         User user = findUser(userId);
+
+        // UCenter 关联用户：校验旧密码并改密由 UCenter 完成，本地不存储密码
+        if (ucenterProperties.isEnabled() && user.getUcUid() != null) {
+            if (user.getUsername() == null || user.getUsername().isBlank()) {
+                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "账号信息不完整，无法修改密码");
+            }
+            if (request.getOldPassword() == null || request.getOldPassword().isBlank()) {
+                throw new BusinessException(ErrorCode.OLD_PASSWORD_INCORRECT, "请输入旧密码");
+            }
+            int rc = ucenterClient.editPassword(
+                    user.getUsername(), request.getOldPassword(), request.getNewPassword(), false);
+            if (rc == -1) {
+                throw new BusinessException(ErrorCode.OLD_PASSWORD_INCORRECT);
+            }
+            if (rc < 0) {
+                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE);
+            }
+            return;
+        }
+
         boolean hasPassword = user.getPasswordHash() != null && !user.getPasswordHash().isEmpty();
 
         if (hasPassword) {

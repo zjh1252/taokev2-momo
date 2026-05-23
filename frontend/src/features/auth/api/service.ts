@@ -6,19 +6,31 @@ import type {
   ApiResult,
   UsernameLoginPayload,
   UsernameRegisterPayload,
+  RegisterPayload,
 } from './types';
 
 /**
  * 发送短信验证码
  * POST /auth/send-code
+ *
+ * @param phone 手机号
+ * @param type  用途：登录 / 注册 / 找回密码，默认登录
  */
-export function sendCode(phone: string) {
+export function sendCode(phone: string, type: SendCodePayload['type'] = 'LOGIN') {
   const payload: SendCodePayload = {
     target: phone,
-    type: 'LOGIN',
+    type,
     sendType: 'SMS',
   };
   return apiPost<ApiResult>('/auth/send-code', payload);
+}
+
+/**
+ * 手机号 + 验证码 + 密码注册
+ * POST /auth/register
+ */
+export function register(payload: RegisterPayload) {
+  return apiPost<ApiResult<TokenResponse>>('/auth/register', payload);
 }
 
 /**

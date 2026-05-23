@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback, type FormEvent } from 'react';
+import { useState, useCallback, useEffect, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, User, Lock, Loader2 } from 'lucide-react';
+import { ArrowRight, Lock, Loader2, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
@@ -11,70 +11,83 @@ import { storage } from '@/lib/storage';
 import { useAuth } from '@/lib/auth/auth-context';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import { markNewUserPending } from '@/features/role-apply/hooks/useRoleApplyState';
-import { usernameRegister, checkUsernameAvailable } from '../api/service';
+import { sendCode, register, getMockCode } from '../api/service';
 
-const USERNAME_MIN = 4;
-const USERNAME_MAX = 32;
+const PHONE_LENGTH = 11;
+const CODE_LENGTH = 6;
+const COUNTDOWN_SECONDS = 60;
 const PASSWORD_MIN = 6;
 const PASSWORD_MAX = 32;
-const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+const PHONE_REGEX = /^1[3-9]\d{9}$/;
+const IS_MOCK_SMS = process.env.NODE_ENV === 'development'
+  || process.env.NEXT_PUBLIC_MOCK_SMS === 'true';
 
-type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
-
+/**
+ * 注册表单 — 手机号 + 验证码 + 密码（账号即手机号，统一接入 UCenter）
+ *
+ * @author Fangxinxin
+ * @date 2026-05-23 12:00
+ */
 export function RegisterForm() {
   const t = useTranslations('auth.register');
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
 
-  const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
+  const [countdown, setCountdown] = useState(0);
+  const [sendingCode, setSendingCode] = useState(false);
 
-  const usernameFormatValid =
-    username.length >= USERNAME_MIN &&
-    username.length <= USERNAME_MAX &&
-    USERNAME_REGEX.test(username);
+  const phoneValid = PHONE_REGEX.test(phone);
   const passwordValid = password.length >= PASSWORD_MIN && password.length <= PASSWORD_MAX;
   const passwordsMatch = password === confirmPassword;
+  const canSendCode = phoneValid && countdown === 0 && !sendingCode;
   const canSubmit =
-    usernameFormatValid &&
-    usernameStatus !== 'taken' &&
-    usernameStatus !== 'invalid' &&
+    phoneValid &&
+    code.length === CODE_LENGTH &&
     passwordValid &&
     passwordsMatch &&
     agreed &&
     !submitting;
 
-  const handleUsernameBlur = useCallback(async () => {
-    if (!username) {
-      setUsernameStatus('idle');
-      return;
-    }
-    if (!usernameFormatValid) {
-      setUsernameStatus('invalid');
-      return;
-    }
-    setUsernameStatus('checking');
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  const handleSendCode = useCallback(async () => {
+    if (!canSendCode) return;
+    setSendingCode(true);
     try {
-      const res = await checkUsernameAvailable(username);
-      setUsernameStatus(res.data ? 'available' : 'taken');
+      await sendCode(phone, 'REGISTER');
+      setCountdown(COUNTDOWN_SECONDS);
+      if (IS_MOCK_SMS) {
+        try {
+          const res = await getMockCode(phone);
+          if (res.data) setCode(res.data);
+        } catch {
+          // Mock 接口失败不影响正常流程
+        }
+      }
     } catch {
-      setUsernameStatus('idle');
+      // 错误已由全局 toast 统一提示
+    } finally {
+      setSendingCode(false);
     }
-  }, [username, usernameFormatValid]);
+  }, [canSendCode, phone]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    setError('');
     setSubmitting(true);
     try {
-      const res = await usernameRegister({ username, password });
+      const res = await register({ phone, code, password });
       const token = res.data;
       storage.set(TOKEN_KEY, {
         accessToken: token.accessToken,
@@ -88,26 +101,12 @@ export function RegisterForm() {
       }
       const redirect = searchParams.get('redirect');
       router.push(redirect || '/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('registerError'));
+    } catch {
+      // 错误已由全局 toast 统一提示
     } finally {
       setSubmitting(false);
     }
   };
-
-  const usernameHintText = (() => {
-    if (usernameStatus === 'taken') return t('usernameTaken');
-    if (usernameStatus === 'invalid') return t('usernameInvalid');
-    return t('usernameHint');
-  })();
-  const usernameHintClass = cn(
-    'text-[11px] mt-1',
-    usernameStatus === 'taken' || usernameStatus === 'invalid'
-      ? 'text-red-500'
-      : usernameStatus === 'available'
-        ? 'text-green-500'
-        : 'text-muted-foreground/70',
-  );
 
   return (
     <>
@@ -116,40 +115,58 @@ export function RegisterForm() {
         <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-          {error}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* 账号 */}
+        {/* 手机号 */}
         <div className="space-y-2">
           <label className="block text-xs font-semibold text-muted-foreground tracking-widest uppercase">
-            {t('usernameLabel')}
+            {t('phoneLabel')}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-4">
-              <User className="size-4 text-muted-foreground/60" />
+              <Smartphone className="size-4 text-muted-foreground/60" />
             </div>
             <input
-              type="text"
-              name="username"
-              autoComplete="username"
-              maxLength={USERNAME_MAX}
-              value={username}
-              onChange={(e) => {
-                setUsername(e.target.value.trim());
-                setUsernameStatus('idle');
-              }}
-              onBlur={handleUsernameBlur}
-              placeholder={t('usernamePlaceholder')}
+              type="tel"
+              name="phone"
+              autoComplete="tel"
+              maxLength={PHONE_LENGTH}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+              placeholder={t('phonePlaceholder')}
               className="w-full h-12 pl-11 pr-4 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-foreground text-base placeholder:text-muted-foreground/50 transition-all outline-none"
             />
           </div>
-          <p className={usernameHintClass}>
-            {usernameStatus === 'checking' ? '检查中…' : usernameHintText}
-          </p>
+        </div>
+
+        {/* 验证码 */}
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold text-muted-foreground tracking-widest uppercase">
+            {t('codeLabel')}
+          </label>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              maxLength={CODE_LENGTH}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              placeholder={t('codePlaceholder')}
+              className="flex-1 h-12 px-4 bg-muted/50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-foreground text-base placeholder:text-muted-foreground/50 transition-all outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleSendCode}
+              disabled={!canSendCode}
+              className={cn(
+                'h-12 px-6 whitespace-nowrap font-bold text-sm rounded-xl transition-colors flex items-center gap-2',
+                canSendCode
+                  ? 'text-primary hover:bg-primary/5 cursor-pointer'
+                  : 'text-muted-foreground cursor-not-allowed',
+              )}
+            >
+              {sendingCode && <Loader2 className="size-4 animate-spin" />}
+              {countdown > 0 ? t('codeSent', { seconds: countdown }) : t('getCode')}
+            </button>
+          </div>
         </div>
 
         {/* 密码 */}

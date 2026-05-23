@@ -22,6 +22,9 @@ public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecifi
 
     Optional<User> findByUsername(String username);
 
+    /** 按 UCenter 用户 ID 查找（接入 UCenter 账号中心后用于关联本地用户） */
+    Optional<User> findByUcUid(Integer ucUid);
+
     boolean existsByPhone(String phone);
 
     boolean existsByEmail(String email);

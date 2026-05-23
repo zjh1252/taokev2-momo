@@ -24,6 +24,14 @@ export interface UsernameRegisterPayload {
   nickname?: string;
 }
 
+/** 手机号 + 验证码 + 密码注册请求 */
+export interface RegisterPayload {
+  phone: string;
+  code: string;
+  password: string;
+  nickname?: string;
+}
+
 /** 登录/刷新 Token 响应 */
 export interface TokenResponse {
   accessToken: string;

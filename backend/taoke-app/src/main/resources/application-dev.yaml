@@ -49,8 +49,6 @@ taoke:
     enabled: true
   jwt:
     secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
-  sms:
-    provider: mock
   storage:
     provider: local
     base-dir: ../../frontend/public

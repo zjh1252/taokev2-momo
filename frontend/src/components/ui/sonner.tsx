@@ -31,7 +31,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           toast: "cn-toast",
           closeButton: "!border-current/20",
           error:
-            "!bg-destructive/10 !text-destructive !border-destructive/25",
+            "!bg-white !text-destructive !border-destructive/30 !shadow-lg",
           info:
             "!bg-info/15 !text-info-foreground !border-info/30",
           success:
@@ -44,7 +44,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
-          zIndex: 100000,
+          zIndex: 2147483647,
         } as React.CSSProperties
       }
       {...props}

@@ -49,8 +49,31 @@ taoke:
     access-token-expire-ms: 7200000
     refresh-token-expire-ms: 604800000
   sms:
+    # 发送渠道：mock（默认/开发）/ pxb（老站 uc.91pxb.com 网关，真实发送）
+    provider: pxb
     code-length: 6
     expire-minutes: 5
+    # 老站短信网关（uc.91pxb.com）凭据，全环境通用（捞自老站 AliSendSms）
+    pxb:
+      # 网关 http 会 301 跳 https，直接用 https 避免重定向
+      uc-site: https://uc.91pxb.com
+      app-id: 1J0VhhE846yerwUm
+      app-secret: ITB1M494QKDI8zhpH9g0DpZBzIZOfUlQyCCLUKZ8
+      access-type: 109
+      template-code: SMS_498620164
+      auth: 44
+      token-ttl-seconds: 7000
+  # UCenter 账号中心接入（登录/注册/改密）。enabled=false 时走新站本地流程。
+  # 凭据全环境通用（appid/key 捞自老站）；api-url 默认指向测试 UCenter，prod 覆盖为生产地址
+  ucenter:
+    enabled: true
+    # api-url: https://shequ-common.test.taoke.com/uc_server
+    api-url: http://shequ.taoke.com/uc_server
+    key: 506cq/cuxBy/XFc5nX4AvOiTDe3QSraUZCV6q+g
+    appid: 2
+    charset: utf-8
+    timeout-ms: 10000
+    user-agent: Taoke-UCenter-Client/2.0
   event:
     enabled: true
     exchange: taoke.events

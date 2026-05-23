@@ -49,6 +49,9 @@ public enum ErrorCode {
     ROLE_DISABLED(403, 10015, "角色已被禁用，请联系管理员"),
     USERNAME_TAKEN(400, 10016, "该账号已被占用"),
     USERNAME_INVALID(400, 10017, "账号格式不正确（4-32 位字母/数字/下划线）"),
+    UCENTER_UNAVAILABLE(503, 10018, "账号服务暂不可用，请稍后再试"),
+    UCENTER_REGISTER_FAILED(400, 10019, "注册失败，请稍后再试"),
+    SMS_SEND_FAILED(503, 10020, "短信发送失败，请稍后再试"),
 
     /* ==================== 权限 101xx ==================== */
     UNAUTHORIZED(401, 10101, "请先登录"),
