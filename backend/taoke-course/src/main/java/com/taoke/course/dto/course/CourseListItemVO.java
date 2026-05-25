@@ -40,6 +40,10 @@ public class CourseListItemVO {
     private String publisherType;
     private String publisherName;
     private String trainerName;
+    /** 主讲专家省份名称（内训课列表「讲师常驻地」） */
+    private String trainerProvinceName;
+    /** 主讲专家城市名称（内训课列表「讲师常驻地」） */
+    private String trainerCityName;
     private String keywords;
 
     private LocalDateTime publishedAt;

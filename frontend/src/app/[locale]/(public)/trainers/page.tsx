@@ -29,11 +29,11 @@ export async function generateMetadata() {
 export default async function TrainersPage() {
   const [initialData, expertiseTree, industryTree, recommendedTrainers, recentCases] =
     await Promise.all([
-      getTrainerList({ page: 1, size: 15 }).catch(() => ({
+      getTrainerList({ page: 1, size: 16 }).catch(() => ({
         list: [],
         total: 0,
         page: 1,
-        size: 15,
+        size: 16,
         totalPages: 0,
       })),
       getCategoryTree('TRAINER_EXPERTISE').catch(() => []),

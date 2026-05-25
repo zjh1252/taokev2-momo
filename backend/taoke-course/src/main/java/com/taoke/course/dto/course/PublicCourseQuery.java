@@ -47,6 +47,23 @@ public class PublicCourseQuery {
     /** 机构 ID（user_institutions.id） */
     private Integer institutionId;
 
+    // ---- 内训课：按主讲专家维度 ----
+
+    /** 主讲专家擅长行业分类 ID */
+    private Integer trainerIndustryCategoryId;
+
+    /** 主讲专家省份 ID */
+    private Integer trainerProvinceId;
+
+    /** 主讲专家城市 ID */
+    private Integer trainerCityId;
+
+    /** 1=仅看「信得过」专家（平台认证） */
+    private Integer trainerIsTrusted;
+
+    /** 1=仅看有版权课/独家讲师 */
+    private Integer trainerHasCopyright;
+
     // ---- 开课计划维度 ----
 
     /** 开课省份 ID 集合（多选，按开课计划过滤；OR 关系） */

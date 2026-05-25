@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useCallback, useTransition, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, ArrowUpDown, X, RotateCcw } from 'lucide-react';
+import { Suspense, useState, useCallback, useTransition, useMemo } from 'react';
+import { ArrowUpDown, X, RotateCcw } from 'lucide-react';
+import { ListPagePagination } from '@/components/list-page-pagination';
 import { useRouter } from '@/i18n/navigation';
+import { useListPageUrlSync } from '@/hooks/use-list-page-url';
 import { OpenCourseCard } from './OpenCourseCard';
 import { OpenCourseFilters, type OpenCourseFilterValue } from './OpenCourseFilters';
 import { getCourseList } from '../../api/service';
@@ -32,7 +34,15 @@ interface ActiveChip {
   onRemove: () => OpenCourseFilterValue;
 }
 
-export function OpenCourseListSection({
+export function OpenCourseListSection(props: OpenCourseListSectionProps) {
+  return (
+    <Suspense fallback={<div className="min-h-[320px] animate-pulse rounded-xl bg-slate-100" />}>
+      <OpenCourseListSectionInner {...props} />
+    </Suspense>
+  );
+}
+
+function OpenCourseListSectionInner({
   initialData,
   categoryTree,
   initialInstitutionId,
@@ -93,6 +103,11 @@ export function OpenCourseListSection({
     [filters, sortKey, institutionId],
   );
 
+  const { commitPageChange } = useListPageUrlSync({
+    currentPage,
+    onPageFromUrl: (page) => fetchData(page),
+  });
+
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);
     fetchData(1, undefined, undefined, null);
@@ -102,32 +117,36 @@ export function OpenCourseListSection({
   const handleFilterChange = useCallback(
     (newFilters: OpenCourseFilterValue) => {
       setFilters(newFilters);
+      commitPageChange(1);
       fetchData(1, newFilters);
     },
-    [fetchData],
+    [fetchData, commitPageChange],
   );
 
   const handleSortChange = useCallback(
     (key: string) => {
       setSortKey(key);
+      commitPageChange(1);
       fetchData(1, filters, key);
     },
-    [fetchData, filters],
+    [fetchData, filters, commitPageChange],
   );
 
   const handlePageChange = useCallback(
     (page: number) => {
+      commitPageChange(page);
       fetchData(page);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [fetchData],
+    [fetchData, commitPageChange],
   );
 
   const handleResetAll = useCallback(() => {
     setFilters({});
     setSortKey('default');
+    commitPageChange(1);
     fetchData(1, {}, 'default');
-  }, [fetchData]);
+  }, [fetchData, commitPageChange]);
 
   // 当前已激活的过滤 chips（机构、分类、省、时间、价格、报名状态）
   const activeChips = useMemo<ActiveChip[]>(() => {
@@ -300,56 +319,14 @@ export function OpenCourseListSection({
         </div>
 
         {/* 分页 */}
-        {data.totalPages > 1 && (
-          <div className="flex justify-center mt-6">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage <= 1}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-              >
-                <ChevronLeft className="size-4" />
-              </button>
-              {generatePageNumbers(currentPage, data.totalPages).map((p, i) =>
-                p === -1 ? (
-                  <span key={`dot-${i}`} className="text-slate-400 px-1">...</span>
-                ) : (
-                  <button
-                    key={p}
-                    onClick={() => handlePageChange(p)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg font-medium text-sm cursor-pointer transition-colors ${
-                      p === currentPage
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-primary'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ),
-              )}
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage >= data.totalPages}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-              >
-                <ChevronRight className="size-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        <ListPagePagination
+          currentPage={currentPage}
+          totalPages={data.totalPages}
+          onPageChange={handlePageChange}
+          className="mt-6"
+        />
       </div>
     </div>
   );
 }
 
-function generatePageNumbers(current: number, total: number): number[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: number[] = [1];
-  if (current > 3) pages.push(-1);
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (current < total - 2) pages.push(-1);
-  pages.push(total);
-  return pages;
-}

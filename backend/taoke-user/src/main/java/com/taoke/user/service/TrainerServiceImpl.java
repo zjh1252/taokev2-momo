@@ -96,16 +96,21 @@ public class TrainerServiceImpl implements TrainerService {
         Map<Integer, Trainer> trainerMap = trainerPage.getContent().stream()
                 .collect(Collectors.toMap(Trainer::getId, Function.identity()));
 
-        // 第三段：批量查擅长领域分类
+        // 第三段：批量查擅长领域 / 行业分类
         List<TrainerExpertiseCategory> allExpertise =
                 expertiseCategoryRepository.findByTrainerIdInOrderBySortOrder(trainerIds);
         Map<Integer, List<TrainerExpertiseCategory>> expertiseMap = allExpertise.stream()
                 .collect(Collectors.groupingBy(TrainerExpertiseCategory::getTrainerId));
 
+        List<TrainerIndustryCategory> allIndustry =
+                industryCategoryRepository.findByTrainerIdInOrderBySortOrder(trainerIds);
+        Map<Integer, List<TrainerIndustryCategory>> industryMap = allIndustry.stream()
+                .collect(Collectors.groupingBy(TrainerIndustryCategory::getTrainerId));
+
         // 批量获取分类名称
-        Set<Integer> categoryIds = allExpertise.stream()
-                .map(TrainerExpertiseCategory::getCategoryId)
-                .collect(Collectors.toSet());
+        Set<Integer> categoryIds = new HashSet<>();
+        allExpertise.forEach(ec -> categoryIds.add(ec.getCategoryId()));
+        allIndustry.forEach(ic -> categoryIds.add(ic.getCategoryId()));
         Map<Integer, String> categoryNameMap = categoryIds.isEmpty()
                 ? Map.of()
                 : categoryService.getNameMap(categoryIds);
@@ -135,6 +140,16 @@ public class TrainerServiceImpl implements TrainerService {
             }).toList();
             item.setExpertiseCategories(catRefs);
 
+            List<CategoryRefDTO> indRefs = industryMap.getOrDefault(id, List.of()).stream().map(ic -> {
+                CategoryRefDTO dto = new CategoryRefDTO();
+                dto.setId(ic.getId());
+                dto.setCategoryId(ic.getCategoryId());
+                dto.setSortOrder(ic.getSortOrder());
+                dto.setCategoryName(categoryNameMap.get(ic.getCategoryId()));
+                return dto;
+            }).toList();
+            item.setIndustryCategories(indRefs);
+
             // 填充省市名称
             item.setProvinceName(regionNameMap.get(t.getProvinceId()));
             item.setCityName(regionNameMap.get(t.getCityId()));
@@ -145,12 +160,35 @@ public class TrainerServiceImpl implements TrainerService {
         return PageResponse.of(items, trainerPage.getTotalElements(), page, size);
     }
 
+    @Override
+    public List<Integer> findPublishedTrainerIds(Integer industryCategoryId,
+                                                 Integer provinceId,
+                                                 Integer cityId,
+                                                 Integer isTrusted,
+                                                 Integer hasCopyrightCourse) {
+        Specification<Trainer> spec = buildTrainerDimensionSpec(
+                null, industryCategoryId, provinceId, cityId, isTrusted, hasCopyrightCourse, null);
+        return trainerRepository.findAll(spec).stream().map(Trainer::getId).toList();
+    }
+
     /** 构建列表查询的动态条件 */
     private Specification<Trainer> buildListSpec(Integer expertiseCategoryId,
                                                  Integer industryCategoryId,
                                                  Integer provinceId,
                                                  String keyword,
                                                  Integer isTrusted) {
+        return buildTrainerDimensionSpec(
+                expertiseCategoryId, industryCategoryId, provinceId, null, isTrusted, null, keyword);
+    }
+
+  /** 专家维度筛选（列表 / 课程反查共用） */
+    private Specification<Trainer> buildTrainerDimensionSpec(Integer expertiseCategoryId,
+                                                             Integer industryCategoryId,
+                                                             Integer provinceId,
+                                                             Integer cityId,
+                                                             Integer isTrusted,
+                                                             Integer hasCopyrightCourse,
+                                                             String keyword) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), 2));
@@ -159,9 +197,17 @@ public class TrainerServiceImpl implements TrainerService {
                 predicates.add(cb.equal(root.get("provinceId"), provinceId));
             }
 
+            if (cityId != null) {
+                predicates.add(cb.equal(root.get("cityId"), cityId));
+            }
+
             // 质量承诺：仅 isTrusted=1 时筛选「信得过」专家
             if (isTrusted != null && isTrusted == 1) {
                 predicates.add(cb.equal(root.get("isTrusted"), 1));
+            }
+
+            if (hasCopyrightCourse != null && hasCopyrightCourse == 1) {
+                predicates.add(cb.equal(root.get("hasCopyrightCourse"), 1));
             }
 
             if (keyword != null && !keyword.isBlank()) {

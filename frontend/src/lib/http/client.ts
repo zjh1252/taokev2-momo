@@ -65,6 +65,8 @@ export async function apiClient<T>(
   try {
     response = await fetch(url, {
       ...fetchInit,
+      // SSR 详情页需实时数据，避免 Next 默认缓存导致后端恢复后仍 404
+      cache: fetchInit.cache ?? 'no-store',
       headers: {
         'Content-Type': 'application/json',
         ...fetchInit.headers,

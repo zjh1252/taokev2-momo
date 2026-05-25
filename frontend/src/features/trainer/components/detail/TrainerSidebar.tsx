@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
+import { SafeImage } from '@/components/safe-image';
+import { DEFAULT_COURSE_COVER } from '@/lib/media';
 import { Link } from '@/i18n/navigation';
 import { Bot, Star } from 'lucide-react';
 import type {
@@ -10,6 +11,9 @@ import type {
   RecommendedTrainerItem,
 } from '../../types';
 import { getRecommendedCourses, getRecommendedTrainers } from '../../api/service';
+import { pickDisplayTitle } from '../../utils/displayTitle';
+import { getCourseDetailPath } from '@/features/course/utils/routes';
+import { decodeHtmlEntities } from '@/lib/html-entities';
 
 interface TrainerSidebarProps {
   trainer: TrainerDetail;
@@ -48,23 +52,20 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
             {recommendedCourses.map((course) => (
               <Link
                 key={course.id}
-                href={`/courses/${course.id}`}
+                href={getCourseDetailPath(course.id, course.type)}
                 className="flex items-center gap-3 cursor-pointer group"
               >
-                {course.coverUrl ? (
-                  <Image
-                    src={course.coverUrl}
-                    alt={course.title}
-                    width={56}
-                    height={42}
-                    className="w-14 h-[42px] object-cover rounded border border-slate-200"
-                  />
-                ) : (
-                  <div className="w-14 h-[42px] bg-slate-100 rounded border border-slate-200" />
-                )}
+                <SafeImage
+                  src={course.coverUrl}
+                  fallback={DEFAULT_COURSE_COVER}
+                  alt={decodeHtmlEntities(course.title)}
+                  width={56}
+                  height={42}
+                  className="w-14 h-[42px] object-cover rounded border border-slate-200"
+                />
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-slate-900 group-hover:text-primary transition-colors text-[13px] line-clamp-2">
-                    {course.title}
+                    {decodeHtmlEntities(course.title)}
                   </h4>
                   <p className="text-[11px] text-slate-500 mt-0.5">
                     {course.viewCount ?? 0} 次浏览
@@ -90,8 +91,8 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
                 href={`/trainers/${t.id}`}
                 className="flex items-center gap-3 cursor-pointer group"
               >
-                <Image
-                  src={t.avatar || '/statics/images/expert-main.jpg'}
+                <SafeImage
+                  src={t.avatar}
                   alt={t.name}
                   width={40}
                   height={40}
@@ -101,9 +102,12 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
                   <h4 className="font-medium text-slate-900 group-hover:text-primary transition-colors text-[13px] line-clamp-1">
                     {t.name}
                   </h4>
-                  {t.title && (
-                    <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{t.title}</p>
-                  )}
+                  {(() => {
+                    const subtitle = pickDisplayTitle(t.title, t.name);
+                    return subtitle ? (
+                      <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{subtitle}</p>
+                    ) : null;
+                  })()}
                 </div>
                 {t.score != null && t.score > 0 && (
                   <div className="flex items-center gap-0.5 shrink-0">

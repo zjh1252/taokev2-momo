@@ -15,4 +15,6 @@ public class RecommendedCourseVO {
     private String title;
     private String coverUrl;
     private Integer viewCount;
+    /** 课程类型：INTERNAL / OPEN_OFFLINE / OPEN_ONLINE，用于详情页路由 */
+    private String type;
 }

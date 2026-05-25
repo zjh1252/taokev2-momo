@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { SafeImage } from '@/components/safe-image';
 import { Star, StarHalf, MessageSquare, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import type { TrainerDetail } from '../../types';
@@ -12,6 +13,7 @@ import {
 } from '@/features/interaction/api/service';
 import TrainerMessageDialog from '@/features/interaction/components/TrainerMessageDialog';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
+import { isDisplayTitle } from '../../utils/displayTitle';
 
 interface TrainerHeroProps {
   trainer: TrainerDetail;
@@ -68,8 +70,8 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
         {/* 左侧：头像与操作按钮 */}
         <div className="w-full xl:w-[220px] flex flex-col items-center shrink-0 relative">
           <div className="relative group">
-            <Image
-              src={trainer.avatar || '/statics/images/expert-main.jpg'}
+            <SafeImage
+              src={trainer.avatar}
               alt={trainer.name}
               width={190}
               height={230}
@@ -128,7 +130,9 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                 <h1 className="text-[36px] leading-none font-extrabold text-slate-900 tracking-tight">
                   {trainer.name}
                 </h1>
-                <span className="text-[18px] text-slate-600 font-medium">{trainer.title}</span>
+                {isDisplayTitle(trainer.title, trainer.name) ? (
+                  <span className="text-[18px] text-slate-600 font-medium">{trainer.title}</span>
+                ) : null}
               </div>
 
               {/* 专家编号和驻地 */}
@@ -151,7 +155,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
 
               <div className="mt-2 space-y-4">
                 {/* 擅长领域 */}
-                {trainer.expertiseCategories.length > 0 && (
+                {(trainer.expertiseCategories?.length ?? 0) > 0 && (
                   <div className="flex items-center gap-4">
                     <span className="text-[14px] text-slate-600 w-[65px] font-medium shrink-0">
                       擅长领域:
@@ -174,7 +178,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                 )}
 
                 {/* 擅长行业 */}
-                {trainer.industryCategories.length > 0 && (
+                {(trainer.industryCategories?.length ?? 0) > 0 && (
                   <div className="flex items-center gap-4">
                     <span className="text-[14px] text-slate-600 w-[65px] font-medium shrink-0">
                       擅长行业:
@@ -217,10 +221,16 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           {/* 数据展示卡片 */}
           <div className="mt-auto bg-[#F4F7FE] rounded-xl px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-6 w-full">
             <div className="flex items-center gap-3">
-              <StarRating score={trainer.score || 0} />
-              <span className="text-[#002B5B] font-bold text-[22px]">
-                {trainer.score?.toFixed(1) || '0.0'}
-              </span>
+              {trainer.score != null && trainer.score > 0 ? (
+                <>
+                  <StarRating score={trainer.score} />
+                  <span className="text-[#002B5B] font-bold text-[22px]">
+                    {trainer.score.toFixed(1)}
+                  </span>
+                </>
+              ) : (
+                <span className="text-[#002B5B] font-medium text-[16px]">暂无评分</span>
+              )}
             </div>
 
             <div className="flex items-center gap-8 text-[#002B5B] mr-auto md:mr-0 md:ml-4">

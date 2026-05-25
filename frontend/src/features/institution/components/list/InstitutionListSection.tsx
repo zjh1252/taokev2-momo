@@ -1,8 +1,12 @@
 'use client';
 
-import { useState, useCallback, useTransition } from 'react';
-import { ChevronLeft, ChevronRight, ArrowUpDown, TrendingUp } from 'lucide-react';
+import { Suspense, useState, useCallback, useTransition, useEffect, useRef } from 'react';
+import { ArrowUpDown, TrendingUp } from 'lucide-react';
+import { ListPagePagination } from '@/components/list-page-pagination';
+import { useListPageUrlSync } from '@/hooks/use-list-page-url';
+import { useListKeywordUrl } from '@/hooks/use-list-keyword-url';
 import { InstitutionCard } from './InstitutionCard';
+import { SafeImage } from '@/components/safe-image';
 import { InstitutionSidebar } from './InstitutionSidebar';
 import { getInstitutionList } from '../../api/service';
 import type { InstitutionListItem, PageResponse } from '../../types';
@@ -19,17 +23,27 @@ const SORT_OPTIONS = [
   { key: 'popularity', label: '机构人气' },
 ];
 
-export function InstitutionListSection({
+export function InstitutionListSection(props: InstitutionListSectionProps) {
+  return (
+    <Suspense fallback={<div className="min-h-[320px] animate-pulse rounded-xl bg-slate-100" />}>
+      <InstitutionListSectionInner {...props} />
+    </Suspense>
+  );
+}
+
+function InstitutionListSectionInner({
   initialData,
   association,
   basePath = '/institutions',
   title = '培训机构',
 }: InstitutionListSectionProps) {
+  const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
   const [data, setData] = useState(initialData);
-  const [keyword, setKeyword] = useState('');
+  const [keyword, setKeyword] = useState(keywordFromUrl);
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
+  const keywordBootstrappedRef = useRef(false);
 
   const fetchData = useCallback(
     (page: number, overrideKeyword?: string, overrideSort?: string) => {
@@ -54,28 +68,45 @@ export function InstitutionListSection({
     [keyword, sortKey, association],
   );
 
+  const { commitPageChange } = useListPageUrlSync({
+    currentPage,
+    onPageFromUrl: fetchData,
+  });
+
+  useEffect(() => {
+    if (keywordFromUrl === keyword && keywordBootstrappedRef.current) return;
+    setKeyword(keywordFromUrl);
+    keywordBootstrappedRef.current = true;
+    commitPageChange(1);
+    fetchData(1, keywordFromUrl);
+  }, [keywordFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSearch = useCallback(
     (kw: string) => {
       setKeyword(kw);
+      commitKeyword(kw);
+      commitPageChange(1);
       fetchData(1, kw);
     },
-    [fetchData],
+    [fetchData, commitPageChange, commitKeyword],
   );
 
   const handleSortChange = useCallback(
     (key: string) => {
       setSortKey(key);
+      commitPageChange(1);
       fetchData(1, keyword, key);
     },
-    [fetchData, keyword],
+    [fetchData, keyword, commitPageChange],
   );
 
   const handlePageChange = useCallback(
     (page: number) => {
+      commitPageChange(page);
       fetchData(page);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [fetchData],
+    [fetchData, commitPageChange],
   );
 
   // 推荐机构（取 isRecommended=1 的前4个）
@@ -83,7 +114,7 @@ export function InstitutionListSection({
 
   return (
     <div className="flex gap-6 items-start">
-      <InstitutionSidebar onSearch={handleSearch} />
+      <InstitutionSidebar keyword={keyword} onKeywordChange={setKeyword} onSearch={handleSearch} />
 
       <div className="flex-1 flex flex-col gap-6">
         {/* 金牌推荐区（仅首页且有推荐时展示） */}
@@ -101,12 +132,12 @@ export function InstitutionListSection({
                   className="group flex flex-col items-center gap-3 w-full"
                 >
                   <div className="w-24 h-24 md:w-28 md:h-28 bg-white rounded-xl shadow-sm border border-slate-100 group-hover:shadow-md group-hover:border-primary/30 transition-all flex items-center justify-center p-2">
-                    <img
-                      src={
-                        item.logoUrl ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(item.orgName.slice(0, 2))}&background=FEF3C7&color=78350F&size=100&font-size=0.4`
-                      }
+                    <SafeImage
+                      src={item.logoUrl}
+                      fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.orgName.slice(0, 2))}&background=FEF3C7&color=78350F&size=100&font-size=0.4`}
                       alt={item.orgName}
+                      width={112}
+                      height={112}
                       className="max-w-full max-h-full object-contain"
                     />
                   </div>
@@ -156,73 +187,16 @@ export function InstitutionListSection({
           </div>
 
           {/* 分页 */}
-          {data.totalPages > 1 && (
-            <div className="flex justify-center p-6">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handlePageChange(1)}
-                  disabled={currentPage <= 1}
-                  className="px-3 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                >
-                  首页
-                </button>
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage <= 1}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="size-4" />
-                </button>
-                {generatePageNumbers(currentPage, data.totalPages).map((p, i) =>
-                  p === -1 ? (
-                    <span key={`dot-${i}`} className="text-slate-400 px-1">
-                      ...
-                    </span>
-                  ) : (
-                    <button
-                      key={p}
-                      onClick={() => handlePageChange(p)}
-                      className={`w-8 h-8 flex items-center justify-center rounded-lg font-medium text-sm ${
-                        p === currentPage
-                          ? 'bg-primary text-white shadow-sm'
-                          : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ),
-                )}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage >= data.totalPages}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight className="size-4" />
-                </button>
-                <button
-                  onClick={() => handlePageChange(data.totalPages)}
-                  disabled={currentPage >= data.totalPages}
-                  className="px-3 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                >
-                  尾页
-                </button>
-              </div>
-            </div>
-          )}
+        <ListPagePagination
+          currentPage={currentPage}
+          totalPages={data.totalPages}
+          onPageChange={handlePageChange}
+          className="p-6"
+          />
+
         </div>
       </div>
     </div>
   );
 }
 
-function generatePageNumbers(current: number, total: number): number[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: number[] = [1];
-  if (current > 3) pages.push(-1);
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (current < total - 2) pages.push(-1);
-  pages.push(total);
-  return pages;
-}

@@ -147,6 +147,16 @@ public interface TrainerService {
     List<TrainerListItemResponse> listRecommendedForTop(int limit);
 
     /**
+     * 查询符合 C 端筛选条件的已上架专家 ID 集合（status=2）。
+     * <p>供课程列表按主讲专家维度过滤内训课等场景使用。</p>
+     */
+    List<Integer> findPublishedTrainerIds(Integer industryCategoryId,
+                                          Integer provinceId,
+                                          Integer cityId,
+                                          Integer isTrusted,
+                                          Integer hasCopyrightCourse);
+
+    /**
      * 调整指定专家（user_trainers.user_id）的累计评论数。
      * <p>用于评价审核状态变化时同步计数。delta 可正可负；最终值不会小于 0。</p>
      *

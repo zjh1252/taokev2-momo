@@ -16,6 +16,7 @@ import ReviewDialog from '@/features/interaction/components/ReviewDialog';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
+import { LegacyRichText } from '@/components/legacy-rich-text';
 
 interface InstitutionDetailTabsProps {
   institution: InstitutionDetail;
@@ -124,12 +125,10 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
   return (
     <div className="space-y-8">
       {/* 简介 */}
-      {institution.bio && (
+      {institution.bio && institution.bio.trim() && (
         <section>
           <SectionHeader title="简介" />
-          <p className="text-sm text-slate-600 leading-loose whitespace-pre-wrap">
-            {institution.bio}
-          </p>
+          <LegacyRichText content={institution.bio} className="text-sm" />
         </section>
       )}
 
@@ -167,22 +166,18 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
       )}
 
       {/* 部分客户 */}
-      {institution.clientCases && (
+      {institution.clientCases && institution.clientCases.trim() && (
         <section>
           <SectionHeader title="部分客户" />
-          <p className="text-sm text-slate-600 leading-loose whitespace-pre-wrap">
-            {institution.clientCases}
-          </p>
+          <LegacyRichText content={institution.clientCases} className="text-sm" />
         </section>
       )}
 
       {/* 成功案例 */}
-      {institution.successCases && (
+      {institution.successCases && institution.successCases.trim() && (
         <section>
           <SectionHeader title="成功案例" />
-          <p className="text-sm text-slate-600 leading-loose whitespace-pre-wrap">
-            {institution.successCases}
-          </p>
+          <LegacyRichText content={institution.successCases} className="text-sm" />
         </section>
       )}
 

@@ -1,8 +1,11 @@
 'use client';
 
-import { useState, useCallback, useTransition } from 'react';
+import { Suspense, useState, useCallback, useTransition, useEffect, useRef } from 'react';
 import { Search, ArrowUpDown, X } from 'lucide-react';
 import { useRouter } from '@/i18n/navigation';
+import { ListPagePagination } from '@/components/list-page-pagination';
+import { useListPageUrlSync } from '@/hooks/use-list-page-url';
+import { useListKeywordUrl } from '@/hooks/use-list-keyword-url';
 import { VideoCard } from './VideoCard';
 import { getVideoList } from '../../api/service';
 import type { VideoListItem, PageResponse, CategoryTreeNode } from '../../api/types';
@@ -25,20 +28,32 @@ const SORT_OPTIONS = [
 
 const PAGE_SIZE = 15;
 
-export function VideoListSection({
+export function VideoListSection(props: VideoListSectionProps) {
+  return (
+    <Suspense fallback={<div className="min-h-[320px] animate-pulse rounded-xl bg-slate-100" />}>
+      <VideoListSectionInner {...props} />
+    </Suspense>
+  );
+}
+
+function VideoListSectionInner({
   initialData,
   categoryTree,
   initialInstitutionId,
   initialInstitutionName,
 }: VideoListSectionProps) {
   const router = useRouter();
+  const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
   const [data, setData] = useState(initialData);
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>();
+  const selectedCategoryRef = useRef<number | undefined>();
+  selectedCategoryRef.current = selectedCategory;
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
   const [sortKey, setSortKey] = useState('default');
-  const [keyword, setKeyword] = useState('');
+  const [keyword, setKeyword] = useState(keywordFromUrl);
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
+  const keywordBootstrappedRef = useRef(false);
 
   const fetchData = useCallback(
     (
@@ -60,7 +75,7 @@ export function VideoListSection({
           const result = await getVideoList({
             page,
             size: PAGE_SIZE,
-            categoryId: catId ?? selectedCategory,
+            categoryId: catId ?? selectedCategoryRef.current,
             sortBy: sortByValue === 'default' ? undefined : sortByValue,
             keyword: (kw ?? keyword) || undefined,
             institutionId: instId,
@@ -72,8 +87,21 @@ export function VideoListSection({
         }
       });
     },
-    [selectedCategory, sortKey, keyword, institutionId],
+    [sortKey, keyword, institutionId],
   );
+
+  const { commitPageChange } = useListPageUrlSync({
+    currentPage,
+    onPageFromUrl: (page) => fetchData(page, selectedCategoryRef.current),
+  });
+
+  useEffect(() => {
+    if (keywordFromUrl === keyword && keywordBootstrappedRef.current) return;
+    setKeyword(keywordFromUrl);
+    keywordBootstrappedRef.current = true;
+    commitPageChange(1);
+    fetchData(1, selectedCategory, sortKey, keywordFromUrl);
+  }, [keywordFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);
@@ -84,29 +112,34 @@ export function VideoListSection({
   const handleCategoryChange = useCallback(
     (catId?: number) => {
       setSelectedCategory(catId);
+      commitPageChange(1);
       fetchData(1, catId);
     },
-    [fetchData],
+    [fetchData, commitPageChange],
   );
 
   const handleSortChange = useCallback(
     (key: string) => {
       setSortKey(key);
+      commitPageChange(1);
       fetchData(1, selectedCategory, key);
     },
-    [fetchData, selectedCategory],
+    [fetchData, selectedCategory, commitPageChange],
   );
 
   const handleSearch = useCallback(() => {
+    commitKeyword(keyword);
+    commitPageChange(1);
     fetchData(1, selectedCategory, sortKey, keyword);
-  }, [fetchData, selectedCategory, sortKey, keyword]);
+  }, [fetchData, selectedCategory, sortKey, keyword, commitPageChange, commitKeyword]);
 
   const handlePageChange = useCallback(
     (page: number) => {
+      commitPageChange(page);
       fetchData(page);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [fetchData],
+    [fetchData, commitPageChange],
   );
 
   return (
@@ -215,71 +248,12 @@ export function VideoListSection({
         )}
       </div>
 
-      {/* 分页 */}
-      {data.totalPages > 1 && (
-        <div className="flex justify-center mt-6">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handlePageChange(1)}
-              disabled={currentPage <= 1}
-              className="px-3 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              首页
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className="px-3 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              上一页
-            </button>
-            {generatePageNumbers(currentPage, data.totalPages).map((p, i) =>
-              p === -1 ? (
-                <span key={`dot-${i}`} className="text-slate-400 px-1">...</span>
-              ) : (
-                <button
-                  key={p}
-                  onClick={() => handlePageChange(p)}
-                  className={cn(
-                    'w-8 h-8 flex items-center justify-center rounded-lg font-medium text-sm',
-                    p === currentPage
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'border border-slate-200 text-slate-600 hover:bg-slate-50',
-                  )}
-                >
-                  {p}
-                </button>
-              ),
-            )}
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage >= data.totalPages}
-              className="px-3 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              下一页
-            </button>
-            <button
-              onClick={() => handlePageChange(data.totalPages)}
-              disabled={currentPage >= data.totalPages}
-              className="px-3 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              尾页
-            </button>
-          </div>
-        </div>
-      )}
+      <ListPagePagination
+        className="mt-6"
+        currentPage={currentPage}
+        totalPages={data.totalPages}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
-}
-
-function generatePageNumbers(current: number, total: number): number[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: number[] = [1];
-  if (current > 3) pages.push(-1);
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (current < total - 2) pages.push(-1);
-  pages.push(total);
-  return pages;
 }

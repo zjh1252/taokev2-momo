@@ -27,8 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -95,9 +97,29 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             return PageResponse.of(List.of(), 0, page, size);
         }
 
-        List<InstitutionListItemResponse> items = result.getContent().stream()
-                .map(institutionMapper::toListItemResponse)
+        List<Institution> institutions = result.getContent();
+        Set<Integer> regionIds = new HashSet<>();
+        for (Institution inst : institutions) {
+            if (inst.getProvinceId() != null && inst.getProvinceId() > 0) {
+                regionIds.add(inst.getProvinceId());
+            }
+            if (inst.getCityId() != null && inst.getCityId() > 0) {
+                regionIds.add(inst.getCityId());
+            }
+        }
+        Map<Integer, String> regionNameMap = regionIds.isEmpty()
+                ? Map.of()
+                : regionService.getNamesByIds(regionIds);
+
+        List<InstitutionListItemResponse> items = institutions.stream()
+                .map(inst -> {
+                    InstitutionListItemResponse item = institutionMapper.toListItemResponse(inst);
+                    item.setProvinceName(regionNameMap.get(inst.getProvinceId()));
+                    item.setCityName(regionNameMap.get(inst.getCityId()));
+                    return item;
+                })
                 .toList();
+        fillMissingLogos(items);
 
         return PageResponse.of(items, result.getTotalElements(), page, size);
     }
@@ -133,7 +155,66 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             resp.setCityName(nameMap.get(institution.getCityId()));
         }
 
+        if (isBlankLogo(resp.getLogoUrl())) {
+            resp.setLogoUrl(lookupLogoByOrgName(resp.getOrgName()));
+        }
+
         return resp;
+    }
+
+    /** partner 迁移行 logo 常为空，从同名 organ 行补 Logo（列表批量） */
+    private void fillMissingLogos(List<InstitutionListItemResponse> items) {
+        List<String> names = items.stream()
+                .filter(item -> isBlankLogo(item.getLogoUrl()))
+                .map(InstitutionListItemResponse::getOrgName)
+                .filter(name -> name != null && !name.isBlank())
+                .distinct()
+                .toList();
+        if (names.isEmpty()) {
+            return;
+        }
+        Map<String, String> logoByOrgName = loadLogoByOrgNames(names);
+        for (InstitutionListItemResponse item : items) {
+            if (isBlankLogo(item.getLogoUrl())) {
+                item.setLogoUrl(logoByOrgName.get(item.getOrgName()));
+            }
+        }
+    }
+
+    private String lookupLogoByOrgName(String orgName) {
+        if (orgName == null || orgName.isBlank()) {
+            return null;
+        }
+        return loadLogoByOrgNames(List.of(orgName)).get(orgName);
+    }
+
+    private Map<String, String> loadLogoByOrgNames(List<String> orgNames) {
+        if (orgNames.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> map = new HashMap<>();
+        for (Object[] row : institutionRepository.findLogoRowsByOrgNames(orgNames)) {
+            String name = row[0] != null ? row[0].toString() : null;
+            String logo = row[1] != null ? row[1].toString().trim() : null;
+            if (name != null && logo != null && !logo.isEmpty()) {
+                map.putIfAbsent(name, logo);
+            }
+        }
+        return map;
+    }
+
+    private static boolean isBlankLogo(String logoUrl) {
+        return logoUrl == null || logoUrl.isBlank() || isPlaceholderLogo(logoUrl);
+    }
+
+    /** 旧站默认占位图（middle/00/1.jpg），非机构真实 Logo */
+    private static boolean isPlaceholderLogo(String logoUrl) {
+        if (logoUrl == null || logoUrl.isBlank()) {
+            return false;
+        }
+        String normalized = logoUrl.trim().replace('\\', '/');
+        return normalized.contains("/middle/00/1.")
+                || normalized.endsWith("/middle/00/1");
     }
 
     /** 构建公开列表查询的动态条件（仅状态=1 的已发布机构） */
@@ -141,6 +222,9 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), 1));
+            predicates.add(cb.equal(root.get("publicListEligible"), true));
+            // 迁移占位名，公开列表不展示
+            predicates.add(cb.notLike(root.get("orgName"), "未命名机构#%"));
 
             if (association != null) {
                 predicates.add(cb.equal(root.get("association"), association));

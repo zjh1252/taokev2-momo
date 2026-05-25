@@ -1,103 +1,137 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { ChevronRight, LayoutGrid } from 'lucide-react';
+import { useState, useRef, useCallback, useMemo } from 'react';
+import { LayoutGrid } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import type { CategoryTreeNode } from '@/features/course/api/types';
+import { buildCategoryMenuRows } from '../utils/buildCategoryMenu';
 
 interface HeroSectionProps {
   categories: CategoryTreeNode[];
 }
 
 /**
- * 首页 Hero 区域 — 左侧分类侧栏（hover 弹出子分类）+ 右侧轮播背景图
+ * 首页 Hero — 左侧「全部分类」行级导航（hover 展开二级菜单）+ 右侧轮播
  */
 export function HeroSection({ categories }: HeroSectionProps) {
   const t = useTranslations('home');
-  const [activeCatId, setActiveCatId] = useState<number | null>(null);
+  const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null);
   const leaveTimer = useRef<ReturnType<typeof setTimeout>>(null);
 
+  const menuRows = useMemo(() => buildCategoryMenuRows(categories), [categories]);
   const titleParts = t('hero.title').split('\n');
 
-  const handleMouseEnter = useCallback((id: number) => {
+  const activeRow =
+    activeRowIndex !== null
+      ? menuRows.find((r) => r.rowIndex === activeRowIndex)
+      : undefined;
+
+  const handleMouseEnter = useCallback((rowIndex: number) => {
     if (leaveTimer.current) {
       clearTimeout(leaveTimer.current);
       leaveTimer.current = null;
     }
-    setActiveCatId(id);
+    setActiveRowIndex(rowIndex);
   }, []);
 
   const handleMouseLeave = useCallback(() => {
     leaveTimer.current = setTimeout(() => {
-      setActiveCatId(null);
-    }, 80);
+      setActiveRowIndex(null);
+    }, 100);
   }, []);
 
-  const activeCat = categories.find((c) => c.id === activeCatId);
+  const cancelLeave = useCallback(() => {
+    if (leaveTimer.current) {
+      clearTimeout(leaveTimer.current);
+      leaveTimer.current = null;
+    }
+  }, []);
 
   return (
     <section className="grid grid-cols-12 gap-6 h-[480px]">
       {/* 分类侧栏 */}
-      <div
-        className="col-span-3 relative"
-        onMouseLeave={handleMouseLeave}
-      >
-        <aside className="bg-white rounded-lg shadow-sm overflow-visible flex flex-col py-4 border border-slate-100 h-full">
-          <div className="flex items-center px-6 py-3 bg-primary/5 text-primary font-bold border-l-4 border-primary mb-2">
-            <LayoutGrid className="size-5 mr-2" />
+      <div className="col-span-3 relative" onMouseLeave={handleMouseLeave}>
+        <aside className="bg-white rounded-lg shadow-sm overflow-visible flex flex-col border border-slate-100 h-full">
+          <div className="flex items-center px-5 py-3 bg-primary/5 text-primary font-bold border-l-4 border-primary shrink-0">
+            <LayoutGrid className="size-5 mr-2 shrink-0" />
             <span className="text-[15px]">{t('hero.allCategories')}</span>
           </div>
-          <nav className="flex-1 overflow-y-auto px-2 space-y-1">
-            {categories.slice(0, 8).map((cat) => (
-              <div
-                key={cat.id}
-                className={`flex items-center justify-between px-4 py-2.5 rounded-lg transition-all cursor-pointer ${
-                  activeCatId === cat.id ? 'bg-slate-50' : 'hover:bg-slate-50'
-                }`}
-                onMouseEnter={() => handleMouseEnter(cat.id)}
-              >
-                <span className="text-[15px] font-medium text-slate-800">
-                  {cat.name}
-                </span>
-                <ChevronRight
-                  className={`size-4 transition-all ${
-                    activeCatId === cat.id
-                      ? 'opacity-100 text-primary'
-                      : 'opacity-30 text-primary'
+
+          <nav className="flex-1 overflow-y-auto py-1 flex flex-col justify-evenly">
+            {menuRows.map((row) => {
+              const isActive = activeRowIndex === row.rowIndex;
+
+              return (
+                <div
+                  key={row.rowIndex}
+                  className={`mx-1 flex items-center justify-start gap-x-6 px-4 py-2 cursor-pointer transition-colors text-[14px] ${
+                    isActive
+                      ? 'bg-primary text-white rounded-sm'
+                      : 'text-slate-800 hover:bg-primary hover:text-white rounded-sm'
                   }`}
-                />
-              </div>
-            ))}
+                  onMouseEnter={() => handleMouseEnter(row.rowIndex)}
+                >
+                  {row.items.map((item) => (
+                    <span key={item.id} className="whitespace-nowrap text-left">
+                      {item.shortLabel}
+                    </span>
+                  ))}
+                </div>
+              );
+            })}
           </nav>
         </aside>
 
-        {/* 子分类浮层 */}
-        {activeCat && activeCat.children && activeCat.children.length > 0 && (
+        {/* 二级菜单浮层 */}
+        {activeRow && activeRow.items.length > 0 && (
           <div
-            className="absolute left-full top-0 min-h-full pl-2 z-50"
-            onMouseEnter={() => {
-              if (leaveTimer.current) {
-                clearTimeout(leaveTimer.current);
-                leaveTimer.current = null;
-              }
-            }}
+            className="absolute left-full top-0 min-h-full pl-1 z-50"
+            onMouseEnter={cancelLeave}
           >
-            <div className="bg-white rounded-xl shadow-xl border border-slate-100 p-6 w-[420px]">
-              <h4 className="text-sm font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">
-                {activeCat.name}
-              </h4>
-              <div className="grid grid-cols-3 gap-x-4 gap-y-3 text-sm">
-                {activeCat.children.map((child) => (
-                  <Link
-                    key={child.id}
-                    href={`/trainers?expertiseId=${child.id}`}
-                    className="text-slate-600 hover:text-primary transition-colors truncate"
-                    title={child.name}
+            <div className="bg-white rounded-sm shadow-lg border border-slate-200 min-h-full w-[min(720px,calc(100vw-280px))] max-h-[480px] overflow-y-auto">
+              {/* 行标题：一级分类全名 */}
+              <div className="px-5 py-3 border-b border-slate-100 text-[15px] font-bold text-slate-900 tracking-wide">
+                {activeRow.items.map((i) => i.fullName).join('  ')}
+              </div>
+
+              {/* 各一级分类下的二级子类 */}
+              <div className="py-2">
+                {activeRow.items.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className={`flex gap-4 px-5 py-3 ${
+                      idx < activeRow.items.length - 1
+                        ? 'border-b border-slate-100'
+                        : ''
+                    }`}
                   >
-                    {child.name}
-                  </Link>
+                    <div className="w-[88px] shrink-0 pt-0.5">
+                      <Link
+                        href={`/trainers?expertiseId=${item.id}`}
+                        className="text-[14px] font-bold text-primary hover:underline whitespace-nowrap"
+                      >
+                        {item.fullName}
+                      </Link>
+                    </div>
+                    {item.children.length > 0 ? (
+                      <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2 text-[13px]">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.id}
+                            href={`/trainers?expertiseId=${child.id}`}
+                            className="text-slate-700 hover:text-primary transition-colors truncate"
+                            title={child.name}
+                          >
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex-1 text-[13px] text-slate-400">暂无子分类</div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

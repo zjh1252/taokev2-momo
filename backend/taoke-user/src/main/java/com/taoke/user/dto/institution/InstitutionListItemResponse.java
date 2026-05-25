@@ -35,6 +35,12 @@ public class InstitutionListItemResponse {
     /** 城市 ID */
     private Integer cityId;
 
+    /** 省份名称（列表接口回填） */
+    private String provinceName;
+
+    /** 城市名称（列表接口回填） */
+    private String cityName;
+
     /** 综合评分 */
     private BigDecimal score;
 

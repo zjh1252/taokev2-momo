@@ -10,6 +10,8 @@ export interface InstitutionListItem {
   logoUrl?: string;
   provinceId: number;
   cityId: number;
+  provinceName?: string;
+  cityName?: string;
   score: number;
   viewCount: number;
   commentCount: number;

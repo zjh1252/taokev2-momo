@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
 import {
   getTrainerDetail,
   getTrainerCourses,
@@ -10,8 +11,10 @@ import { TrainerHero } from '@/features/trainer/components/detail/TrainerHero';
 import { TrainerDetailContent } from '@/features/trainer/components/detail/TrainerDetailContent';
 import { TrainerSidebar } from '@/features/trainer/components/detail/TrainerSidebar';
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }
 
 export async function generateMetadata({ params }: Props) {
@@ -33,7 +36,8 @@ export async function generateMetadata({ params }: Props) {
  * 学员评价由 TrainerDetailContent 内部按需懒加载。</p>
  */
 export default async function TrainerDetailPage({ params }: Props) {
-  const { id } = await params;
+  const { locale, id } = await params;
+  setRequestLocale(locale);
   const trainerId = Number(id);
 
   if (isNaN(trainerId)) {
