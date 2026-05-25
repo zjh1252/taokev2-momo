@@ -1,16 +1,22 @@
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Star, MapPin } from 'lucide-react';
+import { SafeImage } from '@/components/safe-image';
 import type { TrainerListItem } from '../../types';
+import { pickDisplayTitle } from '../../utils/displayTitle';
 
 interface TrainerCardProps {
   trainer: TrainerListItem;
 }
 
 export function TrainerCard({ trainer }: TrainerCardProps) {
-  const tags = trainer.expertiseTags?.split(',').filter(Boolean) ?? [];
-  const categoryNames = trainer.expertiseCategories?.map((c) => c.categoryName).filter(Boolean) ?? [];
-  const displayTags = categoryNames.length > 0 ? categoryNames : tags;
+  const displayTitle = pickDisplayTitle(trainer.title, trainer.name);
+  const expertiseNames = trainer.expertiseCategories?.map((c) => c.categoryName).filter(Boolean) ?? [];
+  const industryNames = trainer.industryCategories?.map((c) => c.categoryName).filter(Boolean) ?? [];
+  const tagNames = trainer.expertiseTags?.split(',').filter(Boolean) ?? [];
+  const displayTags = [...expertiseNames, ...industryNames];
+  if (displayTags.length === 0) {
+    displayTags.push(...tagNames);
+  }
 
   return (
     <Link
@@ -19,8 +25,8 @@ export function TrainerCard({ trainer }: TrainerCardProps) {
     >
       {/* 头像 */}
       <div className="shrink-0 relative">
-        <Image
-          src={trainer.avatar || '/statics/images/expert-main.jpg'}
+        <SafeImage
+          src={trainer.avatar}
           alt={trainer.name}
           width={100}
           height={120}
@@ -47,7 +53,9 @@ export function TrainerCard({ trainer }: TrainerCardProps) {
               </div>
             )}
           </div>
-          <p className="text-sm text-slate-500 line-clamp-1 mb-2">{trainer.title}</p>
+          {displayTitle ? (
+            <p className="text-sm text-slate-500 line-clamp-1 mb-2">{displayTitle}</p>
+          ) : null}
 
           {/* 城市 */}
           {(trainer.provinceName) && (

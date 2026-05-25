@@ -1,6 +1,7 @@
 package com.taoke.common.search;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
@@ -367,9 +368,29 @@ public class SearchIndexService {
                     .collect(Collectors.toList());
 
             return PageResponse.of(list, total, page, size);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            int page = request.getPage() != null ? request.getPage() : 1;
+            int size = request.getSize() != null ? request.getSize() : 20;
+            if (isIndexNotFound(e)) {
+                log.warn("搜索索引不存在: {}，已尝试创建并返回空结果（请执行全量重建）", properties.getIndexName());
+                createIndex(properties.getIndexName());
+                return PageResponse.of(List.of(), 0, page, size);
+            }
+            log.error("ES 搜索失败: keyword={}, docType={}", request.getKeyword(), request.getDocType(), e);
             throw new SearchException(ErrorCode.SEARCH_EXECUTE_ERROR, "搜索失败", e);
         }
+    }
+
+    private boolean isIndexNotFound(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof ElasticsearchException ee
+                    && ee.response() != null
+                    && ee.response().error() != null
+                    && "index_not_found_exception".equals(ee.response().error().type())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

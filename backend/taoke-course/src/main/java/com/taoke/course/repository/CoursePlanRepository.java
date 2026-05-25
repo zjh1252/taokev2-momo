@@ -28,5 +28,8 @@ public interface CoursePlanRepository extends JpaRepository<CoursePlan, Integer>
     List<CoursePlan> findByCourseIdInAndStartTimeGreaterThanEqualOrderByStartTimeAsc(
             Collection<Integer> courseIds, LocalDateTime threshold);
 
+    /** 批量查询开课计划，按开课时间升序（列表展示取每场最近/将开一场） */
+    List<CoursePlan> findByCourseIdInOrderByStartTimeAsc(Collection<Integer> courseIds);
+
     void deleteByCourseId(Integer courseId);
 }

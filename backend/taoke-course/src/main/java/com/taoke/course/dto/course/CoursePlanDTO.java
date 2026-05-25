@@ -37,5 +37,11 @@ public class CoursePlanDTO {
     /** 开课网址（线上公开课必填） */
     private String onlineUrl;
 
+    /** 省份名称（详情展示用，由服务层填充） */
+    private String provinceName;
+
+    /** 城市名称（详情展示用，由服务层填充） */
+    private String cityName;
+
     private Integer sortOrder;
 }

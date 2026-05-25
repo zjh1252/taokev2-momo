@@ -10,7 +10,7 @@ spring:
       namespace: test
 
   datasource:
-    url: jdbc:mysql://10.0.14.20:3306/taokev2?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
+    url: jdbc:mysql://10.0.14.20:3306/v3test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
     username: root
     password: 'root'
     driver-class-name: com.mysql.cj.jdbc.Driver

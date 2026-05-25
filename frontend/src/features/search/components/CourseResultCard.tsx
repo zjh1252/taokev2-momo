@@ -1,7 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
-import { Flame, Star, BookOpen } from 'lucide-react';
+import { Flame, Star } from 'lucide-react';
 import type { SearchResultItem } from '../api/types';
 
 interface CourseResultCardProps {
@@ -25,21 +25,9 @@ export function CourseResultCard({ item }: CourseResultCardProps) {
   return (
     <Link
       href={detailPath}
-      className="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group flex gap-4"
+      className="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group block"
     >
-      <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-        {item.coverUrl ? (
-          <img
-            src={item.coverUrl}
-            alt={item.title || ''}
-            className="w-full h-full object-cover rounded-lg"
-          />
-        ) : (
-          <BookOpen className="size-6 text-slate-300" />
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0">
         <div className="flex items-start justify-between mb-2 gap-2">
           <h3 className="text-base font-bold text-slate-800 group-hover:text-primary transition-colors line-clamp-1">
             {hl?.title ? <HighlightText html={hl.title} /> : item.title}

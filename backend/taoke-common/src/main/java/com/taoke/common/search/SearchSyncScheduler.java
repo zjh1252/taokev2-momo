@@ -47,8 +47,29 @@ public class SearchSyncScheduler {
     public void ensureIndex() {
         try {
             indexService.createIndex(properties.getIndexName());
+            if (properties.isAutoReindexOnStartup() && needsInitialReindex()) {
+                log.info("检测到搜索索引未初始化，开发环境自动全量重建…");
+                Thread.startVirtualThread(this::reindexAllSafely);
+            }
         } catch (Exception e) {
             log.warn("启动时确保索引失败（ES 可能未就绪）: {}", e.getMessage());
+        }
+    }
+
+    private boolean needsInitialReindex() {
+        return providers.stream()
+                .anyMatch(p -> stringRedisTemplate.opsForValue().get(SYNC_KEY_PREFIX + p.getDocType()) == null);
+    }
+
+    private void reindexAllSafely() {
+        try {
+            Thread.sleep(5000);
+            for (DocumentSyncProvider provider : providers) {
+                fullReindex(provider, null);
+            }
+            log.info("开发环境自动全量重建完成");
+        } catch (Exception e) {
+            log.error("开发环境自动全量重建失败", e);
         }
     }
 

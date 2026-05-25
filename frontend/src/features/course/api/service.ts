@@ -38,6 +38,16 @@ export interface CourseListParams {
   isFree?: number;
   /** 报名状态：ENROLLING / ENDED */
   enrollStatus?: string;
+  /** 内训课：主讲专家擅长行业 */
+  trainerIndustryCategoryId?: number;
+  /** 内训课：主讲专家省份 */
+  trainerProvinceId?: number;
+  /** 内训课：主讲专家城市 */
+  trainerCityId?: number;
+  /** 1=仅看信得过专家 */
+  trainerIsTrusted?: number;
+  /** 1=仅看独家/版权课讲师 */
+  trainerHasCopyright?: number;
 }
 
 /**
@@ -79,6 +89,21 @@ export async function getCourseList(
     query.set('isFree', String(params.isFree));
   }
   if (params.enrollStatus) query.set('enrollStatus', params.enrollStatus);
+  if (params.trainerIndustryCategoryId) {
+    query.set('trainerIndustryCategoryId', String(params.trainerIndustryCategoryId));
+  }
+  if (params.trainerProvinceId) {
+    query.set('trainerProvinceId', String(params.trainerProvinceId));
+  }
+  if (params.trainerCityId) {
+    query.set('trainerCityId', String(params.trainerCityId));
+  }
+  if (params.trainerIsTrusted !== undefined && params.trainerIsTrusted !== null) {
+    query.set('trainerIsTrusted', String(params.trainerIsTrusted));
+  }
+  if (params.trainerHasCopyright !== undefined && params.trainerHasCopyright !== null) {
+    query.set('trainerHasCopyright', String(params.trainerHasCopyright));
+  }
 
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<CourseListItem>>>(

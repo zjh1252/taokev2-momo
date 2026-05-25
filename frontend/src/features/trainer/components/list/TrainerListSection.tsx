@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback, useTransition } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Suspense, useState, useCallback, useTransition } from 'react';
+import { ListPagePagination } from '@/components/list-page-pagination';
+import { useListPageUrlSync } from '@/hooks/use-list-page-url';
 import { TrainerFilters, type TrainerFilterValue } from './TrainerFilters';
 import { TrainerCard } from './TrainerCard';
 import { TrainerRecommendedScroller } from './TrainerRecommendedScroller';
@@ -36,7 +37,15 @@ interface TrainerListSectionProps {
  * @author Fangxinxin
  * @date 2026-04-22 18:45
  */
-export function TrainerListSection({
+export function TrainerListSection(props: TrainerListSectionProps) {
+  return (
+    <Suspense fallback={<div className="min-h-[320px] animate-pulse rounded-xl bg-slate-100" />}>
+      <TrainerListSectionInner {...props} />
+    </Suspense>
+  );
+}
+
+function TrainerListSectionInner({
   initialData,
   expertiseTree,
   industryTree,
@@ -74,33 +83,42 @@ export function TrainerListSection({
     [filters, sort],
   );
 
+  const { commitPageChange } = useListPageUrlSync({
+    currentPage,
+    onPageFromUrl: fetchData,
+  });
+
   const handleFilterChange = useCallback(
     (next: TrainerFilterValue) => {
       setFilters(next);
+      commitPageChange(1);
       fetchData(1, next);
     },
-    [fetchData],
+    [fetchData, commitPageChange],
   );
 
   const handleReset = useCallback(() => {
     setFilters({});
+    commitPageChange(1);
     fetchData(1, {});
-  }, [fetchData]);
+  }, [fetchData, commitPageChange]);
 
   const handleSortChange = useCallback(
     (s: string) => {
       setSort(s);
+      commitPageChange(1);
       fetchData(1, undefined, s);
     },
-    [fetchData],
+    [fetchData, commitPageChange],
   );
 
   const handlePageChange = useCallback(
     (page: number) => {
+      commitPageChange(page);
       fetchData(page);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [fetchData],
+    [fetchData, commitPageChange],
   );
 
   return (
@@ -147,62 +165,12 @@ export function TrainerListSection({
       </div>
 
       {/* 分页 */}
-      {data.totalPages > 1 && (
-        <div className="flex justify-center pt-6 border-t border-slate-200">
-          <div className="flex items-center gap-2 text-[14px]">
-            <button
-              type="button"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-500 cursor-pointer hover:text-primary hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-slate-500 disabled:hover:border-slate-200 transition-colors"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-
-            {generatePageNumbers(currentPage, data.totalPages).map((p, i) =>
-              p === -1 ? (
-                <span key={`dot-${i}`} className="px-1 text-slate-400">
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => handlePageChange(p)}
-                  className={`w-8 h-8 rounded border flex items-center justify-center cursor-pointer transition-colors ${
-                    p === currentPage
-                      ? 'border-primary bg-primary text-white hover:bg-primary/90'
-                      : 'border-slate-200 text-slate-500 hover:text-primary hover:border-primary'
-                  }`}
-                >
-                  {p}
-                </button>
-              ),
-            )}
-
-            <button
-              type="button"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage >= data.totalPages}
-              className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-500 cursor-pointer hover:text-primary hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-slate-500 disabled:hover:border-slate-200 transition-colors"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      <ListPagePagination
+        currentPage={currentPage}
+        totalPages={data.totalPages}
+        onPageChange={handlePageChange}
+        className="pt-6 border-t border-slate-200"
+      />
     </div>
   );
-}
-
-function generatePageNumbers(current: number, total: number): number[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: number[] = [1];
-  if (current > 3) pages.push(-1);
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (current < total - 2) pages.push(-1);
-  pages.push(total);
-  return pages;
 }

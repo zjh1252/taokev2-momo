@@ -52,4 +52,7 @@ public class TrainerListItemResponse {
 
     /** 擅长领域分类（仅名称，用于 tag 展示） */
     private List<CategoryRefDTO> expertiseCategories;
+
+    /** 擅长行业分类（仅名称，用于 tag 展示） */
+    private List<CategoryRefDTO> industryCategories;
 }

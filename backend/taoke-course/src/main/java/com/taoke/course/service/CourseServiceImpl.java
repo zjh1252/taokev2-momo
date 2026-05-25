@@ -1,5 +1,6 @@
 package com.taoke.course.service;
 
+import com.taoke.common.dto.CategoryTreeVO;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
@@ -15,6 +16,7 @@ import com.taoke.course.enums.CourseType;
 import com.taoke.course.mapper.CourseMapper;
 import com.taoke.course.repository.CoursePlanRepository;
 import com.taoke.course.repository.CourseRepository;
+import com.taoke.course.support.LegacyTaokeCourseReader;
 import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
@@ -54,6 +56,7 @@ public class CourseServiceImpl implements CourseService {
     private final TrainerService trainerService;
     private final InstitutionService institutionService;
     private final RegionService regionService;
+    private final LegacyTaokeCourseReader legacyTaokeCourseReader;
     private final BindingAuthority bindingAuthority;
 
     // ==================== C 端发布者操作 ====================
@@ -243,15 +246,46 @@ public class CourseServiceImpl implements CourseService {
         }
 
         final Set<Integer> planIdsFinal = planMatchedCourseIds;
+
+        // 内训课：按主讲专家维度预筛 trainerId
+        Set<Integer> trainerMatchedIds = null;
+        boolean needTrainerFilter = query.getTrainerIndustryCategoryId() != null
+                || query.getTrainerProvinceId() != null
+                || query.getTrainerCityId() != null
+                || (query.getTrainerIsTrusted() != null && query.getTrainerIsTrusted() == 1)
+                || (query.getTrainerHasCopyright() != null && query.getTrainerHasCopyright() == 1);
+        if (needTrainerFilter) {
+            List<Integer> ids = trainerService.findPublishedTrainerIds(
+                    query.getTrainerIndustryCategoryId(),
+                    query.getTrainerProvinceId(),
+                    query.getTrainerCityId(),
+                    query.getTrainerIsTrusted(),
+                    query.getTrainerHasCopyright());
+            if (ids.isEmpty()) {
+                return PageResponse.of(List.of(), 0, page, size);
+            }
+            trainerMatchedIds = new HashSet<>(ids);
+        }
+
+        final Set<Integer> trainerIdsFinal = trainerMatchedIds;
+        Set<Integer> expandedCategoryIds = resolveExpandedCourseCategoryIds(query);
+
         Specification<Course> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()));
 
-            if (query.getCategoryIds() != null && !query.getCategoryIds().isEmpty()) {
-                predicates.add(root.get("categoryId").in(query.getCategoryIds()));
-            }
-            if (query.getSubCategoryIds() != null && !query.getSubCategoryIds().isEmpty()) {
-                predicates.add(root.get("subCategoryId").in(query.getSubCategoryIds()));
+            if (!expandedCategoryIds.isEmpty()) {
+                predicates.add(cb.or(
+                        root.get("categoryId").in(expandedCategoryIds),
+                        root.get("subCategoryId").in(expandedCategoryIds)
+                ));
+            } else {
+                if (query.getCategoryIds() != null && !query.getCategoryIds().isEmpty()) {
+                    predicates.add(root.get("categoryId").in(query.getCategoryIds()));
+                }
+                if (query.getSubCategoryIds() != null && !query.getSubCategoryIds().isEmpty()) {
+                    predicates.add(root.get("subCategoryId").in(query.getSubCategoryIds()));
+                }
             }
             if (query.getType() != null && !query.getType().isBlank()) {
                 predicates.add(cb.equal(root.get("type"), CourseType.valueOf(query.getType())));
@@ -286,6 +320,10 @@ public class CourseServiceImpl implements CourseService {
             // 计划维度命中集合
             if (planIdsFinal != null) {
                 predicates.add(root.get("id").in(planIdsFinal));
+            }
+            // 主讲专家维度
+            if (trainerIdsFinal != null) {
+                predicates.add(root.get("trainerId").in(trainerIdsFinal));
             }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
@@ -404,34 +442,60 @@ public class CourseServiceImpl implements CourseService {
                 .map(Course::getTrainerId)
                 .filter(id -> id != null && id > 0)
                 .collect(Collectors.toSet());
-        Map<Integer, String> trainerNameMap = trainerIds.isEmpty()
+        Map<Integer, Trainer> trainerMap = trainerIds.isEmpty()
                 ? Map.of()
                 : trainerService.findByIds(trainerIds).stream()
-                    .collect(Collectors.toMap(Trainer::getId, Trainer::getName));
+                    .collect(Collectors.toMap(Trainer::getId, t -> t));
+
+        // 批量专家驻地（省/市名称）
+        Set<Integer> trainerRegionIds = new HashSet<>();
+        for (Trainer trainer : trainerMap.values()) {
+            if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) {
+                trainerRegionIds.add(trainer.getProvinceId());
+            }
+            if (trainer.getCityId() != null && trainer.getCityId() > 0) {
+                trainerRegionIds.add(trainer.getCityId());
+            }
+        }
+        Map<Integer, String> trainerRegionNameMap = trainerRegionIds.isEmpty()
+                ? Map.of()
+                : regionService.getNamesByIds(trainerRegionIds);
 
         // 批量最近一场公开课计划（仅公开课需要）
         List<Integer> openCourseIds = courses.stream()
                 .filter(c -> c.getType() != null && c.getType().isOpen())
                 .map(Course::getId)
                 .toList();
-        Map<Integer, CoursePlan> nearestPlanMap = new HashMap<>();
-        if (!openCourseIds.isEmpty()) {
-            List<CoursePlan> plans = coursePlanRepository
-                    .findByCourseIdInAndStartTimeGreaterThanEqualOrderByStartTimeAsc(
-                            openCourseIds, LocalDateTime.now());
-            for (CoursePlan p : plans) {
-                nearestPlanMap.putIfAbsent(p.getCourseId(), p);
+        Map<Integer, CoursePlan> nearestPlanMap = pickDisplayPlansForOpenCourses(openCourseIds);
+
+        // 批量省/市名称
+        Set<Integer> regionIds = new HashSet<>();
+        for (CoursePlan p : nearestPlanMap.values()) {
+            if (p.getProvinceId() != null && p.getProvinceId() > 0) {
+                regionIds.add(p.getProvinceId());
+            }
+            if (p.getCityId() != null && p.getCityId() > 0) {
+                regionIds.add(p.getCityId());
             }
         }
-
-        // 批量城市名
-        Set<Integer> cityIds = nearestPlanMap.values().stream()
-                .map(CoursePlan::getCityId)
-                .filter(id -> id != null && id > 0)
-                .collect(Collectors.toSet());
-        Map<Integer, String> cityNameMap = cityIds.isEmpty()
+        Map<Integer, String> regionNameMap = regionIds.isEmpty()
                 ? Map.of()
-                : regionService.getNamesByIds(cityIds);
+                : regionService.getNamesByIds(regionIds);
+
+        List<Integer> courseIds = courses.stream().map(Course::getId).toList();
+        Map<Integer, String> legacyLecturerMap = legacyTaokeCourseReader.findLecturerDisplayNames(courseIds);
+        Map<Integer, String> legacyCategoryMap = legacyTaokeCourseReader.findCourseCategoryNames(courseIds);
+
+        List<Integer> institutionPublisherUserIds = courses.stream()
+                .filter(c -> BusinessRole.Code.INSTITUTION.equals(c.getPublisherType()))
+                .filter(c -> c.getPublisherId() != null && c.getPublisherId() > 0)
+                .map(Course::getPublisherId)
+                .distinct()
+                .toList();
+        Map<Integer, Institution> institutionByUserId = institutionPublisherUserIds.isEmpty()
+                ? Map.of()
+                : institutionService.findByUserIds(institutionPublisherUserIds).stream()
+                    .collect(Collectors.toMap(Institution::getUserId, i -> i, (a, b) -> a));
 
         return courses.stream().map(c -> {
             CourseListItemVO vo = courseMapper.toListItemVO(c);
@@ -441,13 +505,40 @@ public class CourseServiceImpl implements CourseService {
                 vo.setCategoryName(catNameMap.get(c.getCategoryId()));
             }
             if (c.getTrainerId() != null && c.getTrainerId() > 0) {
-                vo.setTrainerName(trainerNameMap.get(c.getTrainerId()));
+                Trainer trainer = trainerMap.get(c.getTrainerId());
+                if (trainer != null) {
+                    vo.setTrainerName(trainer.getName());
+                    if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) {
+                        vo.setTrainerProvinceName(trainerRegionNameMap.get(trainer.getProvinceId()));
+                    }
+                    if (trainer.getCityId() != null && trainer.getCityId() > 0) {
+                        vo.setTrainerCityName(trainerRegionNameMap.get(trainer.getCityId()));
+                    }
+                    vo.setCoverUrl(resolveCoverUrl(c.getCoverUrl(), trainer.getAvatar()));
+                } else {
+                    vo.setCoverUrl(resolveCoverUrl(c.getCoverUrl(), null));
+                }
+            } else {
+                vo.setCoverUrl(resolveCoverUrl(c.getCoverUrl(), null));
+                String legacyLecturer = legacyLecturerMap.get(c.getId());
+                if (legacyLecturer != null && !legacyLecturer.isBlank()) {
+                    vo.setTrainerName(legacyLecturer);
+                } else if (BusinessRole.Code.INSTITUTION.equals(c.getPublisherType())) {
+                    Institution inst = institutionByUserId.get(c.getPublisherId());
+                    if (inst != null && inst.getOrgName() != null && !inst.getOrgName().isBlank()) {
+                        vo.setTrainerName(inst.getOrgName());
+                    }
+                }
             }
             CoursePlan nearest = nearestPlanMap.get(c.getId());
             if (nearest != null) {
                 vo.setNextPlanStartDate(nearest.getStartTime());
-                if (nearest.getCityId() != null && nearest.getCityId() > 0) {
-                    vo.setNextPlanCity(cityNameMap.get(nearest.getCityId()));
+                vo.setNextPlanCity(formatPlanLocation(nearest, regionNameMap));
+            }
+            if (vo.getCategoryName() == null || vo.getCategoryName().isBlank()) {
+                String legacyCat = legacyCategoryMap.get(c.getId());
+                if (legacyCat != null && !legacyCat.isBlank()) {
+                    vo.setCategoryName(legacyCat);
                 }
             }
             return vo;
@@ -455,8 +546,103 @@ public class CourseServiceImpl implements CourseService {
     }
 
     /**
+     * 公开课列表展示用计划：优先最近一场未开课（start &gt;= now），否则取最近一场历史排期（迁移数据多为过去时间）。
+     */
+    private Map<Integer, CoursePlan> pickDisplayPlansForOpenCourses(List<Integer> openCourseIds) {
+        if (openCourseIds == null || openCourseIds.isEmpty()) {
+            return Map.of();
+        }
+        LocalDateTime now = LocalDateTime.now();
+        List<CoursePlan> plans = coursePlanRepository.findByCourseIdInOrderByStartTimeAsc(openCourseIds);
+        Map<Integer, CoursePlan> futurePick = new HashMap<>();
+        Map<Integer, CoursePlan> latestPick = new HashMap<>();
+        for (CoursePlan p : plans) {
+            latestPick.put(p.getCourseId(), p);
+            if (!p.getStartTime().isBefore(now)) {
+                futurePick.putIfAbsent(p.getCourseId(), p);
+            }
+        }
+        Map<Integer, CoursePlan> result = new HashMap<>();
+        for (Integer courseId : openCourseIds) {
+            CoursePlan pick = futurePick.get(courseId);
+            if (pick == null) {
+                pick = latestPick.get(courseId);
+            }
+            if (pick != null) {
+                result.put(courseId, pick);
+            }
+        }
+        return result;
+    }
+
+    private String formatPlanLocation(CoursePlan plan, Map<Integer, String> regionNameMap) {
+        if (plan.getOnlineUrl() != null && !plan.getOnlineUrl().isBlank()) {
+            return "线上";
+        }
+        if (plan.getAddress() != null && !plan.getAddress().isBlank()) {
+            return plan.getAddress().trim();
+        }
+        String province = plan.getProvinceId() != null && plan.getProvinceId() > 0
+                ? regionNameMap.get(plan.getProvinceId()) : null;
+        String city = plan.getCityId() != null && plan.getCityId() > 0
+                ? regionNameMap.get(plan.getCityId()) : null;
+        if (province != null && city != null && !province.equals(city)) {
+            return province + " " + city;
+        }
+        if (city != null) {
+            return city;
+        }
+        if (province != null) {
+            return province;
+        }
+        return null;
+    }
+
+    /** 迁移期：从 tk_courseinfo.cid → tk_cate 取分类展示名 */
+    private Optional<String> resolveLegacyCategoryNameForCourse(Integer courseId) {
+        if (courseId == null || courseId <= 0) {
+            return Optional.empty();
+        }
+        try {
+            return legacyTaokeCourseReader.findCourseCategoryNameByCourseId(courseId);
+        } catch (Exception ignored) {
+            return Optional.empty();
+        }
+    }
+
+    /**
      * 根据前端传入的 sortBy 值解析排序规则
      */
+    /**
+     * 展开课程分类筛选：一级分类含全部子级，并与二级分类合并，匹配 category_id / sub_category_id。
+     */
+    private Set<Integer> resolveExpandedCourseCategoryIds(PublicCourseQuery query) {
+        Set<Integer> ids = new HashSet<>();
+        if (query.getCategoryIds() != null) {
+            for (Integer id : query.getCategoryIds()) {
+                if (id == null || id <= 0) {
+                    continue;
+                }
+                ids.add(id);
+                appendCourseCategoryDescendants(id, ids);
+            }
+        }
+        if (query.getSubCategoryIds() != null) {
+            query.getSubCategoryIds().stream()
+                    .filter(id -> id != null && id > 0)
+                    .forEach(ids::add);
+        }
+        return ids;
+    }
+
+    private void appendCourseCategoryDescendants(Integer parentId, Set<Integer> out) {
+        List<CategoryTreeVO> children = categoryService.getChildren("COURSE_CATEGORY", parentId);
+        for (CategoryTreeVO child : children) {
+            out.add(child.getId());
+            appendCourseCategoryDescendants(child.getId(), out);
+        }
+    }
+
     private Sort resolvePublicSort(String sortBy) {
         if (sortBy == null || sortBy.isBlank() || "default".equals(sortBy)) {
             return Sort.by(Sort.Direction.DESC, "sortOrder")
@@ -585,13 +771,18 @@ public class CourseServiceImpl implements CourseService {
         );
         PageRequest pageable = PageRequest.of(0, 3,
                 Sort.by(Sort.Direction.DESC, "viewCount").and(Sort.by(Sort.Direction.DESC, "id")));
+        String trainerAvatar = trainerService.findByIds(Set.of(trainerId)).stream()
+                .findFirst()
+                .map(Trainer::getAvatar)
+                .orElse(null);
         return courseRepository.findAll(spec, pageable).getContent().stream()
                 .map(course -> {
                     RecommendedCourseVO vo = new RecommendedCourseVO();
                     vo.setId(course.getId());
                     vo.setTitle(course.getTitle());
-                    vo.setCoverUrl(course.getCoverUrl());
+                    vo.setCoverUrl(resolveCoverUrl(course.getCoverUrl(), trainerAvatar));
                     vo.setViewCount(course.getViewCount());
+                    vo.setType(course.getType() != null ? course.getType().name() : null);
                     return vo;
                 })
                 .toList();
@@ -843,10 +1034,10 @@ public class CourseServiceImpl implements CourseService {
         vo.setTypeLabel(course.getType().getLabel());
         vo.setStatusLabel(CourseStatus.of(course.getStatus()).getLabel());
 
-        // 开课计划
+        // 开课计划（附带省市名称，供详情页展示地点）
         if (course.getType().isOpen()) {
             List<CoursePlan> plans = coursePlanRepository.findByCourseIdOrderBySortOrder(course.getId());
-            vo.setPlans(courseMapper.toPlanDTOList(plans));
+            vo.setPlans(enrichPlanDTOs(courseMapper.toPlanDTOList(plans)));
         } else {
             vo.setPlans(List.of());
         }
@@ -860,13 +1051,63 @@ public class CourseServiceImpl implements CourseService {
             vo.setCategoryName(nameMap.get(course.getCategoryId()));
             vo.setSubCategoryName(nameMap.get(course.getSubCategoryId()));
         }
+        if (vo.getCategoryName() == null || vo.getCategoryName().isBlank()) {
+            resolveLegacyCategoryNameForCourse(course.getId()).ifPresent(vo::setCategoryName);
+        }
 
-        // 讲师名称
+        // 讲师名称 + 封面回退（无 cover_url 时用讲师头像）
         if (course.getTrainerId() != null && course.getTrainerId() > 0) {
-            fillTrainerName(vo, course.getTrainerId());
+            List<Trainer> trainers = trainerService.findByIds(Set.of(course.getTrainerId()));
+            if (!trainers.isEmpty()) {
+                Trainer trainer = trainers.get(0);
+                vo.setTrainerName(trainer.getName());
+                vo.setCoverUrl(resolveCoverUrl(vo.getCoverUrl(), trainer.getAvatar()));
+            }
+        } else {
+            resolveLegacyLecturerName(course.getId()).ifPresent(vo::setTrainerName);
         }
 
         return vo;
+    }
+
+    /** 机构发布等 trainer_id=0 时，从老库 lecturer 补展示名 */
+    private Optional<String> resolveLegacyLecturerName(Integer courseId) {
+        if (courseId == null || courseId <= 0) {
+            return Optional.empty();
+        }
+        try {
+            return legacyTaokeCourseReader.findLecturerDisplayName(courseId);
+        } catch (Exception ignored) {
+            return Optional.empty();
+        }
+    }
+
+    /** 为开课计划 DTO 填充省市名称 */
+    private List<CoursePlanDTO> enrichPlanDTOs(List<CoursePlanDTO> plans) {
+        if (plans == null || plans.isEmpty()) {
+            return List.of();
+        }
+        Set<Integer> regionIds = new HashSet<>();
+        for (CoursePlanDTO p : plans) {
+            if (p.getProvinceId() != null && p.getProvinceId() > 0) {
+                regionIds.add(p.getProvinceId());
+            }
+            if (p.getCityId() != null && p.getCityId() > 0) {
+                regionIds.add(p.getCityId());
+            }
+        }
+        Map<Integer, String> regionNames = regionIds.isEmpty()
+                ? Map.of()
+                : regionService.getNamesByIds(regionIds);
+        for (CoursePlanDTO p : plans) {
+            if (p.getProvinceId() != null && p.getProvinceId() > 0) {
+                p.setProvinceName(regionNames.get(p.getProvinceId()));
+            }
+            if (p.getCityId() != null && p.getCityId() > 0) {
+                p.setCityName(regionNames.get(p.getCityId()));
+            }
+        }
+        return plans;
     }
 
     /** 将课程转为列表项 VO */
@@ -883,19 +1124,30 @@ public class CourseServiceImpl implements CourseService {
         if (course.getTrainerId() != null && course.getTrainerId() > 0) {
             List<Trainer> trainers = trainerService.findByIds(Set.of(course.getTrainerId()));
             if (!trainers.isEmpty()) {
-                vo.setTrainerName(trainers.get(0).getName());
+                Trainer trainer = trainers.get(0);
+                vo.setTrainerName(trainer.getName());
+                vo.setCoverUrl(resolveCoverUrl(course.getCoverUrl(), trainer.getAvatar()));
+            } else {
+                vo.setCoverUrl(resolveCoverUrl(course.getCoverUrl(), null));
             }
+        } else {
+            vo.setCoverUrl(resolveCoverUrl(course.getCoverUrl(), null));
         }
 
         return vo;
     }
 
-    /** 回填讲师名称 */
-    private void fillTrainerName(CourseDetailVO vo, Integer trainerId) {
-        List<Trainer> trainers = trainerService.findByIds(Set.of(trainerId));
-        if (!trainers.isEmpty()) {
-            vo.setTrainerName(trainers.get(0).getName());
+    /**
+     * 解析列表/详情展示用封面：优先课程 cover_url，为空时回退讲师头像。
+     */
+    private String resolveCoverUrl(String coverUrl, String trainerAvatar) {
+        if (coverUrl != null && !coverUrl.isBlank()) {
+            return coverUrl.trim();
         }
+        if (trainerAvatar != null && !trainerAvatar.isBlank()) {
+            return trainerAvatar.trim();
+        }
+        return "";
     }
 
     @Override

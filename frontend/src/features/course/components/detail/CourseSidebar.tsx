@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  MessageSquare,
   Heart,
   Share2,
   Flame,
@@ -10,7 +9,9 @@ import {
   Eye,
   Zap,
   ShoppingCart,
+  MessageCircle,
 } from 'lucide-react';
+import { CustomerServiceChatDialog } from '@/components/customer-service-chat-dialog';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
@@ -40,6 +41,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [consultOpen, setConsultOpen] = useState(false);
 
   useEffect(() => {
     getInteractionState('COURSE', course.id)
@@ -125,7 +127,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         </>
       )}
 
-      {/* 非付费课程 — 内训课显示预约按钮，免费公开课显示预约按钮 */}
+      {/* 非付费课程 — 内训课显示报名按钮，免费公开课显示预约按钮 */}
       {!isPurchasable && (
         <button
           onClick={() => requireAuth(() => {
@@ -138,10 +140,20 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
           {isOpen ? (
             <><Zap className="size-4" /> {t('reserve')}</>
           ) : (
-            <><MessageSquare className="size-4" /> 预约内训</>
+            <><Zap className="size-4" /> {t('enroll')}</>
           )}
         </button>
       )}
+
+      {/* 立即咨询 */}
+      <button
+        type="button"
+        onClick={() => setConsultOpen(true)}
+        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-slate-200 text-slate-700 font-medium text-sm hover:border-primary hover:text-primary transition-all"
+      >
+        <MessageCircle className="size-4" />
+        {t('consult')}
+      </button>
 
       {/* 收藏按钮 */}
       <button
@@ -184,6 +196,8 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         prefillTitle={course.title}
         onSuccess={() => toast.success('评价已提交，审核通过后将公开展示')}
       />
+
+      <CustomerServiceChatDialog open={consultOpen} onOpenChange={setConsultOpen} />
     </div>
   );
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Star, Eye } from 'lucide-react';
+import { SafeImage } from '@/components/safe-image';
 import type { SearchResultItem } from '../api/types';
 
 interface TrainerResultCardProps {
@@ -19,8 +19,8 @@ export function TrainerResultCard({ item }: TrainerResultCardProps) {
       className="bg-white rounded-xl border border-slate-200 p-5 flex gap-5 hover:shadow-md transition-all group"
     >
       <div className="shrink-0 relative">
-        <Image
-          src={item.avatar || '/statics/images/expert-main.jpg'}
+        <SafeImage
+          src={item.avatar}
           alt={item.name || ''}
           width={100}
           height={120}

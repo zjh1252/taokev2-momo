@@ -1,5 +1,5 @@
 import { Link } from '@/i18n/navigation';
-import { Flame, Star, BookOpen } from 'lucide-react';
+import { Flame, Star } from 'lucide-react';
 import type { CourseListItem } from '../../api/types';
 
 interface InnerCourseCardProps {
@@ -7,26 +7,16 @@ interface InnerCourseCardProps {
 }
 
 export function InnerCourseCard({ course }: InnerCourseCardProps) {
+  const trainerResidence = [course.trainerProvinceName, course.trainerCityName]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <Link
       href={`/innercourses/${course.id}`}
-      className="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group flex gap-4"
+      className="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group block"
     >
-      {/* 左侧图标 */}
-      <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-        {course.coverUrl ? (
-          <img
-            src={course.coverUrl}
-            alt={course.title}
-            className="w-full h-full object-cover rounded-lg"
-          />
-        ) : (
-          <BookOpen className="size-6 text-slate-300" />
-        )}
-      </div>
-
-      {/* 右侧信息 */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0">
         {/* 标题行 + 指标 */}
         <div className="flex items-start justify-between mb-2 gap-2">
           <h3 className="text-base font-bold text-slate-800 group-hover:text-primary transition-colors line-clamp-1">
@@ -69,8 +59,7 @@ export function InnerCourseCard({ course }: InnerCourseCardProps) {
           </div>
           <div className="flex items-center gap-1">
             <span className="text-slate-400 min-w-[72px]">讲师常驻地：</span>
-            <span className="text-slate-700">-</span>
-            {/* TODO: 讲师常驻地需从后端 trainer 表获取 */}
+            <span className="text-slate-700">{trainerResidence || '-'}</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-slate-400 min-w-[72px]">课程分类：</span>

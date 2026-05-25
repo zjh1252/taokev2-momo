@@ -20,10 +20,14 @@
   "logout": "Logout",
   "search": {
     "placeholder": "Search...",
+    "submit": "Search",
     "category": "Trainers",
     "categoryTrainer": "Trainers",
     "categoryOpenCourse": "Open Courses",
-    "categoryInnerCourse": "In-House Training"
+    "categoryInnerCourse": "In-House Training",
+    "categoryOnlineCourse": "Online Courses",
+    "categoryInstitution": "Institutions",
+    "categoryAssociation": "Training Associations"
   },
   "product": {
     "label": "TrainPro",

@@ -251,11 +251,20 @@ public class VideoServiceImpl implements VideoService {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()));
 
-            if (categoryId != null) {
-                predicates.add(cb.equal(root.get("categoryId"), categoryId));
-            }
-            if (subCategoryId != null) {
-                predicates.add(cb.equal(root.get("subCategoryId"), subCategoryId));
+            if (categoryId != null || subCategoryId != null) {
+                Set<Integer> categoryFilterIds = new HashSet<>();
+                if (categoryId != null && categoryId > 0) {
+                    categoryFilterIds.add(categoryId);
+                }
+                if (subCategoryId != null && subCategoryId > 0) {
+                    categoryFilterIds.add(subCategoryId);
+                }
+                if (!categoryFilterIds.isEmpty()) {
+                    predicates.add(cb.or(
+                            root.get("categoryId").in(categoryFilterIds),
+                            root.get("subCategoryId").in(categoryFilterIds)
+                    ));
+                }
             }
             if (keyword != null && !keyword.isBlank()) {
                 String like = "%" + keyword.trim() + "%";

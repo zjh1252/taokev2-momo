@@ -421,3 +421,99 @@
 - 前端替换所有 prompt('请输入拒绝理由（可选）') 为 RejectReasonDialog：my-employees / my-agents-team / my-enterprise-agent / my-institution / my-agents 共 5 个页面
 - 前端统一发起方文案：「我方发起」→「我方发起邀请」、「对方发起」→「对方发起申请」（机构/公司侧）；「我方申请」→「我方发起申请」、「机构/公司邀请」→「对方发起邀请」（员工/经纪人侧）；my-experts 同步对齐
 
+---
+
+2026-05-23 19:10
+**机构列表混入专家 — 应用层过滤**
+
+- 根因：老站 `/company/` 含「organid 发过课」的全部会员（含 mold=2 专家课），迁移后 `org_name` 回退人名 + 会员头像，列表像专家页
+- 后端：`Institution.publicListEligible` 字段 + `InstitutionServiceImpl.listPublic()` 仅返回 `public_list_eligible=1` 的行
+- 手工脚本：`data-trans/scripts/run_institution_public_list_filter.py` 在 v3test 预跑收紧规则，并将应隐藏的专家 organ 行 `status=2`（旧后端只筛 `status=1` 时刷新即生效）
+- 文档：`data-trans/docs/problem/机构列表混入专家-原因与修复.md`
+- 数据库 DDL/回填见 `docs/guides/flyway-operations.md` §7（V70 / V71）
+
+**专家详情主讲课程 404 + 标题 HTML 实体解码**
+
+- 新增 `frontend/src/features/course/utils/routes.ts`：`getCourseDetailPath` 按课程类型跳转 `/opencourses/` 或 `/innercourses/`（C 端无 `/courses/[id]` 公开页）
+- 修复 `TrainerDetailContent`、`TrainerSidebar` 中主讲课程/推荐课程链接 404
+- 后端 `RecommendedCourseVO` 增加 `type` 字段，推荐课程侧边栏可正确区分路由
+- 新增 `frontend/src/lib/html-entities.ts`：`decodeHtmlEntities` 解码老库标题中的 `&mdash;` 等实体；专家详情课程标题与 `OpenCourseCard` 接入
+
+**C 端列表分页与 URL 同步（详情返回保留页码）**
+
+- 新增 `frontend/src/hooks/use-list-page-url.ts`：翻页写入 `?page=`，浏览器后退时按 URL 恢复并拉取对应页数据
+- 专家 / 公开课 / 内训课 / 录播课 / 机构（含培协）五个 `*ListSection` 接入 `useListPageUrlSync`；筛选/排序/搜索重置时清除 `page` 参数
+- 各列表组件外包 `Suspense`，满足 `useSearchParams` 要求
+
+---
+
+2026-05-24 14:30
+**C 端旧站媒体路径解析 + 录播/案例封面展示**
+
+- `frontend/src/lib/media.ts`：`resolveImageSrc` 对 `/attachments/`、`/u/` 拼 `NEXT_PUBLIC_LEGACY_ASSET_BASE_URL`（默认 `https://www.taoke.com`）；支持 FSM hash、`preview.kuanxue.com`、`cdn5-pxb-videos.taoke.com` 等形态；`/statics`、`/uploads` 仍走本地或 ingress
+- 录播课列表大量默认图根因：库内相对路径在 `localhost:3000` 404，`SafeImage` 回退占位图（库内 URL 批量规范化见 Flyway V67，`docs/guides/flyway-operations.md` §7）
+- 专家详情「授课案例」Tab：`TrainerDetailContent` 案例封面由 Next `Image` 改为 `SafeImage`，修复 `/attachments/case/...` 在本地 404
+- 新增 `data-trans/docs/guides/媒体资源路径说明.md`：迁移后各表 URL 形态统计、展示链路、老站下线前 OSS 永久化规划
+
+**专家头衔展示过滤 + 运行时修复**
+
+- 新增 `frontend/src/features/trainer/utils/displayTitle.ts`：`isDisplayTitle` / `pickDisplayTitle` 过滤 biography / 营销长段落误填为 `title` 的情况（>48 字、含「合作价值」等）
+- `TrainerCard`、`TrainerHero`、`TrainerRecommendedScroller`、`TrainerSidebar` 副标题统一走 `pickDisplayTitle`
+- 修复 `TrainerSidebar.tsx` 漏 import `pickDisplayTitle` 导致专家详情页 `ReferenceError`
+
+**课程列表移除讲师头像/缩略图**
+
+- `OpenCourseCard`、`InnerCourseCard`：移除左侧 48×48 封面/讲师头像，保留文字信息
+- 首页 `CoursesSection`（热门内训课）：移除讲师圆形头像
+- `CourseDetailTabs`（授课专家）：移除圆形首字母头像
+- 搜索 `CourseResultCard`：公开课/内训课结果不再显示左侧缩略图
+
+---
+
+2026-05-25 16:00
+**机构 Logo — 前端展示 + 运行时兜底**
+
+- 根因：约 35% 机构 `logo_url` 为空；非空项多为旧站相对路径，部分组件未走 `resolveImageSrc` 导致 404
+- 后端 `InstitutionServiceImpl.fillMissingLogos()` + `InstitutionRepository.findLogoRowsByOrgNames()`：公开列表/详情对仍缺 logo 的行按 `org_name` 从老库 organ 表运行时回填
+- 前端 `InstitutionCard` / `InstitutionListSection` / `InstitutionHero` 改用 `SafeImage` + `resolveMediaUrl`；无图时用 `ui-avatars.com` 首字占位
+- 样例机构 id 4/8/9 手工补 logo（`data-trans/scripts/_patch_sample_institution_logos.py`）；id 3/6/7 老库无可用图源仍为空
+- 库内 URL 规范化与同名回填见 `docs/guides/flyway-operations.md` §7（V72 / V73）
+
+**内训课侧栏筛选 — 前后端全量接入**
+
+- 根因：`InnerCourseFilters.tsx` 除「课程分类」外均为 UI 占位未传参；后端原先未支持讲师维度筛选，L2 分类只匹配 `category_id` 导致结果为 0
+- 前端：重写 `InnerCourseFilters.tsx`（综合类 / 课程行业 / 讲师城市 / 讲师独家 + L2 分类面板 + 已选 chips）；`InnerCourseListSection` 将筛选写入 API；`innercourses/page.tsx` 预载 `TRAINER_INDUSTRY` 分类树
+- 前端 `getCourses` 扩展参数：`trainerIndustryCategoryId`、`trainerProvinceId`、`trainerCityId`、`trainerIsTrusted`、`trainerHasCopyright`（传 `1`，勿传 `true`）
+- 后端 `PublicCourseQuery` 讲师维度字段；`TrainerService.findPublishedTrainerIds()` + `buildTrainerDimensionSpec()`；`CourseServiceImpl.listPublic()` 按专家 ID 过滤；`resolveExpandedCourseCategoryIds()` 同时匹配 `category_id` / `sub_category_id` 并展开 L1
+- 修复 `CourseServiceImpl` 编译错误：`vo.setType(course.getType().name())`
+- v3test API 验证（新代码）：无筛选 48016；L1 `188` → 2254；L2 `304` → 1241；行业 `157` → 6462；信得过 `1` → 1824
+- 内训课分类 ID 与老 `tk_cate` 对齐见 `docs/guides/flyway-operations.md` §7（V74）
+
+**专家详情子资源挂错 id + 授课案例接口异常**
+
+- 根因：迁移后同名双行 `user_trainers`（canonical `status=2` vs donor 残留 id），课程/案例/视频/评价挂在 donor 行；部分案例 `created_at` 零日期导致 JPA 500
+- `data-trans/scripts/merge_trainer_duplicate_resources.py`：将 donor 子资源归并到 canonical，donor `status=4`（约 131 组）
+- `data-trans/scripts/fix_trainer_cases_books.py`：零日期修复 + 从 `taoke.tk_trainer_books` 补迁著作到 canonical `trainer_id`
+- 文档：`data-trans/docs/problem/专家详情子资源挂错id-原因与修复.md`
+- 零日期批量 UPDATE 见 `docs/guides/flyway-operations.md` §7（V69）
+
+**本地后端启动（加载 IDE 编译产物）**
+
+- IDE argfile 默认 classpath 指向 Maven 仓库 JAR，改 Java 后不 Rebuild 则筛选等新逻辑不生效
+- 新增 `backend/scripts/run-dev-with-classes.ps1`：将 `taoke-user/course/admin/common` 的 `target/classes` 置于 classpath 最前
+- 本机若无 `pwsh`，可用等价 PowerShell inline 命令启动；确认日志出现 `Started TaokeApplication` 后再验 API
+
+---
+
+2026-05-25 17:30
+**首页专家案例「查看更多」跳转修正**
+
+- `CasesSection.tsx`：`viewMoreHref` 由 `/cases` 改为 `/trainers`，与「推荐专家」区块一致
+
+**机构 31513（CareerPower / 安秋明）排查 + V75 规则补漏**
+
+- 老站无 `/company/31513`；老库为讲师安秋明（23 门 mold=2 讲师课），company 字段含地址，非真实培训机构
+- 新增 Flyway `V75__exclude_trainer_only_organs_with_company_name.sql`：非合伙人、无机构课、有讲师课或专家档案 → 机构列表不可见（不再因名称含「有限公司」放行）
+- 文档：`data-trans/docs/problem/机构31513-CareerPower-原因与修复.md`；审计脚本 `_audit_institution_31513.py`
+- v3test：id=31513 已为 `status=2`、`public_list_eligible=0`，机构列表应不再出现；直接访问详情 URL 仍可能打开（需后续 API 按 status 拦截时可另做）
+
