@@ -3,6 +3,9 @@ package com.taoke.user.captcha;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 行为验证码（滑块）开关与策略配置。
  * <p>
@@ -21,4 +24,7 @@ public class CaptchaProperties {
 
     /** C 端账号密码登录，失败多少次后要求滑块（默认 1） */
     private int loginFailThreshold = 1;
+
+    /** 滑块背景图列表。默认按 classpath 解析，可写多张随机使用。 */
+    private List<String> sliderBackgroundImages = new ArrayList<>();
 }

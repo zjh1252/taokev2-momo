@@ -19,7 +19,8 @@
 
 set -euo pipefail
 
-REGISTRY="10.0.16.26:5000"
+#REGISTRY="10.0.16.26:5000"
+REGISTRY="vpn.taoke.com:19810"
 IMAGE_PREFIX="taokev2"
 
 KNOWN_TARGETS="backend frontend admin nacos all"

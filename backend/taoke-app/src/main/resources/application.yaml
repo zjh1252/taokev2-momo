@@ -83,6 +83,11 @@ taoke:
   captcha:
     enabled: true
     login-fail-threshold: 1
+    # 滑块背景图：建议 600x360，默认按 classpath 解析；可配置多张，生成验证码时随机使用
+    slider-background-images:
+      - captcha/slider-bg/enterprise-training-1.jpg
+      - captcha/slider-bg/enterprise-training-2.jpg
+      - captcha/slider-bg/enterprise-training-3.jpg
   event:
     enabled: true
     exchange: taoke.events
@@ -111,7 +116,7 @@ taoke:
 captcha:
   # Redis 中验证数据 key 前缀（项目已用 Redis，会自动落 Redis，分布式/重启安全）
   prefix: captcha:slider
-  # 加载自带默认图片资源（未提供自定义资源时必须开启，否则没有滑块底图）
+  # 加载 tianai 自带模板资源；背景底图由 taoke.captcha.slider-background-images 注册
   init-default-resource: true
   expire:
     # 验证数据过期时间（毫秒），滑块 2 分钟足够
