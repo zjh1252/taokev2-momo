@@ -46,7 +46,7 @@ function VideoListSectionInner({
   const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
   const [data, setData] = useState(initialData);
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>();
-  const selectedCategoryRef = useRef<number | undefined>();
+  const selectedCategoryRef = useRef<number | undefined>(undefined);
   selectedCategoryRef.current = selectedCategory;
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
   const [sortKey, setSortKey] = useState('default');

@@ -61,6 +61,8 @@ export interface TrainerDetail {
   cityId?: number;
   provinceName?: string;
   cityName?: string;
+  /** 一句话介绍 */
+  oneLineIntro?: string;
   bio?: string;
   intro?: string;
   background?: string;

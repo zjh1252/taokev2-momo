@@ -4,10 +4,10 @@
 
 spring:
   # Nacos 配置中心
-  nacos:
-    config:
-      server-addr: 10.0.14.20:8848
-      namespace: test
+  # nacos:
+  #   config:
+  #     server-addr: 10.0.14.20:8848
+  #     namespace: test
 
   datasource:
     url: jdbc:mysql://10.0.14.20:3306/taokev2?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8

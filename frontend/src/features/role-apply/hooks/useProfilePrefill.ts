@@ -22,20 +22,20 @@ function isFieldEmpty(value: unknown): boolean {
  * data 的空字符串覆盖 profile 的真实值；反过来 {@code {...data, ...profile}} 又
  * 会丢失 data 中用户已编辑的非空字段（如自动回填的 contactPhone）。</p>
  */
-function smartMerge<T extends Record<string, unknown>>(
+function smartMerge<T extends object>(
   profile: Partial<T>,
   data: Partial<T>,
 ): Partial<T> {
-  const merged: Record<string, unknown> = { ...profile };
+  const merged: Partial<T> = { ...profile };
   for (const key of Object.keys(data) as Array<keyof T>) {
     const dataValue = data[key];
     if (isFieldEmpty(dataValue)) continue;
     const profileValue = profile[key];
     if (isFieldEmpty(profileValue)) {
-      merged[key as string] = dataValue;
+      merged[key] = dataValue;
     }
   }
-  return merged as Partial<T>;
+  return merged;
 }
 
 /**
@@ -53,7 +53,7 @@ function smartMerge<T extends Record<string, unknown>>(
  * @author Fangxinxin
  * @date 2026-05-20 21:00
  */
-export function useProfilePrefill<T extends Record<string, unknown>>({
+export function useProfilePrefill<T extends object>({
   role,
   data,
   onChange,
