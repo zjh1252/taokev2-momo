@@ -66,13 +66,15 @@ export const MediaType = {
 export const HighlightStatus = {
   PENDING: 0,
   APPROVED: 1,
-  REJECTED: 2
+  REJECTED: 2,
+  DRAFT: 3
 } as const;
 
 export const HighlightStatusLabelMap: Record<number, string> = {
   [HighlightStatus.PENDING]: '待审核',
   [HighlightStatus.APPROVED]: '已通过',
-  [HighlightStatus.REJECTED]: '已驳回'
+  [HighlightStatus.REJECTED]: '已驳回',
+  [HighlightStatus.DRAFT]: '草稿'
 };
 
 export const MediaTypeLabelMap: Record<number, string> = {
