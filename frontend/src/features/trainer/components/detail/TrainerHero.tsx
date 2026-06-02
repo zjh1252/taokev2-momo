@@ -33,7 +33,6 @@ function StarRating({ score }: { score: number }) {
 }
 
 export function TrainerHero({ trainer }: TrainerHeroProps) {
-  const expertiseTags = trainer.expertiseTags?.split(',').filter(Boolean) ?? [];
   const { requireAuth } = useAuthGuard();
   const [msgOpen, setMsgOpen] = useState(false);
   const [favorited, setFavorited] = useState(false);
@@ -196,24 +195,6 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                   </div>
                 )}
 
-                {/* 自定义标签 */}
-                {expertiseTags.length > 0 && (
-                  <div className="flex items-center gap-4">
-                    <span className="text-[14px] text-slate-600 w-[65px] font-medium shrink-0">
-                      关键标签:
-                    </span>
-                    <div className="flex flex-wrap gap-2.5">
-                      {expertiseTags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-3.5 py-1 rounded-full border border-slate-200 text-slate-600 text-[13px] bg-slate-50"
-                        >
-                          {tag.trim()}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>

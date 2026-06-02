@@ -632,6 +632,16 @@ public class VideoServiceImpl implements VideoService {
         if (req.getPrice() != null) video.setPrice(req.getPrice());
         if (req.getOriginalPrice() != null) video.setOriginalPrice(req.getOriginalPrice());
         if (req.getIsFree() != null) video.setIsFree(req.getIsFree());
+        // 免费课不计封顶；封顶人数=0(不限)时封顶价不适用，统一清空
+        if (req.getIsFree() != null && req.getIsFree() == 1) {
+            video.setCapCount(0);
+            video.setCapPrice(null);
+        } else {
+            if (req.getCapCount() != null) video.setCapCount(req.getCapCount());
+            Integer effectiveCapCount = req.getCapCount() != null ? req.getCapCount() : video.getCapCount();
+            video.setCapPrice(effectiveCapCount != null && effectiveCapCount > 0 ? req.getCapPrice() : null);
+        }
+        if (req.getDuration() != null) video.setDuration(req.getDuration());
         if (req.getKeywords() != null) video.setKeywords(req.getKeywords());
     }
 
@@ -654,8 +664,11 @@ public class VideoServiceImpl implements VideoService {
 
         List<VideoChapter> chapters = videoChapterRepository.findByVideoIdOrderBySortOrderAsc(videoId);
         video.setTotalEpisodes(chapters.size());
+        // 仅当章节自带真实时长（汇总>0）时才覆盖；否则保留发布者手填的视频时长
         int totalDuration = chapters.stream().mapToInt(VideoChapter::getDuration).sum();
-        video.setDuration(totalDuration);
+        if (totalDuration > 0) {
+            video.setDuration(totalDuration);
+        }
         videoRepository.save(video);
     }
 

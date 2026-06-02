@@ -59,6 +59,22 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
   const [totalHours, setTotalHours] = useState<number>(initialData?.totalHours || 6);
   const [price, setPrice] = useState(initialData?.price || 0);
   const [originalPrice, setOriginalPrice] = useState(initialData?.originalPrice || 0);
+
+  /**
+   * 价格 / 原价联动：当两者相等时（含初始都为 0），在任一输入框输入会同步到另一个，
+   * 方便「无折扣」课程一次填写；用户将其中一个改成不同值后即解除联动，可独立设置划线价。
+   */
+  const handlePriceChange = (v: number) => {
+    const sync = price === originalPrice;
+    setPrice(v);
+    if (sync) setOriginalPrice(v);
+  };
+  const handleOriginalPriceChange = (v: number) => {
+    const sync = price === originalPrice;
+    setOriginalPrice(v);
+    if (sync) setPrice(v);
+  };
+
   const [isFree, setIsFree] = useState(initialData?.isFree || 0);
   const [isFeatured, setIsFeatured] = useState<number>(initialData?.isFeatured || 0);
   const [keywords, setKeywords] = useState(initialData?.keywords || '');
@@ -83,8 +99,6 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
   // ---- 富文本 ----
   const [intro, setIntro] = useState(initialData?.intro || '');
   const [syllabus, setSyllabus] = useState(initialData?.syllabus || '');
-  // ---- 课程简介（与课程介绍同级独立区块） ----
-  const [summary, setSummary] = useState(initialData?.summary || '');
 
   // ---- 已确认的开课计划 ----
   const [plans, setPlans] = useState<CoursePlanDTO[]>(
@@ -204,7 +218,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
    * <p>策略：仅在 AI 返回非空时覆盖对应字段；用户主动点击 AI 解析意味着接受自动填充。
    * AI 抽取出的全文同时写入 {@code materialText} state，提交表单时随 SaveCourseRequest 一起回传后端。</p>
    *
-   * <p>课程简介（summary）与课程大纲（syllabus）不在 AI 回填范围内，由用户自行撰写。</p>
+   * <p>课程大纲（syllabus）不在 AI 回填范围内，由用户自行撰写。</p>
    */
   const handleAiParsed = (parsed: AiParsedFields, fullText: string) => {
     setMaterialText(fullText);
@@ -227,7 +241,6 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
     if (!title.trim()) { toast.error('请填写课程标题'); return; }
     if (!durationDays || durationDays < 1) { toast.error('课程天数至少 1 天'); return; }
     if (!totalHours || totalHours < 1) { toast.error('课程总时长至少 1 小时'); return; }
-    if (!summary.trim()) { toast.error('请填写课程简介'); return; }
     if (!intro || intro === '<p><br></p>') { toast.error('请填写课程介绍'); return; }
 
     const effectiveType: CourseType = hasPlan ? planType : 'INTERNAL';
@@ -238,7 +251,6 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
       subCategoryId: subCategoryId || undefined,
       coverUrl: coverUrl || undefined,
       intro,
-      summary: summary.trim(),
       syllabus: syllabus || undefined,
       materialUrl: materialUrl || undefined,
       materialText: materialText || undefined,
@@ -338,11 +350,11 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
                 <>
                   <div className="flex items-center gap-1">
                     <span className="text-sm text-gray-500">¥</span>
-                    <input type="number" min={0} step={0.01} value={price} onChange={(e) => setPrice(Number(e.target.value))} className="w-28 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="售价" />
+                    <input type="number" min={0} step={0.01} value={price} onChange={(e) => handlePriceChange(Number(e.target.value))} className="w-28 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="售价" />
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-sm text-gray-400">原价 ¥</span>
-                    <input type="number" min={0} step={0.01} value={originalPrice} onChange={(e) => setOriginalPrice(Number(e.target.value))} className="w-28 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="划线价" />
+                    <input type="number" min={0} step={0.01} value={originalPrice} onChange={(e) => handleOriginalPriceChange(Number(e.target.value))} className="w-28 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="划线价" />
                   </div>
                 </>
               )}
@@ -413,25 +425,12 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
           </FieldRow>
         </FormSection>
 
-        {/* ===== 区块2：课程简介（短文本） ===== */}
-        <FormSection title="课程简介" required>
-          <textarea
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
-            placeholder="一段话简明介绍课程，建议 50-200 字"
-            rows={3}
-            maxLength={500}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-          />
-          <div className="text-xs text-gray-400 text-right mt-1">{summary.length} / 500</div>
-        </FormSection>
-
-        {/* ===== 区块3：课程介绍（富文本详细） ===== */}
+        {/* ===== 区块2：课程介绍（富文本详细） ===== */}
         <FormSection title="课程介绍" required>
           <RichTextEditor value={intro} onChange={setIntro} placeholder="输入课程详细介绍..." />
         </FormSection>
 
-        {/* ===== 区块4：课程大纲 ===== */}
+        {/* ===== 区块3：课程大纲 ===== */}
         <FormSection title="课程大纲">
           <RichTextEditor value={syllabus} onChange={setSyllabus} placeholder="输入课程大纲..." minHeight={200} />
         </FormSection>

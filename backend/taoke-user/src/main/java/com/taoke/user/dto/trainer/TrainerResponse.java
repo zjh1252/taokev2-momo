@@ -74,6 +74,9 @@ public class TrainerResponse {
     private String agreementVersion;
     private String resumeUrl;
 
+    /** 荣誉与资质文件 JSON 字符串（数组 [{name,url}]，前端解析展示） */
+    private String honorFiles;
+
     // ==================== 平台信息 ====================
 
     private String backgroundImage;

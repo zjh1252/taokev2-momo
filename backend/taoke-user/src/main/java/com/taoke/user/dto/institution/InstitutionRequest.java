@@ -38,6 +38,10 @@ public class InstitutionRequest {
     @Size(max = 512, message = "Logo URL 不超过512个字符")
     private String logoUrl;
 
+    /** 营业执照附件 URL（图片） */
+    @Size(max = 512, message = "营业执照 URL 不超过512个字符")
+    private String licenseDocUrl;
+
     /** 机构简介（支持富文本） */
     private String bio;
 

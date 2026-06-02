@@ -1,5 +1,6 @@
 package com.taoke.user.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
@@ -57,6 +58,9 @@ public class TrainerServiceImpl implements TrainerService {
     private final RegionService regionService;
     /** 头像统一存到 sys_users.avatar_url，保存专家档案时一并更新 User 表 */
     private final UserRepository userRepository;
+
+    /** 荣誉与资质文件 JSON 序列化用 */
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Override
     public TrainerResponse getByUserId(Integer userId) {
@@ -592,6 +596,7 @@ public class TrainerServiceImpl implements TrainerService {
         if (req.getTaokeCommission() != null) trainer.setTaokeCommission(req.getTaokeCommission());
         if (req.getResumeUrl() != null) trainer.setResumeUrl(req.getResumeUrl());
         if (req.getBackgroundImage() != null) trainer.setBackgroundImage(req.getBackgroundImage());
+        if (req.getHonorFiles() != null) trainer.setHonorFiles(serializeHonorFiles(req.getHonorFiles()));
 
         // 协议签署：首次勾选时回写时间与版本，已有签署时间时不重复覆盖
         if (Boolean.TRUE.equals(req.getAgreementSigned())) {
@@ -722,6 +727,18 @@ public class TrainerServiceImpl implements TrainerService {
             t.setCommentCount(next);
             trainerRepository.save(t);
         });
+    }
+
+    /**
+     * 序列化荣誉与资质文件列表为 JSON 字符串（存入 honor_files 列）。
+     * 空列表序列化为 "[]"，序列化失败时降级为 "[]" 避免阻断保存。
+     */
+    private String serializeHonorFiles(List<TrainerHonorFileItem> files) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(files == null ? List.of() : files);
+        } catch (Exception e) {
+            return "[]";
+        }
     }
 
     /** 批量回填多个列表的 categoryName */

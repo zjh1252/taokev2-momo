@@ -120,14 +120,27 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
           </FormField>
 
           <div className="md:col-span-2">
-            <FormField label="公司 Logo" required>
+            <FormField label="公司 Logo">
               <SingleImageUploader
                 label="机构 Logo"
                 value={data.logoUrl || ''}
                 onChange={(url) => update({ logoUrl: url })}
               />
               <p className="mt-1.5 text-xs text-gray-500">
-                建议上传 1:1 正方形图片，支持 JPG / PNG / JPEG 格式。
+                选填，建议上传 1:1 正方形图片，支持 JPG / PNG / JPEG 格式。
+              </p>
+            </FormField>
+          </div>
+
+          <div className="md:col-span-2">
+            <FormField label="营业执照" required>
+              <SingleImageUploader
+                label="营业执照"
+                value={data.licenseDocUrl || ''}
+                onChange={(url) => update({ licenseDocUrl: url })}
+              />
+              <p className="mt-1.5 text-xs text-gray-500">
+                请上传营业执照照片或扫描件，支持 JPG / PNG / JPEG 格式。
               </p>
             </FormField>
           </div>
@@ -305,7 +318,7 @@ export const INSTITUTION_RULES: FormValidationRules<InstitutionFormData> = {
   orgName: { required: true, requiredMessage: '请输入机构名称' },
   orgType: { required: true, requiredMessage: '请选择机构类型' },
   licenseNo: { required: true, requiredMessage: '请输入营业执照号' },
-  logoUrl: { required: true, requiredMessage: '请上传机构 Logo' },
+  licenseDocUrl: { required: true, requiredMessage: '请上传营业执照' },
   bio: { required: true, requiredMessage: '请输入机构简介' },
   industryCategoryIds: { required: true, requiredMessage: '请至少选择一个擅长行业' },
   expertiseCategoryIds: { required: true, requiredMessage: '请至少选择一个擅长领域' },
