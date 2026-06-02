@@ -1,0 +1,150 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: taoke-app
+
+  profiles:
+    active: dev
+
+  # config:
+  #   activate:
+  #     on-profile: dev  
+  #   import:
+  #     - optional:nacos:shared-config.yml?group=DEFAULT_GROUP
+  #     - optional:nacos:${spring.application.name}.yml?group=DEFAULT_GROUP
+  #     - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml?group=DEFAULT_GROUP
+  # nacos:
+  #   config:
+  #     server-addr: 10.0.14.20:8848
+  #     namespace: dev
+  #     username: nacos
+  #     password: nacos
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    encoding: UTF-8
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+# JWT 令牌过期时间（密钥放在环境配置中）
+taoke:
+  jwt:
+    access-token-expire-ms: 7200000
+    refresh-token-expire-ms: 604800000
+  sms:
+    # 发送渠道：mock（默认/开发）/ pxb（老站 uc.91pxb.com 网关，真实发送）
+    provider: pxb
+    code-length: 6
+    expire-minutes: 5
+    # 频率限制（接入真实短信后防刷、避免触发服务方限流）
+    interval-seconds: 60      # 同一号码两次发送最小间隔
+    window-minutes: 5         # 频率窗口
+    max-per-window: 3         # 窗口内单号码最多 3 条
+    ip-max-per-hour: 20       # 单 IP 每小时上限
+    # 老站短信网关（uc.91pxb.com）凭据，全环境通用（捞自老站 AliSendSms）
+    pxb:
+      # 网关 http 会 301 跳 https，直接用 https 避免重定向
+      uc-site: https://uc.91pxb.com
+      app-id: 1J0VhhE846yerwUm
+      app-secret: ITB1M494QKDI8zhpH9g0DpZBzIZOfUlQyCCLUKZ8
+      access-type: 109
+      template-code: SMS_498620164
+      auth: 44
+      token-ttl-seconds: 3600
+  # UCenter 账号中心接入（登录/注册/改密）。enabled=false 时走新站本地流程。
+  # 凭据全环境通用（appid/key 捞自老站）；api-url 默认指向测试 UCenter，prod 覆盖为生产地址
+  ucenter:
+    enabled: true
+    # api-url: https://shequ-common.test.taoke.com/uc_server
+    api-url: http://shequ.taoke.com/uc_server
+    key: 506cq/cuxBy/XFc5nX4AvOiTDe3QSraUZCV6q+g
+    appid: 2
+    charset: utf-8
+    timeout-ms: 10000
+    user-agent: Taoke-UCenter-Client/2.0
+  # 滑块行为验证码（tianai-captcha）。前端接入完成前先关闭，接好后置 true 启用
+  captcha:
+    enabled: true
+    login-fail-threshold: 1
+    # 滑块背景图：建议 600x360，默认按 classpath 解析；可配置多张，生成验证码时随机使用
+    slider-background-images:
+      - captcha/slider-bg/enterprise-training-1.jpg
+      - captcha/slider-bg/enterprise-training-2.jpg
+      - captcha/slider-bg/enterprise-training-3.jpg
+  event:
+    enabled: true
+    exchange: taoke.events
+  upload:
+    base-dir: uploads
+    max-file-size: 10485760
+    allowed-image-types:
+      - image/jpeg
+      - image/png
+      - image/gif
+      - image/webp
+    allowed-image-extensions: [jpg, jpeg, png, gif, webp]
+    allowed-file-extensions: [pdf, doc, docx, xls, xlsx, ppt, pptx, txt, zip, rar]
+  # AI 基础能力（OpenAI 兼容协议）— 默认禁用，按 profile 在 application-{profile}.yml 中开启
+  ai:
+    enabled: false
+    base-url: ''
+    api-key: ''
+    model: gpt-4o-mini
+    temperature: 0.2
+    timeout-ms: 60000
+    max-input-chars: 50000
+
+# 滑块验证码（tianai-captcha）自身配置，详见 cloud.tianai.captcha.autoconfiguration.ImageCaptchaProperties
+# 注意：此为 tianai 顶层 captcha.* 前缀；启用/卡点开关是另一套 taoke.captcha.*
+captcha:
+  # Redis 中验证数据 key 前缀（项目已用 Redis，会自动落 Redis，分布式/重启安全）
+  prefix: captcha:slider
+  # 加载 tianai 自带模板资源；背景底图由 taoke.captcha.slider-background-images 注册
+  init-default-resource: true
+  expire:
+    # 验证数据过期时间（毫秒），滑块 2 分钟足够
+    default: 120000
+  # 预生成缓存，提升出图性能
+  local-cache-enabled: false
+  local-cache-size: 20
+  local-cache-wait-time: 5000
+  local-cache-period: 2000
+  secondary:
+    # 二次校验用我们自己的一次性 token（CaptchaTokenStore），不用 tianai 内置
+    enabled: false
+
+# Actuator 健康检查
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+# Springdoc OpenAPI
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha

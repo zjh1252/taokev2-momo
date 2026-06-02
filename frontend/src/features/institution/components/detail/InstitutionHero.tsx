@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Building2,
   Star,
   MapPin,
   Share2,
@@ -13,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { InstitutionDetail } from '../../types';
+import { SafeImage } from '@/components/safe-image';
 import {
   addFavorite,
   removeFavorite,
@@ -63,17 +63,19 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
       setFavLoading(false);
     }
   }, [favorited, institution.id]);
-  const bannerSrc =
-    institution.bannerUrl ||
-    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
+
+  const fallbackLogo = `https://ui-avatars.com/api/?name=${encodeURIComponent(institution.orgName.slice(0, 2))}&background=E0F2FE&color=0369A1&size=160&font-size=0.35`;
 
   return (
     <div className="flex flex-col gap-6">
       {/* Banner */}
       <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden relative shadow-sm border border-slate-200">
-        <img
-          src={bannerSrc}
+        <SafeImage
+          src={institution.bannerUrl}
+          fallback="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
           alt={institution.orgName}
+          width={1200}
+          height={256}
           className="w-full h-full object-cover object-center"
         />
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-center pb-4">
@@ -100,18 +102,14 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
           {/* Logo */}
           <div className="flex flex-col items-center gap-4 w-40 shrink-0">
             <div className="w-40 h-40 border border-slate-100 rounded-lg p-2 shadow-sm flex items-center justify-center">
-              {institution.logoUrl ? (
-                <img
-                  src={institution.logoUrl}
-                  alt={institution.orgName}
-                  className="max-w-full max-h-full object-contain"
-                />
-              ) : (
-                <div className="w-full h-full bg-teal-50 flex flex-col items-center justify-center text-teal-600 rounded">
-                  <Building2 className="size-10 mb-1" />
-                  <span className="font-bold text-lg">{institution.orgName.slice(0, 4)}</span>
-                </div>
-              )}
+              <SafeImage
+                src={institution.logoUrl}
+                fallback={fallbackLogo}
+                alt={institution.orgName}
+                width={160}
+                height={160}
+                className="max-w-full max-h-full object-contain"
+              />
             </div>
           </div>
 

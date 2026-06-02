@@ -1,0 +1,9 @@
+# 本地 dev 常用 ES 7.17 + IK（与 elasticsearch:7.17.24 对齐）
+FROM elasticsearch:7.17.24
+
+USER root
+ADD https://release.infinilabs.com/analysis-ik/stable/elasticsearch-analysis-ik-7.17.24.zip /tmp/ik.zip
+RUN chown elasticsearch:elasticsearch /tmp/ik.zip
+
+USER elasticsearch
+RUN bin/elasticsearch-plugin install --batch file:///tmp/ik.zip && rm /tmp/ik.zip

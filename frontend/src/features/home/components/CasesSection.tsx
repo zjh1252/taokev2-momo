@@ -18,7 +18,7 @@ export function CasesSection({ cases }: CasesSectionProps) {
     <section>
       <SectionHeader
         title={t('cases.sectionTitle')}
-        viewMoreHref="/cases"
+        viewMoreHref="/trainers"
         viewMoreText={t('experts.viewMore')}
       />
 

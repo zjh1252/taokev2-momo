@@ -31,8 +31,10 @@ public interface TrainerCaseRepository extends JpaRepository<TrainerCase, Intege
                                   @Param("status") Integer status,
                                   Pageable pageable);
 
-    /** C 端：最近的已审核案例（专家列表页/首页轮播位用） */
-    @Query("SELECT c FROM TrainerCase c WHERE c.status = 1 " +
-            "ORDER BY c.sortOrder DESC, c.id DESC")
+    /**
+     * C 端：最近的已审核案例（专家列表页/首页轮播位用）
+     * <p>按 id 倒序取最新，避免对全表 sort_order 做 filesort（旧库数据量大时易触发 sort buffer 溢出）。</p>
+     */
+    @Query("SELECT c FROM TrainerCase c WHERE c.status = 1 ORDER BY c.id DESC")
     List<TrainerCase> findRecentApproved(Pageable pageable);
 }

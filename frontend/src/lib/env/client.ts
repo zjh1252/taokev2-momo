@@ -1,11 +1,8 @@
 // 客户端环境变量（NEXT_PUBLIC_* 前缀）
 
+/** 与 {@link @/lib/http/client} 保持一致：未配置时本地开发默认连 8080 */
 export function getApiBaseUrl(): string {
-  const url = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!url) {
-    throw new Error('NEXT_PUBLIC_API_BASE_URL 未配置');
-  }
-  return url;
+  return process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 }
 
 export function getCdnBaseUrl(): string {

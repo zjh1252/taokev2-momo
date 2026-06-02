@@ -57,6 +57,8 @@ export interface CoursePlan {
   districtId: number;
   address: string;
   onlineUrl: string;
+  provinceName?: string;
+  cityName?: string;
   sortOrder: number;
 }
 
@@ -83,6 +85,10 @@ export interface CourseListItem {
   publisherType: string;
   publisherName: string;
   trainerName: string;
+  /** 主讲专家省份（内训课「讲师常驻地」） */
+  trainerProvinceName?: string;
+  /** 主讲专家城市（内训课「讲师常驻地」） */
+  trainerCityName?: string;
   keywords: string;
   publishedAt: string;
   createdAt: string;

@@ -37,14 +37,17 @@ const STATUS_MESSAGE_MAP: Record<number, string> = {
  * 从后端响应体中提取错误消息
  * <p>后端统一格式：{ code, message, data }</p>
  */
-async function extractErrorMessage(response: Response, status: number): Promise<string> {
+async function extractError(response: Response, status: number): Promise<{ code?: string; message: string }> {
   try {
     const body = await response.json();
-    if (body?.message) return body.message;
+    return {
+      code: body?.code != null ? String(body.code) : undefined,
+      message: body?.message || STATUS_MESSAGE_MAP[status] || `请求失败 (${status})`,
+    };
   } catch {
     // 响应体不是合法 JSON，使用状态码映射
+    return { message: STATUS_MESSAGE_MAP[status] || `请求失败 (${status})` };
   }
-  return STATUS_MESSAGE_MAP[status] || `请求失败 (${status})`;
 }
 
 /**
@@ -65,6 +68,8 @@ export async function apiClient<T>(
   try {
     response = await fetch(url, {
       ...fetchInit,
+      // SSR 详情页需实时数据，避免 Next 默认缓存导致后端恢复后仍 404
+      cache: fetchInit.cache ?? 'no-store',
       headers: {
         'Content-Type': 'application/json',
         ...fetchInit.headers,
@@ -78,19 +83,19 @@ export async function apiClient<T>(
   }
 
   if (!response.ok) {
-    const message = await extractErrorMessage(response, response.status);
+    const { code, message } = await extractError(response, response.status);
 
     // 401 统一静默处理：清除过期 token，不弹 toast
     if (response.status === 401 && typeof window !== 'undefined') {
       storage.remove(TOKEN_KEY);
-      throw new ApiException(response.status, undefined, message);
+      throw new ApiException(response.status, code, message);
     }
 
     if (!silent && typeof window !== 'undefined') {
       toast.error(message);
     }
 
-    throw new ApiException(response.status, undefined, message);
+    throw new ApiException(response.status, code, message);
   }
 
   return response.json();

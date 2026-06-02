@@ -49,4 +49,9 @@ public class ElasticsearchProperties {
      * 定时同步间隔（毫秒），默认 10 秒
      */
     private long syncInterval = 10000;
+
+    /**
+     * 启动时若 Redis 无同步水位且索引为空，是否自动全量重建（建议仅 dev 开启）
+     */
+    private boolean autoReindexOnStartup = false;
 }

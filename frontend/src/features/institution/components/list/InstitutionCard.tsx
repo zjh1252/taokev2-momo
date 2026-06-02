@@ -1,7 +1,9 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
-import { Building2, Flame, Star, MessageSquare } from 'lucide-react';
+import { Flame, Star, MessageSquare } from 'lucide-react';
+import { SafeImage } from '@/components/safe-image';
+import { legacyRichTextToPlain } from '@/lib/legacy-rich-text';
 import type { InstitutionListItem } from '../../types';
 
 interface InstitutionCardProps {
@@ -10,8 +12,8 @@ interface InstitutionCardProps {
 }
 
 export function InstitutionCard({ institution, basePath = '/institutions' }: InstitutionCardProps) {
-  const logoSrc = institution.logoUrl
-    || `https://ui-avatars.com/api/?name=${encodeURIComponent(institution.orgName.slice(0, 2))}&background=E0F2FE&color=0369A1&size=120&font-size=0.35`;
+  const fallbackLogo = `https://ui-avatars.com/api/?name=${encodeURIComponent(institution.orgName.slice(0, 2))}&background=E0F2FE&color=0369A1&size=120&font-size=0.35`;
+  const location = [institution.provinceName, institution.cityName].filter(Boolean).join(' ');
 
   return (
     <Link
@@ -20,20 +22,14 @@ export function InstitutionCard({ institution, basePath = '/institutions' }: Ins
     >
       {/* Logo */}
       <div className="w-[120px] h-[120px] shrink-0 bg-white border border-slate-100 rounded-lg shadow-sm flex items-center justify-center p-2 group-hover:border-primary/30 transition-colors">
-        {institution.logoUrl ? (
-          <img
-            src={logoSrc}
-            alt={institution.orgName}
-            className="max-w-full max-h-full object-contain"
-          />
-        ) : (
-          <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center text-slate-400 rounded">
-            <Building2 className="size-10 mb-1" />
-            <span className="text-xs font-medium text-center px-1 line-clamp-1">
-              {institution.orgName.slice(0, 4)}
-            </span>
-          </div>
-        )}
+        <SafeImage
+          src={institution.logoUrl}
+          fallback={fallbackLogo}
+          alt={institution.orgName}
+          width={112}
+          height={112}
+          className="max-w-full max-h-full object-contain"
+        />
       </div>
 
       {/* 信息区 */}
@@ -57,6 +53,12 @@ export function InstitutionCard({ institution, basePath = '/institutions' }: Ins
 
         {/* 详情区 */}
         <div className="flex flex-col gap-1.5 text-[13px] text-slate-600 mb-4 bg-slate-50 p-3 rounded">
+          {location && (
+            <div className="flex items-start">
+              <span className="text-slate-400 shrink-0 w-[70px]">常住地：</span>
+              <span className="text-slate-700">{location}</span>
+            </div>
+          )}
           {institution.specialties && (
             <div className="flex items-start">
               <span className="text-slate-400 shrink-0 w-[70px]">擅长领域：</span>
@@ -69,10 +71,12 @@ export function InstitutionCard({ institution, basePath = '/institutions' }: Ins
               <span className="text-slate-700">{institution.industries}</span>
             </div>
           )}
-          {institution.bio && (
+          {institution.bio && institution.bio.trim() && (
             <div className="flex items-start">
               <span className="text-slate-400 shrink-0 w-[70px]">机构简介：</span>
-              <span className="text-slate-700 line-clamp-2">{institution.bio}</span>
+              <span className="text-slate-700 line-clamp-2 whitespace-pre-line">
+                {legacyRichTextToPlain(institution.bio)}
+              </span>
             </div>
           )}
         </div>

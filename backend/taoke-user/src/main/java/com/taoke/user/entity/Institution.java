@@ -148,6 +148,10 @@ public class Institution extends BaseEntity {
     @Column(name = "status", nullable = false, columnDefinition = "tinyint")
     private Integer status = 0;
 
+    /** 是否在 C 端机构频道公开展示（排除仅专家发课、无机构主体的迁移行） */
+    @Column(name = "public_list_eligible", nullable = false, columnDefinition = "tinyint(1)")
+    private Boolean publicListEligible = true;
+
     /** 服务过的客户描述 */
     @Column(name = "client_cases", columnDefinition = "text")
     private String clientCases;

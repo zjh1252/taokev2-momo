@@ -1,13 +1,16 @@
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getCourseDetail } from '@/features/course/api/service';
 import { CourseHero } from '@/features/course/components/detail/CourseHero';
 import { CourseSidebar } from '@/features/course/components/detail/CourseSidebar';
 import { CourseDetailTabs } from '@/features/course/components/detail/CourseDetailTabs';
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }
 
 export async function generateMetadata({ params }: Props) {
@@ -27,7 +30,8 @@ export async function generateMetadata({ params }: Props) {
  * 公开课详情页 — SSR，主数据从 GET /courses/{id} 获取
  */
 export default async function OpenCourseDetailPage({ params }: Props) {
-  const { id } = await params;
+  const { locale, id } = await params;
+  setRequestLocale(locale);
   const courseId = Number(id);
 
   if (isNaN(courseId)) {

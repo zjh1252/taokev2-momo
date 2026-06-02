@@ -22,8 +22,9 @@ export function CoursePlanTable({ plans, courseId }: CoursePlanTableProps) {
 
   const getLocationText = (plan: CoursePlan) => {
     if (plan.onlineUrl) return '线上';
-    if (plan.address) return plan.address;
-    // TODO: 根据 provinceId/cityId 显示省市名称
+    if (plan.address?.trim()) return plan.address.trim();
+    const parts = [plan.provinceName, plan.cityName].filter(Boolean);
+    if (parts.length > 0) return parts.join(' ');
     return '-';
   };
 

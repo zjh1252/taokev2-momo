@@ -2,8 +2,9 @@
 
 import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import Image from 'next/image';
 import { Play, Clock, Users, Eye, Lock, List } from 'lucide-react';
+import { SafeImage } from '@/components/safe-image';
+import { DEFAULT_COURSE_COVER } from '@/lib/media';
 import type { VideoDetail } from '../../api/types';
 import { useVideoPlayback } from '../../context/video-playback-context';
 import { VideoChapterList } from './VideoChapterList';
@@ -67,11 +68,12 @@ export function VideoHero({ video }: VideoHeroProps) {
           ) : (
             <>
               {video.coverUrl ? (
-                <Image
+                <SafeImage
                   src={video.coverUrl}
                   alt={video.title}
                   fill
                   className="object-cover"
+                  fallback={DEFAULT_COURSE_COVER}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">

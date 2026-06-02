@@ -19,6 +19,14 @@ import java.time.LocalDateTime;
 @Table(name = "sys_users")
 public class User extends BaseEntity {
 
+    /** 关联 UCenter 用户 ID（账号中心，老库 cdbid）；接入 UCenter 后据此关联本地用户 */
+    @Column(name = "uc_uid", unique = true)
+    private Integer ucUid;
+
+    /** 账号来源：1=新站注册（默认），2=老站迁移（首次登录懒补建） */
+    @Column(name = "user_source", nullable = false, columnDefinition = "tinyint")
+    private Integer userSource = 1;
+
     /** 登录账号（字母/数字/下划线，4-32 位，与手机号二选一） */
     @Column(name = "username", length = 32, unique = true)
     private String username;

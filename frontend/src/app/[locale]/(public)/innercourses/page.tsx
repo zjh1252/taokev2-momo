@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { InnerCourseListSection } from '@/features/course/components/inner/InnerCourseListSection';
-import { getCourseList, getCourseCategoryTree } from '@/features/course/api/service';
+import { getCourseList, getCategoryTree } from '@/features/course/api/service';
 import { getInstitutionDetail } from '@/features/institution/api/service';
 
 interface Props {
@@ -21,7 +21,7 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
   const institutionId = sp.institutionId ? Number(sp.institutionId) : undefined;
   const validInstitutionId = institutionId && !isNaN(institutionId) ? institutionId : undefined;
 
-  const [initialData, categoryTree, institution] = await Promise.all([
+  const [initialData, categoryTree, industryTree, institution] = await Promise.all([
     getCourseList({
       page: 1,
       size: 15,
@@ -34,7 +34,8 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
       size: 15,
       totalPages: 0,
     })),
-    getCourseCategoryTree().catch(() => []),
+    getCategoryTree('COURSE_CATEGORY').catch(() => []),
+    getCategoryTree('TRAINER_INDUSTRY').catch(() => []),
     validInstitutionId
       ? getInstitutionDetail(validInstitutionId).catch(() => null)
       : Promise.resolve(null),
@@ -48,6 +49,7 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
       <InnerCourseListSection
         initialData={initialData}
         categoryTree={categoryTree}
+        industryTree={industryTree}
         initialInstitutionId={validInstitutionId}
         initialInstitutionName={institution?.orgName}
       />

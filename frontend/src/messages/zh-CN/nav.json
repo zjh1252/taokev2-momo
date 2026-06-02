@@ -20,10 +20,14 @@
   "logout": "登出",
   "search": {
     "placeholder": "关键词搜索...",
+    "submit": "搜索",
     "category": "培训讲师",
     "categoryTrainer": "专家",
     "categoryOpenCourse": "公开课",
-    "categoryInnerCourse": "内训课"
+    "categoryInnerCourse": "内训课",
+    "categoryOnlineCourse": "录播课",
+    "categoryInstitution": "机构",
+    "categoryAssociation": "培协"
   },
   "product": {
     "label": "培训宝",

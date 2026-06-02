@@ -1,15 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import { Search } from 'lucide-react';
 
 interface InstitutionSidebarProps {
+  keyword: string;
+  onKeywordChange: (keyword: string) => void;
   onSearch: (keyword: string) => void;
 }
 
-export function InstitutionSidebar({ onSearch }: InstitutionSidebarProps) {
-  const [keyword, setKeyword] = useState('');
-
+export function InstitutionSidebar({ keyword, onKeywordChange, onSearch }: InstitutionSidebarProps) {
   const handleSubmit = () => {
     onSearch(keyword.trim());
   };
@@ -31,7 +30,7 @@ export function InstitutionSidebar({ onSearch }: InstitutionSidebarProps) {
             <input
               type="text"
               value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              onChange={(e) => onKeywordChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="搜索机构名称..."
               className="flex-1 w-0 border-slate-200 bg-white rounded px-2 py-1.5 text-xs focus:ring-primary focus:border-primary outline-none transition-colors border"

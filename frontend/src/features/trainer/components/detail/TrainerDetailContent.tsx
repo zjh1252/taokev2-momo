@@ -7,6 +7,9 @@ import { Link } from '@/i18n/navigation';
 import { Play, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { LegacyRichText } from '@/components/legacy-rich-text';
+import { SafeImage } from '@/components/safe-image';
+import { DEFAULT_COURSE_COVER } from '@/lib/media';
 import type { TrainerDetail, TrainerBook } from '../../types';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
@@ -14,6 +17,9 @@ import type { TrainerCase } from '@/features/trainer-case/api/types';
 import { getPublicReviews } from '@/features/interaction/api/service';
 import type { ReviewItem } from '@/features/interaction/api/types';
 import ReviewDialog from '@/features/interaction/components/ReviewDialog';
+import { ReviewPhotoList } from '@/features/interaction/components/ReviewPhotoList';
+import { getCourseDetailPath, isOpenCourseType } from '@/features/course/utils/routes';
+import { decodeHtmlEntities } from '@/lib/html-entities';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 
 interface TrainerDetailContentProps {
@@ -116,7 +122,9 @@ export function TrainerDetailContent({
 
       {/* Tab 内容区 */}
       <div className="min-h-[800px]">
-        {activeTab === 'home' && <HomeView trainer={trainer} cases={cases} />}
+        {activeTab === 'home' && (
+          <HomeView trainer={trainer} courses={courses} cases={cases} />
+        )}
         {activeTab === 'courses' && <CoursesView courses={courses} />}
         {activeTab === 'cases' && <CasesView cases={cases} />}
         {activeTab === 'videos' && <VideosView videos={videos} />}
@@ -138,13 +146,70 @@ export function TrainerDetailContent({
 
 function HomeView({
   trainer,
+  courses,
   cases,
 }: {
   trainer: TrainerDetail;
+  courses: CourseListItem[];
   cases: TrainerCase[];
 }) {
+  const introText = trainer.intro?.trim() || '';
+  const bioText = trainer.bio?.trim() || '';
+  const showIntro =
+    introText.length > 0 && introText !== bioText;
+  const showBio = bioText.length > 0;
+  const showOneLine = Boolean(trainer.oneLineIntro?.trim());
+  const showGoodAt = Boolean(trainer.goodAt?.trim());
+
+  const hasProfileBlock =
+    trainer.educations.length > 0
+    || Boolean(trainer.background?.trim())
+    || Boolean(trainer.partialClients?.trim())
+    || trainer.workExperiences.length > 0
+    || Boolean(trainer.teachingStyle?.trim())
+    || showIntro
+    || showBio
+    || showOneLine
+    || showGoodAt
+    || trainer.honors.length > 0
+    || cases.length > 0
+    || courses.length > 0;
+
   return (
     <div className="space-y-6">
+      {!hasProfileBlock && (
+        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
+          <p className="text-[15px] text-slate-500">暂无专家介绍</p>
+          <p className="text-sm text-slate-400 mt-2">
+            可切换上方「主讲课程」「授课案例」等标签查看其它内容
+          </p>
+        </div>
+      )}
+
+      {/* 一句话简介 */}
+      {showOneLine && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <SectionTitle>一句话简介</SectionTitle>
+          <p className="text-[15px] leading-7 text-slate-600">{trainer.oneLineIntro}</p>
+        </div>
+      )}
+
+      {/* 专家简介（intro 与 bio 分开展示，避免重复） */}
+      {showIntro && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <SectionTitle>专家简介</SectionTitle>
+          <LegacyRichText content={trainer.intro!} />
+        </div>
+      )}
+
+      {/* 擅长课题 */}
+      {showGoodAt && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <SectionTitle>擅长课题</SectionTitle>
+          <LegacyRichText content={trainer.goodAt!} />
+        </div>
+      )}
+
       {/* 资质背景 */}
       {trainer.educations.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
@@ -162,12 +227,10 @@ function HomeView({
       )}
 
       {/* 实战经历 */}
-      {trainer.background && (
+      {trainer.background && trainer.background.trim() && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
           <SectionTitle>实战经历</SectionTitle>
-          <div className="text-[15px] leading-7 text-slate-600 whitespace-pre-line">
-            {trainer.background}
-          </div>
+          <LegacyRichText content={trainer.background} />
         </div>
       )}
 
@@ -175,9 +238,7 @@ function HomeView({
       {trainer.partialClients && trainer.partialClients.trim() && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
           <SectionTitle>部分客户</SectionTitle>
-          <div className="text-[15px] leading-7 text-slate-600 whitespace-pre-line">
-            {trainer.partialClients}
-          </div>
+          <LegacyRichText content={trainer.partialClients} />
         </div>
       )}
 
@@ -216,12 +277,10 @@ function HomeView({
       )}
 
       {/* 个人简介 */}
-      {trainer.bio && (
+      {showBio && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
           <SectionTitle>个人简介</SectionTitle>
-          <div className="text-[15px] leading-7 text-slate-600 whitespace-pre-line">
-            {trainer.bio}
-          </div>
+          <LegacyRichText content={trainer.bio!} />
         </div>
       )}
 
@@ -259,6 +318,59 @@ function HomeView({
         </div>
       )}
 
+      {/* 主讲课程预览 */}
+      {courses.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <SectionTitle>主讲课程</SectionTitle>
+          <div className="space-y-4">
+            {courses.slice(0, 3).map((course) => {
+              const isOpen = isOpenCourseType(course.type);
+              const detailPath = getCourseDetailPath(course.id, course.type);
+              return (
+                <div
+                  key={course.id}
+                  className="p-4 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-sm transition"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span
+                        className={`px-2 py-0.5 text-[12px] rounded-sm font-medium ${
+                          isOpen
+                            ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
+                            : 'bg-primary/10 text-primary border border-primary/20'
+                        }`}
+                      >
+                        {course.typeLabel || (isOpen ? '公开课' : '内训课')}
+                      </span>
+                      <Link
+                        href={detailPath}
+                        className="font-semibold text-[16px] text-slate-900 hover:text-primary transition-colors line-clamp-1"
+                      >
+                        {decodeHtmlEntities(course.title)}
+                      </Link>
+                    </div>
+                    {course.keywords && (
+                      <p className="text-[13px] text-slate-500 line-clamp-2">{course.keywords}</p>
+                    )}
+                  </div>
+                  <Link
+                    href={detailPath}
+                    className="shrink-0 px-4 py-2 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary text-sm text-center transition-colors"
+                  >
+                    查看详情
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+          {courses.length > 3 && (
+            <p className="text-sm text-slate-400 mt-4 text-center">
+              共 {courses.length} 门课程，请切换「主讲课程」查看全部
+            </p>
+          )}
+        </div>
+      )}
+
       {/* 授课案例 预览（与「授课案例」tab 数据源一致，仅取前 3 条） */}
       {cases.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
@@ -273,8 +385,9 @@ function HomeView({
               >
                 <div className="aspect-[16/10] overflow-hidden bg-slate-100">
                   {c.coverImage ? (
-                    <Image
+                    <SafeImage
                       src={c.coverImage}
+                      fallback={DEFAULT_COURSE_COVER}
                       alt={c.caseTitle}
                       width={640}
                       height={400}
@@ -319,7 +432,8 @@ function CoursesView({ courses }: { courses: CourseListItem[] }) {
       ) : (
         <div className="space-y-4">
           {courses.map((course) => {
-            const isOpen = course.type === 'OPEN_OFFLINE' || course.type === 'OPEN_ONLINE';
+            const isOpen = isOpenCourseType(course.type);
+            const detailPath = getCourseDetailPath(course.id, course.type);
             return (
               <div
                 key={course.id}
@@ -337,10 +451,10 @@ function CoursesView({ courses }: { courses: CourseListItem[] }) {
                       {course.typeLabel || (isOpen ? '公开课' : '内训课')}
                     </span>
                     <Link
-                      href={`/courses/${course.id}`}
+                      href={detailPath}
                       className="font-bold text-[18px] text-slate-900 hover:text-primary transition-colors line-clamp-1"
                     >
-                      {course.title}
+                      {decodeHtmlEntities(course.title)}
                     </Link>
                   </div>
                   <p className="text-sm text-slate-500 mb-2">
@@ -354,7 +468,7 @@ function CoursesView({ courses }: { courses: CourseListItem[] }) {
                 </div>
                 <div className="shrink-0">
                   <Link
-                    href={`/courses/${course.id}`}
+                    href={detailPath}
                     className="px-6 py-2.5 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary font-medium w-full md:w-auto transition-colors inline-block text-center"
                   >
                     查看详情
@@ -407,8 +521,9 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
                   <div key={c.id} className="group cursor-pointer">
                     <div className="aspect-video overflow-hidden rounded border border-slate-200 mb-2 relative bg-slate-100">
                       {c.coverImage ? (
-                        <Image
+                        <SafeImage
                           src={c.coverImage}
+                          fallback={DEFAULT_COURSE_COVER}
                           alt={c.caseTitle}
                           width={300}
                           height={200}
@@ -607,20 +722,7 @@ function ReviewsView({
                 <span>服务 {review.ratingService}分</span>
               </div>
               <p className="text-sm text-slate-600 mt-2">{review.commentText}</p>
-              {review.photoUrls && review.photoUrls.length > 0 && (
-                <div className="mt-3 flex gap-2 flex-wrap">
-                  {review.photoUrls.map((url, idx) => (
-                    <Image
-                      key={idx}
-                      src={url}
-                      alt="评价配图"
-                      width={120}
-                      height={90}
-                      className="w-[120px] h-[90px] object-cover rounded border border-slate-200"
-                    />
-                  ))}
-                </div>
-              )}
+              <ReviewPhotoList urls={review.photoUrls} />
             </article>
           ))}
         </div>
@@ -646,6 +748,16 @@ function ReviewsView({
 
 // ==================== 著作视图 ====================
 
+function isExternalUrl(url?: string | null): url is string {
+  if (!url?.trim()) return false;
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function BooksView({ books }: { books: TrainerBook[] }) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
@@ -665,8 +777,9 @@ function BooksView({ books }: { books: TrainerBook[] }) {
               <>
                 <div className="w-full aspect-[3/4] bg-white border border-slate-200 p-1 shadow-sm group-hover:shadow-md transition-shadow">
                   {book.coverUrl ? (
-                    <Image
+                    <SafeImage
                       src={book.coverUrl}
+                      fallback={DEFAULT_COURSE_COVER}
                       alt={book.title}
                       width={280}
                       height={373}
@@ -687,7 +800,7 @@ function BooksView({ books }: { books: TrainerBook[] }) {
               </>
             );
 
-            return book.buyUrl ? (
+            return isExternalUrl(book.buyUrl) ? (
               <a
                 key={book.id}
                 href={book.buyUrl}

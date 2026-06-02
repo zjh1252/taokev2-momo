@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -85,13 +84,6 @@ export default function LoginPage() {
           登录
         </Button>
       </form>
-
-      <p className='text-muted-foreground mt-6 text-center text-sm'>
-        还没有账号？{' '}
-        <Link href='/register' className='text-primary font-medium hover:underline'>
-          立即注册
-        </Link>
-      </p>
     </div>
   );
 }

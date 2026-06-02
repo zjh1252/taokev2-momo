@@ -2,7 +2,7 @@
 services:
 
   nacos:
-    image: 10.0.16.26:5000/taokev2/nacos:3.1.2
+    image: 10.0.14.20:5000/taokev2/nacos:3.1.2
     container_name: taokev2-nacos
     ports:
       - "8848:8848"
@@ -30,7 +30,7 @@ services:
       start_period: 60s
 
   nginx:
-    image: 10.0.16.26:5000/taokev2/nginx:1.27-alpine
+    image: 10.0.14.20:5000/taokev2/nginx:1.27-alpine
     container_name: taokev2-nginx
     ports:
       - "443:443"
@@ -45,7 +45,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: 10.0.16.26:5000/taokev2/backend:${VERSION:-latest}
+    image: 10.0.14.20:5000/taokev2/backend:${VERSION:-latest}
     container_name: taokev2-backend
     ports:
       - "8080:8080"
@@ -68,7 +68,7 @@ services:
       start_period: 60s
 
   frontend:
-    image: 10.0.16.26:5000/taokev2/frontend:${VERSION:-latest}
+    image: 10.0.14.20:5000/taokev2/frontend:${VERSION:-latest}
     container_name: taokev2-frontend
     expose:
       - "3000"
@@ -81,7 +81,7 @@ services:
     restart: unless-stopped
 
   admin:
-    image: 10.0.16.26:5000/taokev2/admin:${VERSION:-latest}
+    image: 10.0.14.20:5000/taokev2/admin:${VERSION:-latest}
     container_name: taokev2-admin
     expose:
       - "3000"
@@ -94,7 +94,7 @@ services:
     restart: unless-stopped
 
   elasticsearch:
-    image: 10.0.16.26:5000/taokev2/elasticsearch-with-ik-m:8.19.13
+    image: 10.0.14.20:5000/taokev2/elasticsearch-with-ik-m:8.19.13
     build:
       context: ./elasticsearch
       dockerfile: Dockerfile
@@ -124,7 +124,7 @@ services:
       start_period: 30s
 
   es-setup:
-    image: 10.0.16.26:5000/taokev2/elasticsearch:8.19.13
+    image: 10.0.14.20:5000/taokev2/elasticsearch:8.19.13
     container_name: taokev2-es-setup
     depends_on:
       elasticsearch:
@@ -175,7 +175,7 @@ services:
       '
 
   kibana:
-    image: 10.0.16.26:5000/taokev2/kibana:8.19.13
+    image: 10.0.14.20:5000/taokev2/kibana:8.19.13
     container_name: taokev2-kibana
     ports:
       - "5601:5601"

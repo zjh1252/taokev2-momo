@@ -1,43 +1,90 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { apiGet } from '@/lib/http/client';
 import type { CategoryTreeNode } from '../../api/types';
+
+/**
+ * 内训课列表 — 左侧筛选侧栏（与专家/公开课列表交互对齐）
+ */
+export interface InnerCourseFilterValue {
+  /** 课程分类（一级或二级节点 ID） */
+  categoryId?: number;
+  categoryName?: string;
+  /** 主讲专家擅长行业 */
+  industryCategoryId?: number;
+  industryCategoryName?: string;
+  /** 主讲专家省份 */
+  trainerProvinceId?: number;
+  trainerProvinceName?: string;
+  /** 综合类排序：default / time / viewCount / score */
+  sortBy?: string;
+  sortLabel?: string;
+  /** 独家讲师（有版权课） */
+  trainerHasCopyright?: boolean;
+  /** 平台认证（信得过） */
+  trainerTrusted?: boolean;
+}
 
 interface InnerCourseFiltersProps {
   categoryTree: CategoryTreeNode[];
-  onFilterChange: (filters: { categoryId?: number }) => void;
+  industryTree: CategoryTreeNode[];
+  value: InnerCourseFilterValue;
+  onChange: (value: InnerCourseFilterValue) => void;
 }
 
 type FilterKey = 'comprehensive' | 'category' | 'trainerCity' | 'industry' | 'exclusive';
 
-interface FilterItem {
+interface FilterMeta {
   key: FilterKey;
   label: string;
   flyoutWidth: number;
 }
 
-const FILTER_ITEMS: FilterItem[] = [
+const FILTER_ITEMS: FilterMeta[] = [
   { key: 'comprehensive', label: '综合类', flyoutWidth: 400 },
-  { key: 'category', label: '课程分类', flyoutWidth: 400 },
-  { key: 'trainerCity', label: '讲师城市', flyoutWidth: 400 },
-  { key: 'industry', label: '课程行业', flyoutWidth: 400 },
+  { key: 'category', label: '课程分类', flyoutWidth: 520 },
+  { key: 'trainerCity', label: '讲师城市', flyoutWidth: 520 },
+  { key: 'industry', label: '课程行业', flyoutWidth: 520 },
   { key: 'exclusive', label: '讲师独家', flyoutWidth: 240 },
 ];
 
-const CITIES = [
-  '北京', '上海', '广州', '深圳', '杭州', '成都',
-  '武汉', '南京', '苏州', '天津', '重庆', '西安',
-];
-const INDUSTRIES = [
-  '互联网/IT', '金融', '制造业', '房地产', '医药/医疗',
-  '零售/电商', '教育', '能源', '汽车', '快消品',
+const COMPREHENSIVE_OPTIONS: { label: string; sortBy?: string }[] = [
+  { label: '全部', sortBy: undefined },
+  { label: '最新发布', sortBy: 'time' },
+  { label: '人气最高', sortBy: 'viewCount' },
+  { label: '评分最高', sortBy: 'score' },
 ];
 
-export function InnerCourseFilters({ categoryTree, onFilterChange }: InnerCourseFiltersProps) {
+interface RegionItem {
+  id: number;
+  code: string;
+  name: string;
+  level: number;
+  hasChildren: boolean;
+}
+
+async function fetchProvinces(): Promise<RegionItem[]> {
+  const res = await apiGet<{ data: RegionItem[] }>('/regions/children');
+  return res.data || [];
+}
+
+export function InnerCourseFilters({
+  categoryTree,
+  industryTree,
+  value,
+  onChange,
+}: InnerCourseFiltersProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>();
-  const leaveTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const [provinces, setProvinces] = useState<RegionItem[]>([]);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    fetchProvinces()
+      .then(setProvinces)
+      .catch(() => {});
+  }, []);
 
   const handleMouseEnter = useCallback((key: FilterKey) => {
     if (leaveTimer.current) {
@@ -53,35 +100,71 @@ export function InnerCourseFilters({ categoryTree, onFilterChange }: InnerCourse
     }, 80);
   }, []);
 
-  const handleCategoryClick = useCallback(
-    (catId?: number) => {
-      setSelectedCategoryId(catId);
-      onFilterChange({ categoryId: catId });
-      setActiveFilter(null);
-    },
-    [onFilterChange],
-  );
+  const closeFlyout = () => setActiveFilter(null);
 
-  const activeItem = FILTER_ITEMS.find((i) => i.key === activeFilter);
+  const patch = (p: Partial<InnerCourseFilterValue>) => onChange({ ...value, ...p });
+
+  const handleCategory = (id?: number, name?: string) => {
+    patch({ categoryId: id, categoryName: name });
+    closeFlyout();
+  };
+
+  const handleIndustry = (id?: number, name?: string) => {
+    patch({ industryCategoryId: id, industryCategoryName: name });
+    closeFlyout();
+  };
+
+  const handleProvince = (id?: number, name?: string) => {
+    patch({ trainerProvinceId: id, trainerProvinceName: name });
+    closeFlyout();
+  };
+
+  const handleComprehensive = (label: string, sortBy?: string) => {
+    patch({ sortBy, sortLabel: sortBy ? label : undefined });
+    closeFlyout();
+  };
+
+  const handleExclusive = (mode: 'all' | 'copyright' | 'trusted') => {
+    if (mode === 'all') {
+      patch({ trainerHasCopyright: undefined, trainerTrusted: undefined });
+    } else if (mode === 'copyright') {
+      patch({ trainerHasCopyright: true, trainerTrusted: undefined });
+    } else {
+      patch({ trainerHasCopyright: undefined, trainerTrusted: true });
+    }
+    closeFlyout();
+  };
+
+  const activeMeta = FILTER_ITEMS.find((f) => f.key === activeFilter);
 
   return (
-    <div className="w-64 shrink-0 relative" onMouseLeave={handleMouseLeave}>
-      {/* 侧边栏 */}
+    <div
+      className="w-64 shrink-0 relative"
+      onMouseLeave={handleMouseLeave}
+    >
       <aside className="bg-white rounded-xl shadow-sm border border-slate-100">
-        {FILTER_ITEMS.map((item, index) => (
+        {FILTER_ITEMS.map((item) => (
           <div
             key={item.key}
-            className={index < FILTER_ITEMS.length - 1 ? 'border-b border-slate-100' : ''}
+            className="border-b border-slate-100"
             onMouseEnter={() => handleMouseEnter(item.key)}
           >
             <button
-              className={`w-full flex items-center justify-between p-4 text-left transition-colors ${
+              type="button"
+              className={`w-full flex items-center justify-between p-4 text-left cursor-pointer transition-colors ${
                 activeFilter === item.key ? 'bg-slate-50' : 'hover:bg-slate-50'
               }`}
             >
-              <span className="font-semibold text-slate-800 text-sm">{item.label}</span>
+              <div className="flex flex-col items-start min-w-0">
+                <span className="font-semibold text-slate-800 text-sm">{item.label}</span>
+                {pickSelectedLabel(item.key, value) && (
+                  <span className="text-xs text-primary mt-0.5 truncate max-w-[170px]">
+                    {pickSelectedLabel(item.key, value)}
+                  </span>
+                )}
+              </div>
               <ChevronRight
-                className={`size-4 transition-colors ${
+                className={`size-4 transition-colors shrink-0 ${
                   activeFilter === item.key ? 'text-primary' : 'text-slate-400'
                 }`}
               />
@@ -90,8 +173,7 @@ export function InnerCourseFilters({ categoryTree, onFilterChange }: InnerCourse
         ))}
       </aside>
 
-      {/* 右侧浮层面板 */}
-      {activeFilter && activeItem && (
+      {activeFilter && activeMeta && (
         <div
           className="absolute left-full top-0 min-h-full pl-2 z-50"
           onMouseEnter={() => {
@@ -102,15 +184,72 @@ export function InnerCourseFilters({ categoryTree, onFilterChange }: InnerCourse
           }}
         >
           <div
-            className="bg-white rounded-xl shadow-xl border border-slate-100 p-6"
-            style={{ width: activeItem.flyoutWidth }}
+            className="bg-white rounded-xl shadow-xl border border-slate-100 p-6 max-h-[70vh] overflow-y-auto"
+            style={{ width: activeMeta.flyoutWidth }}
           >
-            <FlyoutContent
-              filterKey={activeFilter}
-              categoryTree={categoryTree}
-              selectedCategoryId={selectedCategoryId}
-              onCategoryClick={handleCategoryClick}
-            />
+            {activeFilter === 'comprehensive' && (
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                {COMPREHENSIVE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => handleComprehensive(opt.label, opt.sortBy)}
+                    className={`text-left cursor-pointer transition-colors ${
+                      (opt.sortBy ?? 'default') === (value.sortBy ?? 'default')
+                        ? 'text-primary font-medium'
+                        : 'text-slate-600 hover:text-primary'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {activeFilter === 'category' && (
+              <CategoryTwoLevelPanel
+                tree={categoryTree}
+                selectedId={value.categoryId}
+                onPick={handleCategory}
+              />
+            )}
+            {activeFilter === 'trainerCity' && (
+              <ProvincePanel
+                provinces={provinces}
+                selectedId={value.trainerProvinceId}
+                onPick={handleProvince}
+              />
+            )}
+            {activeFilter === 'industry' && (
+              <CategoryTwoLevelPanel
+                tree={industryTree}
+                selectedId={value.industryCategoryId}
+                onPick={handleIndustry}
+              />
+            )}
+            {activeFilter === 'exclusive' && (
+              <div className="flex flex-col gap-1 text-sm">
+                {[
+                  { label: '全部讲师', mode: 'all' as const },
+                  { label: '独家讲师', mode: 'copyright' as const },
+                  { label: '平台认证', mode: 'trusted' as const },
+                ].map((opt) => (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => handleExclusive(opt.mode)}
+                    className={`px-3 py-2 rounded text-left cursor-pointer transition-colors ${
+                      (opt.mode === 'all' && !value.trainerHasCopyright && !value.trainerTrusted)
+                      || (opt.mode === 'copyright' && value.trainerHasCopyright)
+                      || (opt.mode === 'trusted' && value.trainerTrusted)
+                        ? 'bg-primary/5 text-primary font-medium'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-primary'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -118,104 +257,116 @@ export function InnerCourseFilters({ categoryTree, onFilterChange }: InnerCourse
   );
 }
 
-/* ---- 浮层内容子组件 ---- */
-
-function FlyoutContent({
-  filterKey,
-  categoryTree,
-  selectedCategoryId,
-  onCategoryClick,
-}: {
-  filterKey: FilterKey;
-  categoryTree: CategoryTreeNode[];
-  selectedCategoryId?: number;
-  onCategoryClick: (id?: number) => void;
-}) {
-  switch (filterKey) {
+function pickSelectedLabel(key: FilterKey, v: InnerCourseFilterValue): string | undefined {
+  switch (key) {
     case 'comprehensive':
-      return (
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-          {['全部', '最新发布', '人气最高', '评分最高'].map((label) => (
-            <button
-              key={label}
-              className="text-left text-slate-600 hover:text-primary transition-colors"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      );
-
+      return v.sortLabel;
     case 'category':
-      return (
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-          <button
-            onClick={() => onCategoryClick(undefined)}
-            className={`text-left transition-colors ${
-              !selectedCategoryId ? 'text-primary font-medium' : 'text-slate-600 hover:text-primary'
-            }`}
-          >
-            全部分类
-          </button>
-          {categoryTree.map((cat) => (
+      return v.categoryName;
+    case 'trainerCity':
+      return v.trainerProvinceName;
+    case 'industry':
+      return v.industryCategoryName;
+    case 'exclusive':
+      if (v.trainerHasCopyright) return '独家讲师';
+      if (v.trainerTrusted) return '平台认证';
+      return undefined;
+  }
+}
+
+function CategoryTwoLevelPanel({
+  tree,
+  selectedId,
+  onPick,
+}: {
+  tree: CategoryTreeNode[];
+  selectedId?: number;
+  onPick: (id?: number, name?: string) => void;
+}) {
+  return (
+    <div className="space-y-5 text-sm">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+        <button
+          type="button"
+          onClick={() => onPick(undefined, undefined)}
+          className={`text-left cursor-pointer transition-colors ${
+            !selectedId ? 'text-primary font-semibold' : 'text-slate-500 hover:text-primary'
+          }`}
+        >
+          全部 / 不限
+        </button>
+      </div>
+      {tree.map((lvl1) => (
+        <div key={lvl1.id}>
+          <div className="mb-2">
             <button
-              key={cat.id}
-              onClick={() => onCategoryClick(cat.id)}
-              className={`text-left transition-colors ${
-                selectedCategoryId === cat.id
-                  ? 'text-primary font-medium'
-                  : 'text-slate-600 hover:text-primary'
+              type="button"
+              onClick={() => onPick(lvl1.id, lvl1.name)}
+              className={`font-bold text-[14px] cursor-pointer transition-colors ${
+                selectedId === lvl1.id ? 'text-primary' : 'text-slate-800 hover:text-primary'
               }`}
             >
-              {cat.name}
+              {lvl1.name}
             </button>
-          ))}
+          </div>
+          {lvl1.children && lvl1.children.length > 0 && (
+            <div className="grid grid-cols-3 gap-x-4 gap-y-2 pl-1">
+              {lvl1.children.map((lvl2) => (
+                <button
+                  key={lvl2.id}
+                  type="button"
+                  onClick={() => onPick(lvl2.id, lvl2.name)}
+                  className={`text-left cursor-pointer transition-colors ${
+                    selectedId === lvl2.id
+                      ? 'text-primary font-medium'
+                      : 'text-slate-600 hover:text-primary'
+                  }`}
+                >
+                  {lvl2.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      );
+      ))}
+    </div>
+  );
+}
 
-    case 'trainerCity':
-      return (
-        <div className="grid grid-cols-3 gap-x-4 gap-y-4 text-sm">
-          {CITIES.map((city) => (
-            <button
-              key={city}
-              className="text-left text-slate-600 hover:text-primary transition-colors"
-            >
-              {city}
-            </button>
-          ))}
-        </div>
-      );
-
-    case 'industry':
-      return (
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-          {INDUSTRIES.map((ind) => (
-            <button
-              key={ind}
-              className="text-left text-slate-600 hover:text-primary transition-colors"
-            >
-              {ind}
-            </button>
-          ))}
-        </div>
-      );
-
-    case 'exclusive':
-      return (
-        <div className="flex flex-col gap-1 text-sm">
-          {['全部讲师', '独家讲师', '平台认证'].map((label) => (
-            <button
-              key={label}
-              className="px-3 py-2 rounded text-left text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      );
-
-    default:
-      return null;
-  }
+function ProvincePanel({
+  provinces,
+  selectedId,
+  onPick,
+}: {
+  provinces: RegionItem[];
+  selectedId?: number;
+  onPick: (id?: number, name?: string) => void;
+}) {
+  return (
+    <div className="text-sm">
+      <div className="grid grid-cols-4 gap-x-3 gap-y-3">
+        <button
+          type="button"
+          onClick={() => onPick(undefined, undefined)}
+          className={`text-left cursor-pointer transition-colors ${
+            !selectedId ? 'text-primary font-semibold' : 'text-slate-600 hover:text-primary'
+          }`}
+        >
+          全国
+        </button>
+        {provinces.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onPick(p.id, p.name)}
+            className={`text-left cursor-pointer transition-colors truncate ${
+              selectedId === p.id ? 'text-primary font-medium' : 'text-slate-600 hover:text-primary'
+            }`}
+          >
+            {p.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }

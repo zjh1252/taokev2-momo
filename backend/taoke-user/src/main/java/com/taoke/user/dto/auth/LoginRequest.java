@@ -17,4 +17,7 @@ public class LoginRequest {
 
     @NotBlank(message = "密码不能为空")
     private String password;
+
+    /** 滑块验证通过后的一次性令牌（后台登录始终必填） */
+    private String captchaToken;
 }

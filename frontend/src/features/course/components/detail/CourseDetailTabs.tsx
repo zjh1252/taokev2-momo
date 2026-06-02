@@ -8,6 +8,7 @@ import type { CourseDetail } from '../../api/types';
 import { CoursePlanTable } from './CoursePlanTable';
 import { getPublicReviews } from '@/features/interaction/api/service';
 import type { ReviewItem } from '@/features/interaction/api/types';
+import { ReviewPhotoList } from '@/features/interaction/components/ReviewPhotoList';
 
 interface CourseDetailTabsProps {
   course: CourseDetail;
@@ -116,19 +117,14 @@ export function CourseDetailTabs({ course }: CourseDetailTabsProps) {
                 <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
                   {t('trainerProfile')}
                 </h3>
-                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-xl">
-                    {course.trainerName.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900">{course.trainerName}</p>
-                    {/* TODO: trainerId 回填后可链接到讲师主页 */}
-                    {course.trainerId > 0 && (
-                      <a href={`/trainers/${course.trainerId}`} className="text-sm text-primary hover:underline mt-1 inline-block">
-                        {t('viewTrainerPage')} →
-                      </a>
-                    )}
-                  </div>
+                <div className="p-4 bg-slate-50 rounded-lg">
+                  <p className="font-bold text-slate-900">{course.trainerName}</p>
+                  {/* TODO: trainerId 回填后可链接到讲师主页 */}
+                  {course.trainerId > 0 && (
+                    <a href={`/trainers/${course.trainerId}`} className="text-sm text-primary hover:underline mt-1 inline-block">
+                      {t('viewTrainerPage')} →
+                    </a>
+                  )}
                 </div>
               </section>
             )}
@@ -198,20 +194,7 @@ function CourseReviewsPanel({ courseId }: { courseId: number }) {
             <span>服务 {review.ratingService}分</span>
           </div>
           <p className="text-sm text-slate-600 mt-2">{review.commentText}</p>
-          {review.photoUrls && review.photoUrls.length > 0 && (
-            <div className="mt-3 flex gap-2 flex-wrap">
-              {review.photoUrls.map((url, idx) => (
-                <Image
-                  key={idx}
-                  src={url}
-                  alt="评价配图"
-                  width={120}
-                  height={90}
-                  className="w-[120px] h-[90px] object-cover rounded border border-slate-200"
-                />
-              ))}
-            </div>
-          )}
+          <ReviewPhotoList urls={review.photoUrls} />
         </article>
       ))}
     </div>

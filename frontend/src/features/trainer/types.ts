@@ -61,6 +61,8 @@ export interface TrainerDetail {
   cityId?: number;
   provinceName?: string;
   cityName?: string;
+  /** 一句话介绍 */
+  oneLineIntro?: string;
   bio?: string;
   intro?: string;
   background?: string;
@@ -106,6 +108,7 @@ export interface TrainerListItem {
   provinceName?: string;
   cityName?: string;
   expertiseCategories: CategoryRef[];
+  industryCategories?: CategoryRef[];
 }
 
 /** 通用分页响应 */
@@ -191,6 +194,7 @@ export interface RecommendedCourseItem {
   title: string;
   coverUrl?: string;
   viewCount?: number;
+  type?: string;
 }
 
 /** 推荐相关专家项（专家详情页右侧栏） */

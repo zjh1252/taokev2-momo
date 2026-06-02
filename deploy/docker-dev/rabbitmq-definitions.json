@@ -1,0 +1,12 @@
+{
+  "vhosts": [{ "name": "/taokev2-dev" }],
+  "permissions": [
+    {
+      "user": "guest",
+      "vhost": "/taokev2-dev",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ]
+}

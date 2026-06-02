@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, MessageCircle, Fingerprint, Loader2, Bug, Copy, Check, User, Lock } from 'lucide-react';
+import { ArrowRight, Loader2, Bug, Copy, Check, User, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { storage } from '@/lib/storage';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -11,7 +11,13 @@ import { TOKEN_KEY } from '@/lib/auth/constants';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { sendCode, smsLogin, getMockCode, usernameLogin } from '../api/service';
+import { withCaptcha, verifyCaptcha, CAPTCHA_REQUIRED_CODE } from '@/lib/captcha';
+import { ApiException } from '@/lib/http/client';
+import { showError } from '@/lib/toast';
 import { markNewUserPending } from '@/features/role-apply/hooks/useRoleApplyState';
+
+/** 密码错误业务码（ErrorCode.PASSWORD_INCORRECT） */
+const PASSWORD_INCORRECT_CODE = '10006';
 
 const PHONE_LENGTH = 11;
 const CODE_LENGTH = 6;
@@ -21,8 +27,9 @@ const USERNAME_MAX = 32;
 const PASSWORD_MIN = 6;
 const PASSWORD_MAX = 32;
 const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
-const IS_MOCK_SMS = process.env.NODE_ENV === 'development'
-  || process.env.NEXT_PUBLIC_MOCK_SMS === 'true';
+// dev 默认开启 mock 验证码自动填充；用真实短信(pxb)联调时可设 NEXT_PUBLIC_MOCK_SMS=false 关闭
+const IS_MOCK_SMS = process.env.NEXT_PUBLIC_MOCK_SMS === 'true'
+  || (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_MOCK_SMS !== 'false');
 
 type TabKey = 'sms' | 'username';
 
@@ -55,7 +62,8 @@ export function LoginForm() {
   // ---- 公共 ----
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  // 账号密码登录：密码错 1 次后置 true，之后登录「先过滑块再请求」
+  const [pwdCaptchaRequired, setPwdCaptchaRequired] = useState(false);
 
   const canSendCode = phone.length === PHONE_LENGTH && countdown === 0 && !sendingCode;
   const canSubmitSms =
@@ -80,10 +88,10 @@ export function LoginForm() {
 
   const handleSendCode = useCallback(async () => {
     if (!canSendCode) return;
-    setError('');
     setSendingCode(true);
     try {
-      await sendCode(phone);
+      // 开启卡点时：发码前先过滑块（withCaptcha 自动按需弹出）
+      await withCaptcha((token, silent) => sendCode(phone, 'LOGIN', token, { silent }));
       setCountdown(COUNTDOWN_SECONDS);
 
       if (IS_MOCK_SMS) {
@@ -98,12 +106,12 @@ export function LoginForm() {
           // Mock 接口失败不影响正常流程
         }
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('sendCodeError'));
+    } catch {
+      // 错误已由全局 toast 统一提示
     } finally {
       setSendingCode(false);
     }
-  }, [canSendCode, phone, t]);
+  }, [canSendCode, phone]);
 
   const finishLogin = useCallback(
     async (token: { accessToken: string; refreshToken: string; expiresIn: number; tokenType: string; newUser?: boolean }) => {
@@ -126,13 +134,12 @@ export function LoginForm() {
   const handleSmsSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!canSubmitSms) return;
-    setError('');
     setSubmitting(true);
     try {
       const res = await smsLogin(phone, code);
       await finishLogin(res.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('loginError'));
+    } catch {
+      // 错误已由全局 toast 统一提示
     } finally {
       setSubmitting(false);
     }
@@ -141,13 +148,27 @@ export function LoginForm() {
   const handleUsernameSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!canSubmitUsername) return;
-    setError('');
     setSubmitting(true);
     try {
-      const res = await usernameLogin({ username, password });
+      // 已知需要滑块（上次密码错/后端要求）→ 先弹滑块拿 token，再请求登录
+      let token: string | undefined;
+      if (pwdCaptchaRequired) {
+        token = await verifyCaptcha();
+      }
+      const res = await usernameLogin({ username, password, captchaToken: token }, { silent: true });
       await finishLogin(res.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('loginError'));
+    } catch (e) {
+      if (e instanceof ApiException) {
+        // 密码错 / 后端要求滑块 → 标记，下次提交先弹滑块
+        if (e.code === PASSWORD_INCORRECT_CODE || e.code === CAPTCHA_REQUIRED_CODE) {
+          setPwdCaptchaRequired(true);
+        }
+        // CAPTCHA_REQUIRED 不提示（下次会先弹滑块）；其余错误正常提示
+        if (e.code !== CAPTCHA_REQUIRED_CODE) {
+          showError(e.message);
+        }
+      }
+      // 用户取消滑块（非 ApiException）静默
     } finally {
       setSubmitting(false);
     }
@@ -156,7 +177,6 @@ export function LoginForm() {
   const switchTab = (next: TabKey) => {
     if (next === tab) return;
     setTab(next);
-    setError('');
   };
 
   return (
@@ -195,13 +215,6 @@ export function LoginForm() {
           {t('tabUsername')}
         </button>
       </div>
-
-      {/* 错误提示 */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-          {error}
-        </div>
-      )}
 
       {tab === 'sms' ? (
         <form onSubmit={handleSmsSubmit} className="space-y-6">
@@ -347,30 +360,7 @@ export function LoginForm() {
         </Link>
       </div>
 
-      {/* 社交登录 */}
-      <div className="mt-12">
-        <div className="relative flex items-center justify-center mb-8">
-          <div className="flex-grow border-t border-border/50" />
-          <span className="flex-shrink mx-4 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-            {t('socialDivider')}
-          </span>
-          <div className="flex-grow border-t border-border/50" />
-        </div>
-        <div className="flex justify-center gap-6">
-          <button
-            type="button"
-            className="size-12 flex items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
-          >
-            <MessageCircle className="size-6" />
-          </button>
-          <button
-            type="button"
-            className="size-12 flex items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
-          >
-            <Fingerprint className="size-6" />
-          </button>
-        </div>
-      </div>
+      {/* 社交登录入口暂未实现，先隐藏 */}
 
       {/* DEV 环境调试弹窗 — 显示 Mock 验证码 */}
       {IS_MOCK_SMS && devCode && (

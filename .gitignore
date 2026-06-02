@@ -41,3 +41,6 @@ frontend/public/uploads
 /docs-new
 AGENTS.md
 *.log
+
+### 数据迁移工具（本地脚本与产出，不入库） ###
+data-trans/

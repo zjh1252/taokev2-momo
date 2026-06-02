@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { SectionHeader } from './SectionHeader';
+import { resolveImageSrc } from '@/lib/media';
 import type { Expert } from '../types';
 
 interface ExpertsSectionProps {
@@ -57,7 +58,7 @@ function MainExpertCard({ expert }: { expert: Expert }) {
     >
       <div className="md:w-[45%] h-64 md:h-full overflow-hidden relative shrink-0">
         <Image
-          src={expert.coverImage || expert.avatar}
+          src={resolveImageSrc(expert.coverImage || expert.avatar)}
           alt={expert.name}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -115,7 +116,7 @@ function MiddleExpertCard({ expert }: { expert: Expert }) {
     >
       <div className="w-32 h-32 rounded-full overflow-hidden mb-5 border-4 border-primary/30 shadow-inner">
         <Image
-          src={expert.avatar}
+          src={resolveImageSrc(expert.avatar)}
           alt={expert.name}
           width={128}
           height={128}
@@ -153,7 +154,7 @@ function SideExpertCard({ expert }: { expert: Expert }) {
       <div className="flex items-start gap-4 mb-3">
         <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 border border-slate-100">
           <Image
-            src={expert.avatar}
+            src={resolveImageSrc(expert.avatar)}
             alt={expert.name}
             width={56}
             height={56}

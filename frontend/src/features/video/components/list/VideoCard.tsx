@@ -1,6 +1,7 @@
 import { Link } from '@/i18n/navigation';
-import Image from 'next/image';
 import { Play, Users, Eye } from 'lucide-react';
+import { SafeImage } from '@/components/safe-image';
+import { DEFAULT_COURSE_COVER } from '@/lib/media';
 import type { VideoListItem } from '../../api/types';
 
 interface VideoCardProps {
@@ -24,11 +25,12 @@ export function VideoCard({ video }: VideoCardProps) {
       {/* 封面 */}
       <div className="relative aspect-video bg-slate-100">
         {video.coverUrl ? (
-          <Image
+          <SafeImage
             src={video.coverUrl}
             alt={video.title}
             fill
             className="object-cover"
+            fallback={DEFAULT_COURSE_COVER}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

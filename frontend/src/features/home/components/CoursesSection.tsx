@@ -54,14 +54,7 @@ function CourseCard({ course }: { course: InternalCourse }) {
           {course.title}
         </h4>
         <p className="text-[13px] text-slate-500 mb-4">{course.subtitle}</p>
-        <div className="mt-auto flex items-center gap-2">
-          <Image
-            src={course.instructorAvatar}
-            alt={course.instructorName}
-            width={24}
-            height={24}
-            className="rounded-full object-cover"
-          />
+        <div className="mt-auto">
           <span className="text-[13px] text-slate-500">
             {course.instructorName} • {course.instructorDesc}
           </span>

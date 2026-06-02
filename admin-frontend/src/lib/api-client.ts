@@ -3,7 +3,8 @@ const BASE_URL = '/api';
 export class ApiError extends Error {
   constructor(
     public status: number,
-    message: string
+    message: string,
+    public code?: string
   ) {
     super(message);
     this.name = 'ApiError';
@@ -38,7 +39,11 @@ export async function apiClient<T>(endpoint: string, options?: RequestInit): Pro
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.message || `API error: ${res.status}`);
+    throw new ApiError(
+      res.status,
+      body.message || `API error: ${res.status}`,
+      body.code != null ? String(body.code) : undefined
+    );
   }
 
   return res.json() as Promise<T>;
