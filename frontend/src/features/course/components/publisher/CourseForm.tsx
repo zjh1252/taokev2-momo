@@ -61,18 +61,16 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
   const [originalPrice, setOriginalPrice] = useState(initialData?.originalPrice || 0);
 
   /**
-   * 价格 / 原价联动：当两者相等时（含初始都为 0），在任一输入框输入会同步到另一个，
-   * 方便「无折扣」课程一次填写；用户将其中一个改成不同值后即解除联动，可独立设置划线价。
+   * 价格 / 原价联动：仅当「另一个」字段还是 0（未填写）时，输入会自动填充到另一个，
+   * 方便「无折扣」课程一次填写；一旦另一字段已有非 0 值则不再覆盖，可独立设置划线价。
    */
   const handlePriceChange = (v: number) => {
-    const sync = price === originalPrice;
     setPrice(v);
-    if (sync) setOriginalPrice(v);
+    if (originalPrice === 0) setOriginalPrice(v);
   };
   const handleOriginalPriceChange = (v: number) => {
-    const sync = price === originalPrice;
     setOriginalPrice(v);
-    if (sync) setPrice(v);
+    if (price === 0) setPrice(v);
   };
 
   const [isFree, setIsFree] = useState(initialData?.isFree || 0);
