@@ -5,14 +5,17 @@ import com.taoke.common.events.user.TrainerCaseApprovedEvent;
 import com.taoke.common.events.user.TrainerCaseRejectedEvent;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.common.service.RegionService;
 import com.taoke.user.api.TrainerCaseService;
 import com.taoke.user.dto.trainercase.*;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.TrainerCase;
 import com.taoke.user.entity.TrainerCaseFile;
+import com.taoke.user.entity.User;
 import com.taoke.user.repository.TrainerCaseFileRepository;
 import com.taoke.user.repository.TrainerCaseRepository;
 import com.taoke.user.repository.TrainerRepository;
+import com.taoke.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -37,6 +40,8 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
     private final TrainerCaseFileRepository caseFileRepository;
     private final TrainerRepository trainerRepository;
     private final EventPublisher eventPublisher;
+    private final RegionService regionService;
+    private final UserRepository userRepository;
 
     /** 审核状态：0=待审核, 1=通过, 2=驳回, 3=草稿 */
     private static final int STATUS_PENDING = 0;
@@ -165,6 +170,37 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
     }
 
     @Override
+    public TrainerCaseResponse getApprovedCaseDetail(Integer caseId) {
+        TrainerCase entity = caseRepository.findById(caseId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRAINER_CASE_NOT_FOUND));
+        // 仅公开已审核通过的案例
+        if (entity.getStatus() == null || entity.getStatus() != 1) {
+            throw new BusinessException(ErrorCode.TRAINER_CASE_NOT_FOUND);
+        }
+        TrainerCaseResponse r = TrainerCaseResponse.from(entity);
+        // 仅返回已通过的文件
+        List<TrainerCaseFile> approvedFiles = caseFileRepository.findByCaseIdOrderBySortOrderAsc(entity.getId())
+                .stream().filter(f -> f.getStatus() != null && f.getStatus() == 1).toList();
+        r.setFiles(approvedFiles.stream().map(TrainerCaseFileResponse::from).toList());
+        // 附带专家信息便于前端展示/跳转
+        trainerRepository.findById(entity.getTrainerId()).ifPresent(t -> {
+            r.setTrainerUserId(t.getUserId());
+            r.setTrainerName(t.getName());
+        });
+        // 解析培训地点名称
+        if (entity.getProvinceId() != null) {
+            r.setProvinceName(regionService.getNameById(entity.getProvinceId()));
+        }
+        if (entity.getCityId() != null) {
+            r.setCityName(regionService.getNameById(entity.getCityId()));
+        }
+        if (entity.getDistrictId() != null) {
+            r.setDistrictName(regionService.getNameById(entity.getDistrictId()));
+        }
+        return r;
+    }
+
+    @Override
     public List<TrainerCaseRecentResponse> listRecentApproved(int limit) {
         int target = limit > 0 ? Math.min(limit, 50) : 10;
         List<TrainerCase> cases = caseRepository.findRecentApproved(PageRequest.of(0, target));
@@ -179,6 +215,15 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
         java.util.Map<Integer, Trainer> trainerMap = trainerRepository.findAllById(trainerIds).stream()
                 .collect(java.util.stream.Collectors.toMap(Trainer::getId, java.util.function.Function.identity()));
 
+        // 头像统一取 sys_users.avatar_url
+        java.util.Set<Integer> userIds = trainerMap.values().stream()
+                .map(Trainer::getUserId)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+        java.util.Map<Integer, String> avatarByUserId = userRepository.findAllById(userIds).stream()
+                .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
+                .collect(java.util.stream.Collectors.toMap(User::getId, User::getAvatarUrl));
+
         return cases.stream().map(c -> {
             TrainerCaseRecentResponse r = new TrainerCaseRecentResponse();
             r.setId(c.getId());
@@ -191,7 +236,8 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
             if (t != null) {
                 r.setTrainerUserId(t.getUserId());
                 r.setTrainerName(t.getName());
-                r.setTrainerAvatar(t.getAvatar());
+                String avatar = t.getUserId() != null ? avatarByUserId.get(t.getUserId()) : null;
+                r.setTrainerAvatar(avatar != null ? avatar : t.getAvatar());
                 r.setTrainerScore(t.getScore());
             }
             return r;

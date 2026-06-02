@@ -132,7 +132,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         <button
           onClick={() => requireAuth(() => {
             if (!isOpen) {
-              router.push(`/dashboard/demands/create?type=INTERNAL_RESERVATION&courseid=${course.id}`);
+              router.push(`/dashboard/demands/create?type=INTERNAL_RESERVATION&courseType=INTERNAL&courseid=${course.id}`);
             }
           })}
           className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md"

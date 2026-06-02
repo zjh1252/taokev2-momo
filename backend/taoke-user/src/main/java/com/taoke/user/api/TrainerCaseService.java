@@ -42,6 +42,9 @@ public interface TrainerCaseService {
     /** 获取某专家已审核通过的案例列表（公开） */
     List<TrainerCaseResponse> listApprovedCases(Integer trainerId);
 
+    /** 获取单个已审核通过的案例详情（公开，含已通过文件与专家信息） */
+    TrainerCaseResponse getApprovedCaseDetail(Integer caseId);
+
     /**
      * 全平台最近的已审核案例（专家列表页/首页轮播）
      * <p>按 sort_order DESC、id DESC 取前 limit 条，附带 trainerName/trainerAvatar 便于前端跳转。</p>

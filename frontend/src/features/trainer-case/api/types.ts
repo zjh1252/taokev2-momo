@@ -29,6 +29,12 @@ export type TrainerCase = {
   townId: number | null;
   /** 培训地点 - 详细地址 */
   trainingAddress: string | null;
+  /** 培训地点 - 省名称（公开详情接口填充） */
+  provinceName?: string | null;
+  /** 培训地点 - 市名称（公开详情接口填充） */
+  cityName?: string | null;
+  /** 培训地点 - 区/县名称（公开详情接口填充） */
+  districtName?: string | null;
   /** 培训日期 - 起始日 */
   trainingDate: string | null;
   /** 培训日期 - 结束日 */

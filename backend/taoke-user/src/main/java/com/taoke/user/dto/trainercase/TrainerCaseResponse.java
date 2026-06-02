@@ -40,6 +40,12 @@ public class TrainerCaseResponse {
     private Integer townId;
     /** 培训地点 - 详细地址 */
     private String trainingAddress;
+    /** 培训地点 - 省名称（公开详情接口填充） */
+    private String provinceName;
+    /** 培训地点 - 市名称（公开详情接口填充） */
+    private String cityName;
+    /** 培训地点 - 区/县名称（公开详情接口填充） */
+    private String districtName;
     private LocalDate trainingDate;
     /** 培训结束日期 */
     private LocalDate trainingEndDate;

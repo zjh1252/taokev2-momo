@@ -126,6 +126,13 @@ public class TrainerCaseController {
     }
 
     @Public
+    @Operation(summary = "已审核案例详情（公开）")
+    @GetMapping("/trainer-cases/{id}")
+    public ApiResponse<TrainerCaseResponse> getApprovedCaseDetail(@PathVariable Integer id) {
+        return ApiResponse.ok(trainerCaseService.getApprovedCaseDetail(id));
+    }
+
+    @Public
     @Operation(summary = "全平台最近的已审核案例（用于专家列表页/首页轮播位）")
     @GetMapping("/trainer-cases/recent")
     public ApiResponse<List<TrainerCaseRecentResponse>> listRecentApproved(

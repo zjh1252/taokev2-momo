@@ -6,6 +6,7 @@ import {
   getTrainerCourses,
   getTrainerVideos,
   getTrainerApprovedCases,
+  getTrainerApprovedHighlights,
   getTrainerBooks,
 } from '@/features/trainer/api/service';
 import { TrainerHero } from '@/features/trainer/components/detail/TrainerHero';
@@ -53,10 +54,11 @@ export default async function TrainerDetailPage({ params }: Props) {
   }
 
   // 并发拉取子页签数据
-  const [coursesPage, videosPage, cases, books] = await Promise.all([
+  const [coursesPage, videosPage, cases, highlights, books] = await Promise.all([
     getTrainerCourses(trainerId, 1, 50).catch(() => ({ list: [], total: 0, page: 1, size: 50, totalPages: 0 })),
     getTrainerVideos(trainerId, 1, 50).catch(() => ({ list: [], total: 0, page: 1, size: 50, totalPages: 0 })),
     getTrainerApprovedCases(trainerId).catch(() => []),
+    getTrainerApprovedHighlights(trainerId).catch(() => []),
     getTrainerBooks(trainerId).catch(() => []),
   ]);
 
@@ -78,6 +80,7 @@ export default async function TrainerDetailPage({ params }: Props) {
             trainer={trainer}
             courses={coursesPage.list}
             cases={cases}
+            highlights={highlights}
             videos={videosPage.list}
             books={books}
           />

@@ -21,7 +21,7 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
   const institutionId = sp.institutionId ? Number(sp.institutionId) : undefined;
   const validInstitutionId = institutionId && !isNaN(institutionId) ? institutionId : undefined;
 
-  const [initialData, categoryTree, industryTree, institution] = await Promise.all([
+  const [initialData, categoryTree, institution] = await Promise.all([
     getCourseList({
       page: 1,
       size: 15,
@@ -35,7 +35,6 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
       totalPages: 0,
     })),
     getCategoryTree('COURSE_CATEGORY').catch(() => []),
-    getCategoryTree('TRAINER_INDUSTRY').catch(() => []),
     validInstitutionId
       ? getInstitutionDetail(validInstitutionId).catch(() => null)
       : Promise.resolve(null),
@@ -49,7 +48,6 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
       <InnerCourseListSection
         initialData={initialData}
         categoryTree={categoryTree}
-        industryTree={industryTree}
         initialInstitutionId={validInstitutionId}
         initialInstitutionName={institution?.orgName}
       />
