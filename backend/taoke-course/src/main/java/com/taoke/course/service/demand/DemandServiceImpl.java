@@ -77,6 +77,8 @@ public class DemandServiceImpl implements DemandService {
         demand.setBudgetMax(req.getBudgetMax());
         demand.setExpectedStartDate(req.getExpectedStartDate());
         demand.setFormat(req.getFormat());
+        demand.setCourseType(req.getCourseType());
+        demand.setIntendedTrainer(req.getIntendedTrainer());
         demand.setDescription(req.getDescription());
         demand.setSourceCaseId(req.getSourceCaseId());
         demand.setSourceCourseId(req.getSourceCourseId());

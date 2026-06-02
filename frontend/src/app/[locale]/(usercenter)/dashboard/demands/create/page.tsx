@@ -6,7 +6,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ROUTES } from '@/config/routes';
 import { createDemand } from '@/features/demand/api/service';
-import { DemandType, FORMAT_OPTIONS, type CreateDemandRequest } from '@/features/demand/api/types';
+import { DemandType, COURSE_TYPE_OPTIONS, type CreateDemandRequest } from '@/features/demand/api/types';
 import { Link, useRouter } from '@/i18n/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import RegionCascader, { type RegionValue } from '@/components/region-cascader';
@@ -21,6 +21,8 @@ export default function CreateDemandPage() {
 
   const initialType = searchParams.get('type') || DemandType.DEFAULT;
   const sourceCourseId = searchParams.get('courseid');
+  const initialCourseType = searchParams.get('courseType') || undefined;
+  const initialIntendedTrainer = searchParams.get('intendedTrainer') || '';
 
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<CreateDemandRequest>({
@@ -31,7 +33,8 @@ export default function CreateDemandPage() {
     budgetMin: undefined,
     budgetMax: undefined,
     expectedStartDate: undefined,
-    format: undefined,
+    courseType: initialCourseType,
+    intendedTrainer: initialIntendedTrainer,
     description: '',
     sourceCaseId: undefined,
     sourceCourseId: sourceCourseId ? Number(sourceCourseId) : undefined,
@@ -50,15 +53,6 @@ export default function CreateDemandPage() {
 
   const updateField = <K extends keyof CreateDemandRequest>(key: K, value: CreateDemandRequest[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleFormatChange = (value: string) => {
-    setForm((prev) => ({
-      ...prev,
-      format: value,
-      // 切换到线上时清除地区
-      ...(value === 'ONLINE' ? { provinceId: undefined, cityId: undefined, districtId: undefined } : {}),
-    }));
   };
 
   const handleRegionChange = (val: RegionValue) => {
@@ -88,7 +82,6 @@ export default function CreateDemandPage() {
   };
 
   const isReservation = form.demandType === DemandType.INTERNAL_RESERVATION;
-  const showRegion = form.format === 'OFFLINE' || form.format === 'HYBRID';
 
   return (
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
@@ -205,18 +198,18 @@ export default function CreateDemandPage() {
             />
           </fieldset>
 
-          {/* 培训形式 */}
+          {/* 培训类型 */}
           <fieldset>
-            <label className="block text-sm font-medium text-gray-700 mb-1">培训形式</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">培训类型</label>
             <div className="flex gap-3">
-              {FORMAT_OPTIONS.map((opt) => (
+              {COURSE_TYPE_OPTIONS.map((opt) => (
                 <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    name="format"
+                    name="courseType"
                     value={opt.value}
-                    checked={form.format === opt.value}
-                    onChange={(e) => handleFormatChange(e.target.value)}
+                    checked={form.courseType === opt.value}
+                    onChange={(e) => updateField('courseType', e.target.value)}
                     className="accent-primary"
                   />
                   <span className="text-sm text-gray-700">{opt.label}</span>
@@ -225,21 +218,31 @@ export default function CreateDemandPage() {
             </div>
           </fieldset>
 
-          {/* 培训地区 — 线下/混合时显示 */}
-          {showRegion && (
-            <fieldset>
-              <label className="block text-sm font-medium text-gray-700 mb-1">培训地区</label>
-              <RegionCascader
-                maxLevel={3}
-                value={{
-                  provinceId: form.provinceId,
-                  cityId: form.cityId,
-                  districtId: form.districtId,
-                }}
-                onChange={handleRegionChange}
-              />
-            </fieldset>
-          )}
+          {/* 意向专家 */}
+          <fieldset>
+            <label className="block text-sm font-medium text-gray-700 mb-1">意向专家</label>
+            <input
+              type="text"
+              value={form.intendedTrainer || ''}
+              onChange={(e) => updateField('intendedTrainer', e.target.value)}
+              placeholder="如有意向专家请填写其姓名（选填）"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+          </fieldset>
+
+          {/* 培训地区 */}
+          <fieldset>
+            <label className="block text-sm font-medium text-gray-700 mb-1">培训地区</label>
+            <RegionCascader
+              maxLevel={3}
+              value={{
+                provinceId: form.provinceId,
+                cityId: form.cityId,
+                districtId: form.districtId,
+              }}
+              onChange={handleRegionChange}
+            />
+          </fieldset>
 
           {/* 详细描述 */}
           <fieldset>

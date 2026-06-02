@@ -40,6 +40,12 @@ public class CreateDemandRequest {
     /** 培训形式：ONLINE / OFFLINE / HYBRID */
     private String format;
 
+    /** 培训类型：PUBLIC=公开课, INTERNAL=内训课 */
+    private String courseType;
+
+    /** 意向专家（自由文本，选填） */
+    private String intendedTrainer;
+
     /** 需求详细描述 */
     private String description;
 

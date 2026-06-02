@@ -66,6 +66,14 @@ public class Demand extends BaseEntity {
     @Column(name = "format", length = 20)
     private String format;
 
+    /** 培训类型：PUBLIC=公开课, INTERNAL=内训课 */
+    @Column(name = "course_type", length = 20)
+    private String courseType;
+
+    /** 意向专家（自由文本，选填） */
+    @Column(name = "intended_trainer", length = 100)
+    private String intendedTrainer;
+
     /** 需求详细描述 */
     @Column(name = "description", columnDefinition = "text")
     private String description;

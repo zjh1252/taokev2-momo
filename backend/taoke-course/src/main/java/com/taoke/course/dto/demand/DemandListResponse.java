@@ -27,6 +27,8 @@ public class DemandListResponse {
     private BigDecimal budgetMin;
     private BigDecimal budgetMax;
     private String format;
+    /** 培训类型：PUBLIC=公开课, INTERNAL=内训课 */
+    private String courseType;
     private Integer traineeCount;
     private LocalDateTime createdAt;
 
@@ -49,6 +51,7 @@ public class DemandListResponse {
         r.setBudgetMin(d.getBudgetMin());
         r.setBudgetMax(d.getBudgetMax());
         r.setFormat(d.getFormat());
+        r.setCourseType(d.getCourseType());
         r.setTraineeCount(d.getTraineeCount());
         r.setCreatedAt(d.getCreatedAt());
         r.setUserId(d.getUserId());
