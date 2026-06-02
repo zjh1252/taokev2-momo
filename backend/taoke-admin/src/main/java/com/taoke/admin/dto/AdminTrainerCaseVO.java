@@ -22,6 +22,8 @@ public class AdminTrainerCaseVO {
     private String enterpriseName;
     private String industry;
     private String trainingTopic;
+    /** 关键字（逗号分隔） */
+    private String keyword;
     private String coverImage;
     private Integer traineeCount;
     /** 培训地点 - 省 ID */
@@ -38,6 +40,8 @@ public class AdminTrainerCaseVO {
     private Integer status;
     private String rejectReason;
     private LocalDate trainingDate;
+    /** 培训结束日期 */
+    private LocalDate trainingEndDate;
     private LocalDateTime reviewedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -50,6 +54,7 @@ public class AdminTrainerCaseVO {
         vo.setEnterpriseName(entity.getEnterpriseName());
         vo.setIndustry(entity.getIndustry());
         vo.setTrainingTopic(entity.getTrainingTopic());
+        vo.setKeyword(entity.getKeyword());
         vo.setCoverImage(entity.getCoverImage());
         vo.setTraineeCount(entity.getTraineeCount());
         vo.setProvinceId(entity.getProvinceId());
@@ -61,6 +66,7 @@ public class AdminTrainerCaseVO {
         vo.setStatus(entity.getStatus());
         vo.setRejectReason(entity.getRejectReason());
         vo.setTrainingDate(entity.getTrainingDate());
+        vo.setTrainingEndDate(entity.getTrainingEndDate());
         vo.setReviewedAt(entity.getReviewedAt());
         vo.setCreatedAt(entity.getCreatedAt());
         vo.setUpdatedAt(entity.getUpdatedAt());

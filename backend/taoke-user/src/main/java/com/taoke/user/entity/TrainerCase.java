@@ -43,6 +43,10 @@ public class TrainerCase extends BaseEntity {
     @Column(name = "training_topic", length = 200)
     private String trainingTopic;
 
+    /** 关键字（逗号分隔） */
+    @Column(name = "keyword", length = 200)
+    private String keyword;
+
     /** 培训效果描述 */
     @Column(name = "training_effect", columnDefinition = "text")
     private String trainingEffect;
@@ -71,9 +75,13 @@ public class TrainerCase extends BaseEntity {
     @Column(name = "training_address", length = 255)
     private String trainingAddress;
 
-    /** 培训日期 */
+    /** 培训日期（起始日） */
     @Column(name = "training_date")
     private LocalDate trainingDate;
+
+    /** 培训结束日期（培训日期段的结束日） */
+    @Column(name = "training_end_date")
+    private LocalDate trainingEndDate;
 
     /** 案例详细描述 */
     @Column(name = "description", columnDefinition = "text")

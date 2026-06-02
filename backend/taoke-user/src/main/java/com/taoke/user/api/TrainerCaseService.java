@@ -22,11 +22,11 @@ public interface TrainerCaseService {
     /** 获取案例详情（含文件） */
     TrainerCaseResponse getMyCaseDetail(Integer userId, Integer caseId);
 
-    /** 新增案例 */
-    TrainerCaseResponse createCase(Integer userId, SaveTrainerCaseRequest request);
+    /** 新增案例（draft=true 保存为草稿，不进入审核队列） */
+    TrainerCaseResponse createCase(Integer userId, SaveTrainerCaseRequest request, boolean draft);
 
-    /** 编辑案例 */
-    TrainerCaseResponse updateCase(Integer userId, Integer caseId, SaveTrainerCaseRequest request);
+    /** 编辑案例（draft=true 保存为草稿，不进入审核队列） */
+    TrainerCaseResponse updateCase(Integer userId, Integer caseId, SaveTrainerCaseRequest request, boolean draft);
 
     /** 删除案例 */
     void deleteCase(Integer userId, Integer caseId);

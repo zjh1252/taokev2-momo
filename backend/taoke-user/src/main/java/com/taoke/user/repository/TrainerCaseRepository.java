@@ -23,10 +23,14 @@ public interface TrainerCaseRepository extends JpaRepository<TrainerCase, Intege
 
     Page<TrainerCase> findByTrainerId(Integer trainerId, Pageable pageable);
 
-    /** 后台分页查询，支持按专家 ID 和状态筛选 */
+    /**
+     * 后台分页查询，支持按专家 ID 和状态筛选。
+     * <p>草稿(status=3)不进入后台审核列表：未显式指定状态时排除草稿。</p>
+     */
     @Query("SELECT c FROM TrainerCase c WHERE " +
             "(:trainerId IS NULL OR c.trainerId = :trainerId) " +
-            "AND (:status IS NULL OR c.status = :status)")
+            "AND (:status IS NULL OR c.status = :status) " +
+            "AND (:status IS NOT NULL OR c.status <> 3)")
     Page<TrainerCase> adminSearch(@Param("trainerId") Integer trainerId,
                                   @Param("status") Integer status,
                                   Pageable pageable);

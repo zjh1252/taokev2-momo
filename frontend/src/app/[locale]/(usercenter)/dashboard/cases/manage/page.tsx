@@ -33,6 +33,7 @@ import {
 
 const STATUS_TABS: { label: string; value: number | undefined }[] = [
   { label: '全部', value: undefined },
+  { label: '草稿', value: CaseStatus.DRAFT },
   { label: '待审核', value: CaseStatus.PENDING },
   { label: '已通过', value: CaseStatus.APPROVED },
   { label: '已驳回', value: CaseStatus.REJECTED },
@@ -42,6 +43,7 @@ const STATUS_BADGE_STYLES: Record<number, string> = {
   [CaseStatus.PENDING]: 'bg-amber-50 text-amber-600',
   [CaseStatus.APPROVED]: 'bg-green-50 text-green-600',
   [CaseStatus.REJECTED]: 'bg-red-50 text-red-600',
+  [CaseStatus.DRAFT]: 'bg-slate-100 text-slate-500',
 };
 
 export default function ManageCasesPage() {

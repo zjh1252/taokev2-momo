@@ -38,6 +38,10 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
     private final TrainerRepository trainerRepository;
     private final EventPublisher eventPublisher;
 
+    /** 审核状态：0=待审核, 1=通过, 2=驳回, 3=草稿 */
+    private static final int STATUS_PENDING = 0;
+    private static final int STATUS_DRAFT = 3;
+
     // ==================== 专家自服务 ====================
 
     @Override
@@ -64,13 +68,14 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
 
     @Override
     @Transactional
-    public TrainerCaseResponse createCase(Integer userId, SaveTrainerCaseRequest request) {
+    public TrainerCaseResponse createCase(Integer userId, SaveTrainerCaseRequest request, boolean draft) {
         Trainer trainer = getTrainerByUserId(userId);
         TrainerCase entity = new TrainerCase();
         entity.setTrainerId(trainer.getId());
         applyRequest(entity, request);
         entity.setAutoExtracted(false);
-        entity.setStatus(0);
+        // draft=true 存为草稿(3)，否则进入待审核(0)
+        entity.setStatus(draft ? STATUS_DRAFT : STATUS_PENDING);
         entity.setRejectReason("");
         entity = caseRepository.save(entity);
         TrainerCaseResponse r = TrainerCaseResponse.from(entity);
@@ -80,12 +85,12 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
 
     @Override
     @Transactional
-    public TrainerCaseResponse updateCase(Integer userId, Integer caseId, SaveTrainerCaseRequest request) {
+    public TrainerCaseResponse updateCase(Integer userId, Integer caseId, SaveTrainerCaseRequest request, boolean draft) {
         Trainer trainer = getTrainerByUserId(userId);
         TrainerCase entity = getCaseAndCheckOwner(caseId, trainer.getId());
         applyRequest(entity, request);
-        // 编辑后重新回到待审核状态
-        entity.setStatus(0);
+        // 草稿保存维持草稿态；正式提交（或编辑已审核内容）回到待审核状态
+        entity.setStatus(draft ? STATUS_DRAFT : STATUS_PENDING);
         entity.setRejectReason("");
         entity.setReviewerId(null);
         entity.setReviewedAt(null);
@@ -269,10 +274,12 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
     }
 
     private void applyRequest(TrainerCase entity, SaveTrainerCaseRequest req) {
-        entity.setCaseTitle(req.getCaseTitle());
-        entity.setEnterpriseName(req.getEnterpriseName());
+        // caseTitle / enterpriseName 草稿可能为空，做 null 兜底以满足 NOT NULL 列
+        entity.setCaseTitle(req.getCaseTitle() != null ? req.getCaseTitle() : "");
+        entity.setEnterpriseName(req.getEnterpriseName() != null ? req.getEnterpriseName() : "");
         entity.setIndustry(req.getIndustry() != null ? req.getIndustry() : "");
         entity.setTrainingTopic(req.getTrainingTopic() != null ? req.getTrainingTopic() : "");
+        entity.setKeyword(req.getKeyword() != null ? req.getKeyword() : "");
         entity.setTrainingEffect(req.getTrainingEffect());
         entity.setTraineeCount(req.getTraineeCount());
         entity.setProvinceId(req.getProvinceId());
@@ -281,6 +288,7 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
         entity.setTownId(req.getTownId());
         entity.setTrainingAddress(req.getTrainingAddress());
         entity.setTrainingDate(req.getTrainingDate());
+        entity.setTrainingEndDate(req.getTrainingEndDate());
         entity.setDescription(req.getDescription());
         entity.setCoverImage(req.getCoverImage() != null ? req.getCoverImage() : "");
         entity.setSortOrder(req.getSortOrder() != null ? req.getSortOrder() : 0);

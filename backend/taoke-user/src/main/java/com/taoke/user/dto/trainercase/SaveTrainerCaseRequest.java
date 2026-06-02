@@ -11,6 +11,9 @@ import java.time.LocalDate;
 /**
  * 新增/编辑案例请求
  *
+ * <p>注意：本 DTO 上的必填约束表示「正式提交」的要求；保存草稿走独立接口（不加 {@code @Valid}），
+ * 仅做最小化校验，允许字段不完整。</p>
+ *
  * @author Fangxinxin
  * @date 2026-04-11 16:00
  */
@@ -21,8 +24,8 @@ public class SaveTrainerCaseRequest {
     @Size(max = 200, message = "案例标题不能超过200字")
     private String caseTitle;
 
-    @NotBlank(message = "企业名称不能为空")
-    @Size(max = 200, message = "企业名称不能超过200字")
+    @NotBlank(message = "客户企业名称不能为空")
+    @Size(max = 200, message = "客户企业名称不能超过200字")
     private String enterpriseName;
 
     @Size(max = 100, message = "行业不能超过100字")
@@ -30,6 +33,10 @@ public class SaveTrainerCaseRequest {
 
     @Size(max = 200, message = "培训主题不能超过200字")
     private String trainingTopic;
+
+    /** 关键字（逗号分隔，选填） */
+    @Size(max = 200, message = "关键字不能超过200字")
+    private String keyword;
 
     private String trainingEffect;
 
@@ -52,15 +59,22 @@ public class SaveTrainerCaseRequest {
     /** 培训地点 - 镇/街道 ID（选填） */
     private Integer townId;
 
-    /** 培训地点 - 详细地址（必填） */
-    @NotBlank(message = "请填写详细地址")
+    /** 培训地点 - 详细地址（选填） */
     @Size(max = 255, message = "详细地址不能超过255字")
     private String trainingAddress;
 
+    /** 培训日期 - 起始日（必填） */
+    @NotNull(message = "请选择培训日期")
     private LocalDate trainingDate;
 
+    /** 培训日期 - 结束日（必填） */
+    @NotNull(message = "请选择培训结束日期")
+    private LocalDate trainingEndDate;
+
+    @NotBlank(message = "请填写案例描述")
     private String description;
 
+    @NotBlank(message = "请上传封面图")
     @Size(max = 500, message = "封面图 URL 不能超过500字")
     private String coverImage;
 

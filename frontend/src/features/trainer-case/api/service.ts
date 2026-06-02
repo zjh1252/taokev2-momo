@@ -47,6 +47,19 @@ export async function createCase(
   return res.data;
 }
 
+/** 保存案例草稿（不进入审核，允许信息不完整） */
+export async function createCaseDraft(
+  data: SaveTrainerCaseRequest,
+  trainerUserId?: number,
+): Promise<TrainerCase> {
+  const res = await apiPost<ApiResponse<TrainerCase>>(
+    `/trainers/me/cases/draft${buildQs(trainerUserId)}`,
+    data,
+    { headers: authHeaders() }
+  );
+  return res.data;
+}
+
 /** 编辑案例 */
 export async function updateCase(
   id: number,
@@ -55,6 +68,20 @@ export async function updateCase(
 ): Promise<TrainerCase> {
   const res = await apiPut<ApiResponse<TrainerCase>>(
     `/trainers/me/cases/${id}${buildQs(trainerUserId)}`,
+    data,
+    { headers: authHeaders() }
+  );
+  return res.data;
+}
+
+/** 保存案例草稿（编辑，不进入审核，允许信息不完整） */
+export async function updateCaseDraft(
+  id: number,
+  data: SaveTrainerCaseRequest,
+  trainerUserId?: number,
+): Promise<TrainerCase> {
+  const res = await apiPut<ApiResponse<TrainerCase>>(
+    `/trainers/me/cases/${id}/draft${buildQs(trainerUserId)}`,
     data,
     { headers: authHeaders() }
   );
