@@ -65,6 +65,8 @@ taoke:
     temperature: 0.2
     timeout-ms: 1200000
     max-input-chars: 50000
+  sms:
+    provider: mock
 
 logging:
   level:

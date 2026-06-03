@@ -129,6 +129,29 @@ public class RoleApplyServiceImpl implements RoleApplyService {
         eventPublisher.publish(new ApplyPassedEvent(roleCode, userId));
     }
 
+    @Transactional
+    @Override
+    public void ensureRoleActive(Integer userId, String roleCode) {
+        UserRole userRole = userRoleRepository.findByUserIdAndRole(userId, roleCode).orElse(null);
+        // 已生效 → 幂等返回
+        if (userRole != null && userRole.getStatus() != null && userRole.getStatus() == 1) {
+            return;
+        }
+        if (userRole == null) {
+            userRole = new UserRole();
+            userRole.setUserId(userId);
+            userRole.setRole(roleCode);
+        } else if (userRole.getStatus() != null && userRole.getStatus() == 4) {
+            throw new BusinessException(ErrorCode.ROLE_DISABLED);
+        }
+        userRole.setStatus(1);
+        userRole.setRejectReason(null);
+        userRole.setApprovedAt(LocalDateTime.now());
+        userRoleRepository.save(userRole);
+
+        eventPublisher.publish(new ApplyPassedEvent(roleCode, userId));
+    }
+
     /**
      * 审核通过角色申请（管理端调用）。
      * <p>

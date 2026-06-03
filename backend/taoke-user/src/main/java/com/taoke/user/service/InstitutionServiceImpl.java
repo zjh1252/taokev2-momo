@@ -185,12 +185,32 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     @Override
     public List<InstitutionListItemResponse> listRecommended(int limit) {
         int n = limit > 0 ? limit : 4;
-        Specification<Institution> spec = publicBaseSpec().and(
-                (root, q, cb) -> cb.equal(root.get("isRecommended"), 1));
         Sort sort = Sort.by(Sort.Direction.DESC, "sortOrder")
                 .and(Sort.by(Sort.Direction.DESC, "score"))
+                .and(Sort.by(Sort.Direction.DESC, "viewCount"))
                 .and(Sort.by(Sort.Direction.DESC, "id"));
-        return toListItems(institutionRepository.findAll(spec, PageRequest.of(0, n, sort)).getContent());
+
+        // 1) 优先取已标记金牌推荐的机构
+        Specification<Institution> recSpec = publicBaseSpec().and(
+                (root, q, cb) -> cb.equal(root.get("isRecommended"), 1));
+        List<Institution> picked = new ArrayList<>(
+                institutionRepository.findAll(recSpec, PageRequest.of(0, n, sort)).getContent());
+
+        // 2) 不足 n 个时，用其它公开机构按 sortOrder/score 补齐（去重）
+        if (picked.size() < n) {
+            Set<Integer> pickedIds = picked.stream().map(Institution::getId).collect(Collectors.toSet());
+            List<Institution> fillers = institutionRepository
+                    .findAll(publicBaseSpec(), PageRequest.of(0, n * 2, sort)).getContent();
+            for (Institution f : fillers) {
+                if (picked.size() >= n) {
+                    break;
+                }
+                if (pickedIds.add(f.getId())) {
+                    picked.add(f);
+                }
+            }
+        }
+        return toListItems(picked);
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.taoke.course.dto.course;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -35,8 +36,8 @@ public class SaveCourseRequest {
     @NotBlank(message = "课程介绍不能为空")
     private String intro;
 
-    /** 课程简介（短文本） */
-    @NotBlank(message = "课程简介不能为空")
+    /** 课程简介（短文本，选填；前端已下线该字段） */
+    @Size(max = 500, message = "课程简介不能超过500字")
     private String summary;
 
     /** 课程大纲（富文本 HTML） */

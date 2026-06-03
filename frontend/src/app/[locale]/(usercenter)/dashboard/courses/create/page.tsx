@@ -38,7 +38,7 @@ export default function CreateCoursePage() {
           : ROUTES.UC_COURSES_MANAGE,
       );
     } catch {
-      toast.error('保存失败，请稍后重试');
+      // 错误提示由全局 http client 统一弹出（含后端具体校验信息），此处不再重复 toast
     } finally {
       setSubmitting(false);
     }
