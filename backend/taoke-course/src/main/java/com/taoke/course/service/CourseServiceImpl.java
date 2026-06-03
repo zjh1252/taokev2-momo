@@ -768,6 +768,14 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    public List<Integer> listRecentlyActiveInstitutionUserIds(int days, int limit) {
+        int d = days > 0 ? days : 7;
+        int n = limit > 0 ? limit : 5;
+        LocalDateTime since = LocalDateTime.now().minusDays(d);
+        return courseRepository.findRecentlyActiveInstitutionUserIds(since, PageRequest.of(0, n));
+    }
+
+    @Override
     public PageResponse<CourseListItemVO> listByTrainer(Integer trainerId, int page, int size) {
         if (trainerId == null || trainerId <= 0) {
             return PageResponse.of(List.of(), 0, page, size);

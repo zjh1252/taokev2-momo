@@ -1,18 +1,29 @@
 'use client';
 
-import { Suspense, useState, useCallback, useTransition, useEffect, useRef } from 'react';
+import { Suspense, useState, useCallback, useTransition } from 'react';
 import { ArrowUpDown, TrendingUp } from 'lucide-react';
 import { ListPagePagination } from '@/components/list-page-pagination';
 import { useListPageUrlSync } from '@/hooks/use-list-page-url';
-import { useListKeywordUrl } from '@/hooks/use-list-keyword-url';
 import { InstitutionCard } from './InstitutionCard';
 import { SafeImage } from '@/components/safe-image';
-import { InstitutionSidebar } from './InstitutionSidebar';
-import { getInstitutionList } from '../../api/service';
+import { InstitutionSidebar, type InstitutionFilters } from './InstitutionSidebar';
+import { getInstitutionList, type InstitutionFacets } from '../../api/service';
 import type { InstitutionListItem, PageResponse } from '../../types';
+
+interface RegionItem {
+  id: number;
+  code: string;
+  name: string;
+}
 
 interface InstitutionListSectionProps {
   initialData: PageResponse<InstitutionListItem>;
+  facets: InstitutionFacets;
+  provinces: RegionItem[];
+  recommended: InstitutionListItem[];
+  topRated: InstitutionListItem[];
+  weeklyActive: InstitutionListItem[];
+  newest: InstitutionListItem[];
   association?: boolean;
   basePath?: string;
   title?: string;
@@ -33,30 +44,39 @@ export function InstitutionListSection(props: InstitutionListSectionProps) {
 
 function InstitutionListSectionInner({
   initialData,
+  facets,
+  provinces,
+  recommended,
+  topRated,
+  weeklyActive,
+  newest,
   association,
   basePath = '/institutions',
   title = '培训机构',
 }: InstitutionListSectionProps) {
-  const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
   const [data, setData] = useState(initialData);
-  const [keyword, setKeyword] = useState(keywordFromUrl);
+  const [filters, setFilters] = useState<InstitutionFilters>({ keyword: '' });
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
-  const keywordBootstrappedRef = useRef(false);
 
   const fetchData = useCallback(
-    (page: number, overrideKeyword?: string, overrideSort?: string) => {
-      const kw = overrideKeyword ?? keyword;
+    (page: number, nextFilters?: InstitutionFilters, overrideSort?: string) => {
+      const f = nextFilters ?? filters;
       const sort = overrideSort ?? sortKey;
       startTransition(async () => {
         try {
           const result = await getInstitutionList({
             page,
             size: 15,
-            keyword: kw || undefined,
             sort,
             association,
+            keyword: f.keyword || undefined,
+            specialty: f.specialty,
+            industry: f.industry,
+            provinceId: f.provinceId,
+            cityId: f.cityId,
+            minScore: f.minScore,
           });
           setData(result);
           setCurrentPage(page);
@@ -65,39 +85,30 @@ function InstitutionListSectionInner({
         }
       });
     },
-    [keyword, sortKey, association],
+    [filters, sortKey, association],
   );
 
   const { commitPageChange } = useListPageUrlSync({
     currentPage,
-    onPageFromUrl: fetchData,
+    onPageFromUrl: (page) => fetchData(page),
   });
 
-  useEffect(() => {
-    if (keywordFromUrl === keyword && keywordBootstrappedRef.current) return;
-    setKeyword(keywordFromUrl);
-    keywordBootstrappedRef.current = true;
-    commitPageChange(1);
-    fetchData(1, keywordFromUrl);
-  }, [keywordFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleSearch = useCallback(
-    (kw: string) => {
-      setKeyword(kw);
-      commitKeyword(kw);
+  const handleApplyFilters = useCallback(
+    (next: InstitutionFilters) => {
+      setFilters(next);
       commitPageChange(1);
-      fetchData(1, kw);
+      fetchData(1, next);
     },
-    [fetchData, commitPageChange, commitKeyword],
+    [fetchData, commitPageChange],
   );
 
   const handleSortChange = useCallback(
     (key: string) => {
       setSortKey(key);
       commitPageChange(1);
-      fetchData(1, keyword, key);
+      fetchData(1, filters, key);
     },
-    [fetchData, keyword, commitPageChange],
+    [fetchData, filters, commitPageChange],
   );
 
   const handlePageChange = useCallback(
@@ -109,24 +120,30 @@ function InstitutionListSectionInner({
     [fetchData, commitPageChange],
   );
 
-  // 推荐机构（取 isRecommended=1 的前4个）
-  const recommendedItems = data.list.filter((item) => item.isRecommended === 1).slice(0, 4);
-
   return (
     <div className="flex gap-6 items-start">
-      <InstitutionSidebar keyword={keyword} onKeywordChange={setKeyword} onSearch={handleSearch} />
+      <InstitutionSidebar
+        facets={facets}
+        provinces={provinces}
+        topRated={topRated}
+        weeklyActive={weeklyActive}
+        newest={newest}
+        filters={filters}
+        onApply={handleApplyFilters}
+        basePath={basePath}
+      />
 
       <div className="flex-1 flex flex-col gap-6">
-        {/* 金牌推荐区（仅首页且有推荐时展示） */}
-        {currentPage === 1 && recommendedItems.length > 0 && (
+        {/* 金牌推荐区（取后端推荐前 4 家） */}
+        {currentPage === 1 && recommended.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-amber-200 overflow-hidden">
             <div className="bg-gradient-to-r from-amber-50 via-amber-100/50 to-white px-5 py-3 border-b border-amber-100 flex items-center gap-2">
               <span className="text-amber-500 text-lg">🏅</span>
               <h3 className="font-bold text-amber-700 text-[15px]">金牌培训机构推荐</h3>
             </div>
             <div className="p-6 bg-gradient-to-b from-white to-slate-50/30 grid grid-cols-2 sm:grid-cols-4 gap-6 md:gap-8 justify-items-center">
-              {recommendedItems.map((item) => (
-                  <a
+              {recommended.slice(0, 4).map((item) => (
+                <a
                   key={item.id}
                   href={`${basePath}/${item.id}`}
                   className="group flex flex-col items-center gap-3 w-full"
@@ -152,7 +169,6 @@ function InstitutionListSectionInner({
 
         {/* 列表区 */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-          {/* 排序栏 */}
           <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-6">
             <span className="text-slate-700 font-bold text-[15px] ml-2">{title}</span>
             <div className="flex items-center gap-2">
@@ -177,26 +193,24 @@ function InstitutionListSectionInner({
             </span>
           </div>
 
-          {/* 卡片列表 */}
           <div className={`flex flex-col transition-opacity ${isPending ? 'opacity-50' : ''}`}>
             {data.list.length > 0 ? (
-              data.list.map((item) => <InstitutionCard key={item.id} institution={item} basePath={basePath} />)
+              data.list.map((item) => (
+                <InstitutionCard key={item.id} institution={item} basePath={basePath} />
+              ))
             ) : (
               <div className="p-12 text-center text-slate-400">暂无培训机构</div>
             )}
           </div>
 
-          {/* 分页 */}
-        <ListPagePagination
-          currentPage={currentPage}
-          totalPages={data.totalPages}
-          onPageChange={handlePageChange}
-          className="p-6"
+          <ListPagePagination
+            currentPage={currentPage}
+            totalPages={data.totalPages}
+            onPageChange={handlePageChange}
+            className="p-6"
           />
-
         </div>
       </div>
     </div>
   );
 }
-

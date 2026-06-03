@@ -7,6 +7,8 @@ import com.taoke.course.api.CourseService;
 import com.taoke.course.api.VideoService;
 import com.taoke.course.dto.course.CourseListItemVO;
 import com.taoke.course.dto.video.VideoListItemVO;
+import com.taoke.user.api.InstitutionService;
+import com.taoke.user.dto.institution.InstitutionListItemResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,16 @@ public class PublicInstitutionAggregateController {
 
     private final CourseService courseService;
     private final VideoService videoService;
+    private final InstitutionService institutionService;
+
+    @Public
+    @Operation(summary = "本周活跃培训机构（最近 7 天有发课）")
+    @GetMapping("/institutions/weekly-active")
+    public ApiResponse<List<InstitutionListItemResponse>> weeklyActiveInstitutions(
+            @RequestParam(defaultValue = "5") int limit) {
+        List<Integer> userIds = courseService.listRecentlyActiveInstitutionUserIds(7, limit);
+        return ApiResponse.ok(institutionService.listByUserIds(userIds));
+    }
 
     @Public
     @Operation(summary = "机构课程列表（按 type=OPEN/INNER 区分公开课/内训课）")

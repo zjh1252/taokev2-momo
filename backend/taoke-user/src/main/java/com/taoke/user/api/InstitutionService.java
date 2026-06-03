@@ -1,6 +1,7 @@
 package com.taoke.user.api;
 
 import com.taoke.common.response.PageResponse;
+import com.taoke.user.dto.institution.InstitutionFacetsResponse;
 import com.taoke.user.dto.institution.InstitutionListItemResponse;
 import com.taoke.user.dto.institution.InstitutionPublicResponse;
 import com.taoke.user.dto.institution.InstitutionRequest;
@@ -64,7 +65,27 @@ public interface InstitutionService {
      * @param association 可选筛选：是否培训协会（null=不过滤）
      * @return 分页结果
      */
-    PageResponse<InstitutionListItemResponse> listPublic(int page, int size, String keyword, String sort, Boolean association);
+    PageResponse<InstitutionListItemResponse> listPublic(int page, int size, String keyword, String sort,
+                                                         Boolean association, String specialty, String industry,
+                                                         Integer provinceId, Integer cityId,
+                                                         java.math.BigDecimal minScore);
+
+    /**
+     * 机构列表页筛选项聚合（擅长领域 / 擅长行业 去重计数）。
+     */
+    InstitutionFacetsResponse listFacets();
+
+    /** 高分机构（按评分倒序，公开可见）。 */
+    List<InstitutionListItemResponse> listTopRated(int limit);
+
+    /** 最新加入机构（按创建时间倒序）。 */
+    List<InstitutionListItemResponse> listNewest(int limit);
+
+    /** 金牌推荐机构（isRecommended=1）。 */
+    List<InstitutionListItemResponse> listRecommended(int limit);
+
+    /** 按机构 userId 批量返回机构卡片（保持入参顺序，仅公开可见）。 */
+    List<InstitutionListItemResponse> listByUserIds(List<Integer> userIds);
 
     /**
      * 获取机构公开详情。
