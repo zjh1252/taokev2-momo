@@ -135,6 +135,10 @@ export interface VideoDetail {
   price: number;
   originalPrice: number;
   isFree: number;
+  /** 封顶人数：0=不限 */
+  capCount: number;
+  /** 封顶价（批量采购优惠价），null/0=不设置 */
+  capPrice: number | null;
   keywords: string;
   duration: number;
   totalEpisodes: number;
@@ -196,6 +200,12 @@ export interface SaveVideoRequest {
   price?: number;
   originalPrice?: number;
   isFree?: number;
+  /** 封顶人数：0=不限 */
+  capCount?: number;
+  /** 封顶价（批量采购优惠价），不传/0 表示不设置 */
+  capPrice?: number;
+  /** 视频总时长（秒），前端以分钟录入后换算 */
+  duration?: number;
   keywords?: string;
 }
 

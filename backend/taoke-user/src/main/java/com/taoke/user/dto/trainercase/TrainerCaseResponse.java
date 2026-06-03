@@ -26,6 +26,8 @@ public class TrainerCaseResponse {
     private String enterpriseName;
     private String industry;
     private String trainingTopic;
+    /** 关键字（逗号分隔） */
+    private String keyword;
     private String trainingEffect;
     private Integer traineeCount;
     /** 培训地点 - 省 ID */
@@ -38,7 +40,15 @@ public class TrainerCaseResponse {
     private Integer townId;
     /** 培训地点 - 详细地址 */
     private String trainingAddress;
+    /** 培训地点 - 省名称（公开详情接口填充） */
+    private String provinceName;
+    /** 培训地点 - 市名称（公开详情接口填充） */
+    private String cityName;
+    /** 培训地点 - 区/县名称（公开详情接口填充） */
+    private String districtName;
     private LocalDate trainingDate;
+    /** 培训结束日期 */
+    private LocalDate trainingEndDate;
     private String description;
     private String coverImage;
     private Boolean autoExtracted;
@@ -60,6 +70,7 @@ public class TrainerCaseResponse {
         r.setEnterpriseName(entity.getEnterpriseName());
         r.setIndustry(entity.getIndustry());
         r.setTrainingTopic(entity.getTrainingTopic());
+        r.setKeyword(entity.getKeyword());
         r.setTrainingEffect(entity.getTrainingEffect());
         r.setTraineeCount(entity.getTraineeCount());
         r.setProvinceId(entity.getProvinceId());
@@ -68,6 +79,7 @@ public class TrainerCaseResponse {
         r.setTownId(entity.getTownId());
         r.setTrainingAddress(entity.getTrainingAddress());
         r.setTrainingDate(entity.getTrainingDate());
+        r.setTrainingEndDate(entity.getTrainingEndDate());
         r.setDescription(entity.getDescription());
         r.setCoverImage(entity.getCoverImage());
         r.setAutoExtracted(entity.getAutoExtracted());

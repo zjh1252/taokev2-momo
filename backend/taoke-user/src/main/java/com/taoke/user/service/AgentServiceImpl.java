@@ -80,6 +80,9 @@ public class AgentServiceImpl implements AgentService {
                     "请先勾选并同意《淘课网注册专家经纪人合作协议》");
         }
         saveOrUpdateExtension(userId, request);
+        // 经纪人角色申请即自动通过审核（免人工审核）；
+        // 能否发布课程等资源仍受「名下需绑定专家」守卫限制。
+        roleApplyService.ensureRoleActive(userId, BusinessRole.Code.AGENT);
         bindingService.initiateEnterpriseAgentMemberFromAgent(
                 userId, request.getEnterpriseAgentId(), null);
     }

@@ -8,6 +8,24 @@
  * @date 2026-04-21 18:30
  */
 
+/**
+ * 具备「发布内容资源」（课程/案例/精彩瞬间/视频）权限的角色编码集合。
+ * <p>与后端 {@code @RequireRole} 及侧边栏内容菜单保持一致，个人学员(BUYER)等不在其列。</p>
+ */
+export const CONTENT_PUBLISHER_ROLES = [
+  'TRAINER',
+  'AGENT',
+  'ASSISTANT',
+  'INSTITUTION',
+  'INSTITUTION_EMPLOYEE',
+  'ENTERPRISE_AGENT',
+] as const;
+
+/** 当前激活角色是否具备发布内容资源的权限。 */
+export function canPublishContent(role?: string | null): boolean {
+  return !!role && (CONTENT_PUBLISHER_ROLES as readonly string[]).includes(role);
+}
+
 /** 具备「代管专家资源」能力的角色编码集合。 */
 export const DELEGATING_ROLES = [
   'INSTITUTION',

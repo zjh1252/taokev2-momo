@@ -39,3 +39,13 @@ export async function refreshToken(): Promise<ApiResult> {
 export async function getMe(): Promise<ApiResult<UserProfile>> {
   return apiClient<ApiResult<UserProfile>>('/auth/me');
 }
+
+export async function changePassword(data: {
+  oldPassword?: string;
+  newPassword: string;
+}): Promise<ApiResult> {
+  return apiClient<ApiResult>('/users/me/password', {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  });
+}

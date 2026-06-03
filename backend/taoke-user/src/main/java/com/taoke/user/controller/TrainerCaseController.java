@@ -57,7 +57,15 @@ public class TrainerCaseController {
     @PostMapping("/trainers/me/cases")
     public ApiResponse<TrainerCaseResponse> createCase(@RequestParam(required = false) Integer trainerUserId,
                                                        @Valid @RequestBody SaveTrainerCaseRequest request) {
-        return ApiResponse.ok(trainerCaseService.createCase(effectiveTrainerUserId(trainerUserId), request));
+        return ApiResponse.ok(trainerCaseService.createCase(effectiveTrainerUserId(trainerUserId), request, false));
+    }
+
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
+    @Operation(summary = "保存案例草稿（不进入审核，允许信息不完整）")
+    @PostMapping("/trainers/me/cases/draft")
+    public ApiResponse<TrainerCaseResponse> createCaseDraft(@RequestParam(required = false) Integer trainerUserId,
+                                                            @RequestBody SaveTrainerCaseRequest request) {
+        return ApiResponse.ok(trainerCaseService.createCase(effectiveTrainerUserId(trainerUserId), request, true));
     }
 
     @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
@@ -66,7 +74,16 @@ public class TrainerCaseController {
     public ApiResponse<TrainerCaseResponse> updateCase(@PathVariable Integer id,
                                                        @RequestParam(required = false) Integer trainerUserId,
                                                        @Valid @RequestBody SaveTrainerCaseRequest request) {
-        return ApiResponse.ok(trainerCaseService.updateCase(effectiveTrainerUserId(trainerUserId), id, request));
+        return ApiResponse.ok(trainerCaseService.updateCase(effectiveTrainerUserId(trainerUserId), id, request, false));
+    }
+
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
+    @Operation(summary = "保存案例草稿（编辑，不进入审核，允许信息不完整）")
+    @PutMapping("/trainers/me/cases/{id}/draft")
+    public ApiResponse<TrainerCaseResponse> updateCaseDraft(@PathVariable Integer id,
+                                                            @RequestParam(required = false) Integer trainerUserId,
+                                                            @RequestBody SaveTrainerCaseRequest request) {
+        return ApiResponse.ok(trainerCaseService.updateCase(effectiveTrainerUserId(trainerUserId), id, request, true));
     }
 
     @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
@@ -106,6 +123,13 @@ public class TrainerCaseController {
     @GetMapping("/trainers/{id}/cases")
     public ApiResponse<List<TrainerCaseResponse>> listApprovedCases(@PathVariable Integer id) {
         return ApiResponse.ok(trainerCaseService.listApprovedCases(id));
+    }
+
+    @Public
+    @Operation(summary = "已审核案例详情（公开）")
+    @GetMapping("/trainer-cases/{id}")
+    public ApiResponse<TrainerCaseResponse> getApprovedCaseDetail(@PathVariable Integer id) {
+        return ApiResponse.ok(trainerCaseService.getApprovedCaseDetail(id));
     }
 
     @Public

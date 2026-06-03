@@ -49,7 +49,16 @@ public class TrainerHighlightController {
     public ApiResponse<TrainerHighlightResponse> createHighlight(
             @RequestParam(required = false) Integer trainerUserId,
             @Valid @RequestBody SaveTrainerHighlightRequest request) {
-        return ApiResponse.ok(highlightService.createHighlight(effectiveTrainerUserId(trainerUserId), request));
+        return ApiResponse.ok(highlightService.createHighlight(effectiveTrainerUserId(trainerUserId), request, false));
+    }
+
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
+    @Operation(summary = "保存精彩瞬间草稿（不进入审核，允许信息不完整）")
+    @PostMapping("/trainers/me/highlights/draft")
+    public ApiResponse<TrainerHighlightResponse> createHighlightDraft(
+            @RequestParam(required = false) Integer trainerUserId,
+            @RequestBody SaveTrainerHighlightRequest request) {
+        return ApiResponse.ok(highlightService.createHighlight(effectiveTrainerUserId(trainerUserId), request, true));
     }
 
     @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
@@ -59,7 +68,17 @@ public class TrainerHighlightController {
             @PathVariable Integer id,
             @RequestParam(required = false) Integer trainerUserId,
             @Valid @RequestBody SaveTrainerHighlightRequest request) {
-        return ApiResponse.ok(highlightService.updateHighlight(effectiveTrainerUserId(trainerUserId), id, request));
+        return ApiResponse.ok(highlightService.updateHighlight(effectiveTrainerUserId(trainerUserId), id, request, false));
+    }
+
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
+    @Operation(summary = "保存精彩瞬间草稿（编辑，不进入审核，允许信息不完整）")
+    @PutMapping("/trainers/me/highlights/{id}/draft")
+    public ApiResponse<TrainerHighlightResponse> updateHighlightDraft(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Integer trainerUserId,
+            @RequestBody SaveTrainerHighlightRequest request) {
+        return ApiResponse.ok(highlightService.updateHighlight(effectiveTrainerUserId(trainerUserId), id, request, true));
     }
 
     @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})

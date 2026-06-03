@@ -41,6 +41,10 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     private final TrainerRepository trainerRepository;
     private final EventPublisher eventPublisher;
 
+    /** 审核状态：0=待审核, 1=通过, 2=驳回, 3=草稿 */
+    private static final int STATUS_PENDING = 0;
+    private static final int STATUS_DRAFT = 3;
+
     // ==================== 专家自服务 ====================
 
     @Override
@@ -60,7 +64,7 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     @Transactional
     public TrainerHighlightResponse createHighlight(Integer userId,
-                                                    SaveTrainerHighlightRequest request) {
+                                                    SaveTrainerHighlightRequest request, boolean draft) {
         Trainer trainer = requireTrainer(userId);
 
         TrainerHighlight h = new TrainerHighlight();
@@ -74,7 +78,8 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         h.setDuration(0);
         h.setFileSize(0L);
         h.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
-        h.setStatus(0);
+        // draft=true 存为草稿(3)，否则进入待审核(0)
+        h.setStatus(draft ? STATUS_DRAFT : STATUS_PENDING);
         h.setViewCount(0);
         highlightRepository.save(h);
 
@@ -86,7 +91,7 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     @Transactional
     public TrainerHighlightResponse updateHighlight(Integer userId, Integer highlightId,
-                                                    SaveTrainerHighlightRequest request) {
+                                                    SaveTrainerHighlightRequest request, boolean draft) {
         Trainer trainer = requireTrainer(userId);
         TrainerHighlight h = highlightRepository.findById(highlightId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "精彩瞬间不存在"));
@@ -99,8 +104,8 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         if (request.getCoverImage() != null) h.setCoverImage(request.getCoverImage());
         if (request.getSortOrder() != null) h.setSortOrder(request.getSortOrder());
 
-        // 修改后重新进入待审核
-        h.setStatus(0);
+        // 草稿保存维持草稿态；正式提交（或编辑已审核内容）重新进入待审核
+        h.setStatus(draft ? STATUS_DRAFT : STATUS_PENDING);
         h.setRejectReason(null);
         highlightRepository.save(h);
 
@@ -205,6 +210,9 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         }
         if (status != null) {
             spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
+        } else {
+            // 未指定状态时排除草稿(3)，草稿不进入后台审核列表
+            spec = spec.and((root, q, cb) -> cb.notEqual(root.get("status"), STATUS_DRAFT));
         }
         return highlightRepository.findAll(spec,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")));

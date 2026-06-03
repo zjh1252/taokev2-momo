@@ -12,7 +12,7 @@ import type {
   SaveVideoRequest,
   VideoDetail,
 } from '@/features/video/api/types';
-import { ImagePlus, X, ChevronDown, Film, CheckCircle, Loader2, Trash2 } from 'lucide-react';
+import { ImagePlus, X, ChevronDown, Film, CheckCircle, Loader2, Trash2, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -50,6 +50,34 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   const [price, setPrice] = useState(initialData?.price || 0);
   const [isFree, setIsFree] = useState(initialData?.isFree || 0);
   const [keywords, setKeywords] = useState(initialData?.keywords || '');
+
+  // 视频时长（分钟）—— 存储到后端时换算为秒（duration 列）
+  const [durationMinutes, setDurationMinutes] = useState<number>(
+    initialData?.duration ? Math.round(initialData.duration / 60) : 0,
+  );
+
+  // ===== 封顶价设置 =====
+  const deriveCapSel = (n?: number): string => {
+    if (!n || n <= 0) return '0';
+    if (n === 20 || n === 40 || n === 100) return String(n);
+    return 'custom';
+  };
+  const [capCountSel, setCapCountSel] = useState<string>(deriveCapSel(initialData?.capCount));
+  const [customCapCount, setCustomCapCount] = useState<number>(
+    deriveCapSel(initialData?.capCount) === 'custom' ? (initialData?.capCount ?? 0) : 0,
+  );
+  // 封顶价：是否「不设置」(置灰清空)；以及手动值与是否被手动改过
+  const [capPriceUnset, setCapPriceUnset] = useState<boolean>(initialData ? initialData.capPrice == null : true);
+  const [capPrice, setCapPrice] = useState<number>(initialData?.capPrice ?? 0);
+  const [capPriceManual, setCapPriceManual] = useState<boolean>(initialData?.capPrice != null);
+  const [capInfoOpen, setCapInfoOpen] = useState(false);
+
+  const capCount = capCountSel === 'custom' ? (customCapCount || 0) : Number(capCountSel);
+  // 默认封顶价 = 单价 × 封顶人数；用户未手动改过时显示该默认值
+  const autoCapPrice = price > 0 && capCount > 0 ? Number((price * capCount).toFixed(2)) : 0;
+  const effectiveCapPrice = capPriceManual ? capPrice : autoCapPrice;
+  // 「不限」或「不设置」时封顶价不适用
+  const capDisabled = capCount <= 0 || capPriceUnset;
 
   const [categories, setCategories] = useState<CategoryTreeNode[]>([]);
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -186,10 +214,21 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       toast.warning('请填写视频介绍');
       return;
     }
-    if (isFree === 0 && (!price || price <= 0)) {
-      toast.warning('请填写课程价格，或勾选"免费"');
+    if (!durationMinutes || durationMinutes <= 0) {
+      toast.warning('请填写视频时长（分钟）');
       return;
     }
+    if (isFree === 0 && (!price || price <= 0)) {
+      toast.warning('请填写单价，或勾选"免费"');
+      return;
+    }
+
+    // 封顶价：免费 / 不限人数 / 不设置 → 不传；否则取有效值
+    const resolvedCapCount = isFree === 1 ? 0 : capCount;
+    const resolvedCapPrice =
+      isFree === 1 || capPriceUnset || resolvedCapCount <= 0 || !effectiveCapPrice
+        ? undefined
+        : effectiveCapPrice;
 
     const data: SaveVideoRequest = {
       title: title.trim(),
@@ -203,6 +242,9 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       teacherName: teacherName || undefined,
       price: isFree === 1 ? 0 : price,
       isFree,
+      capCount: resolvedCapCount,
+      capPrice: resolvedCapPrice,
+      duration: durationMinutes * 60,
       keywords: keywords || undefined,
     };
 
@@ -517,34 +559,159 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
         </div>
       </div>
 
+      {/* 视频时长 */}
+      <div className="flex items-start gap-4">
+        <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">
+          视频时长 <span className="text-red-500">*</span>
+        </label>
+        <div className="flex-1 flex items-center gap-2">
+          <input
+            type="number"
+            value={durationMinutes || ''}
+            onChange={(e) => setDurationMinutes(Math.max(0, Math.floor(Number(e.target.value))))}
+            min={0}
+            step={1}
+            placeholder="请输入视频总时长"
+            className="w-32 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          />
+          <span className="text-sm text-slate-500">分钟</span>
+        </div>
+      </div>
+
       {/* 视频价格 */}
       <div className="flex items-start gap-4">
         <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">
           视频价格 <span className="text-red-500">*</span>
         </label>
-        <div className="flex-1 flex items-center gap-3">
-          <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+        <div className="flex-1 space-y-3">
+          {/* 免费（单选，选中后下方置灰） */}
+          <label className="flex items-center gap-1.5 text-sm cursor-pointer w-fit">
             <input
-              type="checkbox"
+              type="radio"
               checked={isFree === 1}
-              onChange={(e) => setIsFree(e.target.checked ? 1 : 0)}
+              onClick={() => setIsFree(isFree === 1 ? 0 : 1)}
+              onChange={() => {}}
               className="accent-primary"
             />
             免费
           </label>
-          {isFree === 0 && (
-            <>
+
+          <div
+            className={cn(
+              'space-y-3 transition-opacity',
+              isFree === 1 && 'opacity-50 pointer-events-none select-none',
+            )}
+          >
+            {/* 单价 */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 w-20 shrink-0">单价</span>
               <input
                 type="number"
-                value={price}
-                onChange={(e) => setPrice(Number(e.target.value))}
+                value={price || ''}
+                onChange={(e) => setPrice(Math.max(0, Number(e.target.value)))}
                 min={0}
                 step={0.01}
+                disabled={isFree === 1}
                 className="w-32 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
               <span className="text-sm text-slate-500">元/人/年</span>
-            </>
-          )}
+            </div>
+
+            {/* 封顶价设置 */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm text-gray-600">封顶价设置</span>
+              <span className="relative inline-flex">
+                <button
+                  type="button"
+                  onClick={() => setCapInfoOpen((v) => !v)}
+                  onMouseEnter={() => setCapInfoOpen(true)}
+                  onMouseLeave={() => setCapInfoOpen(false)}
+                  className="text-slate-400 hover:text-primary"
+                  aria-label="封顶价说明"
+                >
+                  <Info className="size-4" />
+                </button>
+                {capInfoOpen && (
+                  <span className="absolute left-6 top-1/2 -translate-y-1/2 z-50 w-72 rounded-lg bg-slate-800 text-white text-xs leading-relaxed px-3 py-2 shadow-lg">
+                    封顶价是为批量采购设置的优惠价格，计算规则为单价×封顶人数。批量采购时，总价不超过「封顶价」；批量采购人数超过封顶人数后，也不再额外收费。
+                  </span>
+                )}
+              </span>
+            </div>
+
+            {/* 封顶人数 */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 w-20 shrink-0 pl-4">封顶人数</span>
+              <select
+                value={capCountSel}
+                onChange={(e) => {
+                  setCapCountSel(e.target.value);
+                  setCapPriceManual(false);
+                  // 选「不限」→ 封顶价不适用并置灰；选具体人数 → 默认启用并显示单价×人数
+                  setCapPriceUnset(e.target.value === '0');
+                }}
+                disabled={isFree === 1}
+                className="w-40 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+              >
+                <option value="0">不限</option>
+                <option value="20">20人封顶</option>
+                <option value="40">40人封顶</option>
+                <option value="100">100人封顶</option>
+                <option value="custom">自定义</option>
+              </select>
+              {capCountSel === 'custom' && (
+                <>
+                  <input
+                    type="number"
+                    value={customCapCount || ''}
+                    onChange={(e) => {
+                      setCustomCapCount(Math.max(0, Math.floor(Number(e.target.value))));
+                      setCapPriceManual(false);
+                    }}
+                    min={1}
+                    step={1}
+                    placeholder="人数"
+                    disabled={isFree === 1}
+                    className="w-24 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                  <span className="text-sm text-slate-500">人</span>
+                </>
+              )}
+            </div>
+
+            {/* 封顶价 */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 w-20 shrink-0 pl-4">封顶价</span>
+              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <input
+                  type="radio"
+                  checked={capPriceUnset}
+                  onClick={() => setCapPriceUnset((v) => !v)}
+                  onChange={() => {}}
+                  disabled={isFree === 1 || capCount <= 0}
+                  className="accent-primary"
+                />
+                不设置
+              </label>
+              <input
+                type="number"
+                value={capDisabled ? '' : effectiveCapPrice || ''}
+                onChange={(e) => {
+                  setCapPrice(Math.max(0, Number(e.target.value)));
+                  setCapPriceManual(true);
+                }}
+                min={0}
+                step={0.01}
+                disabled={isFree === 1 || capDisabled}
+                placeholder={capCount > 0 ? '默认单价×封顶人数' : '请先选择封顶人数'}
+                className={cn(
+                  'w-44 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary',
+                  capDisabled && 'bg-slate-100 text-slate-400',
+                )}
+              />
+              <span className="text-sm text-slate-500">元</span>
+            </div>
+          </div>
         </div>
       </div>
 

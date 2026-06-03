@@ -33,6 +33,11 @@ public class DemandDetailResponse {
     private LocalDate expectedStartDate;
     private String format;
     private String formatLabel;
+    /** 培训类型：PUBLIC=公开课, INTERNAL=内训课 */
+    private String courseType;
+    private String courseTypeLabel;
+    /** 意向专家（自由文本，选填） */
+    private String intendedTrainer;
     private String description;
     private Integer sourceCaseId;
     private Integer sourceCourseId;
@@ -74,6 +79,9 @@ public class DemandDetailResponse {
                 r.setFormatLabel(d.getFormat());
             }
         }
+        r.setCourseType(d.getCourseType());
+        r.setCourseTypeLabel(courseTypeLabel(d.getCourseType()));
+        r.setIntendedTrainer(d.getIntendedTrainer());
         r.setDescription(d.getDescription());
         r.setSourceCaseId(d.getSourceCaseId());
         r.setSourceCourseId(d.getSourceCourseId());
@@ -87,5 +95,17 @@ public class DemandDetailResponse {
         r.setCreatedAt(d.getCreatedAt());
         r.setUpdatedAt(d.getUpdatedAt());
         return r;
+    }
+
+    /** 培训类型中文标签 */
+    private static String courseTypeLabel(String courseType) {
+        if (courseType == null) {
+            return null;
+        }
+        return switch (courseType) {
+            case "PUBLIC" -> "公开课";
+            case "INTERNAL" -> "内训课";
+            default -> courseType;
+        };
     }
 }

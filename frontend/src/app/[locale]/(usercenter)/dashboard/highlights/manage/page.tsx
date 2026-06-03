@@ -40,6 +40,7 @@ import {
 
 const STATUS_TABS: { label: string; value: number | undefined }[] = [
   { label: '全部', value: undefined },
+  { label: '草稿', value: HighlightStatus.DRAFT },
   { label: '待审核', value: HighlightStatus.PENDING },
   { label: '已通过', value: HighlightStatus.APPROVED },
   { label: '已驳回', value: HighlightStatus.REJECTED },
@@ -49,6 +50,7 @@ const STATUS_BADGE_STYLES: Record<number, string> = {
   [HighlightStatus.PENDING]: 'bg-amber-50 text-amber-600',
   [HighlightStatus.APPROVED]: 'bg-green-50 text-green-600',
   [HighlightStatus.REJECTED]: 'bg-red-50 text-red-600',
+  [HighlightStatus.DRAFT]: 'bg-slate-100 text-slate-500',
 };
 
 export default function ManageHighlightsPage() {

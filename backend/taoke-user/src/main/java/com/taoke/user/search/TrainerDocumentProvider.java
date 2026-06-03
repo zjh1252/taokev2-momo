@@ -6,8 +6,10 @@ import com.taoke.common.search.BaseDocument;
 import com.taoke.common.search.DocumentSyncProvider;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.TrainerExpertiseCategory;
+import com.taoke.user.entity.User;
 import com.taoke.user.repository.TrainerExpertiseCategoryRepository;
 import com.taoke.user.repository.TrainerRepository;
+import com.taoke.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
@@ -36,6 +38,7 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
     private final TrainerRepository trainerRepository;
     private final RegionRepository regionRepository;
     private final TrainerExpertiseCategoryRepository expertiseCategoryRepository;
+    private final UserRepository userRepository;
 
     @Override
     public String getDocType() {
@@ -102,13 +105,26 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
                         Collectors.mapping(TrainerExpertiseCategory::getCategoryId, Collectors.toList())
                 ));
 
+        // 头像统一取 sys_users.avatar_url（trainer.avatar 已弃用）
+        Set<Integer> userIds = trainers.stream()
+                .map(Trainer::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Integer, String> avatarByUserId = userIds.isEmpty()
+                ? Map.of()
+                : userRepository.findAllById(userIds).stream()
+                        .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
+                        .collect(Collectors.toMap(User::getId, User::getAvatarUrl));
+
         Map<Integer, String> finalRegionNameMap = regionNameMap;
         return trainers.stream()
-                .map(t -> toDocument(t, finalRegionNameMap, expertiseMap.getOrDefault(t.getId(), List.of())))
+                .map(t -> toDocument(t, finalRegionNameMap, expertiseMap.getOrDefault(t.getId(), List.of()),
+                        t.getUserId() != null ? avatarByUserId.get(t.getUserId()) : null))
                 .toList();
     }
 
-    private TrainerDocument toDocument(Trainer trainer, Map<Integer, String> regionNameMap, List<Integer> expertiseCategoryIds) {
+    private TrainerDocument toDocument(Trainer trainer, Map<Integer, String> regionNameMap,
+                                       List<Integer> expertiseCategoryIds, String userAvatar) {
         TrainerDocument doc = new TrainerDocument();
         doc.setDocType(DOC_TYPE);
         doc.setId(trainer.getId());
@@ -116,7 +132,7 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         doc.setUpdatedAt(trainer.getUpdatedAt());
 
         doc.setName(trainer.getName());
-        doc.setAvatar(trainer.getAvatar());
+        doc.setAvatar(userAvatar != null && !userAvatar.isBlank() ? userAvatar : trainer.getAvatar());
         doc.setTitle(trainer.getTitle());
         doc.setBio(stripHtml(trainer.getBio()));
         doc.setIntro(stripHtml(trainer.getIntro()));

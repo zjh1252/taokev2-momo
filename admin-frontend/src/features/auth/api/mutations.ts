@@ -1,5 +1,5 @@
 import { mutationOptions } from '@tanstack/react-query';
-import { login, register, sendCode, logout } from './service';
+import { login, register, sendCode, logout, changePassword } from './service';
 import type { LoginPayload, RegisterPayload, SendCodePayload } from './types';
 import { withCaptcha } from '@/lib/captcha';
 
@@ -18,4 +18,8 @@ export const sendCodeMutation = mutationOptions({
 
 export const logoutMutation = mutationOptions({
   mutationFn: () => logout()
+});
+
+export const changePasswordMutation = mutationOptions({
+  mutationFn: (data: { oldPassword?: string; newPassword: string }) => changePassword(data)
 });

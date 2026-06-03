@@ -11,8 +11,8 @@ import {
   removeFavorite,
   getInteractionState,
 } from '@/features/interaction/api/service';
-import TrainerMessageDialog from '@/features/interaction/components/TrainerMessageDialog';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
+import { useRouter } from '@/i18n/navigation';
 import { isDisplayTitle } from '../../utils/displayTitle';
 
 interface TrainerHeroProps {
@@ -33,11 +33,18 @@ function StarRating({ score }: { score: number }) {
 }
 
 export function TrainerHero({ trainer }: TrainerHeroProps) {
-  const expertiseTags = trainer.expertiseTags?.split(',').filter(Boolean) ?? [];
   const { requireAuth } = useAuthGuard();
-  const [msgOpen, setMsgOpen] = useState(false);
+  const router = useRouter();
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
+
+  // 给专家留言：跳转到发布需求页，培训类型预选内训课、意向专家预填该专家
+  const gotoLeaveMessage = () =>
+    requireAuth(() =>
+      router.push(
+        `/dashboard/demands/create?courseType=INTERNAL&intendedTrainer=${encodeURIComponent(trainer.name)}`,
+      ),
+    );
 
   useEffect(() => {
     getInteractionState('TRAINER', trainer.userId)
@@ -89,7 +96,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
 
           <div className="flex flex-col gap-3 mt-6 w-[190px]">
             <button
-              onClick={() => requireAuth(() => setMsgOpen(true))}
+              onClick={gotoLeaveMessage}
               className="w-full px-4 py-2.5 bg-primary text-white rounded flex items-center justify-center gap-1.5 hover:bg-primary/90 font-medium transition-colors whitespace-nowrap"
             >
               <MessageSquare className="size-5" /> 给专家留言
@@ -113,13 +120,6 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
             </div>
           </div>
 
-          <TrainerMessageDialog
-            open={msgOpen}
-            onOpenChange={setMsgOpen}
-            trainerUserId={trainer.userId}
-            trainerName={trainer.name}
-            onSuccess={() => toast.success('留言已提交，我们会尽快联系您！')}
-          />
         </div>
 
         {/* 右侧：信息与操作 */}
@@ -196,24 +196,6 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                   </div>
                 )}
 
-                {/* 自定义标签 */}
-                {expertiseTags.length > 0 && (
-                  <div className="flex items-center gap-4">
-                    <span className="text-[14px] text-slate-600 w-[65px] font-medium shrink-0">
-                      关键标签:
-                    </span>
-                    <div className="flex flex-wrap gap-2.5">
-                      {expertiseTags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-3.5 py-1 rounded-full border border-slate-200 text-slate-600 text-[13px] bg-slate-50"
-                        >
-                          {tag.trim()}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>

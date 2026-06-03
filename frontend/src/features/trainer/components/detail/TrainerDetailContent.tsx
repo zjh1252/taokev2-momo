@@ -14,6 +14,7 @@ import type { TrainerDetail, TrainerBook } from '../../types';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
 import type { TrainerCase } from '@/features/trainer-case/api/types';
+import type { TrainerHighlight } from '@/features/trainer-highlight/api/types';
 import { getPublicReviews } from '@/features/interaction/api/service';
 import type { ReviewItem } from '@/features/interaction/api/types';
 import ReviewDialog from '@/features/interaction/components/ReviewDialog';
@@ -26,6 +27,7 @@ interface TrainerDetailContentProps {
   trainer: TrainerDetail;
   courses: CourseListItem[];
   cases: TrainerCase[];
+  highlights: TrainerHighlight[];
   videos: VideoListItem[];
   books: TrainerBook[];
 }
@@ -58,6 +60,7 @@ export function TrainerDetailContent({
   trainer,
   courses,
   cases,
+  highlights,
   videos,
   books,
 }: TrainerDetailContentProps) {
@@ -123,7 +126,7 @@ export function TrainerDetailContent({
       {/* Tab 内容区 */}
       <div className="min-h-[800px]">
         {activeTab === 'home' && (
-          <HomeView trainer={trainer} courses={courses} cases={cases} />
+          <HomeView trainer={trainer} courses={courses} cases={cases} highlights={highlights} />
         )}
         {activeTab === 'courses' && <CoursesView courses={courses} />}
         {activeTab === 'cases' && <CasesView cases={cases} />}
@@ -148,10 +151,12 @@ function HomeView({
   trainer,
   courses,
   cases,
+  highlights,
 }: {
   trainer: TrainerDetail;
   courses: CourseListItem[];
   cases: TrainerCase[];
+  highlights: TrainerHighlight[];
 }) {
   const introText = trainer.intro?.trim() || '';
   const bioText = trainer.bio?.trim() || '';
@@ -173,7 +178,8 @@ function HomeView({
     || showGoodAt
     || trainer.honors.length > 0
     || cases.length > 0
-    || courses.length > 0;
+    || courses.length > 0
+    || highlights.length > 0;
 
   return (
     <div className="space-y-6">
@@ -371,17 +377,18 @@ function HomeView({
         </div>
       )}
 
-      {/* 授课案例 预览（与「授课案例」tab 数据源一致，仅取前 3 条） */}
+      {/* 成功案例 — 图片 + 标题 + 描述，可点击进入案例详情 */}
       {cases.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <SectionTitle>授课案例</SectionTitle>
+            <SectionTitle>成功案例</SectionTitle>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {cases.slice(0, 3).map((c) => (
-              <article
+            {cases.slice(0, 6).map((c) => (
+              <Link
                 key={c.id}
-                className="rounded-lg border border-slate-200 overflow-hidden group hover:shadow-sm transition"
+                href={`/trainers/${trainer.id}/cases/${c.id}`}
+                className="rounded-lg border border-slate-200 overflow-hidden group hover:shadow-md transition block"
               >
                 <div className="aspect-[16/10] overflow-hidden bg-slate-100">
                   {c.coverImage ? (
@@ -400,13 +407,50 @@ function HomeView({
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-semibold text-[15px] line-clamp-2">{c.caseTitle}</h3>
+                  <h3 className="font-semibold text-[15px] line-clamp-2 group-hover:text-primary transition-colors">
+                    {c.caseTitle}
+                  </h3>
                   {c.description && (
                     <p className="text-sm text-slate-500 mt-2 line-clamp-2">{c.description}</p>
                   )}
                 </div>
-              </article>
+              </Link>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* 精彩瞬间 — 图片横向滚动展示 */}
+      {highlights.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <SectionTitle>精彩瞬间</SectionTitle>
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
+            {highlights.map((h) => {
+              const cover = h.coverImage || h.files?.[0]?.thumbnailUrl || h.files?.[0]?.fileUrl || '';
+              return (
+                <div
+                  key={h.id}
+                  className="shrink-0 w-[260px] rounded-lg overflow-hidden border border-slate-200 bg-slate-100"
+                >
+                  <div className="aspect-[16/10] overflow-hidden">
+                    {cover ? (
+                      <SafeImage
+                        src={cover}
+                        fallback={DEFAULT_COURSE_COVER}
+                        alt={h.title || '精彩瞬间'}
+                        width={520}
+                        height={325}
+                        className="w-full h-full object-cover hover:scale-[1.02] transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                        暂无图片
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

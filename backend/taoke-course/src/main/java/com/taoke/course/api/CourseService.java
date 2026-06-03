@@ -121,6 +121,11 @@ public interface CourseService {
     List<CourseListItemVO> listHotOpenCourses();
 
     /**
+     * 本周活跃机构：最近 days 天内有「已上架」课程发布的机构 user_id，按最近发布时间倒序，最多 limit 个。
+     */
+    List<Integer> listRecentlyActiveInstitutionUserIds(int days, int limit);
+
+    /**
      * 专家详情页：按专家 ID 拉取其所有已上架课程（公开课 + 内训课），分页。
      *
      * @param trainerId 专家 ID（user_trainers.id）

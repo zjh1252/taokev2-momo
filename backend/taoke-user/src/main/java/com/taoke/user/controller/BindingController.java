@@ -12,6 +12,8 @@ import com.taoke.user.dto.binding.BindingType;
 import com.taoke.user.dto.binding.InitiateBindingRequest;
 import com.taoke.user.dto.binding.RejectBindingRequest;
 import com.taoke.user.entity.User;
+import com.taoke.user.entity.Trainer;
+import com.taoke.user.repository.TrainerRepository;
 import com.taoke.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,6 +38,7 @@ public class BindingController {
 
     private final BindingService bindingService;
     private final UserRepository userRepository;
+    private final TrainerRepository trainerRepository;
 
     // ============================================================
     // 发起 / 确认 / 拒绝 / 解绑
@@ -249,9 +252,15 @@ public class BindingController {
         }
         User u = userRepository.findByPhone(phone.trim())
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "未找到对应用户"));
+        // 真实姓名优先取专家档案 name（专家真实姓名），其次用户实名
+        String realName = trainerRepository.findByUserId(u.getId())
+                .map(Trainer::getName)
+                .filter(s -> s != null && !s.isBlank())
+                .orElse(u.getRealName());
         Map<String, Object> data = new HashMap<>();
         data.put("id", u.getId());
-        data.put("nickname", u.getNickname() != null ? u.getNickname() : u.getRealName());
+        data.put("realName", realName);
+        data.put("nickname", u.getNickname() != null ? u.getNickname() : realName);
         data.put("avatarUrl", u.getAvatarUrl());
         data.put("phone", u.getPhone());
         return ApiResponse.ok(data);

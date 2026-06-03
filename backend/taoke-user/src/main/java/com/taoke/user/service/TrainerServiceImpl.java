@@ -1,5 +1,6 @@
 package com.taoke.user.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
@@ -57,6 +58,9 @@ public class TrainerServiceImpl implements TrainerService {
     private final RegionService regionService;
     /** 头像统一存到 sys_users.avatar_url，保存专家档案时一并更新 User 表 */
     private final UserRepository userRepository;
+
+    /** 荣誉与资质文件 JSON 序列化用 */
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Override
     public TrainerResponse getByUserId(Integer userId) {
@@ -127,10 +131,14 @@ public class TrainerServiceImpl implements TrainerService {
                 ? Map.of()
                 : regionService.getNamesByIds(regionIds);
 
+        // 头像统一取 sys_users.avatar_url
+        Map<Integer, String> avatarByUserId = resolveUserAvatars(trainerMap.values());
+
         // 组装结果，保持 ID 原始顺序
         List<TrainerListItemResponse> items = trainerIds.stream().map(id -> {
             Trainer t = trainerMap.get(id);
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
+            applyUserAvatar(item, t, avatarByUserId);
 
             List<CategoryRefDTO> catRefs = expertiseMap.getOrDefault(id, List.of()).stream().map(ec -> {
                 CategoryRefDTO dto = new CategoryRefDTO();
@@ -160,6 +168,34 @@ public class TrainerServiceImpl implements TrainerService {
         }).toList();
 
         return PageResponse.of(items, trainerPage.getTotalElements(), page, size);
+    }
+
+    /**
+     * 批量解析专家头像 — 统一以 sys_users.avatar_url 为准（trainer.avatar 已弃用）。
+     *
+     * @return userId → avatarUrl（仅含非空头像）
+     */
+    private Map<Integer, String> resolveUserAvatars(Collection<Trainer> trainers) {
+        Set<Integer> userIds = trainers.stream()
+                .map(Trainer::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findAllById(userIds).stream()
+                .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
+                .collect(Collectors.toMap(User::getId, User::getAvatarUrl));
+    }
+
+    /** 用 sys_users.avatar_url 覆盖列表项头像 */
+    private void applyUserAvatar(TrainerListItemResponse item, Trainer t, Map<Integer, String> avatarByUserId) {
+        if (t.getUserId() != null) {
+            String avatar = avatarByUserId.get(t.getUserId());
+            if (avatar != null) {
+                item.setAvatar(avatar);
+            }
+        }
     }
 
     @Override
@@ -290,16 +326,19 @@ public class TrainerServiceImpl implements TrainerService {
                         .and(Sort.by(Sort.Direction.DESC, "id")));
         List<Trainer> picked = new ArrayList<>(trainerRepository.findAll(recSpec, recPageable).getContent());
 
-        // 2) 不够 target 时，直接按 id 倒序取已上架专家补齐
-        //    业务约定：允许与已选重复，简单稳定，前端按位置渲染
+        // 2) 不够 target 时，按 id 倒序取已上架专家补齐；按 id 去重，避免与已选重复展示
         if (picked.size() < target) {
+            Set<Integer> pickedIds = picked.stream().map(Trainer::getId).collect(Collectors.toSet());
             Specification<Trainer> latestSpec = (root, cq, cb) -> cb.equal(root.get("status"), 2);
-            PageRequest latestPageable = PageRequest.of(0, target,
+            // 多取一些以便去重后仍能补满
+            PageRequest latestPageable = PageRequest.of(0, target * 2,
                     Sort.by(Sort.Direction.DESC, "id"));
             List<Trainer> latest = trainerRepository.findAll(latestSpec, latestPageable).getContent();
             for (Trainer t : latest) {
                 if (picked.size() >= target) break;
-                picked.add(t);
+                if (pickedIds.add(t.getId())) {
+                    picked.add(t);
+                }
             }
         }
 
@@ -307,9 +346,13 @@ public class TrainerServiceImpl implements TrainerService {
             return List.of();
         }
 
+        // 头像统一以 sys_users.avatar_url 为准（覆盖 mapper 从已弃用的 trainer.avatar 同步的旧值）
+        Map<Integer, String> avatarByUserId = resolveUserAvatars(picked);
+
         return picked.stream().map(t -> {
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
             item.setExpertiseCategories(List.of());
+            applyUserAvatar(item, t, avatarByUserId);
             return item;
         }).toList();
     }
@@ -368,9 +411,11 @@ public class TrainerServiceImpl implements TrainerService {
         }
 
         // 组装列表项（不需要分类、地区名称，留空即可，前端只展示头像/姓名/头衔/评分）
+        Map<Integer, String> avatarByUserId = resolveUserAvatars(trainers);
         return trainers.stream().map(t -> {
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
             item.setExpertiseCategories(List.of());
+            applyUserAvatar(item, t, avatarByUserId);
             return item;
         }).toList();
     }
@@ -592,6 +637,7 @@ public class TrainerServiceImpl implements TrainerService {
         if (req.getTaokeCommission() != null) trainer.setTaokeCommission(req.getTaokeCommission());
         if (req.getResumeUrl() != null) trainer.setResumeUrl(req.getResumeUrl());
         if (req.getBackgroundImage() != null) trainer.setBackgroundImage(req.getBackgroundImage());
+        if (req.getHonorFiles() != null) trainer.setHonorFiles(serializeHonorFiles(req.getHonorFiles()));
 
         // 协议签署：首次勾选时回写时间与版本，已有签署时间时不重复覆盖
         if (Boolean.TRUE.equals(req.getAgreementSigned())) {
@@ -722,6 +768,18 @@ public class TrainerServiceImpl implements TrainerService {
             t.setCommentCount(next);
             trainerRepository.save(t);
         });
+    }
+
+    /**
+     * 序列化荣誉与资质文件列表为 JSON 字符串（存入 honor_files 列）。
+     * 空列表序列化为 "[]"，序列化失败时降级为 "[]" 避免阻断保存。
+     */
+    private String serializeHonorFiles(List<TrainerHonorFileItem> files) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(files == null ? List.of() : files);
+        } catch (Exception e) {
+            return "[]";
+        }
     }
 
     /** 批量回填多个列表的 categoryName */

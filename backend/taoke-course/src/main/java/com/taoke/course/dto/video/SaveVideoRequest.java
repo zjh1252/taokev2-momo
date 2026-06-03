@@ -54,6 +54,15 @@ public class SaveVideoRequest {
     /** 是否免费 */
     private Integer isFree;
 
+    /** 封顶人数：0=不限（不封顶） */
+    private Integer capCount;
+
+    /** 封顶价（批量采购优惠价），null=不设置 */
+    private BigDecimal capPrice;
+
+    /** 视频总时长（秒）；前端以分钟录入，提交时换算为秒 */
+    private Integer duration;
+
     /** 关键词 */
     private String keywords;
 }

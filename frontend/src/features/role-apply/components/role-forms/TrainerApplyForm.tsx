@@ -10,11 +10,12 @@ import { TOKEN_KEY } from '@/lib/auth/constants';
 import { getApiBaseUrl } from '@/lib/env/client';
 import RegionCascader from '@/components/region-cascader';
 import type { RegionValue } from '@/components/region-cascader';
-import type { TrainerFormData, TrainerBookFormItem } from '../../api/types';
+import type { TrainerFormData, TrainerBookFormItem, TrainerHonorFileItem } from '../../api/types';
 import { FormField } from './FormField';
 import type { FormValidationRules } from '@/lib/validation';
 import { Validators } from '@/lib/validation';
 import { ResumeUploader } from '../ResumeUploader';
+import MultiFileUploader from '../MultiFileUploader';
 import { CategoryMultiSelect } from '../CategoryMultiSelect';
 import { TrainerBooksEditor } from '../TrainerBooksEditor';
 import { getMyTrainerProfileAsForm, type ResumeParseResult } from '../../api/service';
@@ -130,6 +131,7 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
   };
 
   const books: TrainerBookFormItem[] = data.books || [];
+  const honorFiles: TrainerHonorFileItem[] = data.honorFiles || [];
   const expertiseIds: number[] = data.expertiseCategoryIds || [];
   const industryIds: number[] = data.industryCategoryIds || [];
 
@@ -344,14 +346,14 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
               onChange={(ids) => update({ expertiseCategoryIds: ids })}
             />
           </FormField>
-          <FormField label="专业标签">
-            <input
-              type="text"
-              value={data.expertiseTags || ''}
-              onChange={(e) => update({ expertiseTags: e.target.value })}
-              placeholder="多个标签用逗号分隔"
-              className="form-input"
+          <FormField label="荣誉与资质">
+            <MultiFileUploader
+              value={honorFiles}
+              onChange={(files) => update({ honorFiles: files })}
             />
+            <div className="text-xs text-gray-400 mt-1">
+              支持上传获奖证书、资质证明等，图片或 PDF，可多选（选填）
+            </div>
           </FormField>
           <FormField label="授课风格">
             <input

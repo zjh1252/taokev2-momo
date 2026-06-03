@@ -76,8 +76,11 @@ public class InstitutionEmployeeServiceImpl implements InstitutionEmployeeServic
             throw new BusinessException(ErrorCode.PARAM_INVALID,
                     "请先勾选并同意《淘课网注册培训机构员工合作协议》");
         }
-        // 先落档案（真实姓名 / 联系方式 / 服务城市 / 协议），再发起 PENDING 绑定
+        // 先落档案（真实姓名 / 联系方式 / 服务城市 / 协议）
         saveOrUpdateExtension(userId, request);
+        // 机构员工角色申请即自动通过审核（免人工审核）；
+        // 能否发布课程等资源仍受「名下需绑定专家」守卫限制。
+        roleApplyService.ensureRoleActive(userId, BusinessRole.Code.INSTITUTION_EMPLOYEE);
         bindingService.initiateInstitutionEmployeeFromEmployee(userId, request.getOrgId(), null);
     }
 

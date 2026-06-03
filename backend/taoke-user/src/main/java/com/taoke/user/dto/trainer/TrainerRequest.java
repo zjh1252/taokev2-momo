@@ -151,4 +151,7 @@ public class TrainerRequest {
 
     /** 我的著作（一次性整体替换式保存） */
     private List<SaveTrainerBookRequest> books;
+
+    /** 荣誉与资质文件（图片/PDF，多文件，一次性整体替换式保存） */
+    private List<TrainerHonorFileItem> honorFiles;
 }

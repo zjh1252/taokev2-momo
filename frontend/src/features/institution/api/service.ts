@@ -36,10 +36,18 @@ export interface InstitutionListParams {
   keyword?: string;
   sort?: string;
   association?: boolean;
+  /** 擅长领域（机构类别） */
+  specialty?: string;
+  /** 擅长行业 */
+  industry?: string;
+  provinceId?: number;
+  cityId?: number;
+  /** 最低星级评分 */
+  minScore?: number;
 }
 
 /**
- * 获取机构公开列表（分页 + 搜索）
+ * 获取机构公开列表（分页 + 多筛选）
  */
 export async function getInstitutionList(
   params: InstitutionListParams = {},
@@ -50,12 +58,68 @@ export async function getInstitutionList(
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sort) query.set('sort', params.sort);
   if (params.association != null) query.set('association', String(params.association));
+  if (params.specialty) query.set('specialty', params.specialty);
+  if (params.industry) query.set('industry', params.industry);
+  if (params.provinceId) query.set('provinceId', String(params.provinceId));
+  if (params.cityId) query.set('cityId', String(params.cityId));
+  if (params.minScore != null) query.set('minScore', String(params.minScore));
 
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<InstitutionListItem>>>(
     `/institutions${qs ? `?${qs}` : ''}`,
   );
   return res.data;
+}
+
+/** 机构筛选项聚合（擅长领域/擅长行业 计数） */
+export interface InstitutionCategoryCount {
+  name: string;
+  count: number;
+}
+export interface InstitutionFacets {
+  specialties: InstitutionCategoryCount[];
+  industries: InstitutionCategoryCount[];
+}
+
+/** 获取机构筛选项聚合（领域/行业 token 计数） */
+export async function getInstitutionFacets(): Promise<InstitutionFacets> {
+  const res = await apiGet<ApiResponse<InstitutionFacets>>('/institutions/facets');
+  return res.data;
+}
+
+/** 高分培训机构 */
+export async function getTopRatedInstitutions(limit = 5): Promise<InstitutionListItem[]> {
+  const res = await apiGet<ApiResponse<InstitutionListItem[]>>(`/institutions/top-rated?limit=${limit}`);
+  return res.data || [];
+}
+
+/** 最新加入培训机构 */
+export async function getNewestInstitutions(limit = 5): Promise<InstitutionListItem[]> {
+  const res = await apiGet<ApiResponse<InstitutionListItem[]>>(`/institutions/newest?limit=${limit}`);
+  return res.data || [];
+}
+
+/** 金牌推荐培训机构 */
+export async function getRecommendedInstitutions(limit = 4): Promise<InstitutionListItem[]> {
+  const res = await apiGet<ApiResponse<InstitutionListItem[]>>(`/institutions/recommended?limit=${limit}`);
+  return res.data || [];
+}
+
+/** 本周活跃培训机构（最近 7 天有发课） */
+export async function getWeeklyActiveInstitutions(limit = 5): Promise<InstitutionListItem[]> {
+  const res = await apiGet<ApiResponse<InstitutionListItem[]>>(`/institutions/weekly-active?limit=${limit}`);
+  return res.data || [];
+}
+
+/** 省份列表（用于机构搜索面板） */
+export interface RegionItem {
+  id: number;
+  code: string;
+  name: string;
+}
+export async function getProvinces(): Promise<RegionItem[]> {
+  const res = await apiGet<ApiResponse<RegionItem[]>>('/regions/children');
+  return res.data || [];
 }
 
 /**

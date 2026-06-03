@@ -43,15 +43,52 @@ public class InstitutionController {
     }
 
     @Public
-    @Operation(summary = "机构公开列表（分页 + 搜索）")
+    @Operation(summary = "机构公开列表（分页 + 多筛选）")
     @GetMapping("/institutions")
     public ApiResponse<PageResponse<InstitutionListItemResponse>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "default") String sort,
-            @RequestParam(required = false) Boolean association) {
-        return ApiResponse.ok(institutionService.listPublic(page, size, keyword, sort, association));
+            @RequestParam(required = false) Boolean association,
+            @RequestParam(required = false) String specialty,
+            @RequestParam(required = false) String industry,
+            @RequestParam(required = false) Integer provinceId,
+            @RequestParam(required = false) Integer cityId,
+            @RequestParam(required = false) java.math.BigDecimal minScore) {
+        return ApiResponse.ok(institutionService.listPublic(page, size, keyword, sort, association,
+                specialty, industry, provinceId, cityId, minScore));
+    }
+
+    @Public
+    @Operation(summary = "机构筛选项聚合（擅长领域/擅长行业 计数）")
+    @GetMapping("/institutions/facets")
+    public ApiResponse<com.taoke.user.dto.institution.InstitutionFacetsResponse> facets() {
+        return ApiResponse.ok(institutionService.listFacets());
+    }
+
+    @Public
+    @Operation(summary = "高分培训机构")
+    @GetMapping("/institutions/top-rated")
+    public ApiResponse<java.util.List<InstitutionListItemResponse>> topRated(
+            @RequestParam(defaultValue = "5") int limit) {
+        return ApiResponse.ok(institutionService.listTopRated(limit));
+    }
+
+    @Public
+    @Operation(summary = "最新加入培训机构")
+    @GetMapping("/institutions/newest")
+    public ApiResponse<java.util.List<InstitutionListItemResponse>> newest(
+            @RequestParam(defaultValue = "5") int limit) {
+        return ApiResponse.ok(institutionService.listNewest(limit));
+    }
+
+    @Public
+    @Operation(summary = "金牌推荐培训机构")
+    @GetMapping("/institutions/recommended")
+    public ApiResponse<java.util.List<InstitutionListItemResponse>> recommended(
+            @RequestParam(defaultValue = "4") int limit) {
+        return ApiResponse.ok(institutionService.listRecommended(limit));
     }
 
     @Public

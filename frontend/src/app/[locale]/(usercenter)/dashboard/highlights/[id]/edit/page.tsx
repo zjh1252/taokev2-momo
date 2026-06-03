@@ -6,6 +6,7 @@ import { ROUTES } from '@/config/routes';
 import {
   getMyHighlights,
   updateHighlight,
+  updateHighlightDraft,
   addHighlightFile,
   deleteHighlightFile,
 } from '@/features/trainer-highlight/api/service';
@@ -152,6 +153,19 @@ export default function EditHighlightPage({
     }
   };
 
+  const handleSaveDraft = async () => {
+    setSubmitting(true);
+    try {
+      await updateHighlightDraft(highlightId, form);
+      toast.success('草稿已保存');
+      router.push(ROUTES.UC_HIGHLIGHTS_MANAGE);
+    } catch {
+      // 平台层已统一处理错误提示
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <section className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
@@ -244,6 +258,14 @@ export default function EditHighlightPage({
             className="bg-primary text-white text-sm px-6 py-2.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {submitting ? '提交中...' : '保存修改'}
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={submitting}
+            className="border border-primary text-primary text-sm px-6 py-2.5 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
+          >
+            保存草稿
           </button>
           <Link
             href={ROUTES.UC_HIGHLIGHTS_MANAGE}
