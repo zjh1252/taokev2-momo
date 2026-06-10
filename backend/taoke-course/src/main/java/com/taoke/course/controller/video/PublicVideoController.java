@@ -47,6 +47,13 @@ public class PublicVideoController {
     }
 
     @Public
+    @Operation(summary = "录播课一级分类批量计数（频道底部分类导航）")
+    @GetMapping("/videos/category-counts")
+    public ApiResponse<java.util.Map<Integer, Long>> categoryCounts() {
+        return ApiResponse.ok(videoService.countPublicByCategoryL1());
+    }
+
+    @Public
     @Operation(summary = "录播课公开详情")
     @GetMapping("/videos/{id}")
     public ApiResponse<VideoDetailVO> detail(@PathVariable Integer id) {

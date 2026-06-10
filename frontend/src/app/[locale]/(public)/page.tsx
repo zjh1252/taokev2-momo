@@ -1,4 +1,4 @@
-import { getTranslations } from 'next-intl/server';
+import { homeMetadata } from '@/lib/seo';
 import {
   HeroSection,
   AiMatchBanner,
@@ -19,8 +19,7 @@ import { getActiveCities } from '@/features/city/api/service';
 import { CityChannelCard } from '@/features/city/components/CityChannelCard';
 
 export async function generateMetadata() {
-  const t = await getTranslations('common');
-  return { title: t('site.title'), description: t('site.description') };
+  return homeMetadata();
 }
 
 /**

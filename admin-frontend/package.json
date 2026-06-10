@@ -18,6 +18,7 @@
     "format:check": "oxfmt --check .",
     "prepare": "husky"
   },
+
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",

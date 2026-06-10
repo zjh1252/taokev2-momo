@@ -82,6 +82,12 @@ export async function addCaseFile(
   return res.data;
 }
 
+/** 已审核案例公开详情 */
+export async function getPublicCaseDetail(id: number): Promise<TrainerCase> {
+  const res = await apiGet<ApiResponse<TrainerCase>>(`/trainer-cases/${id}`);
+  return res.data;
+}
+
 /** 删除案例附件 */
 export async function deleteCaseFile(
   caseId: number,

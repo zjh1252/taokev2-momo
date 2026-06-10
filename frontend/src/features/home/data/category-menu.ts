@@ -28,6 +28,8 @@ export const CATEGORY_SHORT_LABELS: Record<string, string> = {
   家庭亲子: '亲子',
   健康养生: '养生',
   党政爱国: '党政',
+  政经: '政经',
+  新媒体: '新媒体',
   其它: '其他',
 };
 
@@ -40,5 +42,5 @@ export const HOME_CATEGORY_MENU_ROWS: string[][] = [
   ['国学/心理学', '行政/法规'],
   ['领导力', 'MBA/总裁班'],
   ['新技术', '家庭亲子', '健康养生', '党政爱国'],
-  ['其它'],
+  ['政经', '新媒体', '其它'],
 ];

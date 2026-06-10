@@ -3,16 +3,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { usePathname, useRouter } from '@/i18n/navigation';
-
-/** 从 URL 查询参数解析列表页码（默认 1） */
-export function parseListPageFromSearchParams(
-  searchParams: Pick<URLSearchParams, 'get'>,
-): number {
-  const raw = searchParams.get('page');
-  if (!raw) return 1;
-  const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n >= 1 ? n : 1;
-}
+import { parseListPageFromSearchParams } from '@/lib/list-page';
 
 type UseListPageUrlSyncOptions = {
   currentPage: number;

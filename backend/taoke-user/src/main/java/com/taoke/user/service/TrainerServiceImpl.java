@@ -1,5 +1,7 @@
 package com.taoke.user.service;
 
+import com.taoke.common.dto.CategoryTreeVO;
+import com.taoke.common.entity.Category;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
@@ -13,6 +15,9 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.*;
 import com.taoke.user.mapper.TrainerMapper;
 import com.taoke.user.repository.*;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -43,6 +48,9 @@ import java.util.stream.Stream;
 @Service
 @RequiredArgsConstructor
 public class TrainerServiceImpl implements TrainerService {
+
+    /** V10/V11 演示种子用户手机号段，与迁移库真实用户区分 */
+    private static final String SEED_IMPORT_PHONE_PREFIX = "132666600";
 
     private final TrainerRepository trainerRepository;
     private final TrainerEducationRepository educationRepository;
@@ -127,10 +135,14 @@ public class TrainerServiceImpl implements TrainerService {
                 ? Map.of()
                 : regionService.getNamesByIds(regionIds);
 
+        Map<Integer, String> userAvatarMap = loadUserAvatarMap(
+                trainerMap.values().stream().map(Trainer::getUserId).filter(Objects::nonNull).toList());
+
         // 组装结果，保持 ID 原始顺序
         List<TrainerListItemResponse> items = trainerIds.stream().map(id -> {
             Trainer t = trainerMap.get(id);
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
+            applyUserAvatar(item, t.getUserId(), userAvatarMap);
 
             List<CategoryRefDTO> catRefs = expertiseMap.getOrDefault(id, List.of()).stream().map(ec -> {
                 CategoryRefDTO dto = new CategoryRefDTO();
@@ -163,6 +175,19 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     @Override
+    public Map<Integer, Long> countPublicByExpertiseL1() {
+        Map<Integer, Long> map = new HashMap<>();
+        for (Object[] row : expertiseCategoryRepository.countPublishedTrainersByExpertiseL1()) {
+            if (row[0] == null) {
+                continue;
+            }
+            long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            map.put(((Number) row[0]).intValue(), count);
+        }
+        return map;
+    }
+
+    @Override
     public List<Integer> findPublishedTrainerIds(Integer industryCategoryId,
                                                  Integer provinceId,
                                                  Integer cityId,
@@ -171,6 +196,30 @@ public class TrainerServiceImpl implements TrainerService {
         Specification<Trainer> spec = buildTrainerDimensionSpec(
                 null, industryCategoryId, provinceId, cityId, isTrusted, hasCopyrightCourse, null);
         return trainerRepository.findAll(spec).stream().map(Trainer::getId).toList();
+    }
+
+    /**
+     * 擅长领域筛选 ID 集合。
+     * <p>一级分类时展开为其下全部二级，与专家列表底部分类统计口径一致；
+     * 老站 PHP 列表仅按一级 {@code categoryIds} 精确匹配，底部分类数来自
+     * {@code membercate_relation.cid = 一级ID}（见 {@code tkw/shell/statics_resourse_for_cate.php}）。</p>
+     */
+    private List<Integer> resolveExpertiseCategoryFilterIds(Integer expertiseCategoryId) {
+        Category category = categoryService.getById(expertiseCategoryId);
+        if (category == null) {
+            return List.of(expertiseCategoryId);
+        }
+        if (!"TRAINER_EXPERTISE".equals(category.getType()) || category.getLevel() == null
+                || category.getLevel() != 1) {
+            return List.of(expertiseCategoryId);
+        }
+        List<Integer> ids = new ArrayList<>();
+        ids.add(expertiseCategoryId);
+        categoryService.getChildren("TRAINER_EXPERTISE", expertiseCategoryId).stream()
+                .map(CategoryTreeVO::getId)
+                .filter(Objects::nonNull)
+                .forEach(ids::add);
+        return ids;
     }
 
     /** 构建列表查询的动态条件 */
@@ -222,11 +271,14 @@ public class TrainerServiceImpl implements TrainerService {
             }
 
             if (expertiseCategoryId != null) {
-                Subquery<Integer> sub = query.subquery(Integer.class);
-                Root<TrainerExpertiseCategory> ecRoot = sub.from(TrainerExpertiseCategory.class);
-                sub.select(ecRoot.get("trainerId"))
-                   .where(cb.equal(ecRoot.get("categoryId"), expertiseCategoryId));
-                predicates.add(root.get("id").in(sub));
+                List<Integer> expertiseFilterIds = resolveExpertiseCategoryFilterIds(expertiseCategoryId);
+                if (!expertiseFilterIds.isEmpty()) {
+                    Subquery<Integer> sub = query.subquery(Integer.class);
+                    Root<TrainerExpertiseCategory> ecRoot = sub.from(TrainerExpertiseCategory.class);
+                    sub.select(ecRoot.get("trainerId"))
+                       .where(ecRoot.get("categoryId").in(expertiseFilterIds));
+                    predicates.add(root.get("id").in(sub));
+                }
             }
 
             if (industryCategoryId != null) {
@@ -237,8 +289,115 @@ public class TrainerServiceImpl implements TrainerService {
                 predicates.add(root.get("id").in(sub));
             }
 
+            // FIXME: 同名去重子查询导致分页查询极慢（每行一次 sys_users 关联），暂时关闭
+            // 迁移数据与种子数据同名时，列表/筛选只展示迁移档案（如钟越 id=56185 优先于种子 id=16）
+            // predicates.add(notExistsHigherPrioritySameNameTrainer(root, query, cb));
+
             return cb.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    /**
+     * 同名专家去重：存在更高优先级档案时隐藏当前记录。
+     * <p>优先级：旧站迁移（user_id=id）&gt; 非种子导入手机号 &gt; 专家 id 较大。</p>
+     */
+    private Predicate notExistsHigherPrioritySameNameTrainer(Root<Trainer> root,
+                                                             CriteriaQuery<?> query,
+                                                             CriteriaBuilder cb) {
+        Subquery<Integer> dup = query.subquery(Integer.class);
+        Root<Trainer> other = dup.from(Trainer.class);
+
+        Expression<Integer> selfPriority = trainerListPriorityScore(root, query, cb);
+        Expression<Integer> otherPriority = trainerListPriorityScore(other, query, cb);
+
+        dup.select(cb.literal(1)).where(
+                cb.equal(other.get("status"), 2),
+                cb.equal(other.get("name"), root.get("name")),
+                cb.notEqual(other.get("id"), root.get("id")),
+                cb.or(
+                        cb.greaterThan(otherPriority, selfPriority),
+                        cb.and(
+                                cb.equal(otherPriority, selfPriority),
+                                cb.greaterThan(other.get("id"), root.get("id"))
+                        )
+                )
+        );
+        return cb.not(cb.exists(dup));
+    }
+
+    /** 列表同名去重优先级分（越大越优先展示） */
+    private Expression<Integer> trainerListPriorityScore(Root<Trainer> trainer,
+                                                         CriteriaQuery<?> query,
+                                                         CriteriaBuilder cb) {
+        Expression<Integer> legacyScore = cb.<Integer>selectCase()
+                .when(cb.equal(trainer.get("userId"), trainer.get("id")), 100)
+                .otherwise(0);
+
+        Subquery<Integer> seedPhone = query.subquery(Integer.class);
+        Root<User> user = seedPhone.from(User.class);
+        seedPhone.select(cb.literal(1)).where(
+                cb.equal(user.get("id"), trainer.get("userId")),
+                cb.like(user.get("phone"), SEED_IMPORT_PHONE_PREFIX + "%")
+        );
+        Expression<Integer> nonSeedScore = cb.<Integer>selectCase()
+                .when(cb.exists(seedPhone), 0)
+                .otherwise(10);
+
+        return cb.sum(legacyScore, nonSeedScore);
+    }
+
+    @Override
+    public Integer resolveCourseTrainerId(Integer trainerId) {
+        if (trainerId == null || trainerId <= 0) {
+            return trainerId;
+        }
+        Trainer current = trainerRepository.findById(trainerId).orElse(null);
+        if (current == null || current.getName() == null || current.getName().isBlank()) {
+            return trainerId;
+        }
+
+        List<Trainer> sameName = trainerRepository.findByName(current.getName());
+        if (sameName.size() <= 1) {
+            return trainerId;
+        }
+
+        Trainer best = current;
+        int bestScore = trainerListPriorityScoreValue(best);
+        for (Trainer other : sameName) {
+            if (Objects.equals(other.getId(), current.getId())) {
+                continue;
+            }
+            int otherScore = trainerListPriorityScoreValue(other);
+            if (otherScore > bestScore
+                    || (otherScore == bestScore && other.getId() > best.getId())) {
+                best = other;
+                bestScore = otherScore;
+            }
+        }
+
+        if (bestScore > trainerListPriorityScoreValue(current) && isLegacyMigratedTrainer(best)) {
+            return best.getId();
+        }
+        return trainerId;
+    }
+
+    private boolean isLegacyMigratedTrainer(Trainer trainer) {
+        return trainer.getUserId() != null && trainer.getUserId().equals(trainer.getId());
+    }
+
+    private int trainerListPriorityScoreValue(Trainer trainer) {
+        int legacy = isLegacyMigratedTrainer(trainer) ? 100 : 0;
+        int nonSeed = isSeedImportTrainer(trainer) ? 0 : 10;
+        return legacy + nonSeed;
+    }
+
+    private boolean isSeedImportTrainer(Trainer trainer) {
+        if (trainer.getUserId() == null) {
+            return false;
+        }
+        return userRepository.findById(trainer.getUserId())
+                .map(u -> u.getPhone() != null && u.getPhone().startsWith(SEED_IMPORT_PHONE_PREFIX))
+                .orElse(false);
     }
 
     @Override
@@ -307,8 +466,12 @@ public class TrainerServiceImpl implements TrainerService {
             return List.of();
         }
 
+        Map<Integer, String> userAvatarMap = loadUserAvatarMap(
+                picked.stream().map(Trainer::getUserId).filter(Objects::nonNull).toList());
+
         return picked.stream().map(t -> {
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
+            applyUserAvatar(item, t.getUserId(), userAvatarMap);
             item.setExpertiseCategories(List.of());
             return item;
         }).toList();
@@ -367,9 +530,13 @@ public class TrainerServiceImpl implements TrainerService {
             return List.of();
         }
 
+        Map<Integer, String> userAvatarMap = loadUserAvatarMap(
+                trainers.stream().map(Trainer::getUserId).filter(Objects::nonNull).toList());
+
         // 组装列表项（不需要分类、地区名称，留空即可，前端只展示头像/姓名/头衔/评分）
         return trainers.stream().map(t -> {
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
+            applyUserAvatar(item, t.getUserId(), userAvatarMap);
             item.setExpertiseCategories(List.of());
             return item;
         }).toList();
@@ -722,6 +889,26 @@ public class TrainerServiceImpl implements TrainerService {
             t.setCommentCount(next);
             trainerRepository.save(t);
         });
+    }
+
+    /** 列表/推荐位头像与详情一致：优先 sys_users.avatar_url */
+    private Map<Integer, String> loadUserAvatarMap(Collection<Integer> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findAllById(userIds).stream()
+                .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
+                .collect(Collectors.toMap(User::getId, User::getAvatarUrl, (a, b) -> a));
+    }
+
+    private void applyUserAvatar(TrainerListItemResponse item, Integer userId, Map<Integer, String> userAvatarMap) {
+        if (userId == null || userAvatarMap.isEmpty()) {
+            return;
+        }
+        String url = userAvatarMap.get(userId);
+        if (url != null && !url.isBlank()) {
+            item.setAvatar(url);
+        }
     }
 
     /** 批量回填多个列表的 categoryName */

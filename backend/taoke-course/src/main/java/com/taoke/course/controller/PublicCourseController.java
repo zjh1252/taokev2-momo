@@ -38,6 +38,15 @@ public class PublicCourseController {
     }
 
     @Public
+    @Operation(summary = "课程一级分类批量计数（频道底部分类导航）")
+    @GetMapping("/courses/category-counts")
+    public ApiResponse<java.util.Map<Integer, Long>> categoryCounts(
+            @RequestParam(defaultValue = "true") boolean isOpen,
+            @RequestParam(required = false) List<Integer> cityIds) {
+        return ApiResponse.ok(courseService.countPublicByCategoryL1(isOpen, cityIds));
+    }
+
+    @Public
     @Operation(summary = "课程公开详情")
     @GetMapping("/courses/{id}")
     public ApiResponse<CourseDetailVO> detail(@PathVariable Integer id) {

@@ -1,12 +1,16 @@
 package com.taoke.user.search;
 
+import com.taoke.common.entity.Category;
 import com.taoke.common.entity.Region;
+import com.taoke.common.repository.CategoryRepository;
 import com.taoke.common.repository.RegionRepository;
 import com.taoke.common.search.BaseDocument;
 import com.taoke.common.search.DocumentSyncProvider;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.TrainerExpertiseCategory;
+import com.taoke.user.entity.TrainerIndustryCategory;
 import com.taoke.user.repository.TrainerExpertiseCategoryRepository;
+import com.taoke.user.repository.TrainerIndustryCategoryRepository;
 import com.taoke.user.repository.TrainerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +40,8 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
     private final TrainerRepository trainerRepository;
     private final RegionRepository regionRepository;
     private final TrainerExpertiseCategoryRepository expertiseCategoryRepository;
+    private final TrainerIndustryCategoryRepository industryCategoryRepository;
+    private final CategoryRepository categoryRepository;
 
     @Override
     public String getDocType() {
@@ -95,20 +101,46 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         }
 
         // 批量查关联的擅长领域分类 ID
-        Map<Integer, List<Integer>> expertiseMap = expertiseCategoryRepository
-                .findByTrainerIdInOrderBySortOrder(trainerIds).stream()
+        List<TrainerExpertiseCategory> allExpCategories = expertiseCategoryRepository
+                .findByTrainerIdInOrderBySortOrder(trainerIds);
+        Map<Integer, List<Integer>> expertiseIdMap = allExpCategories.stream()
                 .collect(Collectors.groupingBy(
                         TrainerExpertiseCategory::getTrainerId,
                         Collectors.mapping(TrainerExpertiseCategory::getCategoryId, Collectors.toList())
                 ));
 
+        // 批量查关联的擅长行业分类 ID
+        List<TrainerIndustryCategory> allIndCategories = industryCategoryRepository
+                .findByTrainerIdInOrderBySortOrder(trainerIds);
+        Map<Integer, List<Integer>> industryIdMap = allIndCategories.stream()
+                .collect(Collectors.groupingBy(
+                        TrainerIndustryCategory::getTrainerId,
+                        Collectors.mapping(TrainerIndustryCategory::getCategoryId, Collectors.toList())
+                ));
+
+        // 批量查全部分类名称
+        Set<Integer> allCatIds = new HashSet<>();
+        allExpCategories.forEach(ec -> allCatIds.add(ec.getCategoryId()));
+        allIndCategories.forEach(ic -> allCatIds.add(ic.getCategoryId()));
+        final Map<Integer, String> catNameMap = allCatIds.isEmpty()
+                ? Collections.emptyMap()
+                : categoryRepository.findByIdIn(allCatIds).stream()
+                        .collect(Collectors.toMap(Category::getId, Category::getName, (a, b) -> a));
+
         Map<Integer, String> finalRegionNameMap = regionNameMap;
+        Map<Integer, String> finalCatNameMap = catNameMap;
         return trainers.stream()
-                .map(t -> toDocument(t, finalRegionNameMap, expertiseMap.getOrDefault(t.getId(), List.of())))
+                .map(t -> toDocument(t, finalRegionNameMap,
+                        expertiseIdMap.getOrDefault(t.getId(), List.of()),
+                        industryIdMap.getOrDefault(t.getId(), List.of()),
+                        finalCatNameMap))
                 .toList();
     }
 
-    private TrainerDocument toDocument(Trainer trainer, Map<Integer, String> regionNameMap, List<Integer> expertiseCategoryIds) {
+    private TrainerDocument toDocument(Trainer trainer, Map<Integer, String> regionNameMap,
+                                        List<Integer> expertiseCategoryIds,
+                                        List<Integer> industryCategoryIds,
+                                        Map<Integer, String> catNameMap) {
         TrainerDocument doc = new TrainerDocument();
         doc.setDocType(DOC_TYPE);
         doc.setId(trainer.getId());
@@ -147,6 +179,16 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         }
 
         doc.setExpertiseCategoryIds(expertiseCategoryIds);
+        doc.setExpertiseCategoryNames(expertiseCategoryIds.stream()
+                .map(catNameMap::get)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+        doc.setIndustryCategoryNames(industryCategoryIds.stream()
+                .map(catNameMap::get)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
 
         doc.buildDocId();
         return doc;

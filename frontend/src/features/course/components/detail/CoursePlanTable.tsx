@@ -1,14 +1,25 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import type { CoursePlan } from '../../api/types';
+import { formatPlanCode, getOpenCoursePlanPath } from '../../utils/plan-code';
 
 interface CoursePlanTableProps {
   plans: CoursePlan[];
   courseId: number;
+  /** 当前页面对应的开课计划编号，用于高亮或排除 */
+  activePlanCode?: string;
+  /** 自定义表格标题 */
+  title?: string;
 }
 
-export function CoursePlanTable({ plans, courseId }: CoursePlanTableProps) {
+export function CoursePlanTable({
+  plans,
+  courseId,
+  activePlanCode,
+  title,
+}: CoursePlanTableProps) {
   const t = useTranslations('course.plan');
 
   const formatDate = (dateStr: string) => {
@@ -28,9 +39,17 @@ export function CoursePlanTable({ plans, courseId }: CoursePlanTableProps) {
     return '-';
   };
 
+  const visiblePlans = plans
+    .map((plan, index) => ({ plan, index, planCode: formatPlanCode(courseId, index + 1) }))
+    .filter(({ planCode }) => planCode !== activePlanCode);
+
+  if (visiblePlans.length === 0) {
+    return null;
+  }
+
   return (
     <section>
-      <h3 className="text-lg font-bold text-slate-900 mb-4">{t('title')}</h3>
+      <h3 className="text-lg font-bold text-slate-900 mb-4">{title ?? t('title')}</h3>
       <div className="overflow-x-auto border border-slate-200 rounded-lg">
         <table className="w-full text-sm">
           <thead className="bg-slate-50">
@@ -43,9 +62,16 @@ export function CoursePlanTable({ plans, courseId }: CoursePlanTableProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {plans.map((plan, index) => (
+            {visiblePlans.map(({ plan, index, planCode }) => (
               <tr key={plan.id || index} className="hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3 text-slate-700">TK-{String(courseId).padStart(6, '0')}-{index + 1}</td>
+                <td className="px-4 py-3">
+                  <Link
+                    href={getOpenCoursePlanPath(planCode)}
+                    className="text-primary font-medium hover:underline"
+                  >
+                    {planCode}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-slate-700">{getLocationText(plan)}</td>
                 <td className="px-4 py-3 text-slate-700">
                   {formatDate(plan.startTime)} ~ {formatDate(plan.endTime)}
@@ -56,10 +82,12 @@ export function CoursePlanTable({ plans, courseId }: CoursePlanTableProps) {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  {/* TODO: 报名功能 */}
-                  <button className="text-primary hover:underline text-sm font-medium">
+                  <Link
+                    href={getOpenCoursePlanPath(planCode)}
+                    className="text-primary hover:underline text-sm font-medium"
+                  >
                     {t('enroll')}
-                  </button>
+                  </Link>
                 </td>
               </tr>
             ))}

@@ -16,6 +16,7 @@ interface VideoListSectionProps {
   categoryTree: CategoryTreeNode[];
   initialInstitutionId?: number;
   initialInstitutionName?: string;
+  initialCategoryId?: number;
 }
 
 const SORT_OPTIONS = [
@@ -41,11 +42,12 @@ function VideoListSectionInner({
   categoryTree,
   initialInstitutionId,
   initialInstitutionName,
+  initialCategoryId,
 }: VideoListSectionProps) {
   const router = useRouter();
   const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
   const [data, setData] = useState(initialData);
-  const [selectedCategory, setSelectedCategory] = useState<number | undefined>();
+  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(initialCategoryId);
   const selectedCategoryRef = useRef<number | undefined>(undefined);
   selectedCategoryRef.current = selectedCategory;
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
@@ -106,7 +108,7 @@ function VideoListSectionInner({
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);
     fetchData(1, selectedCategory, sortKey, keyword, null);
-    router.replace('/videos');
+    router.replace('/video');
   }, [fetchData, router, selectedCategory, sortKey, keyword]);
 
   const handleCategoryChange = useCallback(

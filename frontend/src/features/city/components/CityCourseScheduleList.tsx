@@ -63,7 +63,7 @@ function CityScheduleRow({ course, cityName }: { course: CourseListItem; cityNam
   return (
     <li className="px-5 py-3 grid grid-cols-1 sm:grid-cols-[1fr_120px_140px] sm:items-center gap-1 sm:gap-3 hover:bg-slate-50 transition-colors">
       <Link
-        href={`/opencourses/${course.id}`}
+        href={`/opencourse/${course.id}.htm`}
         className="text-sm text-slate-800 hover:text-primary line-clamp-1"
       >
         <span className="text-primary mr-1">[{cityName}]</span>

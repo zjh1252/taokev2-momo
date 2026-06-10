@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { AdminVideo } from '../../api/types';
-import { VIDEO_STATUS_MAP, VIDEO_STATUS_OPTIONS } from '../../api/types';
+import { VIDEO_STATUS_MAP, VIDEO_STATUS_OPTIONS, VIDEO_TYPE_MAP } from '../../api/types';
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import { CellAction } from './cell-action';
@@ -70,9 +70,34 @@ export const columns: ColumnDef<AdminVideo>[] = [
     cell: ({ cell }) => cell.getValue<string>() || '-'
   },
   {
-    accessorKey: 'totalEpisodes',
-    header: '集数',
-    cell: ({ row }) => `${row.original.totalEpisodes} 集`
+    id: 'publisher',
+    header: '发布者',
+    cell: ({ row }) => {
+      const name = row.original.publisherName;
+      const type = row.original.publisherType;
+      if (name) return name;
+      // 无 publisherName 时回退到 publisherType 中文标签
+      const typeLabel: Record<string, string> = {
+        TRAINER: '专家',
+        AGENT: '专家经纪人',
+        ASSISTANT: '专家助理',
+        INSTITUTION: '机构',
+        INSTITUTION_EMPLOYEE: '机构员工',
+        ENTERPRISE_AGENT: '专家经纪公司'
+      };
+      return typeLabel[type] || type || '-';
+    }
+  },
+  {
+    accessorKey: 'teacherName',
+    header: '所属专家',
+    cell: ({ cell }) => cell.getValue<string>() || '-'
+  },
+  {
+    id: 'videoType',
+    accessorKey: 'videoType',
+    header: '视频类型',
+    cell: ({ row }) => VIDEO_TYPE_MAP[row.original.videoType] || row.original.videoTypeLabel || '-'
   },
   {
     accessorKey: 'duration',

@@ -5,7 +5,7 @@ import { videoKeys } from '../api/queries';
 import { getVideosFromServer } from '../api/server-service';
 import { VideosTable } from './videos-table';
 
-export default function VideoListingPage() {
+export default async function VideoListingPage() {
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('name');
   const pageLimit = searchParamsCache.get('perPage');
@@ -20,10 +20,14 @@ export default function VideoListingPage() {
 
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery({
-    queryKey: videoKeys.list(filters),
-    queryFn: () => getVideosFromServer(filters)
-  });
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: videoKeys.list(filters),
+      queryFn: () => getVideosFromServer(filters)
+    });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

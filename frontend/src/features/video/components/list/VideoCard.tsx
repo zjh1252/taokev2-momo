@@ -1,42 +1,28 @@
 import { Link } from '@/i18n/navigation';
 import { Play, Users, Eye } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
-import { DEFAULT_COURSE_COVER } from '@/lib/media';
+import { DEFAULT_VIDEO_COVER } from '@/lib/media';
 import type { VideoListItem } from '../../api/types';
 
 interface VideoCardProps {
   video: VideoListItem;
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds <= 0) return '--';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}小时${m > 0 ? `${m}分` : ''}`;
-  return `${m}分钟`;
-}
-
 export function VideoCard({ video }: VideoCardProps) {
   return (
     <Link
-      href={`/videos/${video.id}`}
+      href={`/vedio/${video.id}.htm`}
       className="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group flex flex-col"
     >
       {/* 封面 */}
       <div className="relative aspect-video bg-slate-100">
-        {video.coverUrl ? (
-          <SafeImage
-            src={video.coverUrl}
-            alt={video.title}
-            fill
-            className="object-cover"
-            fallback={DEFAULT_COURSE_COVER}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Play className="size-10 text-slate-300" />
-          </div>
-        )}
+        <SafeImage
+          src={video.coverUrl || undefined}
+          alt={video.title}
+          fill
+          className="object-cover"
+          fallback={DEFAULT_VIDEO_COVER}
+        />
         {/* 集数角标 */}
         {video.totalEpisodes > 0 && (
           <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[11px] px-2 py-0.5 rounded">

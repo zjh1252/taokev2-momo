@@ -4,7 +4,7 @@ import { searchParamsCache } from '@/lib/searchparams';
 import type { SearchParams } from 'nuqs/server';
 
 export const metadata = {
-  title: '课程管理'
+  title: '课程列表'
 };
 
 type PageProps = {
@@ -18,7 +18,7 @@ export default async function CoursesPage(props: PageProps) {
   return (
     <PageContainer
       scrollable={false}
-      pageTitle='课程管理'
+      pageTitle='课程列表'
       pageDescription='查看和管理平台所有课程，审核课程上架'
     >
       <CourseListingPage />

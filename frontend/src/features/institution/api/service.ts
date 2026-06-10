@@ -1,4 +1,5 @@
 import { apiGet } from '@/lib/http/client';
+import { fetchCategoryCountMap } from '@/lib/category-counts';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import type {
@@ -36,6 +37,8 @@ export interface InstitutionListParams {
   keyword?: string;
   sort?: string;
   association?: boolean;
+  /** 擅长领域一级分类 ID */
+  expertiseCategoryId?: number;
 }
 
 /**
@@ -50,12 +53,27 @@ export async function getInstitutionList(
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sort) query.set('sort', params.sort);
   if (params.association != null) query.set('association', String(params.association));
+  if (params.expertiseCategoryId) {
+    query.set('expertiseCategoryId', String(params.expertiseCategoryId));
+  }
 
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<InstitutionListItem>>>(
     `/institutions${qs ? `?${qs}` : ''}`,
   );
   return res.data;
+}
+
+/** 机构擅长领域一级分类批量计数（侧栏分类导航） */
+export async function getInstitutionExpertiseCategoryCounts(
+  association?: boolean,
+): Promise<Record<number, number>> {
+  const query = new URLSearchParams();
+  if (association != null) {
+    query.set('association', String(association));
+  }
+  const qs = query.toString();
+  return fetchCategoryCountMap(`/institutions/expertise-category-counts${qs ? `?${qs}` : ''}`);
 }
 
 /**

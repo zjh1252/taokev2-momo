@@ -35,9 +35,9 @@ interface AuthContextValue {
   refreshUser: () => Promise<void>;
   /** 退出登录 */
   logout: () => void;
-  /** 专家公开主页路径（如 /trainers/123），非已生效专家或未拉到档案时为 null */
+  /** 专家公开主页路径（如 /trainer/123），非已生效专家或未拉到档案时为 null */
   trainerPublicHomeHref: string | null;
-  /** 机构公开主页路径（如 /institutions/5），非已生效机构时为 null */
+  /** 机构公开主页路径（如 /company/5），非已生效机构时为 null */
   institutionPublicHomeHref: string | null;
   /**
    * 当前 activeRole 对应的公开主页路径，仅 TRAINER / INSTITUTION 有值
@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isApprovedTrainer(authUser.roles)) {
         try {
           const me = await getMyTrainerProfile();
-          setTrainerPublicHomeHref(`/trainers/${me.id}`);
+          setTrainerPublicHomeHref(`/trainer/${me.id}.htm`);
           setTrainerCode(me.trainerCode || null);
         } catch {
           setTrainerPublicHomeHref(null);
@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isApprovedInstitution(authUser.roles)) {
         try {
           const inst = await getMyInstitutionProfile();
-          setInstitutionPublicHomeHref(`/institutions/${inst.id}`);
+          setInstitutionPublicHomeHref(`/company/${inst.id}.htm`);
         } catch {
           setInstitutionPublicHomeHref(null);
         }

@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from '@/lib/http/client';
+import { fetchCategoryCountMap } from '@/lib/category-counts';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import type {
@@ -91,6 +92,11 @@ export async function updateVideoProgress(
     headers: authHeaders(),
     silent: true,
   });
+}
+
+/** 录播课一级分类批量计数（频道底部分类导航） */
+export async function getVideoCategoryCounts(): Promise<Record<number, number>> {
+  return fetchCategoryCountMap('/videos/category-counts');
 }
 
 /**

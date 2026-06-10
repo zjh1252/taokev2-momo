@@ -5,7 +5,7 @@ import { agentKeys } from '../api/queries';
 import { getAgentsFromServer } from '../api/server-service';
 import { AgentsTable } from './agents-table';
 
-export default function AgentListingPage() {
+export default async function AgentListingPage() {
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('name');
   const pageLimit = searchParamsCache.get('perPage');
@@ -13,7 +13,11 @@ export default function AgentListingPage() {
   const filters = { page, limit: pageLimit, ...(search && { search }) };
 
   const queryClient = getQueryClient();
-  void queryClient.prefetchQuery({ queryKey: agentKeys.list(filters), queryFn: () => getAgentsFromServer(filters) });
+  try {
+    await queryClient.prefetchQuery({ queryKey: agentKeys.list(filters), queryFn: () => getAgentsFromServer(filters) });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

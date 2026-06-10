@@ -298,6 +298,19 @@ public class VideoServiceImpl implements VideoService {
     }
 
     @Override
+    public Map<Integer, Long> countPublicByCategoryL1() {
+        Map<Integer, Long> map = new HashMap<>();
+        for (Object[] row : videoRepository.countPublishedByCategoryL1()) {
+            if (row[0] == null) {
+                continue;
+            }
+            long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            map.put(((Number) row[0]).intValue(), count);
+        }
+        return map;
+    }
+
+    @Override
     public PageResponse<VideoListItemVO> listByInstitution(Integer institutionId, int page, int size) {
         Integer institutionUserId = resolveInstitutionUserId(institutionId);
         if (institutionUserId == null) {
@@ -459,6 +472,32 @@ public class VideoServiceImpl implements VideoService {
         }
         video.setStatus(VideoStatus.PUBLISHED.getValue());
         video.setPublishedAt(LocalDateTime.now());
+        videoRepository.save(video);
+    }
+
+    @Transactional
+    @Override
+    public void feature(Integer videoId, String type) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+        if ("pin".equals(type)) {
+            // 列表置顶：取当前最大 sortOrder + 1，首次置顶为 99999
+            Integer maxSort = videoRepository.findMaxSortOrder().orElse(0);
+            video.setSortOrder(Math.max(maxSort + 1, 99999));
+        } else {
+            // 列表推荐
+            video.setIsFeatured(1);
+        }
+        videoRepository.save(video);
+    }
+
+    @Transactional
+    @Override
+    public void unfeature(Integer videoId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+        video.setIsFeatured(0);
+        video.setSortOrder(0);
         videoRepository.save(video);
     }
 

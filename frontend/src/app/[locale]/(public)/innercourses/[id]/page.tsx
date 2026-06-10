@@ -1,5 +1,5 @@
-import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { innerCourseDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { setRequestLocale } from 'next-intl/server';
 import { getCourseDetail } from '@/features/course/api/service';
@@ -17,12 +17,9 @@ export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   try {
     const course = await getCourseDetail(Number(id));
-    return {
-      title: `${course.title} - 内训课详情 - 淘课网`,
-      description: course.audience || course.title,
-    };
+    return innerCourseDetailMetadata(course);
   } catch {
-    return { title: '内训课详情 - 淘课网' };
+    return fallbackDetailMetadata('内训课详情');
   }
 }
 

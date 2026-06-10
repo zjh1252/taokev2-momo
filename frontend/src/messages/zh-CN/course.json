@@ -28,6 +28,8 @@
     "rating": "评分",
     "publisher": "发布人",
     "location": "开课地点",
+    "planLocation": "开课地点",
+    "planTime": "上课时间",
     "consult": "立即咨询",
     "reserve": "立即预约",
     "enroll": "立即报名",
@@ -52,6 +54,7 @@
   },
   "plan": {
     "title": "全国各地近期开课计划",
+    "otherPlans": "本课程的其它开课计划",
     "courseId": "课程编号",
     "location": "课程地点",
     "classType": "班型",

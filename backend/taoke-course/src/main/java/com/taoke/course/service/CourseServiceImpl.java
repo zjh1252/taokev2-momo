@@ -340,6 +340,25 @@ public class CourseServiceImpl implements CourseService {
         return PageResponse.of(items, coursePage.getTotalElements(), page, size);
     }
 
+    @Override
+    public Map<Integer, Long> countPublicByCategoryL1(boolean isOpen, List<Integer> cityIds) {
+        List<Object[]> rows;
+        if (isOpen && cityIds != null && !cityIds.isEmpty()) {
+            rows = courseRepository.countPublishedOpenByCategoryL1AndCityIds(cityIds);
+        } else {
+            rows = courseRepository.countPublishedByCategoryL1(isOpen ? 1 : 0);
+        }
+        Map<Integer, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            if (row[0] == null) {
+                continue;
+            }
+            long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            map.put(((Number) row[0]).intValue(), count);
+        }
+        return map;
+    }
+
     /**
      * 将时间快捷段标识转换为日期区间。
      *
@@ -745,6 +764,7 @@ public class CourseServiceImpl implements CourseService {
         if (trainerId == null || trainerId <= 0) {
             return PageResponse.of(List.of(), 0, page, size);
         }
+        // 直接按 trainer_id 过滤，不做同名合并——不同专家即使同名，课程也不应混在一起
         Specification<Course> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("trainerId"), trainerId),
                 cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue())

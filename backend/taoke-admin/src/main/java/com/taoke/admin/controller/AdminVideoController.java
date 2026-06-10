@@ -69,4 +69,19 @@ public class AdminVideoController {
         adminVideoService.publish(id);
         return ApiResponse.ok();
     }
+
+    @Operation(summary = "推荐录播课（列表置顶或列表推荐）")
+    @PutMapping("/admin/videos/{id}/feature")
+    public ApiResponse<Void> feature(@PathVariable Integer id,
+                                     @RequestParam(defaultValue = "recommend") String type) {
+        adminVideoService.feature(id, type);
+        return ApiResponse.ok();
+    }
+
+    @Operation(summary = "取消录播课推荐")
+    @PutMapping("/admin/videos/{id}/unfeature")
+    public ApiResponse<Void> unfeature(@PathVariable Integer id) {
+        adminVideoService.unfeature(id);
+        return ApiResponse.ok();
+    }
 }

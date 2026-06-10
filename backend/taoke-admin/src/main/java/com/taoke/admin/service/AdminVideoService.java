@@ -67,4 +67,18 @@ public class AdminVideoService {
     public void publish(Integer videoId) {
         videoService.adminPublish(videoId);
     }
+
+    /**
+     * 推荐录播课（列表置顶或列表推荐）
+     */
+    public void feature(Integer videoId, String type) {
+        videoService.feature(videoId, type);
+    }
+
+    /**
+     * 取消推荐
+     */
+    public void unfeature(Integer videoId) {
+        videoService.unfeature(videoId);
+    }
 }

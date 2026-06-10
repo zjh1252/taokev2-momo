@@ -1,4 +1,5 @@
 import { apiGet } from '@/lib/http/client';
+import { fetchCategoryCountMap } from '@/lib/category-counts';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import type {
@@ -53,6 +54,12 @@ export interface TrainerListParams {
   sort?: string;
   /** 质量承诺：1=仅显示信得过专家 */
   isTrusted?: number;
+  /** 擅长领域名称（多选用下划线连接，如 "经营战略_战略规划"） */
+  field?: string;
+  /** 擅长行业名称（多选用下划线连接） */
+  industry?: string;
+  /** 长驻省市名称 */
+  region?: string;
 }
 
 /**
@@ -70,6 +77,10 @@ export async function getTrainerList(
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sort) query.set('sort', params.sort);
   if (params.isTrusted) query.set('isTrusted', String(params.isTrusted));
+  // SEO 名称参数（后端按名称匹配）
+  if (params.field) query.set('field', params.field);
+  if (params.industry) query.set('industry', params.industry);
+  if (params.region) query.set('region', params.region);
 
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<TrainerListItem>>>(
@@ -79,26 +90,32 @@ export async function getTrainerList(
 }
 
 /**
- * 获取专家详情页推荐课程（仅已上架，按浏览量倒序，最多 3 条）
+ * 获取专家详情页推荐课程（仅已上架，按浏览量倒序）
+ * @param trainerId 专家 ID
+ * @param limit 返回条数上限（默认 10）
  */
 export async function getRecommendedCourses(
   trainerId: number,
+  limit = 10,
 ): Promise<RecommendedCourseItem[]> {
   const res = await apiGet<ApiResponse<RecommendedCourseItem[]>>(
-    `/trainers/${trainerId}/recommended-courses`,
+    `/trainers/${trainerId}/recommended-courses?limit=${limit}`,
   );
   return res.data || [];
 }
 
 /**
  * 获取专家详情页推荐相关专家
- * <p>命中规则：与当前专家共享至少一个擅长领域或擅长行业，按推荐 + 评分倒序，最多 3 条。</p>
+ * <p>命中规则：与当前专家共享至少一个擅长领域或擅长行业，按推荐 + 评分倒序。</p>
+ * @param trainerId 专家 ID
+ * @param limit 返回条数上限（默认 6）
  */
 export async function getRecommendedTrainers(
   trainerId: number,
+  limit = 6,
 ): Promise<RecommendedTrainerItem[]> {
   const res = await apiGet<ApiResponse<RecommendedTrainerItem[]>>(
-    `/trainers/${trainerId}/recommended-trainers`,
+    `/trainers/${trainerId}/recommended-trainers?limit=${limit}`,
   );
   return res.data || [];
 }
@@ -134,7 +151,12 @@ export async function getRecentTrainerCases(limit = 10): Promise<RecentTrainerCa
   const res = await apiGet<ApiResponse<RecentTrainerCase[]>>(
     `/trainer-cases/recent?limit=${limit}`,
   );
-  return res.data || [];
+  return res.data;
+}
+
+/** 专家擅长领域一级分类批量计数（底部分类导航） */
+export async function getTrainerExpertiseCategoryCounts(): Promise<Record<number, number>> {
+  return fetchCategoryCountMap('/trainers/expertise-category-counts');
 }
 
 /**

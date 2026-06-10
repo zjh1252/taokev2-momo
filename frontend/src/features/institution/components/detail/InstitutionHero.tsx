@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import type { InstitutionDetail } from '../../types';
 import { SafeImage } from '@/components/safe-image';
+import { getInstitutionLogoFallback } from '../../utils/logo';
 import {
   addFavorite,
   removeFavorite,
@@ -64,7 +65,7 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
     }
   }, [favorited, institution.id]);
 
-  const fallbackLogo = `https://ui-avatars.com/api/?name=${encodeURIComponent(institution.orgName.slice(0, 2))}&background=E0F2FE&color=0369A1&size=160&font-size=0.35`;
+  const fallbackLogo = getInstitutionLogoFallback(institution.orgName);
 
   return (
     <div className="flex flex-col gap-6">
@@ -141,7 +142,7 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
             </div>
 
             <div className="flex items-center gap-2 mb-3 pr-32">
-              <h2 className="text-xl font-bold text-slate-800">{institution.orgName}</h2>
+              <p className="text-xl font-bold text-slate-800">{institution.orgName}</p>
               {institution.isRecommended === 1 && (
                 <Award className="size-5 text-amber-500" />
               )}

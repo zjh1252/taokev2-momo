@@ -19,7 +19,7 @@ export function PublicCoursesSection({ courses }: PublicCoursesSectionProps) {
     <section>
       <SectionHeader
         title={t('publicCourses.sectionTitle')}
-        viewMoreHref="/opencourses"
+        viewMoreHref="/opencourse"
         viewMoreText={t('publicCourses.viewMore')}
         icon={<BookOpen className="size-6 text-yellow-500" />}
       />
@@ -77,7 +77,7 @@ function PublicCourseItem({ course }: { course: PublicCourse }) {
       {/* 右侧按钮 */}
       <div className="shrink-0">
         <Link
-          href={`/opencourses/${course.id}`}
+          href={`/opencourse/${course.id}.htm`}
           className="px-6 py-2 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md inline-block"
         >
           {t('publicCourses.viewDetail')}

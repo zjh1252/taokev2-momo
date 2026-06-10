@@ -4,6 +4,7 @@ import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
+import com.taoke.common.service.CategoryService;
 import com.taoke.common.service.RegionService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.institution.InstitutionListItemResponse;
@@ -49,6 +50,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     private final InstitutionMapper institutionMapper;
     private final RoleApplyService roleApplyService;
     private final RegionService regionService;
+    private final CategoryService categoryService;
 
     @Override
     public InstitutionResponse getByUserId(Integer userId) {
@@ -81,7 +83,8 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     @Override
     public PageResponse<InstitutionListItemResponse> listPublic(int page, int size,
                                                                  String keyword, String sort,
-                                                                 Boolean association) {
+                                                                 Boolean association,
+                                                                 Integer expertiseCategoryId) {
         Sort jpaSort = "popularity".equals(sort)
                 ? Sort.by(Sort.Direction.DESC, "viewCount").and(Sort.by(Sort.Direction.DESC, "id"))
                 : Sort.by(Sort.Direction.DESC, "sortOrder")
@@ -90,7 +93,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
 
         PageRequest pageable = PageRequest.of(page - 1, size, jpaSort);
 
-        Specification<Institution> spec = buildListSpec(keyword, association);
+        Specification<Institution> spec = buildListSpec(keyword, association, expertiseCategoryId);
         Page<Institution> result = institutionRepository.findAll(spec, pageable);
 
         if (result.isEmpty()) {
@@ -120,8 +123,14 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                 })
                 .toList();
         fillMissingLogos(items);
+        resolveCategoryDisplayNames(items);
 
         return PageResponse.of(items, result.getTotalElements(), page, size);
+    }
+
+    @Override
+    public Map<Integer, Long> countPublicByExpertiseL1(Boolean association) {
+        return toCountMap(institutionRepository.countPublicByExpertiseL1(association));
     }
 
     @Override
@@ -159,7 +168,89 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             resp.setLogoUrl(lookupLogoByOrgName(resp.getOrgName()));
         }
 
+        Map<Integer, String> categoryNameMap = loadCategoryNameMap(resp.getSpecialties(), resp.getIndustries());
+        resp.setSpecialties(resolveCategoryLabelString(resp.getSpecialties(), categoryNameMap));
+        resp.setIndustries(resolveCategoryLabelString(resp.getIndustries(), categoryNameMap));
+
         return resp;
+    }
+
+    /** 列表项批量将 specialties / industries 中的分类 ID 解析为展示名称 */
+    private void resolveCategoryDisplayNames(List<InstitutionListItemResponse> items) {
+        if (items.isEmpty()) {
+            return;
+        }
+        Set<Integer> categoryIds = new HashSet<>();
+        for (InstitutionListItemResponse item : items) {
+            collectCategoryIds(item.getSpecialties(), categoryIds);
+            collectCategoryIds(item.getIndustries(), categoryIds);
+        }
+        Map<Integer, String> nameMap = categoryIds.isEmpty()
+                ? Map.of()
+                : categoryService.getNameMap(categoryIds);
+        for (InstitutionListItemResponse item : items) {
+            item.setSpecialties(resolveCategoryLabelString(item.getSpecialties(), nameMap));
+            item.setIndustries(resolveCategoryLabelString(item.getIndustries(), nameMap));
+        }
+    }
+
+    private Map<Integer, String> loadCategoryNameMap(String... rawValues) {
+        Set<Integer> categoryIds = new HashSet<>();
+        for (String raw : rawValues) {
+            collectCategoryIds(raw, categoryIds);
+        }
+        return categoryIds.isEmpty() ? Map.of() : categoryService.getNameMap(categoryIds);
+    }
+
+    private static void collectCategoryIds(String raw, Set<Integer> ids) {
+        if (raw == null || raw.isBlank()) {
+            return;
+        }
+        for (String part : raw.split(",")) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            try {
+                ids.add(Integer.parseInt(trimmed));
+            } catch (NumberFormatException ignored) {
+                // 已是展示文本或非 ID 格式，跳过
+            }
+        }
+    }
+
+    /** 将逗号分隔的分类 ID 串转为中文名称串；非数字片段原样保留 */
+    private static String resolveCategoryLabelString(String raw, Map<Integer, String> nameMap) {
+        if (raw == null || raw.isBlank()) {
+            return raw;
+        }
+        List<String> labels = new ArrayList<>();
+        for (String part : raw.split(",")) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            try {
+                int id = Integer.parseInt(trimmed);
+                String name = nameMap.get(id);
+                labels.add(name != null ? name : trimmed);
+            } catch (NumberFormatException e) {
+                labels.add(trimmed);
+            }
+        }
+        return labels.isEmpty() ? raw : String.join("，", labels);
+    }
+
+    private static Map<Integer, Long> toCountMap(List<Object[]> rows) {
+        Map<Integer, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            if (row[0] == null) {
+                continue;
+            }
+            long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            map.put(((Number) row[0]).intValue(), count);
+        }
+        return map;
     }
 
     /** partner 迁移行 logo 常为空，从同名 organ 行补 Logo（列表批量） */
@@ -218,7 +309,8 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     }
 
     /** 构建公开列表查询的动态条件（仅状态=1 的已发布机构） */
-    private Specification<Institution> buildListSpec(String keyword, Boolean association) {
+    private Specification<Institution> buildListSpec(String keyword, Boolean association,
+                                                   Integer expertiseCategoryId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), 1));
@@ -228,6 +320,16 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
 
             if (association != null) {
                 predicates.add(cb.equal(root.get("association"), association));
+            }
+
+            if (expertiseCategoryId != null && expertiseCategoryId > 0) {
+                String idStr = expertiseCategoryId.toString();
+                predicates.add(cb.or(
+                        cb.equal(root.get("specialties"), idStr),
+                        cb.like(root.get("specialties"), idStr + ",%"),
+                        cb.like(root.get("specialties"), "%," + idStr + ",%"),
+                        cb.like(root.get("specialties"), "%," + idStr)
+                ));
             }
 
             if (keyword != null && !keyword.isBlank()) {

@@ -6,6 +6,18 @@ const nextConfig = {
   output: 'standalone' as const,
   reactCompiler: true,
   transpilePackages: ['video.js'],
+  async rewrites() {
+    return [
+      {
+        source: '/taoke-legacy/:path*',
+        destination: 'https://www.taoke.com/:path*',
+      },
+      {
+        source: '/pxb-legacy/:path*',
+        destination: 'https://www.91pxb.com/:path*',
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       { protocol: 'https' as const, hostname: 'images.unsplash.com' },

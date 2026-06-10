@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { apiGet } from '@/lib/http/client';
 import { cn } from '@/lib/utils';
+import { filterStandardTrainerExpertiseTree } from '@/features/trainer/utils/expertise-categories';
 
 interface CategoryNode {
   id: number;
@@ -42,7 +43,12 @@ export function CategoryMultiSelect({
     setLoading(true);
     apiGet<{ data: CategoryNode[] }>(`/categories/tree?type=${encodeURIComponent(type)}`)
       .then((res) => {
-        setTree(res.data || []);
+        let data = res.data || [];
+        // 擅长领域：仅保留标准一级分类（27 项），排除老站自定义标签，与首页行为一致
+        if (type === 'TRAINER_EXPERTISE') {
+          data = filterStandardTrainerExpertiseTree(data as any) as unknown as CategoryNode[];
+        }
+        setTree(data);
       })
       .catch(() => {
         setTree([]);

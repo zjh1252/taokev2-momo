@@ -43,6 +43,9 @@ public class VideoListItemVO {
     private String publisherName;
     private String keywords;
 
+    private Integer isFeatured;
+    private Integer sortOrder;
+
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;
 }

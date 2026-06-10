@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { Play, Star } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,19 +18,28 @@ import type { ReviewItem } from '@/features/interaction/api/types';
 import ReviewDialog from '@/features/interaction/components/ReviewDialog';
 import { ReviewPhotoList } from '@/features/interaction/components/ReviewPhotoList';
 import { getCourseDetailPath, isOpenCourseType } from '@/features/course/utils/routes';
+import { getTrainerDisplayName } from '../../utils/displayName';
+import { getTrainerDetailTabHref, type TrainerTabId } from '../../utils/routes';
+import { getTrainerCourses, getTrainerVideos } from '../../api/service';
 import { decodeHtmlEntities } from '@/lib/html-entities';
+import { legacyRichTextToPlain } from '@/lib/legacy-rich-text';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
+import { trainerSectionH3 } from '@/lib/seo/headings';
 
 interface TrainerDetailContentProps {
+  activeTab: TrainerTabId;
   trainer: TrainerDetail;
   courses: CourseListItem[];
+  /** 主讲课程总数（API total，可能与 courses.length 不同） */
+  coursesTotal: number;
   cases: TrainerCase[];
   videos: VideoListItem[];
+  videosTotal: number;
   books: TrainerBook[];
 }
 
 interface TabConfig {
-  id: string;
+  id: TrainerTabId;
   label: string;
   countKey?: 'courses' | 'cases' | 'videos' | 'reviews' | 'books';
 }
@@ -49,41 +57,30 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-4">
       <div className="w-1 h-5 bg-primary rounded-full" />
-      <h2 className="text-[22px] font-bold">{children}</h2>
+      <h3 className="text-[22px] font-bold">{children}</h3>
     </div>
   );
 }
 
 export function TrainerDetailContent({
+  activeTab,
   trainer,
   courses,
+  coursesTotal,
   cases,
   videos,
+  videosTotal,
   books,
 }: TrainerDetailContentProps) {
-  // 通过 ?tab=cases 等 query 直接深链激活某个 tab，便于其他页面跳过来落到对应 tab
-  const searchParams = useSearchParams();
-  const initialTab = (() => {
-    const t = searchParams?.get('tab');
-    return t && TABS.some((x) => x.id === t) ? t : 'home';
-  })();
-  const [activeTab, setActiveTab] = useState<string>(initialTab);
-
-  useEffect(() => {
-    const t = searchParams?.get('tab');
-    if (t && TABS.some((x) => x.id === t)) {
-      setActiveTab(t);
-    }
-  }, [searchParams]);
-
   // 学员评价角标：以专家累计已通过评论数为准（后端在评价审核通过时同步 +1）
   const counts = {
-    courses: courses.length,
+    courses: coursesTotal,
     cases: cases.length,
-    videos: videos.length,
+    videos: videosTotal,
     reviews: trainer.commentCount ?? 0,
     books: books.length,
   };
+  const displayName = getTrainerDisplayName(trainer);
 
   return (
     <>
@@ -92,13 +89,13 @@ export function TrainerDetailContent({
         <div className="flex items-center gap-8 overflow-x-auto text-[15px]">
           {TABS.map((tab) => {
             const count = tab.countKey ? counts[tab.countKey] : 0;
+            const isActive = activeTab === tab.id;
             return (
-              <button
+              <Link
                 key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
+                href={getTrainerDetailTabHref(trainer.id, tab.id)}
                 className={`py-4 whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1.5 ${
-                  activeTab === tab.id
+                  isActive
                     ? 'text-primary border-b-2 border-primary font-bold'
                     : 'text-slate-600 hover:text-primary'
                 }`}
@@ -107,14 +104,14 @@ export function TrainerDetailContent({
                 {tab.countKey && count > 0 && (
                   <span className={cn(
                     'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold',
-                    activeTab === tab.id
+                    isActive
                       ? 'bg-primary text-white'
                       : 'bg-slate-200 text-slate-600'
                   )}>
                     {count}
                   </span>
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -123,15 +120,19 @@ export function TrainerDetailContent({
       {/* Tab 内容区 */}
       <div className="min-h-[800px]">
         {activeTab === 'home' && (
-          <HomeView trainer={trainer} courses={courses} cases={cases} />
+          <HomeView trainer={trainer} courses={courses} coursesTotal={coursesTotal} cases={cases} />
         )}
-        {activeTab === 'courses' && <CoursesView courses={courses} />}
+        {activeTab === 'courses' && (
+          <CoursesView trainerId={trainer.id} initialCourses={courses} total={coursesTotal} />
+        )}
         {activeTab === 'cases' && <CasesView cases={cases} />}
-        {activeTab === 'videos' && <VideosView videos={videos} />}
+        {activeTab === 'videos' && (
+          <VideosView trainerId={trainer.id} initialVideos={videos} total={videosTotal} />
+        )}
         {activeTab === 'comments' && (
           <ReviewsView
             trainerUserId={trainer.userId}
-            trainerName={trainer.name}
+            trainerName={displayName}
             courses={courses}
             videos={videos}
           />
@@ -147,10 +148,12 @@ export function TrainerDetailContent({
 function HomeView({
   trainer,
   courses,
+  coursesTotal,
   cases,
 }: {
   trainer: TrainerDetail;
   courses: CourseListItem[];
+  coursesTotal: number;
   cases: TrainerCase[];
 }) {
   const introText = trainer.intro?.trim() || '';
@@ -158,8 +161,8 @@ function HomeView({
   const showIntro =
     introText.length > 0 && introText !== bioText;
   const showBio = bioText.length > 0;
-  const showOneLine = Boolean(trainer.oneLineIntro?.trim());
   const showGoodAt = Boolean(trainer.goodAt?.trim());
+  const displayName = getTrainerDisplayName(trainer);
 
   const hasProfileBlock =
     trainer.educations.length > 0
@@ -169,11 +172,10 @@ function HomeView({
     || Boolean(trainer.teachingStyle?.trim())
     || showIntro
     || showBio
-    || showOneLine
     || showGoodAt
     || trainer.honors.length > 0
     || cases.length > 0
-    || courses.length > 0;
+    || coursesTotal > 0;
 
   return (
     <div className="space-y-6">
@@ -186,18 +188,10 @@ function HomeView({
         </div>
       )}
 
-      {/* 一句话简介 */}
-      {showOneLine && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>一句话简介</SectionTitle>
-          <p className="text-[15px] leading-7 text-slate-600">{trainer.oneLineIntro}</p>
-        </div>
-      )}
-
       {/* 专家简介（intro 与 bio 分开展示，避免重复） */}
       {showIntro && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>专家简介</SectionTitle>
+          <SectionTitle>{trainerSectionH3(displayName, '专家简介')}</SectionTitle>
           <LegacyRichText content={trainer.intro!} />
         </div>
       )}
@@ -205,7 +199,7 @@ function HomeView({
       {/* 擅长课题 */}
       {showGoodAt && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>擅长课题</SectionTitle>
+          <SectionTitle>{trainerSectionH3(displayName, '擅长课题')}</SectionTitle>
           <LegacyRichText content={trainer.goodAt!} />
         </div>
       )}
@@ -213,7 +207,7 @@ function HomeView({
       {/* 资质背景 */}
       {trainer.educations.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>资质背景</SectionTitle>
+          <SectionTitle>{trainerSectionH3(displayName, '专家资质')}</SectionTitle>
           <ul className="space-y-2 text-[15px] leading-7 text-slate-600 list-disc pl-5 marker:text-slate-400">
             {trainer.educations.map((edu) => (
               <li key={edu.id || edu.schoolName}>
@@ -237,7 +231,7 @@ function HomeView({
       {/* 部分客户 */}
       {trainer.partialClients && trainer.partialClients.trim() && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>部分客户</SectionTitle>
+          <SectionTitle>{trainerSectionH3(displayName, '部分客户')}</SectionTitle>
           <LegacyRichText content={trainer.partialClients} />
         </div>
       )}
@@ -363,9 +357,9 @@ function HomeView({
               );
             })}
           </div>
-          {courses.length > 3 && (
+          {coursesTotal > 3 && (
             <p className="text-sm text-slate-400 mt-4 text-center">
-              共 {courses.length} 门课程，请切换「主讲课程」查看全部
+              共 {coursesTotal} 门课程，请切换「主讲课程」查看全部
             </p>
           )}
         </div>
@@ -378,10 +372,13 @@ function HomeView({
             <SectionTitle>授课案例</SectionTitle>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {cases.slice(0, 3).map((c) => (
-              <article
+            {cases.slice(0, 3).map((c) => {
+              const caseDesc = c.description ? legacyRichTextToPlain(c.description) : '';
+              return (
+              <Link
                 key={c.id}
-                className="rounded-lg border border-slate-200 overflow-hidden group hover:shadow-sm transition"
+                href={`/case/${c.id}.htm`}
+                className="rounded-lg border border-slate-200 overflow-hidden group hover:shadow-sm transition block"
               >
                 <div className="aspect-[16/10] overflow-hidden bg-slate-100">
                   {c.coverImage ? (
@@ -401,12 +398,13 @@ function HomeView({
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-[15px] line-clamp-2">{c.caseTitle}</h3>
-                  {c.description && (
-                    <p className="text-sm text-slate-500 mt-2 line-clamp-2">{c.description}</p>
+                  {caseDesc && (
+                    <p className="text-sm text-slate-500 mt-2 line-clamp-2">{caseDesc}</p>
                   )}
                 </div>
-              </article>
-            ))}
+              </Link>
+            );
+            })}
           </div>
         </div>
       )}
@@ -417,67 +415,121 @@ function HomeView({
 
 // ==================== 主讲课程视图 ====================
 
-function CoursesView({ courses }: { courses: CourseListItem[] }) {
+const TRAINER_TAB_PAGE_SIZE = 20;
+
+function CoursesView({
+  trainerId,
+  initialCourses,
+  total,
+}: {
+  trainerId: number;
+  initialCourses: CourseListItem[];
+  total: number;
+}) {
+  const [courses, setCourses] = useState(initialCourses);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const hasMore = courses.length < total;
+
+  useEffect(() => {
+    setCourses(initialCourses);
+    setPage(1);
+  }, [trainerId, initialCourses]);
+
+  const loadMore = async () => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      const nextPage = page + 1;
+      const res = await getTrainerCourses(trainerId, nextPage, TRAINER_TAB_PAGE_SIZE);
+      setCourses((prev) => {
+        const seen = new Set(prev.map((c) => c.id));
+        const merged = [...prev];
+        for (const item of res.list) {
+          if (!seen.has(item.id)) merged.push(item);
+        }
+        return merged;
+      });
+      setPage(nextPage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
-        <h2 className="text-[20px] font-bold text-slate-900">
+        <h3 className="text-[20px] font-bold text-slate-900">
           全部主讲课程{' '}
-          <span className="text-slate-500 font-normal text-[15px] ml-2">共 {courses.length} 门</span>
-        </h2>
+          <span className="text-slate-500 font-normal text-[15px] ml-2">共 {total} 门</span>
+        </h3>
       </div>
 
-      {courses.length === 0 ? (
+      {total === 0 ? (
         <p className="text-sm text-slate-400 py-12 text-center">暂无主讲课程</p>
       ) : (
-        <div className="space-y-4">
-          {courses.map((course) => {
-            const isOpen = isOpenCourseType(course.type);
-            const detailPath = getCourseDetailPath(course.id, course.type);
-            return (
-              <div
-                key={course.id}
-                className="p-5 rounded-lg border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-sm transition"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span
-                      className={`px-2 py-0.5 text-[12px] rounded-sm font-medium ${
-                        isOpen
-                          ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
-                          : 'bg-primary/10 text-primary border border-primary/20'
-                      }`}
-                    >
-                      {course.typeLabel || (isOpen ? '公开课' : '内训课')}
-                    </span>
+        <>
+          <div className="space-y-4">
+            {courses.map((course) => {
+              const isOpen = isOpenCourseType(course.type);
+              const detailPath = getCourseDetailPath(course.id, course.type);
+              return (
+                <div
+                  key={course.id}
+                  className="p-5 rounded-lg border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-sm transition"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span
+                        className={`px-2 py-0.5 text-[12px] rounded-sm font-medium ${
+                          isOpen
+                            ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
+                            : 'bg-primary/10 text-primary border border-primary/20'
+                        }`}
+                      >
+                        {course.typeLabel || (isOpen ? '公开课' : '内训课')}
+                      </span>
+                      <Link
+                        href={detailPath}
+                        className="font-bold text-[18px] text-slate-900 hover:text-primary transition-colors line-clamp-1"
+                      >
+                        {decodeHtmlEntities(course.title)}
+                      </Link>
+                    </div>
+                    <p className="text-sm text-slate-500 mb-2">
+                      {course.categoryName ? `分类：${course.categoryName}` : ''}
+                      {course.durationDays ? ` ｜ 课时：${course.durationDays} 天` : ''}
+                      {course.totalHours ? ` 共 ${course.totalHours} 小时` : ''}
+                    </p>
+                    {course.keywords && (
+                      <p className="text-[13px] text-slate-500 line-clamp-2">{course.keywords}</p>
+                    )}
+                  </div>
+                  <div className="shrink-0">
                     <Link
                       href={detailPath}
-                      className="font-bold text-[18px] text-slate-900 hover:text-primary transition-colors line-clamp-1"
+                      className="px-6 py-2.5 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary font-medium w-full md:w-auto transition-colors inline-block text-center"
                     >
-                      {decodeHtmlEntities(course.title)}
+                      查看详情
                     </Link>
                   </div>
-                  <p className="text-sm text-slate-500 mb-2">
-                    {course.categoryName ? `分类：${course.categoryName}` : ''}
-                    {course.durationDays ? ` ｜ 课时：${course.durationDays} 天` : ''}
-                    {course.totalHours ? ` 共 ${course.totalHours} 小时` : ''}
-                  </p>
-                  {course.keywords && (
-                    <p className="text-[13px] text-slate-500 line-clamp-2">{course.keywords}</p>
-                  )}
                 </div>
-                <div className="shrink-0">
-                  <Link
-                    href={detailPath}
-                    className="px-6 py-2.5 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary font-medium w-full md:w-auto transition-colors inline-block text-center"
-                  >
-                    查看详情
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          {hasMore && (
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loading}
+                className="px-6 py-2.5 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary text-sm transition-colors disabled:opacity-50"
+              >
+                {loading ? '加载中…' : `加载更多（已显示 ${courses.length}/${total}）`}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -499,9 +551,9 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
-        <h2 className="text-[20px] font-bold text-slate-900">
+        <h3 className="text-[20px] font-bold text-slate-900">
           授课案例 <span className="text-primary mx-1">{cases.length}</span> 个
-        </h2>
+        </h3>
       </div>
 
       {cases.length === 0 ? (
@@ -518,7 +570,7 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
               </div>
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                 {items.map((c) => (
-                  <div key={c.id} className="group cursor-pointer">
+                  <Link key={c.id} href={`/case/${c.id}.htm`} className="group cursor-pointer block">
                     <div className="aspect-video overflow-hidden rounded border border-slate-200 mb-2 relative bg-slate-100">
                       {c.coverImage ? (
                         <SafeImage
@@ -538,7 +590,7 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
                     <h3 className="text-[13px] text-slate-900 group-hover:text-primary transition-colors line-clamp-2 text-center">
                       {c.caseTitle}
                     </h3>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -551,59 +603,111 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
 
 // ==================== 录播课视图 ====================
 
-function VideosView({ videos }: { videos: VideoListItem[] }) {
+function VideosView({
+  trainerId,
+  initialVideos,
+  total,
+}: {
+  trainerId: number;
+  initialVideos: VideoListItem[];
+  total: number;
+}) {
+  const [videos, setVideos] = useState(initialVideos);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const hasMore = videos.length < total;
+
+  useEffect(() => {
+    setVideos(initialVideos);
+    setPage(1);
+  }, [trainerId, initialVideos]);
+
+  const loadMore = async () => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      const nextPage = page + 1;
+      const res = await getTrainerVideos(trainerId, nextPage, TRAINER_TAB_PAGE_SIZE);
+      setVideos((prev) => {
+        const seen = new Set(prev.map((v) => v.id));
+        const merged = [...prev];
+        for (const item of res.list) {
+          if (!seen.has(item.id)) merged.push(item);
+        }
+        return merged;
+      });
+      setPage(nextPage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
-        <h2 className="text-[20px] font-bold text-slate-900">
+        <h3 className="text-[20px] font-bold text-slate-900">
           全部录播课{' '}
-          <span className="text-slate-500 font-normal text-[15px] ml-2">共 {videos.length} 门</span>
-        </h2>
+          <span className="text-slate-500 font-normal text-[15px] ml-2">共 {total} 门</span>
+        </h3>
       </div>
 
-      {videos.length === 0 ? (
+      {total === 0 ? (
         <p className="text-sm text-slate-400 py-12 text-center">暂无录播课</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-          {videos.map((video) => (
-            <Link
-              key={video.id}
-              href={`/videos/${video.id}`}
-              className="rounded-lg overflow-hidden border border-slate-200 group cursor-pointer hover:shadow-sm transition block"
-            >
-              <div className="aspect-video relative overflow-hidden bg-slate-100">
-                {video.coverUrl ? (
-                  <Image
-                    src={video.coverUrl}
-                    alt={video.title}
-                    width={520}
-                    height={293}
-                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-                    暂无封面
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                <span className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-white/90 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition shadow-sm">
-                  <Play className="size-5 fill-current" />
-                </span>
-              </div>
-              <div className="p-3">
-                <h3 className="text-[14px] font-medium text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
-                  {video.title}
-                </h3>
-                <p className="text-[12px] text-slate-500 mt-1 flex justify-between">
-                  <span>{video.totalEpisodes ? `${video.totalEpisodes} 节` : video.videoTypeLabel}</span>
-                  <span className="text-primary font-bold">
-                    {video.isFree === 1 ? '免费' : `¥${Number(video.price).toFixed(2)}`}
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+            {videos.map((video) => (
+              <Link
+                key={video.id}
+                href={`/vedio/${video.id}.htm`}
+                className="rounded-lg overflow-hidden border border-slate-200 group cursor-pointer hover:shadow-sm transition block"
+              >
+                <div className="aspect-video relative overflow-hidden bg-slate-100">
+                  {video.coverUrl ? (
+                    <Image
+                      src={video.coverUrl}
+                      alt={video.title}
+                      width={520}
+                      height={293}
+                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                      暂无封面
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                  <span className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-white/90 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition shadow-sm">
+                    <Play className="size-5 fill-current" />
                   </span>
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
+                </div>
+                <div className="p-3">
+                  <h3 className="text-[14px] font-medium text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
+                    {video.title}
+                  </h3>
+                  <p className="text-[12px] text-slate-500 mt-1 flex justify-between">
+                    <span>{video.totalEpisodes ? `${video.totalEpisodes} 节` : video.videoTypeLabel}</span>
+                    <span className="text-primary font-bold">
+                      {video.isFree === 1 ? '免费' : `¥${Number(video.price).toFixed(2)}`}
+                    </span>
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+          {hasMore && (
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loading}
+                className="px-6 py-2.5 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary text-sm transition-colors disabled:opacity-50"
+              >
+                {loading ? '加载中…' : `加载更多（已显示 ${videos.length}/${total}）`}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -671,9 +775,9 @@ function ReviewsView({
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
-        <h2 className="text-[20px] font-bold text-slate-900">
+        <h3 className="text-[20px] font-bold text-slate-900">
           学员评价 <span className="text-primary mx-1">{reviews.length}</span> 个
-        </h2>
+        </h3>
         <button
           type="button"
           onClick={handleOpenReview}
@@ -762,10 +866,10 @@ function BooksView({ books }: { books: TrainerBook[] }) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
-        <h2 className="text-[20px] font-bold text-slate-900">
+        <h3 className="text-[20px] font-bold text-slate-900">
           全部著作{' '}
           <span className="text-slate-500 font-normal text-[15px] ml-2">共 {books.length} 本</span>
-        </h2>
+        </h3>
       </div>
 
       {books.length === 0 ? (

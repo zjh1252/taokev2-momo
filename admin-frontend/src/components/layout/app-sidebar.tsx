@@ -46,16 +46,29 @@ export default function AppSidebar() {
       <SidebarContent className='overflow-x-hidden'>
         {filteredGroups.map((group, index) => (
           <SidebarGroup key={group.label || `group-${index}`} className='py-0'>
-            {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
+            {group.label && <SidebarGroupLabel className='text-[15px] font-semibold'>{group.label}</SidebarGroupLabel>}
             <SidebarMenu>
               {group.items.map((item) => {
                 const Icon = item.icon ? Icons[item.icon] : Icons.logo;
-                const hasSubActive = item.items?.some((sub) => {
-                  if (pathname === sub.url || pathname.startsWith(sub.url + '/')) return true;
-                  return sub.items?.some(
-                    (g) => pathname === g.url || pathname.startsWith(g.url + '/'),
-                  );
-                });
+                // 判断父级是否应展开：任一子/孙匹配，且无其他兄弟的 URL 更精确匹配
+                const hasSubActive = (() => {
+                  const siblings = item.items || [];
+                  return siblings.some((sub) => {
+                    if (pathname === sub.url) return true;
+                    if (pathname.startsWith(sub.url + '/')) {
+                      const hasMoreSpecific = siblings.some(
+                        (s) =>
+                          s.url !== sub.url &&
+                          (pathname === s.url || pathname.startsWith(s.url + '/')) &&
+                          s.url.length > sub.url.length
+                      );
+                      if (!hasMoreSpecific) return true;
+                    }
+                    return sub.items?.some(
+                      (g) => pathname === g.url || pathname.startsWith(g.url + '/'),
+                    );
+                  });
+                })();
                 return item?.items && item?.items?.length > 0 ? (
                   <Collapsible
                     key={item.title}
@@ -78,19 +91,49 @@ export default function AppSidebar() {
                             const grandChildActive = subItem.items?.some(
                               (g) => pathname === g.url || pathname.startsWith(g.url + '/'),
                             );
+                            // 判断孙女菜单 active（与 isSubActive 逻辑一致）
+                            const isGrandChildActive = (gcUrl: string) => {
+                              if (pathname === gcUrl) return true;
+                              if (pathname.startsWith(gcUrl + '/')) {
+                                const gcSiblings = subItem.items || [];
+                                const hasMoreSpecificGc = gcSiblings.some(
+                                  (g) =>
+                                    g.url !== gcUrl &&
+                                    (pathname === g.url || pathname.startsWith(g.url + '/')) &&
+                                    g.url.length > gcUrl.length
+                                );
+                                return !hasMoreSpecificGc;
+                              }
+                              return false;
+                            };
+                            // 判断 subItem 是否 active：精确匹配，或以 "/" 开头且无更精确的兄弟匹配
+                            const isSubActive = (() => {
+                              if (pathname === subItem.url) return true;
+                              if (pathname.startsWith(subItem.url + '/')) {
+                                const siblings = item.items || [];
+                                const hasMoreSpecific = siblings.some(
+                                  (s) =>
+                                    s.url !== subItem.url &&
+                                    (pathname === s.url || pathname.startsWith(s.url + '/')) &&
+                                    s.url.length > subItem.url.length
+                                );
+                                return !hasMoreSpecific;
+                              }
+                              return false;
+                            })();
                             if (hasGrandChildren) {
                               return (
                                 <Collapsible
                                   key={subItem.title}
                                   asChild
-                                  defaultOpen={grandChildActive}
+                                  defaultOpen={grandChildActive || isSubActive}
                                   className='group/sub-collapsible'
                                 >
                                   <SidebarMenuSubItem>
                                     <CollapsibleTrigger asChild>
                                       <SidebarMenuSubButton
                                         className='cursor-pointer hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors'
-                                        isActive={grandChildActive}
+                                        isActive={!isSubActive && grandChildActive}
                                       >
                                         <span>{subItem.title}</span>
                                         <Icons.chevronRight className='ml-auto size-3.5 transition-transform duration-200 group-data-[state=open]/sub-collapsible:rotate-90' />
@@ -102,10 +145,7 @@ export default function AppSidebar() {
                                           <SidebarMenuSubItem key={grandChild.title}>
                                             <SidebarMenuSubButton
                                               asChild
-                                              isActive={
-                                                pathname === grandChild.url ||
-                                                pathname.startsWith(grandChild.url + '/')
-                                              }
+                                              isActive={isGrandChildActive(grandChild.url)}
                                               className='hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors'
                                             >
                                               <Link href={grandChild.url}>
@@ -124,7 +164,7 @@ export default function AppSidebar() {
                               <SidebarMenuSubItem key={subItem.title}>
                                 <SidebarMenuSubButton
                                   asChild
-                                  isActive={pathname === subItem.url || pathname.startsWith(subItem.url + '/')}
+                                  isActive={isSubActive}
                                   className='hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors'
                                 >
                                   <Link href={subItem.url}>

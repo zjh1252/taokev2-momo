@@ -18,7 +18,7 @@ interface ResumeUploaderProps {
  * <p>放在专家申请表单顶部，承担「上传简历（AI解析）」入口。流程：
  * <ol>
  *   <li>选择 .docx / .pdf 文件（≤ 20MB）</li>
- *   <li>调用 {@code /trainers/me/resume/parse-and-upload} 上传 + 解析</li>
+ *   <li>调用 {@code /trainer/me/resume/parse-and-upload} 上传 + 解析</li>
  *   <li>解析结果通过 {@code onParsed} 回调给父组件，自动预填表单</li>
  * </ol>
  *

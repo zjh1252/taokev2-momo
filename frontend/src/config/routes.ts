@@ -2,19 +2,16 @@
 
 export const ROUTES = {
   HOME: '/',
-  TRAINERS: '/trainers',
-  PUBLIC_COURSES: '/opencourses',
-  INTERNAL_COURSES: '/innercourses',
-  ONLINE_COURSES: '/videos',
-  INSTITUTIONS: '/institutions',
-  ASSOCIATIONS: '/associations',
+  TRAINERS: '/trainer',
+  PUBLIC_COURSES: '/opencourse',
+  INTERNAL_COURSES: '/inhousecourse',
+  ONLINE_COURSES: '/video',
+  INSTITUTIONS: '/company',
+  ASSOCIATIONS: '/association',
   SEARCH: '/search',
   CART: '/cart',
   CHECKOUT: '/checkout',
-  COURSES: '/courses',
-  INSTRUCTORS: '/instructors',
   ARTICLES: '/articles',
-  CASES: '/cases',
   LOGIN: '/login',
   REGISTER: '/register',
 
@@ -65,8 +62,8 @@ export const ROUTES = {
 
   // ---- 我的视频（录播课） ----
   VIDEOS: '/videos',
-  UC_VIDEOS_CREATE: '/dashboard/videos/create',
-  UC_VIDEOS_MANAGE: '/dashboard/videos/manage',
+  UC_VIDEOS_CREATE: '/dashboard/video/create',
+  UC_VIDEOS_MANAGE: '/dashboard/video/manage',
 
   // ---- 我的专家（经纪人/助理/机构/机构员工） ----
   UC_MY_EXPERTS: '/dashboard/my-experts',

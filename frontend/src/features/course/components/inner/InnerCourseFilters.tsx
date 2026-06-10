@@ -284,8 +284,8 @@ function CategoryTwoLevelPanel({
   onPick: (id?: number, name?: string) => void;
 }) {
   return (
-    <div className="space-y-5 text-sm">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+    <div className="text-sm">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
         <button
           type="button"
           onClick={() => onPick(undefined, undefined)}
@@ -296,39 +296,22 @@ function CategoryTwoLevelPanel({
           全部 / 不限
         </button>
       </div>
-      {tree.map((lvl1) => (
-        <div key={lvl1.id}>
-          <div className="mb-2">
-            <button
-              type="button"
-              onClick={() => onPick(lvl1.id, lvl1.name)}
-              className={`font-bold text-[14px] cursor-pointer transition-colors ${
-                selectedId === lvl1.id ? 'text-primary' : 'text-slate-800 hover:text-primary'
-              }`}
-            >
-              {lvl1.name}
-            </button>
-          </div>
-          {lvl1.children && lvl1.children.length > 0 && (
-            <div className="grid grid-cols-3 gap-x-4 gap-y-2 pl-1">
-              {lvl1.children.map((lvl2) => (
-                <button
-                  key={lvl2.id}
-                  type="button"
-                  onClick={() => onPick(lvl2.id, lvl2.name)}
-                  className={`text-left cursor-pointer transition-colors ${
-                    selectedId === lvl2.id
-                      ? 'text-primary font-medium'
-                      : 'text-slate-600 hover:text-primary'
-                  }`}
-                >
-                  {lvl2.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
+      <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+        {tree.map((lvl1) => (
+          <button
+            key={lvl1.id}
+            type="button"
+            onClick={() => onPick(lvl1.id, lvl1.name)}
+            className={`text-left cursor-pointer transition-colors truncate ${
+              selectedId === lvl1.id
+                ? 'text-primary font-semibold'
+                : 'text-slate-700 hover:text-primary'
+            }`}
+          >
+            {lvl1.name}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

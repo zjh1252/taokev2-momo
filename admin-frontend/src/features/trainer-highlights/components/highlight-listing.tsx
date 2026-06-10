@@ -5,7 +5,7 @@ import { trainerHighlightKeys } from '../api/queries';
 import { getTrainerHighlightsFromServer } from '../api/server-service';
 import { TrainerHighlightsTable } from './highlights-table';
 
-export default function HighlightListingPage() {
+export default async function HighlightListingPage() {
   const page = searchParamsCache.get('page');
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
@@ -18,10 +18,14 @@ export default function HighlightListingPage() {
 
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery({
-    queryKey: trainerHighlightKeys.list(filters),
-    queryFn: () => getTrainerHighlightsFromServer(filters)
-  });
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: trainerHighlightKeys.list(filters),
+      queryFn: () => getTrainerHighlightsFromServer(filters)
+    });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

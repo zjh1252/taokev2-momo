@@ -18,6 +18,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
  * 机构接口 — 公开列表/详情 + INSTITUTION 角色扩展信息自服务。
  *
@@ -50,8 +52,17 @@ public class InstitutionController {
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "default") String sort,
+            @RequestParam(required = false) Boolean association,
+            @RequestParam(required = false) Integer expertiseCategoryId) {
+        return ApiResponse.ok(institutionService.listPublic(page, size, keyword, sort, association, expertiseCategoryId));
+    }
+
+    @Public
+    @Operation(summary = "机构擅长领域一级分类批量计数（侧栏分类导航）")
+    @GetMapping("/institutions/expertise-category-counts")
+    public ApiResponse<Map<Integer, Long>> expertiseCategoryCounts(
             @RequestParam(required = false) Boolean association) {
-        return ApiResponse.ok(institutionService.listPublic(page, size, keyword, sort, association));
+        return ApiResponse.ok(institutionService.countPublicByExpertiseL1(association));
     }
 
     @Public

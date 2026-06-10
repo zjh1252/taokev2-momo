@@ -1,6 +1,16 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { InstitutionListSection } from '@/features/institution/components/list/InstitutionListSection';
 import { getInstitutionList } from '@/features/institution/api/service';
+import { buildInstitutionCategoryNavItems } from '@/lib/channel-category-stats';
+import { getCachedTrainerExpertiseTree } from '@/lib/cached-categories';
+import { normalizeNumberIds } from '@/lib/search-params';
+
+interface Props {
+  searchParams: Promise<{
+    expertiseCategoryId?: string;
+    categoryName?: string;
+  }>;
+}
 
 export async function generateMetadata() {
   return {
@@ -12,25 +22,44 @@ export async function generateMetadata() {
 /**
  * 培训协会列表页 — 复用机构列表组件，筛选 association=true
  */
-export default async function AssociationsPage() {
-  const initialData = await getInstitutionList({ page: 1, size: 15, association: true }).catch(() => ({
-    list: [],
-    total: 0,
-    page: 1,
-    size: 15,
-    totalPages: 0,
-  }));
+export default async function AssociationsPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const expertiseCategoryId = normalizeNumberIds(
+    sp.expertiseCategoryId ? [sp.expertiseCategoryId] : undefined,
+  )[0];
+
+  const expertiseTreePromise = getCachedTrainerExpertiseTree();
+
+  const [initialData, categoryItems] = await Promise.all([
+    getInstitutionList({
+      page: 1,
+      size: 15,
+      association: true,
+      expertiseCategoryId,
+    }).catch(() => ({
+      list: [],
+      total: 0,
+      page: 1,
+      size: 15,
+      totalPages: 0,
+    })),
+    expertiseTreePromise
+      .then((tree) => buildInstitutionCategoryNavItems(tree, '/association', true))
+      .catch(() => []),
+  ]);
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
-      {/* 面包屑导航 — 公共组件 */}
       <PageBreadcrumb items={[{ label: '培训协会' }]} />
 
       <InstitutionListSection
         initialData={initialData}
         association={true}
-        basePath="/associations"
+        basePath="/association"
         title="培训协会"
+        categoryItems={categoryItems}
+        initialExpertiseCategoryId={expertiseCategoryId}
+        categoryTitle="培训协会类别"
       />
     </main>
   );

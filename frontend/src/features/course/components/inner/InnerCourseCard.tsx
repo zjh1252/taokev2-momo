@@ -13,7 +13,7 @@ export function InnerCourseCard({ course }: InnerCourseCardProps) {
 
   return (
     <Link
-      href={`/innercourses/${course.id}`}
+      href={`/inhousecourse/${course.id}.htm`}
       className="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group block"
     >
       <div className="min-w-0">

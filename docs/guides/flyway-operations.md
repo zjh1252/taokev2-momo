@@ -212,6 +212,8 @@ C 端 `apiClient` 在无法连接后端（`localhost:8080`）时会 toast：
 
 ## 6. 与 data-trans 迁移的边界
 
+> **硬性规则：老站数据迁移脚本全部放在 `data-trans/` 下**（`scripts/`、`output/`、`docs/`），不得散落在 `backend/` 或其它目录。完整规范见 [data-trans-migration.md](./data-trans-migration.md)。
+
 | 方式 | 目录/入口 | 用途 |
 |---|---|---|
 | **Flyway** | `backend/taoke-app/.../db/migration/` | 新系统 schema 演进、种子基线、可重复的环境增量 |
@@ -221,6 +223,7 @@ C 端 `apiClient` 在无法连接后端（`localhost:8080`）时会 toast：
 
 - `data-trans` 文档中「地区表保留 Flyway 数据」指：`common_regions` 等已由 **V6/V9** 等 Flyway 脚本写入，老站迁移脚本**跳过**覆盖。
 - 业务排查文档见 `data-trans/docs/guides/数据迁移操作手册.md`；**Flyway 运维**以本文档为准。
+- Flyway 与 data-trans 逻辑重叠时（如 V66 与 `_purge_obvious_test_courses.py`），**两边同步维护**。
 
 ---
 

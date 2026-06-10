@@ -1,5 +1,5 @@
-import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { videoDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getVideoDetail } from '@/features/video/api/service';
 import { VideoDetailShell } from '@/features/video/components/detail/VideoDetailShell';
@@ -9,15 +9,11 @@ import { VideoSidebar } from '@/features/video/components/detail/VideoSidebar';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const t = await getTranslations('video');
   try {
     const video = await getVideoDetail(Number(id));
-    return {
-      title: `${video.title} - ${t('meta.title')}`,
-      description: video.intro?.replace(/<[^>]+>/g, '').slice(0, 160),
-    };
+    return videoDetailMetadata(video);
   } catch {
-    return { title: t('meta.title') };
+    return fallbackDetailMetadata('录播课详情');
   }
 }
 
@@ -41,7 +37,7 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
       {/* 面包屑导航 — 公共组件：首页 > 录播课 > 当前视频 */}
       <PageBreadcrumb
         items={[
-          { label: '录播课', href: '/videos' },
+          { label: '录播课', href: '/video' },
           { label: video.title || '录播课详情' },
         ]}
       />

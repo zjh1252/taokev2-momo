@@ -1,14 +1,14 @@
 {
   "hero": {
     "tagline": "淘课网 2024 年度专题",
-    "title": "解锁企业成长\n新动力",
+    "title": "找得到、信得过、价更优、+AI",
     "description": "汇聚全球 5000+ 顶尖商学院专家，为您的企业量身定制成长路径。",
     "cta": "立即咨询",
     "ctaSecondary": "查看专题",
-    "allCategories": "全部分类"
+    "allCategories": "课程分类"
   },
   "aiMatch": {
-    "title": "AI 智能匹配培训资源",
+    "title": "平台优势",
     "description": "大数据引擎实时筛选，极速匹配最适合您的讲师与课程",
     "ctaPublish": "发布需求",
     "ctaService": "智能客服，AI智能匹配培训资源"

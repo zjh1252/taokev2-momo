@@ -5,7 +5,7 @@ import { sensitiveWordKeys } from '../api/queries';
 import { getSensitiveWordsFromServer } from '../api/server-service';
 import { SensitiveWordsTable } from './words-table';
 
-export default function WordListingPage() {
+export default async function WordListingPage() {
   const page = searchParamsCache.get('page');
   const pageLimit = searchParamsCache.get('perPage');
   const keyword = searchParamsCache.get('name');
@@ -22,10 +22,14 @@ export default function WordListingPage() {
 
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery({
-    queryKey: sensitiveWordKeys.list(filters),
-    queryFn: () => getSensitiveWordsFromServer(filters)
-  });
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: sensitiveWordKeys.list(filters),
+      queryFn: () => getSensitiveWordsFromServer(filters)
+    });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

@@ -17,11 +17,14 @@ interface OpenCourseListSectionProps {
   initialInstitutionName?: string;
   /**
    * 锁定的城市 ID 集合（来自 /cities/[pinyin] 跳转），不在左侧筛选器里出现，
-   * 与 institutionId 类似：作为「上下文」固定参与查询；点 chip 上的 X 后跳回 /opencourses 清除。
+   * 与 institutionId 类似：作为「上下文」固定参与查询；点 chip 上的 X 后跳回 /opencourse 清除。
    */
   initialCityIds?: number[];
   /** 锁定城市的展示名集合，与 initialCityIds 一一对应（chip 文本「开课城市：南通」） */
   initialCityNames?: string[];
+  /** 来自底部分类导航或 URL 的初始分类筛选 */
+  initialCategoryIds?: number[];
+  initialCategoryNames?: string[];
 }
 
 const SORT_OPTIONS = [
@@ -56,10 +59,15 @@ function OpenCourseListSectionInner({
   initialInstitutionName,
   initialCityIds,
   initialCityNames,
+  initialCategoryIds,
+  initialCategoryNames,
 }: OpenCourseListSectionProps) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
-  const [filters, setFilters] = useState<OpenCourseFilterValue>({});
+  const [filters, setFilters] = useState<OpenCourseFilterValue>(() => ({
+    categoryIds: initialCategoryIds,
+    categoryNames: initialCategoryNames,
+  }));
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
   /** 锁定城市 IDs：来自城市频道页跳转，存在时随每次查询一起送给后端 */
   const [lockedCityIds, setLockedCityIds] = useState<number[] | undefined>(
@@ -125,14 +133,14 @@ function OpenCourseListSectionInner({
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);
     fetchData(1, undefined, undefined, null);
-    router.replace('/opencourses');
+    router.replace('/opencourse');
   }, [fetchData, router]);
 
-  /** 清除锁定城市，跳回不带 cityIds 的 /opencourses */
+  /** 清除锁定城市，跳回不带 cityIds 的 /opencourse */
   const handleClearCity = useCallback(() => {
     setLockedCityIds(undefined);
     // 直接路由刷新，重新 SSR 不带 cityIds 的列表，避免与本组件内 fetch 并发争抢
-    router.replace('/opencourses');
+    router.replace('/opencourse');
   }, [router]);
 
   const handleFilterChange = useCallback(

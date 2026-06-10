@@ -18,7 +18,7 @@ export function CasesSection({ cases }: CasesSectionProps) {
     <section>
       <SectionHeader
         title={t('cases.sectionTitle')}
-        viewMoreHref="/trainers"
+        viewMoreHref="/trainer"
         viewMoreText={t('experts.viewMore')}
       />
 
@@ -36,7 +36,7 @@ function CaseCard({ caseStudy }: { caseStudy: CaseStudy }) {
 
   return (
     <Link
-      href={`/cases/${caseStudy.id}`}
+      href={`/case/${caseStudy.id}.htm`}
       className="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-colors shadow-sm group flex flex-col h-full"
     >
       {/* 封面图 */}

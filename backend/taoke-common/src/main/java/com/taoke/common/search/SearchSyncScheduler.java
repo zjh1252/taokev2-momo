@@ -47,6 +47,8 @@ public class SearchSyncScheduler {
     public void ensureIndex() {
         try {
             indexService.createIndex(properties.getIndexName());
+            // 更新 mapping（新增字段兼容已有索引，不影响已有字段）
+            indexService.putMapping(properties.getIndexName());
             if (properties.isAutoReindexOnStartup() && needsInitialReindex()) {
                 log.info("检测到搜索索引未初始化，开发环境自动全量重建…");
                 Thread.startVirtualThread(this::reindexAllSafely);

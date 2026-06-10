@@ -12,10 +12,14 @@ export class ApiError extends Error {
 }
 
 export async function apiClient<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     headers: { 'Content-Type': 'application/json' },
+    signal: controller.signal,
     ...options
-  });
+  }).finally(() => clearTimeout(timeoutId));
 
   if (res.status === 401) {
     // 尝试刷新 token

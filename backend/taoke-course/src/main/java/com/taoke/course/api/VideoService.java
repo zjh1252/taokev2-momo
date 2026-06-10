@@ -79,6 +79,13 @@ public interface VideoService {
                                               int page, int size);
 
     /**
+     * 已上架录播课按一级分类批量计数（频道底部分类导航）。
+     *
+     * @return key=一级分类 ID，value=录播课数
+     */
+    java.util.Map<Integer, Long> countPublicByCategoryL1();
+
+    /**
      * 机构详情页：分页拉取该机构发布的录播课，按 publishedAt DESC 排序。
      */
     PageResponse<VideoListItemVO> listByInstitution(Integer institutionId, int page, int size);
@@ -126,6 +133,18 @@ public interface VideoService {
      * 后台重新上架（UNPUBLISHED → PUBLISHED）
      */
     void adminPublish(Integer videoId);
+
+    /**
+     * 推荐录播课：列表置顶（sortOrder 设为最大）或列表推荐（isFeatured=1）
+     *
+     * @param type "pin"=列表置顶，"recommend"=列表推荐
+     */
+    void feature(Integer videoId, String type);
+
+    /**
+     * 取消推荐：移除置顶和推荐标记
+     */
+    void unfeature(Integer videoId);
 
     // ==================== 系列管理 ====================
 

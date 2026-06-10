@@ -3,33 +3,35 @@ import { Star, MapPin } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
 import type { TrainerListItem } from '../../types';
 import { pickDisplayTitle } from '../../utils/displayTitle';
+import { getTrainerDisplayName } from '../../utils/displayName';
 
 interface TrainerCardProps {
   trainer: TrainerListItem;
+  /** 首屏前若干张优先加载，避免翻页后 16 张同时请求 */
+  priorityImage?: boolean;
 }
 
-export function TrainerCard({ trainer }: TrainerCardProps) {
-  const displayTitle = pickDisplayTitle(trainer.title, trainer.name);
+export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps) {
+  const displayName = getTrainerDisplayName(trainer);
+  const displayTitle = pickDisplayTitle(trainer.title, displayName)
+    || (trainer.oneLineIntro?.trim() || undefined);
   const expertiseNames = trainer.expertiseCategories?.map((c) => c.categoryName).filter(Boolean) ?? [];
   const industryNames = trainer.industryCategories?.map((c) => c.categoryName).filter(Boolean) ?? [];
-  const tagNames = trainer.expertiseTags?.split(',').filter(Boolean) ?? [];
   const displayTags = [...expertiseNames, ...industryNames];
-  if (displayTags.length === 0) {
-    displayTags.push(...tagNames);
-  }
 
   return (
     <Link
-      href={`/trainers/${trainer.id}`}
+      href={`/trainer/${trainer.id}.htm`}
       className="bg-white rounded-xl border border-slate-200 p-5 flex gap-5 hover:shadow-md transition-all group"
     >
       {/* 头像 */}
       <div className="shrink-0 relative">
         <SafeImage
           src={trainer.avatar}
-          alt={trainer.name}
+          alt={displayName}
           width={100}
           height={120}
+          priority={priorityImage}
           className="w-[100px] h-[120px] object-cover rounded-sm border-2 border-white shadow-sm"
         />
         {trainer.isTrusted === 1 && (
@@ -44,7 +46,7 @@ export function TrainerCard({ trainer }: TrainerCardProps) {
         <div>
           <div className="flex items-baseline gap-3 mb-1">
             <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors">
-              {trainer.name}
+              {displayName}
             </h3>
             {trainer.score > 0 && (
               <div className="flex items-center gap-1">

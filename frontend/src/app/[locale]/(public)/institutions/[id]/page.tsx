@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { institutionDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getInstitutionDetail } from '@/features/institution/api/service';
 import { InstitutionHero } from '@/features/institution/components/detail/InstitutionHero';
@@ -13,17 +14,14 @@ export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   try {
     const institution = await getInstitutionDetail(Number(id));
-    return {
-      title: `${institution.orgName} - 培训机构 - 淘课网`,
-      description: institution.bio || institution.orgName,
-    };
+    return institutionDetailMetadata(institution);
   } catch {
-    return { title: '培训机构详情 - 淘课网' };
+    return fallbackDetailMetadata('培训机构详情');
   }
 }
 
 /**
- * 机构详情页 — SSR，主数据从 GET /institutions/{id} 获取
+ * 机构详情页 — SSR，主数据从 GET /company/{id} 获取
  */
 export default async function InstitutionDetailPage({ params }: Props) {
   const { id } = await params;
@@ -46,7 +44,7 @@ export default async function InstitutionDetailPage({ params }: Props) {
       <PageBreadcrumb
         className="py-4"
         items={[
-          { label: '培训机构', href: '/institutions' },
+          { label: '培训机构', href: '/company' },
           { label: institution.orgName || '机构详情' },
         ]}
       />

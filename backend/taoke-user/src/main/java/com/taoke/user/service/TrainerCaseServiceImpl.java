@@ -160,6 +160,24 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
     }
 
     @Override
+    public TrainerCaseResponse getApprovedCaseDetail(Integer caseId) {
+        TrainerCase entity = caseRepository.findById(caseId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRAINER_CASE_NOT_FOUND));
+        if (entity.getStatus() != 1) {
+            throw new BusinessException(ErrorCode.TRAINER_CASE_NOT_FOUND);
+        }
+        TrainerCaseResponse r = TrainerCaseResponse.from(entity);
+        trainerRepository.findById(entity.getTrainerId()).ifPresent(t -> {
+            r.setTrainerUserId(t.getUserId());
+            r.setTrainerName(t.getName());
+        });
+        List<TrainerCaseFile> approvedFiles = caseFileRepository.findByCaseIdOrderBySortOrderAsc(entity.getId())
+                .stream().filter(f -> f.getStatus() == 1).toList();
+        r.setFiles(approvedFiles.stream().map(TrainerCaseFileResponse::from).toList());
+        return r;
+    }
+
+    @Override
     public List<TrainerCaseRecentResponse> listRecentApproved(int limit) {
         int target = limit > 0 ? Math.min(limit, 50) : 10;
         List<TrainerCase> cases = caseRepository.findRecentApproved(PageRequest.of(0, target));

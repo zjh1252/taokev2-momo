@@ -2,9 +2,12 @@ import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { ArrowRight } from 'lucide-react';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
+import { ChannelCategoryNav } from '@/components/layout/channel-category-nav';
 import { getCityByEnName } from '@/features/city/api/service';
 import { getCourseList } from '@/features/course/api/service';
 import { CityCourseScheduleList } from '@/features/city/components/CityCourseScheduleList';
+import { buildCourseCategoryNavItems } from '@/lib/channel-category-stats';
+import { getCachedCourseCategoryTree } from '@/lib/cached-categories';
 
 interface Props {
   params: Promise<{ city: string }>;
@@ -73,7 +76,9 @@ export default async function CityChannelPage({ params }: Props) {
   const month = thisMonthRange();
   const next = nextMonthRange();
 
-  const [recentPage, nextMonthPage] = await Promise.all([
+  const categoryTreePromise = getCachedCourseCategoryTree();
+
+  const [recentPage, nextMonthPage, categoryNavItems] = await Promise.all([
     // 最近开课：本月可报名公开课
     getCourseList({
       page: 1,
@@ -106,6 +111,12 @@ export default async function CityChannelPage({ params }: Props) {
       size: 10,
       totalPages: 0,
     })),
+    categoryTreePromise
+      .then((tree) => buildCourseCategoryNavItems(tree, true, '/opencourse', {
+        cityIds,
+        cityName: detail.cityName,
+      }))
+      .catch(() => []),
   ]);
 
   const monthLabel = `${new Date().getMonth() + 1}`;
@@ -132,7 +143,7 @@ export default async function CityChannelPage({ params }: Props) {
           </p>
         </div>
         <Link
-          href={`/opencourses?cityIds=${detail.cityRegionId}&cityName=${encodeURIComponent(detail.cityName)}`}
+          href={`/opencourse?cityIds=${detail.cityRegionId}&cityName=${encodeURIComponent(detail.cityName)}`}
           className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-5 py-2.5 rounded-md hover:opacity-90 transition-opacity shrink-0"
         >
           查看全部{detail.cityName}公开课
@@ -154,6 +165,12 @@ export default async function CityChannelPage({ params }: Props) {
         cityName={detail.cityName}
         courses={nextMonthPage.list}
         emptyText={`下月暂无${detail.cityName}开课`}
+      />
+
+      <ChannelCategoryNav
+        title="公开课课程分类"
+        items={categoryNavItems}
+        countUnit="门"
       />
     </main>
   );

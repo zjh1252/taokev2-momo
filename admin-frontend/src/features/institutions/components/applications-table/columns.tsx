@@ -6,6 +6,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import Image from 'next/image';
 import { CellAction } from './cell-action';
+import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 
 function statusVariant(status: number) {
   switch (status) {
@@ -33,7 +34,7 @@ export const columns: ColumnDef<AdminInstitutionApplication>[] = [
       <div className='flex items-center gap-3'>
         {row.original.logoUrl ? (
           <Image
-            src={row.original.logoUrl}
+            src={resolveAssetUrl(row.original.logoUrl)}
             alt={row.original.orgName || ''}
             width={32}
             height={32}

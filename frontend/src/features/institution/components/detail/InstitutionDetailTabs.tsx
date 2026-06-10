@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
+import { SafeImage } from '@/components/safe-image';
 import { ChevronRight, Play, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import type { InstitutionDetail } from '../../types';
@@ -17,6 +17,7 @@ import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
 import { LegacyRichText } from '@/components/legacy-rich-text';
+import { institutionSectionH3 } from '@/lib/seo/headings';
 
 interface InstitutionDetailTabsProps {
   institution: InstitutionDetail;
@@ -92,7 +93,7 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center justify-between border-l-4 border-primary pl-3 py-2 bg-slate-50 rounded-r mb-4">
-      <span className="font-bold text-slate-800 text-sm">{title}</span>
+      <h3 className="font-bold text-slate-800 text-sm">{title}</h3>
       {moreHref && (
         <Link
           href={moreHref}
@@ -122,53 +123,62 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
       .catch(() => setVideos([]));
   }, [institution.id]);
 
+  const orgName = institution.orgName;
+
   return (
     <div className="space-y-8">
       {/* 简介 */}
       {institution.bio && institution.bio.trim() && (
         <section>
-          <SectionHeader title="简介" />
+          <h2 className="text-lg font-bold text-slate-900 mb-4">机构介绍</h2>
+          <SectionHeader title={institutionSectionH3(orgName, '简介')} />
           <LegacyRichText content={institution.bio} className="text-sm" />
         </section>
       )}
 
-      {/* 公开课 */}
-      {openCourses.length > 0 && (
-        <section>
-          <SectionHeader
-            title="公开课"
-            moreHref={`/opencourses?institutionId=${institution.id}`}
-          />
-          <OpenCourseTable courses={openCourses} />
-        </section>
-      )}
+      {(openCourses.length > 0 || innerCourses.length > 0 || videos.length > 0) && (
+        <section className="space-y-6">
+          <h2 className="text-lg font-bold text-slate-900">主营课程</h2>
 
-      {/* 内训课 */}
-      {innerCourses.length > 0 && (
-        <section>
-          <SectionHeader
-            title="内训课"
-            moreHref={`/innercourses?institutionId=${institution.id}`}
-          />
-          <InnerCourseTable courses={innerCourses} />
-        </section>
-      )}
+          {/* 公开课 */}
+          {openCourses.length > 0 && (
+            <div>
+              <SectionHeader
+                title={institutionSectionH3(orgName, '公开课')}
+                moreHref={`/opencourse?institutionId=${institution.id}`}
+              />
+              <OpenCourseTable courses={openCourses} />
+            </div>
+          )}
 
-      {/* 视频 */}
-      {videos.length > 0 && (
-        <section>
-          <SectionHeader
-            title="视频"
-            moreHref={`/videos?institutionId=${institution.id}`}
-          />
-          <VideoGrid videos={videos} />
+          {/* 内训课 */}
+          {innerCourses.length > 0 && (
+            <div>
+              <SectionHeader
+                title={institutionSectionH3(orgName, '内训课')}
+                moreHref={`/inhousecourse?institutionId=${institution.id}`}
+              />
+              <InnerCourseTable courses={innerCourses} />
+            </div>
+          )}
+
+          {/* 视频 */}
+          {videos.length > 0 && (
+            <div>
+              <SectionHeader
+                title={institutionSectionH3(orgName, '视频课程')}
+                moreHref={`/video?institutionId=${institution.id}`}
+              />
+              <VideoGrid videos={videos} />
+            </div>
+          )}
         </section>
       )}
 
       {/* 部分客户 */}
       {institution.clientCases && institution.clientCases.trim() && (
         <section>
-          <SectionHeader title="部分客户" />
+          <SectionHeader title={institutionSectionH3(orgName, '部分客户')} />
           <LegacyRichText content={institution.clientCases} className="text-sm" />
         </section>
       )}
@@ -226,7 +236,7 @@ function OpenCourseTable({ courses }: { courses: CourseListItem[] }) {
             <tr key={c.id} className="border-t border-slate-100 hover:bg-slate-50">
               <td className="px-4 py-3 text-slate-800">
                 <Link
-                  href={`/opencourses/${c.id}`}
+                  href={`/opencourse/${c.id}.htm`}
                   className="font-medium hover:text-primary line-clamp-1"
                 >
                   {c.title}
@@ -239,7 +249,7 @@ function OpenCourseTable({ courses }: { courses: CourseListItem[] }) {
               <td className="px-4 py-3 text-slate-600">{c.nextPlanCity || '—'}</td>
               <td className="px-4 py-3 text-right">
                 <Link
-                  href={`/opencourses/${c.id}`}
+                  href={`/opencourse/${c.id}.htm`}
                   className="text-primary hover:underline text-xs"
                 >
                   查看详情
@@ -270,7 +280,7 @@ function InnerCourseTable({ courses }: { courses: CourseListItem[] }) {
             <tr key={c.id} className="border-t border-slate-100 hover:bg-slate-50">
               <td className="px-4 py-3 text-slate-800">
                 <Link
-                  href={`/innercourses/${c.id}`}
+                  href={`/inhousecourse/${c.id}.htm`}
                   className="font-medium hover:text-primary line-clamp-1"
                 >
                   {c.title}
@@ -282,7 +292,7 @@ function InnerCourseTable({ courses }: { courses: CourseListItem[] }) {
               </td>
               <td className="px-4 py-3 text-right">
                 <Link
-                  href={`/innercourses/${c.id}`}
+                  href={`/inhousecourse/${c.id}.htm`}
                   className="text-primary hover:underline text-xs"
                 >
                   查看详情
@@ -302,12 +312,12 @@ function VideoGrid({ videos }: { videos: VideoListItem[] }) {
       {videos.map((v) => (
         <Link
           key={v.id}
-          href={`/videos/${v.id}`}
+          href={`/vedio/${v.id}.htm`}
           className="group rounded-lg overflow-hidden border border-slate-200 hover:shadow-sm transition-shadow"
         >
           <div className="aspect-video relative overflow-hidden bg-slate-100">
             {v.coverUrl ? (
-              <Image
+              <SafeImage
                 src={v.coverUrl}
                 alt={v.title}
                 width={320}

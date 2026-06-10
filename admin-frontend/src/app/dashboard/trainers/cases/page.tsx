@@ -4,7 +4,7 @@ import { searchParamsCache } from '@/lib/searchparams';
 import type { SearchParams } from 'nuqs/server';
 
 export const metadata = {
-  title: '案例管理'
+  title: '案例列表'
 };
 
 type PageProps = {
@@ -18,7 +18,7 @@ export default async function TrainerCasesPage(props: PageProps) {
   return (
     <PageContainer
       scrollable={false}
-      pageTitle='案例管理'
+      pageTitle='案例列表'
       pageDescription='管理专家培训案例，审核案例内容'
     >
       <CaseListingPage />

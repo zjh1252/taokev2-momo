@@ -5,12 +5,16 @@ import { eaKeys } from '../api/queries';
 import { getEAApplicationsFromServer } from '../api/server-service';
 import { EAApplicationsTable } from './applications-table';
 
-export default function EAApplicationListingPage() {
+export default async function EAApplicationListingPage() {
   const page = searchParamsCache.get('page');
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
   const filters = { page, limit: pageLimit, ...(status && { status }) };
   const queryClient = getQueryClient();
-  void queryClient.prefetchQuery({ queryKey: eaKeys.applications(filters), queryFn: () => getEAApplicationsFromServer(filters) });
+  try {
+    await queryClient.prefetchQuery({ queryKey: eaKeys.applications(filters), queryFn: () => getEAApplicationsFromServer(filters) });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
   return (<HydrationBoundary state={dehydrate(queryClient)}><EAApplicationsTable /></HydrationBoundary>);
 }

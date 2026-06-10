@@ -58,3 +58,19 @@ export async function publishVideo(videoId: number) {
     { method: 'PUT' }
   );
 }
+
+/** 推荐录播课（列表置顶或列表推荐） */
+export async function featureVideo(videoId: number, type: 'pin' | 'recommend') {
+  return apiClient<{ code: number; message: string }>(
+    `/videos/${videoId}/feature?type=${type}`,
+    { method: 'PUT' }
+  );
+}
+
+/** 取消推荐 */
+export async function unfeatureVideo(videoId: number) {
+  return apiClient<{ code: number; message: string }>(
+    `/videos/${videoId}/unfeature`,
+    { method: 'PUT' }
+  );
+}

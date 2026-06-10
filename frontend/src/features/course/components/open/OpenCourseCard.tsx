@@ -30,7 +30,7 @@ export function OpenCourseCard({ course }: OpenCourseCardProps) {
   const planCity = course.nextPlanCity?.trim() || '-';
   return (
     <Link
-      href={`/opencourses/${course.id}`}
+      href={`/opencourse/${course.id}.htm`}
       className="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group block"
     >
       <div className="min-w-0">

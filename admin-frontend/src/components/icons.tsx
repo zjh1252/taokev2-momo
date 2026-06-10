@@ -1,4 +1,5 @@
 import {
+  IconAd,
   IconAdjustmentsHorizontal,
   IconAlertCircle,
   IconAlertTriangle,
@@ -6,12 +7,14 @@ import {
   IconBell,
   IconBold,
   IconBook,
+  IconBooks,
   IconBox,
   IconBrandGithub,
   IconBriefcase,
   IconBrandTwitter,
   IconBrightness,
   IconBuilding,
+  IconBuildingCommunity,
   IconCalendar,
   IconCalendarEvent,
   IconCheck,
@@ -39,6 +42,7 @@ import {
   IconExternalLink,
   IconEyeOff,
   IconFile,
+  IconFileDescription,
   IconFileText,
   IconFileTypePdf,
   IconFileTypeDoc,
@@ -68,6 +72,7 @@ import {
   IconPizza,
   IconPlus,
   IconProps,
+  IconReceipt,
   IconRosetteDiscountCheck,
   IconSearch,
   IconSelector,
@@ -78,6 +83,7 @@ import {
   IconSparkles,
   IconStack2,
   IconStar,
+  IconStarOff,
   IconSun,
   IconTags,
   IconTrash,
@@ -90,8 +96,9 @@ import {
   IconUserCheck,
   IconUserCircle,
   IconUserEdit,
-  IconUserX,
   IconUsers,
+  IconUsersGroup,
+  IconUserX,
   IconVideo,
   IconHeadset,
   IconCrown,
@@ -145,6 +152,7 @@ export const Icons = {
   userCheck: IconUserCheck,
   userPen: IconUserEdit,
   teams: IconUsers,
+  usersGroup: IconUsersGroup,
   headset: IconHeadset,
 
   // Brand
@@ -164,6 +172,7 @@ export const Icons = {
   // Files
   page: IconFile,
   post: IconFileText,
+  contract: IconFileDescription,
   fileTypePdf: IconFileTypePdf,
   fileTypeDoc: IconFileTypeDoc,
   fileTypeXls: IconFileTypeXls,
@@ -197,10 +206,12 @@ export const Icons = {
   // Commerce / Plans
   billing: IconCreditCard,
   creditCard: IconCreditCard,
+  receipt: IconReceipt,
   product: IconBox,
   pro: IconCrown,
   exclusive: IconStar,
   star: IconStar,
+  starOff: IconStarOff,
   sparkles: IconSparkles,
   badgeCheck: IconRosetteDiscountCheck,
   lock: IconLock,
@@ -220,8 +231,10 @@ export const Icons = {
 
   // Education / Courses
   book: IconBook,
+  books: IconBooks,
   briefcase: IconBriefcase,
   building: IconBuilding,
+  buildingCommunity: IconBuildingCommunity,
   calendarEvent: IconCalendarEvent,
 
   // Categories
@@ -234,5 +247,6 @@ export const Icons = {
   slash: IconSlash,
   calendar: IconCalendar,
   galleryVerticalEnd: IconStack2,
-  moreHorizontal: IconDots
+  moreHorizontal: IconDots,
+  ad: IconAd
 };

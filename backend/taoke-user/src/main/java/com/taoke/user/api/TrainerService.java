@@ -44,9 +44,25 @@ public interface TrainerService {
                                                      Integer isTrusted);
 
     /**
+     * 已发布专家按擅长领域一级分类批量计数（含二级展开，与 listPublic 筛选口径一致）。
+     *
+     * @return key=一级分类 ID，value=专家数
+     */
+    java.util.Map<Integer, Long> countPublicByExpertiseL1();
+
+    /**
      * 按专家 ID 查询公开档案（不含报价敏感字段）
      */
     TrainerPublicResponse getPublicProfile(Integer trainerId);
+
+    /**
+     * 解析专家主讲课程应使用的 {@code courses.trainer_id}。
+     * <p>
+     * 迁移后常见同名双行：种子档案 {@code status=2} 用于列表/URL，旧站课程挂在
+     * {@code user_id=id} 的迁移行。访问种子 id 时返回迁移行 id，避免详情页课程数偏少。
+     * </p>
+     */
+    Integer resolveCourseTrainerId(Integer trainerId);
 
     /**
      * 专家详情页推荐相关专家

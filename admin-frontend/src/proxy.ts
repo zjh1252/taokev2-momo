@@ -9,12 +9,6 @@ function isPublicPath(pathname: string) {
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-
-  // 静态资源、API 路由不拦截
-  if (pathname.startsWith('/api/') || pathname.startsWith('/_next')) {
-    return NextResponse.next();
-  }
-
   const accessToken = req.cookies.get('access_token')?.value;
 
   // 未登录访问受保护页面 → 跳登录
@@ -38,9 +32,9 @@ export function proxy(req: NextRequest) {
   return NextResponse.next();
 }
 
+// 排除 /api、/_next、静态资源，避免 proxy 干扰嵌套 Route Handler（如 /api/auth/login）
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)'
+    '/((?!api|_next|trpc|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)'
   ]
 };

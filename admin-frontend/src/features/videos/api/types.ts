@@ -22,6 +22,8 @@ export type AdminVideo = {
   publisherType: string;
   publisherName: string | null;
   keywords: string | null;
+  isFeatured: number;
+  sortOrder: number;
   publishedAt: string | null;
   createdAt: string;
 };
@@ -141,7 +143,7 @@ export const VIDEO_STATUS_OPTIONS = [
 ];
 
 export const VIDEO_TYPE_MAP: Record<string, string> = {
-  SERIES: '多节视频',
-  SINGLE: '单个视频',
+  SERIES: '系列课程',
+  SINGLE: '单门课程',
   EXTERNAL: '外部网页视频'
 };

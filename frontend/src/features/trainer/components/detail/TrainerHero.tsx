@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { SafeImage } from '@/components/safe-image';
 import { Star, StarHalf, MessageSquare, Heart } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,7 +12,8 @@ import {
 } from '@/features/interaction/api/service';
 import TrainerMessageDialog from '@/features/interaction/components/TrainerMessageDialog';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
-import { isDisplayTitle } from '../../utils/displayTitle';
+import { pickDisplayTitle } from '../../utils/displayTitle';
+import { getTrainerDisplayName } from '../../utils/displayName';
 
 interface TrainerHeroProps {
   trainer: TrainerDetail;
@@ -33,7 +33,10 @@ function StarRating({ score }: { score: number }) {
 }
 
 export function TrainerHero({ trainer }: TrainerHeroProps) {
-  const expertiseTags = trainer.expertiseTags?.split(',').filter(Boolean) ?? [];
+  const displayName = getTrainerDisplayName(trainer);
+  const displayTitle =
+    pickDisplayTitle(trainer.title, displayName)
+    || (trainer.oneLineIntro?.trim() ? trainer.oneLineIntro.trim() : undefined);
   const { requireAuth } = useAuthGuard();
   const [msgOpen, setMsgOpen] = useState(false);
   const [favorited, setFavorited] = useState(false);
@@ -72,7 +75,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           <div className="relative group">
             <SafeImage
               src={trainer.avatar}
-              alt={trainer.name}
+              alt={displayName}
               width={190}
               height={230}
               className="w-[190px] h-[230px] object-cover border-[6px] border-white shadow-md rounded-sm transition-transform duration-300 group-hover:scale-[1.02]"
@@ -117,7 +120,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
             open={msgOpen}
             onOpenChange={setMsgOpen}
             trainerUserId={trainer.userId}
-            trainerName={trainer.name}
+            trainerName={displayName}
             onSuccess={() => toast.success('留言已提交，我们会尽快联系您！')}
           />
         </div>
@@ -128,10 +131,10 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
             <div className="flex flex-col gap-5 flex-1 mt-6">
               <div className="flex flex-col md:flex-row md:items-baseline gap-3 md:gap-4">
                 <h1 className="text-[36px] leading-none font-extrabold text-slate-900 tracking-tight">
-                  {trainer.name}
+                  {displayName}
                 </h1>
-                {isDisplayTitle(trainer.title, trainer.name) ? (
-                  <span className="text-[18px] text-slate-600 font-medium">{trainer.title}</span>
+                {displayTitle ? (
+                  <span className="text-[18px] text-slate-600 font-medium line-clamp-2">{displayTitle}</span>
                 ) : null}
               </div>
 
@@ -196,24 +199,6 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                   </div>
                 )}
 
-                {/* 自定义标签 */}
-                {expertiseTags.length > 0 && (
-                  <div className="flex items-center gap-4">
-                    <span className="text-[14px] text-slate-600 w-[65px] font-medium shrink-0">
-                      关键标签:
-                    </span>
-                    <div className="flex flex-wrap gap-2.5">
-                      {expertiseTags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-3.5 py-1 rounded-full border border-slate-200 text-slate-600 text-[13px] bg-slate-50"
-                        >
-                          {tag.trim()}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>

@@ -78,6 +78,11 @@ export const columns: ColumnDef<AdminCourse>[] = [
     cell: ({ cell }) => cell.getValue<string>() || '-'
   },
   {
+    accessorKey: 'trainerName',
+    header: '所属专家',
+    cell: ({ cell }) => cell.getValue<string>() || '-'
+  },
+  {
     accessorKey: 'price',
     header: '价格',
     cell: ({ row }) => {

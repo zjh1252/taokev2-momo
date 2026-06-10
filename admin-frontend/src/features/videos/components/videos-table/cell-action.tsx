@@ -17,13 +17,18 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import {
+  RadioGroup,
+  RadioGroupItem
+} from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { AdminVideo } from '../../api/types';
 import { Icons } from '@/components/icons';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { approveVideo, rejectVideo, unpublishVideo, publishVideo } from '../../api/service';
+import { approveVideo, rejectVideo, unpublishVideo, publishVideo, featureVideo, unfeatureVideo } from '../../api/service';
 import { videoKeys } from '../../api/queries';
 
 interface CellActionProps {
@@ -35,12 +40,16 @@ export function CellAction({ data }: CellActionProps) {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [unpublishOpen, setUnpublishOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [featureOpen, setFeatureOpen] = useState(false);
+  const [featureType, setFeatureType] = useState<'pin' | 'recommend'>('recommend');
   const [reason, setReason] = useState('');
   const queryClient = useQueryClient();
 
   const isPending = data.status === 1;
   const isPublished = data.status === 2;
   const isUnpublished = data.status === 4;
+  const isFeatured = data.isFeatured === 1;
+  const isPinned = (data.sortOrder ?? 0) > 0;
 
   const approveMutation = useMutation({
     mutationFn: () => approveVideo(data.id),
@@ -78,6 +87,25 @@ export function CellAction({ data }: CellActionProps) {
     onSuccess: () => {
       toast.success('已重新上架');
       setPublishOpen(false);
+      void queryClient.invalidateQueries({ queryKey: videoKeys.all });
+    },
+    onError: () => toast.error('操作失败')
+  });
+
+  const featureMutation = useMutation({
+    mutationFn: () => featureVideo(data.id, featureType),
+    onSuccess: () => {
+      toast.success(featureType === 'pin' ? '已置顶' : '已推荐');
+      setFeatureOpen(false);
+      void queryClient.invalidateQueries({ queryKey: videoKeys.all });
+    },
+    onError: () => toast.error('操作失败')
+  });
+
+  const unfeatureMutation = useMutation({
+    mutationFn: () => unfeatureVideo(data.id),
+    onSuccess: () => {
+      toast.success('已取消推荐');
       void queryClient.invalidateQueries({ queryKey: videoKeys.all });
     },
     onError: () => toast.error('操作失败')
@@ -145,6 +173,53 @@ export function CellAction({ data }: CellActionProps) {
         </DialogContent>
       </Dialog>
 
+      {/* 推荐弹窗 */}
+      <Dialog open={featureOpen} onOpenChange={setFeatureOpen}>
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader>
+            <DialogTitle>推荐录播课</DialogTitle>
+            <DialogDescription>
+              选择推荐方式。用户选择"默认排序"时将按推荐优先级展示。
+            </DialogDescription>
+          </DialogHeader>
+          <RadioGroup
+            value={featureType}
+            onValueChange={(v) => setFeatureType(v as 'pin' | 'recommend')}
+            className='gap-3'
+          >
+            <div className='flex items-center space-x-2 rounded-lg border p-3 cursor-pointer'>
+              <RadioGroupItem value='recommend' id='ft-recommend' />
+              <Label htmlFor='ft-recommend' className='cursor-pointer'>
+                <span className='font-medium'>列表推荐</span>
+                <span className='text-muted-foreground text-xs block'>
+                  默认排序时，该录播课排在列表靠前位置
+                </span>
+              </Label>
+            </div>
+            <div className='flex items-center space-x-2 rounded-lg border p-3 cursor-pointer'>
+              <RadioGroupItem value='pin' id='ft-pin' />
+              <Label htmlFor='ft-pin' className='cursor-pointer'>
+                <span className='font-medium'>列表置顶</span>
+                <span className='text-muted-foreground text-xs block'>
+                  默认排序时，该录播课固定在列表最顶部
+                </span>
+              </Label>
+            </div>
+          </RadioGroup>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setFeatureOpen(false)}>
+              取消
+            </Button>
+            <Button
+              disabled={featureMutation.isPending}
+              onClick={() => featureMutation.mutate()}
+            >
+              {featureMutation.isPending ? '提交中...' : '确认推荐'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant='ghost' className='h-8 w-8 p-0'>
@@ -154,6 +229,24 @@ export function CellAction({ data }: CellActionProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
           <DropdownMenuLabel>操作</DropdownMenuLabel>
+
+          {/* 已上架：推荐 / 取消推荐 */}
+          {isPublished && !isFeatured && !isPinned && (
+            <DropdownMenuItem onClick={() => setFeatureOpen(true)}>
+              <Icons.star className='mr-2 h-4 w-4' />
+              推荐
+            </DropdownMenuItem>
+          )}
+          {isPublished && (isFeatured || isPinned) && (
+            <DropdownMenuItem
+              onClick={() => unfeatureMutation.mutate()}
+              disabled={unfeatureMutation.isPending}
+            >
+              <Icons.starOff className='mr-2 h-4 w-4' />
+              取消推荐
+            </DropdownMenuItem>
+          )}
+          {(isFeatured || isPinned) && <DropdownMenuSeparator />}
 
           {/* 待审核：通过 / 驳回 */}
           {isPending && (

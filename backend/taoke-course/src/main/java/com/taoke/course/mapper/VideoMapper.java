@@ -85,6 +85,8 @@ public class VideoMapper {
         vo.setScore(video.getScore());
         vo.setPublisherType(video.getPublisherType());
         vo.setKeywords(video.getKeywords());
+        vo.setIsFeatured(video.getIsFeatured());
+        vo.setSortOrder(video.getSortOrder());
         vo.setPublishedAt(video.getPublishedAt());
         vo.setCreatedAt(video.getCreatedAt());
         return vo;

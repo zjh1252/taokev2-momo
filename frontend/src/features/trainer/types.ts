@@ -54,6 +54,8 @@ export interface TrainerDetail {
   userId: number;
   trainerCode?: string;
   name: string;
+  /** 授课姓名（对外展示，可与 name 不同） */
+  teachingName?: string;
   avatar: string;
   title: string;
   gender: number;
@@ -96,8 +98,10 @@ export interface TrainerListItem {
   id: number;
   userId?: number;
   name: string;
+  teachingName?: string;
   avatar: string;
   title: string;
+  oneLineIntro?: string;
   score: number;
   expertiseTags?: string;
   isTrusted: number;
@@ -201,10 +205,12 @@ export interface RecommendedCourseItem {
 export interface RecommendedTrainerItem {
   id: number;
   name: string;
+  teachingName?: string;
   title?: string;
   avatar?: string;
   score?: number;
   isRecommended?: number;
+  oneLineIntro?: string;
 }
 
 /** 专家著作（对应后端 TrainerBookResponse） */

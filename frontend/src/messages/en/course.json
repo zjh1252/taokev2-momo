@@ -28,6 +28,8 @@
     "rating": "Rating",
     "publisher": "Publisher",
     "location": "Location",
+    "planLocation": "Location",
+    "planTime": "Class Time",
     "consult": "Consult Now",
     "reserve": "Reserve Now",
     "enroll": "Enroll Now",
@@ -52,6 +54,7 @@
   },
   "plan": {
     "title": "Upcoming Class Schedule",
+    "otherPlans": "Other Schedules for This Course",
     "courseId": "Course ID",
     "location": "Location",
     "classType": "Class Type",

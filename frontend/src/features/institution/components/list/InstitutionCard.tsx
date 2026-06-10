@@ -3,6 +3,7 @@
 import { Link } from '@/i18n/navigation';
 import { Flame, Star, MessageSquare } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
+import { getInstitutionLogoFallback } from '../../utils/logo';
 import { legacyRichTextToPlain } from '@/lib/legacy-rich-text';
 import type { InstitutionListItem } from '../../types';
 
@@ -11,24 +12,24 @@ interface InstitutionCardProps {
   basePath?: string;
 }
 
-export function InstitutionCard({ institution, basePath = '/institutions' }: InstitutionCardProps) {
-  const fallbackLogo = `https://ui-avatars.com/api/?name=${encodeURIComponent(institution.orgName.slice(0, 2))}&background=E0F2FE&color=0369A1&size=120&font-size=0.35`;
+export function InstitutionCard({ institution, basePath = '/company' }: InstitutionCardProps) {
   const location = [institution.provinceName, institution.cityName].filter(Boolean).join(' ');
 
   return (
     <Link
-      href={`${basePath}/${institution.id}`}
+      href={`${basePath}/${institution.id}.htm`}
       className="p-6 border-b border-slate-100 hover:bg-slate-50/50 transition-colors flex flex-col md:flex-row gap-6 group"
     >
       {/* Logo */}
       <div className="w-[120px] h-[120px] shrink-0 bg-white border border-slate-100 rounded-lg shadow-sm flex items-center justify-center p-2 group-hover:border-primary/30 transition-colors">
         <SafeImage
           src={institution.logoUrl}
-          fallback={fallbackLogo}
           alt={institution.orgName}
           width={112}
           height={112}
           className="max-w-full max-h-full object-contain"
+          loading="eager"
+          fallback={getInstitutionLogoFallback(institution.orgName)}
         />
       </div>
 

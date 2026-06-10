@@ -51,10 +51,14 @@ export async function serverFetchWithStatus<T>(
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000); // 30 秒超时
+
   const res = await fetch(`${BACKEND_URL}${endpoint}`, {
     ...options,
-    headers
-  });
+    headers,
+    signal: controller.signal
+  }).finally(() => clearTimeout(timeoutId));
 
   // 业务异常也带 JSON body，统一用 .json()；解析失败时降级为通用错误体
   let body: ApiResponseBody<T>;

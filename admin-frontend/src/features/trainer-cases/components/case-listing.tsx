@@ -5,7 +5,7 @@ import { trainerCaseKeys } from '../api/queries';
 import { getTrainerCasesFromServer } from '../api/server-service';
 import { TrainerCasesTable } from './cases-table';
 
-export default function CaseListingPage() {
+export default async function CaseListingPage() {
   const page = searchParamsCache.get('page');
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
@@ -18,10 +18,14 @@ export default function CaseListingPage() {
 
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery({
-    queryKey: trainerCaseKeys.list(filters),
-    queryFn: () => getTrainerCasesFromServer(filters)
-  });
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: trainerCaseKeys.list(filters),
+      queryFn: () => getTrainerCasesFromServer(filters)
+    });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

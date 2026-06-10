@@ -16,6 +16,8 @@ interface InnerCourseListSectionProps {
   industryTree: CategoryTreeNode[];
   initialInstitutionId?: number;
   initialInstitutionName?: string;
+  initialCategoryId?: number;
+  initialCategoryName?: string;
 }
 
 const SORT_OPTIONS = [
@@ -64,10 +66,15 @@ function InnerCourseListSectionInner({
   industryTree,
   initialInstitutionId,
   initialInstitutionName,
+  initialCategoryId,
+  initialCategoryName,
 }: InnerCourseListSectionProps) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
-  const [filters, setFilters] = useState<InnerCourseFilterValue>({});
+  const [filters, setFilters] = useState<InnerCourseFilterValue>(() => ({
+    categoryId: initialCategoryId,
+    categoryName: initialCategoryName,
+  }));
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
@@ -110,7 +117,7 @@ function InnerCourseListSectionInner({
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);
     fetchData(1, filters, undefined, null);
-    router.replace('/innercourses');
+    router.replace('/inhousecourse');
   }, [fetchData, filters, router]);
 
   const handleFilterChange = useCallback(

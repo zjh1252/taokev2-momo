@@ -11,7 +11,7 @@ import { AgentWorkCertTable } from './work-table';
  * @author Fangxinxin
  * @date 2026-04-16 21:30
  */
-export default function AgentCertListingPage() {
+export default async function AgentCertListingPage() {
   const page = searchParamsCache.get('page');
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
@@ -23,10 +23,14 @@ export default function AgentCertListingPage() {
   };
 
   const queryClient = getQueryClient();
-  void queryClient.prefetchQuery({
-    queryKey: agentCertKeys.work(filters),
-    queryFn: () => getAgentWorkCertsFromServer(filters)
-  });
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: agentCertKeys.work(filters),
+      queryFn: () => getAgentWorkCertsFromServer(filters)
+    });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

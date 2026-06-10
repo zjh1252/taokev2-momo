@@ -5,7 +5,7 @@ import { userKeys } from '../api/queries';
 import { getUsersFromServer } from '../api/server-service';
 import { UsersTable } from './users-table';
 
-export default function UserListingPage() {
+export default async function UserListingPage() {
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('nickname');
   const pageLimit = searchParamsCache.get('perPage');
@@ -20,10 +20,14 @@ export default function UserListingPage() {
 
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery({
-    queryKey: userKeys.list(filters),
-    queryFn: () => getUsersFromServer(filters)
-  });
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: userKeys.list(filters),
+      queryFn: () => getUsersFromServer(filters)
+    });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

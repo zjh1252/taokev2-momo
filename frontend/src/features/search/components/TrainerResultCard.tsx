@@ -3,6 +3,7 @@
 import { Link } from '@/i18n/navigation';
 import { Star, Eye } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
+import { parseExpertiseTags } from '@/features/trainer/utils/displayTitle';
 import type { SearchResultItem } from '../api/types';
 
 interface TrainerResultCardProps {
@@ -11,11 +12,11 @@ interface TrainerResultCardProps {
 
 export function TrainerResultCard({ item }: TrainerResultCardProps) {
   const hl = item._highlight;
-  const tags = item.expertiseTags?.split(',').filter(Boolean) ?? [];
+  const tags = parseExpertiseTags(item.expertiseTags);
 
   return (
     <Link
-      href={`/trainers/${item.id}`}
+      href={`/trainer/${item.id}.htm`}
       className="bg-white rounded-xl border border-slate-200 p-5 flex gap-5 hover:shadow-md transition-all group"
     >
       <div className="shrink-0 relative">

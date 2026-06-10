@@ -7,8 +7,13 @@ import { useListPageUrlSync } from '@/hooks/use-list-page-url';
 import { useListKeywordUrl } from '@/hooks/use-list-keyword-url';
 import { InstitutionCard } from './InstitutionCard';
 import { SafeImage } from '@/components/safe-image';
+import { getInstitutionLogoFallback } from '../../utils/logo';
 import { InstitutionSidebar } from './InstitutionSidebar';
-import { getInstitutionList } from '../../api/service';
+import { getInstitutionExpertiseCategoryCounts, getInstitutionList } from '../../api/service';
+import {
+  mergeInstitutionCategoryCounts,
+  type ChannelCategoryNavItem,
+} from '@/lib/institution-category-nav';
 import type { InstitutionListItem, PageResponse } from '../../types';
 
 interface InstitutionListSectionProps {
@@ -16,6 +21,9 @@ interface InstitutionListSectionProps {
   association?: boolean;
   basePath?: string;
   title?: string;
+  categoryItems?: ChannelCategoryNavItem[];
+  initialExpertiseCategoryId?: number;
+  categoryTitle?: string;
 }
 
 const SORT_OPTIONS = [
@@ -34,21 +42,39 @@ export function InstitutionListSection(props: InstitutionListSectionProps) {
 function InstitutionListSectionInner({
   initialData,
   association,
-  basePath = '/institutions',
+  basePath = '/company',
   title = '培训机构',
+  categoryItems: initialCategoryItems = [],
+  initialExpertiseCategoryId,
+  categoryTitle,
 }: InstitutionListSectionProps) {
   const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
   const [data, setData] = useState(initialData);
+  const [categoryItems, setCategoryItems] = useState(initialCategoryItems);
   const [keyword, setKeyword] = useState(keywordFromUrl);
+  const [expertiseCategoryId, setExpertiseCategoryId] = useState<number | undefined>(
+    initialExpertiseCategoryId,
+  );
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
   const keywordBootstrappedRef = useRef(false);
 
   const fetchData = useCallback(
-    (page: number, overrideKeyword?: string, overrideSort?: string) => {
+    (
+      page: number,
+      overrideKeyword?: string,
+      overrideSort?: string,
+      overrideCategoryId?: number | null,
+    ) => {
       const kw = overrideKeyword ?? keyword;
       const sort = overrideSort ?? sortKey;
+      const categoryId =
+        overrideCategoryId === null
+          ? undefined
+          : overrideCategoryId !== undefined
+            ? overrideCategoryId
+            : expertiseCategoryId;
       startTransition(async () => {
         try {
           const result = await getInstitutionList({
@@ -57,6 +83,7 @@ function InstitutionListSectionInner({
             keyword: kw || undefined,
             sort,
             association,
+            expertiseCategoryId: categoryId,
           });
           setData(result);
           setCurrentPage(page);
@@ -65,7 +92,7 @@ function InstitutionListSectionInner({
         }
       });
     },
-    [keyword, sortKey, association],
+    [keyword, sortKey, association, expertiseCategoryId],
   );
 
   const { commitPageChange } = useListPageUrlSync({
@@ -74,9 +101,21 @@ function InstitutionListSectionInner({
   });
 
   useEffect(() => {
-    if (keywordFromUrl === keyword && keywordBootstrappedRef.current) return;
+    if (initialCategoryItems.length === 0) return;
+    getInstitutionExpertiseCategoryCounts(association)
+      .then((counts) => {
+        setCategoryItems(mergeInstitutionCategoryCounts(initialCategoryItems, counts));
+      })
+      .catch(() => {});
+  }, [association, initialCategoryItems]);
+
+  useEffect(() => {
+    if (!keywordBootstrappedRef.current) {
+      keywordBootstrappedRef.current = true;
+      if (!keywordFromUrl) return;
+    }
+    if (keywordFromUrl === keyword) return;
     setKeyword(keywordFromUrl);
-    keywordBootstrappedRef.current = true;
     commitPageChange(1);
     fetchData(1, keywordFromUrl);
   }, [keywordFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -112,33 +151,47 @@ function InstitutionListSectionInner({
   // 推荐机构（取 isRecommended=1 的前4个）
   const recommendedItems = data.list.filter((item) => item.isRecommended === 1).slice(0, 4);
 
+  // 金牌推荐区只显示4个
+  const displayRecommends = recommendedItems.length >= 4 ? recommendedItems : [
+    ...recommendedItems,
+    ...data.list.filter((item) => item.isRecommended !== 1).slice(0, 4 - recommendedItems.length),
+  ];
+
   return (
     <div className="flex gap-6 items-start">
-      <InstitutionSidebar keyword={keyword} onKeywordChange={setKeyword} onSearch={handleSearch} />
+      <InstitutionSidebar
+        keyword={keyword}
+        onKeywordChange={setKeyword}
+        onSearch={handleSearch}
+        categoryItems={categoryItems}
+        activeCategoryId={expertiseCategoryId}
+        basePath={basePath}
+        categoryTitle={categoryTitle}
+      />
 
       <div className="flex-1 flex flex-col gap-6">
         {/* 金牌推荐区（仅首页且有推荐时展示） */}
-        {currentPage === 1 && recommendedItems.length > 0 && (
+        {currentPage === 1 && displayRecommends.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-amber-200 overflow-hidden">
             <div className="bg-gradient-to-r from-amber-50 via-amber-100/50 to-white px-5 py-3 border-b border-amber-100 flex items-center gap-2">
               <span className="text-amber-500 text-lg">🏅</span>
-              <h3 className="font-bold text-amber-700 text-[15px]">金牌培训机构推荐</h3>
+              <h2 className="font-bold text-amber-700 text-[15px]">热门机构推荐</h2>
             </div>
             <div className="p-6 bg-gradient-to-b from-white to-slate-50/30 grid grid-cols-2 sm:grid-cols-4 gap-6 md:gap-8 justify-items-center">
-              {recommendedItems.map((item) => (
+              {displayRecommends.map((item) => (
                   <a
                   key={item.id}
-                  href={`${basePath}/${item.id}`}
+                  href={`${basePath}/${item.id}.htm`}
                   className="group flex flex-col items-center gap-3 w-full"
                 >
                   <div className="w-24 h-24 md:w-28 md:h-28 bg-white rounded-xl shadow-sm border border-slate-100 group-hover:shadow-md group-hover:border-primary/30 transition-all flex items-center justify-center p-2">
                     <SafeImage
                       src={item.logoUrl}
-                      fallback={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.orgName.slice(0, 2))}&background=FEF3C7&color=78350F&size=100&font-size=0.4`}
                       alt={item.orgName}
                       width={112}
                       height={112}
                       className="max-w-full max-h-full object-contain"
+                      fallback={getInstitutionLogoFallback(item.orgName)}
                     />
                   </div>
                   <span className="text-sm font-bold text-slate-800 group-hover:text-primary transition-colors text-center w-full truncate px-2">

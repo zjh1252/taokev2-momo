@@ -93,6 +93,15 @@ public interface CourseService {
     PageResponse<CourseListItemVO> listPublic(PublicCourseQuery query);
 
     /**
+     * 已上架课程按一级分类批量计数（频道底部分类导航，单次查询替代 N 次 listPublic）。
+     *
+     * @param isOpen   true=公开课，false=内训课
+     * @param cityIds  可选；传入时仅统计在这些城市有开课计划的公开课
+     * @return key=一级分类 ID，value=课程数
+     */
+    java.util.Map<Integer, Long> countPublicByCategoryL1(boolean isOpen, List<Integer> cityIds);
+
+    /**
      * 专家详情页推荐课程
      * <p>规则：trainer_id = trainerId AND status = 已上架，按 view_count DESC 排序，最多 3 条。</p>
      *

@@ -1,4 +1,4 @@
--- V64：为 common_regions 增加 en_name（拼音）字段，便于 URL 路由使用
+-- V78：为 common_regions 增加 en_name（拼音）字段，便于 URL 路由使用
 -- 覆盖 level=1（省/直辖市/自治区）与 level=2（地级市/自治州）两级
 -- 直辖市下「市辖区」按 {province}-1 命名；陕西手工覆盖为 shaanxi 以区分山西
 

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { VideoChapterList } from './VideoChapterList';
 import type { VideoDetail } from '../../api/types';
 import { cn } from '@/lib/utils';
+import { resolveImageSrc } from '@/lib/media';
 
 interface VideoDetailTabsProps {
   video: VideoDetail;
@@ -18,6 +19,23 @@ type TabKey = typeof TABS[number]['key'];
 
 export function VideoDetailTabs({ video }: VideoDetailTabsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('intro');
+
+  // 将 intro HTML 中的图片 src 转换为可访问的完整 URL
+  const resolvedIntroHtml = useMemo(() => {
+    if (!video.intro) return '';
+    try {
+      const doc = new DOMParser().parseFromString(video.intro, 'text/html');
+      doc.querySelectorAll('img').forEach((img) => {
+        const src = img.getAttribute('src');
+        if (src) {
+          img.setAttribute('src', resolveImageSrc(src));
+        }
+      });
+      return doc.body.innerHTML;
+    } catch {
+      return video.intro;
+    }
+  }, [video.intro]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -46,23 +64,27 @@ export function VideoDetailTabs({ video }: VideoDetailTabsProps) {
       {/* Tab 内容 */}
       <div className="p-6">
         {activeTab === 'intro' && (
-          <div>
+          <section>
+            <h2 className="text-lg font-bold text-slate-900 mb-4">课程介绍</h2>
             {video.intro ? (
               <div
                 className="prose prose-slate max-w-none prose-sm"
-                dangerouslySetInnerHTML={{ __html: video.intro }}
+                dangerouslySetInnerHTML={{ __html: resolvedIntroHtml }}
               />
             ) : (
               <p className="text-slate-400 text-center py-8">暂无课程介绍</p>
             )}
-          </div>
+          </section>
         )}
 
         {activeTab === 'chapters' && (
+          <section>
+            <h3 className="text-base font-bold text-slate-900 mb-4">课程章节目录</h3>
           <VideoChapterList
             seriesList={video.seriesList || []}
             standaloneChapters={video.standaloneChapters || []}
           />
+          </section>
         )}
       </div>
     </div>

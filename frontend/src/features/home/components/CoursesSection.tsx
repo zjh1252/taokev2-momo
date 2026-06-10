@@ -18,7 +18,7 @@ export function CoursesSection({ courses }: CoursesSectionProps) {
     <section>
       <SectionHeader
         title={t('courses.sectionTitle')}
-        viewMoreHref="/innercourses"
+        viewMoreHref="/inhousecourse"
         viewMoreText={t('experts.viewMore')}
       />
 
@@ -34,7 +34,7 @@ export function CoursesSection({ courses }: CoursesSectionProps) {
 function CourseCard({ course }: { course: InternalCourse }) {
   return (
     <Link
-      href={`/innercourses/${course.id}`}
+      href={`/inhousecourse/${course.id}.htm`}
       className="bg-white rounded-lg overflow-hidden flex group border border-slate-100 hover:border-primary transition-all shadow-sm h-40"
     >
       {/* 左侧封面 */}

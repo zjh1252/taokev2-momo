@@ -15,7 +15,11 @@ export default async function Page(props: PageProps) {
   const queryClient = getQueryClient();
 
   if (params.productId !== 'new') {
-    void queryClient.prefetchQuery(productByIdOptions(Number(params.productId)));
+    try {
+      await queryClient.prefetchQuery(productByIdOptions(Number(params.productId)));
+    } catch {
+      // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+    }
   }
 
   return (

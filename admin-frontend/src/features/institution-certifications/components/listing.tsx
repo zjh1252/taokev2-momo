@@ -5,7 +5,7 @@ import { institutionCertKeys } from '../api/queries';
 import { getInstitutionCompanyInfosFromServer } from '../api/server-service';
 import { InstitutionCompanyInfoTable } from './company-info-table';
 
-export default function InstitutionCertListingPage() {
+export default async function InstitutionCertListingPage() {
   const page = searchParamsCache.get('page');
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
@@ -17,10 +17,14 @@ export default function InstitutionCertListingPage() {
   };
 
   const queryClient = getQueryClient();
-  void queryClient.prefetchQuery({
-    queryKey: institutionCertKeys.companyInfo(filters),
-    queryFn: () => getInstitutionCompanyInfosFromServer(filters)
-  });
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: institutionCertKeys.companyInfo(filters),
+      queryFn: () => getInstitutionCompanyInfosFromServer(filters)
+    });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

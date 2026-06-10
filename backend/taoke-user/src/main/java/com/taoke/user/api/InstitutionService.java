@@ -61,10 +61,12 @@ public interface InstitutionService {
      * @param size        每页条数
      * @param keyword     搜索关键词（匹配名称、擅长领域、擅长行业）
      * @param sort        排序方式：default / popularity
-     * @param association 可选筛选：是否培训协会（null=不过滤）
+     * @param association           可选筛选：是否培训协会（null=不过滤）
+     * @param expertiseCategoryId   擅长领域一级分类 ID（匹配 specialties 逗号串）
      * @return 分页结果
      */
-    PageResponse<InstitutionListItemResponse> listPublic(int page, int size, String keyword, String sort, Boolean association);
+    PageResponse<InstitutionListItemResponse> listPublic(int page, int size, String keyword, String sort,
+                                                       Boolean association, Integer expertiseCategoryId);
 
     /**
      * 获取机构公开详情。
@@ -73,6 +75,14 @@ public interface InstitutionService {
      * @return 机构公开详情
      */
     InstitutionPublicResponse getPublicProfile(Integer id);
+
+    /**
+     * 公开机构按擅长领域一级分类批量计数（侧栏/底部分类导航）。
+     *
+     * @param association null=全部，true/false=是否培训协会
+     * @return key=分类 ID，value=机构数
+     */
+    Map<Integer, Long> countPublicByExpertiseL1(Boolean association);
 
     // ==================== 后台管理查询 ====================
 

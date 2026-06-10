@@ -11,6 +11,7 @@ import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import Image from 'next/image';
 import { CellAction } from './cell-action';
+import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 
 function statusVariant(status: number) {
   switch (status) {
@@ -41,7 +42,7 @@ export const columns: ColumnDef<AdminTrainerHighlight>[] = [
       return coverUrl ? (
         <div className='relative h-10 w-16 overflow-hidden rounded'>
           <Image
-            src={coverUrl}
+            src={resolveAssetUrl(coverUrl)}
             alt={row.original.title || ''}
             fill
             className='object-cover'

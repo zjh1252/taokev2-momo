@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Play, Clock, Users, Eye, Lock, List } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
-import { DEFAULT_COURSE_COVER } from '@/lib/media';
+import { resolveImageSrc, DEFAULT_VIDEO_COVER } from '@/lib/media';
 import type { VideoDetail } from '../../api/types';
 import { useVideoPlayback } from '../../context/video-playback-context';
 import { VideoChapterList } from './VideoChapterList';
@@ -58,7 +58,7 @@ export function VideoHero({ video }: VideoHeroProps) {
             <VideoJsPlayer
               key={playbackSrc}
               src={playbackSrc}
-              poster={video.coverUrl || undefined}
+              poster={resolveImageSrc(video.coverUrl, '') || undefined}
               className="w-full h-full"
               autoplay
               initialTime={initialTime}
@@ -73,7 +73,7 @@ export function VideoHero({ video }: VideoHeroProps) {
                   alt={video.title}
                   fill
                   className="object-cover"
-                  fallback={DEFAULT_COURSE_COVER}
+                  fallback={DEFAULT_VIDEO_COVER}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">

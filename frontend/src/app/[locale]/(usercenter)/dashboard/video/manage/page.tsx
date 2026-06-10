@@ -339,7 +339,7 @@ function VideoManageCard({
         {(isDraft || isRejected) && (
           <>
             <Link
-              href={`/dashboard/videos/${video.id}/edit`}
+              href={`/dashboard/video/${video.id}/edit`}
               className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
             >
               <Edit className="size-3.5" />
@@ -366,14 +366,14 @@ function VideoManageCard({
           </button>
         )}
         <Link
-          href={`/dashboard/videos/${video.id}/series`}
+          href={`/dashboard/video/${video.id}/series`}
           className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
         >
           <Layers className="size-3.5" />
           系列管理
         </Link>
         <Link
-          href={`/dashboard/videos/${video.id}/chapters`}
+          href={`/dashboard/video/${video.id}/chapters`}
           className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
         >
           <List className="size-3.5" />

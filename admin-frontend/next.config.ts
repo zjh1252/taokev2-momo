@@ -18,6 +18,16 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'clerk.com',
         port: ''
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.taoke.com',
+        port: ''
+      },
+      {
+        protocol: 'https',
+        hostname: 'taoke.com',
+        port: ''
       }
     ]
   },
