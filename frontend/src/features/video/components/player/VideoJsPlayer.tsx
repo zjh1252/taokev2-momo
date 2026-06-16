@@ -95,13 +95,8 @@ export function VideoJsPlayer({
     });
 
     player.ready(() => {
-      const tech = player.tech({ IWillNotUseThisInPlugins: true }) as
-        | { el?: () => HTMLVideoElement }
-        | undefined;
-      const el = tech?.el?.();
-      if (el) {
-        el.setAttribute('referrerpolicy', 'no-referrer');
-      }
+      const el = container.querySelector('video');
+      el?.setAttribute('referrerpolicy', 'no-referrer');
     });
 
     if (initialTime && initialTime > 0) {
