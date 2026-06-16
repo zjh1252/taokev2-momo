@@ -14,7 +14,9 @@ FROM oven/bun:1-alpine AS deps
 
 WORKDIR /app
 COPY admin-frontend/package.json admin-frontend/bun.lock ./
-RUN bun install
+# Docker 内无 git，跳过 husky prepare 等 lifecycle scripts
+ENV HUSKY=0
+RUN bun install --ignore-scripts
 
 # ---------- 阶段2：构建 ----------
 FROM oven/bun:1-alpine AS builder
