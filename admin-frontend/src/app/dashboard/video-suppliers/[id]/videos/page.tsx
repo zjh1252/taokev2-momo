@@ -1,6 +1,7 @@
 import PageContainer from '@/components/layout/page-container';
 import { SupplierVideosPanel } from '@/features/video-suppliers/components/supplier-videos-panel';
 import { supplierVideosQueryOptions } from '@/features/video-suppliers/api/queries';
+import type { SupplierVideosResponse } from '@/features/video-suppliers/api/types';
 import { getQueryClient } from '@/lib/query-client';
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { Suspense } from 'react';
@@ -23,7 +24,9 @@ export default async function SupplierVideosPage(props: PageProps) {
     await queryClient.prefetchQuery({
       ...supplierVideosQueryOptions(supplierId, 1),
       queryFn: () =>
-        serverFetch(`/admin/video-suppliers/${supplierId}/videos?page=1&size=20`)
+        serverFetch<SupplierVideosResponse['data']>(
+          `/admin/video-suppliers/${supplierId}/videos?page=1&size=20`
+        )
     });
   } catch {
     // 客户端重试
