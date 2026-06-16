@@ -1,6 +1,6 @@
 # ============================================================
-# 管理后台前端 — 多阶段构建（bun）
-# 构建阶段使用 Bun 编译 Next.js
+# 管理后台前端 — 多阶段构建（bun 装依赖 + node 构建）
+# 构建阶段使用 Bun 安装依赖、Node 执行 next build
 # 运行阶段使用精简 Node 镜像
 #
 # 构建参数：
@@ -14,12 +14,12 @@ FROM oven/bun:1-alpine AS deps
 
 WORKDIR /app
 COPY admin-frontend/package.json admin-frontend/bun.lock ./
-# Docker 内无 git，跳过 husky prepare 等 lifecycle scripts
-ENV HUSKY=0
-RUN bun install --ignore-scripts
+# Docker 无 git：去掉 husky prepare，但保留 next 等 postinstall
+RUN bun -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));delete p.scripts.prepare;fs.writeFileSync('package.json',JSON.stringify(p,null,2));"
+RUN bun install --frozen-lockfile
 
 # ---------- 阶段2：构建 ----------
-FROM oven/bun:1-alpine AS builder
+FROM node:22-slim AS builder
 
 ARG BUILD_ENV
 
@@ -35,7 +35,7 @@ RUN if [ -n "$BUILD_ENV" ] && [ -f ".env.${BUILD_ENV}" ]; then \
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV BUILD_STANDALONE=true
-RUN bun run build
+RUN npm run build
 
 # ---------- 阶段3：运行镜像 ----------
 FROM node:22-alpine
