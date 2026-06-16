@@ -17,9 +17,13 @@ export const searchParams = {
   category: parseAsString,
   enabled: parseAsString,
   role: parseAsString,
+  regOrigin: parseAsString,
+  realNameCertStatus: parseAsString,
   sort: parseAsString,
-  /** 培训评价管理：COURSE / TRAINER / INSTITUTION */
-  reviewScope: parseAsString
+  /** 培训评价管理 */
+  reviewScope: parseAsString,
+  reviewerKeyword: parseAsString,
+  reviewedBy: parseAsString
 };
 
 export const searchParamsCache = createSearchParamsCache(searchParams);

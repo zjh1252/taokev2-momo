@@ -39,8 +39,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * 用户自服务：个人信息查询/修改、密码管理、手机号变更。
@@ -97,6 +100,13 @@ public class UserServiceImpl implements UserService {
             user.setNickname(request.getNickname());
         }
         if (request.getRealName() != null) {
+            if (!request.getRealName().equals(user.getRealName())) {
+                trainerRepository.findByUserId(userId).ifPresent(trainer -> {
+                    if (Integer.valueOf(2).equals(trainer.getRealNameStatus())) {
+                        throw new BusinessException(ErrorCode.PARAM_INVALID, "实名认证已通过，不可修改真实姓名");
+                    }
+                });
+            }
             user.setRealName(request.getRealName());
         }
         if (request.getAvatarUrl() != null) {
@@ -227,6 +237,86 @@ public class UserServiceImpl implements UserService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         return userRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public Page<User> searchUsersForAdmin(String search, Integer status, String role,
+                                          Integer regOrigin, Integer realNameCertStatus,
+                                          Pageable pageable) {
+        Set<Integer> roleUserIds = null;
+        if (role != null && !role.isBlank()) {
+            roleUserIds = userRoleRepository.findByRole(role.trim()).stream()
+                    .map(UserRole::getUserId)
+                    .collect(java.util.stream.Collectors.toSet());
+            if (roleUserIds.isEmpty()) {
+                return Page.empty(pageable);
+            }
+        }
+
+        Set<Integer> certUserIds = null;
+        if (realNameCertStatus != null) {
+            certUserIds = trainerRepository.findByRealNameStatus(realNameCertStatus).stream()
+                    .map(com.taoke.user.entity.Trainer::getUserId)
+                    .collect(java.util.stream.Collectors.toSet());
+            if (certUserIds.isEmpty()) {
+                return Page.empty(pageable);
+            }
+        }
+
+        final Set<Integer> roleFilter = roleUserIds;
+        final Set<Integer> certFilter = certUserIds;
+
+        Specification<User> spec = (root, cq, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (regOrigin != null) {
+                predicates.add(cb.equal(root.get("regOrigin"), regOrigin));
+            }
+            if (search != null && !search.isBlank()) {
+                String like = "%" + search.trim() + "%";
+                predicates.add(cb.or(
+                        cb.like(root.get("phone"), like),
+                        cb.like(root.get("nickname"), like),
+                        cb.like(root.get("realName"), like)
+                ));
+            }
+            if (roleFilter != null) {
+                predicates.add(root.get("id").in(roleFilter));
+            }
+            if (certFilter != null) {
+                predicates.add(root.get("id").in(certFilter));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return userRepository.findAll(spec, pageable);
+    }
+
+    @Transactional
+    @Override
+    public User adminCreateUser(String phone, String nickname, String realName) {
+        if (userRepository.existsByPhone(phone)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "手机号已注册");
+        }
+        User user = new User();
+        user.setPhone(phone);
+        user.setNickname(nickname);
+        if (realName != null && !realName.isBlank()) {
+            user.setRealName(realName.trim());
+        }
+        user.setStatus(1);
+        user.setRegOrigin(4);
+        user.setUserSource(1);
+        user = userRepository.save(user);
+
+        UserRole buyerRole = new UserRole();
+        buyerRole.setUserId(user.getId());
+        buyerRole.setRole(BusinessRole.Code.BUYER);
+        buyerRole.setStatus(1);
+        buyerRole.setApprovedAt(LocalDateTime.now());
+        userRoleRepository.save(buyerRole);
+        return user;
     }
 
     @Override
@@ -380,6 +470,57 @@ public class UserServiceImpl implements UserService {
                 // PLATFORM_* / SUPER_ADMIN 无绑定关系
             }
         }
+    }
+
+    @Transactional
+    @Override
+    public User createCrawlerImportedUser(String preferredUsername, String nickname, String avatarUrl) {
+        String username = uniqueCrawlerUsername(preferredUsername);
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setNickname(normalizeText(nickname, username, 20));
+        user.setRealName(normalizeText(nickname, "", 64));
+        user.setAvatarUrl(normalizeText(avatarUrl, "", 512));
+        user.setStatus(1);
+        user.setRegOrigin(1);
+        user = userRepository.save(user);
+
+        UserRole buyerRole = new UserRole();
+        buyerRole.setUserId(user.getId());
+        buyerRole.setRole(BusinessRole.Code.BUYER);
+        buyerRole.setStatus(1);
+        buyerRole.setApprovedAt(java.time.LocalDateTime.now());
+        userRoleRepository.save(buyerRole);
+
+        return user;
+    }
+
+    private String uniqueCrawlerUsername(String preferredUsername) {
+        String base = preferredUsername == null ? "" : preferredUsername.toLowerCase(java.util.Locale.ROOT);
+        base = base.replaceAll("[^a-z0-9_]", "_");
+        base = base.replaceAll("_+", "_");
+        if (base.length() < 4) {
+            base = "crawl_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        }
+        if (base.length() > 24) {
+            base = base.substring(0, 24);
+        }
+
+        String candidate = base;
+        int index = 1;
+        while (userRepository.existsByUsername(candidate)) {
+            String suffix = "_" + index++;
+            int maxBaseLength = 32 - suffix.length();
+            candidate = base.substring(0, Math.min(base.length(), maxBaseLength)) + suffix;
+        }
+        return candidate;
+    }
+
+    private String normalizeText(String value, String fallback, int maxLength) {
+        String text = value == null || value.isBlank() ? fallback : value.trim();
+        return text.length() > maxLength ? text.substring(0, maxLength) : text;
     }
 
     private User findUser(Integer userId) {

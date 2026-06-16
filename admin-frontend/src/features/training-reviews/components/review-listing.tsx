@@ -15,12 +15,16 @@ export default async function ReviewListingPage() {
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
   const reviewScope = searchParamsCache.get('reviewScope');
+  const reviewerKeyword = searchParamsCache.get('reviewerKeyword');
+  const reviewedBy = searchParamsCache.get('reviewedBy');
 
   const filters = {
     page,
     limit: pageLimit,
     ...(status && { status }),
-    ...(reviewScope && { reviewScope })
+    ...(reviewScope && { reviewScope }),
+    ...(reviewerKeyword && { reviewerKeyword }),
+    ...(reviewedBy && { reviewedBy })
   };
 
   const queryClient = getQueryClient();

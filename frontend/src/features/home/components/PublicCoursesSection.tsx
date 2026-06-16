@@ -1,12 +1,25 @@
 import { BookOpen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
+import { SafeImage } from '@/components/safe-image';
+import { DEFAULT_COURSE_COVER } from '@/lib/media';
 import { SectionHeader } from './SectionHeader';
 import type { PublicCourse } from '../types';
 
 interface PublicCoursesSectionProps {
   courses: PublicCourse[];
+}
+
+const COURSE_FALLBACK_COVERS = [
+  '/statics/images/public-course-1.jpg',
+  '/statics/images/public-course-2.jpg',
+  '/statics/images/course-1.jpg',
+  '/statics/images/hero-banner.jpg',
+  DEFAULT_COURSE_COVER,
+];
+
+function courseFallback(course: PublicCourse): string {
+  return COURSE_FALLBACK_COVERS[Math.abs(course.id) % COURSE_FALLBACK_COVERS.length];
 }
 
 /**
@@ -35,29 +48,25 @@ export function PublicCoursesSection({ courses }: PublicCoursesSectionProps) {
 
 function PublicCourseItem({ course }: { course: PublicCourse }) {
   const t = useTranslations('home');
+  const coverSrc = course.coverUrl || course.image;
 
   return (
     <div className="bg-white rounded-lg p-6 flex flex-col md:flex-row items-center gap-8 shadow-sm hover:shadow-md transition-all border border-slate-50 group">
-      {/* 左侧图片 */}
-      <div className="w-full md:w-[240px] h-[160px] rounded-lg overflow-hidden shrink-0">
-        <Image
-          src={course.image}
+      <div className="w-full md:w-[240px] h-[160px] rounded-lg overflow-hidden shrink-0 relative bg-slate-100">
+        <SafeImage
+          src={coverSrc}
+          fallback={courseFallback(course)}
           alt={course.title}
-          width={240}
-          height={160}
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          fill
+          className="object-cover transition-transform group-hover:scale-105"
         />
       </div>
 
-      {/* 中间详情 */}
-      <div className="flex-1 flex flex-col gap-4">
-        <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary transition-colors">
+      <div className="flex-1 flex flex-col gap-4 min-w-0 w-full">
+        <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary transition-colors line-clamp-2">
           {course.title}
         </h3>
         <div className="grid grid-cols-2 gap-y-2 text-sm text-slate-500">
-          <div>
-            {t('publicCourses.labels.organizer')}：{course.organizer}
-          </div>
           <div>
             {t('publicCourses.labels.instructor')}：{course.instructor}
           </div>
@@ -69,12 +78,13 @@ function PublicCourseItem({ course }: { course: PublicCourse }) {
           </div>
           <div>
             {t('publicCourses.labels.duration')}：
-            {t('publicCourses.durationDays', { count: course.durationDays })}
+            {course.durationDays != null
+              ? t('publicCourses.durationDays', { count: course.durationDays })
+              : '-'}
           </div>
         </div>
       </div>
 
-      {/* 右侧按钮 */}
       <div className="shrink-0">
         <Link
           href={`/opencourse/${course.id}.htm`}

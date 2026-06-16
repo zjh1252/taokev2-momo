@@ -37,4 +37,11 @@ public interface VideoRepository extends JpaRepository<Video, Integer>, JpaSpeci
     /** 查询当前最大排序值，用于置顶计算 */
     @Query("SELECT COALESCE(MAX(v.sortOrder), 0) FROM Video v")
     Optional<Integer> findMaxSortOrder();
+
+    List<Video> findByPublisherIdIn(List<Integer> publisherIds);
+
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT v.publisherId, COUNT(v) FROM Video v WHERE v.publisherId IN :ids GROUP BY v.publisherId")
+    List<Object[]> countGroupByPublisherIds(
+            @org.springframework.data.repository.query.Param("ids") java.util.Collection<Integer> ids);
 }

@@ -9,7 +9,11 @@ import type { InstitutionDetail } from '../../types';
 import {
   getInstitutionCourses,
   getInstitutionVideos,
+  getInstitutionCases,
+  getInstitutionHighlights,
 } from '../../api/service';
+import type { TrainerCase } from '@/features/trainer-case/api/types';
+import type { TrainerHighlight } from '@/features/trainer-highlight/api/types';
 import { getPublicReviews } from '@/features/interaction/api/service';
 import type { ReviewItem } from '@/features/interaction/api/types';
 import ReviewDialog from '@/features/interaction/components/ReviewDialog';
@@ -110,6 +114,8 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
   const [openCourses, setOpenCourses] = useState<CourseListItem[]>([]);
   const [innerCourses, setInnerCourses] = useState<CourseListItem[]>([]);
   const [videos, setVideos] = useState<VideoListItem[]>([]);
+  const [cases, setCases] = useState<TrainerCase[]>([]);
+  const [highlights, setHighlights] = useState<TrainerHighlight[]>([]);
 
   useEffect(() => {
     getInstitutionCourses(institution.id, 'OPEN', 1, PREVIEW_COURSE_LIMIT)
@@ -121,6 +127,12 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
     getInstitutionVideos(institution.id, 1, PREVIEW_VIDEO_LIMIT)
       .then((res) => setVideos(res.list))
       .catch(() => setVideos([]));
+    getInstitutionCases(institution.id, PREVIEW_COURSE_LIMIT)
+      .then(setCases)
+      .catch(() => setCases([]));
+    getInstitutionHighlights(institution.id, PREVIEW_COURSE_LIMIT)
+      .then(setHighlights)
+      .catch(() => setHighlights([]));
   }, [institution.id]);
 
   const orgName = institution.orgName;
@@ -167,11 +179,77 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
             <div>
               <SectionHeader
                 title={institutionSectionH3(orgName, '视频课程')}
-                moreHref={`/video?institutionId=${institution.id}`}
+                moreHref={`/videos?institutionId=${institution.id}`}
               />
               <VideoGrid videos={videos} />
             </div>
           )}
+        </section>
+      )}
+
+      {cases.length > 0 && (
+        <section>
+          <SectionHeader title={institutionSectionH3(orgName, '授课案例')} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {cases.map((item) => (
+              <Link
+                key={item.id}
+                href={`/case/${item.id}.htm`}
+                className="group border border-slate-100 rounded-lg overflow-hidden hover:border-primary/30 hover:shadow-sm transition-all"
+              >
+                {item.coverImage ? (
+                  <div className="relative h-32 w-full">
+                    <SafeImage
+                      src={item.coverImage}
+                      alt={item.caseTitle}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : null}
+                <div className="p-3">
+                  <p className="text-sm font-medium text-slate-800 group-hover:text-primary line-clamp-2">
+                    {item.caseTitle}
+                  </p>
+                  {item.trainerName ? (
+                    <p className="text-xs text-slate-400 mt-1">讲师：{item.trainerName}</p>
+                  ) : null}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {highlights.length > 0 && (
+        <section>
+          <SectionHeader title={institutionSectionH3(orgName, '精彩瞬间')} />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {highlights.map((item) => {
+              const cover = item.coverImage
+                || item.files.find((f) => f.fileType === 1)?.thumbnailUrl
+                || item.files.find((f) => f.fileType === 1)?.fileUrl;
+              return (
+                <div
+                  key={item.id}
+                  className="relative aspect-[4/3] rounded-lg overflow-hidden border border-slate-100 bg-slate-50"
+                >
+                  {cover ? (
+                    <SafeImage src={cover} alt={item.title || '精彩瞬间'} fill className="object-cover" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-xs text-slate-400">
+                      {item.title || '精彩瞬间'}
+                    </div>
+                  )}
+                  {item.title ? (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                      <p className="text-xs text-white line-clamp-2">{item.title}</p>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         </section>
       )}
 
@@ -196,6 +274,8 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
         openCourses.length === 0 &&
         innerCourses.length === 0 &&
         videos.length === 0 &&
+        cases.length === 0 &&
+        highlights.length === 0 &&
         !institution.clientCases &&
         !institution.successCases && (
           <p className="text-sm text-slate-400 text-center py-12">该机构暂未填写介绍内容</p>

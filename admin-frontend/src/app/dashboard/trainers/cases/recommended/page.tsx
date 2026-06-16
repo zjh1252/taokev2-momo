@@ -1,4 +1,6 @@
 import PageContainer from '@/components/layout/page-container';
+import { RecommendationListing } from '@/features/recommendations/components/recommendation-listing';
+import { CASE_RECOMMENDATION_CONFIG } from '@/features/recommendations/constants/configs';
 
 export const metadata = {
   title: '案例推荐管理'
@@ -9,11 +11,9 @@ export default function Page() {
     <PageContainer
       scrollable={false}
       pageTitle='推荐管理'
-      pageDescription='管理推荐的案例列表，控制首页展示顺序'
+      pageDescription='管理首页与专家页案例推荐位'
     >
-      <div className='text-muted-foreground flex flex-1 items-center justify-center py-20 text-sm'>
-        暂无数据
-      </div>
+      <RecommendationListing config={CASE_RECOMMENDATION_CONFIG} />
     </PageContainer>
   );
 }

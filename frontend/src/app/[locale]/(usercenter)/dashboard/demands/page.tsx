@@ -140,6 +140,9 @@ export default function DemandsPage() {
                   )}
                   <div className="flex items-center justify-between text-xs text-gray-500 mt-3">
                     <div className="flex gap-4">
+                      {d.demandNo && (
+                        <span className="font-mono text-gray-400">{d.demandNo}</span>
+                      )}
                       <span>预算：<span className="text-primary font-medium">{formatBudget(d.budgetMin, d.budgetMax)}</span></span>
                       {d.traineeCount && <span>人数：{d.traineeCount}人</span>}
                       <span>发布时间：{new Date(d.createdAt).toLocaleDateString('zh-CN')}</span>

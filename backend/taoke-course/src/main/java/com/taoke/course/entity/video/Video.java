@@ -75,6 +75,14 @@ public class Video extends BaseEntity {
     @Column(name = "price", precision = 10, scale = 2)
     private BigDecimal price = BigDecimal.ZERO;
 
+    /** 企业采购封顶价（元） */
+    @Column(name = "company_price", precision = 10, scale = 2)
+    private BigDecimal companyPrice = BigDecimal.ZERO;
+
+    /** 单次最多购买人数 */
+    @Column(name = "max_purchase_qty", nullable = false)
+    private Integer maxPurchaseQty = 20;
+
     /** 原价（划线价） */
     @Column(name = "original_price", precision = 10, scale = 2)
     private BigDecimal originalPrice = BigDecimal.ZERO;
@@ -126,6 +134,10 @@ public class Video extends BaseEntity {
     /** 是否推荐 */
     @Column(name = "is_featured", nullable = false, columnDefinition = "tinyint")
     private Integer isFeatured = 0;
+
+    /** 置顶优先级：0=不限 1=列表推荐 2=列表置顶 — 管理端操作下拉框直接控制 */
+    @Column(name = "sticky_priority", nullable = false, columnDefinition = "tinyint")
+    private Integer stickyPriority = 0;
 
     /** 上线时间 */
     @Column(name = "published_at")

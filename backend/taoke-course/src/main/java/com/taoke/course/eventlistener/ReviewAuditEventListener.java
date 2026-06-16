@@ -106,6 +106,7 @@ public class ReviewAuditEventListener {
             case "COURSE" -> "课程";
             case "TRAINER" -> "专家";
             case "INSTITUTION" -> "机构";
+            case "CASE" -> "案例";
             default -> "";
         };
     }

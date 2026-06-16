@@ -24,8 +24,14 @@ function statusVariant(status: number) {
 export const columns: ColumnDef<AdminInstitutionApplication>[] = [
   {
     accessorKey: 'id',
-    header: 'ID',
+    header: '申请ID',
     enableSorting: false
+  },
+  {
+    accessorKey: 'institutionId',
+    header: '机构ID',
+    enableSorting: false,
+    cell: ({ cell }) => cell.getValue<number | null>() ?? '-'
   },
   {
     id: 'applicant',
@@ -73,12 +79,17 @@ export const columns: ColumnDef<AdminInstitutionApplication>[] = [
     accessorKey: 'status',
     header: '状态',
     enableColumnFilter: true,
-    cell: ({ cell }) => {
+    cell: ({ cell, row }) => {
       const status = cell.getValue<number>();
       return (
-        <Badge variant={statusVariant(status)}>
-          {APPLICATION_STATUS_MAP[status] ?? '未知'}
-        </Badge>
+        <div className='flex items-center gap-1'>
+          <Badge variant={statusVariant(status)}>
+            {APPLICATION_STATUS_MAP[status] ?? '未知'}
+          </Badge>
+          {row.original.reapplying ? (
+            <Badge variant='secondary'>资料重审</Badge>
+          ) : null}
+        </div>
       );
     },
     meta: {
@@ -100,10 +111,11 @@ export const columns: ColumnDef<AdminInstitutionApplication>[] = [
     }
   },
   {
-    accessorKey: 'createdAt',
-    header: '申请时间',
-    cell: ({ cell }) => {
-      const val = cell.getValue<string>();
+    id: 'submittedAt',
+    header: '提交时间',
+    cell: ({ row }) => {
+      // 二次申请后 updatedAt 为最近提交时间，优先展示
+      const val = row.original.updatedAt || row.original.createdAt;
       if (!val) return '-';
       return new Date(val).toLocaleString('zh-CN', {
         year: 'numeric',

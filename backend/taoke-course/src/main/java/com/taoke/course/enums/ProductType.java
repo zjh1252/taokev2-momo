@@ -12,7 +12,8 @@ import lombok.Getter;
 public enum ProductType {
 
     OPEN_COURSE("公开课"),
-    VIDEO_COURSE("录播课");
+    VIDEO_COURSE("录播课"),
+    VIDEO_PACKAGE("录播课系列");
 
     private final String label;
 

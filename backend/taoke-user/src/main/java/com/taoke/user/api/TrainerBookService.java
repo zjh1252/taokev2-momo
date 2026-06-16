@@ -2,6 +2,8 @@ package com.taoke.user.api;
 
 import com.taoke.user.dto.trainerbook.SaveTrainerBookRequest;
 import com.taoke.user.dto.trainerbook.TrainerBookResponse;
+import com.taoke.user.entity.TrainerBook;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -30,4 +32,16 @@ public interface TrainerBookService {
 
     /** C端公开：某专家著作列表（trainerId = user_trainers.id） */
     List<TrainerBookResponse> listPublicBooks(Integer trainerId);
+
+    // ==================== 后台管理 ====================
+
+    Page<TrainerBook> adminSearch(Integer status, String keyword, int page, int size);
+
+    TrainerBook adminGetOrThrow(Integer bookId);
+
+    TrainerBookResponse adminCreate(Integer trainerId, Integer submitterUserId, SaveTrainerBookRequest request);
+
+    void adminApprove(Integer bookId, Integer reviewerId);
+
+    void adminReject(Integer bookId, Integer reviewerId, String reason);
 }

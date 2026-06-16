@@ -125,12 +125,12 @@ export default function CreateCasePage() {
         {banner}
 
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-6 max-w-2xl space-y-5">
-        <FormField label="案例标题" required>
+        <FormField label="标题" required>
           <input
             type="text"
             value={form.caseTitle}
             onChange={(e) => updateField('caseTitle', e.target.value)}
-            placeholder="请输入案例标题"
+            placeholder="请输入标题"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </FormField>
@@ -188,13 +188,13 @@ export default function CreateCasePage() {
           />
         </FormField>
 
-        <FormField label="详细地址" required>
+        <FormField label="详细地址">
           <input
             type="text"
             value={form.trainingAddress || ''}
             onChange={(e) => updateField('trainingAddress', e.target.value)}
             maxLength={200}
-            placeholder="街道、楼宇号等"
+            placeholder="街道、楼宇号等（选填）"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </FormField>
@@ -237,12 +237,12 @@ export default function CreateCasePage() {
           />
         </FormField>
 
-        <FormField label="案例描述">
+        <FormField label="描述">
           <textarea
             value={form.description || ''}
             onChange={(e) => updateField('description', e.target.value)}
             rows={4}
-            placeholder="请详细描述案例内容"
+            placeholder="请输入描述"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
           />
         </FormField>
@@ -349,10 +349,6 @@ export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
     required: true,
     requiredMessage: '请选择培训地点（区/县）',
     validator: positiveIdValidator('请选择培训地点（区/县）'),
-  },
-  trainingAddress: {
-    required: true,
-    requiredMessage: '请填写详细地址',
   },
   traineeCount: {
     validator: traineeCountValidator,

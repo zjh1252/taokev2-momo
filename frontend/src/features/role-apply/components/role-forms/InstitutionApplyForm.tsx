@@ -120,7 +120,7 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
           </FormField>
 
           <div className="md:col-span-2">
-            <FormField label="公司 Logo" required>
+            <FormField label="公司 Logo">
               <SingleImageUploader
                 label="机构 Logo"
                 value={data.logoUrl || ''}
@@ -305,7 +305,6 @@ export const INSTITUTION_RULES: FormValidationRules<InstitutionFormData> = {
   orgName: { required: true, requiredMessage: '请输入机构名称' },
   orgType: { required: true, requiredMessage: '请选择机构类型' },
   licenseNo: { required: true, requiredMessage: '请输入营业执照号' },
-  logoUrl: { required: true, requiredMessage: '请上传机构 Logo' },
   bio: { required: true, requiredMessage: '请输入机构简介' },
   industryCategoryIds: { required: true, requiredMessage: '请至少选择一个擅长行业' },
   expertiseCategoryIds: { required: true, requiredMessage: '请至少选择一个擅长领域' },

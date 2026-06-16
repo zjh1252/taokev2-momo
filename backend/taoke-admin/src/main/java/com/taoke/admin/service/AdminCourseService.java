@@ -12,7 +12,9 @@ import com.taoke.course.entity.Course;
 import com.taoke.course.entity.CoursePlan;
 import com.taoke.course.enums.CourseStatus;
 import com.taoke.course.enums.CourseType;
+import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
+import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.Trainer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,6 +40,7 @@ public class AdminCourseService {
 
     private final CourseService courseService;
     private final TrainerService trainerService;
+    private final InstitutionService institutionService;
     private final CategoryService categoryService;
 
     /**
@@ -49,8 +52,13 @@ public class AdminCourseService {
                 Sort.by(Sort.Direction.DESC, "id")
         );
 
+        java.util.Collection<Integer> publisherUserIds = resolvePublisherUserIds(query.getPublisherName());
+
         Page<Course> page = courseService.searchForAdmin(
-                query.getKeyword(), query.getStatus(), query.getType(), pageable);
+                query.getKeyword(), query.getStatus(), query.getType(),
+                query.getTrainerId(), query.getPublisherType(), query.getPublisherId(),
+                publisherUserIds,
+                pageable);
         List<Course> courses = page.getContent();
 
         if (courses.isEmpty()) {
@@ -107,6 +115,33 @@ public class AdminCourseService {
         }).toList();
 
         return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), voList);
+    }
+
+    /**
+     * 按专家/机构名称解析 publisher userId 列表
+     */
+    private java.util.Collection<Integer> resolvePublisherUserIds(String publisherName) {
+        if (publisherName == null || publisherName.isBlank()) {
+            return null;
+        }
+        String kw = publisherName.trim();
+        java.util.Set<Integer> ids = new java.util.HashSet<>();
+        Page<Trainer> trainers = trainerService.searchForAdmin(kw, null,
+                PageRequest.of(0, 50));
+        trainers.getContent().stream()
+                .map(Trainer::getUserId)
+                .filter(id -> id != null && id > 0)
+                .forEach(ids::add);
+        Page<Institution> insts = institutionService.searchForAdmin(kw, null,
+                PageRequest.of(0, 50));
+        insts.getContent().stream()
+                .map(Institution::getUserId)
+                .filter(id -> id != null && id > 0)
+                .forEach(ids::add);
+        if (ids.isEmpty()) {
+            return java.util.List.of(-1);
+        }
+        return ids;
     }
 
     /**

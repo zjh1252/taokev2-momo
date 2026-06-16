@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import RichTextEditor from '@/components/rich-text-editor';
 import RegionCascader, { type RegionValue } from '@/components/region-cascader';
 import { ImageCropperUploader } from '@/components/image-cropper-uploader';
+import { MaterialPickerButton } from '@/features/ops-material/components/MaterialPickerButton';
 import { getCourseCategoryTree } from '@/features/course/api/service';
 import { parseCourseMaterial } from '@/features/course/api/publisher-service';
 import type {
@@ -83,8 +84,6 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
   // ---- 富文本 ----
   const [intro, setIntro] = useState(initialData?.intro || '');
   const [syllabus, setSyllabus] = useState(initialData?.syllabus || '');
-  // ---- 课程简介（与课程介绍同级独立区块） ----
-  const [summary, setSummary] = useState(initialData?.summary || '');
 
   // ---- 已确认的开课计划 ----
   const [plans, setPlans] = useState<CoursePlanDTO[]>(
@@ -104,6 +103,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
   // ---- 分类树 ----
   const [categoryTree, setCategoryTree] = useState<CategoryTreeNode[]>([]);
   const subCategories = categoryTree.find((c) => c.id === categoryId)?.children || [];
+  const selectedCategoryName = categoryTree.find((c) => c.id === categoryId)?.name;
 
   useEffect(() => {
     getCourseCategoryTree().then(setCategoryTree).catch(() => {});
@@ -170,10 +170,30 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
     return null;
   };
 
+  /**
+   * 按公开课类型校验单条计划的必填字段（与后端 validatePlans 规则一致，前端提前拦截）。
+   */
+  const validatePlanFields = (
+    plan: CoursePlanDTO,
+    type: 'OPEN_OFFLINE' | 'OPEN_ONLINE',
+    idx: number,
+  ): string | null => {
+    const label = `计划 ${idx + 1}`;
+    if (type === 'OPEN_OFFLINE') {
+      if (!plan.provinceId) return `${label}：线下公开课必须选择省份`;
+      if (!plan.cityId) return `${label}：线下公开课必须选择城市`;
+      if (!plan.address?.trim()) return `${label}：线下公开课必须填写具体地址`;
+    } else if (!plan.onlineUrl?.trim()) {
+      return `${label}：线上公开课必须填写直播/回放地址`;
+    }
+    return null;
+  };
+
   // ---- Modal: 确认保存 ----
   const confirmPlans = () => {
     for (let i = 0; i < draftPlans.length; i++) {
-      const err = validatePlanTime(draftPlans[i], i);
+      const err =
+        validatePlanTime(draftPlans[i], i) ?? validatePlanFields(draftPlans[i], draftPlanType, i);
       if (err) {
         toast.error(err);
         return;
@@ -221,24 +241,33 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
     if (parsed.audience) setAudience(parsed.audience);
   };
 
-  // ---- 提交 ----
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /**
+   * 组装并提交表单。
+   *
+   * @param draft true=保存草稿（仅校验标题），false=提交审核（完整校验）
+   */
+  const submitForm = async (draft: boolean) => {
     if (!title.trim()) { toast.error('请填写课程标题'); return; }
-    if (!durationDays || durationDays < 1) { toast.error('课程天数至少 1 天'); return; }
-    if (!totalHours || totalHours < 1) { toast.error('课程总时长至少 1 小时'); return; }
-    if (!summary.trim()) { toast.error('请填写课程简介'); return; }
-    if (!intro || intro === '<p><br></p>') { toast.error('请填写课程介绍'); return; }
+    if (!draft) {
+      if (!durationDays || durationDays < 1) { toast.error('课程天数至少 1 天'); return; }
+      if (!totalHours || totalHours < 1) { toast.error('课程总时长至少 1 小时'); return; }
+      if (hasPlan) {
+        for (let i = 0; i < plans.length; i++) {
+          const err = validatePlanTime(plans[i], i) ?? validatePlanFields(plans[i], planType, i);
+          if (err) { toast.error(err); return; }
+        }
+      }
+    }
 
     const effectiveType: CourseType = hasPlan ? planType : 'INTERNAL';
     const data: SaveCourseRequest = {
       title: title.trim(),
+      draft,
       type: effectiveType,
       categoryId: categoryId || undefined,
       subCategoryId: subCategoryId || undefined,
       coverUrl: coverUrl || undefined,
       intro,
-      summary: summary.trim(),
       syllabus: syllabus || undefined,
       materialUrl: materialUrl || undefined,
       materialText: materialText || undefined,
@@ -256,6 +285,14 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
     };
     await onSubmit(data);
   };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitForm(false);
+  };
+
+  // 后端仅允许「草稿/驳回」状态的课程保存为草稿；新建时始终可存草稿
+  const canSaveDraft = !initialData || initialData.status === 0 || initialData.status === 3;
 
   return (
     <>
@@ -297,13 +334,20 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
           </FieldRow>
 
           <FieldRow label="课程封面">
-            <ImageCropperUploader
-              value={coverUrl}
-              onChange={setCoverUrl}
-              aspect={16 / 9}
-              allowFreeAspect
-              previewClassName="w-[200px] h-[125px] rounded-lg"
-            />
+            <div className="space-y-2">
+              <ImageCropperUploader
+                value={coverUrl}
+                onChange={setCoverUrl}
+                aspect={16 / 9}
+                allowFreeAspect
+                previewClassName="w-[200px] h-[125px] rounded-lg"
+              />
+              <MaterialPickerButton
+                materialType="COVER"
+                category={selectedCategoryName}
+                onSelect={(url) => setCoverUrl(url)}
+              />
+            </div>
           </FieldRow>
 
           <FieldRow label="课程时长" required>
@@ -413,34 +457,31 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
           </FieldRow>
         </FormSection>
 
-        {/* ===== 区块2：课程简介（短文本） ===== */}
-        <FormSection title="课程简介" required>
-          <textarea
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
-            placeholder="一段话简明介绍课程，建议 50-200 字"
-            rows={3}
-            maxLength={500}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-          />
-          <div className="text-xs text-gray-400 text-right mt-1">{summary.length} / 500</div>
-        </FormSection>
-
-        {/* ===== 区块3：课程介绍（富文本详细） ===== */}
+        {/* ===== 区块2：课程介绍（富文本详细） ===== */}
         <FormSection title="课程介绍" required>
           <RichTextEditor value={intro} onChange={setIntro} placeholder="输入课程详细介绍..." />
         </FormSection>
 
-        {/* ===== 区块4：课程大纲 ===== */}
+        {/* ===== 区块3：课程大纲 ===== */}
         <FormSection title="课程大纲">
           <RichTextEditor value={syllabus} onChange={setSyllabus} placeholder="输入课程大纲..." minHeight={200} />
         </FormSection>
 
         {/* 提交按钮 */}
         <div className="flex items-center justify-end gap-4 pt-4 border-t border-slate-200">
+          {canSaveDraft && (
+            <button
+              type="button"
+              onClick={() => submitForm(true)}
+              disabled={submitting}
+              className="inline-flex items-center gap-2 border border-primary/40 text-primary px-8 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/5 transition-colors disabled:opacity-60"
+            >
+              保存草稿
+            </button>
+          )}
           <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 bg-primary text-white px-8 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60">
             {submitting && <div className="animate-spin rounded-full size-4 border-2 border-white border-t-transparent" />}
-            {initialData ? '保存并提交审核' : '提交审核'}
+            {initialData ? '保存并提交审核' : '提交发布'}
           </button>
         </div>
       </form>

@@ -1,5 +1,8 @@
 package com.taoke.user.service;
 
+import com.taoke.common.eventbus.EventPublisher;
+import com.taoke.common.events.user.TrainerBookApprovedEvent;
+import com.taoke.common.events.user.TrainerBookRejectedEvent;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.TrainerBookService;
@@ -10,9 +13,16 @@ import com.taoke.user.entity.TrainerBook;
 import com.taoke.user.repository.TrainerBookRepository;
 import com.taoke.user.repository.TrainerRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,6 +37,7 @@ public class TrainerBookServiceImpl implements TrainerBookService {
 
     private final TrainerBookRepository bookRepository;
     private final TrainerRepository trainerRepository;
+    private final EventPublisher eventPublisher;
 
     @Override
     public List<TrainerBookResponse> listMyBooks(Integer userId) {
@@ -41,6 +52,9 @@ public class TrainerBookServiceImpl implements TrainerBookService {
         Trainer trainer = requireTrainer(userId);
         TrainerBook b = new TrainerBook();
         b.setTrainerId(trainer.getId());
+        b.setSubmitterUserId(userId);
+        b.setAuthorName(trainer.getName());
+        b.setStatus(0);
         applyRequest(b, request);
         if (b.getSortOrder() == null) {
             b.setSortOrder(0);
@@ -87,7 +101,93 @@ public class TrainerBookServiceImpl implements TrainerBookService {
     public List<TrainerBookResponse> listPublicBooks(Integer trainerId) {
         if (trainerId == null || trainerId <= 0) return List.of();
         return bookRepository.findByTrainerIdOrderBySortOrderDescIdDesc(trainerId)
-                .stream().map(TrainerBookResponse::from).toList();
+                .stream()
+                .filter(b -> b.getStatus() != null && b.getStatus() == 1)
+                .map(TrainerBookResponse::from).toList();
+    }
+
+    @Override
+    public Page<TrainerBook> adminSearch(Integer status, String keyword, int page, int size) {
+        int pageIndex = page < 1 ? 0 : page - 1;
+        Specification<TrainerBook> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (keyword != null && !keyword.isBlank()) {
+                String like = "%" + keyword.trim() + "%";
+                predicates.add(cb.or(
+                        cb.like(root.get("title"), like),
+                        cb.like(root.get("authorName"), like)
+                ));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+        return bookRepository.findAll(spec,
+                PageRequest.of(pageIndex, size, Sort.by(Sort.Direction.DESC, "id")));
+    }
+
+    @Override
+    public TrainerBook adminGetOrThrow(Integer bookId) {
+        return bookRepository.findById(bookId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "著作不存在"));
+    }
+
+    @Override
+    @Transactional
+    public TrainerBookResponse adminCreate(Integer trainerId, Integer submitterUserId,
+                                           SaveTrainerBookRequest request) {
+        Trainer trainer = trainerRepository.findById(trainerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "专家不存在"));
+        TrainerBook b = new TrainerBook();
+        b.setTrainerId(trainer.getId());
+        b.setSubmitterUserId(submitterUserId);
+        b.setAuthorName(request.getAuthorName() != null ? request.getAuthorName() : trainer.getName());
+        b.setStatus(1);
+        b.setReviewedAt(LocalDateTime.now());
+        applyRequest(b, request);
+        if (b.getSortOrder() == null) {
+            b.setSortOrder(0);
+        }
+        bookRepository.save(b);
+        return TrainerBookResponse.from(b);
+    }
+
+    @Override
+    @Transactional
+    public void adminApprove(Integer bookId, Integer reviewerId) {
+        TrainerBook b = adminGetOrThrow(bookId);
+        b.setStatus(1);
+        b.setRejectReason(null);
+        b.setReviewerId(reviewerId);
+        b.setReviewedAt(LocalDateTime.now());
+        bookRepository.save(b);
+
+        trainerRepository.findById(b.getTrainerId()).ifPresent(trainer -> {
+            Integer notifyUserId = b.getSubmitterUserId() != null ? b.getSubmitterUserId() : trainer.getUserId();
+            if (notifyUserId != null) {
+                eventPublisher.publish(new TrainerBookApprovedEvent(bookId, b.getTitle(), notifyUserId));
+            }
+        });
+    }
+
+    @Override
+    @Transactional
+    public void adminReject(Integer bookId, Integer reviewerId, String reason) {
+        TrainerBook b = adminGetOrThrow(bookId);
+        b.setStatus(2);
+        b.setRejectReason(reason);
+        b.setReviewerId(reviewerId);
+        b.setReviewedAt(LocalDateTime.now());
+        bookRepository.save(b);
+
+        trainerRepository.findById(b.getTrainerId()).ifPresent(trainer -> {
+            Integer notifyUserId = b.getSubmitterUserId() != null ? b.getSubmitterUserId() : trainer.getUserId();
+            if (notifyUserId != null) {
+                eventPublisher.publish(new TrainerBookRejectedEvent(
+                        bookId, b.getTitle(), notifyUserId, reason));
+            }
+        });
     }
 
     // ==================== 内部方法 ====================
@@ -108,6 +208,9 @@ public class TrainerBookServiceImpl implements TrainerBookService {
 
     private void applyRequest(TrainerBook b, SaveTrainerBookRequest req) {
         b.setTitle(req.getTitle());
+        if (req.getAuthorName() != null) {
+            b.setAuthorName(req.getAuthorName());
+        }
         b.setCoverUrl(req.getCoverUrl());
         b.setPublisher(req.getPublisher());
         b.setPublishDate(req.getPublishDate());

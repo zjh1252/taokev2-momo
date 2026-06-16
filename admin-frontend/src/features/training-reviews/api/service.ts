@@ -9,6 +9,10 @@ export function buildTrainingReviewParams(
   if (filters.limit) params.set('limit', String(filters.limit));
   if (filters.status) params.set('status', filters.status);
   if (filters.reviewScope) params.set('reviewScope', filters.reviewScope);
+  if (filters.reviewerKeyword) {
+    params.set('reviewerKeyword', filters.reviewerKeyword);
+  }
+  if (filters.reviewedBy) params.set('reviewedBy', filters.reviewedBy);
   return params;
 }
 
@@ -18,6 +22,12 @@ export async function getTrainingReviews(
   const params = buildTrainingReviewParams(filters);
   return apiClient<TrainingReviewsResponse>(
     `/training-reviews?${params.toString()}`
+  );
+}
+
+export async function getTrainingReviewDetail(id: number) {
+  return apiClient<{ code: number; message: string; data: import('./types').AdminTrainingReview }>(
+    `/training-reviews/${id}`
   );
 }
 

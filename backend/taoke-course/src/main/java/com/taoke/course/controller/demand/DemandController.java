@@ -2,6 +2,7 @@ package com.taoke.course.controller.demand;
 
 import com.taoke.common.response.ApiResponse;
 import com.taoke.common.response.PageResponse;
+import com.taoke.common.security.Public;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.course.api.DemandService;
 import com.taoke.course.dto.demand.CreateDemandRequest;
@@ -30,6 +31,13 @@ public class DemandController {
     @PostMapping("/demands")
     public ApiResponse<DemandDetailResponse> create(@Valid @RequestBody CreateDemandRequest request) {
         return ApiResponse.ok(demandService.create(SecurityUtils.getRequiredUserId(), request));
+    }
+
+    @Public
+    @Operation(summary = "游客发布需求（无需登录）")
+    @PostMapping("/demands/public")
+    public ApiResponse<DemandDetailResponse> createPublic(@Valid @RequestBody CreateDemandRequest request) {
+        return ApiResponse.ok(demandService.createPublic(request));
     }
 
     @Operation(summary = "我的需求列表")

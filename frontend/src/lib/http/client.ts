@@ -2,6 +2,12 @@ import { toast } from 'sonner';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 
+/** 从 localStorage 读取 accessToken，供请求自动附带 Authorization */
+function getStoredAccessToken(): string | null {
+  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
+  return tokenData?.accessToken ?? null;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 /**
@@ -64,16 +70,22 @@ export async function apiClient<T>(
   const { silent, ...fetchInit } = init || {};
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
 
+  const token = getStoredAccessToken();
+  const mergedHeaders = new Headers(fetchInit.headers ?? {});
+  if (!mergedHeaders.has('Content-Type')) {
+    mergedHeaders.set('Content-Type', 'application/json');
+  }
+  if (token && !mergedHeaders.has('Authorization')) {
+    mergedHeaders.set('Authorization', `Bearer ${token}`);
+  }
+
   let response: Response;
   try {
     response = await fetch(url, {
       ...fetchInit,
       // SSR 详情页需实时数据，避免 Next 默认缓存导致后端恢复后仍 404
       cache: fetchInit.cache ?? 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-        ...fetchInit.headers,
-      },
+      headers: mergedHeaders,
     });
   } catch {
     if (!silent && typeof window !== 'undefined') {

@@ -37,7 +37,11 @@ export default function CreateVideoPage() {
         await batchCreateVideoChapters(video.id, chapterRequests);
       }
 
-      toast.success('录播课已提交，等待管理员审核');
+      toast.success(
+        data.draft
+          ? '草稿已保存，可在「管理录播课-草稿」中继续编辑'
+          : '录播课已提交，等待管理员审核',
+      );
       router.push(
         trainerUserId
           ? `${ROUTES.UC_VIDEOS_MANAGE}?trainerUserId=${trainerUserId}`

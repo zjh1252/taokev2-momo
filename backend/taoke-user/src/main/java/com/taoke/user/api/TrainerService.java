@@ -31,14 +31,16 @@ public interface TrainerService {
      * @param expertiseCategoryId  擅长领域分类 ID（可选）
      * @param industryCategoryId   擅长行业分类 ID（可选）
      * @param provinceId           省份 ID（可选）
+     * @param cityId               城市 ID（可选，匹配专家常驻地）
      * @param keyword              搜索关键词（可选，匹配 name / title / expertiseTags）
-     * @param sort                 排序方式：default / score
+     * @param sort                 排序方式：default / score / newly_joined
      * @param isTrusted            质量承诺过滤：1=仅显示信得过专家，其他/null 不限
      */
     PageResponse<TrainerListItemResponse> listPublic(int page, int size,
                                                      Integer expertiseCategoryId,
                                                      Integer industryCategoryId,
                                                      Integer provinceId,
+                                                     Integer cityId,
                                                      String keyword,
                                                      String sort,
                                                      Integer isTrusted);
@@ -54,6 +56,11 @@ public interface TrainerService {
      * 按专家 ID 查询公开档案（不含报价敏感字段）
      */
     TrainerPublicResponse getPublicProfile(Integer trainerId);
+
+    /**
+     * 列表页点击曝光 +1（仅已审核通过专家）
+     */
+    void incrementViewCount(Integer trainerId);
 
     /**
      * 解析专家主讲课程应使用的 {@code courses.trainer_id}。
@@ -155,9 +162,8 @@ public interface TrainerService {
     /**
      * C 端首页/列表页推荐专家位
      * <p>
-     * 先取 {@code status=2 AND is_recommended=1}，按 sortOrder/score/id 倒序；
-     * 数量不够 {@code limit} 时，直接按 id 倒序取最新的 status=2 专家补齐
-     * （允许与已选重复，前端按 id 不去重；上层取前 limit 个）。
+     * 仅取 {@code status=2 AND is_recommended=1}，按 sortOrder/score/id 倒序；
+     * 数量不足 {@code limit} 时返回实际条数，不补齐非推荐专家。
      * </p>
      */
     List<TrainerListItemResponse> listRecommendedForTop(int limit);

@@ -4,6 +4,8 @@ export type AdminTrainingReview = {
   courseId: number | null;
   trainerUserId: number | null;
   institutionId: number | null;
+  caseId: number | null;
+  reviewedBy: number | null;
   expertName: string | null;
   trainingDate: string | null;
   courseDays: string | null;
@@ -32,6 +34,8 @@ export type TrainingReviewFilters = {
   limit?: number;
   status?: string;
   reviewScope?: string;
+  reviewerKeyword?: string;
+  reviewedBy?: string;
 };
 
 export type TrainingReviewsResponse = {
@@ -63,11 +67,13 @@ export const REVIEW_STATUS_OPTIONS = [
 export const REVIEW_SCOPE_MAP: Record<string, string> = {
   COURSE: '课程',
   TRAINER: '专家',
-  INSTITUTION: '机构'
+  INSTITUTION: '机构',
+  CASE: '案例'
 };
 
 export const REVIEW_SCOPE_OPTIONS = [
   { value: 'COURSE', label: '课程' },
   { value: 'TRAINER', label: '专家' },
-  { value: 'INSTITUTION', label: '机构' }
+  { value: 'INSTITUTION', label: '机构' },
+  { value: 'CASE', label: '案例' }
 ];

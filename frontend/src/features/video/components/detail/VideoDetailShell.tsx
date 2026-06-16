@@ -7,6 +7,8 @@ import { VideoPlaybackProvider } from '../../context/video-playback-context';
 type VideoDetailShellProps = {
   video: VideoDetail;
   children: ReactNode;
+  /** 播放页 URL 指定章节时优先选中 */
+  preferredChapterId?: number;
 };
 
 /**
@@ -15,6 +17,14 @@ type VideoDetailShellProps = {
  * @author Fangxinxin
  * @date 2026-04-08 15:30
  */
-export function VideoDetailShell({ video, children }: VideoDetailShellProps) {
-  return <VideoPlaybackProvider video={video}>{children}</VideoPlaybackProvider>;
+export function VideoDetailShell({
+  video,
+  children,
+  preferredChapterId,
+}: VideoDetailShellProps) {
+  return (
+    <VideoPlaybackProvider video={video} preferredChapterId={preferredChapterId}>
+      {children}
+    </VideoPlaybackProvider>
+  );
 }

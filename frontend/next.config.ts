@@ -2,6 +2,11 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
+const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080').replace(
+  /\/$/,
+  '',
+);
+
 const nextConfig = {
   output: 'standalone' as const,
   reactCompiler: true,
@@ -16,6 +21,12 @@ const nextConfig = {
         source: '/pxb-legacy/:path*',
         destination: 'https://www.91pxb.com/:path*',
       },
+      /** 本地 dev：后端上传文件（头像等） */
+      {
+        source: '/uploads/:path*',
+        destination: `${apiBase}/uploads/:path*`,
+      },
+      /** PXB 录播反代见 src/app/pxb-videos/[...path]/route.ts（rewrite 会透传 Referer 导致 CDN 403） */
     ];
   },
   images: {
@@ -23,6 +34,7 @@ const nextConfig = {
       { protocol: 'https' as const, hostname: 'images.unsplash.com' },
       { protocol: 'https' as const, hostname: 'ui-avatars.com' },
       { protocol: 'http' as const, hostname: 'localhost', port: '8080', pathname: '/**' },
+      { protocol: 'http' as const, hostname: 'localhost', port: '18080', pathname: '/**' },
       { protocol: 'http' as const, hostname: '10.0.14.20', port: '8080', pathname: '/**' },
       { protocol: 'https' as const, hostname: 'v2.taoke.com', pathname: '/**' },
       { protocol: 'https' as const, hostname: 'www.taoke.com', pathname: '/**' },

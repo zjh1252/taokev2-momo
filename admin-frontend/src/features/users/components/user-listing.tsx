@@ -10,12 +10,18 @@ export default async function UserListingPage() {
   const search = searchParamsCache.get('nickname');
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
+  const role = searchParamsCache.get('role');
+  const regOrigin = searchParamsCache.get('regOrigin');
+  const realNameCertStatus = searchParamsCache.get('realNameCertStatus');
 
   const filters = {
     page,
     limit: pageLimit,
     ...(search && { search }),
-    ...(status && { status })
+    ...(status && { status }),
+    ...(role && { role }),
+    ...(regOrigin && { regOrigin }),
+    ...(realNameCertStatus && { realNameCertStatus })
   };
 
   const queryClient = getQueryClient();

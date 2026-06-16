@@ -32,6 +32,12 @@ public class AdminTrainerController {
         return ApiResponse.ok(adminTrainerService.listTrainers(query));
     }
 
+    @Operation(summary = "专家详情")
+    @GetMapping("/admin/trainers/{id}")
+    public ApiResponse<AdminTrainerDetailVO> detail(@PathVariable Integer id) {
+        return ApiResponse.ok(adminTrainerService.getTrainerDetail(id));
+    }
+
     @Operation(summary = "分页查询专家申请列表")
     @GetMapping("/admin/trainers/applications")
     public ApiResponse<PageResult<AdminTrainerApplicationVO>> listApplications(AdminTrainerApplicationQuery query) {

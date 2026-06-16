@@ -1,6 +1,10 @@
 'use client';
-import Link from 'next/link';
+import { FrontendLink } from '@/components/admin/frontend-link';
 import { Badge } from '@/components/ui/badge';
+import { getCoursePublicUrl } from '@/lib/frontend-links';
+import Link from 'next/link';
+import Image from 'next/image';
+import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { AdminCourse } from '../../api/types';
 import {
@@ -33,6 +37,25 @@ export const columns: ColumnDef<AdminCourse>[] = [
     enableSorting: false
   },
   {
+    id: 'cover',
+    header: '封面',
+    cell: ({ row }) => {
+      const cover = resolveAssetUrl(row.original.coverUrl);
+      return cover ? (
+        <div className='relative h-10 w-16 overflow-hidden rounded'>
+          <Image
+            src={cover}
+            alt={row.original.title}
+            fill
+            className='object-cover'
+          />
+        </div>
+      ) : (
+        <span className='text-muted-foreground text-xs'>-</span>
+      );
+    }
+  },
+  {
     id: 'name',
     accessorKey: 'title',
     header: ({ column }: { column: Column<AdminCourse, unknown> }) => (
@@ -40,12 +63,20 @@ export const columns: ColumnDef<AdminCourse>[] = [
     ),
     cell: ({ row }) => (
       <div className='flex flex-col'>
-        <Link
-          href={`/dashboard/courses/${row.original.id}`}
-          className='font-medium text-primary hover:underline line-clamp-1'
-        >
-          {row.original.title}
-        </Link>
+        <div className='flex items-center gap-2'>
+          <Link
+            href={`/dashboard/courses/${row.original.id}`}
+            className='font-medium text-primary hover:underline line-clamp-1'
+          >
+            {row.original.title}
+          </Link>
+          <FrontendLink
+            href={getCoursePublicUrl(row.original.id, row.original.type)}
+            className='text-xs'
+          >
+            前台
+          </FrontendLink>
+        </div>
         <span className='text-muted-foreground text-xs'>
           {row.original.typeLabel}
           {row.original.trainerName && ` · ${row.original.trainerName}`}
@@ -70,6 +101,35 @@ export const columns: ColumnDef<AdminCourse>[] = [
       label: '课程类型',
       variant: 'select' as const,
       options: COURSE_TYPE_OPTIONS
+    }
+  },
+  {
+    id: 'trainerId',
+    accessorKey: 'trainerName',
+    header: '所属专家',
+    cell: ({ row }) => row.original.trainerName || '-',
+    enableColumnFilter: true,
+    meta: {
+      label: '专家ID',
+      placeholder: '专家 trainerId...',
+      variant: 'text' as const,
+      icon: Icons.user
+    }
+  },
+  {
+    id: 'publisherType',
+    accessorKey: 'publisherType',
+    header: '发布方类型',
+    cell: ({ cell }) => cell.getValue<string>() || '-',
+    enableColumnFilter: true,
+    meta: {
+      label: '发布方',
+      variant: 'select' as const,
+      options: [
+        { value: 'TRAINER', label: '专家' },
+        { value: 'INSTITUTION', label: '机构' },
+        { value: 'ENTERPRISE_AGENT', label: '经纪公司' }
+      ]
     }
   },
   {

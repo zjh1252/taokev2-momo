@@ -1,9 +1,13 @@
+'use client';
+
 import { Link } from '@/i18n/navigation';
 import { Star, MapPin } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
+import { useBumpedViewCount } from '@/hooks/use-bumped-view-count';
 import type { TrainerListItem } from '../../types';
 import { pickDisplayTitle } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
+import { getTrainerAvatarFallback } from '@/lib/media';
 
 interface TrainerCardProps {
   trainer: TrainerListItem;
@@ -12,6 +16,7 @@ interface TrainerCardProps {
 }
 
 export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps) {
+  const { viewCount, onCardClick } = useBumpedViewCount(trainer.viewCount, 'trainer', trainer.id);
   const displayName = getTrainerDisplayName(trainer);
   const displayTitle = pickDisplayTitle(trainer.title, displayName)
     || (trainer.oneLineIntro?.trim() || undefined);
@@ -22,12 +27,14 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
   return (
     <Link
       href={`/trainer/${trainer.id}.htm`}
+      onClick={onCardClick}
       className="bg-white rounded-xl border border-slate-200 p-5 flex gap-5 hover:shadow-md transition-all group"
     >
       {/* 头像 */}
       <div className="shrink-0 relative">
         <SafeImage
           src={trainer.avatar}
+          fallback={getTrainerAvatarFallback(displayName)}
           alt={displayName}
           width={100}
           height={120}
@@ -83,7 +90,7 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
         {/* 底部信息 */}
         <div className="flex items-center gap-4 mt-3 text-xs text-slate-400">
           {trainer.commentCount > 0 && <span>{trainer.commentCount} 条评价</span>}
-          {trainer.viewCount > 0 && <span>{trainer.viewCount} 次曝光</span>}
+          {viewCount > 0 && <span>{viewCount} 次曝光</span>}
         </div>
       </div>
     </Link>

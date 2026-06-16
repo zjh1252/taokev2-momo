@@ -30,4 +30,10 @@ public interface BindingAuthority {
      * 解析请求中的目标专家 user_id；为 null 时回退为 operatorUserId 本身，并完成权限校验。
      */
     Integer resolveTargetTrainerUserId(Integer operatorUserId, Integer requestedTrainerUserId);
+
+    /**
+     * 校验经纪人是否隶属于指定经纪公司（按双方 user_id，要求 ACTIVE 成员关系），无权抛 FORBIDDEN。
+     * <p>用于经纪人代经纪公司发布内容时的横向越权校验。</p>
+     */
+    void requireAgentBelongsToEnterprise(Integer agentUserId, Integer enterpriseAgentUserId);
 }

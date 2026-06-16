@@ -85,6 +85,8 @@ export interface CourseListItem {
   publisherType: string;
   publisherName: string;
   trainerName: string;
+  /** 主讲专家 ID（内训课跳转讲师详情） */
+  trainerId?: number;
   /** 主讲专家省份（内训课「讲师常驻地」） */
   trainerProvinceName?: string;
   /** 主讲专家城市（内训课「讲师常驻地」） */
@@ -106,8 +108,10 @@ export interface SaveCourseRequest {
   categoryId?: number;
   subCategoryId?: number;
   coverUrl?: string;
-  intro: string;
-  /** 课程简介（短文本，必填） */
+  intro?: string;
+  /** true=保存草稿（仅校验标题），false/不传=提交审核 */
+  draft?: boolean;
+  /** 课程简介（短文本，可选；发布表单已移除该输入） */
   summary?: string;
   syllabus?: string;
   /** 课程资料文件 URL（doc/docx/pdf） */

@@ -21,6 +21,7 @@ import java.util.List;
 public class DemandDetailResponse {
 
     private Integer id;
+    private String demandNo;
     private Integer userId;
     private Integer enterpriseId;
     private String demandType;
@@ -52,6 +53,7 @@ public class DemandDetailResponse {
     public static DemandDetailResponse from(Demand d) {
         DemandDetailResponse r = new DemandDetailResponse();
         r.setId(d.getId());
+        r.setDemandNo(d.getDemandNo());
         r.setUserId(d.getUserId());
         r.setEnterpriseId(d.getEnterpriseId());
         r.setDemandType(d.getDemandType());

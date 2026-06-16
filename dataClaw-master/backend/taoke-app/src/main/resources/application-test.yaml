@@ -1,0 +1,72 @@
+# ============================================================
+# 开发环境配置 — 中间件连接、密钥、日志级别等
+# ============================================================
+
+spring:
+  # Nacos 配置中心
+  nacos:
+    config:
+      server-addr: 10.0.14.20:8848
+      namespace: test
+
+  datasource:
+    url: jdbc:mysql://10.0.14.20:3306/taokev2?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
+    username: root
+    password: 'root'
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 10000
+
+  data:
+    redis:
+      host: 10.0.14.20
+      port: 6379
+      database: 0
+      timeout: 3000ms
+
+  rabbitmq:
+    host: 10.0.14.20
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /taokev2-test
+
+  jpa:
+    show-sql: true
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 500MB
+      max-request-size: 500MB
+
+taoke:
+  elasticsearch:
+    uris: http://10.0.14.20:9200
+    username: app_search
+    password: taokev2search
+    index-name: taokev2app
+    sync-interval: 10000
+  event:
+    enabled: true
+    exchange: taoke.events
+  jwt:
+    secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
+  sms:
+    provider: mock
+  storage:
+    provider: local
+    base-dir: ./storage
+    public-domain:
+  cors:
+    allowed-origins: '*'
+    allow-credentials: false
+
+logging:
+  level:
+    com.taoke: info
+    org.springframework.security: info

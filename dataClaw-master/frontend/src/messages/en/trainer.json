@@ -1,0 +1,56 @@
+{
+  "page": {
+    "listTitle": "Training Experts",
+    "listDesc": "Discover top training experts nationwide to boost your talent development",
+    "detailTitle": "Expert Profile"
+  },
+  "filters": {
+    "expertise": "Expertise",
+    "industry": "Industry",
+    "city": "Location",
+    "sort": "Sort",
+    "all": "All",
+    "sortDefault": "Default",
+    "sortScore": "Top Rated"
+  },
+  "tabs": {
+    "home": "Profile",
+    "courses": "Courses",
+    "cases": "Cases",
+    "clips": "Videos",
+    "comments": "Reviews",
+    "books": "Publications"
+  },
+  "sections": {
+    "qualifications": "Qualifications",
+    "experience": "Experience",
+    "career": "Career History",
+    "teachingStyle": "Teaching Style",
+    "bio": "Bio",
+    "certificates": "Certificates",
+    "cases": "Teaching Cases",
+    "relatedTrainers": "Related Experts",
+    "topics": "Expert Topics",
+    "basicInfo": "Basic Info",
+    "aiMatch": "AI Smart Match"
+  },
+  "actions": {
+    "message": "Message Expert",
+    "favorite": "Save",
+    "compare": "Compare",
+    "viewDetail": "View Details",
+    "tryAi": "Try Now"
+  },
+  "stats": {
+    "consultations": "Consultations",
+    "views": "Views",
+    "reviews": "reviews",
+    "totalExperts": "experts",
+    "noResults": "No experts found matching your criteria"
+  },
+  "badge": {
+    "trusted": "Trusted",
+    "signed": "Signed",
+    "copyright": "Licensed"
+  }
+}

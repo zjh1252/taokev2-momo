@@ -41,6 +41,8 @@ public class TrainerCaseResponse {
     private LocalDate trainingDate;
     private String description;
     private String coverImage;
+    /** 案例详情页访问次数 */
+    private Integer viewCount;
     private Boolean autoExtracted;
     private Integer sortOrder;
     private Integer status;
@@ -70,6 +72,7 @@ public class TrainerCaseResponse {
         r.setTrainingDate(entity.getTrainingDate());
         r.setDescription(entity.getDescription());
         r.setCoverImage(entity.getCoverImage());
+        r.setViewCount(entity.getViewCount() != null ? entity.getViewCount() : 0);
         r.setAutoExtracted(entity.getAutoExtracted());
         r.setSortOrder(entity.getSortOrder());
         r.setStatus(entity.getStatus());

@@ -185,11 +185,21 @@ export async function listMyInstitutions(): Promise<BindingItem[]> {
   return res.data || [];
 }
 
+/** 机构员工：所属机构绑定的专家（含 ACTIVE/PENDING/REJECTED/UNBOUND） */
+export async function listEmployeeInstitutionTrainers(): Promise<BindingItem[]> {
+  const res = await apiGet<ApiResponse<BindingItem[]>>(`/employees/me/institution-trainers`, {
+    headers: authHeaders(),
+  });
+  return res.data || [];
+}
+
 export interface LookupUserResult {
   id: number;
   nickname?: string;
   avatarUrl?: string;
   phone?: string;
+  /** 是否为「审核通过」的专家（绑定专家仅允许添加已通过审核的专家） */
+  approvedTrainer?: boolean;
 }
 
 /** 按手机号查找平台用户（用于发起绑定时定位目标） */

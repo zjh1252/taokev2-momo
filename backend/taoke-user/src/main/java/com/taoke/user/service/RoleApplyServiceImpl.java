@@ -47,10 +47,10 @@ public class RoleApplyServiceImpl implements RoleApplyService {
      * <ul>
      *   <li>无记录 → 新建 status=2</li>
      *   <li>status=3（驳回）→ 改回 status=2，清空 rejectReason</li>
-     *   <li>status=1（已生效）→ 改回 status=2，进入「重新审核」流程，
-     *       期间角色仍按 status&ne;1 处理（{@code SecurityUserService} 只加载 status=1 的角色，
-     *       因此用户在审核期间将丧失该角色的自服务权限，与首次申请逻辑保持一致）</li>
-     *   <li>status=2 → 抛异常（已有进行中的申请）</li>
+     *   <li>status=1（已生效）→ status 保持 1 + reapplying=1，进入「资料重审」流程，
+     *       重审期间原身份继续生效（{@code SecurityUserService} 仍按 status=1 加载该角色），
+     *       审核通过/驳回后由管理端清除 reapplying 标记</li>
+     *   <li>status=2 / 重审中 → 抛异常（已有进行中的申请）</li>
      *   <li>status=4 → 抛异常（角色已被禁用）</li>
      * </ul>
      *
@@ -67,6 +67,7 @@ public class RoleApplyServiceImpl implements RoleApplyService {
             userRole.setUserId(userId);
             userRole.setRole(roleCode);
             userRole.setStatus(2);
+            userRole.setReapplying(false);
             userRoleRepository.save(userRole);
             return;
         }
@@ -75,11 +76,15 @@ public class RoleApplyServiceImpl implements RoleApplyService {
             case 3 -> {
                 userRole.setStatus(2);
                 userRole.setRejectReason(null);
+                userRole.setReapplying(false);
                 userRoleRepository.save(userRole);
             }
             case 1 -> {
-                // 已生效角色重新提交资料 → 进入重新审核
-                userRole.setStatus(2);
+                // 已生效角色重新提交资料 → 资料重审，原身份保持可用
+                if (Boolean.TRUE.equals(userRole.getReapplying())) {
+                    throw new BusinessException(ErrorCode.ROLE_APPLICATION_PENDING);
+                }
+                userRole.setReapplying(true);
                 userRole.setRejectReason(null);
                 userRoleRepository.save(userRole);
             }
@@ -123,6 +128,7 @@ public class RoleApplyServiceImpl implements RoleApplyService {
         }
         userRole.setStatus(1);
         userRole.setRejectReason(null);
+        userRole.setReapplying(false);
         userRole.setApprovedAt(LocalDateTime.now());
         userRoleRepository.save(userRole);
 
@@ -132,7 +138,12 @@ public class RoleApplyServiceImpl implements RoleApplyService {
     /**
      * 审核通过角色申请（管理端调用）。
      * <p>
-     * 状态流转：status=2（待审核）→ status=1（生效），并发布 {@link ApplyPassedEvent}。
+     * 状态流转：
+     * <ul>
+     *   <li>status=2（待审核）→ status=1（生效）</li>
+     *   <li>status=1 且 reapplying=1（资料重审）→ 清除 reapplying，身份保持生效</li>
+     * </ul>
+     * 并发布 {@link ApplyPassedEvent}。
      *
      * @param userId   目标用户 ID
      * @param roleCode 角色编码
@@ -143,11 +154,14 @@ public class RoleApplyServiceImpl implements RoleApplyService {
         UserRole userRole = userRoleRepository.findByUserIdAndRole(userId, roleCode)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "未找到角色申请记录"));
 
-        if (userRole.getStatus() != 2) {
+        boolean reapplying = userRole.getStatus() == 1 && Boolean.TRUE.equals(userRole.getReapplying());
+        if (userRole.getStatus() != 2 && !reapplying) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "当前状态不可审核: " + STATUS_TEXT.getOrDefault(userRole.getStatus(), "未知"));
         }
 
         userRole.setStatus(1);
+        userRole.setReapplying(false);
+        userRole.setApprovedAt(LocalDateTime.now());
         userRoleRepository.save(userRole);
 
         // 发布领域事件
@@ -157,7 +171,11 @@ public class RoleApplyServiceImpl implements RoleApplyService {
     /**
      * 驳回角色申请（管理端调用）。
      * <p>
-     * 状态流转：status=2（待审核）→ status=3（已驳回），并记录驳回原因。
+     * 状态流转：
+     * <ul>
+     *   <li>status=2（待审核）→ status=3（已驳回）</li>
+     *   <li>status=1 且 reapplying=1（资料重审）→ 仅清除 reapplying 并记录原因，原身份保持生效</li>
+     * </ul>
      *
      * @param userId     目标用户 ID
      * @param roleCode   角色编码
@@ -169,12 +187,18 @@ public class RoleApplyServiceImpl implements RoleApplyService {
         UserRole userRole = userRoleRepository.findByUserIdAndRole(userId, roleCode)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "未找到角色申请记录"));
 
-        if (userRole.getStatus() != 2) {
+        boolean reapplying = userRole.getStatus() == 1 && Boolean.TRUE.equals(userRole.getReapplying());
+        if (userRole.getStatus() != 2 && !reapplying) {
             throw new BusinessException(ErrorCode.PARAM_INVALID,
                     "当前状态不可驳回: " + STATUS_TEXT.getOrDefault(userRole.getStatus(), "未知"));
         }
 
-        userRole.setStatus(3);
+        if (reapplying) {
+            // 重审驳回：保留原已生效身份，仅记录驳回原因
+            userRole.setReapplying(false);
+        } else {
+            userRole.setStatus(3);
+        }
         userRole.setRejectReason(reason);
         userRoleRepository.save(userRole);
 
@@ -201,7 +225,10 @@ public class RoleApplyServiceImpl implements RoleApplyService {
         resp.setRole(roleCode);
         resp.setRoleName(bizRole.getLabel());
         resp.setStatus(userRole.getStatus());
-        resp.setStatusText(STATUS_TEXT.getOrDefault(userRole.getStatus(), "未知"));
+        boolean reapplying = userRole.getStatus() == 1 && Boolean.TRUE.equals(userRole.getReapplying());
+        resp.setStatusText(reapplying ? "资料审核中（原身份可用）"
+                : STATUS_TEXT.getOrDefault(userRole.getStatus(), "未知"));
+        resp.setReapplying(reapplying);
         resp.setRejectReason(userRole.getRejectReason());
         resp.setAppliedAt(userRole.getCreatedAt());
         resp.setApprovedAt(userRole.getApprovedAt());

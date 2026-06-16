@@ -87,6 +87,8 @@ public enum ErrorCode {
     ALREADY_ENROLLED(400, 40009, "您已报名该课程"),
     ORDER_ITEMS_EMPTY(400, 40010, "订单商品不能为空"),
     CANNOT_BUY_OWN_PRODUCT(400, 40011, "不能购买自己发布的课程"),
+    INVOICE_ALREADY_REQUESTED(400, 40012, "该订单已申请过发票"),
+    INVOICE_ORDER_NOT_PAID(400, 40013, "仅已支付订单可申请发票"),
 
     /* ==================== 评价/互动 500xx ==================== */
     FAVORITE_ALREADY_EXISTS(400, 50001, "已收藏，请勿重复操作"),

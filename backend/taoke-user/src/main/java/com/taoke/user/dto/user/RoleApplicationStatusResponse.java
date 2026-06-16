@@ -25,6 +25,9 @@ public class RoleApplicationStatusResponse {
     /** 状态文本 */
     private String statusText;
 
+    /** 是否处于「已生效身份资料重审中」（status=1 且 reapplying=1） */
+    private Boolean reapplying;
+
     /** 驳回原因（status=3 时有值） */
     private String rejectReason;
 

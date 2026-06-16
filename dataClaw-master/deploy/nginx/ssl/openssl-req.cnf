@@ -1,0 +1,8 @@
+# 仅用于生成 CSR（无 x509_extensions，兼容 macOS 自带 LibreSSL）
+[req]
+prompt             = no
+default_md         = sha256
+distinguished_name = dn
+
+[dn]
+CN = v2.taoke.com

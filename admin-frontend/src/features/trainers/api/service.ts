@@ -14,6 +14,10 @@ export function buildTrainerParams(filters: TrainerFilters): URLSearchParams {
   return params;
 }
 
+export async function getTrainerDetail(id: number) {
+  return apiClient<import('./types').TrainerDetailResponse>(`/trainers/${id}`);
+}
+
 /** 客户端：专家列表 */
 export async function getTrainers(
   filters: TrainerFilters

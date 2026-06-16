@@ -1,34 +1,17 @@
 'use client';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog';
-import {
-  RadioGroup,
-  RadioGroupItem
-} from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { InlineAuditActions } from '@/components/admin/inline-audit-actions';
 import type { AdminVideo } from '../../api/types';
-import { Icons } from '@/components/icons';
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { approveVideo, rejectVideo, unpublishVideo, publishVideo, featureVideo, unfeatureVideo } from '../../api/service';
+import {
+  approveVideo,
+  rejectVideo,
+  unpublishVideo,
+  publishVideo
+} from '../../api/service';
 import { videoKeys } from '../../api/queries';
 
 interface CellActionProps {
@@ -36,48 +19,18 @@ interface CellActionProps {
 }
 
 export function CellAction({ data }: CellActionProps) {
-  const [approveOpen, setApproveOpen] = useState(false);
-  const [rejectOpen, setRejectOpen] = useState(false);
   const [unpublishOpen, setUnpublishOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
-  const [featureOpen, setFeatureOpen] = useState(false);
-  const [featureType, setFeatureType] = useState<'pin' | 'recommend'>('recommend');
-  const [reason, setReason] = useState('');
-  const queryClient = useQueryClient();
 
   const isPending = data.status === 1;
   const isPublished = data.status === 2;
   const isUnpublished = data.status === 4;
-  const isFeatured = data.isFeatured === 1;
-  const isPinned = (data.sortOrder ?? 0) > 0;
-
-  const approveMutation = useMutation({
-    mutationFn: () => approveVideo(data.id),
-    onSuccess: () => {
-      toast.success('审核通过');
-      setApproveOpen(false);
-      void queryClient.invalidateQueries({ queryKey: videoKeys.all });
-    },
-    onError: () => toast.error('操作失败')
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: () => rejectVideo(data.id, reason),
-    onSuccess: () => {
-      toast.success('已驳回');
-      setRejectOpen(false);
-      setReason('');
-      void queryClient.invalidateQueries({ queryKey: videoKeys.all });
-    },
-    onError: () => toast.error('操作失败')
-  });
 
   const unpublishMutation = useMutation({
     mutationFn: () => unpublishVideo(data.id),
     onSuccess: () => {
       toast.success('已下架');
       setUnpublishOpen(false);
-      void queryClient.invalidateQueries({ queryKey: videoKeys.all });
     },
     onError: () => toast.error('操作失败')
   });
@@ -87,43 +40,12 @@ export function CellAction({ data }: CellActionProps) {
     onSuccess: () => {
       toast.success('已重新上架');
       setPublishOpen(false);
-      void queryClient.invalidateQueries({ queryKey: videoKeys.all });
-    },
-    onError: () => toast.error('操作失败')
-  });
-
-  const featureMutation = useMutation({
-    mutationFn: () => featureVideo(data.id, featureType),
-    onSuccess: () => {
-      toast.success(featureType === 'pin' ? '已置顶' : '已推荐');
-      setFeatureOpen(false);
-      void queryClient.invalidateQueries({ queryKey: videoKeys.all });
-    },
-    onError: () => toast.error('操作失败')
-  });
-
-  const unfeatureMutation = useMutation({
-    mutationFn: () => unfeatureVideo(data.id),
-    onSuccess: () => {
-      toast.success('已取消推荐');
-      void queryClient.invalidateQueries({ queryKey: videoKeys.all });
     },
     onError: () => toast.error('操作失败')
   });
 
   return (
     <>
-      {/* 审核通过确认 */}
-      <AlertModal
-        isOpen={approveOpen}
-        onClose={() => setApproveOpen(false)}
-        onConfirm={() => approveMutation.mutate()}
-        loading={approveMutation.isPending}
-        title='确认通过'
-        description={`确定要通过录播课「${data.title}」的审核吗？通过后将立即上架，发布者会收到通知。`}
-      />
-
-      {/* 下架确认 */}
       <AlertModal
         isOpen={unpublishOpen}
         onClose={() => setUnpublishOpen(false)}
@@ -133,153 +55,51 @@ export function CellAction({ data }: CellActionProps) {
         description={`确定要下架录播课「${data.title}」吗？`}
       />
 
-      {/* 重新上架确认 */}
       <AlertModal
         isOpen={publishOpen}
         onClose={() => setPublishOpen(false)}
         onConfirm={() => publishMutation.mutate()}
         loading={publishMutation.isPending}
         title='确认上架'
-        description={`确定要重新上架录播课「${data.title}」吗？上架后用户可立即浏览和购买。`}
+        description={`确定要重新上架录播课「${data.title}」吗？`}
       />
 
-      {/* 驳回弹窗 */}
-      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle>驳回录播课</DialogTitle>
-            <DialogDescription>
-              请填写驳回原因，发布者将收到通知。
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            placeholder='请输入驳回原因...'
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={3}
-          />
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setRejectOpen(false)}>
-              取消
-            </Button>
-            <Button
-              variant='destructive'
-              disabled={!reason.trim() || rejectMutation.isPending}
-              onClick={() => rejectMutation.mutate()}
-            >
-              {rejectMutation.isPending ? '提交中...' : '确认驳回'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 推荐弹窗 */}
-      <Dialog open={featureOpen} onOpenChange={setFeatureOpen}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle>推荐录播课</DialogTitle>
-            <DialogDescription>
-              选择推荐方式。用户选择"默认排序"时将按推荐优先级展示。
-            </DialogDescription>
-          </DialogHeader>
-          <RadioGroup
-            value={featureType}
-            onValueChange={(v) => setFeatureType(v as 'pin' | 'recommend')}
-            className='gap-3'
-          >
-            <div className='flex items-center space-x-2 rounded-lg border p-3 cursor-pointer'>
-              <RadioGroupItem value='recommend' id='ft-recommend' />
-              <Label htmlFor='ft-recommend' className='cursor-pointer'>
-                <span className='font-medium'>列表推荐</span>
-                <span className='text-muted-foreground text-xs block'>
-                  默认排序时，该录播课排在列表靠前位置
-                </span>
-              </Label>
-            </div>
-            <div className='flex items-center space-x-2 rounded-lg border p-3 cursor-pointer'>
-              <RadioGroupItem value='pin' id='ft-pin' />
-              <Label htmlFor='ft-pin' className='cursor-pointer'>
-                <span className='font-medium'>列表置顶</span>
-                <span className='text-muted-foreground text-xs block'>
-                  默认排序时，该录播课固定在列表最顶部
-                </span>
-              </Label>
-            </div>
-          </RadioGroup>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setFeatureOpen(false)}>
-              取消
-            </Button>
-            <Button
-              disabled={featureMutation.isPending}
-              onClick={() => featureMutation.mutate()}
-            >
-              {featureMutation.isPending ? '提交中...' : '确认推荐'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <Button variant='ghost' className='h-8 w-8 p-0'>
-            <span className='sr-only'>打开菜单</span>
-            <Icons.ellipsis className='h-4 w-4' />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align='end'>
-          <DropdownMenuLabel>操作</DropdownMenuLabel>
-
-          {/* 已上架：推荐 / 取消推荐 */}
-          {isPublished && !isFeatured && !isPinned && (
-            <DropdownMenuItem onClick={() => setFeatureOpen(true)}>
-              <Icons.star className='mr-2 h-4 w-4' />
-              推荐
-            </DropdownMenuItem>
-          )}
-          {isPublished && (isFeatured || isPinned) && (
-            <DropdownMenuItem
-              onClick={() => unfeatureMutation.mutate()}
-              disabled={unfeatureMutation.isPending}
-            >
-              <Icons.starOff className='mr-2 h-4 w-4' />
-              取消推荐
-            </DropdownMenuItem>
-          )}
-          {(isFeatured || isPinned) && <DropdownMenuSeparator />}
-
-          {/* 待审核：通过 / 驳回 */}
-          {isPending && (
-            <>
-              <DropdownMenuItem onClick={() => setApproveOpen(true)}>
-                <Icons.check className='mr-2 h-4 w-4' />
-                通过
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setRejectOpen(true)}>
-                <Icons.close className='mr-2 h-4 w-4' />
-                驳回
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-            </>
-          )}
-
-          {/* 已上架：下架 */}
-          {isPublished && (
-            <DropdownMenuItem onClick={() => setUnpublishOpen(true)}>
-              <Icons.eyeOff className='mr-2 h-4 w-4' />
-              下架
-            </DropdownMenuItem>
-          )}
-
-          {/* 已下架：重新上架 */}
-          {isUnpublished && (
-            <DropdownMenuItem onClick={() => setPublishOpen(true)}>
-              <Icons.check className='mr-2 h-4 w-4' />
-              上架
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <InlineAuditActions
+        showApprove={isPending}
+        showReject={isPending}
+        subjectLabel={data.title}
+        approveDescription={`确定要通过录播课「${data.title}」的审核吗？通过后将立即上架。`}
+        rejectTitle='驳回录播课'
+        rejectDescription='请填写驳回原因，发布者将收到通知。'
+        onApprove={() => approveVideo(data.id)}
+        onReject={(reason) => rejectVideo(data.id, reason)}
+        invalidateKey={videoKeys.all}
+        extra={
+          <>
+            {isPublished ? (
+              <Button
+                size='sm'
+                variant='secondary'
+                onClick={() => setUnpublishOpen(true)}
+              >
+                下架
+              </Button>
+            ) : null}
+            {isUnpublished ? (
+              <Button
+                size='sm'
+                variant='outline'
+                onClick={() => setPublishOpen(true)}
+              >
+                上架
+              </Button>
+            ) : null}
+          </>
+        }
+        idleLabel={
+          !isPending && !isPublished && !isUnpublished ? '—' : undefined
+        }
+      />
     </>
   );
 }

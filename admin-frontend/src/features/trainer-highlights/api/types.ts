@@ -17,6 +17,12 @@ export type AdminTrainerHighlight = {
   id: number;
   trainerId: number;
   trainerName: string | null;
+  institutionId: number | null;
+  institutionName: string | null;
+  ownerSubjectType: string | null;
+  ownerSubjectName: string | null;
+  submitterUserId: number | null;
+  submitterUsername: string | null;
   title: string | null;
   description: string | null;
   coverImage: string | null;

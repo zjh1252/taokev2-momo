@@ -8,7 +8,7 @@ const CHANNEL_LINKS = [
   { label: '培训专家', href: '/trainer' },
   { label: '公开课', href: '/opencourse' },
   { label: '内训课', href: '/inhousecourse' },
-  { label: '录播课', href: '/video' },
+  { label: '录播课', href: '/videos' },
   { label: '培训机构', href: '/company' },
   { label: '培协', href: '/association' },
 ];

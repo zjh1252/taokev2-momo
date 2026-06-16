@@ -94,7 +94,7 @@ export async function buildVideoCategoryNavItems(
     return {
       name: cat.name,
       count: counts[cat.id] ?? 0,
-      href: `/video?${params.toString()}`,
+      href: `/videos?${params.toString()}`,
     };
   });
 

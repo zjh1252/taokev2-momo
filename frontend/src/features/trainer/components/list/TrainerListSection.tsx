@@ -6,6 +6,7 @@ import { TrainerFilters, type TrainerFilterValue } from './TrainerFilters';
 import { TrainerCard } from './TrainerCard';
 import { TrainerRecommendedScroller } from './TrainerRecommendedScroller';
 import { TrainerCaseScroller } from './TrainerCaseScroller';
+import { TrainerCategoryExpertBar } from './TrainerCategoryExpertBar';
 import { TrainerSortBar } from './TrainerSortBar';
 import { getTrainerList, type RecentTrainerCase } from '../../api/service';
 import { filtersToHtmPath, type TrainerSlugParams } from '../../utils/url';
@@ -17,8 +18,12 @@ interface TrainerListSectionProps {
   industryTree: CategoryTreeNode[];
   recommendedTrainers: TrainerListItem[];
   recentCases: RecentTrainerCase[];
+  /** 擅长领域筛选且后台已配置时的领域推荐专家 */
+  categoryExpertTrainers?: TrainerListItem[];
   /** .htm URL 解析后的初始筛选参数 */
   initialSlugParams?: TrainerSlugParams;
+  /** 锁定城市 ID（城市子频道列表） */
+  lockedCityId?: number;
 }
 
 export function TrainerListSection(props: TrainerListSectionProps) {
@@ -82,7 +87,9 @@ function TrainerListSectionInner({
   industryTree,
   recommendedTrainers,
   recentCases,
+  categoryExpertTrainers = [],
   initialSlugParams,
+  lockedCityId,
 }: TrainerListSectionProps) {
   const initialFilters = useMemo(() => slugToFilter(initialSlugParams || {}), [initialSlugParams]);
 
@@ -124,6 +131,7 @@ function TrainerListSectionInner({
               ? findCategoryIdByName(industryTree, f.industryName)
               : undefined,
             provinceId: f.provinceId,
+            cityId: lockedCityId,
             sort: s,
             isTrusted: f.trustedOnly ? 1 : undefined,
           });
@@ -134,7 +142,7 @@ function TrainerListSectionInner({
         }
       });
     },
-    [expertiseTree, industryTree],
+    [expertiseTree, industryTree, lockedCityId],
   );
 
   /** 更新浏览器地址栏（不触发 SSR 导航） */
@@ -188,6 +196,10 @@ function TrainerListSectionInner({
 
   return (
     <div className="flex flex-col gap-4">
+      {categoryExpertTrainers.length > 0 ? (
+        <TrainerCategoryExpertBar items={categoryExpertTrainers} />
+      ) : null}
+
       <section className="flex gap-6 items-stretch">
         <TrainerFilters
           expertiseTree={expertiseTree}

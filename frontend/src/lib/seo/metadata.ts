@@ -370,4 +370,19 @@ export function fallbackDetailMetadata(label: string) {
   });
 }
 
+/** 城市综合频道页 TDK */
+export function buildCityChannelMetadata(cityName: string) {
+  return toMetadata({
+    title: `${cityName}企业培训_${cityName}公开课_内训课_培训讲师_培训机构 - 新淘课网`,
+    keywords: joinKeywords(
+      `${cityName}培训`,
+      `${cityName}公开课`,
+      `${cityName}内训课`,
+      `${cityName}培训讲师`,
+      `${cityName}培训机构`,
+    ),
+    description: `汇集${cityName}地区优质公开课、企业内训课程、资深培训讲师与正规培训机构，覆盖多行业实战培训，提供一站式企业培训服务。`,
+  });
+}
+
 export { truncateDescription };

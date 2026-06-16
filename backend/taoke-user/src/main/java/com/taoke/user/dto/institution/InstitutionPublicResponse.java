@@ -16,6 +16,9 @@ public class InstitutionPublicResponse {
 
     private Integer id;
 
+    /** 老站 tk_member.roleid，URL 段 /company/{legacyRoleId}.htm */
+    private Integer legacyRoleId;
+
     private String orgName;
 
     /** 机构类型：0=非高校，1=高校 */

@@ -5,6 +5,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +31,37 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Integer>, Jp
 
     List<UserRole> findByUserIdIn(List<Integer> userIds);
 
+    List<UserRole> findByRole(String role);
+
     Page<UserRole> findByRole(String role, Pageable pageable);
 
     Page<UserRole> findByRoleAndStatus(String role, Integer status, Pageable pageable);
+
+    /**
+     * 后台「申请列表」专用查询：
+     * <ul>
+     *   <li>status 为空：返回全部，待审核（status=2 或 reapplying=true）置顶，组内按 updatedAt 倒序</li>
+     *   <li>status=2：返回待审核 + 资料重审中（reapplying=true）</li>
+     *   <li>其它 status：按 status 精确过滤且排除重审中（重审记录归入「待审核」筛选）</li>
+     * </ul>
+     */
+    @Query("""
+            SELECT ur FROM UserRole ur
+            WHERE ur.role = :role
+              AND (:status IS NULL
+                   OR (:status = 2 AND (ur.status = 2 OR ur.reapplying = true))
+                   OR (:status <> 2 AND ur.status = :status
+                       AND (ur.reapplying IS NULL OR ur.reapplying = false)))
+            ORDER BY CASE WHEN ur.status = 2 OR ur.reapplying = true THEN 0 ELSE 1 END,
+                     ur.updatedAt DESC
+            """)
+    Page<UserRole> findApplications(@Param("role") String role, @Param("status") Integer status, Pageable pageable);
+
+    /** 待审核或资料重审中的角色申请数量 */
+    @Query("""
+            SELECT COUNT(ur) FROM UserRole ur
+            WHERE ur.role = :role
+              AND (ur.status = 2 OR ur.reapplying = true)
+            """)
+    long countPendingApplications(@Param("role") String role);
 }

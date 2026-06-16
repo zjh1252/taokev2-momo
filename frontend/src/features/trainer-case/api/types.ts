@@ -30,6 +30,8 @@ export type TrainerCase = {
   trainingDate: string | null;
   description: string | null;
   coverImage: string | null;
+  /** 案例详情页访问次数 */
+  viewCount?: number;
   autoExtracted: boolean;
   sortOrder: number;
   status: number;
@@ -71,8 +73,8 @@ export type SaveTrainerCaseRequest = {
   districtId: number;
   /** 培训地点 - 镇/街道 ID（选填） */
   townId?: number;
-  /** 培训地点 - 详细地址（必填） */
-  trainingAddress: string;
+  /** 培训地点 - 详细地址（选填） */
+  trainingAddress?: string;
   trainingDate?: string;
   description?: string;
   coverImage?: string;

@@ -26,9 +26,13 @@ import java.time.LocalDate;
 @DynamicUpdate
 public class Demand extends BaseEntity {
 
-    /** 提交人用户 ID */
-    @Column(name = "user_id", nullable = false)
+    /** 提交人用户 ID（游客提交时为空） */
+    @Column(name = "user_id")
     private Integer userId;
+
+    /** 需求单号（对外展示） */
+    @Column(name = "demand_no", nullable = false, length = 32)
+    private String demandNo;
 
     /** 企业信息 ID，关联 user_enterprise_buyers.id */
     @Column(name = "enterprise_id")

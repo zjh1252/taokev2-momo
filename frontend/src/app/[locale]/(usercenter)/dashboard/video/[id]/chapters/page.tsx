@@ -12,6 +12,8 @@ import {
   updateVideoChapter,
   deleteVideoChapter,
   uploadVideoFile,
+  validateVideoFile,
+  VIDEO_UPLOAD_HINT,
 } from '@/features/video/api/publisher-service';
 import type {
   VideoChapter,
@@ -32,6 +34,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 function formatDuration(seconds: number): string {
   if (seconds <= 0) return '--';
@@ -62,6 +65,7 @@ export default function VideoChaptersManagePage() {
   const [saving, setSaving] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [videoFileName, setVideoFileName] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const fetchData = useCallback(async () => {
     if (!videoId) return;
@@ -115,13 +119,21 @@ export default function VideoChaptersManagePage() {
   const handleUploadChapterVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // 上传前先做大小/格式校验，避免传到一半才失败
+    const invalid = validateVideoFile(file);
+    if (invalid) {
+      toast.error(invalid);
+      e.target.value = '';
+      return;
+    }
     setUploadingVideo(true);
     setVideoFileName(file.name);
+    setUploadProgress(0);
     try {
-      const url = await uploadVideoFile(file);
+      const url = await uploadVideoFile(file, setUploadProgress);
       setFormVideoUrl(url);
-    } catch {
-      alert('视频上传失败，请检查文件格式和大小（最大500MB）');
+    } catch (err) {
+      toast.error((err as Error)?.message || '视频上传失败，请检查文件格式和大小');
     } finally {
       setUploadingVideo(false);
     }
@@ -323,14 +335,20 @@ export default function VideoChaptersManagePage() {
                       disabled={uploadingVideo}
                     />
                     {uploadingVideo ? (
-                      <>
-                        <div className="animate-spin rounded-full size-5 border-2 border-primary border-t-transparent" />
-                        <span className="text-sm text-primary">上传中...</span>
-                      </>
+                      <div className="flex-1 flex flex-col items-center gap-1.5">
+                        <span className="text-sm text-primary">上传中... {uploadProgress}%</span>
+                        <div className="w-full max-w-xs h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
                     ) : (
                       <>
                         <Film className="size-5 text-slate-400" />
                         <span className="text-sm text-slate-500">点击选择视频文件</span>
+                        <span className="text-xs text-slate-400">{VIDEO_UPLOAD_HINT}</span>
                       </>
                     )}
                   </label>

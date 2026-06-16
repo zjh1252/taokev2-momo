@@ -28,6 +28,12 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'taoke.com',
         port: ''
+      },
+      // 本地开发环境：C 端前端及后端静态资源
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000'
       }
     ]
   },

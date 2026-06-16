@@ -24,6 +24,7 @@ import {
   SidebarRail
 } from '@/components/ui/sidebar';
 import { navGroups } from '@/config/nav-config';
+import { NavPendingBadge } from '@/components/layout/nav-pending-badge';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useFilteredNavGroups } from '@/hooks/use-nav';
 import Link from 'next/link';
@@ -150,6 +151,7 @@ export default function AppSidebar() {
                                             >
                                               <Link href={grandChild.url}>
                                                 <span>{grandChild.title}</span>
+                                                <NavPendingBadge url={grandChild.url} />
                                               </Link>
                                             </SidebarMenuSubButton>
                                           </SidebarMenuSubItem>
@@ -169,6 +171,7 @@ export default function AppSidebar() {
                                 >
                                   <Link href={subItem.url}>
                                     <span>{subItem.title}</span>
+                                    <NavPendingBadge url={subItem.url} />
                                   </Link>
                                 </SidebarMenuSubButton>
                               </SidebarMenuSubItem>
@@ -188,6 +191,7 @@ export default function AppSidebar() {
                       <Link href={item.url}>
                         <Icon />
                         <span>{item.title}</span>
+                        <NavPendingBadge url={item.url} />
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

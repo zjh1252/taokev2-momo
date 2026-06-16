@@ -1,7 +1,21 @@
 import { getApiBaseUrl, getCdnBaseUrl } from '@/lib/env/client';
 
-export const DEFAULT_TRAINER_AVATAR = '/statics/images/expert-main.jpg';
+/** 无姓名时的专家头像占位（勿用 expert-main.jpg，避免显示外籍商务照 mock） */
+export const DEFAULT_TRAINER_AVATAR = '/statics/images/avatar-placeholder.svg';
 export const DEFAULT_COURSE_COVER = '/statics/images/course-1.jpg';
+
+/** 旧站默认占位图 middle/00/1.jpg，非真实头像 */
+export function isPlaceholderLegacyAvatar(url?: string | null): boolean {
+  if (!url?.trim()) return false;
+  const normalized = url.trim().replace(/\\/g, '/');
+  return normalized.includes('/middle/00/1.') || normalized.endsWith('/middle/00/1');
+}
+
+/** 专家头像加载失败时的姓名首字占位 */
+export function getTrainerAvatarFallback(displayName?: string): string {
+  const name = (displayName || '专家').trim();
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=f1f5f9&color=64748b&size=256&font-size=0.4`;
+}
 
 /** 老站录播封面 onerror 占位（www.taoke.com/video/*.html 同源逻辑） */
 export const DEFAULT_VIDEO_COVER =
@@ -136,7 +150,7 @@ function resolveImageSrcRaw(
   src?: string | null,
   fallback = DEFAULT_TRAINER_AVATAR,
 ): string {
-  if (!src?.trim()) return fallback;
+  if (!src?.trim() || isPlaceholderLegacyAvatar(src)) return fallback;
 
   const value = src.trim();
 
@@ -172,6 +186,8 @@ function resolveImageSrcRaw(
 
   // v2 本地上传目录（storage.base-dir → frontend/public）
   if (value.startsWith('/uploads/')) {
+    // 本地 dev 保持 /uploads 相对路径，走 next.config rewrite；避免 next/image 直连 :8080 触发 private IP 拦截
+    if (isLocalDevApi()) return value;
     try {
       const base = (getCdnBaseUrl() || getApiBaseUrl()).replace(/\/$/, '');
       return `${base}${value}`;
@@ -211,6 +227,139 @@ export function getInstitutionLogoFallback(_orgName?: string): string {
 /** 录播课封面加载失败占位（与老站 default_video.jpg 一致） */
 export function getVideoCoverFallback(_title?: string): string {
   return DEFAULT_VIDEO_COVER;
+}
+
+/** 32 位 MD5 老库视频 key（无扩展名） */
+const LEGACY_VIDEO_MD5_RE = /^[a-f0-9]{32}$/i;
+
+/** 本地 dev 反代 PXB 录播 CDN（cdn 拒绝 Referer=localhost） */
+export const PXB_VIDEO_PROXY_PREFIX = '/pxb-videos';
+
+const PXB_CDN_HOSTS = new Set(['cdn5-pxb-videos.taoke.com', 'cdn-pxb-videos.taoke.com']);
+
+function isPxbCdnHost(hostname: string): boolean {
+  return PXB_CDN_HOSTS.has(hostname) || hostname.endsWith('.pxb-videos.taoke.com');
+}
+
+function isLocalDevOrigin(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /^https?:\/\/(localhost|127\.0\.0\.1|\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?$/i.test(
+    window.location.origin,
+  );
+}
+
+/** 本地 dev：API/CDN 指向 localhost，上传走同源 rewrite */
+function isLocalDevApi(): boolean {
+  if (process.env.NODE_ENV !== 'development') return false;
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+  return /localhost|127\.0\.0\.1/i.test(base);
+}
+
+/** dev 环境且页面在本地 origin 上打开（含局域网 IP） */
+function shouldUseLocalVideoProxy(): boolean {
+  if (process.env.NODE_ENV !== 'development') return false;
+  return isLocalDevOrigin() || isLocalDevApi();
+}
+
+/** 相对媒体路径 → 当前站点绝对 URL（Video.js 需完整地址） */
+export function toAbsoluteMediaUrl(url: string): string {
+  if (!url || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//')) {
+    return url;
+  }
+  if (typeof window === 'undefined') return url;
+  return `${window.location.origin}${url.startsWith('/') ? url : `/${url}`}`;
+}
+
+/** localhost 开发时将 PXB CDN 转为同源路径，配合 next.config rewrites */
+function applyLocalDevVideoProxy(url: string): string {
+  if (!shouldUseLocalVideoProxy()) {
+    return url;
+  }
+  if (url.startsWith(PXB_VIDEO_PROXY_PREFIX)) {
+    return toAbsoluteMediaUrl(url);
+  }
+  try {
+    const parsed = new URL(url);
+    if (isPxbCdnHost(parsed.hostname)) {
+      return toAbsoluteMediaUrl(
+        `${PXB_VIDEO_PROXY_PREFIX}${parsed.pathname}${parsed.search}`,
+      );
+    }
+  } catch {
+    /* 相对路径 */
+  }
+  return url;
+}
+
+/**
+ * 将后端/老库录播课播放地址规范为 Video.js 可请求的 URL。
+ * 对齐老站 videoPlayUrl()：videos/*、taoke/* → PXB CDN；纯 MD5 → old-videos。
+ */
+export function resolveVideoPlaybackSrc(src?: string | null): string | null {
+  const value = src?.trim();
+  if (!value) return null;
+
+  if (/^(eceibs|kuaike):/i.test(value)) {
+    return value;
+  }
+
+  if (value.includes('@@') || /^<embed/i.test(value)) {
+    return null;
+  }
+
+  /** 非 embed 可解析的 SWF 在 resolveChapterPlayback 中已优先处理 */
+  if (/\.swf(\?|$)/i.test(value) && !/(youku\.com|polyv\.net|56\.com|tudou\.com|qq\.com|ku6\.com)/i.test(value)) {
+    return null;
+  }
+
+  /** 老库脏数据：仅文件名、无路径，拼 CDN 必 404 */
+  if (
+    !value.includes('://')
+    && !value.startsWith('/')
+    && !value.startsWith('taoke/')
+    && !value.startsWith('videos/')
+    && !value.startsWith('attachments/')
+    && !LEGACY_VIDEO_MD5_RE.test(value)
+    && !/^[0-9A-Fa-f]+-\d+$/.test(value)
+  ) {
+    return null;
+  }
+
+  let resolved: string;
+
+  if (value.startsWith('//')) {
+    resolved = normalizeHttpCoverUrl(`https:${value}`);
+  } else if (value.startsWith('http://') || value.startsWith('https://')) {
+    resolved = normalizeHttpCoverUrl(value);
+  } else if (value.startsWith(PXB_VIDEO_PROXY_PREFIX)) {
+    resolved = value;
+  } else if (resolveLegacyVideoCoverPath(value)) {
+    resolved = resolveLegacyVideoCoverPath(value)!;
+  } else if (value.startsWith('taoke/') || value.startsWith('videos/')) {
+    resolved = joinBase(PXB_VIDEO_CDN, value);
+  } else if (LEGACY_VIDEO_MD5_RE.test(value)) {
+    resolved = joinBase(PXB_VIDEO_CDN, `taoke/old-videos/videos/${value}.mp4`);
+  } else if (value.startsWith('/attachments/') || value.startsWith('attachments/')) {
+    const path = value.startsWith('/') ? value : `/${value}`;
+    resolved = joinBase(LEGACY_ASSET_BASE, path);
+  } else if (value.startsWith('/uploads/')) {
+    if (isLocalDevApi()) {
+      resolved = value;
+    } else {
+      try {
+        const base = (getCdnBaseUrl() || getApiBaseUrl()).replace(/\/$/, '');
+        resolved = `${base}${value}`;
+      } catch {
+        resolved = value;
+      }
+    }
+  } else if (!value.includes('://')) {
+    resolved = joinBase(PXB_VIDEO_CDN, value);
+  } else {
+    resolved = value;
+  }
+
+  return applyLocalDevVideoProxy(resolved);
 }
 
 /** 91pxb 历史域名：大量录播封面源站已下线或不可达 */

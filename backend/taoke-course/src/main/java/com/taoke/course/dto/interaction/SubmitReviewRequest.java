@@ -29,6 +29,9 @@ public class SubmitReviewRequest {
     /** 被评机构 ID（scope=INSTITUTION 时必填，关联 user_institutions.id） */
     private Integer institutionId;
 
+    /** 被评案例 ID（scope=CASE 时必填） */
+    private Integer caseId;
+
     /** 专家姓名 */
     private String expertName;
 

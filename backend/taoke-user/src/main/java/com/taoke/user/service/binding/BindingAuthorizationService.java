@@ -144,4 +144,23 @@ public class BindingAuthorizationService implements BindingAuthority {
         requireCanManageTrainer(operatorUserId, target);
         return target;
     }
+
+    /**
+     * 校验经纪人是否隶属于指定经纪公司（ACTIVE 成员关系）。
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public void requireAgentBelongsToEnterprise(Integer agentUserId, Integer enterpriseAgentUserId) {
+        if (agentUserId == null || enterpriseAgentUserId == null) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        EnterpriseAgent ea = enterpriseAgentRepository.findByUserId(enterpriseAgentUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN, "经纪公司不存在"));
+        boolean belongs = enterpriseAgentMemberRepository
+                .findByAgentUserIdAndStatus(agentUserId, ACTIVE).stream()
+                .anyMatch(m -> Objects.equals(m.getEnterpriseAgentId(), ea.getId()));
+        if (!belongs) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权代该经纪公司发布内容");
+        }
+    }
 }

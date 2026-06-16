@@ -1,6 +1,9 @@
+'use client';
+
 import { Link } from '@/i18n/navigation';
-import { Play, Users, Eye } from 'lucide-react';
+import { Users, Eye } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
+import { useBumpedViewCount } from '@/hooks/use-bumped-view-count';
 import { DEFAULT_VIDEO_COVER } from '@/lib/media';
 import type { VideoListItem } from '../../api/types';
 
@@ -9,9 +12,12 @@ interface VideoCardProps {
 }
 
 export function VideoCard({ video }: VideoCardProps) {
+  const { viewCount, onCardClick } = useBumpedViewCount(video.viewCount, 'video', video.id);
+
   return (
     <Link
       href={`/vedio/${video.id}.htm`}
+      onClick={onCardClick}
       className="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group flex flex-col"
     >
       {/* 封面 */}
@@ -43,15 +49,16 @@ export function VideoCard({ video }: VideoCardProps) {
           {video.title}
         </h3>
 
-        {video.teacherName && (
-          <p className="text-xs text-slate-500 truncate">讲师：{video.teacherName}</p>
-        )}
+        <p className="text-xs text-slate-500 truncate">
+          {/* 专家：对齐老网站逻辑 — TRAINER 才有 teacherName → publisherName 兜底链，非 TRAINER 仅取 teacherName */}
+          专家：{video.teacherName || (video.publisherType === 'TRAINER' ? video.publisherName : null) || '--'}
+        </p>
 
         <div className="flex items-center justify-between mt-auto pt-1">
           <div className="flex items-center gap-3 text-[11px] text-slate-400">
             <span className="flex items-center gap-0.5">
               <Eye className="size-3" />
-              {video.viewCount}
+              {viewCount}
             </span>
             <span className="flex items-center gap-0.5">
               <Users className="size-3" />
@@ -60,6 +67,13 @@ export function VideoCard({ video }: VideoCardProps) {
           </div>
           {video.isFree === 1 ? (
             <span className="text-sm font-bold text-green-600">免费</span>
+          ) : video.unlocked ? (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-green-600">已解锁</span>
+              {video.price > 0 && (
+                <span className="text-sm font-bold text-primary">¥{video.price}</span>
+              )}
+            </div>
           ) : video.price > 0 ? (
             <span className="text-sm font-bold text-primary">¥{video.price}</span>
           ) : null}

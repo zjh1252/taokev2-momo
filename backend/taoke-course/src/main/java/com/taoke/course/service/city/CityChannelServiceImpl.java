@@ -8,7 +8,6 @@ import com.taoke.course.dto.city.CityChannelDetailVO;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +34,6 @@ import java.util.Set;
  * @date 2026-05-20 17:30
  */
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CityChannelServiceImpl implements CityChannelService {
 
@@ -58,6 +56,10 @@ public class CityChannelServiceImpl implements CityChannelService {
     private EntityManager entityManager;
 
     private final RegionRepository regionRepository;
+
+    public CityChannelServiceImpl(RegionRepository regionRepository) {
+        this.regionRepository = regionRepository;
+    }
 
     @Override
     public List<ActiveCityVO> listActiveCities(int limit) {
@@ -139,32 +141,33 @@ public class CityChannelServiceImpl implements CityChannelService {
         }
         Region region = opt.get();
 
-        // level=1（省级）：必须是直辖市才能视为城市，并 fallback 到其唯一子级市辖区
+        // level=1（省级）：必须是直辖市；过滤 id 用省级主键（老库 course_plans / 专家 cityId 均存省级 id）
         if (region.getLevel() != null && region.getLevel() == 1) {
             if (!MUNICIPALITY_PROVINCE_CODES.contains(region.getCode())) {
                 return null; // 普通省份不能作为城市频道
             }
-            List<Region> children = regionRepository.findByParentCodeOrderByCodeAsc(region.getCode());
-            if (children.isEmpty()) {
-                return null;
-            }
-            Region child = children.get(0);
             return CityChannelDetailVO.builder()
                     .enName(enName)
                     .cityName(stripCommonSuffix(region.getName()))
                     .provinceName(region.getName())
-                    .cityRegionId(child.getId())
+                    .cityRegionId(region.getId())
                     .provinceRegionId(region.getId())
                     .build();
         }
 
-        // level=2（市级）：直接命中
+        // level=2（市级）：普通城市直接用自身 id；直辖市下属区划改用省级 id（与老库 course_plans 一致）
         Region province = regionRepository.findByCode(region.getParentCode()).orElse(null);
+        Integer filterCityId = region.getId();
+        if (province != null && MUNICIPALITY_PROVINCE_CODES.contains(region.getParentCode())) {
+            filterCityId = province.getId();
+        }
         return CityChannelDetailVO.builder()
                 .enName(enName)
-                .cityName(stripCommonSuffix(region.getName()))
+                .cityName(stripCommonSuffix(
+                        province != null && MUNICIPALITY_PROVINCE_CODES.contains(region.getParentCode())
+                                ? province.getName() : region.getName()))
                 .provinceName(province != null ? province.getName() : null)
-                .cityRegionId(region.getId())
+                .cityRegionId(filterCityId)
                 .provinceRegionId(province != null ? province.getId() : null)
                 .build();
     }

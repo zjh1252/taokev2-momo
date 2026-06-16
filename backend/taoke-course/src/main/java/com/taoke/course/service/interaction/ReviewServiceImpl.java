@@ -78,6 +78,12 @@ public class ReviewServiceImpl {
             }
             targetValidator.validateTargetExists(
                     com.taoke.course.enums.InteractionTargetType.INSTITUTION, req.getInstitutionId());
+        } else if (scope == ReviewScope.CASE) {
+            if (req.getCaseId() == null) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, "案例评价必须指定 caseId");
+            }
+            targetValidator.validateTargetExists(
+                    com.taoke.course.enums.InteractionTargetType.CASE, req.getCaseId());
         }
 
         TrainingReview review = new TrainingReview();
@@ -85,6 +91,7 @@ public class ReviewServiceImpl {
         review.setCourseId(req.getCourseId());
         review.setTrainerUserId(req.getTrainerUserId());
         review.setInstitutionId(req.getInstitutionId());
+        review.setCaseId(req.getCaseId());
         review.setExpertName(req.getExpertName());
         review.setTrainingDate(req.getTrainingDate());
         review.setCourseDays(req.getCourseDays());
@@ -125,6 +132,7 @@ public class ReviewServiceImpl {
     public PageResponse<ReviewVO> listPublicReviews(String scope, Integer courseId,
                                                      Integer trainerUserId,
                                                      Integer institutionId,
+                                                     Integer caseId,
                                                      int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
         Page<TrainingReview> reviewPage;
@@ -138,6 +146,8 @@ public class ReviewServiceImpl {
             reviewPage = reviewRepository.findByTrainerUserIdAndStatusOrderByCreatedAtDesc(trainerUserId, approvedStatus, pageable);
         } else if (reviewScope == ReviewScope.INSTITUTION && institutionId != null) {
             reviewPage = reviewRepository.findByInstitutionIdAndStatusOrderByCreatedAtDesc(institutionId, approvedStatus, pageable);
+        } else if (reviewScope == ReviewScope.CASE && caseId != null) {
+            reviewPage = reviewRepository.findByCaseIdAndStatusOrderByCreatedAtDesc(caseId, approvedStatus, pageable);
         } else {
             reviewPage = reviewRepository.findByStatusOrderByCreatedAtDesc(approvedStatus, pageable);
         }
@@ -164,6 +174,7 @@ public class ReviewServiceImpl {
             case COURSE -> reviewRepository.countByCourseIdAndStatus(targetId, approved);
             case TRAINER -> reviewRepository.countByTrainerUserIdAndStatus(targetId, approved);
             case INSTITUTION -> reviewRepository.countByInstitutionIdAndStatus(targetId, approved);
+            case CASE -> reviewRepository.countByCaseIdAndStatus(targetId, approved);
         };
     }
 
@@ -172,11 +183,15 @@ public class ReviewServiceImpl {
      * <p>状态变化时同步累计评论数：原状态非 APPROVED → APPROVED 则 +1。</p>
      */
     @Transactional
-    public void approveReview(Integer reviewId) {
+    public void approveReview(Integer reviewId, Integer reviewerUserId) {
         TrainingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
         int prev = review.getStatus() == null ? -1 : review.getStatus();
         review.setStatus(ReviewStatus.APPROVED.getValue());
+        if (reviewerUserId != null) {
+            review.setReviewedBy(reviewerUserId);
+            review.setReviewedAt(java.time.LocalDateTime.now());
+        }
         reviewRepository.save(review);
         if (prev != ReviewStatus.APPROVED.getValue()) {
             adjustTargetCommentCount(review, +1);
@@ -195,12 +210,16 @@ public class ReviewServiceImpl {
      * <p>若原状态是 APPROVED → REJECTED，需 -1 同步累计评论数。</p>
      */
     @Transactional
-    public void rejectReview(Integer reviewId, String reason) {
+    public void rejectReview(Integer reviewId, String reason, Integer reviewerUserId) {
         TrainingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
         int prev = review.getStatus() == null ? -1 : review.getStatus();
         review.setStatus(ReviewStatus.REJECTED.getValue());
         review.setRejectReason(reason);
+        if (reviewerUserId != null) {
+            review.setReviewedBy(reviewerUserId);
+            review.setReviewedAt(java.time.LocalDateTime.now());
+        }
         reviewRepository.save(review);
         if (prev == ReviewStatus.APPROVED.getValue()) {
             adjustTargetCommentCount(review, -1);
@@ -247,6 +266,7 @@ public class ReviewServiceImpl {
             case COURSE -> review.getCourseId();
             case TRAINER -> review.getTrainerUserId();
             case INSTITUTION -> review.getInstitutionId();
+            case CASE -> review.getCaseId();
         };
     }
 
@@ -261,6 +281,7 @@ public class ReviewServiceImpl {
             case COURSE -> review.getCourseTitle() != null ? review.getCourseTitle() : "";
             case TRAINER -> review.getExpertName() != null ? review.getExpertName() : "";
             case INSTITUTION -> review.getClientCompany() != null ? review.getClientCompany() : "";
+            case CASE -> review.getCourseTitle() != null ? review.getCourseTitle() : "";
         };
     }
 
@@ -303,7 +324,9 @@ public class ReviewServiceImpl {
      * @param status       审核状态，{@code null} 表示全部
      * @param reviewScope  评价范围 COURSE/TRAINER/INSTITUTION，{@code null} 或空串表示全部
      */
-    public Page<TrainingReview> adminListReviews(Integer status, String reviewScope, int page, int size) {
+    public Page<TrainingReview> adminListReviews(Integer status, String reviewScope,
+                                                 String reviewerKeyword, Integer reviewedBy,
+                                                 int page, int size) {
         int pageOneBased = page < 1 ? 1 : page;
 
         final String scopeForFilter;
@@ -323,11 +346,38 @@ public class ReviewServiceImpl {
             if (scopeForFilter != null) {
                 predicates.add(cb.equal(root.get("reviewScope"), scopeForFilter));
             }
+            if (reviewedBy != null) {
+                predicates.add(cb.equal(root.get("reviewedBy"), reviewedBy));
+            }
+            if (reviewerKeyword != null && !reviewerKeyword.isBlank()) {
+                String like = "%" + reviewerKeyword.trim() + "%";
+                predicates.add(cb.or(
+                        cb.like(root.get("submitterName"), like)
+                ));
+            }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
 
         PageRequest pageable = PageRequest.of(pageOneBased - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return reviewRepository.findAll(spec, pageable);
+    }
+
+    /** 兼容旧调用 */
+    public void approveReview(Integer reviewId) {
+        approveReview(reviewId, null);
+    }
+
+    /** 兼容旧调用 */
+    public void rejectReview(Integer reviewId, String reason) {
+        rejectReview(reviewId, reason, null);
+    }
+
+    /**
+     * 后台评价详情
+     */
+    public TrainingReview getReviewForAdmin(Integer reviewId) {
+        return reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "评价不存在"));
     }
 
     private ReviewVO toVO(TrainingReview r) {

@@ -50,11 +50,14 @@ public class CourseController {
             BusinessRole.Code.ENTERPRISE_AGENT
     );
 
-    @Operation(summary = "创建课程（直接提交审核）",
-            description = "trainerUserId 提供时：以专家身份发布；操作者必须能代管该专家。否则按操作者自身角色发布。课程创建后状态为「待审核」。")
+    @Operation(summary = "创建课程",
+            description = "trainerUserId 提供时：以专家身份发布；操作者必须能代管该专家。"
+                    + "enterpriseAgentUserId 提供时：经纪人代隶属的经纪公司发布。否则按操作者自身角色发布。"
+                    + "请求体 draft=true 时存为草稿，否则创建后进入「待审核」。")
     @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @PostMapping("/courses")
     public ApiResponse<CourseDetailVO> create(@RequestParam(required = false) Integer trainerUserId,
+                                              @RequestParam(required = false) Integer enterpriseAgentUserId,
                                               @Valid @RequestBody SaveCourseRequest request) {
         Integer userId = SecurityUtils.getRequiredUserId();
         String publisherType;
@@ -63,6 +66,10 @@ public class CourseController {
             bindingAuthority.requireCanManageTrainer(userId, trainerUserId);
             publisherType = BusinessRole.Code.TRAINER;
             publisherId = trainerUserId;
+        } else if (enterpriseAgentUserId != null) {
+            bindingAuthority.requireAgentBelongsToEnterprise(userId, enterpriseAgentUserId);
+            publisherType = BusinessRole.Code.ENTERPRISE_AGENT;
+            publisherId = enterpriseAgentUserId;
         } else {
             publisherType = resolvePublisherType(userId);
             publisherId = userId;
@@ -80,11 +87,13 @@ public class CourseController {
     }
 
     @Operation(summary = "我的课程列表",
-            description = "trainerUserId 提供时：列出指定专家旗下的课程；否则列出当前操作者自己发布的课程。")
+            description = "trainerUserId 提供时：列出指定专家旗下的课程；"
+                    + "enterpriseAgentUserId 提供时：经纪人查看隶属经纪公司发布的课程；否则列出当前操作者自己发布的课程。")
     @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @GetMapping("/courses/me")
     public ApiResponse<PageResponse<CourseListItemVO>> myCourses(
             @RequestParam(required = false) Integer trainerUserId,
+            @RequestParam(required = false) Integer enterpriseAgentUserId,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
@@ -96,6 +105,10 @@ public class CourseController {
             bindingAuthority.requireCanManageTrainer(userId, trainerUserId);
             publisherType = BusinessRole.Code.TRAINER;
             publisherId = trainerUserId;
+        } else if (enterpriseAgentUserId != null) {
+            bindingAuthority.requireAgentBelongsToEnterprise(userId, enterpriseAgentUserId);
+            publisherType = BusinessRole.Code.ENTERPRISE_AGENT;
+            publisherId = enterpriseAgentUserId;
         } else {
             publisherType = resolvePublisherType(userId);
             publisherId = userId;

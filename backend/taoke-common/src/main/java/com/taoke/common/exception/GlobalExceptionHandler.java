@@ -6,7 +6,9 @@ import com.taoke.common.search.SearchException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -123,6 +125,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.NOT_FOUND.getHttpStatus())
                 .body(ApiResponse.error(ErrorCode.NOT_FOUND));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMessageNotReadable(HttpMessageNotReadableException e) {
+        log.warn("请求体解析失败: {}", e.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.PARAM_INVALID.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.PARAM_INVALID.getCode(), "请求参数格式错误，请检查表单数据"));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException e) {
+        log.warn("数据约束冲突: {}", e.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.PARAM_INVALID.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.PARAM_INVALID.getCode(), "数据保存失败，请检查填写内容后重试"));
     }
 
     /**

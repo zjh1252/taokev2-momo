@@ -1,5 +1,5 @@
 /** 商品类型 */
-export type ProductType = 'OPEN_COURSE' | 'VIDEO_COURSE';
+export type ProductType = 'OPEN_COURSE' | 'VIDEO_COURSE' | 'VIDEO_PACKAGE';
 
 /** 购物车条目 */
 export interface CartItem {

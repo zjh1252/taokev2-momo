@@ -1,23 +1,22 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
-import { ChannelCategoryNav } from '@/components/layout/channel-category-nav';
+import { ChannelCategoryNavSection } from '@/components/layout/channel-category-nav-section';
 import { TrainerListSection } from '@/features/trainer/components/list/TrainerListSection';
 import { parseListPageFromSearchParams } from '@/lib/list-page';
 import { parseSlug } from '@/features/trainer/utils/url';
+import { getTrainerList } from '@/features/trainer/api/service';
 import {
-  getTrainerList,
-  getTopRecommendedTrainers,
-  getRecentTrainerCases,
-} from '@/features/trainer/api/service';
+  loadCategoryExpertTrainers,
+  loadTrainerListRecommended,
+  loadTrainerPageCases
+} from '@/features/recommendation/api/loaders';
+import { resolveExpertiseCategoryId } from '@/features/trainer/utils/expertise-categories';
 import { buildTrainerCategoryNavItems } from '@/lib/channel-category-stats';
 import {
   getCachedTrainerExpertiseTree,
   getCachedTrainerIndustryTree,
 } from '@/lib/cached-categories';
 import { trainerListMetadata, trainerListH1 } from '@/lib/seo';
-import {
-  filterStandardTrainerExpertiseTree,
-  resolveExpertiseCategoryId,
-} from '@/features/trainer/utils/expertise-categories';
+import { filterStandardTrainerExpertiseTree } from '@/features/trainer/utils/expertise-categories';
 
 type TrainersPageProps = {
   searchParams: Promise<{ page?: string; slug?: string }>;
@@ -39,35 +38,38 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
     new URLSearchParams(sp.page != null ? `page=${sp.page}` : ''),
   );
 
-  // 解析 .htm URL 的 slug 参数为名称筛选条件
   const slugParams = parseSlug(sp.slug || '');
 
   const rawExpertiseTreePromise = getCachedTrainerExpertiseTree();
   const expertiseTreePromise = rawExpertiseTreePromise.then(filterStandardTrainerExpertiseTree);
+  const categoryNavPromise = expertiseTreePromise.then(buildTrainerCategoryNavItems).catch(() => []);
 
-  const [expertiseTree, industryTree, recommendedTrainers, recentCases, categoryNavItems, initialData] =
+  const listPromise = getTrainerList({
+    page,
+    size: 16,
+    field: slugParams.field,
+    industry: slugParams.industry,
+    region: slugParams.region,
+    sort: 'default',
+  }).catch(() => ({
+    list: [],
+    total: 0,
+    page,
+    size: 16,
+    totalPages: 0,
+  }));
+
+  const [expertiseTree, industryTree, recommendedTrainers, recentCases, initialData, categoryExpertTrainers] =
     await Promise.all([
       expertiseTreePromise,
       getCachedTrainerIndustryTree(),
-      getTopRecommendedTrainers(9).catch(() => []),
-      getRecentTrainerCases(10).catch(() => []),
-      expertiseTreePromise.then(buildTrainerCategoryNavItems).catch(() => []),
-      expertiseTreePromise.then((tree) =>
-        getTrainerList({
-          page,
-          size: 16,
-          expertiseCategoryId: resolveExpertiseCategoryId(tree, slugParams.field),
-          industry: slugParams.industry,
-          region: slugParams.region,
-          sort: 'default',
-        }).catch(() => ({
-          list: [],
-          total: 0,
-          page,
-          size: 16,
-          totalPages: 0,
-        })),
-      ),
+      loadTrainerListRecommended(9),
+      loadTrainerPageCases(10),
+      listPromise,
+      expertiseTreePromise.then((tree) => {
+        const categoryId = resolveExpertiseCategoryId(tree, slugParams.field);
+        return categoryId ? loadCategoryExpertTrainers(categoryId, 3) : Promise.resolve([]);
+      })
     ]);
 
   const listH1 = trainerListH1({
@@ -87,13 +89,14 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
         industryTree={industryTree}
         recommendedTrainers={recommendedTrainers}
         recentCases={recentCases}
+        categoryExpertTrainers={categoryExpertTrainers}
         initialSlugParams={slugParams}
       />
 
-      <ChannelCategoryNav
+      <ChannelCategoryNavSection
         title="推荐讲师分类"
-        items={categoryNavItems}
         countUnit="位"
+        itemsPromise={categoryNavPromise}
       />
     </main>
   );

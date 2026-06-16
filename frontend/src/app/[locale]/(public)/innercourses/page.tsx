@@ -1,5 +1,5 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
-import { ChannelCategoryNav } from '@/components/layout/channel-category-nav';
+import { ChannelCategoryNavSection } from '@/components/layout/channel-category-nav-section';
 import { InnerCourseListSection } from '@/features/course/components/inner/InnerCourseListSection';
 import { getCourseList } from '@/features/course/api/service';
 import { getInstitutionDetail } from '@/features/institution/api/service';
@@ -35,8 +35,11 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
   const initialCategoryName = firstStringValue(sp.categoryName);
 
   const categoryTreePromise = getCachedCourseCategoryTree();
+  const categoryNavPromise = categoryTreePromise
+    .then((tree) => buildCourseCategoryNavItems(tree, false, '/inhousecourse'))
+    .catch(() => []);
 
-  const [initialData, categoryTree, industryTree, institution, categoryNavItems] = await Promise.all([
+  const [initialData, categoryTree, industryTree, institution] = await Promise.all([
     getCourseList({
       page: 1,
       size: 15,
@@ -55,7 +58,6 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
     validInstitutionId
       ? getInstitutionDetail(validInstitutionId).catch(() => null)
       : Promise.resolve(null),
-    categoryTreePromise.then((tree) => buildCourseCategoryNavItems(tree, false, '/inhousecourse')).catch(() => []),
   ]);
 
   const listH1 = innerCourseListH1({
@@ -78,10 +80,10 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
         initialCategoryName={initialCategoryName}
       />
 
-      <ChannelCategoryNav
+      <ChannelCategoryNavSection
         title="内训课课程分类"
-        items={categoryNavItems}
         countUnit="门"
+        itemsPromise={categoryNavPromise}
       />
     </main>
   );

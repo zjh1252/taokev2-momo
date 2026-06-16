@@ -31,6 +31,10 @@ public class UserRole extends BaseEntity {
     @Column(name = "status", nullable = false, columnDefinition = "tinyint")
     private Integer status = 1;
 
+    /** 已生效角色资料重审中：false=否 true=是（重审期间 status 保持 1，原身份继续可用） */
+    @Column(name = "reapplying", nullable = false, columnDefinition = "tinyint")
+    private Boolean reapplying = false;
+
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 

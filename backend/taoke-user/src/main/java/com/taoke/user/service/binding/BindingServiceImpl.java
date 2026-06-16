@@ -158,8 +158,8 @@ public class BindingServiceImpl implements BindingService {
     }
 
     private BindingItemResponse initiateInstitutionTrainer(Integer operatorUserId, Integer trainerUserId, String note) {
-        Institution inst = institutionRepository.findByUserId(operatorUserId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN, "当前用户不是机构主体"));
+        // 机构主体本人，或已绑定机构的机构员工（以所属机构名义发起）
+        Institution inst = resolveOperatorInstitution(operatorUserId);
         requireTargetIsTrainer(trainerUserId);
         InstitutionTrainerBinding b = institutionTrainerBindingRepository
                 .findByOrgIdAndTrainerUserId(inst.getId(), trainerUserId)
@@ -368,9 +368,35 @@ public class BindingServiceImpl implements BindingService {
         return toResponse(m, BindingType.ENTERPRISE_AGENT_MEMBER, ea.getUserId(), agentUserId);
     }
 
+    /**
+     * 解析操作者所代表的机构：机构主体本人优先；否则按 ACTIVE 员工绑定取所属机构。
+     */
+    private Institution resolveOperatorInstitution(Integer operatorUserId) {
+        Institution own = institutionRepository.findByUserId(operatorUserId).orElse(null);
+        if (own != null) {
+            return own;
+        }
+        return institutionEmployeeBindingRepository
+                .findByEmployeeUserIdAndStatus(operatorUserId, ACTIVE).stream().findFirst()
+                .flatMap(b -> institutionRepository.findById(b.getOrgId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN,
+                        "当前用户不是机构主体，且尚未绑定任何机构"));
+    }
+
+    /** 操作者是否为指定机构的 ACTIVE 员工 */
+    private boolean isEmployeeOfOrg(Integer operatorUserId, Integer orgId) {
+        return institutionEmployeeBindingRepository
+                .findByEmployeeUserIdAndStatus(operatorUserId, ACTIVE).stream()
+                .anyMatch(b -> Objects.equals(b.getOrgId(), orgId));
+    }
+
     private void requireTargetIsTrainer(Integer userId) {
-        trainerRepository.findByUserId(userId)
+        Trainer trainer = trainerRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PARAM_INVALID, "目标用户不是专家"));
+        // 仅允许绑定「审核通过」的专家：草稿/待审核/驳回/禁用状态均不可被添加
+        if (trainer.getStatus() == null || trainer.getStatus() != 2) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "目标用户尚未通过平台的专家审核，无法添加");
+        }
     }
 
     // ============================================================
@@ -459,6 +485,29 @@ public class BindingServiceImpl implements BindingService {
             // 这里以「专家」作为对端展示
             fillCounterpart(r, b.getTrainerUserId(), BindingType.INSTITUTION_TRAINER, false);
             r.setIfInitiator(Objects.equals(b.getInitiatorUserId(), institutionUserId));
+            result.add(r);
+        }
+        result.sort(Comparator.comparing(BindingItemResponse::getCreatedAt,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BindingItemResponse> listInstitutionTrainersForEmployee(Integer employeeUserId) {
+        if (employeeUserId == null) return List.of();
+        Institution inst = institutionEmployeeBindingRepository
+                .findByEmployeeUserIdAndStatus(employeeUserId, ACTIVE).stream().findFirst()
+                .flatMap(b -> institutionRepository.findById(b.getOrgId()))
+                .orElse(null);
+        if (inst == null) return List.of();
+        List<BindingItemResponse> result = new ArrayList<>();
+        for (InstitutionTrainerBinding b : institutionTrainerBindingRepository.findByOrgId(inst.getId())) {
+            BindingItemResponse r = baseResponse(b.getId(), BindingType.INSTITUTION_TRAINER, b.getStatus(),
+                    b.getNote(), b.getRejectReason(), b.getInitiatorUserId(), b.getCreatedAt(), b.getConfirmedAt());
+            fillCounterpart(r, b.getTrainerUserId(), BindingType.INSTITUTION_TRAINER, false);
+            r.setCounterpartOrgName(inst.getOrgName());
+            r.setIfInitiator(Objects.equals(b.getInitiatorUserId(), employeeUserId));
             result.add(r);
         }
         result.sort(Comparator.comparing(BindingItemResponse::getCreatedAt,
@@ -821,7 +870,12 @@ public class BindingServiceImpl implements BindingService {
             case INSTITUTION_TRAINER: {
                 InstitutionTrainerBinding b = mustGetInstitutionTrainer(bindingId);
                 Integer instUser = resolveInstitutionUserId(b.getOrgId());
-                requireOneOfParties(operatorUserId, instUser, b.getTrainerUserId());
+                // 机构主体 / 专家本人 / 该机构的 ACTIVE 员工均可解绑（员工撤回自己代机构发起的邀请）
+                if (!Objects.equals(operatorUserId, instUser)
+                        && !Objects.equals(operatorUserId, b.getTrainerUserId())
+                        && !isEmployeeOfOrg(operatorUserId, b.getOrgId())) {
+                    throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该绑定关系");
+                }
                 b.setStatus(UNBOUND);
                 institutionTrainerBindingRepository.save(b);
                 break;

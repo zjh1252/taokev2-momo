@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ImgHTMLA
 import {
   resolveImageSrc,
   DEFAULT_TRAINER_AVATAR,
+  isPlaceholderLegacyAvatar,
   isUnreliableLegacyImageHost,
 } from '@/lib/media';
 
@@ -47,7 +48,10 @@ export function SafeImage({
   style,
   ...rest
 }: SafeImageProps) {
-  const resolved = useMemo(() => resolveImageSrc(src, fallback), [src, fallback]);
+  const resolved = useMemo(() => {
+    const cleaned = isPlaceholderLegacyAvatar(src) ? null : src;
+    return resolveImageSrc(cleaned, fallback);
+  }, [src, fallback]);
   const [displaySrc, setDisplaySrc] = useState(resolved);
   const retryCountRef = useRef(0);
   const onFallbackRef = useRef(false);

@@ -5,6 +5,7 @@ import com.taoke.common.eventbus.EventPublisher;
 import com.taoke.common.events.video.VideoApprovedEvent;
 import com.taoke.common.response.PageResponse;
 import com.taoke.course.api.VideoService;
+import com.taoke.course.dto.video.AdminSaveVideoRequest;
 import com.taoke.course.dto.video.VideoDetailVO;
 import com.taoke.course.dto.video.VideoListItemVO;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,13 @@ public class AdminVideoService {
 
     private final VideoService videoService;
     private final EventPublisher eventPublisher;
+
+    /**
+     * 管理后台创建录播课
+     */
+    public VideoDetailVO create(AdminSaveVideoRequest request) {
+        return videoService.adminCreate(request);
+    }
 
     /**
      * 分页查询录播课列表
@@ -80,5 +88,12 @@ public class AdminVideoService {
      */
     public void unfeature(Integer videoId) {
         videoService.unfeature(videoId);
+    }
+
+    /**
+     * 设置置顶优先级：0=不限 1=列表推荐 2=列表置顶
+     */
+    public void updateStickyPriority(Integer videoId, Integer stickyPriority) {
+        videoService.updateStickyPriority(videoId, stickyPriority);
     }
 }

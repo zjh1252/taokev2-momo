@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>淘课网 - 讲师详情页 Demo</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@200..700,0..1&display=swap" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#E62117",
+                        "primary-container": "#C41C14",
+                        "text-main": "#1A1A1A",
+                        "text-sub": "#334155",
+                        "line": "#E2E8F0",
+                        "bg-soft": "#F5F7FA",
+                        "gold": "#FFD700"
+                    },
+                    fontFamily: {
+                        headline: ["Manrope", "sans-serif"],
+                        body: ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        body { font-family: "Inter", sans-serif; background: #F5F7FA; color: #1A1A1A; }
+        .material-symbols-outlined { font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24; }
+        .tab-active { color: #E62117; border-bottom: 2px solid #E62117; font-weight: 700; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Top Navigation Bar -->
+    <div class="w-full bg-slate-50 border-b border-slate-100 text-[12px] py-1.5 px-8 z-50 sticky top-0" id="top-nav-bar">
+        <div class="max-w-[1400px] w-full mx-auto flex items-center justify-between">
+            <!-- Left: Group Sites -->
+            <div class="flex items-center gap-3 text-secondary-text">
+                <a class="hover:text-primary transition-colors" href="#">淘课集团</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">淘课网</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">培训宝</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">目标通</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">AI 导师</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">智能创导</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">AI 陪练</a>
+            </div>
+            <!-- Right: User Actions -->
+            <div class="flex items-center gap-3 text-secondary-text">
+                <span class="text-slate-700">用户昵称</span>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">用户中心</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">我的主页</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">登出</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation -->
+    <nav class="h-[80px] w-full bg-white/90 backdrop-blur-md sticky top-[29px] z-40 shadow-sm px-8 flex flex-col justify-center transition-all duration-300">
+        <div class="max-w-[1400px] w-full mx-auto flex items-center justify-between h-full">
+            <!-- Left: Logo and Dropdown -->
+            <div class="flex items-center gap-6">
+                <a href="#" class="flex flex-col">
+                    <img src="../public/statics/images/taokelogo.jpg" alt="淘课网" class="h-10 object-contain"/>
+                </a>
+            </div>
+            <!-- Center: Main Nav Links -->
+            <div class="hidden lg:flex items-center gap-8">
+                <a class="text-secondary-text font-medium hover:text-primary transition-colors text-[15px]" href="#">首页</a>
+                <a class="nav-link-active font-bold text-[15px] text-primary border-b-2 border-primary pb-1" href="#">专家</a>
+                <a class="text-secondary-text font-medium hover:text-primary transition-colors text-[15px]" href="#">公开课</a>
+                <a class="text-secondary-text font-medium hover:text-primary transition-colors text-[15px]" href="#">内训课</a>
+                <a class="text-secondary-text font-medium hover:text-primary transition-colors text-[15px]" href="#">录播课</a>
+                <a class="text-secondary-text font-medium hover:text-primary transition-colors text-[15px]" href="#">机构</a>
+            </div>
+            <!-- Right: Search and User Actions -->
+            <div class="flex items-center gap-4">
+                <div class="flex items-center bg-slate-100 rounded-[4px] overflow-hidden p-0.5 border border-slate-200">
+                    <div class="relative group/select">
+                        <button class="flex items-center gap-1 px-3 py-1.5 text-xs text-secondary-text border-r border-slate-200 hover:bg-slate-200">
+                            培训讲师 <span class="material-symbols-outlined text-[14px]">expand_more</span>
+                        </button>
+                    </div>
+                    <input class="bg-transparent border-none focus:ring-0 text-xs w-[140px] px-2" placeholder="关键词搜索..." type="text"/>
+                    <button class="bg-primary text-white p-1.5 flex items-center justify-center hover:bg-primary-container transition-colors rounded-[2px]">
+                        <span class="material-symbols-outlined text-[18px]">search</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-3 text-sm font-medium ml-2">
+                    <a class="text-secondary-text hover:text-primary transition-colors" href="#">登录</a>
+                    <span class="text-slate-300">|</span>
+                    <a class="text-secondary-text hover:text-primary transition-colors" href="#">注册</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-[1400px] mx-auto px-6 lg:px-8 py-6 space-y-6">
+        <section class="bg-white rounded-xl border border-line shadow-sm relative z-10 w-full mb-6 mt-6">
+            <div class="p-6 lg:p-8 flex flex-col xl:flex-row gap-8 relative">
+                <!-- Left Sidebar: Photo & Stats -->
+                <div class="w-full xl:w-[220px] flex flex-col items-center shrink-0 relative">
+                    <div class="relative group">
+                        <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=300&q=80" alt="讲师头像" class="w-[190px] h-[230px] object-cover border-[6px] border-white shadow-md rounded-sm transition-transform duration-300 group-hover:scale-[1.02]" />
+                        <!-- Stamp -->
+                        <div class="absolute -bottom-3 -right-6 border-[2px] border-primary text-primary px-3 py-1 font-black text-lg tracking-[0.2em] transform -rotate-[15deg] bg-white/95 shadow-sm whitespace-nowrap opacity-90 backdrop-blur-sm" style="border-style: dashed; border-radius: 4px;">
+                            信得过
+                        </div>
+                    </div>
+                    
+                    <!-- 移动过来的操作按钮 -->
+                    <div class="flex flex-col gap-3 mt-6 w-[190px] h-[100px] justify-between">
+                        <!-- 给专家留言按钮 -->
+                        <button class="w-full px-4 py-2.5 bg-primary text-white rounded flex items-center justify-center gap-1.5 hover:bg-primary-hover font-medium transition-colors whitespace-nowrap">
+                            <span class="material-symbols-outlined text-[20px]">chat</span> 给专家留言
+                        </button>
+
+                        <!-- 收藏与对比 -->
+                        <div class="flex items-center gap-3 w-full justify-between">
+                            <button class="flex-1 py-2 border border-line rounded text-text-sub hover:text-primary hover:border-primary font-medium bg-white transition-all text-[13px] text-center">收藏讲师</button>
+                            <button class="flex-1 py-2 border border-line rounded text-text-sub hover:text-primary hover:border-primary font-medium bg-white transition-all text-[13px] text-center">加入对比</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Content: Info & Actions -->
+                <div class="flex-1 pt-1 flex flex-col gap-4">
+                    <div class="flex flex-col xl:flex-row justify-between gap-8 h-full">
+                        <!-- Left Info Area -->
+                        <div class="flex flex-col gap-5 flex-1 mt-6">
+                            <div class="flex flex-col md:flex-row md:items-baseline gap-3 md:gap-4">
+                                <h1 class="text-[36px] leading-none font-extrabold text-text-main font-headline tracking-tight">安秋明</h1>
+                                <span class="text-[18px] text-text-sub font-medium">知行合一的数字化赋能专家</span>
+                            </div>
+
+                            <div class="mt-2 space-y-4">
+                                <div class="flex items-center gap-4">
+                                    <span class="text-[14px] text-text-sub w-[65px] font-medium">擅长领域:</span>
+                                    <div class="flex flex-wrap gap-2.5 flex-1">
+                                        <span class="px-3.5 py-1 rounded-full border border-primary text-primary text-[13px] font-medium">经营战略</span>
+                                        <span class="px-3.5 py-1 rounded-full border border-line text-text-sub text-[13px] bg-bg-soft hover:border-text-sub/30 transition-colors cursor-pointer">人力资源</span>
+                                        <span class="px-3.5 py-1 rounded-full border border-line text-text-sub text-[13px] bg-bg-soft hover:border-text-sub/30 transition-colors cursor-pointer">语言</span>
+                                        <span class="px-3.5 py-1 rounded-full border border-line text-text-sub text-[13px] bg-bg-soft hover:border-text-sub/30 transition-colors cursor-pointer">数字化转型</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
+                                    <div class="flex items-center gap-4">
+                                        <span class="text-[14px] text-text-sub w-[65px] font-medium">擅长行业:</span>
+                                        <div class="flex flex-wrap gap-2.5">
+                                            <span class="px-3.5 py-1 rounded-full border border-line text-text-sub text-[13px] bg-bg-soft hover:border-text-sub/30 transition-colors cursor-pointer">软件</span>
+                                            <span class="px-3.5 py-1 rounded-full border border-line text-text-sub text-[13px] bg-bg-soft hover:border-text-sub/30 transition-colors cursor-pointer">通信电子家电</span>
+                                            <span class="px-3.5 py-1 rounded-full border border-line text-text-sub text-[13px] bg-bg-soft hover:border-text-sub/30 transition-colors cursor-pointer">批发零售</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Actions Area -->
+                        <div class="flex flex-col items-start xl:items-end shrink-0">
+                            <!-- Row 1: 评价, 电话, 下载组 -->
+                            <div class="flex flex-wrap items-center gap-4">
+                                <button class="flex items-center gap-1 text-primary hover:opacity-80 font-medium text-[14px] transition-opacity">
+                                    <span class="material-symbols-outlined text-[18px]">edit_square</span> 评价
+                                </button>
+                                <button class="flex items-center gap-1 text-primary hover:opacity-80 font-medium text-[14px] transition-opacity">
+                                    <span class="material-symbols-outlined text-[18px]">call</span> 电话
+                                </button>
+                                <div class="flex items-center gap-2 ml-1">
+                                    <button class="px-3 py-1.5 border border-line text-text-sub hover:text-primary hover:border-primary hover:bg-primary/5 text-[13px] bg-white rounded transition-colors font-medium flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[16px]">download</span> 下载简介
+                                    </button>
+                                    <button class="w-[32px] h-[32px] flex items-center justify-center border border-line text-text-sub hover:text-primary hover:border-primary hover:bg-primary/5 bg-white rounded transition-colors" title="复制链接">
+                                        <span class="material-symbols-outlined text-[16px]">link</span>
+                                    </button>
+                                    <button class="w-[32px] h-[32px] flex items-center justify-center border border-line text-text-sub hover:text-primary hover:border-primary hover:bg-primary/5 bg-white rounded transition-colors" title="分享">
+                                        <span class="material-symbols-outlined text-[16px]">share</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 数据展示卡片：移至底部并占据整个右侧区域的宽度 -->
+                    <div class="mt-auto bg-[#F4F7FE] rounded-xl px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-6 w-full h-[100px]">
+                        <!-- 左侧：评分 -->
+                        <div class="flex items-center gap-3">
+                            <div class="flex text-[#8A6D3B] text-[22px]">
+                                <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star_half</span>
+                            </div>
+                            <span class="text-[#002B5B] font-bold text-[22px]">4.9</span>
+                        </div>
+                        
+                        <!-- 中间：数据 -->
+                        <div class="flex items-center gap-8 text-[#002B5B] mr-auto md:mr-0 md:ml-4">
+                            <div class="flex flex-col">
+                                <span class="text-[12px] text-text-sub font-medium mb-1">课程销量</span>
+                                <span class="font-bold text-[18px] leading-none">1.2k+</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[12px] text-text-sub font-medium mb-1">累计曝光</span>
+                                <span class="font-bold text-[18px] leading-none">10k+</span>
+                            </div>
+                        </div>
+
+                        <!-- 右侧：服务标签 -->
+                        <div class="flex flex-wrap items-center justify-end gap-2 flex-1">
+                            <span class="px-3 py-1 text-[12px] text-text-sub bg-white border border-primary/40 text-primary rounded-full shadow-sm">真实</span>
+                            <span class="px-3 py-1 text-[12px] text-text-sub bg-white border border-primary/40 text-primary rounded-full shadow-sm">包退</span>
+                            <span class="px-3 py-1 text-[12px] text-text-sub bg-white border border-primary/40 text-primary rounded-full shadow-sm">课堂考试</span>
+                            <span class="px-3 py-1 text-[12px] text-text-sub bg-white border border-primary/40 text-primary rounded-full shadow-sm">课后作业</span>
+                            <span class="px-3 py-1 text-[12px] text-text-sub bg-white border border-primary/40 text-primary rounded-full shadow-sm">价优</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 lg:px-8 border-t border-line bg-white">
+                <div class="flex items-center gap-8 overflow-x-auto text-[15px]" id="tab-container">
+                    <button class="py-4 tab-active whitespace-nowrap transition-colors" data-target="view-home">主页</button>
+                    <button class="py-4 text-text-sub hover:text-primary whitespace-nowrap transition-colors" data-target="view-courses">主讲课程</button>
+                    <button class="py-4 text-text-sub hover:text-primary whitespace-nowrap transition-colors" data-target="view-cases">授课案例</button>
+                    <button class="py-4 text-text-sub hover:text-primary whitespace-nowrap transition-colors" data-target="view-clips">录播课</button>
+                    <button class="py-4 text-text-sub hover:text-primary whitespace-nowrap transition-colors" data-target="view-comments">学员评价</button>
+                    <button class="py-4 text-text-sub hover:text-primary whitespace-nowrap transition-colors" data-target="view-books">著作</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-[1fr_280px] xl:grid-cols-[1fr_300px] gap-6 items-start">
+            <!-- 左侧动态内容区域 -->
+            <div id="main-content-area" class="min-h-[1000px]">
+                
+                <!-- 区块 A: 主页视图 (默认显示) -->
+                <div id="view-home" class="space-y-6 block tab-panel">
+                    
+                    <!-- 新增：资质背景 -->
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <div class="w-1 h-5 bg-primary rounded-full"></div>
+                            <h2 class="text-[22px] font-headline font-bold">资质背景</h2>
+                        </div>
+                        <ul class="space-y-2 text-[15px] leading-7 text-text-sub list-disc pl-5 marker:text-text-sub">
+                            <li>清华大学工商管理硕士（MBA）</li>
+                            <li>国际注册管理咨询师（CMC）认证</li>
+                            <li>某知名跨国企业前战略发展部总监</li>
+                            <li>2023年度“最具影响力实战讲师”称号获得者</li>
+                        </ul>
+                    </div>
+
+                    <!-- 新增：实战经历 -->
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <div class="w-1 h-5 bg-primary rounded-full"></div>
+                            <h2 class="text-[22px] font-headline font-bold">实战经历</h2>
+                        </div>
+                        <p class="text-[15px] leading-7 text-text-sub mb-3">拥有超过15年的中大型企业战略规划与组织变革实操经验。曾主导主板上市企业内部的“组织敏捷化转型”项目，在8个月内帮助企业将跨部门协作效率提升30%。</p>
+                        <p class="text-[15px] leading-7 text-text-sub">在担任某科技集团战略高管期间，亲历了公司从单一业务向多元化生态转型的全过程，对复杂业务环境下的目标拆解和绩效管理有深刻洞察。</p>
+                    </div>
+
+                    <!-- 新增：职业经历 -->
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <div class="w-1 h-5 bg-primary rounded-full"></div>
+                            <h2 class="text-[22px] font-headline font-bold">职业经历</h2>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex gap-4">
+                                <div class="w-24 shrink-0 text-[14px] text-text-sub font-medium mt-1">2018 - 至今</div>
+                                <div>
+                                    <h4 class="text-[15px] font-bold text-text-main">独立管理咨询顾问 / 首席讲师</h4>
+                                    <p class="text-[14px] text-text-sub mt-1">专注于为百亿级规模企业提供战略解码与干部培养服务。</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="w-24 shrink-0 text-[14px] text-text-sub font-medium mt-1">2013 - 2018</div>
+                                <div>
+                                    <h4 class="text-[15px] font-bold text-text-main">某头部互联网平台 / 组织发展总监 (OD)</h4>
+                                    <p class="text-[14px] text-text-sub mt-1">主导公司核心管理层梯队建设及内部大学搭建。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 新增：授课风格 -->
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <div class="w-1 h-5 bg-primary rounded-full"></div>
+                            <h2 class="text-[22px] font-headline font-bold">授课风格</h2>
+                        </div>
+                        <p class="text-[15px] leading-7 text-text-sub"><strong>“实战导向，拒绝空谈”</strong>。周老师的课堂极具感染力，擅长将枯燥的管理理论转化为生动的商业沙盘和场景演练。授课过程注重互动启发，提供丰富的落地工具包，确保学员“听得懂、带得走、用得上”。</p>
+                    </div>
+
+                    <!-- 新增：课程方向 -->
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <div class="w-1 h-5 bg-primary rounded-full"></div>
+                            <h2 class="text-[22px] font-headline font-bold">课程方向</h2>
+                        </div>
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-4 py-1.5 bg-bg-soft border border-line text-text-main rounded-md text-[14px]">战略解码与落地</span>
+                            <span class="px-4 py-1.5 bg-bg-soft border border-line text-text-main rounded-md text-[14px]">中高层领导力提升</span>
+                            <span class="px-4 py-1.5 bg-bg-soft border border-line text-text-main rounded-md text-[14px]">跨部门协同与沟通</span>
+                            <span class="px-4 py-1.5 bg-bg-soft border border-line text-text-main rounded-md text-[14px]">企业文化建设</span>
+                        </div>
+                    </div>
+
+                    <!-- 新增：服务客户 -->
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <div class="w-1 h-5 bg-primary rounded-full"></div>
+                            <h2 class="text-[22px] font-headline font-bold">服务客户</h2>
+                        </div>
+                        <p class="text-[15px] text-text-sub leading-7">曾为超过300家企业提供培训与咨询服务，部分代表客户包括：<br><strong>IT与互联网：</strong>腾讯、字节跳动、京东、百度、网易等。<br><strong>金融与保险：</strong>中国平安、招商银行、中信银行、泰康人寿等。<br><strong>制造与汽车：</strong>吉利汽车、比亚迪、美的集团、格力电器等。</p>
+                    </div>
+
+                    <!-- 新增：证书模块 (复用著作的滑动样式) -->
+                    <div class="bg-white border border-line rounded-xl p-6 relative group">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-2">
+                                <div class="w-1 h-5 bg-primary rounded-full"></div>
+                                <h2 class="text-[22px] font-headline font-bold">证书</h2>
+                            </div>
+                        </div>
+                        
+                        <div class="relative flex items-center">
+                            <!-- 左箭头 -->
+                            <button class="absolute left-0 z-10 -ml-3 w-8 h-8 rounded-full bg-white border border-line shadow-sm flex items-center justify-center text-text-sub hover:text-primary hover:border-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                            </button>
+
+                            <div class="overflow-hidden w-full px-6">
+                                <div class="flex gap-4 transition-transform duration-300">
+                                    <!-- Cert 1 -->
+                                    <div class="flex-none w-[calc(33.333%-11px)] flex flex-col items-center group/cert cursor-pointer">
+                                        <div class="w-full aspect-[4/3] bg-white border border-line p-1 shadow-sm group-hover/cert:shadow-md transition-shadow max-w-[200px]">
+                                            <img src="https://images.unsplash.com/photo-1589330694653-ded6df03f754?auto=format&fit=crop&w=300&q=80" alt="证书图片" class="w-full h-full object-cover" />
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main mt-3 text-center line-clamp-1 group-hover/cert:text-primary transition-colors">国际注册管理咨询师认证</h3>
+                                    </div>
+
+                                    <!-- Cert 2 -->
+                                    <div class="flex-none w-[calc(33.333%-11px)] flex flex-col items-center group/cert cursor-pointer">
+                                        <div class="w-full aspect-[4/3] bg-white border border-line p-1 shadow-sm group-hover/cert:shadow-md transition-shadow max-w-[200px]">
+                                            <img src="https://images.unsplash.com/photo-1523289217630-0dd16184af8e?auto=format&fit=crop&w=300&q=80" alt="证书图片" class="w-full h-full object-cover" />
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main mt-3 text-center line-clamp-1 group-hover/cert:text-primary transition-colors">高级企业培训师资格证</h3>
+                                    </div>
+                                    
+                                    <!-- Cert 3 -->
+                                    <div class="flex-none w-[calc(33.333%-11px)] flex flex-col items-center group/cert cursor-pointer">
+                                        <div class="w-full aspect-[4/3] bg-white border border-line p-1 shadow-sm group-hover/cert:shadow-md transition-shadow max-w-[200px]">
+                                            <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=300&q=80" alt="证书图片" class="w-full h-full object-cover" />
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main mt-3 text-center line-clamp-1 group-hover/cert:text-primary transition-colors">DISC性格分析测评认证讲师</h3>
+                                    </div>
+                                    
+                                    <!-- Cert 4 -->
+                                    <div class="flex-none w-[calc(33.333%-11px)] flex flex-col items-center group/cert cursor-pointer">
+                                        <div class="w-full aspect-[4/3] bg-white border border-line p-1 shadow-sm group-hover/cert:shadow-md transition-shadow max-w-[200px]">
+                                            <img src="https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?auto=format&fit=crop&w=300&q=80" alt="证书图片" class="w-full h-full object-cover" />
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main mt-3 text-center line-clamp-1 group-hover/cert:text-primary transition-colors">2023年度最具影响力讲师</h3>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 右箭头 -->
+                            <button class="absolute right-0 z-10 -mr-3 w-8 h-8 rounded-full bg-white border border-line shadow-sm flex items-center justify-center text-text-sub hover:text-primary hover:border-primary transition-colors">
+                                <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                            </button>
+                        </div>
+                    </div>
+
+                <div class="bg-white border border-line rounded-xl p-6 relative group">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-1 h-5 bg-primary rounded-full"></div>
+                            <h2 class="text-[22px] font-headline font-bold">著作</h2>
+                        </div>
+                        <a href="#" class="text-sm text-text-sub hover:text-primary flex items-center gap-0.5 transition-colors">
+                            查看更多 <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                        </a>
+                    </div>
+                    
+                    <div class="relative flex items-center">
+                        <!-- 左箭头 -->
+                        <button class="absolute left-0 z-10 -ml-3 w-8 h-8 rounded-full bg-white border border-line shadow-sm flex items-center justify-center text-text-sub hover:text-primary hover:border-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                        </button>
+
+                        <div class="overflow-hidden w-full px-6">
+                            <!-- 修改 gap 并让子元素宽度为三分之一减去间距 -->
+                            <div class="flex gap-4 transition-transform duration-300">
+                                <!-- Book 1 -->
+                                <div class="flex-none w-[calc(33.333%-11px)] flex flex-col items-center group/book cursor-pointer">
+                                    <div class="w-full aspect-[3/4] bg-white border border-line p-1 shadow-sm group-hover/book:shadow-md transition-shadow max-w-[160px]">
+                                        <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=280&q=80" alt="著作封面" class="w-full h-full object-cover" />
+                                    </div>
+                                    <h3 class="text-[14px] text-text-main mt-3 text-center line-clamp-1 group-hover/book:text-primary transition-colors">数字化增长引擎</h3>
+                                </div>
+
+                                <!-- Book 2 -->
+                                <div class="flex-none w-[calc(33.333%-11px)] flex flex-col items-center group/book cursor-pointer">
+                                    <div class="w-full aspect-[3/4] bg-white border border-line p-1 shadow-sm group-hover/book:shadow-md transition-shadow max-w-[160px]">
+                                        <img src="https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=280&q=80" alt="著作封面" class="w-full h-full object-cover" />
+                                    </div>
+                                    <h3 class="text-[14px] text-text-main mt-3 text-center line-clamp-1 group-hover/book:text-primary transition-colors">赋能三板斧—让天...</h3>
+                                </div>
+                                
+                                <!-- Book 3 -->
+                                <div class="flex-none w-[calc(33.333%-11px)] flex flex-col items-center group/book cursor-pointer">
+                                    <div class="w-full aspect-[3/4] bg-white border border-line p-1 shadow-sm group-hover/book:shadow-md transition-shadow max-w-[160px]">
+                                        <img src="https://images.unsplash.com/photo-1553729459-efe14ef20550?auto=format&fit=crop&w=280&q=80" alt="著作封面" class="w-full h-full object-cover" />
+                                    </div>
+                                    <h3 class="text-[14px] text-text-main mt-3 text-center line-clamp-1 group-hover/book:text-primary transition-colors">组织增长方法论</h3>
+                                </div>
+                                
+                                <!-- Book 4 -->
+                                <div class="flex-none w-[calc(33.333%-11px)] flex flex-col items-center group/book cursor-pointer">
+                                    <div class="w-full aspect-[3/4] bg-white border border-line p-1 shadow-sm group-hover/book:shadow-md transition-shadow max-w-[160px]">
+                                        <img src="https://images.unsplash.com/photo-1589998059171-989d887df466?auto=format&fit=crop&w=280&q=80" alt="著作封面" class="w-full h-full object-cover" />
+                                    </div>
+                                    <h3 class="text-[14px] text-text-main mt-3 text-center line-clamp-1 group-hover/book:text-primary transition-colors">战略执行力实战</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 右箭头 -->
+                        <button class="absolute right-0 z-10 -mr-3 w-8 h-8 rounded-full bg-white border border-line shadow-sm flex items-center justify-center text-text-sub hover:text-primary hover:border-primary transition-colors">
+                            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-line rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-1 h-5 bg-primary rounded-full"></div>
+                            <h2 class="text-[22px] font-headline font-bold">授课案例</h2>
+                        </div>
+                        <a href="#" class="text-sm text-text-sub hover:text-primary flex items-center gap-0.5 transition-colors">
+                            查看更多 <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                        </a>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <article class="rounded-lg border border-line overflow-hidden group hover:shadow-sm transition">
+                            <div class="aspect-[16/10] overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=640&q=80" alt="授课案例" class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-semibold text-[15px] line-clamp-2">某制造企业中层管理者能力提升项目</h3>
+                                <p class="text-sm text-text-sub mt-2 line-clamp-2">覆盖120位中层干部，三个月内完成目标分解与流程协同机制重建。</p>
+                            </div>
+                        </article>
+                        <article class="rounded-lg border border-line overflow-hidden group hover:shadow-sm transition">
+                            <div class="aspect-[16/10] overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1664575600796-ffa828c5cb6e?auto=format&fit=crop&w=640&q=80" alt="授课案例" class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-semibold text-[15px] line-clamp-2">某连锁零售组织变革与店长赋能项目</h3>
+                                <p class="text-sm text-text-sub mt-2 line-clamp-2">聚焦区域经理与店长梯队建设，门店运营效率提升21%。</p>
+                            </div>
+                        </article>
+                        <article class="rounded-lg border border-line overflow-hidden group hover:shadow-sm transition">
+                            <div class="aspect-[16/10] overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=640&q=80" alt="授课案例" class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-semibold text-[15px] line-clamp-2">某互联网大厂战略目标落地共创营</h3>
+                                <p class="text-sm text-text-sub mt-2 line-clamp-2">引导核心管理层对齐年度战略，产出关键战役地图与考核指标。</p>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-line rounded-xl p-6 relative group">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-1 h-5 bg-primary rounded-full"></div>
+                            <h2 class="text-[22px] font-headline font-bold">精彩片段</h2>
+                        </div>
+                    </div>
+                    
+                    <div class="relative flex items-center">
+                        <!-- 左箭头 -->
+                        <button class="absolute left-0 z-10 -ml-3 w-8 h-8 rounded-full bg-white border border-line shadow-sm flex items-center justify-center text-text-sub hover:text-primary hover:border-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                        </button>
+
+                        <div class="overflow-hidden w-full px-6">
+                            <!-- 左右滑动容器 -->
+                            <div class="flex gap-4 transition-transform duration-300">
+                                <!-- Video Item 1 -->
+                                <article class="flex-none w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] rounded-lg overflow-hidden border border-line group/media cursor-pointer hover:shadow-sm transition">
+                                    <div class="aspect-video relative overflow-hidden">
+                                        <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=520&q=80" alt="视频片段" class="w-full h-full object-cover group-hover/media:scale-[1.02] transition-transform" />
+                                        <div class="absolute inset-0 bg-black/20 group-hover/media:bg-black/10 transition-colors"></div>
+                                        <button class="absolute inset-0 m-auto w-10 h-10 rounded-full bg-white/90 text-primary flex items-center justify-center group-hover/media:bg-primary group-hover/media:text-white transition shadow-sm"><span class="material-symbols-outlined text-[20px]">play_arrow</span></button>
+                                        <span class="absolute bottom-2 right-2 bg-black/70 text-white text-[11px] px-1.5 py-0.5 rounded">03:45</span>
+                                    </div>
+                                    <div class="p-3">
+                                        <h3 class="text-[13px] font-medium text-text-main group-hover/media:text-primary transition-colors line-clamp-2">战略解码工作坊：从目标到行动</h3>
+                                    </div>
+                                </article>
+
+                                <!-- Image Item 1 -->
+                                <article class="flex-none w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] rounded-lg overflow-hidden border border-line group/media cursor-pointer hover:shadow-sm transition">
+                                    <div class="aspect-video relative overflow-hidden">
+                                        <img src="https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&w=520&q=80" alt="课程图文" class="w-full h-full object-cover group-hover/media:scale-[1.02] transition-transform" />
+                                        <span class="absolute top-2 right-2 bg-primary/90 text-white text-[11px] px-1.5 py-0.5 rounded shadow-sm">图文</span>
+                                    </div>
+                                    <div class="p-3">
+                                        <h3 class="text-[13px] font-medium text-text-main group-hover/media:text-primary transition-colors line-clamp-2">组织协同机制设计：跨部门协作指南</h3>
+                                    </div>
+                                </article>
+
+                                <!-- Video Item 2 -->
+                                <article class="flex-none w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] rounded-lg overflow-hidden border border-line group/media cursor-pointer hover:shadow-sm transition">
+                                    <div class="aspect-video relative overflow-hidden">
+                                        <img src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=520&q=80" alt="视频片段" class="w-full h-full object-cover group-hover/media:scale-[1.02] transition-transform" />
+                                        <div class="absolute inset-0 bg-black/20 group-hover/media:bg-black/10 transition-colors"></div>
+                                        <button class="absolute inset-0 m-auto w-10 h-10 rounded-full bg-white/90 text-primary flex items-center justify-center group-hover/media:bg-primary group-hover/media:text-white transition shadow-sm"><span class="material-symbols-outlined text-[20px]">play_arrow</span></button>
+                                        <span class="absolute bottom-2 right-2 bg-black/70 text-white text-[11px] px-1.5 py-0.5 rounded">02:15</span>
+                                    </div>
+                                    <div class="p-3">
+                                        <h3 class="text-[13px] font-medium text-text-main group-hover/media:text-primary transition-colors line-clamp-2">管理复盘方法：闭环改进与复制</h3>
+                                    </div>
+                                </article>
+                                
+                                <!-- Image Item 2 -->
+                                <article class="flex-none w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] rounded-lg overflow-hidden border border-line group/media cursor-pointer hover:shadow-sm transition">
+                                    <div class="aspect-video relative overflow-hidden">
+                                        <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=520&q=80" alt="课程图文" class="w-full h-full object-cover group-hover/media:scale-[1.02] transition-transform" />
+                                        <span class="absolute top-2 right-2 bg-primary/90 text-white text-[11px] px-1.5 py-0.5 rounded shadow-sm">图文</span>
+                                    </div>
+                                    <div class="p-3">
+                                        <h3 class="text-[13px] font-medium text-text-main group-hover/media:text-primary transition-colors line-clamp-2">高绩效团队建设核心要素图解</h3>
+                                    </div>
+                                </article>
+                            </div>
+                        </div>
+
+                        <!-- 右箭头 -->
+                        <button class="absolute right-0 z-10 -mr-3 w-8 h-8 rounded-full bg-white border border-line shadow-sm flex items-center justify-center text-text-sub hover:text-primary hover:border-primary transition-colors">
+                            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                            <div class="flex items-center gap-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-1 h-5 bg-primary rounded-full"></div>
+                                    <h2 class="text-[22px] font-headline font-bold">学员评价</h2>
+                                </div>
+                                <div class="flex gap-2 text-xs">
+                                    <button class="px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20">最有帮助</button>
+                                    <button class="px-3 py-1.5 rounded-full border border-line text-text-sub">最新</button>
+                                    <button class="px-3 py-1.5 rounded-full border border-line text-text-sub">有回复</button>
+                                </div>
+                            </div>
+                            <a href="#" class="text-sm text-text-sub hover:text-primary flex items-center gap-0.5 transition-colors">
+                                查看更多 <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                            </a>
+                        </div>
+                        <div class="grid md:grid-cols-[220px_1fr] gap-6">
+                            <div class="rounded-lg border border-line p-4 bg-bg-soft">
+                                <div class="text-3xl font-headline font-extrabold text-primary">4.9</div>
+                                <div class="text-sm text-text-sub mt-1">综合评分</div>
+                                <div class="mt-3 space-y-2 text-xs text-text-sub">
+                                    <div class="flex justify-between"><span>内容实战性</span><span>4.9</span></div>
+                                    <div class="flex justify-between"><span>讲解清晰度</span><span>4.8</span></div>
+                                    <div class="flex justify-between"><span>案例贴合度</span><span>4.9</span></div>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <article class="border border-line rounded-lg p-4">
+                                    <div class="flex items-center justify-between">
+                                        <div class="font-semibold">某制造企业 · 培训负责人</div>
+                                        <div class="text-xs text-text-sub">2026-03-08</div>
+                                    </div>
+                                    <p class="text-sm text-text-sub mt-2">课程把战略目标拆成可执行动作，现场工具可以直接用于月度经营会议，落地性非常强。</p>
+                                    <p class="text-xs mt-2 text-primary">讲师回复：感谢认可，后续可安排复盘辅导。</p>
+                                </article>
+                                <article class="border border-line rounded-lg p-4">
+                                    <div class="flex items-center justify-between">
+                                        <div class="font-semibold">某连锁品牌 · 区域总监</div>
+                                        <div class="text-xs text-text-sub">2026-02-19</div>
+                                    </div>
+                                    <p class="text-sm text-text-sub mt-2">案例贴合业务场景，尤其是跨部门协同模块，帮助我们缩短了沟通链路。</p>
+                                </article>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 相关讲师栏目 -->
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-2">
+                                <div class="w-1 h-5 bg-primary rounded-full"></div>
+                                <h2 class="text-[22px] font-headline font-bold">相关讲师</h2>
+                            </div>
+                            <a href="#" class="text-sm text-text-sub hover:text-primary flex items-center gap-0.5 transition-colors">
+                                查看更多 <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                            </a>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="border border-line rounded-lg p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer group">
+                                <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80" alt="专家" class="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm mb-3 group-hover:scale-105 transition-transform" />
+                                <h4 class="font-bold text-text-main group-hover:text-primary transition-colors text-[15px]">李明华</h4>
+                                <p class="text-[12px] text-text-sub mt-1 line-clamp-1">数字化转型实战专家</p>
+                                <div class="flex text-gold text-[14px] mt-2">
+                                    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                    <span class="text-text-main text-[12px] font-bold ml-1">4.9</span>
+                                </div>
+                            </div>
+                            <div class="border border-line rounded-lg p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer group">
+                                <img src="https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&w=150&q=80" alt="专家" class="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm mb-3 group-hover:scale-105 transition-transform" />
+                                <h4 class="font-bold text-text-main group-hover:text-primary transition-colors text-[15px]">张建国</h4>
+                                <p class="text-[12px] text-text-sub mt-1 line-clamp-1">战略绩效管理顾问</p>
+                                <div class="flex text-gold text-[14px] mt-2">
+                                    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                    <span class="text-text-main text-[12px] font-bold ml-1">4.8</span>
+                                </div>
+                            </div>
+                            <div class="border border-line rounded-lg p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer group">
+                                <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80" alt="专家" class="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm mb-3 group-hover:scale-105 transition-transform" />
+                                <h4 class="font-bold text-text-main group-hover:text-primary transition-colors text-[15px]">王芳</h4>
+                                <p class="text-[12px] text-text-sub mt-1 line-clamp-1">组织发展与人才建设</p>
+                                <div class="flex text-gold text-[14px] mt-2">
+                                    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                    <span class="text-text-main text-[12px] font-bold ml-1">5.0</span>
+                                </div>
+                            </div>
+                            <div class="border border-line rounded-lg p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer group">
+                                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" alt="专家" class="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm mb-3 group-hover:scale-105 transition-transform" />
+                                <h4 class="font-bold text-text-main group-hover:text-primary transition-colors text-[15px]">刘伟</h4>
+                                <p class="text-[12px] text-text-sub mt-1 line-clamp-1">企业文化建设专家</p>
+                                <div class="flex text-gold text-[14px] mt-2">
+                                    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                    <span class="text-text-main text-[12px] font-bold ml-1">4.7</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- 结束 区块 A: 主页视图 -->
+
+                <!-- 区块 B: 主讲课程视图 (默认隐藏) -->
+                <div id="view-courses" class="space-y-6 hidden tab-panel">
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-6 border-b border-line pb-4">
+                            <h2 class="text-[20px] font-headline font-bold text-text-main">全部主讲课程 <span class="text-text-sub font-normal text-[15px] ml-2">共 12 门</span></h2>
+                        </div>
+                        <div class="space-y-4">
+                            <!-- 课程卡片 1 -->
+                            <div class="p-5 rounded-lg border border-line flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-sm transition">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="px-2 py-0.5 text-[12px] bg-primary/10 text-primary border border-primary/20 rounded-sm font-medium">版权课</span>
+                                        <h3 class="font-bold text-[18px] text-text-main hover:text-primary cursor-pointer transition-colors">《战略执行力：从规划到落地》</h3>
+                                    </div>
+                                    <p class="text-sm text-text-sub mb-2">适用对象：中高层管理者、业务负责人 ｜ 课时：2天/3天</p>
+                                    <p class="text-[13px] text-text-sub line-clamp-2">本课程旨在帮助企业中高层管理者掌握战略解码与执行的核心方法，通过“战略-组织-人才-机制”四位一体的框架，将宏观战略转化为可落地的行动计划与绩效指标。</p>
+                                </div>
+                                <div class="shrink-0">
+                                    <button class="px-6 py-2.5 rounded-md bg-primary text-white hover:bg-primary-container font-medium w-full md:w-auto">咨询报价</button>
+                                </div>
+                            </div>
+                            <!-- 课程卡片 2 -->
+                            <div class="p-5 rounded-lg border border-line flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-sm transition">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="px-2 py-0.5 text-[12px] bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-sm font-medium">内训课</span>
+                                        <h3 class="font-bold text-[18px] text-text-main hover:text-primary cursor-pointer transition-colors">《组织能力建设与干部梯队培养》</h3>
+                                    </div>
+                                    <p class="text-sm text-text-sub mb-2">适用对象：HR总监、HRBP、企业高管 ｜ 课时：2天</p>
+                                    <p class="text-[13px] text-text-sub line-clamp-2">聚焦组织能力提升，从干部标准建立、人才盘点、梯队建设到培养项目设计，提供一套系统化的干部管理实操工具，打造支撑业务增长的人才引擎。</p>
+                                </div>
+                                <div class="shrink-0">
+                                    <button class="px-6 py-2.5 rounded-md border border-line text-text-sub hover:text-primary hover:border-primary font-medium w-full md:w-auto transition-colors">查看详情</button>
+                                </div>
+                            </div>
+                            <!-- 课程卡片 3 -->
+                            <div class="p-5 rounded-lg border border-line flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-sm transition">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="px-2 py-0.5 text-[12px] bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-sm font-medium">内训课</span>
+                                        <h3 class="font-bold text-[18px] text-text-main hover:text-primary cursor-pointer transition-colors">《跨部门沟通与高效协同》</h3>
+                                    </div>
+                                    <p class="text-sm text-text-sub mb-2">适用对象：全体员工、基层管理者 ｜ 课时：1天</p>
+                                    <p class="text-[13px] text-text-sub line-clamp-2">打破部门墙，通过沙盘模拟和案例分析，帮助学员掌握跨部门沟通的技巧与策略，建立“以客户为中心”的内部协同机制，提升整体运营效率。</p>
+                                </div>
+                                <div class="shrink-0">
+                                    <button class="px-6 py-2.5 rounded-md border border-line text-text-sub hover:text-primary hover:border-primary font-medium w-full md:w-auto transition-colors">查看详情</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 主讲课程视图结束 -->
+
+                <!-- 区块 C: 授课案例视图 (默认隐藏) -->
+                <div id="view-cases" class="space-y-6 hidden tab-panel">
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-6 border-b border-line pb-4">
+                            <h2 class="text-[20px] font-headline font-bold text-text-main">安秋明的案例 <span class="text-primary mx-1">24</span> 个</h2>
+                            <button id="toggle-case-view" class="px-4 py-1.5 bg-primary text-white text-[13px] rounded hover:bg-primary-hover transition-colors font-medium">
+                                切换视角：按课程排序
+                            </button>
+                        </div>
+
+                        <!-- 视图 1：按行业排序 (默认显示) -->
+                        <div id="case-view-industry" class="space-y-6 block">
+                            <!-- 行业分组 1 -->
+                            <div class="flex flex-col md:flex-row gap-6 pb-6 border-b border-line border-dashed">
+                                <div class="w-full md:w-[120px] shrink-0 font-medium text-text-main flex items-center md:justify-center">
+                                    先进制造
+                                </div>
+                                <div class="flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    <div class="group cursor-pointer">
+                                        <div class="aspect-video overflow-hidden rounded border border-line mb-2 relative">
+                                            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=300&q=80" alt="案例图" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main group-hover:text-primary transition-colors line-clamp-2 text-center">某制造企业中层管理者能力提升项目</h3>
+                                    </div>
+                                    <div class="group cursor-pointer">
+                                        <div class="aspect-video overflow-hidden rounded border border-line mb-2 relative">
+                                            <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=300&q=80" alt="案例图" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main group-hover:text-primary transition-colors line-clamp-2 text-center">精益生产与现场管理优化</h3>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 行业分组 2 -->
+                            <div class="flex flex-col md:flex-row gap-6 pb-6 border-b border-line border-dashed">
+                                <div class="w-full md:w-[120px] shrink-0 font-medium text-text-main flex items-center md:justify-center">
+                                    消费零售
+                                </div>
+                                <div class="flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    <div class="group cursor-pointer">
+                                        <div class="aspect-video overflow-hidden rounded border border-line mb-2 relative">
+                                            <img src="https://images.unsplash.com/photo-1664575600796-ffa828c5cb6e?auto=format&fit=crop&w=300&q=80" alt="案例图" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main group-hover:text-primary transition-colors line-clamp-2 text-center">某连锁零售组织变革与店长赋能项目</h3>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 行业分组 3 -->
+                            <div class="flex flex-col md:flex-row gap-6 pb-6 border-b border-line border-dashed">
+                                <div class="w-full md:w-[120px] shrink-0 font-medium text-text-main flex items-center md:justify-center">
+                                    互联网
+                                </div>
+                                <div class="flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    <div class="group cursor-pointer">
+                                        <div class="aspect-video overflow-hidden rounded border border-line mb-2 relative">
+                                            <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=300&q=80" alt="案例图" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main group-hover:text-primary transition-colors line-clamp-2 text-center">某互联网大厂战略目标落地共创营</h3>
+                                    </div>
+                                    <div class="group cursor-pointer">
+                                        <div class="aspect-video overflow-hidden rounded border border-line mb-2 relative">
+                                            <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=300&q=80" alt="案例图" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main group-hover:text-primary transition-colors line-clamp-2 text-center">敏捷开发与跨部门协作</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 视图 2：按课程排序 (默认隐藏) -->
+                        <div id="case-view-course" class="space-y-6 hidden">
+                            <!-- 课程分组 1 -->
+                            <div class="flex flex-col md:flex-row gap-6 pb-6 border-b border-line border-dashed">
+                                <div class="w-full md:w-[150px] shrink-0 font-medium text-text-main flex items-center md:justify-center text-center px-2">
+                                    《战略执行力：从规划到落地》
+                                </div>
+                                <div class="flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    <div class="group cursor-pointer">
+                                        <div class="aspect-video overflow-hidden rounded border border-line mb-2 relative">
+                                            <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=300&q=80" alt="案例图" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main group-hover:text-primary transition-colors line-clamp-2 text-center">某互联网大厂战略目标落地共创营</h3>
+                                    </div>
+                                    <div class="group cursor-pointer">
+                                        <div class="aspect-video overflow-hidden rounded border border-line mb-2 relative">
+                                            <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=300&q=80" alt="案例图" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main group-hover:text-primary transition-colors line-clamp-2 text-center">某股份制银行总行战略解码</h3>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 课程分组 2 -->
+                            <div class="flex flex-col md:flex-row gap-6 pb-6 border-b border-line border-dashed">
+                                <div class="w-full md:w-[150px] shrink-0 font-medium text-text-main flex items-center md:justify-center text-center px-2">
+                                    《组织能力建设与干部梯队培养》
+                                </div>
+                                <div class="flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    <div class="group cursor-pointer">
+                                        <div class="aspect-video overflow-hidden rounded border border-line mb-2 relative">
+                                            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=300&q=80" alt="案例图" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main group-hover:text-primary transition-colors line-clamp-2 text-center">某制造企业中层管理者能力提升项目</h3>
+                                    </div>
+                                    <div class="group cursor-pointer">
+                                        <div class="aspect-video overflow-hidden rounded border border-line mb-2 relative">
+                                            <img src="https://images.unsplash.com/photo-1664575600796-ffa828c5cb6e?auto=format&fit=crop&w=300&q=80" alt="案例图" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                                        </div>
+                                        <h3 class="text-[13px] text-text-main group-hover:text-primary transition-colors line-clamp-2 text-center">某连锁零售组织变革与店长赋能项目</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 授课案例视图结束 -->
+
+                <!-- 区块 D: 录播课视图 (默认隐藏) -->
+                <div id="view-clips" class="space-y-6 hidden tab-panel">
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-6 border-b border-line pb-4">
+                            <h2 class="text-[20px] font-headline font-bold text-text-main">全部录播课 <span class="text-text-sub font-normal text-[15px] ml-2">共 8 门</span></h2>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                            <!-- 视频课程 -->
+                            <article class="rounded-lg overflow-hidden border border-line group cursor-pointer hover:shadow-sm transition">
+                                <div class="aspect-video relative overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=520&q=80" alt="录播课" class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform" />
+                                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+                                    <button class="absolute inset-0 m-auto w-12 h-12 rounded-full bg-white/90 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition shadow-sm"><span class="material-symbols-outlined">play_arrow</span></button>
+                                    <span class="absolute bottom-2 right-2 bg-black/70 text-white text-[11px] px-1.5 py-0.5 rounded">12课时</span>
+                                </div>
+                                <div class="p-3">
+                                    <h3 class="text-[14px] font-medium text-text-main group-hover:text-primary transition-colors line-clamp-2">战略解码工作坊：如何从宏观目标推导具体行动计划？</h3>
+                                    <p class="text-[12px] text-text-sub mt-1 flex justify-between"><span>已更新完毕</span><span class="text-primary font-bold">¥ 199.00</span></p>
+                                </div>
+                            </article>
+                            
+                            <!-- 图文课程 -->
+                            <article class="rounded-lg overflow-hidden border border-line group cursor-pointer hover:shadow-sm transition">
+                                <div class="aspect-video relative overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&w=520&q=80" alt="录播课" class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform" />
+                                    <span class="absolute top-2 right-2 bg-primary/90 text-white text-[11px] px-1.5 py-0.5 rounded shadow-sm">图文</span>
+                                </div>
+                                <div class="p-3">
+                                    <h3 class="text-[14px] font-medium text-text-main group-hover:text-primary transition-colors line-clamp-2">组织协同机制设计：打破部门墙的关键四步</h3>
+                                    <p class="text-[12px] text-text-sub mt-1 flex justify-between"><span>共 8 节</span><span class="text-primary font-bold">¥ 99.00</span></p>
+                                </div>
+                            </article>
+
+                            <!-- 视频课程 -->
+                            <article class="rounded-lg overflow-hidden border border-line group cursor-pointer hover:shadow-sm transition">
+                                <div class="aspect-video relative overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=520&q=80" alt="录播课" class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform" />
+                                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+                                    <button class="absolute inset-0 m-auto w-12 h-12 rounded-full bg-white/90 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition shadow-sm"><span class="material-symbols-outlined">play_arrow</span></button>
+                                    <span class="absolute bottom-2 right-2 bg-black/70 text-white text-[11px] px-1.5 py-0.5 rounded">6课时</span>
+                                </div>
+                                <div class="p-3">
+                                    <h3 class="text-[14px] font-medium text-text-main group-hover:text-primary transition-colors line-clamp-2">管理复盘方法：避免重复犯错，实现经验闭环复制</h3>
+                                    <p class="text-[12px] text-text-sub mt-1 flex justify-between"><span>更新中</span><span class="text-primary font-bold">免费</span></p>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                </div>
+                <!-- 录播课视图结束 -->
+
+                <!-- 区块 E: 学员评价视图 (默认隐藏) -->
+                <div id="view-comments" class="space-y-6 hidden tab-panel">
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <!-- 头部信息 -->
+                        <div class="flex items-center gap-4 border-b border-line pb-4 mb-6">
+                            <h2 class="text-[20px] font-headline font-bold text-text-main">安秋明的客户评价 <span class="text-primary mx-1">3</span> 个</h2>
+                            <span class="text-text-sub text-[15px]">公开：3个</span>
+                        </div>
+
+                        <!-- 筛选区域 -->
+                        <div class="space-y-4 mb-8">
+                            <div class="flex items-center gap-4 text-[14px]">
+                                <span class="text-text-sub w-[40px]">身份:</span>
+                                <div class="flex flex-wrap gap-2">
+                                    <button class="px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">全部(3)</button>
+                                    <button class="px-4 py-1.5 rounded-full bg-bg-soft text-text-sub border border-line hover:border-text-sub/30 transition-colors">培训经理(2)</button>
+                                    <button class="px-4 py-1.5 rounded-full bg-bg-soft text-text-sub border border-line hover:border-text-sub/30 transition-colors">学员(1)</button>
+                                    <button class="px-4 py-1.5 rounded-full bg-bg-soft text-text-sub border border-line hover:border-text-sub/30 transition-colors disabled:opacity-50">机构(0)</button>
+                                    <button class="px-4 py-1.5 rounded-full bg-bg-soft text-text-sub border border-line hover:border-text-sub/30 transition-colors disabled:opacity-50">专家讲师(0)</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4 text-[14px]">
+                                <span class="text-text-sub w-[40px]">鉴证:</span>
+                                <div class="flex flex-wrap gap-2">
+                                    <button class="px-4 py-1.5 rounded-full bg-bg-soft text-text-sub border border-line hover:border-text-sub/30 transition-colors">全部(3)</button>
+                                    <button class="px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">已鉴证(3)</button>
+                                    <button class="px-4 py-1.5 rounded-full bg-bg-soft text-text-sub border border-line hover:border-text-sub/30 transition-colors disabled:opacity-50">待鉴证(0)</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 评分与行业分布统计区 -->
+                        <div class="grid grid-cols-1 md:grid-cols-[1fr_1fr] lg:grid-cols-[200px_1fr_1fr] gap-8 items-center bg-bg-soft p-6 rounded-lg border border-line mb-8">
+                            <!-- 综合评分 -->
+                            <div class="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-line pb-6 md:pb-0 md:pr-8">
+                                <div class="text-[48px] leading-none font-headline font-extrabold text-primary mb-2">4.9</div>
+                                <div class="flex text-gold text-[20px]">
+                                    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star_half</span>
+                                </div>
+                            </div>
+
+                            <!-- 星级分布条 -->
+                            <div class="space-y-2 lg:px-4">
+                                <div class="text-[13px] text-text-sub font-medium mb-3 text-center md:text-left">评价星级分布</div>
+                                <!-- 5星 -->
+                                <div class="flex items-center gap-3 text-[12px]">
+                                    <span class="text-text-sub w-6 text-right">5星</span>
+                                    <div class="flex-1 h-2 bg-line rounded-full overflow-hidden">
+                                        <div class="h-full bg-primary rounded-full" style="width: 88.9%"></div>
+                                    </div>
+                                    <span class="text-text-sub w-10">88.9%</span>
+                                </div>
+                                <!-- 4星 -->
+                                <div class="flex items-center gap-3 text-[12px]">
+                                    <span class="text-text-sub w-6 text-right">4星</span>
+                                    <div class="flex-1 h-2 bg-line rounded-full overflow-hidden">
+                                        <div class="h-full bg-primary rounded-full opacity-80" style="width: 11.1%"></div>
+                                    </div>
+                                    <span class="text-text-sub w-10">11.1%</span>
+                                </div>
+                                <!-- 3/2/1星 -->
+                                <div class="flex items-center gap-3 text-[12px]">
+                                    <span class="text-text-sub w-6 text-right">3星</span>
+                                    <div class="flex-1 h-2 bg-line rounded-full overflow-hidden"></div>
+                                    <span class="text-text-sub w-10">0%</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-[12px]">
+                                    <span class="text-text-sub w-6 text-right">2星</span>
+                                    <div class="flex-1 h-2 bg-line rounded-full overflow-hidden"></div>
+                                    <span class="text-text-sub w-10">0%</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-[12px]">
+                                    <span class="text-text-sub w-6 text-right">1星</span>
+                                    <div class="flex-1 h-2 bg-line rounded-full overflow-hidden"></div>
+                                    <span class="text-text-sub w-10">0%</span>
+                                </div>
+                            </div>
+
+                            <!-- 右侧操作与行业分布(简版) -->
+                            <div class="flex flex-col items-center md:items-end justify-center lg:border-l border-line lg:pl-8 pt-6 md:pt-0 border-t md:border-t-0">
+                                <a href="#" class="text-primary font-medium hover:underline flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[18px]">edit_document</span>
+                                    点评讲师的案例
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- 行业分布横向条形图 -->
+                        <div class="mb-10">
+                            <h3 class="text-[16px] font-bold mb-4">评价的行业分布</h3>
+                            <div class="space-y-4 max-w-[400px]">
+                                <div class="flex items-center gap-4 text-[14px]">
+                                    <span class="w-[80px] text-right text-text-sub">其它</span>
+                                    <div class="flex-1 h-6 bg-bg-soft border-l border-line relative">
+                                        <div class="absolute left-0 top-0 h-full bg-[#F28C28]" style="width: 50%;"></div>
+                                    </div>
+                                    <span class="font-bold">1</span>
+                                </div>
+                                <div class="flex items-center gap-4 text-[14px]">
+                                    <span class="w-[80px] text-right text-text-sub">能源化工</span>
+                                    <div class="flex-1 h-6 bg-bg-soft border-l border-line relative">
+                                        <div class="absolute left-0 top-0 h-full bg-[#F28C28]" style="width: 50%;"></div>
+                                    </div>
+                                    <span class="font-bold">1</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 评价列表 -->
+                        <div class="space-y-6 border-t border-line pt-6">
+                            <!-- 单条评价 -->
+                            <article class="flex gap-4">
+                                <!-- 头像与用户信息 -->
+                                <div class="w-[80px] shrink-0 flex flex-col items-center text-center">
+                                    <div class="w-[60px] h-[60px] bg-line rounded-full overflow-hidden mb-2">
+                                        <svg class="w-full h-full text-white/80 bg-gray-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                                    </div>
+                                    <div class="text-[13px] text-text-main font-medium mb-1">JJ****61</div>
+                                    <div class="text-[12px] text-text-sub">培训经理</div>
+                                </div>
+
+                                <!-- 评价内容区 -->
+                                <div class="flex-1">
+                                    <!-- 星级与课程 -->
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <div class="flex text-gold text-[16px]">
+                                            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                        </div>
+                                        <span class="text-gold font-bold text-[14px]">5.0</span>
+                                        <span class="text-[14px] text-primary hover:underline cursor-pointer">《业务赋能》</span>
+                                    </div>
+
+                                    <!-- 文本与图片 -->
+                                    <div class="text-[15px] leading-relaxed text-text-main mb-4 font-medium">
+                                        语言生动，内容丰富，案例真实可信，逻辑清晰
+                                    </div>
+                                    <div class="mb-4">
+                                        <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=300&q=80" alt="评价配图" class="w-[200px] h-[140px] object-cover rounded border border-line cursor-pointer hover:opacity-90 transition-opacity">
+                                    </div>
+
+                                    <!-- 底部操作与状态 -->
+                                    <div class="flex items-center justify-between mt-4">
+                                        <div class="flex items-center gap-3 text-[13px] text-text-sub">
+                                            <span>2023/07/06</span>
+                                            <span>*****灵北</span>
+                                            <span class="px-1.5 py-0.5 border border-primary text-primary text-[11px] rounded-sm">已鉴证</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <button class="px-4 py-1.5 border border-primary text-primary text-[13px] rounded hover:bg-primary/5 transition-colors">有用(0)</button>
+                                            <button class="px-4 py-1.5 border border-primary text-primary text-[13px] rounded hover:bg-primary/5 transition-colors">追问</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                            
+                            <hr class="border-line border-dashed">
+                            
+                            <!-- 另一条评价占位 -->
+                            <article class="flex gap-4">
+                                <div class="w-[80px] shrink-0 flex flex-col items-center text-center">
+                                    <div class="w-[60px] h-[60px] bg-line rounded-full overflow-hidden mb-2">
+                                        <svg class="w-full h-full text-white/80 bg-gray-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                                    </div>
+                                    <div class="text-[13px] text-text-main font-medium mb-1">Li****99</div>
+                                    <div class="text-[12px] text-text-sub">学员</div>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <div class="flex text-gold text-[16px]">
+                                            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                                        </div>
+                                        <span class="text-gold font-bold text-[14px]">5.0</span>
+                                        <span class="text-[14px] text-primary hover:underline cursor-pointer">《战略执行力》</span>
+                                    </div>
+                                    <div class="text-[15px] leading-relaxed text-text-main mb-4 font-medium">
+                                        课程非常实战，拿回去就能用，解决了很多实际管理中的困惑！
+                                    </div>
+                                    <div class="flex items-center justify-between mt-4">
+                                        <div class="flex items-center gap-3 text-[13px] text-text-sub">
+                                            <span>2023/08/12</span>
+                                            <span>*****科技</span>
+                                            <span class="px-1.5 py-0.5 border border-primary text-primary text-[11px] rounded-sm">已鉴证</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <button class="px-4 py-1.5 border border-primary text-primary text-[13px] rounded hover:bg-primary/5 transition-colors">有用(2)</button>
+                                            <button class="px-4 py-1.5 border border-primary text-primary text-[13px] rounded hover:bg-primary/5 transition-colors">追问</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+                        
+                        <!-- 分页占位 -->
+                        <div class="flex justify-center mt-8 pt-6 border-t border-line">
+                            <div class="flex items-center gap-2 text-[14px]">
+                                <button class="w-8 h-8 rounded border border-line flex items-center justify-center text-text-sub hover:text-primary hover:border-primary disabled:opacity-50"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button>
+                                <button class="w-8 h-8 rounded border border-primary bg-primary text-white flex items-center justify-center">1</button>
+                                <button class="w-8 h-8 rounded border border-line flex items-center justify-center text-text-sub hover:text-primary hover:border-primary disabled:opacity-50"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <!-- 学员评价视图结束 -->
+
+                <!-- 区块 F: 著作视图 (默认隐藏) -->
+                <div id="view-books" class="space-y-6 hidden tab-panel">
+                    <div class="bg-white border border-line rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-6 border-b border-line pb-4">
+                            <h2 class="text-[20px] font-headline font-bold text-text-main">全部著作 <span class="text-text-sub font-normal text-[15px] ml-2">共 4 本</span></h2>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                            <!-- Book 1 -->
+                            <div class="flex flex-col items-center group/book cursor-pointer">
+                                <div class="w-full aspect-[3/4] bg-white border border-line p-1 shadow-sm group-hover/book:shadow-md transition-shadow">
+                                    <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=280&q=80" alt="著作封面" class="w-full h-full object-cover" />
+                                </div>
+                                <h3 class="text-[14px] text-text-main mt-3 text-center line-clamp-2 group-hover/book:text-primary transition-colors">数字化增长引擎</h3>
+                                <p class="text-[12px] text-text-sub mt-1">电子工业出版社</p>
+                                <p class="text-[16px] text-primary font-bold mt-1">¥ 0.00</p>
+                            </div>
+                            <!-- Book 2 -->
+                            <div class="flex flex-col items-center group/book cursor-pointer">
+                                <div class="w-full aspect-[3/4] bg-white border border-line p-1 shadow-sm group-hover/book:shadow-md transition-shadow">
+                                    <img src="https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=280&q=80" alt="著作封面" class="w-full h-full object-cover" />
+                                </div>
+                                <h3 class="text-[14px] text-text-main mt-3 text-center line-clamp-2 group-hover/book:text-primary transition-colors">赋能三板斧—让天下没有难做的培训</h3>
+                                <p class="text-[12px] text-text-sub mt-1">机械工业出版社</p>
+                                <p class="text-[16px] text-primary font-bold mt-1">¥ 79.00</p>
+                            </div>
+                            <!-- Book 3 -->
+                            <div class="flex flex-col items-center group/book cursor-pointer">
+                                <div class="w-full aspect-[3/4] bg-white border border-line p-1 shadow-sm group-hover/book:shadow-md transition-shadow">
+                                    <img src="https://images.unsplash.com/photo-1553729459-efe14ef20550?auto=format&fit=crop&w=280&q=80" alt="著作封面" class="w-full h-full object-cover" />
+                                </div>
+                                <h3 class="text-[14px] text-text-main mt-3 text-center line-clamp-2 group-hover/book:text-primary transition-colors">组织增长方法论</h3>
+                                <p class="text-[12px] text-text-sub mt-1">中信出版集团</p>
+                                <p class="text-[16px] text-primary font-bold mt-1">¥ 59.00</p>
+                            </div>
+                            <!-- Book 4 -->
+                            <div class="flex flex-col items-center group/book cursor-pointer">
+                                <div class="w-full aspect-[3/4] bg-white border border-line p-1 shadow-sm group-hover/book:shadow-md transition-shadow">
+                                    <img src="https://images.unsplash.com/photo-1589998059171-989d887df466?auto=format&fit=crop&w=280&q=80" alt="著作封面" class="w-full h-full object-cover" />
+                                </div>
+                                <h3 class="text-[14px] text-text-main mt-3 text-center line-clamp-2 group-hover/book:text-primary transition-colors">战略执行力实战</h3>
+                                <p class="text-[12px] text-text-sub mt-1">人民邮电出版社</p>
+                                <p class="text-[16px] text-primary font-bold mt-1">¥ 88.00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- 结束 左侧动态内容区域 -->
+
+            <!-- 右侧侧边栏 -->
+            <aside class="space-y-3 lg:sticky lg:top-[96px] max-h-[calc(100vh-120px)] overflow-y-auto overflow-x-hidden h-fit scrollbar-hide">
+                <div class="bg-white border border-line rounded-xl p-4">
+                    <h3 class="font-headline font-bold text-lg mb-2">讲师基础信息</h3>
+                    <div class="space-y-1.5 text-[13px] text-text-sub">
+                        <div class="flex justify-between"><span>常驻城市</span><span class="text-text-main">上海</span></div>
+                        <div class="flex justify-between"><span>授课方向</span><span class="text-text-main">战略 / 组织</span></div>
+                        <div class="flex justify-between"><span>授课场次</span><span class="text-text-main">1200+</span></div>
+                        <div class="flex justify-between"><span>服务客户</span><span class="text-text-main">300+</span></div>
+                    </div>
+                </div>
+
+                <!-- 课程简列卡片 -->
+                <div class="bg-white border border-line rounded-xl p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-1 h-4 bg-text-sub rounded-full"></div>
+                        <h3 class="font-headline font-bold text-lg">擅长专题</h3>
+                    </div>
+                    <ul class="space-y-2 text-[13px] text-text-main list-disc pl-5 marker:text-text-sub">
+                        <li class="pl-1 hover:text-primary cursor-pointer transition-colors">从培训学习到业务赋能工作坊</li>
+                        <li class="pl-1 hover:text-primary cursor-pointer transition-colors">数字化转型逻辑</li>
+                        <li class="pl-1 hover:text-primary cursor-pointer transition-colors">打造学习型组织</li>
+                        <li class="pl-1 hover:text-primary cursor-pointer transition-colors">数字化人才培养</li>
+                    </ul>
+                </div>
+
+                <!-- 推荐相关专家卡片 -->
+                <div class="bg-white border border-line rounded-xl p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-1 h-4 bg-text-sub rounded-full"></div>
+                        <h3 class="font-headline font-bold text-lg">推荐相关专家</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3 cursor-pointer group">
+                            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80" alt="专家" class="w-10 h-10 rounded-full object-cover border border-line" />
+                            <div>
+                                <h4 class="font-medium text-text-main group-hover:text-primary transition-colors text-[13px]">李明华</h4>
+                                <p class="text-[11px] text-text-sub mt-0.5">数字化转型实战专家</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 cursor-pointer group">
+                            <img src="https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&w=100&q=80" alt="专家" class="w-10 h-10 rounded-full object-cover border border-line" />
+                            <div>
+                                <h4 class="font-medium text-text-main group-hover:text-primary transition-colors text-[13px]">张建国</h4>
+                                <p class="text-[11px] text-text-sub mt-0.5">战略绩效管理顾问</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 cursor-pointer group">
+                            <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&q=80" alt="专家" class="w-10 h-10 rounded-full object-cover border border-line" />
+                            <div>
+                                <h4 class="font-medium text-text-main group-hover:text-primary transition-colors text-[13px]">王芳</h4>
+                                <p class="text-[11px] text-text-sub mt-0.5">组织发展与人才建设</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-primary rounded-xl p-4 text-white">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-[20px]">smart_toy</span>
+                        <h3 class="font-headline font-bold text-lg">AI 智能匹配</h3>
+                    </div>
+                    <p class="text-[13px] text-white/85 mt-1 leading-relaxed">输入您的培训需求，AI 助手将为您精准匹配最适合的讲师和课程方案。</p>
+                    <button class="w-full mt-3 py-2 rounded-lg bg-white text-primary text-[14px] font-semibold hover:bg-white/90 transition-colors flex items-center justify-center gap-1.5">
+                        立即体验
+                    </button>
+                </div>
+            </aside>
+        </section>
+    </main>
+
+    <footer class="mt-10 bg-[#141414] py-16 text-[#A0A0A0]">
+        <div class="max-w-[1400px] mx-auto px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
+                <!-- 列 1: 品牌简介 -->
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-10 h-10 bg-primary rounded flex items-center justify-center text-white font-bold text-xl">淘</div>
+                            <span class="text-2xl font-black tracking-tighter text-white font-headline">淘课网</span>
+                        </div>
+                        <p class="text-white text-[15px] font-medium tracking-wide">领先的企业培训采购平台</p>
+                    </div>
+                    <div class="w-10 h-0.5 bg-primary"></div>
+                    <p class="text-[13px] leading-6">
+                        淘课网联合全国数万优秀培训师和培训机构,给企业提供有针对性的、互动的、积聚人脉的管理培训服务.包括提供培训需求诊断、培训课程采购、培训资料下载等服务！
+                    </p>
+                </div>
+
+                <!-- 列 2: 网站导航 -->
+                <div class="flex flex-col gap-5">
+                    <h3 class="text-white font-bold text-[16px]">网站导航</h3>
+                    <ul class="flex flex-col gap-3 text-[13px]">
+                        <li><a href="#" class="hover:text-white transition-colors">淘课网首页</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">淘课百科</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">《快乐培训》期刊</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">DISC性格测评</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">使用帮助</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">站点地图</a></li>
+                    </ul>
+                </div>
+
+                <!-- 列 3: 关于我们 & 商务合作 -->
+                <div class="flex flex-col gap-8">
+                    <div class="flex flex-col gap-5">
+                        <h3 class="text-white font-bold text-[16px]">关于我们</h3>
+                        <ul class="flex flex-col gap-3 text-[13px]">
+                            <li><a href="#" class="hover:text-white transition-colors">关于淘课</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">联系我们</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">招聘英才</a></li>
+                        </ul>
+                    </div>
+                    <div class="flex flex-col gap-5">
+                        <h3 class="text-white font-bold text-[16px]">商务服务</h3>
+                        <ul class="flex flex-col gap-3 text-[13px]">
+                            <li><a href="#" class="hover:text-white transition-colors">商务合作</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">广告服务</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 列 4: 法律与条款 -->
+                <div class="flex flex-col gap-5">
+                    <h3 class="text-white font-bold text-[16px]">法律声明</h3>
+                    <ul class="flex flex-col gap-3 text-[13px]">
+                        <li><a href="#" class="hover:text-white transition-colors">服务条款</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">法律声明</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">隐私保护</a></li>
+                    </ul>
+                </div>
+
+                <!-- 列 5: 联系我们 & 二维码 -->
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex flex-col gap-5 w-full">
+                            <h3 class="text-white font-bold text-[16px]">联系我们</h3>
+                            <ul class="flex flex-col gap-4 text-[13px]">
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-[#07C160] transition-colors"><span class="material-symbols-outlined text-[16px] text-white">chat</span></div>
+                                    <span>微信公众号</span>
+                                </li>
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-white transition-colors"><span class="material-symbols-outlined text-[16px] text-white group-hover:text-black">music_note</span></div>
+                                    <span>官方抖音号</span>
+                                </li>
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-[#FF2442] transition-colors"><span class="text-white text-[10px] font-bold">小红书</span></div>
+                                    <span>官方小红书</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <!-- 二维码 -->
+                        <div class="shrink-0 bg-white p-2 rounded-md mt-10">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://taoke.com" alt="二维码" class="w-24 h-24" />
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <div class="text-white text-[24px] font-bold font-headline mb-3">400-169-7929</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-12 pt-6 border-t border-[#333] text-center text-[12px] text-[#888] flex flex-col md:flex-row justify-center items-center gap-4">
+                <span>Copyright(C) 2006-2024 TAOKE.com All Rights Reserved.</span>
+                <a href="#" class="hover:text-white transition-colors">上海淘课企业管理咨询有限公司 版权所有</a>
+                <a href="#" class="hover:text-white transition-colors">沪ICP备05034964号</a>
+                <div class="flex items-center gap-1 ml-4 cursor-pointer hover:text-white transition-colors">
+                    <img src="https://img.alicdn.com/tfs/TB1..50QpXXXXX7XpXXXXXXXXXX-40-40.png" alt="上海工商" class="w-4 h-4 opacity-70 grayscale">
+                    <span>上海工商</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Tab 切换逻辑 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabContainer = document.getElementById('tab-container');
+            if (tabContainer) {
+                const tabs = tabContainer.querySelectorAll('button[data-target]');
+                const views = document.querySelectorAll('#main-content-area > div[id^="view-"]');
+
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const targetId = tab.getAttribute('data-target');
+                        
+                        // 1. 重置所有 Tab 的样式
+                        tabs.forEach(t => {
+                            t.classList.remove('tab-active', 'text-primary');
+                            t.classList.add('text-text-sub');
+                        });
+                        
+                        // 2. 激活当前点击的 Tab
+                        tab.classList.remove('text-text-sub');
+                        tab.classList.add('tab-active');
+
+                        // 3. 隐藏所有视图，显示目标视图
+                        views.forEach(view => {
+                            if (view.id === targetId) {
+                                view.classList.remove('hidden');
+                                view.classList.add('block');
+                            } else {
+                                view.classList.remove('block');
+                                view.classList.add('hidden');
+                            }
+                        });
+                    });
+                });
+            }
+
+            // 授课案例视图切换逻辑
+            const toggleCaseViewBtn = document.getElementById('toggle-case-view');
+            const viewIndustry = document.getElementById('case-view-industry');
+            const viewCourse = document.getElementById('case-view-course');
+            
+            if (toggleCaseViewBtn && viewIndustry && viewCourse) {
+                let isIndustryView = true;
+                toggleCaseViewBtn.addEventListener('click', () => {
+                    isIndustryView = !isIndustryView;
+                    if (isIndustryView) {
+                        viewIndustry.classList.remove('hidden');
+                        viewIndustry.classList.add('block');
+                        viewCourse.classList.remove('block');
+                        viewCourse.classList.add('hidden');
+                        toggleCaseViewBtn.textContent = '切换视角：按课程排序';
+                    } else {
+                        viewIndustry.classList.remove('block');
+                        viewIndustry.classList.add('hidden');
+                        viewCourse.classList.remove('hidden');
+                        viewCourse.classList.add('block');
+                        toggleCaseViewBtn.textContent = '切换视角：按行业排序';
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

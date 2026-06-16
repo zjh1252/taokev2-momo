@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -40,8 +40,16 @@ interface ReviewDialogProps {
   courseId?: number;
   trainerUserId?: number;
   institutionId?: number;
-  /** 预填充的课程标题、专家姓名或机构名称 */
+  /** 兼容旧用法：COURSE 时表示课程标题；TRAINER/INSTITUTION 时表示专家/机构名称 */
   prefillTitle?: string;
+  /** 预填专家姓名（COURSE 评价时使用） */
+  prefillExpertName?: string;
+  /** 预填课程/培训主题（COURSE 评价时使用） */
+  prefillCourseTitle?: string;
+  /** 预填开课地点 */
+  prefillTrainingLocation?: string;
+  /** 预填开课时间（YYYY-MM-DD） */
+  prefillTrainingDate?: string;
   /**
    * 培训主题候选列表 — 仅 scope=TRAINER 时使用。
    * <p>提供后，培训主题字段渲染为下拉选择；选项来自专家的课程 + 录播课。</p>
@@ -56,9 +64,10 @@ const QUICK_COMMENT_TAGS = ['内容详实', '气氛活跃', '干货满满'] as c
 /** 表单内部状态结构（用于校验） */
 interface ReviewFormState extends Record<string, unknown> {
   expertName: string;
-  topicValue: string; // 培训主题：input 值或下拉选项 key
+  topicValue: string;
   clientCompany: string;
   trainingLocation: string;
+  trainingDate: string;
   ratingContent: number;
   ratingTeaching: number;
   ratingService: number;
@@ -119,25 +128,53 @@ export default function ReviewDialog({
   trainerUserId,
   institutionId,
   prefillTitle,
+  prefillExpertName,
+  prefillCourseTitle,
+  prefillTrainingLocation,
+  prefillTrainingDate,
   topicOptions,
   onSuccess,
 }: ReviewDialogProps) {
   const useTopicSelect = scope === 'TRAINER' && Array.isArray(topicOptions) && topicOptions.length > 0;
 
+  const resolvedExpertName =
+    prefillExpertName
+    ?? (scope === 'TRAINER' || scope === 'INSTITUTION' ? prefillTitle : '')
+    ?? '';
+  const resolvedCourseTitle =
+    prefillCourseTitle
+    ?? (scope === 'COURSE' ? prefillTitle : '')
+    ?? '';
+
   const [ratingContent, setRatingContent] = useState(0);
   const [ratingTeaching, setRatingTeaching] = useState(0);
   const [ratingService, setRatingService] = useState(0);
   const [commentText, setCommentText] = useState('');
-  const [expertName, setExpertName] = useState(prefillTitle ?? '');
-  // 培训主题：scope=COURSE 时直接预填，scope=TRAINER 时由用户从下拉中选择
+  const [expertName, setExpertName] = useState(resolvedExpertName);
   const [topicValue, setTopicValue] = useState<string>(
-    scope === 'COURSE' ? (prefillTitle ?? '') : '',
+    scope === 'COURSE' ? resolvedCourseTitle : '',
   );
   const [clientCompany, setClientCompany] = useState('');
-  const [trainingLocation, setTrainingLocation] = useState('');
+  const [trainingLocation, setTrainingLocation] = useState(prefillTrainingLocation ?? '');
+  const [trainingDate, setTrainingDate] = useState(prefillTrainingDate ?? '');
   const [submitterName, setSubmitterName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    setExpertName(resolvedExpertName);
+    setTopicValue(scope === 'COURSE' ? resolvedCourseTitle : '');
+    setTrainingLocation(prefillTrainingLocation ?? '');
+    setTrainingDate(prefillTrainingDate ?? '');
+  }, [
+    open,
+    scope,
+    resolvedExpertName,
+    resolvedCourseTitle,
+    prefillTrainingLocation,
+    prefillTrainingDate,
+  ]);
 
   /** 选项 key 形如 "COURSE-12" / "VIDEO-3"，方便回查所选项 */
   const optionKey = useCallback(
@@ -155,13 +192,20 @@ export default function ReviewDialog({
     setRatingTeaching(0);
     setRatingService(0);
     setCommentText('');
-    setExpertName(prefillTitle ?? '');
-    setTopicValue(scope === 'COURSE' ? (prefillTitle ?? '') : '');
+    setExpertName(resolvedExpertName);
+    setTopicValue(scope === 'COURSE' ? resolvedCourseTitle : '');
     setClientCompany('');
-    setTrainingLocation('');
+    setTrainingLocation(prefillTrainingLocation ?? '');
+    setTrainingDate(prefillTrainingDate ?? '');
     setSubmitterName('');
     setError('');
-  }, [prefillTitle, scope]);
+  }, [
+    resolvedExpertName,
+    resolvedCourseTitle,
+    scope,
+    prefillTrainingLocation,
+    prefillTrainingDate,
+  ]);
 
   /** 追加快捷标签到文字评价（避免重复追加同一标签） */
   const handleAppendTag = (tag: string) => {
@@ -180,7 +224,8 @@ export default function ReviewDialog({
       requiredMessage: useTopicSelect ? '请选择培训主题' : '请输入培训主题',
     },
     clientCompany: { required: true, requiredMessage: '请输入甲方企业' },
-    trainingLocation: { required: true, requiredMessage: '请输入培训地点' },
+    trainingLocation: { required: true, requiredMessage: '请输入开课地点' },
+    trainingDate: { required: true, requiredMessage: '请选择开课时间' },
     ratingContent: {
       required: true,
       validator: (v) => ((v as number) > 0 ? undefined : '请为「授课内容」打分'),
@@ -211,6 +256,7 @@ export default function ReviewDialog({
       topicValue,
       clientCompany,
       trainingLocation,
+      trainingDate,
       ratingContent,
       ratingTeaching,
       ratingService,
@@ -241,6 +287,7 @@ export default function ReviewDialog({
       courseTitle: finalCourseTitle,
       clientCompany,
       trainingLocation,
+      trainingDate: trainingDate || undefined,
       ratingContent,
       ratingTeaching,
       ratingService,
@@ -318,11 +365,20 @@ export default function ReviewDialog({
           </div>
 
           <div className="grid gap-1.5">
-            <RequiredLabel>培训地点</RequiredLabel>
+            <RequiredLabel>开课地点</RequiredLabel>
             <Input
               value={trainingLocation}
               onChange={(e) => setTrainingLocation(e.target.value)}
-              placeholder="请输入培训地点"
+              placeholder="请输入开课地点"
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <RequiredLabel>开课时间</RequiredLabel>
+            <Input
+              type="date"
+              value={trainingDate}
+              onChange={(e) => setTrainingDate(e.target.value)}
             />
           </div>
 

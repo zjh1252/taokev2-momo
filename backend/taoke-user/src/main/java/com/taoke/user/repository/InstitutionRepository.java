@@ -23,6 +23,11 @@ public interface InstitutionRepository extends JpaRepository<Institution, Intege
 
     List<Institution> findByUserIdIn(Collection<Integer> userIds);
 
+    /** 老站 URL 段 roleid → 机构主体（仅公开展示行） */
+    @Query("SELECT i FROM Institution i WHERE i.legacyRoleId = ?1 AND i.status = ?2 AND i.publicListEligible = true")
+    Optional<Institution> findFirstByLegacyRoleIdAndStatusAndPublicListEligibleTrue(
+            Integer legacyRoleId, Integer status, Boolean publicListEligible);
+
     /** 按机构名批量查可用 Logo（同名多行迁移时，partner 行常无 logo 或为占位图，organ 行有真实图） */
     @Query(value = """
             SELECT org_name, logo_url FROM user_institutions

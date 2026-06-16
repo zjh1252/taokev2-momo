@@ -2,6 +2,7 @@ package com.taoke.user.repository;
 
 import com.taoke.user.entity.TrainerExpertiseCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;
@@ -22,7 +23,9 @@ public interface TrainerExpertiseCategoryRepository extends JpaRepository<Traine
     /** 推荐相关专家用：按分类 ID 集合反查所有候选关联 */
     List<TrainerExpertiseCategory> findByCategoryIdIn(Collection<Integer> categoryIds);
 
-    void deleteByTrainerId(Integer trainerId);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from TrainerExpertiseCategory t where t.trainerId = :trainerId")
+    int deleteByTrainerId(Integer trainerId);
 
     /** 检查是否有专家关联了该分类 */
     boolean existsByCategoryId(Integer categoryId);

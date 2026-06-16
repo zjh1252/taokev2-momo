@@ -18,6 +18,11 @@ import java.util.List;
  */
 public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpecificationExecutor<Course> {
 
+    long countByPublisherId(Integer publisherId);
+
+    @Query("SELECT c.publisherId, COUNT(c) FROM Course c WHERE c.publisherId IN :ids GROUP BY c.publisherId")
+    List<Object[]> countGroupByPublisherIds(@Param("ids") Collection<Integer> ids);
+
     long countByCreatedAtAfter(LocalDateTime time);
 
     /** 已上架课程按一级分类批量计数（不含开课城市过滤） */
@@ -61,4 +66,14 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
             GROUP BY sc.id
             """, nativeQuery = true)
     List<Object[]> countPublishedOpenByCategoryL1AndCityIds(@Param("cityIds") Collection<Integer> cityIds);
+
+    /** 已上架公开课：全部开课计划均已结束 */
+    @Query("""
+            SELECT c.id FROM Course c
+            WHERE c.status = 2
+            AND c.type IN (com.taoke.course.enums.CourseType.OPEN_OFFLINE, com.taoke.course.enums.CourseType.OPEN_ONLINE)
+            AND EXISTS (SELECT 1 FROM CoursePlan p WHERE p.courseId = c.id)
+            AND NOT EXISTS (SELECT 1 FROM CoursePlan p WHERE p.courseId = c.id AND p.endTime >= :now)
+            """)
+    List<Integer> findExpiredPublishedOpenCourseIds(@Param("now") LocalDateTime now);
 }

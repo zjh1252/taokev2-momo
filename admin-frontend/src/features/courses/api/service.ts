@@ -14,6 +14,10 @@ export function buildCourseParams(filters: CourseFilters): URLSearchParams {
   if (filters.search) params.set('search', filters.search);
   if (filters.status) params.set('status', filters.status);
   if (filters.type) params.set('type', filters.type);
+  if (filters.trainerId) params.set('trainerId', filters.trainerId);
+  if (filters.publisherType) params.set('publisherType', filters.publisherType);
+  if (filters.publisherId) params.set('publisherId', filters.publisherId);
+  if (filters.publisherName) params.set('publisherName', filters.publisherName);
   return params;
 }
 

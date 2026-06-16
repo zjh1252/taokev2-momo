@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -61,7 +62,12 @@ const PAGE_SIZE = 10;
  */
 export default function ManageCoursesPage() {
   const { user, activeRole } = useAuth();
-  const showSwitcher = isDelegatingRole(activeRole);
+  const search = useSearchParams();
+  // 经纪人代经纪公司视角：URL 带 enterpriseAgentUserId 时列出该经纪公司发布的课程
+  const enterpriseAgentUserId = search.get('enterpriseAgentUserId')
+    ? Number(search.get('enterpriseAgentUserId'))
+    : undefined;
+  const showSwitcher = isDelegatingRole(activeRole) && !enterpriseAgentUserId;
   const hideSelfOption = showSwitcher && !selfPublishingAllowed(activeRole);
   const [activeTab, setActiveTab] = useState<number | undefined>(undefined);
   const [keyword, setKeyword] = useState('');
@@ -82,7 +88,8 @@ export default function ManageCoursesPage() {
         size: PAGE_SIZE,
         status: activeTab,
         keyword: keyword || undefined,
-        trainerUserId,
+        trainerUserId: enterpriseAgentUserId ? undefined : trainerUserId,
+        enterpriseAgentUserId,
       };
       const res = await getMyCourses(params);
       setCourses(res.list || []);
@@ -93,7 +100,7 @@ export default function ManageCoursesPage() {
     } finally {
       setLoading(false);
     }
-  }, [user, page, activeTab, keyword, trainerUserId]);
+  }, [user, page, activeTab, keyword, trainerUserId, enterpriseAgentUserId]);
 
   useEffect(() => {
     fetchCourses();

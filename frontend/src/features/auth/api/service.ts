@@ -84,3 +84,11 @@ export function checkUsernameAvailable(username: string) {
     `/auth/username/available?username=${encodeURIComponent(username)}`,
   );
 }
+
+/**
+ * 忘记密码 — 手机号 + 短信验证码重置密码
+ * POST /auth/reset-password
+ */
+export function resetPassword(phone: string, code: string, newPassword: string) {
+  return apiPost<ApiResult>('/auth/reset-password', { phone, code, newPassword });
+}

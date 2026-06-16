@@ -3,7 +3,9 @@
 import { Link } from '@/i18n/navigation';
 import { Flame, Star, MessageSquare } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
+import { useBumpedViewCount } from '@/hooks/use-bumped-view-count';
 import { getInstitutionLogoFallback } from '../../utils/logo';
+import { institutionPublicHref } from '../../utils/public-path';
 import { legacyRichTextToPlain } from '@/lib/legacy-rich-text';
 import type { InstitutionListItem } from '../../types';
 
@@ -13,11 +15,17 @@ interface InstitutionCardProps {
 }
 
 export function InstitutionCard({ institution, basePath = '/company' }: InstitutionCardProps) {
+  const { viewCount, onCardClick } = useBumpedViewCount(
+    institution.viewCount,
+    'institution',
+    institution.id,
+  );
   const location = [institution.provinceName, institution.cityName].filter(Boolean).join(' ');
 
   return (
     <Link
-      href={`${basePath}/${institution.id}.htm`}
+      href={institutionPublicHref(institution, basePath)}
+      onClick={onCardClick}
       className="p-6 border-b border-slate-100 hover:bg-slate-50/50 transition-colors flex flex-col md:flex-row gap-6 group"
     >
       {/* Logo */}
@@ -54,12 +62,10 @@ export function InstitutionCard({ institution, basePath = '/company' }: Institut
 
         {/* 详情区 */}
         <div className="flex flex-col gap-1.5 text-[13px] text-slate-600 mb-4 bg-slate-50 p-3 rounded">
-          {location && (
-            <div className="flex items-start">
-              <span className="text-slate-400 shrink-0 w-[70px]">常住地：</span>
-              <span className="text-slate-700">{location}</span>
-            </div>
-          )}
+          <div className="flex items-start">
+            <span className="text-slate-400 shrink-0 w-[70px]">所在地：</span>
+            <span className="text-slate-700">{location || '—'}</span>
+          </div>
           {institution.specialties && (
             <div className="flex items-start">
               <span className="text-slate-400 shrink-0 w-[70px]">擅长领域：</span>
@@ -92,7 +98,7 @@ export function InstitutionCard({ institution, basePath = '/company' }: Institut
           </div>
           <div className="flex items-center gap-1">
             <Flame className="size-3.5 text-orange-400" />
-            人气：<span className="text-primary font-bold">{institution.viewCount}</span>
+            人气：<span className="text-primary font-bold">{viewCount}</span>
           </div>
           {institution.score > 0 && (
             <div className="flex items-center gap-1">

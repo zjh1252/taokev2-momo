@@ -83,6 +83,10 @@ public class TrainerCase extends BaseEntity {
     @Column(name = "cover_image", length = 500)
     private String coverImage;
 
+    /** 案例详情页访问次数 */
+    @Column(name = "view_count")
+    private Integer viewCount;
+
     /** 是否系统自动萃取 */
     @Column(name = "auto_extracted", nullable = false, columnDefinition = "tinyint(1)")
     private Boolean autoExtracted;

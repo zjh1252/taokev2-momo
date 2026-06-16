@@ -3,6 +3,7 @@
 import { ChevronRight, Search } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import type { ChannelCategoryNavItem } from '@/components/layout/channel-category-nav';
+import { InstitutionSidebarRecommendations } from './InstitutionSidebarRecommendations';
 
 interface InstitutionSidebarProps {
   keyword: string;
@@ -12,6 +13,7 @@ interface InstitutionSidebarProps {
   activeCategoryId?: number;
   basePath: string;
   categoryTitle?: string;
+  association?: boolean;
 }
 
 export function InstitutionSidebar({
@@ -22,6 +24,7 @@ export function InstitutionSidebar({
   activeCategoryId,
   basePath,
   categoryTitle = '培训机构类别',
+  association,
 }: InstitutionSidebarProps) {
   const handleSubmit = () => {
     onSearch(keyword.trim());
@@ -110,6 +113,8 @@ export function InstitutionSidebar({
           </ul>
         </div>
       </div>
+
+      <InstitutionSidebarRecommendations association={association} basePath={basePath} />
     </aside>
   );
 }

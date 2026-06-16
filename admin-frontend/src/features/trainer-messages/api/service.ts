@@ -42,3 +42,11 @@ export async function markTrainerMessageProcessed(id: number) {
     { method: 'PUT' },
   );
 }
+
+/** 转为培训需求 */
+export async function convertTrainerMessageToDemand(id: number) {
+  return apiClient<{ code: number; message: string; data: { id: number; demandNo: string } }>(
+    `/trainer-messages/${id}/to-demand`,
+    { method: 'POST' },
+  );
+}

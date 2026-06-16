@@ -7,9 +7,12 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.TrainerCaseService;
 import com.taoke.user.dto.trainercase.*;
+import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.TrainerCase;
 import com.taoke.user.entity.TrainerCaseFile;
+import com.taoke.user.repository.InstitutionRepository;
+import com.taoke.user.repository.InstitutionTrainerBindingRepository;
 import com.taoke.user.repository.TrainerCaseFileRepository;
 import com.taoke.user.repository.TrainerCaseRepository;
 import com.taoke.user.repository.TrainerRepository;
@@ -22,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 专家授课案例服务实现
@@ -33,9 +37,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TrainerCaseServiceImpl implements TrainerCaseService {
 
+    private static final int BINDING_ACTIVE = 1;
+
     private final TrainerCaseRepository caseRepository;
     private final TrainerCaseFileRepository caseFileRepository;
     private final TrainerRepository trainerRepository;
+    private final InstitutionRepository institutionRepository;
+    private final InstitutionTrainerBindingRepository institutionTrainerBindingRepository;
     private final EventPublisher eventPublisher;
 
     // ==================== 专家自服务 ====================
@@ -160,13 +168,16 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
     }
 
     @Override
+    @Transactional
     public TrainerCaseResponse getApprovedCaseDetail(Integer caseId) {
         TrainerCase entity = caseRepository.findById(caseId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TRAINER_CASE_NOT_FOUND));
         if (entity.getStatus() != 1) {
             throw new BusinessException(ErrorCode.TRAINER_CASE_NOT_FOUND);
         }
+        caseRepository.incrementViewCount(caseId);
         TrainerCaseResponse r = TrainerCaseResponse.from(entity);
+        r.setViewCount((entity.getViewCount() != null ? entity.getViewCount() : 0) + 1);
         trainerRepository.findById(entity.getTrainerId()).ifPresent(t -> {
             r.setTrainerUserId(t.getUserId());
             r.setTrainerName(t.getName());
@@ -175,6 +186,36 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
                 .stream().filter(f -> f.getStatus() == 1).toList();
         r.setFiles(approvedFiles.stream().map(TrainerCaseFileResponse::from).toList());
         return r;
+    }
+
+    @Override
+    public List<TrainerCaseResponse> listApprovedCasesForInstitution(Integer institutionId, int limit) {
+        institutionRepository.findById(institutionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRAINER_CASE_NOT_FOUND, "机构不存在"));
+        List<Integer> trainerIds = institutionTrainerBindingRepository
+                .findByOrgIdAndStatus(institutionId, BINDING_ACTIVE).stream()
+                .map(b -> trainerRepository.findByUserId(b.getTrainerUserId()).map(Trainer::getId).orElse(null))
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (trainerIds.isEmpty()) {
+            return List.of();
+        }
+        int n = limit > 0 ? Math.min(limit, 50) : 12;
+        List<TrainerCase> cases = caseRepository.findApprovedByTrainerIds(
+                trainerIds, PageRequest.of(0, n, Sort.by(Sort.Direction.DESC, "sortOrder")
+                        .and(Sort.by(Sort.Direction.DESC, "id"))));
+        return cases.stream().map(c -> {
+            TrainerCaseResponse r = TrainerCaseResponse.from(c);
+            List<TrainerCaseFile> approvedFiles = caseFileRepository.findByCaseIdOrderBySortOrderAsc(c.getId())
+                    .stream().filter(f -> f.getStatus() == 1).toList();
+            r.setFiles(approvedFiles.stream().map(TrainerCaseFileResponse::from).toList());
+            trainerRepository.findById(c.getTrainerId()).ifPresent(t -> {
+                r.setTrainerUserId(t.getUserId());
+                r.setTrainerName(t.getName());
+            });
+            return r;
+        }).toList();
     }
 
     @Override
@@ -200,6 +241,7 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
             r.setCoverImage(c.getCoverImage());
             r.setIndustry(c.getIndustry());
             r.setDescription(c.getDescription());
+            r.setTrainingDate(c.getTrainingDate());
             Trainer t = trainerMap.get(c.getTrainerId());
             if (t != null) {
                 r.setTrainerUserId(t.getUserId());
@@ -226,6 +268,18 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
     public Page<TrainerCase> adminSearch(Integer trainerId, Integer status, int page, int size) {
         PageRequest pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "id"));
         return caseRepository.adminSearch(trainerId, status, pageable);
+    }
+
+    @Override
+    public java.util.Map<Integer, Long> countByTrainerIds(java.util.Collection<Integer> trainerIds) {
+        if (trainerIds == null || trainerIds.isEmpty()) {
+            return java.util.Map.of();
+        }
+        java.util.Map<Integer, Long> map = new java.util.HashMap<>();
+        for (Object[] row : caseRepository.countGroupByTrainerIds(trainerIds)) {
+            map.put((Integer) row[0], (Long) row[1]);
+        }
+        return map;
     }
 
     @Override

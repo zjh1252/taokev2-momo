@@ -20,4 +20,10 @@ public interface VideoEnrollmentRepository extends JpaRepository<VideoEnrollment
 
     /** 批量查指定用户+录播课ID列表的报名记录 */
     List<VideoEnrollment> findByUserIdAndVideoIdIn(Integer userId, List<Integer> videoIds);
+
+    long countByOrderId(Integer orderId);
+
+    long countByOrderIdAndStatus(Integer orderId, Integer status);
+
+    List<VideoEnrollment> findByOrderId(Integer orderId);
 }

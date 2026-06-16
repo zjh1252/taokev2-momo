@@ -41,6 +41,19 @@ public interface UserRoleService {
     Page<UserRole> findByRoleAndStatus(String role, Integer status, Pageable pageable);
 
     /**
+     * 后台「申请列表」专用分页查询。
+     * <p>待审核（status=2 或 reapplying=true）置顶，组内按 updatedAt 倒序；
+     * status=2 时同时返回资料重审中的记录。</p>
+     *
+     * @param role   角色编码
+     * @param status 状态过滤，null 表示全部
+     */
+    Page<UserRole> findApplications(String role, Integer status, Pageable pageable);
+
+    /** 待审核或资料重审中的角色申请数量 */
+    long countPendingApplications(String role);
+
+    /**
      * 获取某角色下指定状态的所有用户 ID（如：已生效的某业务角色用户）
      *
      * @param roleCode 角色编码

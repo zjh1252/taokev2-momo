@@ -517,3 +517,19 @@
 - 文档：`data-trans/docs/problem/机构31513-CareerPower-原因与修复.md`；审计脚本 `_audit_institution_31513.py`
 - v3test：id=31513 已为 `status=2`、`public_list_eligible=0`，机构列表应不再出现；直接访问详情 URL 仍可能打开（需后续 API 按 status 拦截时可另做）
 
+---
+
+2026-06-11 11:30
+**录播课播放迁移与第三方签发**
+
+- 数据修复（v3test）：SWF→embed/置空、老库回填、第三方 canonical URL；约 5200+ 章节更新
+- 后端签发：`LegacyThirdPartyPlaybackSigner`（eceibs/kuaike）、`KuanxuePlaybackSigner`、`SchoPlaybackSigner`；路由 `GET /videos/{id}/chapters/{chapterId}/playback-url`（`VideoPlaybackController` + `VideoChapterPlaybackService`）
+- 配置：`taoke.legacy-video.{eceibs,kuaike,kuanxue,scho}`（`application.yaml`）
+- 修复：`ErrorCode.BAD_REQUEST` → `PARAM_INVALID`；eceibs/kuaike 查询参数含中文昵称时 `UriComponentsBuilder.build(true)` 抛 500 → `appendQuery.encode(UTF_8)`
+- 前端：`playback-mode.ts`（SWF→embed、识别需签发 URL）；`VideoEmbedPlayer` 调 playback-url；`video-playback-context` 空 URL 仅封面、无 toast；PXB 本地反代 `frontend/src/app/pxb-videos/[...path]/route.ts`
+- 抽测：`data-trans/scripts/run_playback_api_test.py`（dev JWT，userId=1）；资源可达性 smoke test
+- playback-url API：**2/2 通过** — eceibs 试看 `7449/2447`、思酷免费课 `15832/39652`
+- v3test 章节 URL 分布（33697 章）：直链/CDN ~68.6%、embed ~11.8%、思酷租赁 ~4.3%、空 URL ~2.4%（797）、SWF ~0.9%（292）、eceibs 签发 ~0.2%（58）
+- **可播性结论**：有地址且有权看的章节链路已通；约 **97%** 数据层可解析播放；**~3.3%** 仅封面或无法播放（空 URL 对齐老站 UX、SWF 无法 inline、56.com 等死链、第三方 iframe 环境/内容过期、付费章未购 403）
+- 浏览器抽测样例：`/videos/7449`（eceibs 试看）、`/videos/15832`（思酷）、`/videos/6579`（PXB 直链）、`/videos/6736`（优酷 embed）
+

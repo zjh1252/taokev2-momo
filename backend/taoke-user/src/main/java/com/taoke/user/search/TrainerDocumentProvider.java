@@ -6,12 +6,16 @@ import com.taoke.common.repository.CategoryRepository;
 import com.taoke.common.repository.RegionRepository;
 import com.taoke.common.search.BaseDocument;
 import com.taoke.common.search.DocumentSyncProvider;
+import com.taoke.common.service.OpsMaterialResolver;
+import com.taoke.common.util.LegacyAvatarUrls;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.TrainerExpertiseCategory;
 import com.taoke.user.entity.TrainerIndustryCategory;
+import com.taoke.user.entity.User;
 import com.taoke.user.repository.TrainerExpertiseCategoryRepository;
 import com.taoke.user.repository.TrainerIndustryCategoryRepository;
 import com.taoke.user.repository.TrainerRepository;
+import com.taoke.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
@@ -42,6 +46,8 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
     private final TrainerExpertiseCategoryRepository expertiseCategoryRepository;
     private final TrainerIndustryCategoryRepository industryCategoryRepository;
     private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
+    private final OpsMaterialResolver opsMaterialResolver;
 
     @Override
     public String getDocType() {
@@ -127,20 +133,33 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
                 : categoryRepository.findByIdIn(allCatIds).stream()
                         .collect(Collectors.toMap(Category::getId, Category::getName, (a, b) -> a));
 
+        Set<Integer> userIds = trainers.stream()
+                .map(Trainer::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Integer, String> userAvatarMap = userIds.isEmpty()
+                ? Collections.emptyMap()
+                : userRepository.findAllById(userIds).stream()
+                        .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
+                        .collect(Collectors.toMap(User::getId, User::getAvatarUrl, (a, b) -> a));
+
         Map<Integer, String> finalRegionNameMap = regionNameMap;
         Map<Integer, String> finalCatNameMap = catNameMap;
+        Map<Integer, String> finalUserAvatarMap = userAvatarMap;
         return trainers.stream()
                 .map(t -> toDocument(t, finalRegionNameMap,
                         expertiseIdMap.getOrDefault(t.getId(), List.of()),
                         industryIdMap.getOrDefault(t.getId(), List.of()),
-                        finalCatNameMap))
+                        finalCatNameMap,
+                        finalUserAvatarMap))
                 .toList();
     }
 
     private TrainerDocument toDocument(Trainer trainer, Map<Integer, String> regionNameMap,
                                         List<Integer> expertiseCategoryIds,
                                         List<Integer> industryCategoryIds,
-                                        Map<Integer, String> catNameMap) {
+                                        Map<Integer, String> catNameMap,
+                                        Map<Integer, String> userAvatarMap) {
         TrainerDocument doc = new TrainerDocument();
         doc.setDocType(DOC_TYPE);
         doc.setId(trainer.getId());
@@ -148,7 +167,14 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         doc.setUpdatedAt(trainer.getUpdatedAt());
 
         doc.setName(trainer.getName());
-        doc.setAvatar(trainer.getAvatar());
+        String userAvatar = trainer.getUserId() != null ? userAvatarMap.get(trainer.getUserId()) : null;
+        String custom = LegacyAvatarUrls.pickFirstUsable(userAvatar, trainer.getAvatar());
+        if (!custom.isBlank()) {
+            doc.setAvatar(custom);
+        } else {
+            int seed = trainer.getId() != null ? trainer.getId() : 0;
+            doc.setAvatar(opsMaterialResolver.resolveAvatarUrl(null, "TRAINER", true, seed));
+        }
         doc.setTitle(trainer.getTitle());
         doc.setBio(stripHtml(trainer.getBio()));
         doc.setIntro(stripHtml(trainer.getIntro()));

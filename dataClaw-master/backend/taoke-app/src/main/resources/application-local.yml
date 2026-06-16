@@ -1,0 +1,77 @@
+# ============================================================
+# 本地开发配置：使用 docker-compose.local.yml 中的中间件，不连接公司 Nacos。
+# ============================================================
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/taokev2?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
+    username: root
+    password: '123456'
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 10000
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 3000ms
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /taokev2-dev
+
+  jpa:
+    show-sql: true
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 500MB
+      max-request-size: 500MB
+
+taoke:
+  elasticsearch:
+    uris: http://localhost:9200
+    username: app_search
+    password: taokev2search
+    index-name: taokev2app
+    sync-interval: 10000
+  event:
+    enabled: true
+  jwt:
+    secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
+  sms:
+    provider: mock
+  storage:
+    provider: local
+    base-dir: ../../frontend/public
+    public-domain:
+  cors:
+    allowed-origins: '*'
+    allow-credentials: false
+  ai:
+    enabled: false
+    base-url: ''
+    api-key: ''
+    model: qwen3.6-plus
+    temperature: 0.2
+    timeout-ms: 1200000
+    max-input-chars: 50000
+
+logging:
+  level:
+    com.taoke: debug
+    org.springframework.security: warn
+
+crawler:
+  base-url: http://localhost:8100
+  callback-url: ${CRAWLER_CALLBACK_URL:}
+  callback-token: local-crawler-token

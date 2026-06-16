@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
+import { ROUTES } from '@/config/routes';
 import { ArrowUp, Phone, Headphones, MessageSquarePlus, Copy, Check } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 
@@ -16,7 +17,7 @@ const SERVICE_PHONE = '021-34606062';
  *   <li>回到顶部：常驻显示，点击平滑滚动到顶部</li>
  *   <li>电话：hover 显示气泡，气泡内可一键复制号码</li>
  *   <li>智能客服：跳 /ai-chat 占位页</li>
- *   <li>发布需求：未登录 → /login，已登录 → /dashboard/demands/create</li>
+ *   <li>发布需求：未登录 → /publish-demand，已登录 → /dashboard/demands/create</li>
  * </ul>
  *
  * @author Fangxinxin
@@ -47,13 +48,8 @@ export function FloatingActions() {
   };
 
   const gotoPublishDemand = () => {
-    // 等待 auth 状态加载完毕再判断，避免短暂的 loading 状态被错判为未登录
     if (loading) return;
-    if (user) {
-      router.push('/dashboard/demands/create');
-    } else {
-      router.push('/login');
-    }
+    router.push(user ? ROUTES.UC_DEMANDS_CREATE : ROUTES.PUBLISH_DEMAND);
   };
 
   // 普通按钮 hover：底色加深 + 图标&文字变主色 + 轻微上移

@@ -12,6 +12,12 @@ const STATUS_MAP: Record<number, { text: string; cls: string }> = {
   2: { text: '已隐藏', cls: 'text-gray-600 bg-gray-50 border-gray-200' },
 };
 
+function reviewScopeLabel(scope: string) {
+  if (scope === 'COURSE') return '课程';
+  if (scope === 'INSTITUTION') return '机构';
+  return '专家';
+}
+
 /**
  * 我的点评 — 仅展示用户已发表的评价。
  *
@@ -62,7 +68,7 @@ export default function ReviewsPage() {
               <div key={r.id} className="border border-slate-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-600">
-                    {r.reviewScope === 'COURSE' ? '课程' : '专家'}：{r.courseTitle || r.expertName || '--'}
+                    {reviewScopeLabel(r.reviewScope)}：{r.courseTitle || r.expertName || '--'}
                   </div>
                   <span
                     className={`text-xs px-2 py-0.5 rounded border ${statusInfo.cls}`}

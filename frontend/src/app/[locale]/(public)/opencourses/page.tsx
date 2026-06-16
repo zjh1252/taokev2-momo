@@ -1,5 +1,5 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
-import { ChannelCategoryNav } from '@/components/layout/channel-category-nav';
+import { ChannelCategoryNavSection } from '@/components/layout/channel-category-nav-section';
 import { OpenCourseListSection } from '@/features/course/components/open/OpenCourseListSection';
 import { getCourseList } from '@/features/course/api/service';
 import { getInstitutionDetail } from '@/features/institution/api/service';
@@ -40,8 +40,11 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
   const categoryNames = normalizeStringValues(sp.categoryName);
 
   const categoryTreePromise = getCachedCourseCategoryTree();
+  const categoryNavPromise = categoryTreePromise
+    .then((tree) => buildCourseCategoryNavItems(tree, true, '/opencourse'))
+    .catch(() => []);
 
-  const [initialData, categoryTree, institution, categoryNavItems] = await Promise.all([
+  const [initialData, categoryTree, institution] = await Promise.all([
     getCourseList({
       page: 1,
       size: 15,
@@ -60,7 +63,6 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
     validInstitutionId
       ? getInstitutionDetail(validInstitutionId).catch(() => null)
       : Promise.resolve(null),
-    categoryTreePromise.then((tree) => buildCourseCategoryNavItems(tree, true, '/opencourse')).catch(() => []),
   ]);
 
   const listH1 = openCourseListH1({
@@ -85,10 +87,10 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
         initialCategoryNames={categoryNames.length > 0 ? categoryNames : undefined}
       />
 
-      <ChannelCategoryNav
+      <ChannelCategoryNavSection
         title="公开课课程分类"
-        items={categoryNavItems}
         countUnit="门"
+        itemsPromise={categoryNavPromise}
       />
     </main>
   );

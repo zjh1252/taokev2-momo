@@ -34,6 +34,9 @@ public class TrainerListItemResponse {
     /** 讲师自选标签，逗号分隔 */
     private String expertiseTags;
 
+    /** 是否后台推荐位：0=否，1=是 */
+    private Integer isRecommended;
+
     /** 是否信得过专家 */
     private Integer isTrusted;
 

@@ -26,6 +26,18 @@ public interface DemandService {
     DemandDetailResponse create(Integer userId, CreateDemandRequest req);
 
     /**
+     * 游客发布需求（无需登录）
+     */
+    DemandDetailResponse createPublic(CreateDemandRequest req);
+
+    /**
+     * 将专家留言转为培训需求（管理端）
+     *
+     * @return 新建需求详情
+     */
+    DemandDetailResponse createFromTrainerMessage(Integer messageId, Integer operatorId);
+
+    /**
      * 我的需求列表（分页 + 可选状态筛选）
      *
      * @param userId 当前用户 ID
@@ -67,4 +79,7 @@ public interface DemandService {
      * 添加跟进记录（管理端操作）
      */
     void addFollowUp(Integer demandId, String action, String content, Integer operatorId);
+
+    /** 指定状态的需求数量（如已提交待处理） */
+    long countByStatus(Integer status);
 }

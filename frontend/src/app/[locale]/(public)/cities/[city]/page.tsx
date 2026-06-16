@@ -1,68 +1,43 @@
 import { notFound } from 'next/navigation';
-import { Link } from '@/i18n/navigation';
-import { ArrowRight } from 'lucide-react';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
-import { ChannelCategoryNav } from '@/components/layout/channel-category-nav';
-import { getCityByEnName } from '@/features/city/api/service';
-import { getCourseList } from '@/features/course/api/service';
+import { getActiveCities, getCityByEnName } from '@/features/city/api/service';
+import { CityChannelSection } from '@/features/city/components/CityChannelSection';
 import { CityCourseScheduleList } from '@/features/city/components/CityCourseScheduleList';
-import { buildCourseCategoryNavItems } from '@/lib/channel-category-stats';
-import { getCachedCourseCategoryTree } from '@/lib/cached-categories';
+import { CityInnerCourseList } from '@/features/city/components/CityInnerCourseList';
+import {
+  CityLatestCourseList,
+  mergeLatestCityCourses,
+} from '@/features/city/components/CityLatestCourseList';
+import { CityInstitutionFlowList } from '@/features/city/components/CityInstitutionFlowList';
+import { CityTrainerFlowList } from '@/features/city/components/CityTrainerFlowList';
+import { CityNavGrid } from '@/features/city/components/CityNavGrid';
+import {
+  cityInstitutionListPath,
+  cityOpenCourseListPath,
+  cityTrainerListPath,
+} from '@/features/city/lib/paths';
+import { resolveCityFilterId } from '@/features/city/lib/filter-city-id';
+import { getCourseList } from '@/features/course/api/service';
+import { getInstitutionList } from '@/features/institution/api/service';
+import { getTrainerList } from '@/features/trainer/api/service';
+import { getVideoList } from '@/features/video/api/service';
+import { buildCityChannelMetadata } from '@/lib/seo';
 
 interface Props {
   params: Promise<{ city: string }>;
 }
 
-/** 当月初/月末（用于「本月开课」筛选） */
-function thisMonthRange(): { from: string; to: string } {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  const first = new Date(y, m, 1);
-  const last = new Date(y, m + 1, 0);
-  return {
-    from: toDate(first),
-    to: toDate(last),
-  };
-}
-
-/** 下月初/月末 */
-function nextMonthRange(): { from: string; to: string } {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth() + 1;
-  const first = new Date(y, m, 1);
-  const last = new Date(y, m + 1, 0);
-  return {
-    from: toDate(first),
-    to: toDate(last),
-  };
-}
-
-function toDate(d: Date): string {
-  const yy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yy}-${mm}-${dd}`;
-}
+const emptyPage = { list: [], total: 0, page: 1, size: 10, totalPages: 0 };
 
 export async function generateMetadata({ params }: Props) {
   const { city } = await params;
-  try {
-    const detail = await getCityByEnName(city);
-    if (!detail) return { title: '城市频道 - 淘课网' };
-    return {
-      title: `${detail.cityName}培训分站 - 淘课网`,
-      description: `寻找各类${detail.cityName}培训资源、线下公开课、专家课程。`,
-    };
-  } catch {
-    return { title: '城市频道 - 淘课网' };
-  }
+  const detail = await getCityByEnName(city).catch(() => null);
+  if (!detail) return { title: '城市培训频道 - 淘课网' };
+  return buildCityChannelMetadata(detail.cityName);
 }
 
 /**
- * 城市频道页 — /cities/[city]
- * <p>SSR 拉城市详情 + 该城市最近开课课程 + 下月计划，仿老站「上海培训分站」风格。</p>
+ * 城市综合频道页 — /cities/[city]（SEO 别名 /city/{拼音}）
  */
 export default async function CityChannelPage({ params }: Props) {
   const { city } = await params;
@@ -72,106 +47,121 @@ export default async function CityChannelPage({ params }: Props) {
     notFound();
   }
 
-  const cityIds = [detail.cityRegionId];
-  const month = thisMonthRange();
-  const next = nextMonthRange();
+  const cityId = resolveCityFilterId(detail);
+  const cityIds = [cityId];
+  const { cityName } = detail;
 
-  const categoryTreePromise = getCachedCourseCategoryTree();
-
-  const [recentPage, nextMonthPage, categoryNavItems] = await Promise.all([
-    // 最近开课：本月可报名公开课
+  const [
+    upcomingOpen,
+    hotInner,
+    latestOpen,
+    latestVideos,
+    institutions,
+    trainers,
+    allCities,
+  ] = await Promise.all([
     getCourseList({
       page: 1,
       size: 10,
       isOpen: true,
       cityIds,
-      startTimeFrom: month.from,
-      startTimeTo: month.to,
+      enrollStatus: 'ENROLLING',
       sortBy: 'time',
-    }).catch(() => ({
-      list: [],
-      total: 0,
+    }).catch(() => emptyPage),
+    getCourseList({
       page: 1,
       size: 10,
-      totalPages: 0,
-    })),
-    // 下月计划：下月所有公开课
+      isOpen: false,
+      trainerCityId: cityId,
+      sortBy: 'viewCount',
+    }).catch(() => emptyPage),
     getCourseList({
       page: 1,
       size: 10,
       isOpen: true,
       cityIds,
-      startTimeFrom: next.from,
-      startTimeTo: next.to,
       sortBy: 'time',
-    }).catch(() => ({
-      list: [],
-      total: 0,
+    }).catch(() => emptyPage),
+    getVideoList({ page: 1, size: 10, sortBy: 'time' }).catch(() => emptyPage),
+    getInstitutionList({
       page: 1,
-      size: 10,
-      totalPages: 0,
-    })),
-    categoryTreePromise
-      .then((tree) => buildCourseCategoryNavItems(tree, true, '/opencourse', {
-        cityIds,
-        cityName: detail.cityName,
-      }))
-      .catch(() => []),
+      size: 20,
+      cityId,
+      sort: 'newly_joined',
+    }).catch(() => emptyPage),
+    getTrainerList({
+      page: 1,
+      size: 20,
+      cityId,
+      sort: 'newly_joined',
+    }).catch(() => emptyPage),
+    getActiveCities(50).catch(() => []),
   ]);
 
-  const monthLabel = `${new Date().getMonth() + 1}`;
-  const nextMonthLabel = `${((new Date().getMonth() + 1) % 12) + 1}`;
+  const latestItems = mergeLatestCityCourses(latestOpen.list, latestVideos.list, 10);
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
-      {/* 面包屑 */}
-      <PageBreadcrumb
-        items={[
-          { label: '城市频道' },
-          { label: `${detail.cityName}分站` },
-        ]}
-      />
+      <PageBreadcrumb items={[{ label: `${cityName}培训频道` }]} />
 
-      {/* 横幅 */}
-      <section className="rounded-lg bg-gradient-to-r from-primary/10 to-orange-50 border border-primary/10 px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">
-            欢迎来到淘课网 —— {detail.cityName}培训分站
-          </h1>
-          <p className="text-sm text-slate-500">
-            寻找各类{detail.cityName}培训资源、本地公开课、企业内训
-          </p>
-        </div>
-        <Link
-          href={`/opencourse?cityIds=${detail.cityRegionId}&cityName=${encodeURIComponent(detail.cityName)}`}
-          className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-5 py-2.5 rounded-md hover:opacity-90 transition-opacity shrink-0"
-        >
-          查看全部{detail.cityName}公开课
-          <ArrowRight className="size-4" />
-        </Link>
+      <section className="rounded-lg border border-slate-100 bg-gradient-to-r from-primary/5 to-orange-50/80 px-6 py-5">
+        <h1 className="text-2xl font-bold text-slate-900 m-0">
+          {cityName}培训课程与资源汇总
+        </h1>
       </section>
 
-      {/* 最近开课 */}
-      <CityCourseScheduleList
-        title={`最近开课的${detail.cityName}培训课程（${monthLabel}月）`}
-        cityName={detail.cityName}
-        courses={recentPage.list}
-        emptyText={`本月暂无${detail.cityName}开课`}
-      />
+      <CityChannelSection
+        title={`最近开课${cityName}公开课`}
+        isEmpty={upcomingOpen.list.length === 0}
+        emptyText={`暂无${cityName}公开课排期`}
+        viewMoreHref={cityOpenCourseListPath(detail.enName)}
+        viewMoreLabel="查看更多公开课"
+      >
+        <CityCourseScheduleList
+          title=""
+          cityName={cityName}
+          courses={upcomingOpen.list}
+          emptyText=""
+        />
+      </CityChannelSection>
 
-      {/* 下月计划 */}
-      <CityCourseScheduleList
-        title={`${detail.cityName}下月（${nextMonthLabel}月）公开课计划`}
-        cityName={detail.cityName}
-        courses={nextMonthPage.list}
-        emptyText={`下月暂无${detail.cityName}开课`}
-      />
+      <CityChannelSection
+        title={`${cityName}本月热门内训课`}
+        isEmpty={hotInner.list.length === 0}
+        emptyText={`暂无${cityName}热门内训课`}
+      >
+        <CityInnerCourseList cityName={cityName} courses={hotInner.list} />
+      </CityChannelSection>
 
-      <ChannelCategoryNav
-        title="公开课课程分类"
-        items={categoryNavItems}
-        countUnit="门"
-      />
+      <CityChannelSection
+        title={`最新${cityName}培训课程`}
+        isEmpty={latestItems.length === 0}
+        emptyText={`暂无${cityName}最新课程`}
+      >
+        <CityLatestCourseList cityName={cityName} items={latestItems} />
+      </CityChannelSection>
+
+      <CityChannelSection
+        title={`最新${cityName}培训机构`}
+        isEmpty={institutions.list.length === 0}
+        emptyText={`暂无${cityName}入驻机构`}
+        viewMoreHref={cityInstitutionListPath(detail.enName)}
+        viewMoreLabel="查看更多机构"
+      >
+        <CityInstitutionFlowList cityName={cityName} institutions={institutions.list} />
+      </CityChannelSection>
+
+      <CityChannelSection
+        title={`最新${cityName}授课专家`}
+        isEmpty={trainers.list.length === 0}
+        emptyText={`暂无${cityName}授课专家`}
+        viewMoreHref={cityTrainerListPath(detail.enName)}
+        viewMoreLabel="查看更多专家"
+      >
+        <CityTrainerFlowList cityName={cityName} trainers={trainers.list} />
+      </CityChannelSection>
+
+      <CityNavGrid cities={allCities} currentEnName={detail.enName} />
     </main>
   );
 }

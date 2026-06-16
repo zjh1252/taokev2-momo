@@ -47,10 +47,24 @@ public class PublicCourseController {
     }
 
     @Public
-    @Operation(summary = "课程公开详情")
+    @Operation(summary = "课程公开详情；bumpView=1 时仅看过/人气 +1")
     @GetMapping("/courses/{id}")
-    public ApiResponse<CourseDetailVO> detail(@PathVariable Integer id) {
+    public ApiResponse<?> detail(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Boolean bumpView) {
+        if (Boolean.TRUE.equals(bumpView)) {
+            courseService.incrementViewCount(id);
+            return ApiResponse.ok(null);
+        }
         return ApiResponse.ok(courseService.getPublicDetail(id));
+    }
+
+    @Public
+    @Operation(summary = "课程列表点击看过/人气 +1（兼容旧客户端）")
+    @PostMapping("/courses/{id}/view")
+    public ApiResponse<Void> incrementViewCount(@PathVariable Integer id) {
+        courseService.incrementViewCount(id);
+        return ApiResponse.ok(null);
     }
 
     @Public

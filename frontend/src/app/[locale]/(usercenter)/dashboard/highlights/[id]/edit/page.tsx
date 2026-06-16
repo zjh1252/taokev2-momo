@@ -179,7 +179,7 @@ export default function EditHighlightPage({
             type="text"
             value={form.title || ''}
             onChange={(e) => updateField('title', e.target.value)}
-            placeholder="请输入标题（可选）"
+            placeholder="请输入标题"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </FormField>
@@ -189,7 +189,7 @@ export default function EditHighlightPage({
             value={form.description || ''}
             onChange={(e) => updateField('description', e.target.value)}
             rows={3}
-            placeholder="请输入描述（可选）"
+            placeholder="请输入描述"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
           />
         </FormField>

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Link } from '@/i18n/navigation';
+import { ROUTES } from '@/config/routes';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import { changePassword } from '@/features/user-center/api/service';
@@ -72,7 +74,15 @@ export default function AccountPasswordPage() {
 
       <div className="grid gap-4 max-w-md">
         <div className="grid gap-1.5">
-          <Label htmlFor="old-password">旧密码</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="old-password">旧密码</Label>
+            <Link
+              href={ROUTES.FORGOT_PASSWORD}
+              className="text-xs text-primary hover:underline"
+            >
+              忘记密码？通过手机验证码重置
+            </Link>
+          </div>
           <Input
             id="old-password"
             type="password"

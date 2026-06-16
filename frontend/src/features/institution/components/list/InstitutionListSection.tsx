@@ -14,16 +14,21 @@ import {
   mergeInstitutionCategoryCounts,
   type ChannelCategoryNavItem,
 } from '@/lib/institution-category-nav';
+import { pickGoldInstitutionRecommends } from '../../utils/gold-recommends';
 import type { InstitutionListItem, PageResponse } from '../../types';
 
 interface InstitutionListSectionProps {
   initialData: PageResponse<InstitutionListItem>;
+  /** SSR 预取的金牌推荐（固定 4 个），避免仅依赖当前列表页数据 */
+  initialGoldRecommends?: InstitutionListItem[];
   association?: boolean;
   basePath?: string;
   title?: string;
   categoryItems?: ChannelCategoryNavItem[];
   initialExpertiseCategoryId?: number;
   categoryTitle?: string;
+  /** 锁定城市 ID（城市子频道列表页分页时保持筛选） */
+  lockedCityId?: number;
 }
 
 const SORT_OPTIONS = [
@@ -41,12 +46,14 @@ export function InstitutionListSection(props: InstitutionListSectionProps) {
 
 function InstitutionListSectionInner({
   initialData,
+  initialGoldRecommends,
   association,
   basePath = '/company',
   title = '培训机构',
   categoryItems: initialCategoryItems = [],
   initialExpertiseCategoryId,
   categoryTitle,
+  lockedCityId,
 }: InstitutionListSectionProps) {
   const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
   const [data, setData] = useState(initialData);
@@ -84,6 +91,7 @@ function InstitutionListSectionInner({
             sort,
             association,
             expertiseCategoryId: categoryId,
+            cityId: lockedCityId,
           });
           setData(result);
           setCurrentPage(page);
@@ -92,7 +100,7 @@ function InstitutionListSectionInner({
         }
       });
     },
-    [keyword, sortKey, association, expertiseCategoryId],
+    [keyword, sortKey, association, expertiseCategoryId, lockedCityId],
   );
 
   const { commitPageChange } = useListPageUrlSync({
@@ -148,14 +156,15 @@ function InstitutionListSectionInner({
     [fetchData, commitPageChange],
   );
 
-  // 推荐机构（取 isRecommended=1 的前4个）
-  const recommendedItems = data.list.filter((item) => item.isRecommended === 1).slice(0, 4);
-
-  // 金牌推荐区只显示4个
-  const displayRecommends = recommendedItems.length >= 4 ? recommendedItems : [
-    ...recommendedItems,
-    ...data.list.filter((item) => item.isRecommended !== 1).slice(0, 4 - recommendedItems.length),
-  ];
+  const displayRecommends =
+    currentPage === 1
+      ? pickGoldInstitutionRecommends(
+          initialGoldRecommends?.length
+            ? initialGoldRecommends
+            : data.list,
+          4,
+        )
+      : [];
 
   return (
     <div className="flex gap-6 items-start">
@@ -167,6 +176,7 @@ function InstitutionListSectionInner({
         activeCategoryId={expertiseCategoryId}
         basePath={basePath}
         categoryTitle={categoryTitle}
+        association={association}
       />
 
       <div className="flex-1 flex flex-col gap-6">

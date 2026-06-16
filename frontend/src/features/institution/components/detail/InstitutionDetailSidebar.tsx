@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Play, PenLine } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
+import { DEFAULT_COURSE_COVER } from '@/lib/media';
 import type { InstitutionDetail } from '../../types';
 import {
   getInstitutionSidebarOpenCourses,
@@ -12,7 +13,8 @@ import {
 } from '../../api/service';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
-import { useAuthGuard } from '@/lib/auth/auth-guard-context';
+import { useAuth } from '@/lib/auth/auth-context';
+import { ROUTES } from '@/config/routes';
 import { useRouter } from '@/i18n/navigation';
 
 interface InstitutionDetailSidebarProps {
@@ -28,7 +30,7 @@ interface InstitutionDetailSidebarProps {
  */
 export function InstitutionDetailSidebar({ institution }: InstitutionDetailSidebarProps) {
   const router = useRouter();
-  const { requireAuth } = useAuthGuard();
+  const { user } = useAuth();
   const [openCourses, setOpenCourses] = useState<CourseListItem[]>([]);
   const [videos, setVideos] = useState<VideoListItem[]>([]);
   const [hotCourses, setHotCourses] = useState<CourseListItem[]>([]);
@@ -46,7 +48,7 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
   }, [institution.id]);
 
   const goPublishDemand = () => {
-    requireAuth(() => router.push('/dashboard/demands/create'));
+    router.push(user ? ROUTES.UC_DEMANDS_CREATE : ROUTES.PUBLISH_DEMAND);
   };
 
   return (
@@ -62,7 +64,8 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
                   className="flex items-center gap-3 group"
                 >
                   <SafeImage
-                    src={c.coverUrl}
+                    src={c.coverUrl || undefined}
+                    fallback={DEFAULT_COURSE_COVER}
                     alt={c.title}
                     className="w-14 h-[42px] object-cover rounded border border-slate-200 shrink-0"
                   />
@@ -90,7 +93,7 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
                 <Link href={`/vedio/${v.id}.htm`} className="flex items-center gap-3 group">
                   <div className="relative w-14 h-[42px] rounded border border-slate-200 overflow-hidden shrink-0 bg-slate-100">
                     <SafeImage
-                      src={v.coverUrl}
+                      src={v.coverUrl || undefined}
                       alt={v.title}
                       className="w-full h-full object-cover"
                     />
@@ -124,7 +127,8 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
                   className="flex items-center gap-3 group"
                 >
                   <SafeImage
-                    src={c.coverUrl}
+                    src={c.coverUrl || undefined}
+                    fallback={DEFAULT_COURSE_COVER}
                     alt={c.title}
                     className="w-14 h-[42px] object-cover rounded border border-slate-200 shrink-0"
                   />

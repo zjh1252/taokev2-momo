@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
-import { listManagedTrainers } from '@/features/binding/api/service';
-import type { BindingItem } from '@/features/binding/api/types';
+import { listManagedTrainers, listMyEnterpriseAgents } from '@/features/binding/api/service';
+import { BINDING_STATUS, type BindingItem } from '@/features/binding/api/types';
 import { requiresTrainerBinding } from '@/features/binding/lib/delegating-role';
 
 export interface BoundPublisherGuardResult {
@@ -13,6 +13,11 @@ export interface BoundPublisherGuardResult {
   loading: boolean;
   /** 当前可代管的专家列表（仅必须绑定的角色下查询） */
   trainers: BindingItem[];
+}
+
+export interface BoundPublisherGuardOptions {
+  /** AGENT 角色：未绑定专家但已加入经纪公司时也放行（代经纪公司发布场景） */
+  allowEnterpriseAgentFallback?: boolean;
 }
 
 /**
@@ -25,12 +30,16 @@ export interface BoundPublisherGuardResult {
  * @author Fangxinxin
  * @date 2026-04-28 16:30
  */
-export function useBoundPublisherGuard(): BoundPublisherGuardResult {
+export function useBoundPublisherGuard(
+  options?: BoundPublisherGuardOptions,
+): BoundPublisherGuardResult {
   const { activeRole } = useAuth();
   const [loading, setLoading] = useState(false);
   const [trainers, setTrainers] = useState<BindingItem[]>([]);
+  const [hasActiveEnterprise, setHasActiveEnterprise] = useState(false);
 
   const mustBind = requiresTrainerBinding(activeRole);
+  const checkEnterprise = !!options?.allowEnterpriseAgentFallback && activeRole === 'AGENT';
 
   useEffect(() => {
     if (!mustBind) {
@@ -39,26 +48,47 @@ export function useBoundPublisherGuard(): BoundPublisherGuardResult {
     }
     let cancelled = false;
     setLoading(true);
-    listManagedTrainers()
-      .then((list) => {
-        if (!cancelled) setTrainers(list || []);
-      })
-      .catch(() => {
-        if (!cancelled) setTrainers([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    const tasks: Promise<void>[] = [
+      listManagedTrainers()
+        .then((list) => {
+          if (!cancelled) setTrainers(list || []);
+        })
+        .catch(() => {
+          if (!cancelled) setTrainers([]);
+        }),
+    ];
+    if (checkEnterprise) {
+      tasks.push(
+        listMyEnterpriseAgents()
+          .then((list) => {
+            if (!cancelled) {
+              setHasActiveEnterprise(
+                (list || []).some((b) => b.status === BINDING_STATUS.ACTIVE),
+              );
+            }
+          })
+          .catch(() => {
+            if (!cancelled) setHasActiveEnterprise(false);
+          }),
+      );
+    }
+    Promise.all(tasks).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
     return () => {
       cancelled = true;
     };
-  }, [mustBind]);
+  }, [mustBind, checkEnterprise]);
 
   // 当切换到非必须绑定角色时，trainers 状态保持不动；blocked 由 mustBind 控制
   const effectiveTrainers = mustBind ? trainers : [];
 
   return {
-    blocked: mustBind && !loading && effectiveTrainers.length === 0,
+    blocked:
+      mustBind &&
+      !loading &&
+      effectiveTrainers.length === 0 &&
+      !(checkEnterprise && hasActiveEnterprise),
     loading,
     trainers: effectiveTrainers,
   };

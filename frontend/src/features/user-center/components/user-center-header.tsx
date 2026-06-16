@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
+import { resolveImageSrc } from '@/lib/media';
 import { useAuth } from '@/lib/auth/auth-context';
 import { NotificationBell } from '@/features/notification/components/NotificationBell';
 import { CartBadge } from '@/features/cart/components/CartBadge';
@@ -62,6 +64,8 @@ const ROLE_LABELS: Record<string, string> = {
 export function UserCenterHeader() {
   const { user, logout, publicHomeHref, activeRole } = useAuth();
   const roleSuffix = activeRole && ROLE_LABELS[activeRole] ? `（${ROLE_LABELS[activeRole]}）` : '';
+  const [avatarBroken, setAvatarBroken] = useState(false);
+  const showAvatar = user?.avatarUrl && !avatarBroken;
 
   return (
     <>
@@ -91,13 +95,15 @@ export function UserCenterHeader() {
             {/* 用户区域：头像 + 昵称（含角色后缀）+ 用户中心 + 我的主页 + 退出 */}
             {user ? (
               <div className="flex items-center gap-3">
-                {user.avatarUrl ? (
+                {showAvatar ? (
                   <Image
-                    src={user.avatarUrl}
+                    src={resolveImageSrc(user.avatarUrl)}
                     alt={user.nickname}
                     width={22}
                     height={22}
+                    unoptimized
                     className="size-[22px] rounded-full object-cover"
+                    onError={() => setAvatarBroken(true)}
                   />
                 ) : (
                   <div className="size-[22px] rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0">
@@ -123,7 +129,7 @@ export function UserCenterHeader() {
                       href={publicHomeHref}
                       className="hover:text-primary transition-colors"
                     >
-                      我的主页
+                      个人主页
                     </Link>
                   </>
                 )}

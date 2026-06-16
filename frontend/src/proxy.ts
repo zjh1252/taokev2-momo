@@ -13,6 +13,30 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const locale = request.cookies.get('NEXT_LOCALE')?.value || 'zh-CN';
 
+  // 老站录播播放页: /video_play/17946.htm → /videos/17946/play
+  const videoPlayMatch = pathname.match(/^\/video_play\/(\d+)(?:\.htm)?$/);
+  if (videoPlayMatch) {
+    return NextResponse.rewrite(
+      new URL(`/${locale}/videos/${videoPlayMatch[1]}/play`, request.url),
+    );
+  }
+
+  // 城市频道 SEO: /city/shanghai → /zh-CN/cities/shanghai
+  const cityHomeMatch = pathname.match(/^\/city\/([a-z0-9-]+)$/);
+  if (cityHomeMatch) {
+    return NextResponse.rewrite(
+      new URL(`/${locale}/cities/${cityHomeMatch[1]}`, request.url),
+    );
+  }
+
+  // 城市子频道: /city/shanghai/opencourse → /zh-CN/city/shanghai/opencourse
+  const citySubMatch = pathname.match(/^\/city\/([a-z0-9-]+)\/(opencourse|institutions|trainers)$/);
+  if (citySubMatch) {
+    return NextResponse.rewrite(
+      new URL(`/${locale}/city/${citySubMatch[1]}/${citySubMatch[2]}`, request.url),
+    );
+  }
+
   // 去s → 带s 内部路由映射
   const map: Record<string, string> = {
     '/trainer': '/trainers',
@@ -72,6 +96,12 @@ export function proxy(request: NextRequest) {
           );
         }
       }
+      // /video/123/play → rewrite → /zh-CN/videos/123/play
+      if (/^\/\d+\/play$/.test(suffix)) {
+        return NextResponse.rewrite(
+          new URL(`/${locale}${newBase}${suffix}`, request.url),
+        );
+      }
       // /trainer/123.htm → rewrite (地址栏不变!)
       if (/^\/\d+\.htm$/.test(suffix)) {
         return NextResponse.rewrite(
@@ -98,6 +128,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next|api|uploads|statics|tac|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|ico|webp|avif|css|js|woff|woff2|ttf|eot|json|xml|txt|map)).*)',
+    '/((?!_next|api|uploads|pxb-videos|taoke-legacy|pxb-legacy|statics|tac|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|ico|webp|avif|css|js|woff|woff2|ttf|eot|json|xml|txt|map|mp4|m4v|webm)).*)',
   ],
 };

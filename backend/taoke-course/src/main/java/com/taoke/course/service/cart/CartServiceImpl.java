@@ -7,10 +7,12 @@ import com.taoke.course.dto.cart.CartItemVO;
 import com.taoke.course.entity.Course;
 import com.taoke.course.entity.cart.Cart;
 import com.taoke.course.entity.video.Video;
+import com.taoke.course.entity.video.VideoPackageGroup;
 import com.taoke.course.enums.ProductType;
 import com.taoke.course.mapper.CartMapper;
 import com.taoke.course.repository.CourseRepository;
 import com.taoke.course.repository.cart.CartRepository;
+import com.taoke.course.repository.video.VideoPackageGroupRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,7 @@ public class CartServiceImpl {
     private final CartRepository cartRepository;
     private final CourseRepository courseRepository;
     private final VideoRepository videoRepository;
+    private final VideoPackageGroupRepository packageGroupRepository;
     private final CartMapper cartMapper;
 
     /**
@@ -144,22 +147,32 @@ public class CartServiceImpl {
             cart.setProductTitle(course.getTitle());
             cart.setProductCover(course.getCoverUrl());
             cart.setPrice(course.getPrice());
-        } else {
-            Video video = videoRepository.findById(productId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-            if (video.getStatus() != 2) {
-                throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
-            }
-            if (video.getIsFree() == 1) {
-                throw new BusinessException(ErrorCode.PRODUCT_NOT_PURCHASABLE);
-            }
-            if (userId != null && userId.equals(video.getPublisherId())) {
-                throw new BusinessException(ErrorCode.CANNOT_BUY_OWN_PRODUCT);
-            }
-            cart.setProductTitle(video.getTitle());
-            cart.setProductCover(video.getCoverUrl());
-            cart.setPrice(video.getPrice());
+            return;
         }
+
+        if (productType == ProductType.VIDEO_PACKAGE) {
+            VideoPackageGroup group = packageGroupRepository.findById(productId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+            cart.setProductTitle(group.getName());
+            cart.setProductCover("");
+            cart.setPrice(group.getPrice());
+            return;
+        }
+
+        Video video = videoRepository.findById(productId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+        if (video.getStatus() != 2) {
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
+        }
+        if (video.getIsFree() == 1) {
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+        }
+        if (userId != null && userId.equals(video.getPublisherId())) {
+            throw new BusinessException(ErrorCode.CANNOT_BUY_OWN_PRODUCT);
+        }
+        cart.setProductTitle(video.getTitle());
+        cart.setProductCover(video.getCoverUrl());
+        cart.setPrice(video.getPrice());
     }
 
     private java.math.BigDecimal getCurrentPrice(ProductType productType, Integer productId) {
@@ -167,10 +180,14 @@ public class CartServiceImpl {
             return courseRepository.findById(productId)
                     .map(Course::getPrice)
                     .orElse(java.math.BigDecimal.ZERO);
-        } else {
-            return videoRepository.findById(productId)
-                    .map(Video::getPrice)
+        }
+        if (productType == ProductType.VIDEO_PACKAGE) {
+            return packageGroupRepository.findById(productId)
+                    .map(VideoPackageGroup::getPrice)
                     .orElse(java.math.BigDecimal.ZERO);
         }
+        return videoRepository.findById(productId)
+                .map(Video::getPrice)
+                .orElse(java.math.BigDecimal.ZERO);
     }
 }

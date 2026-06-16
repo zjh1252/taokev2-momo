@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>淘课网 - 登录</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-low": "#f6f3f2",
+                        "tertiary-fixed": "#ffddb8",
+                        "on-surface-variant": "#5e3f3b",
+                        "primary-fixed-dim": "#ffb4a8",
+                        "primary-fixed": "#ffdad5",
+                        "on-secondary-fixed": "#1b1c1c",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#fbf9f8",
+                        "on-secondary-container": "#626262",
+                        "surface-bright": "#fbf9f8",
+                        "secondary-fixed": "#e4e2e2",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "tertiary": "#835200",
+                        "secondary-fixed-dim": "#c7c6c6",
+                        "on-primary-fixed": "#410000",
+                        "tertiary-container": "#a56800",
+                        "inverse-primary": "#ffb4a8",
+                        "inverse-on-surface": "#f3f0f0",
+                        "secondary": "#5e5e5e",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#eae8e7",
+                        "on-tertiary-fixed": "#2a1700",
+                        "on-secondary-fixed-variant": "#464747",
+                        "on-secondary": "#ffffff",
+                        "primary": "#be0003",
+                        "surface-variant": "#e4e2e1",
+                        "outline": "#926e69",
+                        "inverse-surface": "#303030",
+                        "secondary-container": "#e1dfdf",
+                        "outline-variant": "#e7bdb6",
+                        "surface-container-highest": "#e4e2e1",
+                        "surface-tint": "#c00003",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#e62117",
+                        "on-tertiary-container": "#fffeff",
+                        "on-primary-container": "#fffeff",
+                        "error": "#ba1a1a",
+                        "on-background": "#1b1c1c",
+                        "surface-dim": "#dcd9d9",
+                        "on-primary-fixed-variant": "#930002",
+                        "on-primary": "#ffffff",
+                        "on-surface": "#1b1c1c",
+                        "on-error": "#ffffff",
+                        "surface-container": "#f0eded",
+                        "on-tertiary": "#ffffff",
+                        "background": "#fbf9f8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": [
+                            "Manrope"
+                        ],
+                        "body": [
+                            "Inter"
+                        ],
+                        "label": [
+                            "Inter"
+                        ]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="page-root bg-[#f7f9fc] font-body text-on-surface antialiased min-h-screen flex flex-col">
+<header class="nav-bar bg-[#f7f9fc] flex items-center px-4 h-12 w-full docked full-width top-0 font-['Manrope'] font-bold text-lg none flat no shadows">
+<button aria-label="返回" class="w-10 h-10 flex items-center justify-center text-[#666666] hover:bg-gray-100 transition-opacity duration-200 active:opacity-70 rounded-full">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div class="flex-1 text-center font-headline font-bold text-lg text-on-surface mr-10">登录</div>
+</header>
+<main class="flex-1 flex flex-col justify-center items-center px-4 md:px-6 pb-20 pt-8">
+<div class="auth-card bg-surface-container-lowest w-full max-w-md rounded-[16px] shadow-sm p-8 flex flex-col">
+<div class="flex flex-col items-center mb-8">
+<div class="w-16 h-16 bg-primary-container rounded-xl flex items-center justify-center text-on-primary-container shadow-sm mb-4">
+<span class="material-symbols-outlined text-[32px]">school</span>
+</div>
+<h1 class="text-2xl font-headline font-bold text-on-surface">淘课网</h1>
+<p class="text-sm text-on-surface-variant mt-2">欢迎回来，请登录您的账号</p>
+</div>
+<form class="space-y-5">
+<div class="form-field relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">smartphone</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-3 border border-outline-variant rounded-lg bg-surface-container-lowest text-on-surface focus:ring-2 focus:ring-primary-container focus:border-primary-container transition-colors placeholder-on-surface-variant/50 text-base" placeholder="请输入手机号" required="" type="tel"/>
+</div>
+<div class="form-field relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">lock</span>
+</div>
+<input class="block w-full pl-10 pr-10 py-3 border border-outline-variant rounded-lg bg-surface-container-lowest text-on-surface focus:ring-2 focus:ring-primary-container focus:border-primary-container transition-colors placeholder-on-surface-variant/50 text-base" placeholder="请输入密码" required="" type="password"/>
+<button class="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-on-surface" type="button">
+<span class="material-symbols-outlined">visibility_off</span>
+</button>
+</div>
+<div class="link-row flex justify-between items-center text-sm pt-1">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">忘记密码？</a>
+<a class="text-primary-container font-medium hover:text-primary transition-colors" href="#">去注册</a>
+</div>
+<button class="primary-btn w-full bg-[#E62117] text-white font-medium py-3.5 rounded-full mt-6 shadow-[0_4px_14px_0_rgba(230,33,23,0.39)] hover:shadow-[0_6px_20px_rgba(230,33,23,0.23)] hover:bg-[#c41c14] transition-all duration-200 text-base active:scale-[0.98]" type="submit">
+                    登录
+                </button>
+</form>
+<div class="mt-8 flex items-start gap-2">
+<div class="flex items-center h-5">
+<input class="w-4 h-4 text-primary-container bg-surface-container-lowest border-outline-variant rounded focus:ring-primary-container focus:ring-2" id="agreement" type="checkbox"/>
+</div>
+<label class="text-xs text-on-surface-variant leading-tight" for="agreement">
+                    我已阅读并同意 <a class="text-primary-container hover:underline" href="#">《用户服务协议》</a> 和 <a class="text-primary-container hover:underline" href="#">《隐私权政策》</a>，未注册绑定的手机号验证后将自动注册。
+                </label>
+</div>
+</div>
+</main>
+</body></html>

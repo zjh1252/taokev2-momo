@@ -6,6 +6,8 @@ import type {
   PageResponse,
   OrderVO,
   CreateOrderRequest,
+  CreateInvoiceRequest,
+  InvoiceRequestVO,
   PayRequest,
   PayResultVO,
 } from './types';
@@ -54,6 +56,46 @@ export async function cancelOrder(orderNo: string): Promise<void> {
   await apiPut<ApiResponse<void>>(`/orders/${orderNo}/cancel`, undefined, {
     headers: authHeaders(),
   });
+}
+
+/** 提交发票申请 */
+export async function submitInvoiceRequest(
+  orderNo: string,
+  data: CreateInvoiceRequest,
+): Promise<InvoiceRequestVO> {
+  const res = await apiPost<ApiResponse<InvoiceRequestVO>>(
+    `/orders/${orderNo}/invoice`,
+    data,
+    { headers: authHeaders() },
+  );
+  return res.data;
+}
+
+/** 查询订单的发票申请（未申请时返回 null） */
+export async function getInvoiceRequest(
+  orderNo: string,
+): Promise<InvoiceRequestVO | null> {
+  const res = await apiGet<ApiResponse<InvoiceRequestVO | null>>(
+    `/orders/${orderNo}/invoice`,
+    { headers: authHeaders() },
+  );
+  return res.data;
+}
+
+/** 查询指定商品的有效待支付订单（无则 data 为 null） */
+export async function getPendingOrderByProduct(
+  productType: string,
+  productId: number,
+): Promise<OrderVO | null> {
+  const params = new URLSearchParams({
+    productType,
+    productId: String(productId),
+  });
+  const res = await apiGet<ApiResponse<OrderVO | null>>(
+    `/orders/pending-by-product?${params}`,
+    { headers: authHeaders(), silent: true },
+  );
+  return res.data;
 }
 
 /** 发起支付 */

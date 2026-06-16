@@ -20,6 +20,7 @@
   "cases": {
     "sectionTitle": "专家案例",
     "readMore": "阅读全文",
+    "caseDate": "案例时间：{date}",
     "serviceInstructor": "服务讲师：{name}"
   },
   "courses": {
@@ -32,7 +33,7 @@
     "viewDetail": "查看详情",
     "labels": {
       "organizer": "开课单位",
-      "instructor": "授课讲师",
+      "instructor": "授课专家",
       "city": "开课城市",
       "startDate": "开课时间",
       "duration": "课程天数"

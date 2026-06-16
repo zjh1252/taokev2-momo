@@ -56,4 +56,13 @@ public class OrderController {
         orderService.cancelOrder(userId, orderNo);
         return ApiResponse.ok();
     }
+
+    @Operation(summary = "查询指定商品的有效待支付订单（购买前提醒）")
+    @GetMapping("/orders/pending-by-product")
+    public ApiResponse<OrderVO> findPendingByProduct(
+            @RequestParam String productType,
+            @RequestParam Integer productId) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        return ApiResponse.ok(orderService.findPendingOrderByProduct(userId, productType, productId));
+    }
 }

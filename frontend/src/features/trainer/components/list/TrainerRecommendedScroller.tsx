@@ -7,6 +7,7 @@ import { getTopRecommendedTrainers } from '../../api/service';
 import type { TrainerListItem } from '../../types';
 import { pickDisplayTitle } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
+import { getTrainerAvatarFallback } from '@/lib/media';
 
 /**
  * 专家列表页右上角「推荐位」步进式滚动条
@@ -37,7 +38,8 @@ export function TrainerRecommendedScroller({
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (initialItems && initialItems.length > 0) return;
+    // SSR 返回数据不足一页（3 张）时，客户端补取一次
+    if (initialItems && initialItems.length >= CARDS_PER_PAGE) return;
     let mounted = true;
     getTopRecommendedTrainers(9)
       .then((list) => mounted && setItems(list))
@@ -104,6 +106,7 @@ export function TrainerRecommendedScroller({
             <div className="relative w-full h-full overflow-hidden rounded-md bg-slate-100">
               <SafeImage
                 src={t.avatar}
+                fallback={getTrainerAvatarFallback(displayName)}
                 alt={displayName}
                 fill
                 sizes="(max-width: 1024px) 33vw, 320px"

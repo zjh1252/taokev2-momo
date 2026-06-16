@@ -7,6 +7,7 @@ import { VIDEO_STATUS_MAP, VIDEO_STATUS_OPTIONS, VIDEO_TYPE_MAP } from '../../ap
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import { CellAction } from './cell-action';
+import { CellStickyPriority } from './cell-sticky-priority';
 
 function statusVariant(status: number) {
   switch (status) {
@@ -131,6 +132,17 @@ export const columns: ColumnDef<AdminVideo>[] = [
       variant: 'select' as const,
       options: VIDEO_STATUS_OPTIONS
     }
+  },
+  {
+    id: 'stickyPriority',
+    header: '操作',
+    cell: ({ row }) => (
+      <CellStickyPriority
+        videoId={row.original.id}
+        stickyPriority={row.original.stickyPriority}
+        status={row.original.status}
+      />
+    )
   },
   {
     accessorKey: 'studentCount',

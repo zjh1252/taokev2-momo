@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>淘课网 - 录播课</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#E62117",
+                        "primary-container": "#c41c14",
+                        "background": "#ffffff",
+                        "surface": "#ffffff",
+                        "on-surface": "#333333",
+                        "secondary-text": "#666666",
+                        "outline-variant": "#e0e3e6",
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "sm": "0.25rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        body { background-color: #f7f9fc; color: #333333; font-family: 'Inter', sans-serif; }
+        .nav-link-active { color: #E62117; position: relative; }
+        .nav-link-active::after { content: ''; position: absolute; bottom: -4px; left: 0; right: 0; height: 2px; background-color: #E62117; }
+        
+        /* Floating action button animation */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .fab-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .fab-hover:hover { transform: scale(1.1); box-shadow: 0 20px 25px -5px rgba(230, 33, 23, 0.3), 0 8px 10px -6px rgba(230, 33, 23, 0.3); }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <div class="w-full bg-slate-50 border-b border-slate-100 text-[12px] py-1.5 px-8 z-50 sticky top-0" id="top-nav-bar">
+        <div class="max-w-7xl w-full mx-auto flex items-center justify-between">
+            <!-- Left: Group Sites -->
+            <div class="flex items-center gap-3 text-secondary-text">
+                <a class="hover:text-primary transition-colors" href="#">淘课集团</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">淘课网</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">培训宝</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">目标通</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">AI 导师</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">智能创导</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">AI 陪练</a>
+            </div>
+            <!-- Right: User Actions -->
+            <div class="flex items-center gap-3 text-secondary-text">
+                <span class="text-slate-700">用户昵称</span>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">用户中心</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">我的主页</a>
+                <span class="text-slate-300">|</span>
+                <a class="hover:text-primary transition-colors" href="#">登出</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation -->
+    <nav class="h-[80px] w-full bg-white/90 backdrop-blur-md sticky top-[29px] z-40 shadow-sm px-8 flex flex-col justify-center transition-all duration-300">
+        <div class="max-w-7xl w-full mx-auto flex items-center justify-between h-full">
+            <!-- Left: Logo and Dropdown -->
+            <div class="flex items-center gap-6">
+                <a href="#" class="flex flex-col">
+                    <img src="../public/statics/images/taokelogo.jpg" alt="淘课网" class="h-10 object-contain" onerror="this.src='https://placehold.co/120x40?text=Logo'"/>
+                </a>
+            </div>
+            <!-- Center: Main Nav Links -->
+            <div class="hidden lg:flex items-center gap-8">
+                <a class="text-secondary-text font-medium hover:text-primary transition-colors text-[15px]" href="#">首页</a>
+                <a class="text-secondary-text font-medium hover:text-primary transition-colors text-[15px]" href="#">专家</a>
+                <a class="text-secondary-text font-medium hover:text-primary transition-colors text-[15px]" href="#">公开课</a>
+                <a class="text-secondary-text font-medium hover:text-primary transition-colors text-[15px]" href="#">内训课</a>
+                <a class="nav-link-active font-bold text-[15px]" href="#">录播课</a>
+                <a class="text-secondary-text font-medium hover:text-primary transition-colors text-[15px]" href="#">机构</a>
+            </div>
+            <!-- Right: Search and User Actions -->
+            <div class="flex items-center gap-4">
+                <div class="flex items-center bg-slate-100 rounded-[4px] overflow-hidden p-0.5 border border-slate-200">
+                    <div class="relative group/select">
+                        <button class="flex items-center gap-1 px-3 py-1.5 text-xs text-secondary-text border-r border-slate-200 hover:bg-slate-200">
+                            培训讲师 <span class="material-symbols-outlined text-[14px]">expand_more</span>
+                        </button>
+                    </div>
+                    <input class="bg-transparent border-none focus:ring-0 text-xs w-[140px] px-2" placeholder="关键词搜索..." type="text"/>
+                    <button class="bg-primary text-white p-1.5 flex items-center justify-center hover:bg-primary-container transition-colors rounded-[2px]">
+                        <span class="material-symbols-outlined text-[18px]">search</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-3 text-sm font-medium ml-2">
+                    <a class="text-secondary-text hover:text-primary transition-colors" href="#">登录</a>
+                    <span class="text-slate-300">|</span>
+                    <a class="text-secondary-text hover:text-primary transition-colors" href="#">注册</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Breadcrumb -->
+        <div class="text-[13px] text-secondary-text mb-4">
+            你的位置：<a href="#" class="hover:text-primary transition-colors">首页</a> &gt; <span class="text-on-surface">录播课</span>
+        </div>
+
+        <!-- Banner Slider -->
+        <div class="w-full mb-6 rounded-lg overflow-hidden bg-white shadow-sm border border-slate-100">
+            <div class="relative w-full h-48 md:h-[240px] overflow-hidden">
+                <!-- Slider Track -->
+                <div class="absolute inset-0 flex transition-transform duration-500 ease-out" id="bannerSlider">
+                    <a href="#" class="min-w-full h-full flex-shrink-0">
+                        <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=1200&h=400" alt="精品课程包 优惠大放送" class="w-full h-full object-cover" />
+                    </a>
+                    <a href="#" class="min-w-full h-full flex-shrink-0">
+                        <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1200&h=400" alt="企业培训解决方案" class="w-full h-full object-cover" />
+                    </a>
+                    <a href="#" class="min-w-full h-full flex-shrink-0">
+                        <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=1200&h=400" alt="职场技能提升" class="w-full h-full object-cover" />
+                    </a>
+                </div>
+                
+                <!-- Slider Controls -->
+                <button class="absolute top-1/2 left-4 -translate-y-1/2 bg-white/80 hover:bg-white text-primary w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm z-10" onclick="prevSlide()">
+                    <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                </button>
+                <button class="absolute top-1/2 right-4 -translate-y-1/2 bg-white/80 hover:bg-white text-primary w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm z-10" onclick="nextSlide()">
+                    <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                </button>
+                
+                <!-- Slider Indicators -->
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                    <button class="w-2 h-2 rounded-full bg-white/50 hover:bg-white transition-all" onclick="goToSlide(0)"></button>
+                    <button class="w-2 h-2 rounded-full bg-white/50 hover:bg-white transition-all" onclick="goToSlide(1)"></button>
+                    <button class="w-2 h-2 rounded-full bg-white/50 hover:bg-white transition-all" onclick="goToSlide(2)"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-slate-100 mb-6">
+            <!-- Tabs -->
+            <div class="flex border-b border-slate-100 px-6 pt-4">
+                <button class="px-6 py-3 text-[15px] font-bold text-primary border-b-2 border-primary">全部课程</button>
+                <button class="px-6 py-3 text-[15px] font-medium text-on-surface hover:text-primary transition-colors">精品课程包</button>
+            </div>
+            
+            <!-- Filters -->
+            <div class="p-6 space-y-4 text-[13px]">
+                <!-- Row 1 -->
+                <div class="flex items-center">
+                    <span class="text-secondary-text w-20 shrink-0">课程分类：</span>
+                    <div class="flex items-center gap-4 flex-1">
+                        <button class="text-primary font-medium">全部</button>
+                        <select class="border border-slate-200 rounded px-3 py-1 text-[13px] text-on-surface focus:ring-primary focus:border-primary outline-none">
+                            <option>全部</option>
+                            <option>战略管理</option>
+                            <option>市场营销</option>
+                            <option>人力资源</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Row 2 -->
+                <div class="flex items-center">
+                    <span class="text-secondary-text w-20 shrink-0">价格范围：</span>
+                    <div class="flex items-center flex-wrap gap-4 flex-1">
+                        <button class="text-primary font-medium">全部</button>
+                        <button class="text-on-surface hover:text-primary transition-colors">1-99元</button>
+                        <button class="text-on-surface hover:text-primary transition-colors">10-19元</button>
+                        <button class="text-on-surface hover:text-primary transition-colors">20-39元</button>
+                        <button class="text-on-surface hover:text-primary transition-colors">39元以上</button>
+                        <div class="flex items-center gap-2 ml-4">
+                            <input type="text" class="border border-slate-200 rounded w-16 px-2 py-1 text-center focus:ring-primary focus:border-primary outline-none" />
+                            <span class="text-slate-300">-</span>
+                            <input type="text" class="border border-slate-200 rounded w-16 px-2 py-1 text-center focus:ring-primary focus:border-primary outline-none" />
+                            <button class="bg-slate-100 hover:bg-slate-200 text-on-surface px-3 py-1 rounded transition-colors border border-slate-200">确定</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 3 -->
+                <div class="flex items-start justify-between">
+                    <div class="flex items-center">
+                        <span class="text-secondary-text w-20 shrink-0">课程评价：</span>
+                        <div class="flex items-center gap-6">
+                            <button class="text-primary font-medium">全部</button>
+                            <button class="text-on-surface hover:text-primary transition-colors">三星以上</button>
+                            <button class="text-on-surface hover:text-primary transition-colors">四星以上</button>
+                            <button class="text-on-surface hover:text-primary transition-colors">五星</button>
+                        </div>
+                    </div>
+                    <button class="text-secondary-text hover:text-primary transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">delete</span> 全部撤销
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sort Bar -->
+        <div class="bg-white rounded-lg shadow-sm border border-slate-100 mb-6 px-6 py-3 flex items-center gap-8 text-[14px]">
+            <button class="text-primary font-bold">最新发布</button>
+            <button class="text-on-surface hover:text-primary transition-colors font-medium">人气最高</button>
+            <button class="text-on-surface hover:text-primary transition-colors font-medium flex items-center gap-1">
+                价格排序 <span class="material-symbols-outlined text-[16px] text-slate-400">unfold_more</span>
+            </button>
+        </div>
+
+        <!-- Course Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <!-- Repeated Card 1 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">赋能生产力：用DeepSeek+AI制作你的职场晋升指南</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">满减</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">刘立荣</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 1152</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 5.0</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 29.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Repeated Card 2 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">DeepSeek助力职场：办公效率提升指北</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">满减</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">马腾</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 3505</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-slate-300">star</span> 0.0</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 58.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Repeated Card 3 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">降本增效：企业成本控制与利润提升</h3>
+                    <div class="flex gap-2 mb-3">
+                        <!-- no tags -->
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">杨承恩</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 5644</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-slate-300">star</span> 0.0</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 199.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Repeated Card 4 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">公司股权顶层设计与防坑指南</h3>
+                    <div class="flex gap-2 mb-3">
+                        <!-- no tags -->
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">张三</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 1585</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-slate-300">star</span> 0.0</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 299.0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Row 2 -->
+            <!-- Card 5 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">从销售小白到销冠进阶指南</h3>
+                    <div class="flex gap-2 mb-3"></div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">林森</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 19182</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-slate-300">star</span> 0.0</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 199.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 6 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">职场高手进阶课：向上管理与沟通</h3>
+                    <div class="flex gap-2 mb-3"></div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">牛犇</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 42054</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-slate-300">star</span> 0.0</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 99.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 7 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">如何成为管理层懂业务的人</h3>
+                    <div class="flex gap-2 mb-3"></div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">张三</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 24947</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-slate-300">star</span> 0.0</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 18.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 8 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">从技术大牛到优秀管理者的转变</h3>
+                    <div class="flex gap-2 mb-3"></div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">王五</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 15216</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 5.0</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 12.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 3 -->
+            <!-- Card 9 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">数据分析与可视化实战</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">限时</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">李四</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 1234</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.8</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 69.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 10 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">Python编程基础与应用</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">热门</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">王五</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 4567</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.9</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 99.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 11 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">品牌营销与数字推广</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">满减</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">赵六</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 2345</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.7</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 129.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 12 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">企业战略规划与执行</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">新品</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">钱七</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 1890</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.6</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 149.0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Row 4 -->
+            <!-- Card 13 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">财务管理与预算控制</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">满减</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">孙八</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 3456</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.8</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 119.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 14 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">团队建设与管理</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">热门</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">周九</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 5678</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.7</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 89.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 15 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">高效沟通技巧</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">限时</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">吴十</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 2789</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.9</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 69.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 16 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">项目管理实战</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">新品</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">郑一</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 4567</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.8</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 139.0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Row 5 -->
+            <!-- Card 17 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">创新思维与问题解决</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">满减</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">冯二</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 2345</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.7</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 99.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 18 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">时间管理与效率提升</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">热门</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">陈三</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 6789</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.9</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 79.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 19 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">情商与人际关系</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">限时</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">褚四</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 4567</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.8</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 89.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 20 -->
+            <div class="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-all shadow-sm hover:shadow-md group flex flex-col cursor-pointer relative">
+                <div class="relative h-[160px] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400&h=300" alt="Course" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-4xl opacity-80 group-hover:opacity-100 drop-shadow-md">play_circle</span>
+                    </div>
+                </div>
+                <div class="p-4 flex flex-col flex-1">
+                    <h3 class="font-bold text-[15px] text-on-surface leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">职业规划与发展</h3>
+                    <div class="flex gap-2 mb-3">
+                        <span class="border border-primary text-primary px-1.5 py-0.5 text-[10px] rounded leading-none">新品</span>
+                    </div>
+                    <div class="text-[12px] text-secondary-text mb-4 mt-auto">
+                        嘉宾: <span class="text-on-surface">卫五</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-3 text-[12px] text-secondary-text">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> 3456</span>
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-yellow-500">star</span> 4.7</span>
+                        </div>
+                        <div class="text-primary font-bold text-[16px]">￥ 109.0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-center items-center gap-2 mb-16 text-[13px]">
+            <button class="px-3 py-1.5 rounded border border-primary text-white bg-primary hover:bg-primary-container transition-colors">首页</button>
+            <button class="px-3 py-1.5 rounded border border-primary text-white bg-primary hover:bg-primary-container transition-colors">上一页</button>
+            
+            <button class="px-3 py-1.5 rounded border border-primary bg-primary text-white font-medium">1</button>
+            <button class="px-3 py-1.5 rounded border border-slate-200 text-secondary-text hover:border-primary hover:text-primary transition-colors bg-white">2</button>
+            <button class="px-3 py-1.5 rounded border border-slate-200 text-secondary-text hover:border-primary hover:text-primary transition-colors bg-white">3</button>
+            <button class="px-3 py-1.5 rounded border border-slate-200 text-secondary-text hover:border-primary hover:text-primary transition-colors bg-white">4</button>
+            <button class="px-3 py-1.5 rounded border border-slate-200 text-secondary-text hover:border-primary hover:text-primary transition-colors bg-white">5</button>
+            <button class="px-3 py-1.5 rounded border border-slate-200 text-secondary-text hover:border-primary hover:text-primary transition-colors bg-white">6</button>
+            <button class="px-3 py-1.5 rounded border border-slate-200 text-secondary-text hover:border-primary hover:text-primary transition-colors bg-white">7</button>
+            <button class="px-3 py-1.5 rounded border border-slate-200 text-secondary-text hover:border-primary hover:text-primary transition-colors bg-white">8</button>
+            <button class="px-3 py-1.5 rounded border border-slate-200 text-secondary-text hover:border-primary hover:text-primary transition-colors bg-white">9</button>
+            <button class="px-3 py-1.5 rounded border border-slate-200 text-secondary-text hover:border-primary hover:text-primary transition-colors bg-white">10</button>
+            <span class="text-secondary-text px-1">...</span>
+            
+            <button class="px-3 py-1.5 rounded border border-slate-200 text-secondary-text hover:border-primary hover:text-primary transition-colors bg-white">下一页</button>
+            <button class="px-3 py-1.5 rounded border border-slate-200 text-secondary-text hover:border-primary hover:text-primary transition-colors bg-white">尾页</button>
+            
+            <div class="flex items-center gap-1 ml-4 text-secondary-text">
+                跳转到 <input type="text" class="w-10 border border-slate-200 rounded px-1 py-1 text-center focus:ring-primary focus:border-primary outline-none h-[30px]" /> 页
+                <span class="material-symbols-outlined cursor-pointer hover:text-primary text-[18px]">play_arrow</span>
+            </div>
+        </div>
+
+        <!-- Video Categories (Bottom Section) -->
+        <div class="bg-white rounded-lg shadow-sm border border-slate-100 p-8 mb-10">
+            <h2 class="text-[18px] font-bold font-headline text-on-surface mb-6">视频分类</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-y-4 gap-x-6 text-[13px]">
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 经营战略 629 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 市场营销 581 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 职场管理 1 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 销售管理 1195 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 采购管理 62 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 生产管理 389 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 物流管理 98 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 客户服务 376 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 财务税务 301 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 人力资源 672 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 培训发展 284 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 质量管理 56 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 项目管理 122 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 领导能力 1150 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 职业素养 1016 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 职业技能 169 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· MBA/总裁班 111 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 国学心理学 84 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 语言 155 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+                <a href="#" class="text-secondary-text hover:text-primary transition-colors flex justify-between group">
+                    <span>· 行政/法务 90 门</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-primary">&gt;</span>
+                </a>
+            </div>
+        </div>
+    </main>
+
+
+
+    <!-- Footer (Same as home) -->
+    <footer class="mt-10 bg-[#141414] py-16 text-[#A0A0A0]">
+        <div class="max-w-[1400px] mx-auto px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
+                <!-- 列 1: 品牌简介 -->
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-10 h-10 bg-primary rounded flex items-center justify-center text-white font-bold text-xl">淘</div>
+                            <span class="text-2xl font-black tracking-tighter text-white font-headline">淘课网</span>
+                        </div>
+                        <p class="text-white text-[15px] font-medium tracking-wide">领先的企业培训采购平台</p>
+                    </div>
+                    <div class="w-10 h-0.5 bg-primary"></div>
+                    <p class="text-[13px] leading-6">
+                        淘课网联合全国数万优秀培训师和培训机构,给企业提供有针对性的、互动的、积聚人脉的管理培训服务.包括提供培训需求诊断、培训课程采购、培训资料下载等服务！
+                    </p>
+                </div>
+
+                <!-- 列 2: 网站导航 -->
+                <div class="flex flex-col gap-5">
+                    <h3 class="text-white font-bold text-[16px]">网站导航</h3>
+                    <ul class="flex flex-col gap-3 text-[13px]">
+                        <li><a href="#" class="hover:text-white transition-colors">淘课网首页</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">淘课百科</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">《快乐培训》期刊</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">DISC性格测评</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">使用帮助</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">站点地图</a></li>
+                    </ul>
+                </div>
+
+                <!-- 列 3: 关于我们 & 商务合作 -->
+                <div class="flex flex-col gap-8">
+                    <div class="flex flex-col gap-5">
+                        <h3 class="text-white font-bold text-[16px]">关于我们</h3>
+                        <ul class="flex flex-col gap-3 text-[13px]">
+                            <li><a href="#" class="hover:text-white transition-colors">关于淘课</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">联系我们</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">招聘英才</a></li>
+                        </ul>
+                    </div>
+                    <div class="flex flex-col gap-5">
+                        <h3 class="text-white font-bold text-[16px]">商务服务</h3>
+                        <ul class="flex flex-col gap-3 text-[13px]">
+                            <li><a href="#" class="hover:text-white transition-colors">商务合作</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">广告服务</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 列 4: 法律与条款 -->
+                <div class="flex flex-col gap-5">
+                    <h3 class="text-white font-bold text-[16px]">法律声明</h3>
+                    <ul class="flex flex-col gap-3 text-[13px]">
+                        <li><a href="#" class="hover:text-white transition-colors">服务条款</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">法律声明</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">隐私保护</a></li>
+                    </ul>
+                </div>
+
+                <!-- 列 5: 联系我们 & 二维码 -->
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex flex-col gap-5 w-full">
+                            <h3 class="text-white font-bold text-[16px]">联系我们</h3>
+                            <ul class="flex flex-col gap-4 text-[13px]">
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-[#07C160] transition-colors"><span class="material-symbols-outlined text-[16px] text-white">chat</span></div>
+                                    <span>微信公众号</span>
+                                </li>
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-white transition-colors"><span class="material-symbols-outlined text-[16px] text-white group-hover:text-black">music_note</span></div>
+                                    <span>官方抖音号</span>
+                                </li>
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                    <div class="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center group-hover:bg-[#FF2442] transition-colors"><span class="text-white text-[10px] font-bold">小红书</span></div>
+                                    <span>官方小红书</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <!-- 二维码 -->
+                        <div class="shrink-0 bg-white p-2 rounded-md mt-10">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://taoke.com" alt="二维码" class="w-24 h-24" />
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <div class="text-white text-[24px] font-bold font-headline mb-3">400-169-7929</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-12 pt-6 border-t border-[#333] text-center text-[12px] text-[#888] flex flex-col md:flex-row justify-center items-center gap-4">
+                <span>Copyright(C) 2006-2024 TAOKE.com All Rights Reserved.</span>
+                <a href="#" class="hover:text-white transition-colors">上海淘课企业管理咨询有限公司 版权所有</a>
+                <a href="#" class="hover:text-white transition-colors">沪ICP备05034964号</a>
+                <div class="flex items-center gap-1 ml-4 cursor-pointer hover:text-white transition-colors">
+                    <img src="https://img.alicdn.com/tfs/TB1..50QpXXXXX7XpXXXXXXXXXX-40-40.png" alt="上海工商" class="w-4 h-4 opacity-70 grayscale">
+                    <span>上海工商</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const topNavBar = document.getElementById('top-nav-bar');
+            const mainNav = document.querySelector('nav');
+            
+            if (topNavBar && mainNav) {
+                const adjustNavPosition = () => {
+                    mainNav.style.top = `${topNavBar.offsetHeight}px`;
+                };
+                adjustNavPosition();
+                window.addEventListener('resize', adjustNavPosition);
+            }
+            
+            // Banner Slider Functionality
+            const slider = document.getElementById('bannerSlider');
+            const indicators = document.querySelectorAll('#bannerSlider + .absolute.bottom-4 button');
+            let currentSlide = 0;
+            let slideInterval;
+            
+            // Auto slide
+            const startSlide = () => {
+                slideInterval = setInterval(() => {
+                    nextSlide();
+                }, 5000);
+            };
+            
+            // Pause slide on hover
+            const pauseSlide = () => {
+                clearInterval(slideInterval);
+            };
+            
+            // Resume slide
+            const resumeSlide = () => {
+                startSlide();
+            };
+            
+            // Next slide
+            window.nextSlide = () => {
+                currentSlide = (currentSlide + 1) % 3;
+                updateSlider();
+            };
+            
+            // Previous slide
+            window.prevSlide = () => {
+                currentSlide = (currentSlide - 1 + 3) % 3;
+                updateSlider();
+            };
+            
+            // Go to specific slide
+            window.goToSlide = (index) => {
+                currentSlide = index;
+                updateSlider();
+            };
+            
+            // Update slider position and indicators
+            const updateSlider = () => {
+                slider.style.transform = `translateX(-${currentSlide * 100}%)`;
+                indicators.forEach((indicator, index) => {
+                    if (index === currentSlide) {
+                        indicator.classList.remove('bg-white/50');
+                        indicator.classList.add('bg-white');
+                        indicator.style.transform = 'scale(1.2)';
+                    } else {
+                        indicator.classList.remove('bg-white');
+                        indicator.classList.add('bg-white/50');
+                        indicator.style.transform = 'scale(1)';
+                    }
+                });
+            };
+            
+            // Initialize slider
+            updateSlider();
+            startSlide();
+            
+            // Add hover event listeners
+            const sliderContainer = document.querySelector('.relative.w-full.h-48');
+            sliderContainer.addEventListener('mouseenter', pauseSlide);
+            sliderContainer.addEventListener('mouseleave', resumeSlide);
+        });
+    </script>
+</body>
+</html>

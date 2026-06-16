@@ -1,0 +1,41 @@
+{
+  "title": "我的订单",
+  "tabs": {
+    "all": "全部订单",
+    "pending": "待支付",
+    "paid": "已完成",
+    "cancelled": "已取消",
+    "expired": "已过期"
+  },
+  "searchPlaceholder": "输入订单号搜索",
+  "empty": "暂无订单",
+  "orderNo": "订单号",
+  "actualPay": "实付款",
+  "payNow": "立即支付",
+  "cancelOrder": "取消订单",
+  "cancelSuccess": "订单已取消",
+  "items": "件商品",
+  "unitPrice": "单价",
+  "done": "交易完成",
+  "confirmOrder": "确认订单",
+  "confirmProduct": "确认商品",
+  "productTotal": "商品总价",
+  "payable": "应付金额",
+  "payNowBtn": "立即支付",
+  "alreadyPaid": "该订单已支付",
+  "missingOrderNo": "缺少订单编号",
+  "orderNotFound": "订单不存在",
+  "payment": {
+    "title": "确认支付",
+    "mockHint": "当前为模拟支付模式，点击即完成支付",
+    "confirm": "确认支付",
+    "processing": "支付处理中...",
+    "wait": "请稍候",
+    "success": "支付成功",
+    "amount": "支付金额",
+    "redirect": "即将跳转到订单详情..."
+  },
+  "prevPage": "上一页",
+  "nextPage": "下一页",
+  "pageInfo": "第 {page} 页"
+}

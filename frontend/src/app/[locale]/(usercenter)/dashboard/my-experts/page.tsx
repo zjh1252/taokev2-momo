@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
+import { Link } from '@/i18n/navigation';
+import { ROUTES } from '@/config/routes';
 import { toast } from 'sonner';
 import {
   Users, Plus, Search, X, Loader2, AlertCircle,
@@ -12,7 +14,7 @@ import {
   listEnterpriseAgentTrainers,
   listAgentTrainers,
   listAssistantTrainers,
-  listManagedTrainers,
+  listEmployeeInstitutionTrainers,
   initiateBinding,
   unbind,
   lookupUserByPhone,
@@ -55,7 +57,6 @@ export default function MyExpertsPage() {
 
   const role = activeRole;
   const bindingType: BindingType = mapRoleToType(role);
-  const readOnly = role === 'INSTITUTION_EMPLOYEE';
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -92,7 +93,10 @@ export default function MyExpertsPage() {
           <h2 className="text-lg font-bold text-gray-800">我的专家</h2>
           <span className="text-xs text-gray-400">{items.length} 位</span>
         </div>
-        {!readOnly && (
+        <div className="flex items-center gap-3">
+          {role === 'INSTITUTION_EMPLOYEE' && (
+            <span className="text-xs text-gray-400">以所属机构名义添加专家</span>
+          )}
           <button
             type="button"
             onClick={() => setAdding(true)}
@@ -101,13 +105,9 @@ export default function MyExpertsPage() {
             <Plus className="size-4" />
             添加专家
           </button>
-        )}
-        {readOnly && (
-          <span className="text-xs text-gray-400">只读视图，权限来自所属机构</span>
-        )}
+        </div>
       </div>
 
-      {!readOnly && (
       <div className="px-6 pt-4 pb-2 flex gap-1 flex-wrap">
         {STATUS_TABS.map((t) => (
           <button
@@ -129,7 +129,6 @@ export default function MyExpertsPage() {
           </button>
         ))}
       </div>
-      )}
 
       <div className="px-6 pb-6 pt-3">
         {loading ? (
@@ -147,7 +146,6 @@ export default function MyExpertsPage() {
               <ExpertCard
                 key={`${item.bindingType}-${item.id}`}
                 item={item}
-                readOnly={readOnly}
                 onUnbind={handleUnbind}
               />
             ))}
@@ -177,6 +175,8 @@ function mapRoleToType(role: string | undefined): BindingType {
     case 'ENTERPRISE_AGENT': return 'ENTERPRISE_AGENT_TRAINER';
     case 'AGENT': return 'AGENT_TRAINER';
     case 'ASSISTANT': return 'ASSISTANT_TRAINER';
+    // 机构员工以所属机构名义发起机构-专家绑定
+    case 'INSTITUTION_EMPLOYEE': return 'INSTITUTION_TRAINER';
     default: return 'INSTITUTION_TRAINER';
   }
 }
@@ -187,18 +187,16 @@ function pickListFetcher(role: string | undefined): (() => Promise<BindingItem[]
     case 'ENTERPRISE_AGENT': return listEnterpriseAgentTrainers;
     case 'AGENT': return listAgentTrainers;
     case 'ASSISTANT': return listAssistantTrainers;
-    case 'INSTITUTION_EMPLOYEE': return listManagedTrainers;
+    case 'INSTITUTION_EMPLOYEE': return listEmployeeInstitutionTrainers;
     default: return null;
   }
 }
 
 function ExpertCard({
   item,
-  readOnly,
   onUnbind,
 }: {
   item: BindingItem;
-  readOnly?: boolean;
   onUnbind: (i: BindingItem) => void;
 }) {
   const status = item.status;
@@ -244,22 +242,20 @@ function ExpertCard({
           )}
         </div>
       </div>
-      {!readOnly && (
-        <div className="mt-3 flex flex-wrap gap-2 justify-end">
-          {/* 仅在 ACTIVE 或自己发起的 PENDING 上显示撤回/解绑 — 与 my-agents-team 视角一致 */}
-          {(status === BINDING_STATUS.ACTIVE
-            || (status === BINDING_STATUS.PENDING && item.ifInitiator)) && (
-            <button
-              type="button"
-              onClick={() => onUnbind(item)}
-              className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
-            >
-              <X className="size-3.5" />
-              {status === BINDING_STATUS.PENDING ? '撤回邀请' : '解除绑定'}
-            </button>
-          )}
-        </div>
-      )}
+      <div className="mt-3 flex flex-wrap gap-2 justify-end">
+        {/* 仅在 ACTIVE 或自己发起的 PENDING 上显示撤回/解绑 — 与 my-agents-team 视角一致 */}
+        {(status === BINDING_STATUS.ACTIVE
+          || (status === BINDING_STATUS.PENDING && item.ifInitiator)) && (
+          <button
+            type="button"
+            onClick={() => onUnbind(item)}
+            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <X className="size-3.5" />
+            {status === BINDING_STATUS.PENDING ? '撤回邀请' : '解除绑定'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -281,6 +277,10 @@ function AddExpertDialog({
   const [submitting, setSubmitting] = useState(false);
   const [picked, setPicked] = useState<LookupUserResult | null>(null);
   const [note, setNote] = useState('');
+  /** 查无账号：展示「代专家注册」引导面板 */
+  const [notFound, setNotFound] = useState(false);
+  /** 已有账号但未通过专家审核的提示 */
+  const [notApprovedMsg, setNotApprovedMsg] = useState('');
 
   const handleSearch = async () => {
     if (!phone.trim()) {
@@ -288,6 +288,8 @@ function AddExpertDialog({
       return;
     }
     setSearching(true);
+    setNotFound(false);
+    setNotApprovedMsg('');
     try {
       const found = await lookupUserByPhone(phone.trim());
       // 即时拦截自邀请，避免点提交后才被后端兜底拒绝
@@ -296,10 +298,22 @@ function AddExpertDialog({
         toast.error('不能邀请自己作为专家');
         return;
       }
+      // 仅允许添加平台已通过审核的专家
+      if (!found.approvedTrainer) {
+        setPicked(null);
+        setNotApprovedMsg('该用户尚未通过平台的专家审核，暂时无法添加。请联系对方先完成专家入驻并通过审核。');
+        return;
+      }
       setPicked(found);
     } catch (err) {
       setPicked(null);
-      toast.error(err instanceof Error ? err.message : '未找到该手机号对应用户，请确认对方已注册');
+      const e = err as Error & { status?: number };
+      if (e?.status === 404) {
+        // 平台上没有该专家 → 引导代理角色代专家注册账号
+        setNotFound(true);
+      } else {
+        toast.error(e instanceof Error ? e.message : '查找失败，请稍后重试');
+      }
     } finally {
       setSearching(false);
     }
@@ -361,6 +375,37 @@ function AddExpertDialog({
               </button>
             </div>
           </div>
+
+          {notApprovedMsg && (
+            <div className="flex items-start gap-2 border border-amber-200 bg-amber-50 rounded-lg p-3 text-sm text-amber-700">
+              <AlertCircle className="size-4 mt-0.5 shrink-0" />
+              <span>{notApprovedMsg}</span>
+            </div>
+          )}
+
+          {notFound && (
+            <div className="border border-amber-200 bg-amber-50 rounded-lg p-4 space-y-3">
+              <div className="flex items-start gap-2 text-sm text-amber-700">
+                <AlertCircle className="size-4 mt-0.5 shrink-0" />
+                <span>平台上没有这位专家，请您代理专家注册账号。</span>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNotFound(false)}
+                  className="px-3 py-1.5 text-xs text-gray-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  取消
+                </button>
+                <Link
+                  href={ROUTES.REGISTER}
+                  className="px-3 py-1.5 text-xs bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  确认，去代专家注册
+                </Link>
+              </div>
+            </div>
+          )}
 
           {picked && (
             <div className="border border-primary/30 bg-primary/5 rounded-lg p-3 flex items-center gap-3">

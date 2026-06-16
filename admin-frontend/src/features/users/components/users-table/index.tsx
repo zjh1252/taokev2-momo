@@ -13,14 +13,22 @@ export function UsersTable() {
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
     nickname: parseAsString,
-    status: parseAsString
+    status: parseAsString,
+    role: parseAsString,
+    regOrigin: parseAsString,
+    realNameCertStatus: parseAsString
   });
 
   const filters = {
     page: params.page,
     limit: params.perPage,
     ...(params.nickname && { search: params.nickname }),
-    ...(params.status && { status: params.status })
+    ...(params.status && { status: params.status }),
+    ...(params.role && { role: params.role }),
+    ...(params.regOrigin && { regOrigin: params.regOrigin }),
+    ...(params.realNameCertStatus && {
+      realNameCertStatus: params.realNameCertStatus
+    })
   };
 
   const { data: resp } = useSuspenseQuery(usersQueryOptions(filters));
@@ -36,7 +44,8 @@ export function UsersTable() {
     shallow: true,
     debounceMs: 500,
     initialState: {
-      columnPinning: { right: ['actions'] }
+      columnPinning: { right: ['actions'] },
+      columnVisibility: { role: false }
     }
   });
 

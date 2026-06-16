@@ -1,8 +1,9 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { InstitutionListSection } from '@/features/institution/components/list/InstitutionListSection';
 import { getInstitutionList } from '@/features/institution/api/service';
-import { buildInstitutionCategoryNavItems } from '@/lib/channel-category-stats';
+import { loadGoldInstitutions } from '@/features/recommendation/api/loaders';
 import { getCachedTrainerExpertiseTree } from '@/lib/cached-categories';
+import { buildInstitutionCategoryLinks } from '@/lib/institution-category-nav';
 import { institutionListMetadata, institutionListH1 } from '@/lib/seo';
 import { firstStringValue, normalizeNumberIds } from '@/lib/search-params';
 
@@ -29,9 +30,7 @@ export default async function InstitutionsPage({ searchParams }: Props) {
     sp.expertiseCategoryId ? [sp.expertiseCategoryId] : undefined,
   )[0];
 
-  const expertiseTreePromise = getCachedTrainerExpertiseTree();
-
-  const [initialData, categoryItems] = await Promise.all([
+  const [initialData, goldPool, expertiseTree] = await Promise.all([
     getInstitutionList({
       page: 1,
       size: 15,
@@ -43,8 +42,19 @@ export default async function InstitutionsPage({ searchParams }: Props) {
       size: 15,
       totalPages: 0,
     })),
-    expertiseTreePromise.then((tree) => buildInstitutionCategoryNavItems(tree, '/company')).catch(() => []),
+    getInstitutionList({ page: 1, size: 50 }).catch(() => ({
+      list: [],
+      total: 0,
+      page: 1,
+      size: 50,
+      totalPages: 0,
+    })),
+    getCachedTrainerExpertiseTree(),
   ]);
+
+  const initialGoldRecommends = await loadGoldInstitutions(goldPool.list, 4);
+
+  const categoryItems = buildInstitutionCategoryLinks(expertiseTree, '/company');
 
   const listH1 = institutionListH1({
     category: firstStringValue(sp.categoryName),
@@ -57,6 +67,7 @@ export default async function InstitutionsPage({ searchParams }: Props) {
 
       <InstitutionListSection
         initialData={initialData}
+        initialGoldRecommends={initialGoldRecommends}
         categoryItems={categoryItems}
         initialExpertiseCategoryId={expertiseCategoryId}
         categoryTitle="培训机构类别"

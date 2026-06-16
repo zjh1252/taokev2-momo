@@ -1,4 +1,4 @@
-import { serverFetch } from '@/lib/server-fetch';
+import { serverFetchWithStatus } from '@/lib/server-fetch';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
   if (search) params.set('search', search);
   if (status) params.set('status', status);
 
-  const result = await serverFetch<unknown>(`/admin/trainers?${params.toString()}`);
-  return NextResponse.json(result);
+  const { status: httpStatus, body } = await serverFetchWithStatus<unknown>(
+    `/admin/trainers?${params.toString()}`
+  );
+  return NextResponse.json(body, { status: httpStatus >= 400 ? httpStatus : 200 });
 }

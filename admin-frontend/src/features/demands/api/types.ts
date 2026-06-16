@@ -1,5 +1,6 @@
 export type AdminDemandListItem = {
   id: number;
+  demandNo: string;
   demandType: string;
   demandTypeLabel: string;
   title: string;
@@ -11,7 +12,7 @@ export type AdminDemandListItem = {
   format: string | null;
   traineeCount: number | null;
   createdAt: string;
-  userId: number;
+  userId: number | null;
 };
 
 export type DemandFollowUp = {
@@ -31,7 +32,8 @@ export type DemandFollowUp = {
 
 export type AdminDemandDetail = {
   id: number;
-  userId: number;
+  demandNo: string;
+  userId: number | null;
   enterpriseId: number | null;
   demandType: string;
   demandTypeLabel: string;

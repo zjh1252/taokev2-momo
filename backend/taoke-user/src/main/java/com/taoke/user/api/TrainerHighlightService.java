@@ -42,6 +42,9 @@ public interface TrainerHighlightService {
 
     List<TrainerHighlightResponse> listApprovedHighlights(Integer trainerId);
 
+    /** 机构详情页：机构主体 + 挂靠专家已通过精彩瞬间 */
+    List<TrainerHighlightResponse> listApprovedHighlightsForInstitution(Integer institutionId, int limit);
+
     // ==================== 后台管理 ====================
 
     TrainerHighlightResponse adminGetDetail(Integer highlightId);

@@ -1,6 +1,9 @@
 # ============================================================
 # 开发环境配置 — 中间件连接、密钥、日志级别等
 # ============================================================
+server:
+  port: 8080
+
 # Nacos 配置中心
 spring:
   datasource:
@@ -39,6 +42,11 @@ spring:
       max-request-size: 500MB
 
 taoke:
+  # 本地开发：mock 短信 + 关闭滑块，与前端 NEXT_PUBLIC_MOCK_SMS=true 对齐
+  sms:
+    provider: mock
+  captcha:
+    enabled: false
   elasticsearch:
     uris: http://10.0.14.20:9200
     username: app_search
@@ -51,11 +59,16 @@ taoke:
     secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
   storage:
     provider: local
+    # 相对路径在 dev 下由 StorageDirectoryResolver 自动定位 monorepo 内 frontend/public
     base-dir: ../../frontend/public
     public-domain:
   cors:
-    allowed-origins: '*'
-    allow-credentials: false
+    allowed-origins:
+      - http://localhost:3000
+      - http://127.0.0.1:3000
+      - http://localhost:3001
+      - http://127.0.0.1:3001
+    allow-credentials: true
   # AI 能力（开发环境默认禁用，将 enabled 改为 true 并填入真实 base-url + api-key 后启用）
   ai:
     enabled: true
@@ -65,6 +78,14 @@ taoke:
     temperature: 0.2
     timeout-ms: 1200000
     max-input-chars: 50000
+
+# 爬虫服务（开发环境）
+# crawler-service 在 Docker 内运行时，回调须用 host.docker.internal 访问宿主机 Java（18080）
+# 若改为本机直接 uvicorn 启动爬虫，可改回 http://localhost:18080/internal/crawl/callback
+crawler:
+  base-url: http://localhost:8100
+  callback-url: http://host.docker.internal:8080/internal/crawl/callback
+  callback-token: local-crawler-token
 
 logging:
   level:

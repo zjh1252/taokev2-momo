@@ -5,7 +5,9 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.service.CategoryService;
+import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.common.service.RegionService;
+import com.taoke.common.util.LegacyAvatarUrls;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.dto.institution.InstitutionListItemResponse;
 import com.taoke.user.dto.institution.InstitutionPublicResponse;
@@ -15,6 +17,7 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.mapper.InstitutionMapper;
 import com.taoke.user.repository.InstitutionRepository;
+import com.taoke.user.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -51,6 +55,8 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     private final RoleApplyService roleApplyService;
     private final RegionService regionService;
     private final CategoryService categoryService;
+    private final OpsMaterialResolver opsMaterialResolver;
+    private final UserRepository userRepository;
 
     @Override
     public InstitutionResponse getByUserId(Integer userId) {
@@ -84,16 +90,21 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     public PageResponse<InstitutionListItemResponse> listPublic(int page, int size,
                                                                  String keyword, String sort,
                                                                  Boolean association,
-                                                                 Integer expertiseCategoryId) {
-        Sort jpaSort = "popularity".equals(sort)
-                ? Sort.by(Sort.Direction.DESC, "viewCount").and(Sort.by(Sort.Direction.DESC, "id"))
-                : Sort.by(Sort.Direction.DESC, "sortOrder")
-                      .and(Sort.by(Sort.Direction.DESC, "viewCount"))
-                      .and(Sort.by(Sort.Direction.DESC, "id"));
+                                                                 Integer expertiseCategoryId,
+                                                                 Integer cityId) {
+        Sort jpaSort = switch (sort != null ? sort : "") {
+            case "popularity" -> Sort.by(Sort.Direction.DESC, "viewCount")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "newly_joined" -> Sort.by(Sort.Direction.DESC, "createdAt")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            default -> Sort.by(Sort.Direction.DESC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.DESC, "viewCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        };
 
         PageRequest pageable = PageRequest.of(page - 1, size, jpaSort);
 
-        Specification<Institution> spec = buildListSpec(keyword, association, expertiseCategoryId);
+        Specification<Institution> spec = buildListSpec(keyword, association, expertiseCategoryId, cityId);
         Page<Institution> result = institutionRepository.findAll(spec, pageable);
 
         if (result.isEmpty()) {
@@ -117,12 +128,12 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         List<InstitutionListItemResponse> items = institutions.stream()
                 .map(inst -> {
                     InstitutionListItemResponse item = institutionMapper.toListItemResponse(inst);
-                    item.setProvinceName(regionNameMap.get(inst.getProvinceId()));
-                    item.setCityName(regionNameMap.get(inst.getCityId()));
+                    item.setProvinceName(resolveRegionDisplayName(inst.getProvinceId(), regionNameMap));
+                    item.setCityName(resolveRegionDisplayName(inst.getCityId(), regionNameMap));
                     return item;
                 })
                 .toList();
-        fillMissingLogos(items);
+        fillMissingLogos(institutions, items);
         resolveCategoryDisplayNames(items);
 
         return PageResponse.of(items, result.getTotalElements(), page, size);
@@ -134,14 +145,54 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     }
 
     @Override
-    public InstitutionPublicResponse getPublicProfile(Integer id) {
-        Institution institution = institutionRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
-
-        if (institution.getStatus() != 1) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "机构不存在");
+    public List<InstitutionListItemResponse> listRecommended(String type, Boolean association, int limit) {
+        int n = limit > 0 ? Math.min(limit, 20) : 5;
+        Sort sort = switch (type != null ? type : "") {
+            case "high_score" -> Sort.by(Sort.Direction.DESC, "score")
+                    .and(Sort.by(Sort.Direction.DESC, "viewCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "weekly_active" -> Sort.by(Sort.Direction.DESC, "updatedAt")
+                    .and(Sort.by(Sort.Direction.DESC, "viewCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "newly_joined" -> Sort.by(Sort.Direction.DESC, "createdAt")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            default -> Sort.by(Sort.Direction.DESC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        };
+        Specification<Institution> spec = buildListSpec(null, association, null, null);
+        Page<Institution> page = institutionRepository.findAll(spec, PageRequest.of(0, n, sort));
+        if (page.isEmpty()) {
+            return List.of();
         }
+        List<Institution> institutions = page.getContent();
+        Set<Integer> regionIds = new HashSet<>();
+        for (Institution inst : institutions) {
+            if (inst.getProvinceId() != null && inst.getProvinceId() > 0) {
+                regionIds.add(inst.getProvinceId());
+            }
+            if (inst.getCityId() != null && inst.getCityId() > 0) {
+                regionIds.add(inst.getCityId());
+            }
+        }
+        Map<Integer, String> regionNameMap = regionIds.isEmpty()
+                ? Map.of()
+                : regionService.getNamesByIds(regionIds);
+        List<InstitutionListItemResponse> items = institutions.stream()
+                .map(inst -> {
+                    InstitutionListItemResponse item = institutionMapper.toListItemResponse(inst);
+                    item.setProvinceName(resolveRegionDisplayName(inst.getProvinceId(), regionNameMap));
+                    item.setCityName(resolveRegionDisplayName(inst.getCityId(), regionNameMap));
+                    return item;
+                })
+                .toList();
+        fillMissingLogos(institutions, items);
+        resolveCategoryDisplayNames(items);
+        return items;
+    }
 
+    @Override
+    public InstitutionPublicResponse getPublicProfile(Integer id) {
+        Institution institution = resolvePublicByPathId(id);
         InstitutionPublicResponse resp = institutionMapper.toPublicResponse(institution);
 
         // 联系方式仅在公开时返回
@@ -160,19 +211,121 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         }
         if (!regionIds.isEmpty()) {
             Map<Integer, String> nameMap = regionService.getNamesByIds(regionIds);
-            resp.setProvinceName(nameMap.get(institution.getProvinceId()));
-            resp.setCityName(nameMap.get(institution.getCityId()));
+            resp.setProvinceName(resolveRegionDisplayName(institution.getProvinceId(), nameMap));
+            resp.setCityName(resolveRegionDisplayName(institution.getCityId(), nameMap));
         }
 
         if (isBlankLogo(resp.getLogoUrl())) {
             resp.setLogoUrl(lookupLogoByOrgName(resp.getOrgName()));
         }
+        resp.setLogoUrl(resolveInstitutionDisplayLogo(institution, resp.getLogoUrl()));
 
         Map<Integer, String> categoryNameMap = loadCategoryNameMap(resp.getSpecialties(), resp.getIndustries());
         resp.setSpecialties(resolveCategoryLabelString(resp.getSpecialties(), categoryNameMap));
         resp.setIndustries(resolveCategoryLabelString(resp.getIndustries(), categoryNameMap));
 
         return resp;
+    }
+
+    @Transactional
+    @Override
+    public void incrementViewCount(Integer institutionId) {
+        Institution institution = institutionRepository.findById(institutionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
+        if (institution.getStatus() == null || institution.getStatus() != 1
+                || !Boolean.TRUE.equals(institution.getPublicListEligible())) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "机构不存在");
+        }
+        institution.setViewCount((institution.getViewCount() != null ? institution.getViewCount() : 0) + 1);
+        institutionRepository.save(institution);
+    }
+
+    @Override
+    public Institution resolvePublicByPathId(Integer pathId) {
+        if (pathId == null || pathId <= 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "机构不存在");
+        }
+
+        // 老站 URL：/company/{roleid}.htm
+        Optional<Institution> byLegacyRole = institutionRepository
+                .findFirstByLegacyRoleIdAndStatusAndPublicListEligibleTrue(pathId, 1, true);
+        if (byLegacyRole.isPresent()) {
+            return byLegacyRole.get();
+        }
+
+        Optional<Institution> byId = institutionRepository.findById(pathId);
+        if (byId.isEmpty()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "机构不存在");
+        }
+
+        Institution institution = byId.get();
+        if (institution.getStatus() != 1) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "机构不存在");
+        }
+
+        if (Boolean.TRUE.equals(institution.getPublicListEligible())) {
+            return institution;
+        }
+
+        return findCanonicalPublicByOrgName(institution.getOrgName())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
+    }
+
+    /** 同名机构保留 id=user_id 优先、view_count 更高者 */
+    private Optional<Institution> findCanonicalPublicByOrgName(String orgName) {
+        if (orgName == null || orgName.isBlank()) {
+            return Optional.empty();
+        }
+        Specification<Institution> spec = (root, query, cb) -> cb.and(
+                cb.equal(root.get("status"), 1),
+                cb.equal(root.get("publicListEligible"), true),
+                cb.equal(root.get("orgName"), orgName.trim())
+        );
+        List<Institution> candidates = institutionRepository.findAll(spec);
+        if (candidates.isEmpty()) {
+            return Optional.empty();
+        }
+        Institution best = candidates.get(0);
+        for (Institution candidate : candidates) {
+            if (isPreferredCanonical(candidate, best)) {
+                best = candidate;
+            }
+        }
+        return Optional.of(best);
+    }
+
+    private static boolean isPreferredCanonical(Institution candidate, Institution current) {
+        int candidateRank = canonicalRank(candidate);
+        int currentRank = canonicalRank(current);
+        if (candidateRank != currentRank) {
+            return candidateRank < currentRank;
+        }
+        int viewCmp = Integer.compare(
+                candidate.getViewCount() != null ? candidate.getViewCount() : 0,
+                current.getViewCount() != null ? current.getViewCount() : 0);
+        if (viewCmp != 0) {
+            return viewCmp > 0;
+        }
+        return candidate.getId() > current.getId();
+    }
+
+    private static int canonicalRank(Institution institution) {
+        if (institution.getId() != null && institution.getId().equals(institution.getUserId())) {
+            return 0;
+        }
+        return 1;
+    }
+
+    private String resolveRegionDisplayName(Integer regionId, Map<Integer, String> regionNameMap) {
+        if (regionId == null || regionId <= 0) {
+            return null;
+        }
+        String name = regionNameMap.get(regionId);
+        if (name != null && !name.isBlank()) {
+            return name;
+        }
+        String legacy = regionService.getNameByLegacyRegionId(regionId);
+        return legacy.isBlank() ? null : legacy;
     }
 
     /** 列表项批量将 specialties / industries 中的分类 ID 解析为展示名称 */
@@ -253,22 +406,22 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         return map;
     }
 
-    /** partner 迁移行 logo 常为空，从同名 organ 行补 Logo（列表批量） */
-    private void fillMissingLogos(List<InstitutionListItemResponse> items) {
+    /** partner 迁移行 logo 常为空，从同名 organ 行补 Logo，老站机构再回退默认头像素材池 */
+    private void fillMissingLogos(List<Institution> institutions, List<InstitutionListItemResponse> items) {
         List<String> names = items.stream()
                 .filter(item -> isBlankLogo(item.getLogoUrl()))
                 .map(InstitutionListItemResponse::getOrgName)
                 .filter(name -> name != null && !name.isBlank())
                 .distinct()
                 .toList();
-        if (names.isEmpty()) {
-            return;
-        }
-        Map<String, String> logoByOrgName = loadLogoByOrgNames(names);
-        for (InstitutionListItemResponse item : items) {
+        Map<String, String> logoByOrgName = names.isEmpty() ? Map.of() : loadLogoByOrgNames(names);
+        for (int i = 0; i < items.size(); i++) {
+            InstitutionListItemResponse item = items.get(i);
             if (isBlankLogo(item.getLogoUrl())) {
                 item.setLogoUrl(logoByOrgName.get(item.getOrgName()));
             }
+            Institution institution = institutions.get(i);
+            item.setLogoUrl(resolveInstitutionDisplayLogo(institution, item.getLogoUrl()));
         }
     }
 
@@ -298,25 +451,51 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         return logoUrl == null || logoUrl.isBlank() || isPlaceholderLogo(logoUrl);
     }
 
-    /** 旧站默认占位图（middle/00/1.jpg），非机构真实 Logo */
     private static boolean isPlaceholderLogo(String logoUrl) {
-        if (logoUrl == null || logoUrl.isBlank()) {
+        return LegacyAvatarUrls.isPlaceholder(logoUrl);
+    }
+
+    /** 老站迁移机构才使用默认头像素材；新注册机构仅保留 Logo 上传 */
+    private boolean allowDefaultInstitutionAvatar(Institution institution) {
+        if (institution == null) {
             return false;
         }
-        String normalized = logoUrl.trim().replace('\\', '/');
-        return normalized.contains("/middle/00/1.")
-                || normalized.endsWith("/middle/00/1");
+        if (institution.getLegacyRoleId() != null && institution.getLegacyRoleId() > 0) {
+            return true;
+        }
+        if (institution.getUserId() == null) {
+            return false;
+        }
+        return userRepository.findById(institution.getUserId())
+                .map(u -> Integer.valueOf(2).equals(u.getUserSource()))
+                .orElse(false);
+    }
+
+    private String resolveInstitutionDisplayLogo(Institution institution, String logoUrl) {
+        if (LegacyAvatarUrls.isUsable(logoUrl)) {
+            return LegacyAvatarUrls.normalize(logoUrl);
+        }
+        if (!allowDefaultInstitutionAvatar(institution)) {
+            return logoUrl != null ? logoUrl : "";
+        }
+        int seed = institution.getId() != null ? institution.getId() : 0;
+        return opsMaterialResolver.resolveAvatarUrl(logoUrl, "INSTITUTION", true, seed);
     }
 
     /** 构建公开列表查询的动态条件（仅状态=1 的已发布机构） */
     private Specification<Institution> buildListSpec(String keyword, Boolean association,
-                                                   Integer expertiseCategoryId) {
+                                                   Integer expertiseCategoryId,
+                                                   Integer cityId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), 1));
             predicates.add(cb.equal(root.get("publicListEligible"), true));
             // 迁移占位名，公开列表不展示
             predicates.add(cb.notLike(root.get("orgName"), "未命名机构#%"));
+
+            if (cityId != null && cityId > 0) {
+                predicates.add(cb.equal(root.get("cityId"), cityId));
+            }
 
             if (association != null) {
                 predicates.add(cb.equal(root.get("association"), association));
@@ -370,6 +549,15 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         Institution inst = institutionRepository.findById(institutionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
         inst.setAssociation(association);
+        institutionRepository.save(inst);
+    }
+
+    @Override
+    @Transactional
+    public void setRecommended(Integer institutionId, Integer value) {
+        Institution inst = institutionRepository.findById(institutionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
+        inst.setIsRecommended(value != null && value == 1 ? 1 : 0);
         institutionRepository.save(inst);
     }
 

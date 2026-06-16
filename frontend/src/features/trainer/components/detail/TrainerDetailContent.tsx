@@ -565,7 +565,7 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
               key={industry}
               className="flex flex-col md:flex-row gap-6 pb-6 border-b border-slate-200 border-dashed last:border-b-0"
             >
-              <div className="w-full md:w-[120px] shrink-0 font-medium text-slate-900 flex items-center md:justify-center">
+              <div className="w-full md:w-[120px] shrink-0 font-medium text-slate-900 flex items-center justify-center md:self-center text-center">
                 {industry}
               </div>
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -788,8 +788,8 @@ function ReviewsView({
       </div>
 
       {/* 评分统计 */}
-      <div className="grid md:grid-cols-[220px_1fr] gap-6 mb-8">
-        <div className="rounded-lg border border-slate-200 p-4 bg-slate-50">
+      <div className="grid md:grid-cols-[220px_1fr] gap-6 mb-8 md:items-center">
+        <div className="rounded-lg border border-slate-200 p-4 bg-slate-50 flex flex-col items-center justify-center text-center md:self-center">
           <div className="text-3xl font-extrabold text-primary">{avgScore}</div>
           <div className="text-sm text-slate-500 mt-1">综合评分</div>
         </div>

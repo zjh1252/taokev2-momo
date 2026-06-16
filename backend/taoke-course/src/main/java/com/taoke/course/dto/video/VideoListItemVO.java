@@ -39,13 +39,18 @@ public class VideoListItemVO {
     private Integer studentCount;
     private BigDecimal score;
 
+    private Integer publisherId;
     private String publisherType;
     private String publisherName;
     private String keywords;
 
     private Integer isFeatured;
     private Integer sortOrder;
+    private Integer stickyPriority;
 
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;
+
+    /** 当前登录用户是否已购买解锁（未登录时为 null） */
+    private Boolean unlocked;
 }

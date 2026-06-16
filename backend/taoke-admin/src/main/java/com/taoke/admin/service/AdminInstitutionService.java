@@ -57,20 +57,14 @@ public class AdminInstitutionService {
     }
 
     /**
-     * 分页查询机构申请列表
+     * 分页查询机构申请列表。
+     * <p>待审核（含资料重审）置顶，组内按最近提交时间倒序 — 排序由 findApplications 内部 JPQL 固定。</p>
      */
     public PageResult<AdminInstitutionApplicationVO> listApplications(AdminInstitutionApplicationQuery query) {
-        PageRequest pageable = PageRequest.of(
-                query.getPage() - 1, query.getSize(),
-                Sort.by(Sort.Direction.DESC, "id")
-        );
+        PageRequest pageable = PageRequest.of(query.getPage() - 1, query.getSize());
 
-        Page<UserRole> rolePage;
-        if (query.getStatus() != null) {
-            rolePage = userRoleService.findByRoleAndStatus(BusinessRole.Code.INSTITUTION, query.getStatus(), pageable);
-        } else {
-            rolePage = userRoleService.findByRole(BusinessRole.Code.INSTITUTION, pageable);
-        }
+        Page<UserRole> rolePage =
+                userRoleService.findApplications(BusinessRole.Code.INSTITUTION, query.getStatus(), pageable);
 
         List<UserRole> userRoles = rolePage.getContent();
         if (userRoles.isEmpty()) {
@@ -88,8 +82,10 @@ public class AdminInstitutionService {
             vo.setId(ur.getId());
             vo.setUserId(ur.getUserId());
             vo.setStatus(ur.getStatus());
+            vo.setReapplying(Boolean.TRUE.equals(ur.getReapplying()));
             vo.setRejectReason(ur.getRejectReason());
             vo.setCreatedAt(ur.getCreatedAt());
+            vo.setUpdatedAt(ur.getUpdatedAt());
             vo.setApprovedAt(ur.getApprovedAt());
 
             User user = userMap.get(ur.getUserId());
@@ -104,6 +100,10 @@ public class AdminInstitutionService {
                 vo.setLogoUrl(inst.getLogoUrl());
                 vo.setContactName(inst.getContactName());
                 vo.setContactPhone(inst.getContactPhone());
+                // 机构 ID（正式档案唯一标识）：角色审核通过后才展示
+                if (ur.getStatus() == 1) {
+                    vo.setInstitutionId(inst.getId());
+                }
             }
 
             return vo;

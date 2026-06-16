@@ -70,6 +70,18 @@ public interface UserService {
     Page<User> searchUsers(String search, Integer status, Pageable pageable);
 
     /**
+     * 后台用户列表搜索（扩展筛选：角色、注册来源、实名认证状态）
+     */
+    Page<User> searchUsersForAdmin(String search, Integer status, String role,
+                                   Integer regOrigin, Integer realNameCertStatus,
+                                   Pageable pageable);
+
+    /**
+     * 运营后台创建用户（默认赋予 BUYER 角色）
+     */
+    User adminCreateUser(String phone, String nickname, String realName);
+
+    /**
      * 判断用户是否存在
      */
     boolean existsById(Integer userId);
@@ -86,6 +98,16 @@ public interface UserService {
      * @return 用户列表
      */
     List<User> findAllByIds(List<Integer> ids);
+
+    /**
+     * 为爬虫导入创建系统用户（随机密码，默认 BUYER 角色）。
+     *
+     * @param preferredUsername 首选账号，服务内会处理重名
+     * @param nickname          昵称
+     * @param avatarUrl         头像 URL
+     * @return 新建用户
+     */
+    User createCrawlerImportedUser(String preferredUsername, String nickname, String avatarUrl);
 
     /**
      * 注销账号（硬删除）。

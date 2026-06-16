@@ -453,6 +453,25 @@ python data-trans/scripts/run_video_cover_normalize.py
 
 ---
 
+### 2026-06-12 — 录播课后台 data-trans 迁移脚本（非 Flyway）
+
+**背景**：录播课管理后台（供应商/订单/评论）需老站数据；V96/V97 仅做 schema，不承载批量迁库。
+
+**data-trans 脚本**（执行顺序见 `data-trans/docs/guides/录播课迁移操作手册.md`）：
+
+1. `_audit_video_migration_gaps.py` — 缺口审计
+2. `run_video_package_migrate.py` — `video_package_*`
+3. `run_video_supplier_migrate.py` — `video_suppliers*`
+4. `run_video_order_migrate.py` — `orders` / `video_enrollments`（默认 `status=3`）
+5. `run_video_comment_migrate.py` — `video_comments`
+6. `_audit_video_migration_verify.py` — 验收
+
+**相关 Flyway**：V86–V87（视频包）、V96–V97（供应商/评论审核/发票列）。
+
+**说明**：历史发票不迁移；迁移订单 `remark` 含 `[legacy-import]` 便于回滚（`_rollback_video_migration.py`）。
+
+---
+
 ## 8. 快速命令参考
 
 ### 8.1 Python 辅助脚本（dev 库 v3test，`10.0.14.20`）
@@ -472,6 +491,13 @@ python data-trans/scripts/_fix_flyway_v68_checksum.py   # → -100945177
 python data-trans/scripts/run_video_cover_normalize.py      # V67 逻辑预览/统计
 python data-trans/scripts/run_trainer_fields_backfill.py    # V68 分类表 INSERT
 python data-trans/scripts/_backfill_trainer_title.py        # title 扩展回填
+
+# 录播课老站迁库（见 §7 2026-06-12）
+python data-trans/scripts/_audit_video_migration_gaps.py
+python data-trans/scripts/run_video_package_migrate.py --dry-run
+python data-trans/scripts/run_video_supplier_migrate.py --dry-run
+python data-trans/scripts/run_video_order_migrate.py --dry-run
+python data-trans/scripts/run_video_comment_migrate.py --dry-run
 ```
 
 ### 8.2 验证后端已恢复

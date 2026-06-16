@@ -1,0 +1,79 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+tmp
+/docs/mine
+.cursor/debug*
+
+frontend/public/uploads
+.claude/worktrees
+
+### Agent / AI local files ###
+AGENTS.md
+AGENTS.MD
+agent.md
+CLAUDE.md
+.agents/
+.claude/
+.cursor/
+
+### Python crawler service ###
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.venv/
+**/venv/
+
+### Frontend runtime ###
+**/node_modules/
+**/.next/
+
+### Local env / secrets ###
+**/.env
+**/.env.local
+**/.env.*.local
+
+### Debug / generated artifacts ###
+reports/
+scripts/
+debug_*.html
+result_*.json
+*.zip
+*.tar
+*.tar.gz
+.DS_Store
+ter
+
+### Do not publish temporary PRD exports ###
+docs/ai-prd-exports/
+docs/tmp/

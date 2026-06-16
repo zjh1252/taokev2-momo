@@ -51,6 +51,9 @@ public interface TrainerCaseService {
      */
     List<TrainerCaseRecentResponse> listRecentApproved(int limit);
 
+    /** 机构详情页：挂靠专家已通过授课案例 */
+    List<TrainerCaseResponse> listApprovedCasesForInstitution(Integer institutionId, int limit);
+
     // ==================== 后台管理 ====================
 
     /** 后台获取案例详情（含文件，不限状态） */
@@ -64,4 +67,7 @@ public interface TrainerCaseService {
 
     /** 后台审核驳回 */
     void reject(Integer caseId, Integer reviewerUserId, String reason);
+
+    /** 批量统计专家案例数 */
+    java.util.Map<Integer, Long> countByTrainerIds(java.util.Collection<Integer> trainerIds);
 }

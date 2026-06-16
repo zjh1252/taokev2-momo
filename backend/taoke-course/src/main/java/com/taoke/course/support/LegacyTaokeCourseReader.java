@@ -207,6 +207,93 @@ public class LegacyTaokeCourseReader {
 
 
 
+    /**
+     * 批量取老库开课单位会员 ID（tk_courseinfo.organid，与 user_id 对齐）。
+     */
+    public Map<Integer, Integer> findOrganizerUserIds(Collection<Integer> courseInfoIds) {
+        if (courseInfoIds == null || courseInfoIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Integer> ids = courseInfoIds.stream().filter(id -> id != null && id > 0).distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
+        List<Map.Entry<Integer, Integer>> rows = jdbcTemplate.query(
+                """
+                SELECT id, organid
+                FROM taoke.tk_courseinfo
+                WHERE id IN (%s) AND organid > 0
+                """.formatted(placeholders),
+                (rs, rowNum) -> Map.entry(rs.getInt("id"), rs.getInt("organid")),
+                ids.toArray());
+        Map<Integer, Integer> result = new HashMap<>();
+        for (Map.Entry<Integer, Integer> row : rows) {
+            result.put(row.getKey(), row.getValue());
+        }
+        return result;
+    }
+
+    /**
+     * 老库 lecturer 字段竖线后的机构名（主讲人|开课单位）。
+     */
+    public Map<Integer, String> findOrganizerNamesFromLecturer(Collection<Integer> courseInfoIds) {
+        if (courseInfoIds == null || courseInfoIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Integer> ids = courseInfoIds.stream().filter(id -> id != null && id > 0).distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
+        List<Map.Entry<Integer, String>> rows = jdbcTemplate.query(
+                """
+                SELECT id, TRIM(lecturer) AS lecturer
+                FROM taoke.tk_courseinfo
+                WHERE id IN (%s) AND TRIM(COALESCE(lecturer, '')) != ''
+                """.formatted(placeholders),
+                (rs, rowNum) -> Map.entry(rs.getInt("id"), rs.getString("lecturer")),
+                ids.toArray());
+        Map<Integer, String> result = new HashMap<>();
+        for (Map.Entry<Integer, String> row : rows) {
+            String name = parseOrganizerFromLecturer(row.getValue());
+            if (!name.isEmpty()) {
+                result.put(row.getKey(), name);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 老库 tk_member 展示名（company 优先，其次 realname），用于 organid 无机构档案时补全开课单位。
+     */
+    public Map<Integer, String> findMemberDisplayNames(Collection<Integer> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Integer> ids = memberIds.stream().filter(id -> id != null && id > 0).distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
+        List<Map.Entry<Integer, String>> rows = jdbcTemplate.query(
+                """
+                SELECT id,
+                       TRIM(COALESCE(NULLIF(TRIM(company), ''), NULLIF(TRIM(realname), ''))) AS display_name
+                FROM taoke.tk_member
+                WHERE id IN (%s)
+                """.formatted(placeholders),
+                (rs, rowNum) -> Map.entry(rs.getInt("id"), rs.getString("display_name")),
+                ids.toArray());
+        Map<Integer, String> result = new HashMap<>();
+        for (Map.Entry<Integer, String> row : rows) {
+            if (row.getValue() != null && !row.getValue().isBlank()) {
+                result.put(row.getKey(), row.getValue().trim());
+            }
+        }
+        return result;
+    }
+
     private static String parseLecturerName(String raw) {
 
         if (raw == null) {
@@ -221,6 +308,18 @@ public class LegacyTaokeCourseReader {
 
         return name.isEmpty() ? "" : name;
 
+    }
+
+    private static String parseOrganizerFromLecturer(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        int pipe = raw.indexOf('|');
+        if (pipe < 0 || pipe >= raw.length() - 1) {
+            return "";
+        }
+        String name = raw.substring(pipe + 1).trim();
+        return name.isEmpty() ? "" : name;
     }
 
 }

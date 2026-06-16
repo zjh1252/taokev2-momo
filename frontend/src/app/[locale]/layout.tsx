@@ -12,6 +12,12 @@ export async function generateMetadata() {
     title: siteConfig.title,
     description: siteConfig.description,
     keywords: siteConfig.keywords,
+    // 浏览器侧边栏/标签页 favicon 使用淘课 logo
+    icons: {
+      icon: '/statics/images/taoke-new-logo.jpg',
+      shortcut: '/statics/images/taoke-new-logo.jpg',
+      apple: '/statics/images/taoke-new-logo.jpg',
+    },
   };
 }
 

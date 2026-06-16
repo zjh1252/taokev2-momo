@@ -9,6 +9,7 @@ import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.security.RequireRole;
+import com.taoke.common.security.SecurityUtils;
 import com.taoke.course.api.CourseService;
 import com.taoke.course.entity.Course;
 import com.taoke.course.entity.interaction.TrainingReview;
@@ -49,6 +50,7 @@ import java.util.stream.Collectors;
 public class AdminReviewController {
 
     private final ReviewServiceImpl reviewService;
+    private final com.taoke.course.api.ReviewModerationService reviewModerationService;
     private final ObjectMapper objectMapper;
     private final TrainerService trainerService;
     private final InstitutionService institutionService;
@@ -60,9 +62,12 @@ public class AdminReviewController {
     public ApiResponse<PageResponse<AdminReviewVO>> list(
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String reviewScope,
+            @RequestParam(required = false) String reviewerKeyword,
+            @RequestParam(required = false) Integer reviewedBy,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Page<TrainingReview> result = reviewService.adminListReviews(status, reviewScope, page, size);
+        Page<TrainingReview> result = reviewService.adminListReviews(
+                status, reviewScope, reviewerKeyword, reviewedBy, page, size);
         List<TrainingReview> rows = result.getContent();
         Map<Integer, String> trainerNameByUserId = buildTrainerNameByUserId(rows);
         Map<Integer, String> institutionDisplayById = buildInstitutionDisplayById(rows);
@@ -73,10 +78,20 @@ public class AdminReviewController {
         return ApiResponse.ok(PageResponse.of(list, result.getTotalElements(), page, size));
     }
 
+    @Operation(summary = "培训评价详情")
+    @GetMapping("/admin/training-reviews/{id}")
+    public ApiResponse<AdminReviewVO> detail(@PathVariable Integer id) {
+        TrainingReview review = reviewService.getReviewForAdmin(id);
+        Map<Integer, String> trainerNameByUserId = buildTrainerNameByUserId(List.of(review));
+        Map<Integer, String> institutionDisplayById = buildInstitutionDisplayById(List.of(review));
+        Map<Integer, String> courseTitleById = buildCourseTitleById(List.of(review));
+        return ApiResponse.ok(toAdminVo(review, trainerNameByUserId, institutionDisplayById, courseTitleById));
+    }
+
     @Operation(summary = "审核通过")
     @PutMapping("/admin/training-reviews/{id}/approve")
     public ApiResponse<Void> approve(@PathVariable Integer id) {
-        reviewService.approveReview(id);
+        reviewModerationService.approveReview(id, SecurityUtils.getCurrentUserId());
         return ApiResponse.ok();
     }
 
@@ -84,14 +99,14 @@ public class AdminReviewController {
     @PutMapping("/admin/training-reviews/{id}/reject")
     public ApiResponse<Void> reject(@PathVariable Integer id,
                                     @Valid @RequestBody RejectApplicationRequest request) {
-        reviewService.rejectReview(id, request.getReason());
+        reviewModerationService.rejectReview(id, SecurityUtils.getCurrentUserId(), request.getReason());
         return ApiResponse.ok();
     }
 
     @Operation(summary = "隐藏评价")
     @PutMapping("/admin/training-reviews/{id}/hide")
     public ApiResponse<Void> hide(@PathVariable Integer id) {
-        reviewService.hideReview(id);
+        reviewModerationService.hideReview(id, SecurityUtils.getCurrentUserId());
         return ApiResponse.ok();
     }
 
@@ -250,6 +265,13 @@ public class AdminReviewController {
                     }
                     yield "机构 #" + id;
                 }
+                case CASE -> {
+                    Integer id = r.getCaseId();
+                    if (id == null) {
+                        yield "-";
+                    }
+                    yield "案例 #" + id;
+                }
             };
         } catch (IllegalArgumentException e) {
             return "-";
@@ -266,6 +288,8 @@ public class AdminReviewController {
         vo.setCourseId(r.getCourseId());
         vo.setTrainerUserId(r.getTrainerUserId());
         vo.setInstitutionId(r.getInstitutionId());
+        vo.setCaseId(r.getCaseId());
+        vo.setReviewedBy(r.getReviewedBy());
         vo.setExpertName(r.getExpertName());
         vo.setTrainingDate(r.getTrainingDate());
         vo.setCourseDays(r.getCourseDays());

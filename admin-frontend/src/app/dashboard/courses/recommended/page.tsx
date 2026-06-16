@@ -1,4 +1,6 @@
 import PageContainer from '@/components/layout/page-container';
+import { RecommendationListing } from '@/features/recommendations/components/recommendation-listing';
+import { COURSE_RECOMMENDATION_CONFIG } from '@/features/recommendations/constants/configs';
 
 export const metadata = {
   title: '推荐课程'
@@ -9,11 +11,9 @@ export default function Page() {
     <PageContainer
       scrollable={false}
       pageTitle='推荐课程'
-      pageDescription='管理平台推荐的课程列表，控制首页展示顺序'
+      pageDescription='管理首页热门内训课与线下公开课推荐位'
     >
-      <div className='text-muted-foreground flex flex-1 items-center justify-center py-20 text-sm'>
-        暂无数据
-      </div>
+      <RecommendationListing config={COURSE_RECOMMENDATION_CONFIG} />
     </PageContainer>
   );
 }

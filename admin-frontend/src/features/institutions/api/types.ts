@@ -15,8 +15,11 @@ export type AdminInstitution = {
 };
 
 export type AdminInstitutionApplication = {
+  /** 申请ID（每一次入驻申请记录的标识） */
   id: number;
   userId: number;
+  /** 机构ID（正式档案唯一标识，审核通过后才有值） */
+  institutionId: number | null;
   phone: string | null;
   nickname: string | null;
   orgName: string | null;
@@ -24,8 +27,12 @@ export type AdminInstitutionApplication = {
   contactName: string | null;
   contactPhone: string | null;
   status: number;
+  /** 已生效身份资料重审中（二次申请） */
+  reapplying: boolean | null;
   rejectReason: string | null;
   createdAt: string;
+  /** 最近提交时间（二次申请后更新） */
+  updatedAt: string | null;
   approvedAt: string | null;
 };
 

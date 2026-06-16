@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>用户中心</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+                  "on-error-container": "#93000a",
+                  "error-container": "#ffdad6",
+                  "primary-fixed": "#ffdad5",
+                  "on-primary-fixed-variant": "#930002",
+                  "secondary-fixed-dim": "#c7c6c6",
+                  "primary-container": "#e62117",
+                  "surface-container-high": "#eae8e7",
+                  "surface-bright": "#fbf9f8",
+                  "primary-fixed-dim": "#ffb4a8",
+                  "outline": "#926e69",
+                  "on-secondary": "#ffffff",
+                  "on-secondary-fixed-variant": "#464747",
+                  "tertiary": "#835200",
+                  "surface-tint": "#c00003",
+                  "inverse-primary": "#ffb4a8",
+                  "secondary-fixed": "#e4e2e2",
+                  "on-secondary-container": "#626262",
+                  "tertiary-fixed": "#ffddb8",
+                  "on-primary-fixed": "#410000",
+                  "surface-variant": "#e4e2e1",
+                  "surface-container-low": "#f6f3f2",
+                  "on-background": "#1b1c1c",
+                  "on-tertiary-fixed": "#2a1700",
+                  "on-surface": "#1b1c1c",
+                  "on-tertiary-fixed-variant": "#653e00",
+                  "surface-container-highest": "#e4e2e1",
+                  "secondary-container": "#e1dfdf",
+                  "surface-container": "#f0eded",
+                  "surface-container-lowest": "#ffffff",
+                  "on-tertiary-container": "#fffeff",
+                  "inverse-surface": "#303030",
+                  "on-primary": "#ffffff",
+                  "on-error": "#ffffff",
+                  "surface-dim": "#dcd9d9",
+                  "on-secondary-fixed": "#1b1c1c",
+                  "error": "#ba1a1a",
+                  "tertiary-fixed-dim": "#ffb95f",
+                  "outline-variant": "#e7bdb6",
+                  "background": "#fbf9f8",
+                  "inverse-on-surface": "#f3f0f0",
+                  "on-surface-variant": "#5e3f3b",
+                  "primary": "#be0003",
+                  "on-tertiary": "#ffffff",
+                  "surface": "#fbf9f8",
+                  "tertiary-container": "#a56800",
+                  "secondary": "#5e5e5e",
+                  "on-primary-container": "#fffeff"
+          },
+          "borderRadius": {
+                  "DEFAULT": "0.25rem",
+                  "lg": "0.5rem",
+                  "xl": "0.75rem",
+                  "full": "9999px"
+          },
+          "spacing": {},
+          "fontFamily": {
+                  "headline": [
+                          "Manrope"
+                  ],
+                  "body": [
+                          "Inter"
+                  ],
+                  "label": [
+                          "Inter"
+                  ]
+          }
+  },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#f7f9fc] font-body text-on-surface antialiased">
+<div class="page-root min-h-screen pb-20 pt-12 md:max-w-md md:mx-auto md:bg-surface md:shadow-lg md:relative overflow-hidden">
+<!-- TopAppBar -->
+<header class="nav-bar bg-white dark:bg-gray-900 fixed top-0 left-0 w-full z-50 flex items-center px-4 h-12 border-b border-[#e0e3e6] dark:border-gray-800 shadow-sm md:max-w-md md:left-1/2 md:-translate-x-1/2">
+<button class="text-[#E62117] transition-all active:scale-95 hover:opacity-80 p-1 -ml-1">
+<span class="material-symbols-outlined text-2xl leading-none">arrow_back</span>
+</button>
+<h1 class="flex-1 text-center font-manrope text-lg font-bold text-[#333333] pr-8">用户中心</h1>
+</header>
+<main>
+<!-- profile-header -->
+<div class="profile-header bg-gradient-to-br from-[#E62117] to-[#c41c14] p-6 text-white relative overflow-hidden shadow-md">
+<!-- Decorative subtle pattern -->
+<div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 80% 20%, white 1%, transparent 20%); background-size: 50px 50px;"></div>
+<div class="flex items-center gap-4 relative z-10">
+<div class="w-16 h-16 rounded-full overflow-hidden border-2 border-white/30 bg-white/20 shadow-inner flex-shrink-0">
+<img alt="Profile avatar" class="w-full h-full object-cover" data-alt="portrait of a professional asian man in a smart casual outfit against a neutral background, natural soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnb-BGIaJn-GSNAf1eyUCKTuk2GHQDNQSIm5WTAHaDI8vPsMApRYFrNwA7K52mlFFCmDj358SCKKKZbxmqM6FpGqRpWE0IUDzLuE2-On0_FR5pL_AhRHnFWmOk5VPclKtbwT3B_aVIKKizl1q4fFnGg3MvK-dcvIbiynQKriQ4-W2brJYLd0geRASQzzhFNLIbb9LtL1Jir6HQt0MQ5t3UP-Peim1k4nguasrtgySM0YIgXgBET0k9uD35F1HaOeHQ5lNSK6jnMA"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<h2 class="text-xl font-bold font-headline tracking-wide text-white">方先生</h2>
+<div class="flex items-center gap-2">
+<span class="text-xs px-2.5 py-0.5 border border-white/60 rounded-full font-medium tracking-wider bg-black/10 backdrop-blur-sm shadow-sm text-white">学员</span>
+<a class="text-xs text-white/80 hover:text-white transition-colors underline-offset-2 hover:underline" href="#">(修改身份)</a>
+</div>
+</div>
+</div>
+</div>
+<!-- Spacer -->
+<div class="h-3 w-full bg-[#f7f9fc]"></div>
+<!-- menu-list -->
+<div class="menu-list bg-white">
+<a class="menu-row flex items-center px-4 py-4 border-b border-[#e0e3e6]/50 active:bg-surface-variant transition-colors group" href="#">
+<div class="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-orange-500 text-[20px]" style="font-variation-settings: 'FILL' 1;">person</span>
+</div>
+<span class="flex-1 text-[15px] text-[#333333] font-medium font-body">基本信息</span>
+<span class="material-symbols-outlined text-[#c7c6c6] text-[20px]">chevron_right</span>
+</a>
+<a class="menu-row flex items-center px-4 py-4 border-b border-[#e0e3e6]/50 active:bg-surface-variant transition-colors group" href="#">
+<div class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[#E62117] text-[20px]" style="font-variation-settings: 'FILL' 1;">assignment</span>
+</div>
+<span class="flex-1 text-[15px] text-[#333333] font-medium font-body">内训需求</span>
+<span class="material-symbols-outlined text-[#c7c6c6] text-[20px]">chevron_right</span>
+</a>
+<a class="menu-row flex items-center px-4 py-4 border-b border-[#e0e3e6]/50 active:bg-surface-variant transition-colors group" href="#">
+<div class="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[#f59e0b] text-[20px]" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+</div>
+<span class="flex-1 text-[15px] text-[#333333] font-medium font-body">我的评论</span>
+<span class="material-symbols-outlined text-[#c7c6c6] text-[20px]">chevron_right</span>
+</a>
+<a class="menu-row flex items-center px-4 py-4 active:bg-surface-variant transition-colors group" href="#">
+<div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-blue-500 text-[20px]" style="font-variation-settings: 'FILL' 1;">smartphone</span>
+</div>
+<span class="flex-1 text-[15px] text-[#333333] font-medium font-body">帐号及认证</span>
+<span class="material-symbols-outlined text-[#c7c6c6] text-[20px]">chevron_right</span>
+</a>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="tab-bar bg-white dark:bg-gray-900 border-t border-[#e0e3e6] dark:border-gray-800 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 px-2 md:max-w-md md:left-1/2 md:-translate-x-1/2">
+<button class="flex flex-col items-center justify-center text-[#666666] pb-safe hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-90 transition-transform w-full h-full rounded-lg">
+<span class="material-symbols-outlined text-[24px] mb-1">home</span>
+<span class="font-manrope text-[10px] font-medium">首页</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#666666] pb-safe hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-90 transition-transform w-full h-full rounded-lg">
+<span class="material-symbols-outlined text-[24px] mb-1">workspace_premium</span>
+<span class="font-manrope text-[10px] font-medium">专家</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#666666] pb-safe hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-90 transition-transform w-full h-full rounded-lg">
+<span class="material-symbols-outlined text-[24px] mb-1">menu_book</span>
+<span class="font-manrope text-[10px] font-medium">公开课</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#E62117] font-bold pb-safe hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-90 transition-transform w-full h-full rounded-lg">
+<span class="material-symbols-outlined text-[24px] mb-1" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-manrope text-[10px] font-medium">我的</span>
+</button>
+</nav>
+</div>
+</body></html>

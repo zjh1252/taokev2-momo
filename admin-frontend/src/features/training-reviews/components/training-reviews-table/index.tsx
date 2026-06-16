@@ -13,14 +13,18 @@ export function TrainingReviewsTable() {
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
     status: parseAsString,
-    reviewScope: parseAsString
+    reviewScope: parseAsString,
+    reviewerKeyword: parseAsString,
+    reviewedBy: parseAsString
   });
 
   const filters = {
     page: params.page,
     limit: params.perPage,
     ...(params.status && { status: params.status }),
-    ...(params.reviewScope && { reviewScope: params.reviewScope })
+    ...(params.reviewScope && { reviewScope: params.reviewScope }),
+    ...(params.reviewerKeyword && { reviewerKeyword: params.reviewerKeyword }),
+    ...(params.reviewedBy && { reviewedBy: params.reviewedBy })
   };
 
   const { data: resp } = useSuspenseQuery(trainingReviewsQueryOptions(filters));

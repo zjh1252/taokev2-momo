@@ -1,7 +1,10 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useBoundPublisherGuard } from '../hooks/useBoundPublisherGuard';
+import {
+  useBoundPublisherGuard,
+  type BoundPublisherGuardOptions,
+} from '../hooks/useBoundPublisherGuard';
 import { UnboundPublisherBanner } from './UnboundPublisherBanner';
 
 /**
@@ -14,8 +17,14 @@ import { UnboundPublisherBanner } from './UnboundPublisherBanner';
  * @author Fangxinxin
  * @date 2026-04-28 16:30
  */
-export function BoundPublisherGuard({ children }: { children: ReactNode }) {
-  const { blocked, loading } = useBoundPublisherGuard();
+export function BoundPublisherGuard({
+  children,
+  options,
+}: {
+  children: ReactNode;
+  options?: BoundPublisherGuardOptions;
+}) {
+  const { blocked, loading } = useBoundPublisherGuard(options);
 
   if (loading) {
     return (

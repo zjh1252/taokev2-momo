@@ -11,16 +11,23 @@ export type AdminEnterpriseAgent = {
 };
 
 export type AdminEnterpriseAgentApplication = {
+  /** 申请ID（每一次入驻申请记录的标识） */
   id: number;
   userId: number;
+  /** 经纪公司ID（正式档案唯一标识，审核通过后才有值） */
+  enterpriseAgentId: number | null;
   phone: string | null;
   nickname: string | null;
   companyName: string | null;
   contactName: string | null;
   contactPhone: string | null;
   status: number;
+  /** 已生效身份资料重审中（二次申请） */
+  reapplying: boolean | null;
   rejectReason: string | null;
   createdAt: string;
+  /** 最近提交时间（二次申请后更新） */
+  updatedAt: string | null;
   approvedAt: string | null;
 };
 

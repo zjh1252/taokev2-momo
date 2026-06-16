@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { Loader2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadImage } from '@/features/course/api/publisher-service';
+import { resolveImageSrc } from '@/lib/media';
 
 export interface SingleImageUploaderProps {
   /** 当前已上传的图片 URL；空字符串表示未上传 */
@@ -55,12 +56,14 @@ export default function SingleImageUploader({
     }
   };
 
+  const previewSrc = value ? resolveImageSrc(value, '') : '';
+
   if (value) {
     return (
       <div className="flex items-start gap-3">
         <div className="relative size-32 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt={label} className="size-full object-cover" />
+          <img src={previewSrc} alt={label} className="size-full object-cover" />
           <button
             type="button"
             onClick={() => onChange('')}

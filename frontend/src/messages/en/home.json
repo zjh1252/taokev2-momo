@@ -20,6 +20,7 @@
   "cases": {
     "sectionTitle": "Expert Cases",
     "readMore": "Read Full Case",
+    "caseDate": "Case date: {date}",
     "serviceInstructor": "Instructor: {name}"
   },
   "courses": {

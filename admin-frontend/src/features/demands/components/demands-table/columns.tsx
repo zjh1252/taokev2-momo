@@ -25,6 +25,14 @@ function formatBudget(min: number | null, max: number | null): string {
 
 export const columns: ColumnDef<AdminDemandListItem>[] = [
   {
+    accessorKey: 'demandNo',
+    header: '需求单号',
+    enableSorting: false,
+    cell: ({ row }) => (
+      <span className='font-mono text-sm'>{row.original.demandNo}</span>
+    )
+  },
+  {
     accessorKey: 'id',
     header: 'ID',
     enableSorting: false
@@ -54,7 +62,7 @@ export const columns: ColumnDef<AdminDemandListItem>[] = [
     ),
     meta: {
       label: '关键词',
-      placeholder: '搜索标题/主题...',
+      placeholder: '搜索单号/标题/主题...',
       variant: 'text' as const,
       icon: Icons.text
     },

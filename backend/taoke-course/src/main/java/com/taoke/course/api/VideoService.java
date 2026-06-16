@@ -68,6 +68,11 @@ public interface VideoService {
     VideoDetailVO getPublicDetail(Integer videoId);
 
     /**
+     * 列表页点击浏览量 +1
+     */
+    void incrementViewCount(Integer videoId);
+
+    /**
      * 公开录播课列表（仅已上架，支持分页、分类筛选、关键词搜索、排序、机构筛选）
      *
      * @param sortBy        排序方式：default/price/score/time/viewCount/studentCount
@@ -76,7 +81,7 @@ public interface VideoService {
     PageResponse<VideoListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                               String keyword, String sortBy,
                                               Integer institutionId,
-                                              int page, int size);
+                                              int page, int size, Integer viewerUserId);
 
     /**
      * 已上架录播课按一级分类批量计数（频道底部分类导航）。
@@ -103,6 +108,11 @@ public interface VideoService {
     PageResponse<VideoListItemVO> listByTrainerUserId(Integer trainerUserId, int page, int size);
 
     // ==================== 后台管理 ====================
+
+    /**
+     * 管理后台创建录播课（可指定发布者与上架状态）
+     */
+    VideoDetailVO adminCreate(AdminSaveVideoRequest request);
 
     /**
      * 后台分页查询录播课列表
@@ -135,6 +145,11 @@ public interface VideoService {
     void adminPublish(Integer videoId);
 
     /**
+     * 批量统计发布者录播课数
+     */
+    java.util.Map<Integer, Long> countByPublisherIds(java.util.Collection<Integer> publisherIds);
+
+    /**
      * 推荐录播课：列表置顶（sortOrder 设为最大）或列表推荐（isFeatured=1）
      *
      * @param type "pin"=列表置顶，"recommend"=列表推荐
@@ -145,6 +160,11 @@ public interface VideoService {
      * 取消推荐：移除置顶和推荐标记
      */
     void unfeature(Integer videoId);
+
+    /**
+     * 设置置顶优先级：0=不限 1=列表推荐 2=列表置顶 — 管理端操作下拉框直接控制
+     */
+    void updateStickyPriority(Integer videoId, Integer stickyPriority);
 
     // ==================== 系列管理 ====================
 

@@ -20,8 +20,8 @@ function authHeaders(): Record<string, string> {
  * 获取当前登录机构本人信息（需 INSTITUTION 角色）
  * <p>用于顶栏「个人主页」解析公开详情路径 {@code /institutions/{id}}。</p>
  */
-export async function getMyInstitutionProfile(): Promise<{ id: number }> {
-  const res = await apiGet<ApiResponse<{ id: number }>>('/institutions/me', {
+export async function getMyInstitutionProfile(): Promise<{ id: number; legacyRoleId?: number }> {
+  const res = await apiGet<ApiResponse<{ id: number; legacyRoleId?: number }>>('/institutions/me', {
     headers: authHeaders(),
     silent: true,
   });
@@ -39,6 +39,8 @@ export interface InstitutionListParams {
   association?: boolean;
   /** 擅长领域一级分类 ID */
   expertiseCategoryId?: number;
+  /** 机构所在城市 ID */
+  cityId?: number;
 }
 
 /**
@@ -55,6 +57,9 @@ export async function getInstitutionList(
   if (params.association != null) query.set('association', String(params.association));
   if (params.expertiseCategoryId) {
     query.set('expertiseCategoryId', String(params.expertiseCategoryId));
+  }
+  if (params.cityId) {
+    query.set('cityId', String(params.cityId));
   }
 
   const qs = query.toString();
@@ -146,5 +151,34 @@ export async function getInstitutionSidebarVideos(
  */
 export async function getHotOpenCourses(): Promise<CourseListItem[]> {
   const res = await apiGet<ApiResponse<CourseListItem[]>>('/opencourses/hot');
+  return res.data;
+}
+
+export type InstitutionRecommendationType = 'high_score' | 'weekly_active' | 'newly_joined';
+
+export async function getInstitutionRecommendations(
+  type: InstitutionRecommendationType,
+  association?: boolean,
+  limit = 5,
+): Promise<InstitutionListItem[]> {
+  const query = new URLSearchParams({ type, limit: String(limit) });
+  if (association != null) query.set('association', String(association));
+  const res = await apiGet<ApiResponse<InstitutionListItem[]>>(
+    `/institutions/recommendations?${query}`,
+  );
+  return res.data;
+}
+
+export async function getInstitutionHighlights(institutionId: number, limit = 12) {
+  const res = await apiGet<ApiResponse<import('@/features/trainer-highlight/api/types').TrainerHighlight[]>>(
+    `/institutions/${institutionId}/highlights?limit=${limit}`,
+  );
+  return res.data;
+}
+
+export async function getInstitutionCases(institutionId: number, limit = 12) {
+  const res = await apiGet<ApiResponse<import('@/features/trainer-case/api/types').TrainerCase[]>>(
+    `/institutions/${institutionId}/cases?limit=${limit}`,
+  );
   return res.data;
 }

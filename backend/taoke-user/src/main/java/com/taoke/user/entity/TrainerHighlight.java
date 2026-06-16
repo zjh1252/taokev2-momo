@@ -23,8 +23,12 @@ import java.time.LocalDateTime;
 @Table(name = "user_trainer_highlights")
 public class TrainerHighlight extends BaseEntity {
 
-    @Column(name = "trainer_id", nullable = false)
+    @Column(name = "trainer_id")
     private Integer trainerId;
+
+    /** 机构主体 ID（机构自己发布精彩瞬间时使用） */
+    @Column(name = "institution_id")
+    private Integer institutionId;
 
     /** 媒体类型：1=图片, 2=视频 */
     @Column(name = "media_type", nullable = false, columnDefinition = "tinyint(2)")

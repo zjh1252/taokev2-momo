@@ -26,5 +26,11 @@ public class FavoriteVO {
     /** 资源封面图 */
     private String coverUrl;
 
+    /** 录播课是否已解锁（免费/已购买未过期/发布者本人；仅 targetType=VIDEO 时有值） */
+    private Boolean unlocked;
+
+    /** 资源详情页相对路径（C 端用于点击跳转），如 /trainers/25、/opencourses/12 */
+    private String linkUrl;
+
     private LocalDateTime createdAt;
 }

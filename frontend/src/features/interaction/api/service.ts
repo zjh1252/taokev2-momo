@@ -88,6 +88,7 @@ export async function getPublicReviews(
     courseId?: number;
     trainerUserId?: number;
     institutionId?: number;
+    caseId?: number;
     page?: number;
     size?: number;
   },
@@ -96,6 +97,7 @@ export async function getPublicReviews(
   if (opts.courseId) params.set('courseId', String(opts.courseId));
   if (opts.trainerUserId) params.set('trainerUserId', String(opts.trainerUserId));
   if (opts.institutionId) params.set('institutionId', String(opts.institutionId));
+  if (opts.caseId) params.set('caseId', String(opts.caseId));
   params.set('page', String(opts.page ?? 0));
   params.set('size', String(opts.size ?? 10));
   const res = await apiGet<ApiResponse<PageData<ReviewItem>>>(

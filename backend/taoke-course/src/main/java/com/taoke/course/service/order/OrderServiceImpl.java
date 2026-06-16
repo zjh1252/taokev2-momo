@@ -4,20 +4,24 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
 import com.taoke.course.dto.order.CreateOrderRequest;
+import com.taoke.course.dto.order.OrderItemVO;
 import com.taoke.course.dto.order.OrderVO;
 import com.taoke.course.entity.Course;
 import com.taoke.course.entity.cart.Cart;
 import com.taoke.course.entity.order.Order;
 import com.taoke.course.entity.order.OrderItem;
 import com.taoke.course.entity.video.Video;
+import com.taoke.course.entity.video.VideoPackageGroup;
 import com.taoke.course.enums.OrderStatus;
 import com.taoke.course.enums.ProductType;
 import com.taoke.course.mapper.OrderMapper;
 import com.taoke.course.repository.CourseRepository;
 import com.taoke.course.repository.order.OrderItemRepository;
 import com.taoke.course.repository.order.OrderRepository;
+import com.taoke.course.repository.video.VideoPackageGroupRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.service.cart.CartServiceImpl;
+import com.taoke.course.service.video.VideoPurchasePricing;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -49,6 +53,7 @@ public class OrderServiceImpl {
     private final OrderItemRepository orderItemRepository;
     private final CourseRepository courseRepository;
     private final VideoRepository videoRepository;
+    private final VideoPackageGroupRepository packageGroupRepository;
     private final CartServiceImpl cartService;
     private final OrderMapper orderMapper;
 
@@ -100,7 +105,8 @@ public class OrderServiceImpl {
         order.setPayAmount(totalAmount);
         order.setStatus(OrderStatus.PENDING.getValue());
         order.setRemark(request.getRemark() != null ? request.getRemark() : "");
-        order.setExpiredAt(LocalDateTime.now().plusMinutes(30));
+        // 未支付订单 10 分钟内有效，超时由定时任务自动关闭
+        order.setExpiredAt(LocalDateTime.now().plusMinutes(10));
 
         orderRepository.save(order);
 
@@ -141,6 +147,8 @@ public class OrderServiceImpl {
             return orderMapper.toVO(o, orderItems);
         }).toList();
 
+        enrichVideoEpisodes(voList);
+
         return PageResponse.of(voList, orderPage.getTotalElements(), page, size);
     }
 
@@ -151,7 +159,60 @@ public class OrderServiceImpl {
         Order order = orderRepository.findByOrderNoAndUserId(orderNo, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
         List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
-        return orderMapper.toVO(order, items);
+        OrderVO vo = orderMapper.toVO(order, items);
+        enrichVideoEpisodes(List.of(vo));
+        return vo;
+    }
+
+    /**
+     * 查询用户对指定商品的有效待支付订单（购买前提醒用，无则返回 null）
+     */
+    public OrderVO findPendingOrderByProduct(Integer userId, String productTypeStr, Integer productId) {
+        ProductType productType = ProductType.valueOf(productTypeStr);
+        List<Order> orders = orderRepository.findActivePendingByUserAndProduct(
+                userId,
+                productType,
+                productId,
+                LocalDateTime.now(),
+                PageRequest.of(0, 1));
+        if (orders.isEmpty()) {
+            return null;
+        }
+        Order order = orders.get(0);
+        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+        OrderVO vo = orderMapper.toVO(order, items);
+        enrichVideoEpisodes(List.of(vo));
+        return vo;
+    }
+
+    /**
+     * 批量回填订单明细中录播课的总集数（帮助用户区分单门课与系列课）
+     */
+    private void enrichVideoEpisodes(List<OrderVO> voList) {
+        List<OrderItemVO> videoItems = voList.stream()
+                .filter(vo -> vo.getItems() != null)
+                .flatMap(vo -> vo.getItems().stream())
+                .filter(item -> ProductType.VIDEO_COURSE.name().equals(item.getProductType()))
+                .toList();
+        if (videoItems.isEmpty()) {
+            return;
+        }
+
+        List<Integer> videoIds = videoItems.stream()
+                .map(OrderItemVO::getProductId)
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .toList();
+        if (videoIds.isEmpty()) {
+            return;
+        }
+
+        Map<Integer, Integer> episodesMap = videoRepository.findAllById(videoIds).stream()
+                .collect(Collectors.toMap(Video::getId,
+                        v -> v.getTotalEpisodes() != null ? v.getTotalEpisodes() : 0));
+
+        videoItems.forEach(item ->
+                item.setTotalEpisodes(episodesMap.getOrDefault(item.getProductId(), 0)));
     }
 
     /**
@@ -210,7 +271,7 @@ public class OrderServiceImpl {
         OrderItem item = new OrderItem();
         item.setProductType(productType);
         item.setProductId(productId);
-        item.setQuantity(quantity);
+        int safeQty = Math.max(1, quantity);
 
         if (productType == ProductType.OPEN_COURSE) {
             Course course = courseRepository.findById(productId)
@@ -224,24 +285,52 @@ public class OrderServiceImpl {
             item.setProductTitle(course.getTitle());
             item.setProductCover(course.getCoverUrl());
             item.setPrice(course.getPrice());
-        } else {
-            Video video = videoRepository.findById(productId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-            if (video.getStatus() != 2) {
-                throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
-            }
-            if (video.getIsFree() == 1) {
-                throw new BusinessException(ErrorCode.PRODUCT_NOT_PURCHASABLE);
-            }
-            if (userId != null && userId.equals(video.getPublisherId())) {
-                throw new BusinessException(ErrorCode.CANNOT_BUY_OWN_PRODUCT);
-            }
-            item.setProductTitle(video.getTitle());
-            item.setProductCover(video.getCoverUrl());
-            item.setPrice(video.getPrice());
+            item.setQuantity(safeQty);
+            item.setSubtotal(VideoPurchasePricing.calcSubtotal(course.getPrice(), safeQty, null));
+            return item;
         }
 
-        item.setSubtotal(item.getPrice().multiply(BigDecimal.valueOf(quantity)));
+        if (productType == ProductType.VIDEO_PACKAGE) {
+            VideoPackageGroup group = packageGroupRepository.findById(productId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+            int maxQty = VideoPurchasePricing.resolveMaxQuantity(
+                    group.getPrice(), group.getCompanyPrice(), group.getMaxPurchaseQty());
+            if (maxQty > 0 && safeQty > maxQty) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, "购买人数不能超过 " + maxQty + " 人");
+            }
+            item.setProductTitle(group.getName());
+            item.setProductCover("");
+            item.setPrice(group.getPrice());
+            item.setQuantity(safeQty);
+            item.setSubtotal(VideoPurchasePricing.calcSubtotal(
+                    group.getPrice(), safeQty,
+                    VideoPurchasePricing.resolveCompanyCap(group.getPrice(), group.getCompanyPrice())));
+            return item;
+        }
+
+        Video video = videoRepository.findById(productId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+        if (video.getStatus() != 2) {
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
+        }
+        if (video.getIsFree() == 1) {
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+        }
+        if (userId != null && userId.equals(video.getPublisherId())) {
+            throw new BusinessException(ErrorCode.CANNOT_BUY_OWN_PRODUCT);
+        }
+        int maxQty = VideoPurchasePricing.resolveMaxQuantity(
+                video.getPrice(), video.getCompanyPrice(), video.getMaxPurchaseQty());
+        if (maxQty > 0 && safeQty > maxQty) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "购买人数不能超过 " + maxQty + " 人");
+        }
+        item.setProductTitle(video.getTitle());
+        item.setProductCover(video.getCoverUrl());
+        item.setPrice(video.getPrice());
+        item.setQuantity(safeQty);
+        item.setSubtotal(VideoPurchasePricing.calcSubtotal(
+                video.getPrice(), safeQty,
+                VideoPurchasePricing.resolveCompanyCap(video.getPrice(), video.getCompanyPrice())));
         return item;
     }
 

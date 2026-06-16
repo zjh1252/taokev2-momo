@@ -79,6 +79,11 @@ public interface CourseService {
     CourseDetailVO getPublicDetail(Integer courseId);
 
     /**
+     * 列表页点击看过/人气 +1（仅已上架课程）
+     */
+    void incrementViewCount(Integer courseId);
+
+    /**
      * 公开课程列表（仅已上架）。
      *
      * <p>支持如下过滤维度（详见 {@link PublicCourseQuery}）：</p>
@@ -143,7 +148,15 @@ public interface CourseService {
     /**
      * 后台分页搜索课程
      */
-    Page<Course> searchForAdmin(String keyword, Integer status, String type, Pageable pageable);
+    Page<Course> searchForAdmin(String keyword, Integer status, String type,
+                               Integer trainerId, String publisherType, Integer publisherId,
+                               java.util.Collection<Integer> publisherUserIds,
+                               Pageable pageable);
+
+    /**
+     * 批量统计发布者课程数
+     */
+    java.util.Map<Integer, Long> countByPublisherIds(java.util.Collection<Integer> publisherIds);
 
     /**
      * 后台课程详情
@@ -184,4 +197,14 @@ public interface CourseService {
      * 根据 ID 集合批量获取课程
      */
     List<Course> findByIds(Set<Integer> ids);
+
+    /**
+     * 批量组装课程列表项（含分类名、排期、发布者等展示字段）
+     */
+    List<CourseListItemVO> assembleListItems(List<Course> courses);
+
+    /**
+     * 录播课详情页相关面授课：同分类公开课+内训课，优先仍可报名且热度高
+     */
+    List<CourseListItemVO> listRelatedForVideo(Integer categoryId, Integer subCategoryId, int limit);
 }

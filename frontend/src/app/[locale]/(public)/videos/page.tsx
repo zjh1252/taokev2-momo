@@ -1,5 +1,5 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
-import { ChannelCategoryNav } from '@/components/layout/channel-category-nav';
+import { ChannelCategoryNavSection } from '@/components/layout/channel-category-nav-section';
 import { VideoListSection } from '@/features/video/components/list/VideoListSection';
 import { getVideoList } from '@/features/video/api/service';
 import { getInstitutionDetail } from '@/features/institution/api/service';
@@ -30,8 +30,9 @@ export default async function VideosPage({ searchParams }: Props) {
   const categoryId = normalizeNumberIds(sp.categoryId ? [sp.categoryId] : undefined)[0];
 
   const categoryTreePromise = getCachedVideoCategoryTree();
+  const categoryNavPromise = categoryTreePromise.then(buildVideoCategoryNavItems).catch(() => []);
 
-  const [initialData, categoryTree, institution, categoryNavItems] = await Promise.all([
+  const [initialData, categoryTree, institution] = await Promise.all([
     getVideoList({
       page: 1,
       size: 15,
@@ -48,7 +49,6 @@ export default async function VideosPage({ searchParams }: Props) {
     validInstitutionId
       ? getInstitutionDetail(validInstitutionId).catch(() => null)
       : Promise.resolve(null),
-    categoryTreePromise.then(buildVideoCategoryNavItems).catch(() => []),
   ]);
 
   const categoryName = firstStringValue(sp.categoryName);
@@ -68,10 +68,10 @@ export default async function VideosPage({ searchParams }: Props) {
         initialCategoryId={categoryId}
       />
 
-      <ChannelCategoryNav
+      <ChannelCategoryNavSection
         title="视频分类"
-        items={categoryNavItems}
         countUnit="门"
+        itemsPromise={categoryNavPromise}
       />
     </main>
   );

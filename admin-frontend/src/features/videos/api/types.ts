@@ -24,6 +24,7 @@ export type AdminVideo = {
   keywords: string | null;
   isFeatured: number;
   sortOrder: number;
+  stickyPriority: number;
   publishedAt: string | null;
   createdAt: string;
 };
@@ -146,4 +147,41 @@ export const VIDEO_TYPE_MAP: Record<string, string> = {
   SERIES: '系列课程',
   SINGLE: '单门课程',
   EXTERNAL: '外部网页视频'
+};
+
+/** 置顶优先级 → 文本 */
+export const STICKY_PRIORITY_MAP: Record<number, string> = {
+  0: '不限',
+  1: '列表推荐',
+  2: '列表置顶'
+};
+
+/** 置顶优先级下拉选项 */
+export const STICKY_PRIORITY_OPTIONS = [
+  { value: 0, label: '不限' },
+  { value: 1, label: '列表推荐' },
+  { value: 2, label: '列表置顶' }
+];
+
+export type SaveVideoPayload = {
+  title: string;
+  videoType: string;
+  categoryId: number;
+  subCategoryId?: number;
+  coverUrl?: string;
+  videoUrl?: string;
+  externalUrl?: string;
+  intro?: string;
+  publisherType: string;
+  publisherId: number;
+  trainerId?: number;
+  teacherName?: string;
+  duration?: number;
+  price?: number;
+  companyPrice?: number;
+  maxPurchaseQty?: number;
+  isFree?: number;
+  keywords?: string;
+  draft?: boolean;
+  directPublish?: boolean;
 };

@@ -66,20 +66,16 @@ public class AdminEnterpriseAgentService {
         return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), voList);
     }
 
+    /**
+     * 分页查询经纪公司申请列表。
+     * <p>待审核（含资料重审）置顶，组内按最近提交时间倒序 — 排序由 findApplications 内部 JPQL 固定。</p>
+     */
     public PageResult<AdminEnterpriseAgentApplicationVO> listApplications(
             AdminEnterpriseAgentApplicationQuery query) {
-        PageRequest pageable = PageRequest.of(
-                query.getPage() - 1, query.getSize(),
-                Sort.by(Sort.Direction.DESC, "id")
-        );
+        PageRequest pageable = PageRequest.of(query.getPage() - 1, query.getSize());
 
-        Page<UserRole> rolePage;
-        if (query.getStatus() != null) {
-            rolePage = userRoleService.findByRoleAndStatus(
-                    BusinessRole.Code.ENTERPRISE_AGENT, query.getStatus(), pageable);
-        } else {
-            rolePage = userRoleService.findByRole(BusinessRole.Code.ENTERPRISE_AGENT, pageable);
-        }
+        Page<UserRole> rolePage = userRoleService.findApplications(
+                BusinessRole.Code.ENTERPRISE_AGENT, query.getStatus(), pageable);
 
         List<UserRole> userRoles = rolePage.getContent();
         if (userRoles.isEmpty()) {
@@ -97,8 +93,10 @@ public class AdminEnterpriseAgentService {
             vo.setId(ur.getId());
             vo.setUserId(ur.getUserId());
             vo.setStatus(ur.getStatus());
+            vo.setReapplying(Boolean.TRUE.equals(ur.getReapplying()));
             vo.setRejectReason(ur.getRejectReason());
             vo.setCreatedAt(ur.getCreatedAt());
+            vo.setUpdatedAt(ur.getUpdatedAt());
             vo.setApprovedAt(ur.getApprovedAt());
 
             User user = userMap.get(ur.getUserId());
@@ -112,6 +110,10 @@ public class AdminEnterpriseAgentService {
                 vo.setCompanyName(ea.getCompanyName());
                 vo.setContactName(ea.getContactName());
                 vo.setContactPhone(ea.getContactPhone());
+                // 经纪公司 ID（正式档案唯一标识）：角色审核通过后才展示
+                if (ur.getStatus() == 1) {
+                    vo.setEnterpriseAgentId(ea.getId());
+                }
             }
 
             return vo;

@@ -1,6 +1,7 @@
 import { Link } from '@/i18n/navigation';
 import { MapPin, ArrowRight } from 'lucide-react';
 import type { ActiveCityItem } from '../api/types';
+import { cityChannelPath } from '../lib/paths';
 
 interface CityChannelCardProps {
   /** 来自 GET /cities/active 的列表，最多展示 9 个 */
@@ -36,7 +37,7 @@ export function CityChannelCard({ cities }: CityChannelCardProps) {
           {display.map((city) => (
             <Link
               key={city.enName}
-              href={`/cities/${city.enName}`}
+              href={cityChannelPath(city.enName)}
               className="group flex flex-col items-center justify-center gap-1 py-3 rounded-md border border-slate-100 hover:border-primary hover:bg-primary/5 transition-colors"
             >
               <span className="text-sm font-medium text-slate-800 group-hover:text-primary transition-colors">

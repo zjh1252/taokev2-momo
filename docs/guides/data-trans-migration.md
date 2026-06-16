@@ -48,6 +48,39 @@ data-trans/
 
 详见 `data-trans/README.md` 与 `data-trans/docs/guides/数据迁移操作手册.md`。
 
+## 录播课迁移（2026-06）
+
+Schema 由 Flyway V86–V97 提供；**批量数据**在 `data-trans/scripts/`：
+
+| 脚本 | 说明 |
+|------|------|
+| `_audit_video_migration_gaps.py` | 迁移前缺口审计 |
+| `run_video_package_migrate.py` | 视频包 labels/relations/groups |
+| `run_video_supplier_migrate.py` | 供应商 + 分类 + 分类视频 |
+| `run_video_order_migrate.py` | 历史订单/支付/报名（默认仅已支付） |
+| `run_video_comment_migrate.py` | 评论 |
+| `_audit_video_migration_verify.py` | 验收 |
+| `_rollback_video_migration.py` | 回滚 |
+| `run_video_migration_backfill.py` | 缺口补全（分类父节点/占位视频/enrollment） |
+| `_audit_video_remaining_scope.py` | 剩余域审计 |
+| `run_video_order_history_migrate.py` | 非已支付历史订单（status 0/1/4/5） |
+| `run_video_recommend_migrate.py` | 推荐位 → sticky_priority |
+| `run_video_cart_backfill.py` | 购物车补全 |
+| `run_video_tag_backfill.py` | 标签 → keywords |
+| `run_video_talk_migrate.py` | 讨论 → video_comments |
+| `run_video_paylog_archive.py` | 支付流水 JSONL 归档 |
+| `_export_orphan_video_comments.py` | 孤儿评论导出 |
+| `_analyze_legacy_order_tables.py` | child/basic/relation 老订单表关系分析 |
+| `_export_skipped_history_orders.py` | 未迁历史订单及跳过原因 |
+| `_audit_video_recommend_gap.py` | 推荐位 sticky 缺口 |
+| `_audit_video_tags_gap.py` | 有标签无 keywords 视频明细 |
+
+计划：`docs/superpowers/plans/2026-06-12-video-remaining-migration.md`
+
+**迁移结果（2026-06-12）：** `data-trans/docs/guides/录播课迁移结果记录.md`；摘要 `data-trans/output/video_migration_summary.json`
+
+手册：`data-trans/docs/guides/录播课迁移操作手册.md`；字段映射：`data-trans/docs/guides/录播课字段映射表.md`。
+
 ## 相关源码
 
 - 老站 PHP：`tkw/`（只读对照，不入新站部署）

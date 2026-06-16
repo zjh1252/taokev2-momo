@@ -12,6 +12,7 @@ import com.taoke.user.dto.binding.BindingType;
 import com.taoke.user.dto.binding.InitiateBindingRequest;
 import com.taoke.user.dto.binding.RejectBindingRequest;
 import com.taoke.user.entity.User;
+import com.taoke.user.repository.TrainerRepository;
 import com.taoke.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,14 +37,16 @@ public class BindingController {
 
     private final BindingService bindingService;
     private final UserRepository userRepository;
+    private final TrainerRepository trainerRepository;
 
     // ============================================================
     // 发起 / 确认 / 拒绝 / 解绑
     // ============================================================
 
     @RequireRole({BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT,
-            BusinessRole.Code.INSTITUTION, BusinessRole.Code.ENTERPRISE_AGENT})
-    @Operation(summary = "发起绑定（向专家或员工）")
+            BusinessRole.Code.INSTITUTION, BusinessRole.Code.ENTERPRISE_AGENT,
+            BusinessRole.Code.INSTITUTION_EMPLOYEE})
+    @Operation(summary = "发起绑定（向专家或员工）；机构员工以所属机构名义发起专家绑定")
     @PostMapping("/bindings")
     public ApiResponse<BindingItemResponse> initiate(@Valid @RequestBody InitiateBindingRequest request) {
         return ApiResponse.ok(bindingService.initiate(SecurityUtils.getCurrentUserId(), request));
@@ -219,6 +222,14 @@ public class BindingController {
         return ApiResponse.ok(bindingService.listMyInstitutions(SecurityUtils.getCurrentUserId()));
     }
 
+    @RequireRole(BusinessRole.Code.INSTITUTION_EMPLOYEE)
+    @Operation(summary = "机构员工：所属机构绑定的专家（含 ACTIVE/PENDING/REJECTED/UNBOUND）")
+    @GetMapping("/employees/me/institution-trainers")
+    public ApiResponse<List<BindingItemResponse>> listInstitutionTrainersForEmployee() {
+        return ApiResponse.ok(
+                bindingService.listInstitutionTrainersForEmployee(SecurityUtils.getCurrentUserId()));
+    }
+
     @RequireRole(BusinessRole.Code.AGENT)
     @Operation(summary = "经纪人：我的专家")
     @GetMapping("/agents/me/trainers")
@@ -237,10 +248,11 @@ public class BindingController {
      * 根据手机号查询平台用户的最简资料 — 仅供绑定发起方查找目标用户。
      *
      * @param phone 完整手机号
-     * @return {id, nickname, avatarUrl, phone}
+     * @return {id, nickname, avatarUrl, phone, approvedTrainer}
      */
     @RequireRole({BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT,
-            BusinessRole.Code.INSTITUTION, BusinessRole.Code.ENTERPRISE_AGENT})
+            BusinessRole.Code.INSTITUTION, BusinessRole.Code.ENTERPRISE_AGENT,
+            BusinessRole.Code.INSTITUTION_EMPLOYEE})
     @Operation(summary = "按手机号查找平台用户（用于发起绑定时定位目标）")
     @GetMapping("/bindings/users/lookup")
     public ApiResponse<Map<String, Object>> lookupUserByPhone(@RequestParam String phone) {
@@ -254,6 +266,11 @@ public class BindingController {
         data.put("nickname", u.getNickname() != null ? u.getNickname() : u.getRealName());
         data.put("avatarUrl", u.getAvatarUrl());
         data.put("phone", u.getPhone());
+        // 是否为「审核通过」的专家：绑定专家只允许添加已通过审核的专家
+        boolean approvedTrainer = trainerRepository.findByUserId(u.getId())
+                .map(t -> t.getStatus() != null && t.getStatus() == 2)
+                .orElse(false);
+        data.put("approvedTrainer", approvedTrainer);
         return ApiResponse.ok(data);
     }
 }

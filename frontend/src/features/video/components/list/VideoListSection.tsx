@@ -98,9 +98,12 @@ function VideoListSectionInner({
   });
 
   useEffect(() => {
-    if (keywordFromUrl === keyword && keywordBootstrappedRef.current) return;
+    if (!keywordBootstrappedRef.current) {
+      keywordBootstrappedRef.current = true;
+      if (!keywordFromUrl) return;
+    }
+    if (keywordFromUrl === keyword) return;
     setKeyword(keywordFromUrl);
-    keywordBootstrappedRef.current = true;
     commitPageChange(1);
     fetchData(1, selectedCategory, sortKey, keywordFromUrl);
   }, [keywordFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -108,7 +111,7 @@ function VideoListSectionInner({
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);
     fetchData(1, selectedCategory, sortKey, keyword, null);
-    router.replace('/video');
+    router.replace('/videos');
   }, [fetchData, router, selectedCategory, sortKey, keyword]);
 
   const handleCategoryChange = useCallback(

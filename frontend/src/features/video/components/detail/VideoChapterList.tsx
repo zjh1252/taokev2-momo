@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { ChevronDown, PlayCircle, Lock, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from '@/i18n/navigation';
+import { ROUTES } from '@/config/routes';
 import type { VideoSeries, VideoChapter } from '../../api/types';
 import { cn } from '@/lib/utils';
 import { useVideoPlayback } from '../../context/video-playback-context';
@@ -10,6 +12,7 @@ import { useVideoPlayback } from '../../context/video-playback-context';
 interface VideoChapterListProps {
   seriesList: VideoSeries[];
   standaloneChapters: VideoChapter[];
+  videoId?: number;
 }
 
 function formatDuration(seconds: number): string {
@@ -19,8 +22,17 @@ function formatDuration(seconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapterListProps) {
-  const { setPlaybackSrc, accessible, setCurrentChapterId, playbackSrc } = useVideoPlayback();
+export function VideoChapterList({ seriesList, standaloneChapters, videoId }: VideoChapterListProps) {
+  const router = useRouter();
+  const { selectChapter, accessible, currentChapterId } = useVideoPlayback();
+
+  const handleChapterSelect = (chapter: VideoChapter) => {
+    if (videoId) {
+      router.push(ROUTES.videoPlay(videoId, chapter.id));
+      return;
+    }
+    selectChapter(chapter);
+  };
 
   const [expandedSeries, setExpandedSeries] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = {};
@@ -68,11 +80,8 @@ export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapte
                   chapter={chapter}
                   index={idx + 1}
                   accessible={accessible}
-                  isPlaying={playbackSrc === chapter.videoUrl?.trim()}
-                  onPlay={(url, title, id) => {
-                    setPlaybackSrc(url, title);
-                    setCurrentChapterId(id);
-                  }}
+                  isPlaying={currentChapterId === chapter.id}
+                  onSelect={() => handleChapterSelect(chapter)}
                 />
               ))}
             </div>
@@ -95,11 +104,8 @@ export function VideoChapterList({ seriesList, standaloneChapters }: VideoChapte
                 chapter={chapter}
                 index={idx + 1}
                 accessible={accessible}
-                isPlaying={playbackSrc === chapter.videoUrl?.trim()}
-                onPlay={(url, title, id) => {
-                  setPlaybackSrc(url, title);
-                  setCurrentChapterId(id);
-                }}
+                isPlaying={currentChapterId === chapter.id}
+                onSelect={() => handleChapterSelect(chapter)}
               />
             ))}
           </div>
@@ -114,26 +120,20 @@ function ChapterRow({
   index,
   accessible,
   isPlaying,
-  onPlay,
+  onSelect,
 }: {
   chapter: VideoChapter;
   index: number;
   accessible: boolean;
   isPlaying: boolean;
-  onPlay: (url: string, title: string, id: number) => void;
+  onSelect: () => void;
 }) {
-  const url = chapter.videoUrl?.trim();
-
   const handleClick = () => {
     if (!accessible) {
       toast.warning('需要购买才能播放');
       return;
     }
-    if (!url) {
-      toast.info('该章节暂无视频文件');
-      return;
-    }
-    onPlay(url, chapter.title, chapter.id);
+    onSelect();
   };
 
   return (

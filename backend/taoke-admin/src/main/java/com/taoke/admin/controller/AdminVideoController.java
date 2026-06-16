@@ -7,6 +7,7 @@ import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.security.RequireRole;
+import com.taoke.course.dto.video.AdminSaveVideoRequest;
 import com.taoke.course.dto.video.VideoDetailVO;
 import com.taoke.course.dto.video.VideoListItemVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * 后台 — 录播课管理（列表 + 审核 + 下架）
@@ -28,6 +31,12 @@ import org.springframework.web.bind.annotation.*;
 public class AdminVideoController {
 
     private final AdminVideoService adminVideoService;
+
+    @Operation(summary = "管理后台创建录播课")
+    @PostMapping("/admin/videos")
+    public ApiResponse<VideoDetailVO> create(@Valid @RequestBody AdminSaveVideoRequest request) {
+        return ApiResponse.ok(adminVideoService.create(request));
+    }
 
     @Operation(summary = "分页查询录播课列表")
     @GetMapping("/admin/videos")
@@ -82,6 +91,15 @@ public class AdminVideoController {
     @PutMapping("/admin/videos/{id}/unfeature")
     public ApiResponse<Void> unfeature(@PathVariable Integer id) {
         adminVideoService.unfeature(id);
+        return ApiResponse.ok();
+    }
+
+    @Operation(summary = "设置录播课置顶优先级")
+    @PutMapping("/admin/videos/{id}/sticky-priority")
+    public ApiResponse<Void> updateStickyPriority(@PathVariable Integer id,
+                                                   @RequestBody Map<String, Integer> body) {
+        Integer priority = body.get("stickyPriority");
+        adminVideoService.updateStickyPriority(id, priority);
         return ApiResponse.ok();
     }
 }

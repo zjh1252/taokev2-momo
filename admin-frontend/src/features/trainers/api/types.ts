@@ -15,17 +15,46 @@ export type AdminTrainer = {
   createdAt: string;
 };
 
+export type AdminTrainerDetail = AdminTrainer & {
+  email?: string | null;
+  trainerCode?: string | null;
+  teachingName?: string | null;
+  gender?: number | null;
+  intro?: string | null;
+  expertiseTags?: string | null;
+  nickname?: string | null;
+  realNameCertStatus?: number | null;
+  professionalCertStatus?: number | null;
+  courseCount?: number | null;
+  caseCount?: number | null;
+  videoCount?: number | null;
+  bookCount?: number | null;
+  reviewCount?: number | null;
+  agentBindingCount?: number | null;
+  institutionBindingCount?: number | null;
+  roles?: { role: string; status: number }[];
+};
+
+export type TrainerDetailResponse = {
+  code: number;
+  message: string;
+  data: AdminTrainerDetail;
+};
+
 export type AdminTrainerApplication = {
   id: number;
   userId: number;
+  trainerId: number | null;
   phone: string | null;
   nickname: string | null;
   trainerName: string | null;
   trainerTitle: string | null;
   trainerAvatar: string | null;
   status: number;
+  reapplying: boolean | null;
   rejectReason: string | null;
   createdAt: string;
+  updatedAt: string | null;
   approvedAt: string | null;
 };
 
@@ -58,7 +87,6 @@ export type ApplicationsResponse = {
   };
 };
 
-/** 专家表状态文本映射 */
 export const TRAINER_STATUS_MAP: Record<number, string> = {
   0: '草稿',
   1: '待审核',
@@ -67,7 +95,6 @@ export const TRAINER_STATUS_MAP: Record<number, string> = {
   4: '已禁用'
 };
 
-/** 申请状态文本映射（UserRole 表） */
 export const APPLICATION_STATUS_MAP: Record<number, string> = {
   1: '已通过',
   2: '待审核',
@@ -88,3 +115,9 @@ export const APPLICATION_STATUS_OPTIONS = [
   { value: '1', label: '已通过' },
   { value: '3', label: '已驳回' }
 ];
+
+export const REAL_NAME_CERT_STATUS_MAP: Record<number, string> = {
+  1: '待审核',
+  2: '已通过',
+  3: '已驳回'
+};

@@ -2,6 +2,8 @@ package com.taoke.user.eventlistener;
 
 import com.taoke.common.enums.NotificationType;
 import com.taoke.common.eventbus.DomainEventListener;
+import com.taoke.common.events.user.TrainerBookApprovedEvent;
+import com.taoke.common.events.user.TrainerBookRejectedEvent;
 import com.taoke.common.events.user.TrainerCaseApprovedEvent;
 import com.taoke.common.events.user.TrainerCaseRejectedEvent;
 import com.taoke.common.events.user.TrainerHighlightApprovedEvent;
@@ -101,6 +103,46 @@ public class TrainerContentEventListener {
                 content,
                 String.valueOf(event.getHighlightId()),
                 "/dashboard/highlights/manage"
+        );
+    }
+
+    /**
+     * 著作审核通过
+     */
+    @DomainEventListener
+    public void onBookApproved(TrainerBookApprovedEvent event) {
+        log.info("收到著作审核通过事件: bookId={}, trainerUserId={}, eventId={}",
+                event.getBookId(), event.getTrainerUserId(), event.getEventId());
+
+        notificationService.send(
+                event.getTrainerUserId(),
+                NotificationType.BOOK_REVIEW,
+                "著作审核通过",
+                "恭喜！您发布的著作「" + event.getBookTitle() + "」已审核通过并展示。",
+                String.valueOf(event.getBookId()),
+                "/dashboard/books/manage"
+        );
+    }
+
+    /**
+     * 著作审核驳回
+     */
+    @DomainEventListener
+    public void onBookRejected(TrainerBookRejectedEvent event) {
+        log.info("收到著作审核驳回事件: bookId={}, trainerUserId={}, eventId={}",
+                event.getBookId(), event.getTrainerUserId(), event.getEventId());
+
+        String reason = event.getRejectReason();
+        String content = "您发布的著作「" + event.getBookTitle() + "」未通过审核。"
+                + (reason != null && !reason.isBlank() ? "驳回原因：" + reason : "");
+
+        notificationService.send(
+                event.getTrainerUserId(),
+                NotificationType.BOOK_REVIEW,
+                "著作审核未通过",
+                content,
+                String.valueOf(event.getBookId()),
+                "/dashboard/books/manage"
         );
     }
 }

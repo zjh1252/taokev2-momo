@@ -1,0 +1,65 @@
+@import './tokens.scss';
+@import './mixins.scss';
+
+// ============================================================
+// 全局工具类（Tailwind 跨端替代品的最小子集）
+// 仅收录高频、跨端兼容的原子类，禁止滥用
+// ============================================================
+
+// flex
+.tk-row { display: flex; flex-direction: row; }
+.tk-col { display: flex; flex-direction: column; }
+.tk-center { display: flex; align-items: center; justify-content: center; }
+.tk-items-center { align-items: center; }
+.tk-items-end { align-items: flex-end; }
+.tk-justify-center { justify-content: center; }
+.tk-justify-between { justify-content: space-between; }
+.tk-justify-end { justify-content: flex-end; }
+.tk-flex-1 { flex: 1; min-width: 0; }
+.tk-shrink-0 { flex-shrink: 0; }
+.tk-wrap { flex-wrap: wrap; }
+
+// 间距（gap）
+.tk-gap-1 { gap: $tk-sp-1; }
+.tk-gap-2 { gap: $tk-sp-2; }
+.tk-gap-3 { gap: $tk-sp-3; }
+.tk-gap-4 { gap: $tk-sp-4; }
+
+// 文本
+.tk-text-1 { color: $tk-text-1; }
+.tk-text-2 { color: $tk-text-2; }
+.tk-text-3 { color: $tk-text-3; }
+.tk-text-4 { color: $tk-text-4; }
+.tk-text-primary { color: $tk-primary; }
+.tk-text-star { color: $tk-star; }
+
+.tk-fs-xs  { font-size: $tk-fs-xs; }
+.tk-fs-sm  { font-size: $tk-fs-sm; }
+.tk-fs-md  { font-size: $tk-fs-md; }
+.tk-fs-lg  { font-size: $tk-fs-lg; }
+.tk-fs-xl  { font-size: $tk-fs-xl; }
+.tk-fs-2xl { font-size: $tk-fs-2xl; }
+
+.tk-bold { font-weight: 700; }
+.tk-semi { font-weight: 600; }
+.tk-medium { font-weight: 500; }
+
+.tk-ellipsis-1 { @include tk-ellipsis-1; }
+.tk-ellipsis-2 { @include tk-ellipsis(2); }
+.tk-ellipsis-3 { @include tk-ellipsis(3); }
+
+// 背景与圆角
+.tk-bg-page { background: $tk-bg-page; }
+.tk-bg-card { background: $tk-bg-card; }
+.tk-bg-primary { background: $tk-primary; }
+
+.tk-rounded-sm  { border-radius: $tk-radius-sm; }
+.tk-rounded-md  { border-radius: $tk-radius-md; }
+.tk-rounded-lg  { border-radius: $tk-radius-lg; }
+.tk-rounded-xl  { border-radius: $tk-radius-xl; }
+.tk-rounded-full{ border-radius: $tk-radius-full; }
+
+// 阴影
+.tk-shadow-card { box-shadow: $tk-shadow-card; }
+.tk-shadow-pop  { box-shadow: $tk-shadow-pop;  }
+.tk-shadow-primary { box-shadow: $tk-shadow-primary; }

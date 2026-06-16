@@ -108,6 +108,10 @@ export type CourseFilters = {
   search?: string;
   status?: string;
   type?: string;
+  trainerId?: string;
+  publisherType?: string;
+  publisherId?: string;
+  publisherName?: string;
 };
 
 export type PlanFilters = {

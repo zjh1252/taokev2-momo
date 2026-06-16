@@ -110,6 +110,27 @@ taoke:
     temperature: 0.2
     timeout-ms: 60000
     max-input-chars: 50000
+  # 老站第三方录播（中欧 eceibs、快课 kuaike、宽学网 kuanxue、思酷 scho）播放 URL 签发
+  legacy-video:
+    eceibs:
+      enabled: true
+      api-url: http://intest.eceibs.com/
+      corp-id: taoke
+      api-key: sddsintestsdasd
+    kuaike:
+      enabled: true
+      api-url: http://t0001.witsharer.com/ws/open/v1
+      api-key: ebd361b8a48fb2d46471e8
+      corp-code: TK_default
+      corp-name: TKW
+    kuanxue:
+      enabled: true
+      api-url: http://preview.kuanxue.com/lrm/controller/
+      corp-id: taoke
+    scho:
+      enabled: true
+      api-url: http://test.scho.com.cn
+      secret-key: 1E904D6E91A01D4A5C86EDE8B13370BE
 
 # 滑块验证码（tianai-captcha）自身配置，详见 cloud.tianai.captcha.autoconfiguration.ImageCaptchaProperties
 # 注意：此为 tianai 顶层 captcha.* 前缀；启用/卡点开关是另一套 taoke.captcha.*
@@ -148,3 +169,9 @@ springdoc:
     path: /swagger-ui.html
     tags-sorter: alpha
     operations-sorter: alpha
+
+# 爬虫服务配置
+crawler:
+  base-url: http://localhost:8100
+  callback-url: http://localhost:8080/internal/crawl/callback
+  callback-token: ${CRAWLER_CALLBACK_TOKEN:default-token}

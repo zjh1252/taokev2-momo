@@ -80,6 +80,7 @@ export interface CreateDemandRequest {
 /** 需求列表项 */
 export interface DemandListItem {
   id: number;
+  demandNo: string;
   demandType: string;
   demandTypeLabel: string;
   title: string;
@@ -91,7 +92,7 @@ export interface DemandListItem {
   format: string | null;
   traineeCount: number | null;
   createdAt: string;
-  userId: number;
+  userId: number | null;
 }
 
 /** 跟进记录 */
@@ -113,7 +114,8 @@ export interface DemandFollowUp {
 /** 需求详情 */
 export interface DemandDetail {
   id: number;
-  userId: number;
+  demandNo: string;
+  userId: number | null;
   enterpriseId: number | null;
   demandType: string;
   demandTypeLabel: string;

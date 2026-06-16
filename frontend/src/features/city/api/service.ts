@@ -13,7 +13,7 @@ export async function getActiveCities(limit = 9): Promise<ActiveCityItem[]> {
 
 /**
  * 按拼音解析城市详情，用于 /cities/[pinyin] SSR。
- * <p>直辖市的省级拼音（如 beijing）后端会自动 fallback 到下属市辖区。未找到时返回 null。</p>
+ * <p>直辖市的 {@code cityRegionId} 为省级 region.id（与老库 course_plans / 专家 cityId 一致）。</p>
  */
 export async function getCityByEnName(enName: string): Promise<CityChannelDetail | null> {
   const res = await apiGet<ApiResponse<CityChannelDetail | null>>(

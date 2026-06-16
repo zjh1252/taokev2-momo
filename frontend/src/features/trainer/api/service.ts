@@ -13,6 +13,7 @@ import type {
   TrainerBook,
 } from '../types';
 import type { CourseListItem } from '@/features/course/api/types';
+import { isPresentableRecommendedTrainer } from '../utils/recommended';
 import type { VideoListItem } from '@/features/video/api/types';
 import type { TrainerCase } from '@/features/trainer-case/api/types';
 
@@ -50,6 +51,7 @@ export interface TrainerListParams {
   expertiseCategoryId?: number;
   industryCategoryId?: number;
   provinceId?: number;
+  cityId?: number;
   keyword?: string;
   sort?: string;
   /** 质量承诺：1=仅显示信得过专家 */
@@ -74,6 +76,7 @@ export async function getTrainerList(
   if (params.expertiseCategoryId) query.set('expertiseCategoryId', String(params.expertiseCategoryId));
   if (params.industryCategoryId) query.set('industryCategoryId', String(params.industryCategoryId));
   if (params.provinceId) query.set('provinceId', String(params.provinceId));
+  if (params.cityId) query.set('cityId', String(params.cityId));
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sort) query.set('sort', params.sort);
   if (params.isTrusted) query.set('isTrusted', String(params.isTrusted));
@@ -121,13 +124,14 @@ export async function getRecommendedTrainers(
 }
 
 /**
- * 获取专家列表页顶部推荐位（最多 9 条；不足时按 id 倒序补齐，允许重复）
+ * 获取首页/列表页推荐专家（仅后台 isRecommended=1，过滤测试占位数据）
  */
 export async function getTopRecommendedTrainers(limit = 9): Promise<TrainerListItem[]> {
+  const fetchLimit = Math.max(limit * 3, 12);
   const res = await apiGet<ApiResponse<TrainerListItem[]>>(
-    `/trainers/recommended?limit=${limit}`,
+    `/trainers/recommended?limit=${fetchLimit}`,
   );
-  return res.data || [];
+  return (res.data || []).filter(isPresentableRecommendedTrainer).slice(0, limit);
 }
 
 /**
@@ -145,6 +149,8 @@ export interface RecentTrainerCase {
   coverImage: string | null;
   industry: string | null;
   description: string | null;
+  /** 培训日期，首页案例卡片展示「案例时间」 */
+  trainingDate?: string | null;
 }
 
 export async function getRecentTrainerCases(limit = 10): Promise<RecentTrainerCase[]> {

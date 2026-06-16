@@ -1,0 +1,20 @@
+{
+  "title": "购物车",
+  "empty": "购物车是空的",
+  "emptyHint": "去课程列表看看吧",
+  "selectAll": "全选",
+  "clearAll": "清空购物车",
+  "selected": "已选 {count} 件商品",
+  "total": "合计",
+  "checkout": "去结算",
+  "addSuccess": "已加入购物车",
+  "removeSuccess": "已从购物车移除",
+  "clearSuccess": "购物车已清空",
+  "selectRequired": "请选择要结算的商品",
+  "addToCart": "加入购物车",
+  "buyNow": "立即购买",
+  "processing": "处理中...",
+  "freeHint": "该课程为免费课程，无需购买",
+  "priceChanged": "现价",
+  "noImage": "暂无图片"
+}

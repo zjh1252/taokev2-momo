@@ -3,12 +3,13 @@
 import { Brain, Sparkles, Headphones } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
+import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/lib/auth/auth-context';
 
 /**
  * AI 智能匹配培训资源 Banner — 红色背景 + 图标 + 两个 CTA 按钮
  *
- * <p>「发布需求」按钮与悬浮栏的发布需求保持一致：未登录跳 /login，已登录跳 /dashboard/demands/create。</p>
+ * <p>「发布需求」按钮与悬浮栏的发布需求保持一致：未登录跳 /publish-demand，已登录跳 /dashboard/demands/create。</p>
  */
 export function AiMatchBanner() {
   const t = useTranslations('home');
@@ -17,7 +18,7 @@ export function AiMatchBanner() {
 
   const gotoPublishDemand = () => {
     if (loading) return;
-    router.push(user ? '/dashboard/demands/create' : '/login');
+    router.push(user ? ROUTES.UC_DEMANDS_CREATE : ROUTES.PUBLISH_DEMAND);
   };
 
   return (

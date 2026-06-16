@@ -15,7 +15,12 @@ const SEGMENT_LABELS: Record<string, string> = {
   courses: '课程管理',
   plans: '排课管理',
   'training-reviews': '评价管理',
-  videos: '录播课管理',
+  videos: '视频列表',
+  new: '添加视频',
+  'video-orders': '订单管理',
+  'video-comments': '评论管理',
+  'video-invoices': '发票管理',
+  'video-suppliers': '供应商管理',
   trainers: '专家',
   cases: '案例管理',
   highlights: '精彩瞬间管理',
@@ -128,7 +133,38 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
   '/dashboard/videos': [
     { title: 'Dashboard', link: '/dashboard' },
     { title: '内容资源运营', link: '#' },
-    { title: '录播课管理', link: '/dashboard/videos' }
+    { title: '录播课管理', link: '/dashboard/videos' },
+    { title: '视频列表', link: '/dashboard/videos' }
+  ],
+  '/dashboard/videos/new': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '内容资源运营', link: '#' },
+    { title: '录播课管理', link: '/dashboard/videos' },
+    { title: '添加视频', link: '/dashboard/videos/new' }
+  ],
+  '/dashboard/video-orders': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '内容资源运营', link: '#' },
+    { title: '录播课管理', link: '/dashboard/videos' },
+    { title: '订单管理', link: '/dashboard/video-orders' }
+  ],
+  '/dashboard/video-comments': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '内容资源运营', link: '#' },
+    { title: '录播课管理', link: '/dashboard/videos' },
+    { title: '评论管理', link: '/dashboard/video-comments' }
+  ],
+  '/dashboard/video-invoices': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '内容资源运营', link: '#' },
+    { title: '录播课管理', link: '/dashboard/videos' },
+    { title: '发票管理', link: '/dashboard/video-invoices' }
+  ],
+  '/dashboard/video-suppliers': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '内容资源运营', link: '#' },
+    { title: '录播课管理', link: '/dashboard/videos' },
+    { title: '供应商管理', link: '/dashboard/video-suppliers' }
   ],
   '/dashboard/trainers/cases': [
     { title: 'Dashboard', link: '/dashboard' },

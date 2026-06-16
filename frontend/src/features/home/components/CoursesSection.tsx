@@ -1,11 +1,25 @@
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
+import { SafeImage } from '@/components/safe-image';
+import { DEFAULT_COURSE_COVER } from '@/lib/media';
 import { SectionHeader } from './SectionHeader';
 import type { InternalCourse } from '../types';
 
 interface CoursesSectionProps {
   courses: InternalCourse[];
+}
+
+const COURSE_FALLBACK_COVERS = [
+  '/statics/images/course-1.jpg',
+  '/statics/images/case-1.jpg',
+  '/statics/images/public-course-1.jpg',
+  '/statics/images/hero-banner.jpg',
+  '/statics/images/case-2.jpg',
+  DEFAULT_COURSE_COVER,
+];
+
+function courseFallback(course: InternalCourse): string {
+  return COURSE_FALLBACK_COVERS[Math.abs(course.id) % COURSE_FALLBACK_COVERS.length];
 }
 
 /**
@@ -32,15 +46,17 @@ export function CoursesSection({ courses }: CoursesSectionProps) {
 }
 
 function CourseCard({ course }: { course: InternalCourse }) {
+  const coverSrc = course.coverUrl || course.image;
+
   return (
     <Link
       href={`/inhousecourse/${course.id}.htm`}
       className="bg-white rounded-lg overflow-hidden flex group border border-slate-100 hover:border-primary transition-all shadow-sm h-40"
     >
-      {/* 左侧封面 */}
-      <div className="w-1/3 overflow-hidden">
-        <Image
-          src={course.image}
+      <div className="w-1/3 overflow-hidden relative shrink-0 bg-slate-100">
+        <SafeImage
+          src={coverSrc}
+          fallback={courseFallback(course)}
           alt={course.title}
           width={240}
           height={160}
@@ -48,8 +64,7 @@ function CourseCard({ course }: { course: InternalCourse }) {
         />
       </div>
 
-      {/* 右侧内容 */}
-      <div className="p-5 flex flex-col flex-1">
+      <div className="p-5 flex flex-col flex-1 min-w-0">
         <h4 className="font-bold text-base mb-2 line-clamp-2 text-slate-800 group-hover:text-primary transition-colors">
           {course.title}
         </h4>

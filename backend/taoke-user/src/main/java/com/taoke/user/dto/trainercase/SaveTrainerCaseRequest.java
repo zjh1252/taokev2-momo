@@ -52,8 +52,7 @@ public class SaveTrainerCaseRequest {
     /** 培训地点 - 镇/街道 ID（选填） */
     private Integer townId;
 
-    /** 培训地点 - 详细地址（必填） */
-    @NotBlank(message = "请填写详细地址")
+    /** 培训地点 - 详细地址（选填） */
     @Size(max = 255, message = "详细地址不能超过255字")
     private String trainingAddress;
 

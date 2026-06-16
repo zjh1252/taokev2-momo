@@ -192,6 +192,10 @@ export const navGroups: NavGroup[] = [
         isActive: false,
         items: [
           {
+            title: '添加课程',
+            url: '/dashboard/courses/new'
+          },
+          {
             title: '课程列表',
             url: '/dashboard/courses'
           },
@@ -203,10 +207,35 @@ export const navGroups: NavGroup[] = [
       },
       {
         title: '录播课管理',
-        url: '/dashboard/videos',
+        url: '#',
         icon: 'video',
         isActive: false,
-        items: []
+        items: [
+          {
+            title: '添加视频',
+            url: '/dashboard/videos/new'
+          },
+          {
+            title: '视频列表',
+            url: '/dashboard/videos'
+          },
+          {
+            title: '订单管理',
+            url: '/dashboard/video-orders'
+          },
+          {
+            title: '评论管理',
+            url: '/dashboard/video-comments'
+          },
+          {
+            title: '发票管理',
+            url: '/dashboard/video-invoices'
+          },
+          {
+            title: '供应商管理',
+            url: '/dashboard/video-suppliers'
+          }
+        ]
       },
       {
         title: '案例管理',
@@ -238,8 +267,28 @@ export const navGroups: NavGroup[] = [
         isActive: false,
         items: [
           {
+            title: '添加著作',
+            url: '/dashboard/books/list/new'
+          },
+          {
             title: '著作列表',
             url: '/dashboard/books/list'
+          }
+        ]
+      },
+      {
+        title: '素材库',
+        url: '#',
+        icon: 'media',
+        isActive: false,
+        items: [
+          {
+            title: '课程封面素材库',
+            url: '/dashboard/materials?tab=cover'
+          },
+          {
+            title: '头像素材库',
+            url: '/dashboard/materials?tab=avatar'
           }
         ]
       },
@@ -253,19 +302,41 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
+    label: '',
+    items: [
+      {
+        title: '数据爬取',
+        url: '#',
+        icon: 'search',
+        isActive: false,
+        items: [
+          {
+            title: '爬取专家',
+            url: '/dashboard/crawl/trainers'
+          },
+          {
+            title: '爬取课程',
+            url: '/dashboard/crawl/courses'
+          },
+          {
+            title: '爬取任务',
+            url: '/dashboard/crawl/jobs'
+          },
+          {
+            title: '数据源配置',
+            url: '/dashboard/crawl/sources'
+          }
+        ]
+      }
+    ]
+  },
+  {
     label: '平台运营管理',
     items: [
       {
         title: '需求管理',
         url: '/dashboard/demands',
         icon: 'forms',
-        isActive: false,
-        items: []
-      },
-      {
-        title: '订单管理',
-        url: '/dashboard/orders',
-        icon: 'receipt',
         isActive: false,
         items: []
       },

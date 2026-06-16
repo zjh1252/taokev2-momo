@@ -62,9 +62,9 @@ function CaseCard({ caseStudy }: { caseStudy: CaseStudy }) {
           {caseStudy.description}
         </p>
 
-        {/* 底部标签 + 按钮 */}
-        <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-          <div className="flex gap-2">
+        {/* 底部标签 + 案例时间 + 按钮 */}
+        <div className="mt-auto pt-4 border-t border-slate-100">
+          <div className="flex flex-wrap gap-2 mb-3">
             {caseStudy.tags.map((tag) => (
               <span
                 key={tag}
@@ -74,9 +74,18 @@ function CaseCard({ caseStudy }: { caseStudy: CaseStudy }) {
               </span>
             ))}
           </div>
-          <span className="bg-primary text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-primary/90 transition-colors">
-            {t('cases.readMore')}
-          </span>
+          <div className="flex items-center justify-between gap-3">
+            {caseStudy.caseDate ? (
+              <span className="text-xs text-slate-400">
+                {t('cases.caseDate', { date: caseStudy.caseDate })}
+              </span>
+            ) : (
+              <span />
+            )}
+            <span className="bg-primary text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-primary/90 transition-colors shrink-0">
+              {t('cases.readMore')}
+            </span>
+          </div>
         </div>
       </div>
     </Link>

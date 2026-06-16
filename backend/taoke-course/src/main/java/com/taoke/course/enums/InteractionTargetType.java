@@ -12,6 +12,7 @@ import lombok.Getter;
 public enum InteractionTargetType {
 
     COURSE("课程"),
+    VIDEO("录播课"),
     TRAINER("专家"),
     INSTITUTION("机构"),
     CASE("案例");

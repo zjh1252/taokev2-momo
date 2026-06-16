@@ -31,11 +31,14 @@ public interface DemandRepository extends JpaRepository<Demand, Integer> {
     @Query("SELECT d FROM Demand d WHERE"
             + " (:status IS NULL OR d.status = :status)"
             + " AND (:demandType IS NULL OR d.demandType = :demandType)"
-            + " AND (:keyword IS NULL OR d.title LIKE CONCAT('%',:keyword,'%')"
+            + " AND (:keyword IS NULL OR d.demandNo LIKE CONCAT('%',:keyword,'%')"
+            + "      OR d.title LIKE CONCAT('%',:keyword,'%')"
             + "      OR d.trainingTopic LIKE CONCAT('%',:keyword,'%'))"
             + " ORDER BY d.createdAt DESC")
     Page<Demand> adminSearch(@Param("status") Integer status,
                              @Param("demandType") String demandType,
                              @Param("keyword") String keyword,
                              Pageable pageable);
+
+    long countByStatus(Integer status);
 }

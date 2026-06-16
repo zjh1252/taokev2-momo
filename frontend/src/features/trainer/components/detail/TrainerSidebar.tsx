@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { SafeImage } from '@/components/safe-image';
-import { DEFAULT_COURSE_COVER } from '@/lib/media';
+import { DEFAULT_COURSE_COVER, getTrainerAvatarFallback } from '@/lib/media';
 import { Link } from '@/i18n/navigation';
 import { Bot, Star, Flame, BookOpen, Briefcase, Users } from 'lucide-react';
 import type {
@@ -102,6 +102,7 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
                 >
                   <SafeImage
                     src={t.avatar}
+                    fallback={getTrainerAvatarFallback(relatedName)}
                     alt={relatedName}
                     width={40}
                     height={40}

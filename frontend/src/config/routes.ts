@@ -5,23 +5,28 @@ export const ROUTES = {
   TRAINERS: '/trainer',
   PUBLIC_COURSES: '/opencourse',
   INTERNAL_COURSES: '/inhousecourse',
-  ONLINE_COURSES: '/video',
+  ONLINE_COURSES: '/videos',
   INSTITUTIONS: '/company',
   ASSOCIATIONS: '/association',
   SEARCH: '/search',
+  /** 城市综合频道（SEO：/city/{拼音}） */
+  cityChannel: (enName: string) => `/city/${enName}`,
   CART: '/cart',
   CHECKOUT: '/checkout',
   ARTICLES: '/articles',
   LOGIN: '/login',
   REGISTER: '/register',
+  FORGOT_PASSWORD: '/forgot-password',
 
   // ---- 用户中心 ----
   DASHBOARD: '/dashboard',
   UC_MESSAGES: '/dashboard/messages',
   UC_LEARNING: '/dashboard/learning',
   UC_ORDERS: '/dashboard/orders',
+  UC_ORDERS_INVOICE: '/dashboard/orders/invoice',
   UC_DEMANDS: '/dashboard/demands',
   UC_DEMANDS_CREATE: '/dashboard/demands/create',
+  PUBLISH_DEMAND: '/publish-demand',
   UC_FAVORITES: '/dashboard/favorites',
   UC_REVIEWS: '/dashboard/reviews',
   UC_ALLIANCE_AMBASSADOR: '/dashboard/alliance/ambassador',
@@ -56,12 +61,21 @@ export const ROUTES = {
   UC_CASES_MANAGE: '/dashboard/cases/manage',
   UC_CASES_CREATE: '/dashboard/cases/create',
 
+  // ---- 我的著作 ----
+  UC_BOOKS_MANAGE: '/dashboard/books/manage',
+  UC_BOOKS_CREATE: '/dashboard/books/create',
+
   // ---- 我的精彩瞬间 ----
   UC_HIGHLIGHTS_MANAGE: '/dashboard/highlights/manage',
   UC_HIGHLIGHTS_CREATE: '/dashboard/highlights/create',
 
   // ---- 我的视频（录播课） ----
   VIDEOS: '/videos',
+  /** 录播课播放页 */
+  videoPlay: (videoId: number, chapterId?: number) =>
+    chapterId
+      ? `/videos/${videoId}/play?chapter=${chapterId}`
+      : `/videos/${videoId}/play`,
   UC_VIDEOS_CREATE: '/dashboard/video/create',
   UC_VIDEOS_MANAGE: '/dashboard/video/manage',
 

@@ -9,6 +9,8 @@ import { getMyVideoDetail, updateVideo } from '@/features/video/api/publisher-se
 import type { SaveVideoRequest, VideoDetail } from '@/features/video/api/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import { toast } from 'sonner';
+import { ApiException } from '@/lib/http/client';
 import { OwnedTrainerBanner } from '@/features/binding/components/owned-trainer-banner';
 import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
 
@@ -35,10 +37,17 @@ export default function EditVideoPage() {
     setSubmitting(true);
     try {
       await updateVideo(videoId, data);
-      alert('录播课已保存');
+      toast.success(
+        data.draft
+          ? '草稿已保存，可在「管理录播课-草稿」中继续编辑'
+          : '已保存并提交审核，请等待平台审核',
+      );
       router.push(ROUTES.UC_VIDEOS_MANAGE);
-    } catch {
-      alert('保存失败，请稍后重试');
+    } catch (err) {
+      // ApiException 已由 http client 弹出后端具体失败原因，这里只兜底未知错误
+      if (!(err instanceof ApiException)) {
+        toast.error('保存失败，请稍后重试');
+      }
     } finally {
       setSubmitting(false);
     }

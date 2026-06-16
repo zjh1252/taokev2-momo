@@ -15,6 +15,7 @@ import {
   Handshake,
   UserCog,
   BookOpen,
+  BookMarked,
   Video,
   ChevronDown,
   Briefcase,
@@ -129,7 +130,7 @@ const NAV_ENTRIES: NavEntry[] = [
     visibleForRoles: ['AGENT', 'ASSISTANT', 'INSTITUTION', 'ENTERPRISE_AGENT', 'INSTITUTION_EMPLOYEE'],
   },
 
-  // ── 我的业务（经纪人 和 经纪公司 子菜单略有不同） ──
+  // ── 我的业务（仅经纪人保留；经纪公司侧按测试反馈移除该占位分组） ──
   {
     kind: 'group', label: '我的业务', icon: <BarChart3 className="size-5" />,
     visibleForRoles: ['AGENT'],
@@ -138,16 +139,6 @@ const NAV_ENTRIES: NavEntry[] = [
       { label: '接收订单', href: ROUTES.UC_MY_BUSINESS_ORDERS },
       { label: '客户评价', href: ROUTES.UC_MY_BUSINESS_REVIEWS },
       { label: '专家数据', href: ROUTES.UC_MY_BUSINESS_DATA },
-    ],
-  },
-  {
-    kind: 'group', label: '我的业务', icon: <BarChart3 className="size-5" />,
-    visibleForRoles: ['ENTERPRISE_AGENT'],
-    isPlaceholder: true,
-    children: [
-      { label: '接收订单', href: ROUTES.UC_MY_BUSINESS_ORDERS },
-      { label: '客户评价', href: ROUTES.UC_MY_BUSINESS_REVIEWS },
-      { label: '成交数据', href: ROUTES.UC_MY_BUSINESS_DATA },
     ],
   },
 
@@ -196,6 +187,14 @@ const NAV_ENTRIES: NavEntry[] = [
     children: [
       { label: '发布案例', href: ROUTES.UC_CASES_CREATE },
       { label: '管理案例', href: ROUTES.UC_CASES_MANAGE },
+    ],
+  },
+  {
+    kind: 'group', label: '我的著作', icon: <BookMarked className="size-5" />,
+    visibleForRoles: CONTENT_ROLES,
+    children: [
+      { label: '添加著作', href: ROUTES.UC_BOOKS_CREATE },
+      { label: '管理著作', href: ROUTES.UC_BOOKS_MANAGE },
     ],
   },
   {

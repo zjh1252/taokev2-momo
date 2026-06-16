@@ -31,8 +31,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Play,
-  List,
-  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -337,23 +335,14 @@ function VideoManageCard({
       {/* 操作按钮 */}
       <div className="flex flex-col gap-2 shrink-0 justify-center">
         {(isDraft || isRejected) && (
-          <>
-            <Link
-              href={`/dashboard/video/${video.id}/edit`}
-              className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
-            >
-              <Edit className="size-3.5" />
-              编辑
-            </Link>
-            <button
-              type="button"
-              onClick={() => onSubmit(video.id)}
-              className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-primary text-white hover:bg-primary/90 transition-colors"
-            >
-              <Send className="size-3.5" />
-              提交审核
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => onSubmit(video.id)}
+            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-primary text-white hover:bg-primary/90 transition-colors"
+          >
+            <Send className="size-3.5" />
+            提交审核
+          </button>
         )}
         {isPublished && (
           <button
@@ -366,18 +355,11 @@ function VideoManageCard({
           </button>
         )}
         <Link
-          href={`/dashboard/video/${video.id}/series`}
+          href={`/dashboard/video/${video.id}/edit`}
           className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
         >
-          <Layers className="size-3.5" />
-          系列管理
-        </Link>
-        <Link
-          href={`/dashboard/video/${video.id}/chapters`}
-          className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
-        >
-          <List className="size-3.5" />
-          章节管理
+          <Edit className="size-3.5" />
+          编辑
         </Link>
         {!isPending && !isPublished && (
           <button

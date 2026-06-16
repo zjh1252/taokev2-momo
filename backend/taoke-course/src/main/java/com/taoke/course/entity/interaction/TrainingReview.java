@@ -40,6 +40,10 @@ public class TrainingReview extends BaseEntity {
     @Column(name = "institution_id")
     private Integer institutionId;
 
+    /** 被评案例 ID（review_scope=CASE 时必填） */
+    @Column(name = "case_id")
+    private Integer caseId;
+
     /** 关联订单 ID（MVP 阶段可为空） */
     @Column(name = "order_id")
     private Integer orderId;
@@ -111,6 +115,14 @@ public class TrainingReview extends BaseEntity {
     /** 驳回理由 */
     @Column(name = "reject_reason", length = 500)
     private String rejectReason;
+
+    /** 审核人用户 ID */
+    @Column(name = "reviewed_by")
+    private Integer reviewedBy;
+
+    /** 审核时间 */
+    @Column(name = "reviewed_at")
+    private java.time.LocalDateTime reviewedAt;
 
     /** 是否匿名 */
     @Column(name = "anonymous", nullable = false, columnDefinition = "tinyint(1)")

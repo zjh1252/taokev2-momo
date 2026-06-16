@@ -13,6 +13,8 @@ import com.taoke.course.entity.order.OrderItem;
 import com.taoke.course.entity.pay.Payment;
 import com.taoke.course.entity.video.Video;
 import com.taoke.course.entity.video.VideoEnrollment;
+import com.taoke.course.entity.video.VideoPackageGroup;
+import com.taoke.course.entity.video.VideoPackageRelation;
 import com.taoke.course.entity.video.VideoStudent;
 import com.taoke.course.repository.video.VideoStudentRepository;
 import com.taoke.course.enums.OrderStatus;
@@ -23,6 +25,8 @@ import com.taoke.course.repository.CourseRepository;
 import com.taoke.course.repository.order.CourseEnrollmentRepository;
 import com.taoke.course.repository.pay.PaymentRepository;
 import com.taoke.course.repository.video.VideoEnrollmentRepository;
+import com.taoke.course.repository.video.VideoPackageGroupRepository;
+import com.taoke.course.repository.video.VideoPackageRelationRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.service.order.OrderServiceImpl;
 import com.taoke.user.api.UserService;
@@ -56,6 +60,8 @@ public class PayServiceImpl {
     private final OrderServiceImpl orderService;
     private final CourseRepository courseRepository;
     private final VideoRepository videoRepository;
+    private final VideoPackageGroupRepository packageGroupRepository;
+    private final VideoPackageRelationRepository packageRelationRepository;
     private final CourseEnrollmentRepository courseEnrollmentRepository;
     private final VideoEnrollmentRepository videoEnrollmentRepository;
     private final VideoStudentRepository videoStudentRepository;
@@ -166,47 +172,72 @@ public class PayServiceImpl {
             });
 
         } else if (item.getProductType() == ProductType.VIDEO_COURSE) {
-            if (videoEnrollmentRepository.existsByVideoIdAndUserIdAndStatus(
-                    item.getProductId(), userId, 1)) {
+            createVideoEnrollment(userId, orderId, item.getProductId(), item);
+        } else if (item.getProductType() == ProductType.VIDEO_PACKAGE) {
+            VideoPackageGroup group = packageGroupRepository.findById(item.getProductId())
+                    .orElse(null);
+            if (group == null) {
                 return;
             }
-            VideoEnrollment enrollment = new VideoEnrollment();
-            enrollment.setVideoId(item.getProductId());
-            enrollment.setUserId(userId);
-            enrollment.setOrderId(orderId);
-            enrollment.setPricePaid(item.getSubtotal());
-            enrollment.setEnrolledAt(LocalDateTime.now());
-            // 录播课有效期默认一年
-            enrollment.setExpiredAt(LocalDateTime.now().plusYears(1));
-            enrollment.setStatus(1);
-            videoEnrollmentRepository.save(enrollment);
-
-            // 同步创建学员记录（便于后续跟踪学习进度）
-            if (!videoStudentRepository.existsByVideoIdAndUserId(item.getProductId(), userId)) {
-                VideoStudent student = new VideoStudent();
-                student.setVideoId(item.getProductId());
-                student.setUserId(userId);
-                student.setEnrollmentId(enrollment.getId());
-                videoStudentRepository.save(student);
+            List<VideoPackageRelation> relations = packageRelationRepository
+                    .findByPackageIdAndTopicIdAndParentIdOrderBySortOrderAscVideoIdAsc(
+                            group.getPackageId(), group.getTopicId(), group.getParentId());
+            for (VideoPackageRelation relation : relations) {
+                createVideoEnrollment(userId, orderId, relation.getVideoId(), item);
             }
-
-            videoRepository.findById(item.getProductId()).ifPresent(video -> {
-                video.setEnrollmentCount(video.getEnrollmentCount() + item.getQuantity());
-                videoRepository.save(video);
-
-                // 发布购买事件，通知课程作者
-                try {
-                    UserProfileResponse buyer = userService.getProfile(userId);
-                    String buyerName = buyer.getNickname() != null ? buyer.getNickname() : "用户" + userId;
-                    eventPublisher.publish(new VideoPurchasedEvent(
-                            video.getId(), video.getTitle(), video.getPublisherId(),
-                            userId, buyerName, item.getSubtotal()
-                    ));
-                } catch (Exception e) {
-                    log.warn("发布录播课购买事件失败: videoId={}, userId={}", video.getId(), userId, e);
-                }
-            });
         }
+    }
+
+    private void createVideoEnrollment(Integer userId, Integer orderId, Integer videoId, OrderItem item) {
+        var existing = videoEnrollmentRepository.findByVideoIdAndUserId(videoId, userId);
+        if (existing.isPresent() && existing.get().getStatus() != null && existing.get().getStatus() == 1) {
+            VideoEnrollment e = existing.get();
+            // 已有有效报名且已过期 → 本次支付视为续费，重新计一年有效期；未过期则不重复处理
+            if (e.getExpiredAt() != null && e.getExpiredAt().isBefore(LocalDateTime.now())) {
+                e.setOrderId(orderId);
+                e.setPricePaid(item.getSubtotal());
+                e.setEnrolledAt(LocalDateTime.now());
+                e.setExpiredAt(LocalDateTime.now().plusYears(1));
+                videoEnrollmentRepository.save(e);
+            }
+            return;
+        }
+        VideoEnrollment enrollment = new VideoEnrollment();
+        enrollment.setVideoId(videoId);
+        enrollment.setUserId(userId);
+        enrollment.setOrderId(orderId);
+        enrollment.setPricePaid(item.getSubtotal());
+        enrollment.setEnrolledAt(LocalDateTime.now());
+        // 录播课有效期默认一年
+        enrollment.setExpiredAt(LocalDateTime.now().plusYears(1));
+        enrollment.setStatus(1);
+        videoEnrollmentRepository.save(enrollment);
+
+        // 同步创建学员记录（便于后续跟踪学习进度）
+        if (!videoStudentRepository.existsByVideoIdAndUserId(videoId, userId)) {
+            VideoStudent student = new VideoStudent();
+            student.setVideoId(videoId);
+            student.setUserId(userId);
+            student.setEnrollmentId(enrollment.getId());
+            videoStudentRepository.save(student);
+        }
+
+        videoRepository.findById(videoId).ifPresent(video -> {
+            video.setEnrollmentCount(video.getEnrollmentCount() + item.getQuantity());
+            videoRepository.save(video);
+
+            // 发布购买事件，通知课程作者
+            try {
+                UserProfileResponse buyer = userService.getProfile(userId);
+                String buyerName = buyer.getNickname() != null ? buyer.getNickname() : "用户" + userId;
+                eventPublisher.publish(new VideoPurchasedEvent(
+                        video.getId(), video.getTitle(), video.getPublisherId(),
+                        userId, buyerName, item.getSubtotal()
+                ));
+            } catch (Exception e) {
+                log.warn("发布录播课购买事件失败: videoId={}, userId={}", video.getId(), userId, e);
+            }
+        });
     }
 
     private PayResultVO buildPayResultVO(Payment payment) {

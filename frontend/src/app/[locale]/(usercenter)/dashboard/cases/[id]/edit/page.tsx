@@ -205,11 +205,12 @@ export default function EditCasePage({
       <div className="px-6 py-6 max-w-2xl space-y-5">
         <BoundPublisherGuard>
         <OwnedTrainerBanner trainerUserId={trainerUserId} trainerNameHint={trainerName} />
-        <FormField label="案例标题" required>
+        <FormField label="标题" required>
           <input
             type="text"
             value={form.caseTitle}
             onChange={(e) => updateField('caseTitle', e.target.value)}
+            placeholder="请输入标题"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </FormField>
@@ -264,13 +265,13 @@ export default function EditCasePage({
           />
         </FormField>
 
-        <FormField label="详细地址" required>
+        <FormField label="详细地址">
           <input
             type="text"
             value={form.trainingAddress || ''}
             onChange={(e) => updateField('trainingAddress', e.target.value)}
             maxLength={200}
-            placeholder="街道、楼宇号等"
+            placeholder="街道、楼宇号等（选填）"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </FormField>
@@ -311,7 +312,7 @@ export default function EditCasePage({
           />
         </FormField>
 
-        <FormField label="案例描述">
+        <FormField label="描述">
           <textarea
             value={form.description || ''}
             onChange={(e) => updateField('description', e.target.value)}

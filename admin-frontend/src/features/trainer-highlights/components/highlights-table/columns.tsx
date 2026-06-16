@@ -68,9 +68,25 @@ export const columns: ColumnDef<AdminTrainerHighlight>[] = [
     )
   },
   {
-    accessorKey: 'trainerName',
+    accessorKey: 'ownerSubjectType',
+    header: '主体类型',
+    cell: ({ row }) => row.original.ownerSubjectType || '-'
+  },
+  {
+    accessorKey: 'ownerSubjectName',
     header: '所属专家',
-    cell: ({ cell }) => cell.getValue<string>() || '-'
+    cell: ({ row }) =>
+      row.original.ownerSubjectName || row.original.trainerName || '-'
+  },
+  {
+    accessorKey: 'institutionName',
+    header: '机构名称',
+    cell: ({ row }) => row.original.institutionName || '-'
+  },
+  {
+    accessorKey: 'submitterUsername',
+    header: '用户',
+    cell: ({ row }) => row.original.submitterUsername || '-'
   },
   {
     id: 'filesCount',

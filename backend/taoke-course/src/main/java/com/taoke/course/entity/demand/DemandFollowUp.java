@@ -25,8 +25,8 @@ public class DemandFollowUp extends BaseEntity {
     @Column(name = "demand_id", nullable = false)
     private Integer demandId;
 
-    /** 操作人 ID，关联 users.id */
-    @Column(name = "operator_id", nullable = false)
+    /** 操作人 ID，关联 users.id（系统/游客操作时为空） */
+    @Column(name = "operator_id")
     private Integer operatorId;
 
     /** 操作类型 */

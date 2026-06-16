@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { InstitutionDetail } from '../../types';
+import { institutionPublicPathId } from '../../utils/public-path';
 import { SafeImage } from '@/components/safe-image';
 import { getInstitutionLogoFallback } from '../../utils/logo';
 import {
@@ -185,7 +186,7 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
               )}
               <div className="flex items-start">
                 <span className="w-20 shrink-0 text-slate-400">机构编号：</span>
-                <span className="text-slate-800">{institution.id}</span>
+                <span className="text-slate-800">{institutionPublicPathId(institution)}</span>
               </div>
               <div className="flex items-center gap-6 text-xs text-slate-500 mt-2">
                 <div className="flex items-center gap-1">

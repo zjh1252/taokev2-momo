@@ -1,14 +1,28 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Search, ShoppingBag } from 'lucide-react';
-import { getOrders, cancelOrder } from '@/features/order/api/service';
+import { useSearchParams } from 'next/navigation';
+import { CheckCircle, Search, ShoppingBag } from 'lucide-react';
+import { Link, useRouter } from '@/i18n/navigation';
+import { ROUTES } from '@/config/routes';
+import { getOrders, cancelOrder, createOrder, getPendingOrderByProduct } from '@/features/order/api/service';
 import { OrderCard } from '@/features/order/components/OrderCard';
 import { PaymentModal } from '@/features/order/components/PaymentModal';
+import { PendingOrderReminderDialog } from '@/features/order/components/PendingOrderReminderDialog';
+import { getOrderProductTitle } from '@/features/order/utils/order-helpers';
 import { toast } from 'sonner';
 import type { OrderVO, PayResultVO } from '@/features/order/api/types';
 
 type OrderTab = 'all' | 'pending' | 'paid' | 'cancelled' | 'expired';
+
+const VALID_TABS = new Set<OrderTab>(['all', 'pending', 'paid', 'cancelled', 'expired']);
+
+function parseOrderTab(value: string | null): OrderTab {
+  if (value && VALID_TABS.has(value as OrderTab)) {
+    return value as OrderTab;
+  }
+  return 'all';
+}
 
 const TABS: { key: OrderTab; label: string; status?: number }[] = [
   { key: 'all', label: '全部订单' },
@@ -25,16 +39,29 @@ const TABS: { key: OrderTab; label: string; status?: number }[] = [
  * @date 2026-04-07 16:00
  */
 export default function OrdersPage() {
-  const [tab, setTab] = useState<OrderTab>('all');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const paidSuccess = searchParams.get('paid') === '1';
+  const watchVideoId = searchParams.get('watchVideo');
+  const tabFromUrl = searchParams.get('tab');
+
+  const [tab, setTab] = useState<OrderTab>(() => parseOrderTab(tabFromUrl));
   const [orders, setOrders] = useState<OrderVO[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [payingOrderNo, setPayingOrderNo] = useState<string | null>(null);
+  const [payingOrder, setPayingOrder] = useState<OrderVO | null>(null);
+  const [showPaidBanner, setShowPaidBanner] = useState(paidSuccess);
+  const [pendingReminderOrder, setPendingReminderOrder] = useState<OrderVO | null>(null);
+  const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
+  const [rebuyPayload, setRebuyPayload] = useState<{
+    productType: OrderVO['items'][0]['productType'];
+    productId: number;
+    quantity: number;
+  } | null>(null);
 
   const currentStatus = TABS.find((t) => t.key === tab)?.status;
-  const payingOrder = orders.find((o) => o.orderNo === payingOrderNo);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -57,10 +84,22 @@ export default function OrdersPage() {
     fetchOrders();
   }, [fetchOrders]);
 
-  // 切换 tab 时重置页码
   useEffect(() => {
     setPage(1);
   }, [tab]);
+
+  useEffect(() => {
+    if (paidSuccess) {
+      setShowPaidBanner(true);
+      setTab('paid');
+    }
+  }, [paidSuccess]);
+
+  useEffect(() => {
+    if (tabFromUrl) {
+      setTab(parseOrderTab(tabFromUrl));
+    }
+  }, [tabFromUrl]);
 
   const handleCancel = async (orderNo: string) => {
     try {
@@ -72,21 +111,110 @@ export default function OrdersPage() {
     }
   };
 
+  const submitRebuyOrder = async (payload: NonNullable<typeof rebuyPayload>) => {
+    const newOrder = await createOrder({
+      directItem: {
+        productType: payload.productType,
+        productId: payload.productId,
+        quantity: payload.quantity,
+      },
+    });
+    setPayingOrder(newOrder);
+    await fetchOrders();
+  };
+
+  /** 再次购买 / 续费一年：按原订单商品重新下单并发起支付 */
+  const handleRebuy = async (order: OrderVO) => {
+    const firstItem = order.items?.[0];
+    if (!firstItem) {
+      toast.error('订单商品信息缺失，无法购买');
+      return;
+    }
+    const payload = {
+      productType: firstItem.productType,
+      productId: firstItem.productId,
+      quantity: firstItem.quantity,
+    };
+    try {
+      const existing = await getPendingOrderByProduct(
+        payload.productType,
+        payload.productId,
+      );
+      if (existing) {
+        setRebuyPayload(payload);
+        setPendingReminderOrder(existing);
+        setPendingDialogOpen(true);
+        return;
+      }
+      await submitRebuyOrder(payload);
+    } catch {
+      // 错误已弹出
+    }
+  };
+
+  const handleRebuyContinue = async () => {
+    if (!rebuyPayload) return;
+    try {
+      await submitRebuyOrder(rebuyPayload);
+    } catch {
+      // 错误已弹出
+    }
+  };
+
+  const handleInvoice = (order: OrderVO) => {
+    router.push(`${ROUTES.UC_ORDERS_INVOICE}?orderNo=${order.orderNo}`);
+  };
+
   const handlePaySuccess = (_result: PayResultVO) => {
-    setPayingOrderNo(null);
+    setPayingOrder(null);
     toast.success('支付成功');
     fetchOrders();
   };
 
-  // 筛选搜索
+  // 按商品标题搜索（视频/课程名称），同时兼容订单号
   const filteredOrders = search
-    ? orders.filter((o) => o.orderNo.includes(search))
+    ? orders.filter(
+        (o) =>
+          (o.items || []).some((item) =>
+            (item.productTitle || '').toLowerCase().includes(search.toLowerCase()),
+          ) || o.orderNo.includes(search),
+      )
     : orders;
 
   const pendingCount = orders.filter((o) => o.status === 0).length;
 
   return (
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
+      {showPaidBanner && (
+        <div className="mx-6 mt-6 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+          <CheckCircle className="size-5 text-green-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-green-800">支付成功</p>
+            <p className="text-sm text-green-700 mt-0.5">
+              您已成功购买录播课，可在下方订单中查看详情。
+              {watchVideoId && (
+                <>
+                  {' '}
+                  <Link
+                    href={`/videos/${watchVideoId}/play`}
+                    className="font-medium underline hover:text-green-900"
+                  >
+                    立即前往观看录播课
+                  </Link>
+                </>
+              )}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPaidBanner(false)}
+            className="text-green-600 hover:text-green-800 text-sm flex-shrink-0"
+          >
+            关闭
+          </button>
+        </div>
+      )}
+
       {/* Tab 栏 */}
       <div className="px-6 border-b border-slate-200 flex justify-between items-center">
         <div className="flex gap-8">
@@ -111,7 +239,7 @@ export default function OrdersPage() {
         <div className="relative">
           <input
             type="text"
-            placeholder="输入订单号搜索"
+            placeholder="输入视频标题搜索"
             className="border border-slate-300 rounded-md pl-3 pr-8 py-1.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-48"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -127,7 +255,12 @@ export default function OrdersPage() {
         ) : filteredOrders.length === 0 ? (
           <div className="text-center py-16">
             <ShoppingBag className="size-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500">暂无订单</p>
+            <p className="text-slate-500">
+              没有找到订单购买记录，
+              <Link href={ROUTES.VIDEOS} className="text-primary hover:underline">
+                找我喜欢的视频
+              </Link>
+            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -135,8 +268,11 @@ export default function OrdersPage() {
               <OrderCard
                 key={order.id}
                 order={order}
-                onPay={(orderNo) => setPayingOrderNo(orderNo)}
+                onPay={setPayingOrder}
                 onCancel={handleCancel}
+                onRebuy={handleRebuy}
+                onInvoice={handleInvoice}
+                onCountdownExpire={fetchOrders}
               />
             ))}
           </div>
@@ -169,14 +305,22 @@ export default function OrdersPage() {
       </div>
 
       {/* 支付弹窗 */}
-      {payingOrderNo && payingOrder && (
+      {payingOrder && (
         <PaymentModal
-          orderNo={payingOrderNo}
+          orderNo={payingOrder.orderNo}
           amount={payingOrder.payAmount}
-          onClose={() => setPayingOrderNo(null)}
+          productTitle={getOrderProductTitle(payingOrder)}
+          onClose={() => setPayingOrder(null)}
           onSuccess={handlePaySuccess}
         />
       )}
+
+      <PendingOrderReminderDialog
+        open={pendingDialogOpen}
+        order={pendingReminderOrder}
+        onOpenChange={setPendingDialogOpen}
+        onContinue={handleRebuyContinue}
+      />
     </section>
   );
 }

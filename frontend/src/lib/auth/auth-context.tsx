@@ -10,9 +10,11 @@ import {
 } from 'react';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY, ROLE_TRAINER, ROLE_INSTITUTION } from './constants';
+import { resolveImageSrc } from '@/lib/media';
 import { getMyProfile } from '@/features/user/api/service';
 import { getMyTrainerProfile } from '@/features/trainer/api/service';
 import { getMyInstitutionProfile } from '@/features/institution/api/service';
+import { institutionPublicHref } from '@/features/institution/utils/public-path';
 import type { UserProfileResponse, RoleInfo } from '@/features/user/api/types';
 
 /** 精简后的认证用户信息 */
@@ -65,7 +67,9 @@ function toAuthUser(profile: UserProfileResponse): AuthUser {
     id: profile.id,
     nickname: profile.nickname || profile.phone || '用户',
     realName: profile.realName || null,
-    avatarUrl: profile.avatarUrl || null,
+    avatarUrl: profile.avatarUrl?.trim()
+      ? resolveImageSrc(profile.avatarUrl)
+      : null,
     phone: profile.phone,
     studyTags: profile.studyTags || null,
     roles: profile.roles,
@@ -145,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isApprovedInstitution(authUser.roles)) {
         try {
           const inst = await getMyInstitutionProfile();
-          setInstitutionPublicHomeHref(`/company/${inst.id}.htm`);
+          setInstitutionPublicHomeHref(institutionPublicHref(inst));
         } catch {
           setInstitutionPublicHomeHref(null);
         }

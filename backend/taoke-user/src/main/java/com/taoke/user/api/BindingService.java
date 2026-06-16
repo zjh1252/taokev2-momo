@@ -111,4 +111,10 @@ public interface BindingService {
      * 员工视角：当前员工绑定的所有机构（含 PENDING / ACTIVE / REJECTED / UNBOUND）。
      */
     List<BindingItemResponse> listMyInstitutions(Integer employeeUserId);
+
+    /**
+     * 机构员工视角：所属机构绑定的所有专家（含待确认/已生效/已拒绝/已解绑）。
+     * <p>员工通过 ACTIVE 员工绑定解析所属机构，与机构主体看到同一份列表。</p>
+     */
+    List<BindingItemResponse> listInstitutionTrainersForEmployee(Integer employeeUserId);
 }

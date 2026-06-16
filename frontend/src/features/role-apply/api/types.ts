@@ -96,6 +96,7 @@ export interface EnterpriseBuyerFormData {
 /** 申请表单内嵌的著作条目（与后端 SaveTrainerBookRequest 对齐） */
 export interface TrainerBookFormItem {
   title: string;
+  authorName?: string;
   coverUrl?: string;
   publisher?: string;
   publishDate?: string;
