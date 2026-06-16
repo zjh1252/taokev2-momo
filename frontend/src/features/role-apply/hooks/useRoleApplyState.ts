@@ -126,6 +126,7 @@ function defaultFormData(role: ApplyableRole): Record<string, unknown> {
         provinceId: null,
         cityId: null,
         districtId: null,
+        townId: null,
         address: '',
         oneLineIntro: '',
         bio: '',

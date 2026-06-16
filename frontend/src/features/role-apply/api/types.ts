@@ -120,6 +120,7 @@ export interface TrainerFormData {
   provinceId: number | null;
   cityId: number | null;
   districtId: number | null;
+  townId: number | null;
   address: string;
   /** 一句话介绍（80 字内） */
   oneLineIntro: string;

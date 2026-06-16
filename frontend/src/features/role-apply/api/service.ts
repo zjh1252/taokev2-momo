@@ -175,6 +175,7 @@ interface TrainerFullProfile {
   provinceId?: number;
   cityId?: number;
   districtId?: number;
+  townId?: number;
   address?: string;
   bio?: string;
   oneLineIntro?: string;
@@ -229,6 +230,7 @@ export async function getMyTrainerProfileAsForm(): Promise<Partial<TrainerFormDa
       provinceId: t.provinceId ?? null,
       cityId: t.cityId ?? null,
       districtId: t.districtId ?? null,
+      townId: t.townId ?? null,
       address: t.address ?? '',
       bio: t.bio ?? '',
       oneLineIntro: t.oneLineIntro ?? '',
