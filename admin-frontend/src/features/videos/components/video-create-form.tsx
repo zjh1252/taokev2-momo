@@ -36,11 +36,11 @@ const formSchema = z.object({
   publisherType: z.enum(['TRAINER', 'INSTITUTION']),
   publisherId: z.string().min(1, '请选择发布主体'),
   teacherName: z.string().optional(),
-  durationMinutes: z.coerce.number().min(0).optional(),
+  durationMinutes: z.number().min(0).optional(),
   isFree: z.enum(['0', '1']),
-  price: z.coerce.number().min(0).optional(),
-  companyPrice: z.coerce.number().min(0).optional(),
-  maxPurchaseQty: z.coerce.number().min(1).optional(),
+  price: z.number().min(0).optional(),
+  companyPrice: z.number().min(0).optional(),
+  maxPurchaseQty: z.number().min(1).optional(),
   keywords: z.string().optional()
 });
 

@@ -21,6 +21,8 @@ export type AdminVideoOrder = {
   status: number;
   statusLabel: string;
   learnerCount: number;
+  /** 发布者名称（列表筛选用，后端未返回时为 null） */
+  publisherName?: string | null;
   createdAt: string;
   paidAt: string | null;
   items?: AdminVideoOrderItem[];
