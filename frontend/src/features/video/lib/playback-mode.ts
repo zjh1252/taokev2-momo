@@ -2,6 +2,9 @@ import { resolveVideoPlaybackSrc } from '@/lib/media';
 
 export type PlaybackMode = 'direct' | 'embed' | 'unsupported';
 
+/** 实际可播放时的模式（不含 unsupported） */
+export type PlayablePlaybackMode = 'direct' | 'embed';
+
 const DIRECT_MEDIA_RE = /\.(mp4|m3u8|webm|mov|m4v|mpd)(\?|$)/i;
 
 const EMBED_HOST_PATTERNS = [
@@ -301,7 +304,7 @@ export function isSignedChapterPlayback(raw?: string | null): boolean {
 /** 章节 raw video_url → 可播放地址 + 模式；不可播返回 null */
 export function resolveChapterPlayback(raw?: string | null): {
   url: string;
-  mode: PlaybackMode;
+  mode: PlayablePlaybackMode;
   /** 需后端签发播放地址 */
   signed?: boolean;
 } | null {
