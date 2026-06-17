@@ -23,7 +23,7 @@ export async function generateMetadata() {
 }
 
 /**
- * 首页 — SSR，推荐专家/案例/课程等区块接入后端 API，失败时回退 mock
+ * 首页 — SSR，推荐专家/案例/课程等区块接入后端 API（v3test），接口失败时课程区块为空（不再回退 mock）
  */
 export default async function HomePage() {
   const [expertiseCategories, activeCities, experts, cases, internalCourses, publicCourses] =

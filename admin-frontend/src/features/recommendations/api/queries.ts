@@ -4,7 +4,7 @@ import { queryOptions } from '@tanstack/react-query';
 
 import { getStaticRecommendationSlots } from '../constants/slots';
 
-import { getRecommendationSlots, getRecommendations } from './service';
+import { getRecommendationSlots, getRecommendations, getRecommendationSlotConfig } from './service';
 
 
 
@@ -18,7 +18,10 @@ export const recommendationKeys = {
 
   list: (slotCode: string, categoryId?: number) =>
 
-    [...recommendationKeys.all, 'list', slotCode, categoryId ?? 'none'] as const
+    [...recommendationKeys.all, 'list', slotCode, categoryId ?? 'none'] as const,
+
+  slotConfig: (slotCode: string) =>
+    [...recommendationKeys.all, 'slot-config', slotCode] as const
 
 };
 
@@ -100,3 +103,18 @@ export const recommendationsQueryOptions = (slotCode: string, categoryId?: numbe
 
   });
 
+export const recommendationSlotConfigQueryOptions = (slotCode: string) =>
+  queryOptions({
+    queryKey: recommendationKeys.slotConfig(slotCode),
+    queryFn: async () => {
+      try {
+        const resp = await getRecommendationSlotConfig(slotCode);
+        return assertApiOk(resp);
+      } catch (err) {
+        if (isBackendUnavailable(err)) {
+          return { slotCode, lockMain: true, lockMiddle: true };
+        }
+        throw err;
+      }
+    }
+  });

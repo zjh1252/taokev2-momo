@@ -26,6 +26,8 @@ public interface TrainerRepository extends JpaRepository<Trainer, Integer>, JpaS
 
     List<Trainer> findByName(String name);
 
+    List<Trainer> findByNameInAndStatus(Collection<String> names, Integer status);
+
     List<Trainer> findByIdIn(Collection<Integer> ids);
 
     boolean existsByTrainerCode(String trainerCode);

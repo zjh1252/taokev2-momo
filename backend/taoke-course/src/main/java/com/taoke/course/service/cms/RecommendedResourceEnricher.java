@@ -109,9 +109,11 @@ public class RecommendedResourceEnricher {
         vo.setCoverUrl(row.getCoverUrl());
         vo.setTitle(row.getTitle());
         vo.setDescription(row.getDescription());
+        vo.setChiefIntro(row.getChiefIntro());
         vo.setExpertiseOverride(row.getExpertiseOverride());
         vo.setKeyTags(row.getKeyTags());
         vo.setAdminNote(row.getAdminNote());
+        vo.setCreatedAt(row.getCreatedAt());
 
         switch (row.getResourceType()) {
             case "TRAINER" -> applyTrainerMeta(vo, trainerMap.get(row.getResourceId()));

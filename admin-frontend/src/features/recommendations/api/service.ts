@@ -4,6 +4,8 @@ import type {
   RecommendationSlotsResponse,
   RecommendationsResponse,
   ReorderRecommendationsPayload,
+  RecommendationSlotConfigResponse,
+  UpdateRecommendationSlotConfigPayload,
   UpdateRecommendationPayload
 } from './types';
 
@@ -47,4 +49,20 @@ export async function reorderRecommendations(payload: ReorderRecommendationsPayl
     method: 'PUT',
     body: JSON.stringify(payload)
   });
+}
+
+export async function getRecommendationSlotConfig(slotCode: string) {
+  return apiClient<RecommendationSlotConfigResponse>(
+    `/recommendations/slots/${encodeURIComponent(slotCode)}/config`
+  );
+}
+
+export async function updateRecommendationSlotConfig(
+  slotCode: string,
+  payload: UpdateRecommendationSlotConfigPayload
+) {
+  return apiClient<RecommendationSlotConfigResponse>(
+    `/recommendations/slots/${encodeURIComponent(slotCode)}/config`,
+    { method: 'PUT', body: JSON.stringify(payload) }
+  );
 }

@@ -918,6 +918,22 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     @Override
+    public List<Trainer> findPublishedByNames(Collection<String> names) {
+        if (names == null || names.isEmpty()) {
+            return List.of();
+        }
+        List<String> distinct = names.stream()
+                .filter(name -> name != null && !name.isBlank())
+                .map(String::trim)
+                .distinct()
+                .toList();
+        if (distinct.isEmpty()) {
+            return List.of();
+        }
+        return trainerRepository.findByNameInAndStatus(distinct, 2);
+    }
+
+    @Override
     public boolean hasExpertiseCategoryReference(Integer categoryId) {
         return expertiseCategoryRepository.existsByCategoryId(categoryId);
     }

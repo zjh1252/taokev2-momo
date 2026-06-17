@@ -15,6 +15,7 @@ export type RecommendedResourceItem = {
   coverUrl: string | null;
   title: string | null;
   description: string | null;
+  chiefIntro: string | null;
   expertiseOverride: string | null;
   keyTags: string | null;
   adminNote: string | null;
@@ -23,6 +24,7 @@ export type RecommendedResourceItem = {
   resourceDescription: string | null;
   resourceMeta: string | null;
   resourceStatus: number | null;
+  createdAt: string | null;
 };
 
 export type RecommendationsResponse = {
@@ -46,6 +48,7 @@ export type AddRecommendationPayload = {
   coverUrl?: string;
   title?: string;
   description?: string;
+  chiefIntro?: string;
   expertiseOverride?: string;
   keyTags?: string;
   adminNote?: string;
@@ -55,6 +58,7 @@ export type UpdateRecommendationPayload = {
   coverUrl?: string;
   title?: string;
   description?: string;
+  chiefIntro?: string;
   expertiseOverride?: string;
   keyTags?: string;
   adminNote?: string;
@@ -64,6 +68,23 @@ export type ReorderRecommendationsPayload = {
   slotCode: string;
   categoryId?: number;
   orderedIds: number[];
+};
+
+export type RecommendationSlotConfig = {
+  slotCode: string;
+  lockMain: boolean;
+  lockMiddle: boolean;
+};
+
+export type RecommendationSlotConfigResponse = {
+  code: number;
+  message: string;
+  data: RecommendationSlotConfig;
+};
+
+export type UpdateRecommendationSlotConfigPayload = {
+  lockMain?: boolean;
+  lockMiddle?: boolean;
 };
 
 export type RecommendationManagerConfig = {

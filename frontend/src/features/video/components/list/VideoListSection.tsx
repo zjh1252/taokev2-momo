@@ -57,6 +57,16 @@ function VideoListSectionInner({
   const [isPending, startTransition] = useTransition();
   const keywordBootstrappedRef = useRef(false);
 
+  /** SSR 刷新/底部分类栏跳转时同步列表与分类筛选 */
+  useEffect(() => {
+    startTransition(() => {
+      setData(initialData);
+      setCurrentPage(initialData.page ?? 1);
+      setSelectedCategory(initialCategoryId);
+      setInstitutionId(initialInstitutionId);
+    });
+  }, [initialData, initialCategoryId, initialInstitutionId, startTransition]);
+
   const fetchData = useCallback(
     (
       page: number,

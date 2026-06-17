@@ -507,19 +507,8 @@ public class CourseServiceImpl implements CourseService {
                 : trainerService.findByIds(trainerIds).stream()
                     .collect(Collectors.toMap(Trainer::getId, t -> t));
 
-        // 批量专家驻地（省/市名称）
+        // 批量专家驻地（省/市名称）— 汇总所有可能关联到的专家后再统一查地名
         Set<Integer> trainerRegionIds = new HashSet<>();
-        for (Trainer trainer : trainerMap.values()) {
-            if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) {
-                trainerRegionIds.add(trainer.getProvinceId());
-            }
-            if (trainer.getCityId() != null && trainer.getCityId() > 0) {
-                trainerRegionIds.add(trainer.getCityId());
-            }
-        }
-        Map<Integer, String> trainerRegionNameMap = trainerRegionIds.isEmpty()
-                ? Map.of()
-                : regionService.getNamesByIds(trainerRegionIds);
 
         // 批量最近一场公开课计划（仅公开课需要）
         List<Integer> openCourseIds = courses.stream()
@@ -544,9 +533,50 @@ public class CourseServiceImpl implements CourseService {
 
         List<Integer> courseIds = courses.stream().map(Course::getId).toList();
         Map<Integer, String> legacyLecturerMap = legacyTaokeCourseReader.findLecturerDisplayNames(courseIds);
+        Map<Integer, Integer> legacyLecturerUserIds = legacyTaokeCourseReader.findLecturerUserIds(courseIds);
+        Map<Integer, String> legacyKeywordsMap = legacyTaokeCourseReader.findKeywordsByCourseIds(courseIds);
         Map<Integer, String> legacyCategoryMap = legacyTaokeCourseReader.findCourseCategoryNames(courseIds);
         Map<Integer, Integer> legacyOrganizerUserIds = legacyTaokeCourseReader.findOrganizerUserIds(courseIds);
         Map<Integer, String> legacyOrganizerFromLecturer = legacyTaokeCourseReader.findOrganizerNamesFromLecturer(courseIds);
+
+        // trainer_id 缺失或无效时，按老库 lecturerid → user_trainers 补全主讲专家档案
+        Set<Integer> legacyTrainerUserIds = new HashSet<>();
+        for (Course course : courses) {
+            if (resolveLinkedTrainer(course, trainerMap, Map.of(), Map.of()) != null) {
+                continue;
+            }
+            Integer legacyUserId = legacyLecturerUserIds.get(course.getId());
+            if (legacyUserId != null && legacyUserId > 0) {
+                legacyTrainerUserIds.add(legacyUserId);
+            }
+        }
+        Map<Integer, Trainer> trainerByUserId = legacyTrainerUserIds.isEmpty()
+                ? Map.of()
+                : trainerService.findByUserIds(legacyTrainerUserIds.stream().toList()).stream()
+                    .collect(Collectors.toMap(Trainer::getUserId, t -> t, (a, b) -> a));
+
+        Set<String> lecturerNamesForLookup = new HashSet<>();
+        for (Course course : courses) {
+            if (resolveLinkedTrainer(course, trainerMap, trainerByUserId, legacyLecturerUserIds) != null) {
+                continue;
+            }
+            String legacyLecturer = legacyLecturerMap.get(course.getId());
+            if (legacyLecturer != null && !legacyLecturer.isBlank()) {
+                lecturerNamesForLookup.add(legacyLecturer.trim());
+                String normalized = normalizeTrainerLookupName(legacyLecturer);
+                if (!normalized.isBlank()) {
+                    lecturerNamesForLookup.add(normalized);
+                }
+            }
+        }
+        Map<String, Trainer> trainerByName = buildTrainerByNameMap(lecturerNamesForLookup);
+
+        collectTrainerRegionIds(trainerMap.values(), trainerRegionIds);
+        collectTrainerRegionIds(trainerByUserId.values(), trainerRegionIds);
+        collectTrainerRegionIds(trainerByName.values(), trainerRegionIds);
+        final Map<Integer, String> trainerRegionNameMap = trainerRegionIds.isEmpty()
+                ? Map.of()
+                : regionService.getNamesByIds(trainerRegionIds);
 
         Set<Integer> institutionLookupUserIds = new HashSet<>();
         courses.stream()
@@ -572,21 +602,19 @@ public class CourseServiceImpl implements CourseService {
             if (c.getCategoryId() != null && c.getCategoryId() > 0) {
                 vo.setCategoryName(catNameMap.get(c.getCategoryId()));
             }
-            if (c.getTrainerId() != null && c.getTrainerId() > 0) {
-                Trainer trainer = trainerMap.get(c.getTrainerId());
-                if (trainer != null) {
-                    vo.setTrainerId(trainer.getId());
-                    vo.setTrainerName(trainer.getName());
-                    if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) {
-                        vo.setTrainerProvinceName(trainerRegionNameMap.get(trainer.getProvinceId()));
+            Trainer trainer = resolveLinkedTrainer(c, trainerMap, trainerByUserId, legacyLecturerUserIds);
+            if (trainer == null) {
+                String legacyLecturer = legacyLecturerMap.get(c.getId());
+                if (legacyLecturer != null && !legacyLecturer.isBlank()) {
+                    trainer = trainerByName.get(legacyLecturer.trim());
+                    if (trainer == null) {
+                        trainer = trainerByName.get(normalizeTrainerLookupName(legacyLecturer));
                     }
-                    if (trainer.getCityId() != null && trainer.getCityId() > 0) {
-                        vo.setTrainerCityName(trainerRegionNameMap.get(trainer.getCityId()));
-                    }
-                    vo.setCoverUrl(resolveCoverUrl(c, trainer.getAvatar(), vo.getCategoryName()));
-                } else {
-                    vo.setCoverUrl(resolveCoverUrl(c, null, vo.getCategoryName()));
                 }
+            }
+            if (trainer != null) {
+                applyTrainerToListItem(vo, trainer, trainerRegionNameMap);
+                vo.setCoverUrl(resolveCoverUrl(c, trainer.getAvatar(), vo.getCategoryName()));
             } else {
                 vo.setCoverUrl(resolveCoverUrl(c, null, vo.getCategoryName()));
                 String legacyLecturer = legacyLecturerMap.get(c.getId());
@@ -597,6 +625,12 @@ public class CourseServiceImpl implements CourseService {
                     if (inst != null && inst.getOrgName() != null && !inst.getOrgName().isBlank()) {
                         vo.setTrainerName(inst.getOrgName());
                     }
+                }
+            }
+            if (vo.getKeywords() == null || vo.getKeywords().isBlank()) {
+                String legacyKeywords = legacyKeywordsMap.get(c.getId());
+                if (legacyKeywords != null && !legacyKeywords.isBlank()) {
+                    vo.setKeywords(legacyKeywords);
                 }
             }
             CoursePlan nearest = nearestPlanMap.get(c.getId());
@@ -618,6 +652,108 @@ public class CourseServiceImpl implements CourseService {
             vo.setDurationDays(normalizeDisplayDurationDays(c.getDurationDays(), c.getTotalHours()));
             return vo;
         }).toList();
+    }
+
+    /** 解析列表项关联的专家：courses.trainer_id 优先，其次老库 lecturerid。 */
+    private Trainer resolveLinkedTrainer(Course course,
+                                         Map<Integer, Trainer> trainerMap,
+                                         Map<Integer, Trainer> trainerByUserId,
+                                         Map<Integer, Integer> legacyLecturerUserIds) {
+        if (course == null) {
+            return null;
+        }
+        Integer trainerId = course.getTrainerId();
+        if (trainerId != null && trainerId > 0) {
+            Trainer trainer = trainerMap.get(trainerId);
+            if (trainer != null) {
+                return trainer;
+            }
+        }
+        Integer legacyUserId = legacyLecturerUserIds.get(course.getId());
+        if (legacyUserId != null && legacyUserId > 0) {
+            return trainerByUserId.get(legacyUserId);
+        }
+        return null;
+    }
+
+    private void applyTrainerToListItem(CourseListItemVO vo,
+                                        Trainer trainer,
+                                        Map<Integer, String> trainerRegionNameMap) {
+        if (vo == null || trainer == null) {
+            return;
+        }
+        vo.setTrainerId(trainer.getId());
+        vo.setTrainerName(trainer.getName());
+        if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) {
+            vo.setTrainerProvinceName(trainerRegionNameMap.get(trainer.getProvinceId()));
+        }
+        if (trainer.getCityId() != null && trainer.getCityId() > 0) {
+            vo.setTrainerCityName(trainerRegionNameMap.get(trainer.getCityId()));
+        }
+    }
+
+    private void collectTrainerRegionIds(Collection<Trainer> trainers, Set<Integer> regionIds) {
+        if (trainers == null || regionIds == null) {
+            return;
+        }
+        for (Trainer trainer : trainers) {
+            if (trainer == null) {
+                continue;
+            }
+            if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) {
+                regionIds.add(trainer.getProvinceId());
+            }
+            if (trainer.getCityId() != null && trainer.getCityId() > 0) {
+                regionIds.add(trainer.getCityId());
+            }
+        }
+    }
+
+    /** 同名专家取评分更高者，供迁移课程按主讲人姓名补常驻地。 */
+    private Map<String, Trainer> buildTrainerByNameMap(Collection<String> names) {
+        if (names == null || names.isEmpty()) {
+            return Map.of();
+        }
+        List<Trainer> trainers = trainerService.findPublishedByNames(names.stream().toList());
+        Map<String, Trainer> result = new HashMap<>();
+        for (Trainer trainer : trainers) {
+            if (trainer.getName() == null || trainer.getName().isBlank()) {
+                continue;
+            }
+            String key = trainer.getName().trim();
+            Trainer existing = result.get(key);
+            if (existing == null || compareTrainerScore(trainer, existing) > 0) {
+                result.put(key, trainer);
+            }
+            String normalized = normalizeTrainerLookupName(key);
+            if (!normalized.isBlank() && !normalized.equals(key)) {
+                existing = result.get(normalized);
+                if (existing == null || compareTrainerScore(trainer, existing) > 0) {
+                    result.put(normalized, trainer);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static int compareTrainerScore(Trainer left, Trainer right) {
+        BigDecimal leftScore = left.getScore() != null ? left.getScore() : BigDecimal.ZERO;
+        BigDecimal rightScore = right.getScore() != null ? right.getScore() : BigDecimal.ZERO;
+        return leftScore.compareTo(rightScore);
+    }
+
+    /** 迁移主讲人展示名归一化：去掉常见「老师/讲师」后缀便于匹配 user_trainers.name。 */
+    private static String normalizeTrainerLookupName(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String name = raw.trim();
+        for (String suffix : List.of("老师", "讲师", "教授", "导师")) {
+            if (name.endsWith(suffix) && name.length() > suffix.length()) {
+                return name.substring(0, name.length() - suffix.length()).trim();
+            }
+        }
+        return name;
     }
 
     /**

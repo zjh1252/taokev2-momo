@@ -22,6 +22,7 @@ public class RecommendedResourceItemVO {
     private String coverUrl;
     private String title;
     private String description;
+    private String chiefIntro;
     private String expertiseOverride;
     private String keyTags;
     private String adminNote;
@@ -40,4 +41,7 @@ public class RecommendedResourceItemVO {
 
     /** 资源状态（上架/审核通过等） */
     private Integer resourceStatus;
+
+    /** 推荐项上架时间 */
+    private java.time.LocalDateTime createdAt;
 }

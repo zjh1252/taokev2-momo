@@ -1,3 +1,5 @@
+'use client';
+
 import { ChevronRight } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 
@@ -28,6 +30,8 @@ export function ChannelCategoryNav({ title, items, countUnit }: ChannelCategoryN
           <Link
             key={`${item.href}-${item.name}`}
             href={item.href}
+            scroll
+            onClick={() => window.scrollTo({ top: 0 })}
             className="text-slate-600 hover:text-primary transition-colors flex items-center justify-between gap-2 group"
           >
             <span className="truncate">

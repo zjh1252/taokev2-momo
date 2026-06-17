@@ -20,6 +20,7 @@ public class PublicRecommendedItemVO {
     private String coverUrl;
     private String title;
     private String description;
+    private String chiefIntro;
     private String expertiseOverride;
     private String keyTags;
 

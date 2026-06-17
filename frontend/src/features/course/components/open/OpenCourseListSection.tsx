@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useCallback, useTransition, useMemo } from 'react';
+import { Suspense, useState, useCallback, useTransition, useMemo, useEffect } from 'react';
 import { ArrowUpDown, X, RotateCcw } from 'lucide-react';
 import { ListPagePagination } from '@/components/list-page-pagination';
 import { useRouter } from '@/i18n/navigation';
@@ -77,6 +77,29 @@ function OpenCourseListSectionInner({
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
+
+  /** SSR 刷新/底部分类栏跳转时同步列表与筛选 */
+  useEffect(() => {
+    startTransition(() => {
+      setData(initialData);
+      setCurrentPage(initialData.page ?? 1);
+      setFilters({
+        categoryIds: initialCategoryIds,
+        categoryNames: initialCategoryNames,
+      });
+      setInstitutionId(initialInstitutionId);
+      setLockedCityIds(
+        initialCityIds && initialCityIds.length > 0 ? initialCityIds : undefined,
+      );
+    });
+  }, [
+    initialData,
+    initialCategoryIds,
+    initialCategoryNames,
+    initialInstitutionId,
+    initialCityIds,
+    startTransition,
+  ]);
 
   const fetchData = useCallback(
     (

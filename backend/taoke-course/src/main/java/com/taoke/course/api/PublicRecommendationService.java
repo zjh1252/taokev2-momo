@@ -1,6 +1,7 @@
 package com.taoke.course.api;
 
 import com.taoke.course.dto.cms.PublicRecommendedItemVO;
+import com.taoke.course.dto.cms.RecommendationSlotConfigVO;
 
 import java.util.List;
 
@@ -22,4 +23,6 @@ public interface PublicRecommendationService {
      */
     List<PublicRecommendedItemVO> listPublic(
             String slotCode, Integer categoryId, int limit, boolean includeBackup);
+
+    RecommendationSlotConfigVO getPublicSlotConfig(String slotCode);
 }

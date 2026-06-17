@@ -99,13 +99,15 @@ function TrainerListSectionInner({
   const [currentPage, setCurrentPage] = useState(initialData.page ?? 1);
   const [isPending, startTransition] = useTransition();
 
-  /** SSR 刷新/软导航时同步数据（浏览器前进后退等场景） */
+  /** SSR 刷新/软导航时同步数据与筛选（底部分类栏跳转、浏览器前进后退等） */
   useEffect(() => {
+    const nextFilters = slugToFilter(initialSlugParams || {});
     startTransition(() => {
       setData(initialData);
       setCurrentPage(initialData.page ?? 1);
+      setFilters(nextFilters);
     });
-  }, [initialData, startTransition]);
+  }, [initialData, initialSlugParams, startTransition]);
 
   /** 首次加载时，若 URL 带了 slug 查询参数（proxy 重定向），替换地址栏为 .htm SEO URL */
   useEffect(() => {

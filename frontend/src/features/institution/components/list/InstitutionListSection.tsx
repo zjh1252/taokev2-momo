@@ -117,6 +117,15 @@ function InstitutionListSectionInner({
       .catch(() => {});
   }, [association, initialCategoryItems]);
 
+  /** SSR 刷新/左侧分类跳转时同步列表与分类筛选 */
+  useEffect(() => {
+    startTransition(() => {
+      setData(initialData);
+      setCurrentPage(initialData.page ?? 1);
+      setExpertiseCategoryId(initialExpertiseCategoryId);
+    });
+  }, [initialData, initialExpertiseCategoryId, startTransition]);
+
   useEffect(() => {
     if (!keywordBootstrappedRef.current) {
       keywordBootstrappedRef.current = true;

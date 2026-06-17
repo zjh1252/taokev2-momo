@@ -48,9 +48,11 @@ export function proxy(request: NextRequest) {
     '/association': '/associations',
   };
 
-  // 精确匹配频道页: /trainer → rewrite → /zh-CN/trainers (地址栏不变!)
+  // 精确匹配频道页: /trainer → rewrite → /zh-CN/trainers (地址栏不变，保留 query)
   if (map[pathname]) {
-    return NextResponse.rewrite(new URL(`/${locale}${map[pathname]}`, request.url));
+    const url = request.nextUrl.clone();
+    url.pathname = `/${locale}${map[pathname]}`;
+    return NextResponse.rewrite(url);
   }
 
   // 案例详情: /case/123(.htm) → /zh-CN/cases/123

@@ -73,6 +73,7 @@ import {
   IconPlus,
   IconProps,
   IconReceipt,
+  IconRefresh,
   IconRosetteDiscountCheck,
   IconSearch,
   IconSelector,
@@ -183,6 +184,7 @@ export const Icons = {
   // Actions
   add: IconPlus,
   edit: IconEdit,
+  refresh: IconRefresh,
   upload: IconUpload,
   share: IconShare,
   login: IconLogin,

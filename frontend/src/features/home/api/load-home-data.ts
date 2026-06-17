@@ -4,7 +4,7 @@ import {
   formatPlanStartDate,
   normalizeCourseDurationDays
 } from '@/features/course/utils/display';
-import { getPublicRecommendations } from '@/features/recommendation/api/service';
+import { getPublicRecommendations, getPublicRecommendationSlotConfig } from '@/features/recommendation/api/service';
 import {
   mapSlotCasesToCaseStudies,
   mapSlotCoursesToInternalCourses,
@@ -21,12 +21,7 @@ import {
 import type { TrainerListItem } from '@/features/trainer/types';
 import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recommended';
 import { DEFAULT_COURSE_COVER, resolveImageSrc } from '@/lib/media';
-import {
-  featuredCases,
-  featuredExperts,
-  popularInternalCourses,
-  upcomingPublicCourses
-} from '../data/mock';
+import { featuredCases, featuredExperts } from '../data/mock';
 import type { CaseStudy, Expert, InternalCourse, PublicCourse } from '../types';
 
 /** 无封面时的轮换占位图（与 mock 资源路径一致） */
@@ -207,16 +202,43 @@ async function fillHomeExperts(primary: Expert[], target = HOME_EXPERT_TARGET): 
 
 export async function loadHomeExperts(): Promise<Expert[]> {
   try {
-    const slotItems = await getPublicRecommendations(RecommendationSlotCode.HOME_TRAINER, {
-      limit: HOME_EXPERT_TARGET
-    });
+    const [slotItems, slotConfig] = await Promise.all([
+      getPublicRecommendations(RecommendationSlotCode.HOME_TRAINER, {
+        limit: HOME_EXPERT_TARGET
+      }),
+      getPublicRecommendationSlotConfig(RecommendationSlotCode.HOME_TRAINER).catch(() => ({
+        slotCode: RecommendationSlotCode.HOME_TRAINER,
+        lockMain: true,
+        lockMiddle: true
+      }))
+    ]);
     const fromSlot = mapSlotTrainersToExperts(slotItems);
-    const filled = await fillHomeExperts(fromSlot);
+    const fixedMain = featuredExperts[0];
+    const fixedMiddle = featuredExperts[1];
+    const composed: Expert[] = [];
+    let slotIdx = 0;
+
+    if (slotConfig.lockMain) composed.push(fixedMain);
+    else if (fromSlot[slotIdx]) composed.push(fromSlot[slotIdx++]);
+
+    if (slotConfig.lockMiddle) composed.push(fixedMiddle);
+    else if (fromSlot[slotIdx]) composed.push(fromSlot[slotIdx++]);
+
+    while (composed.length < HOME_EXPERT_TARGET && fromSlot[slotIdx]) {
+      composed.push(fromSlot[slotIdx++]);
+    }
+
+    if (composed.length >= HOME_EXPERT_TARGET) {
+      return composed.slice(0, HOME_EXPERT_TARGET);
+    }
+    const filled = await fillHomeExperts(composed, HOME_EXPERT_TARGET);
     if (filled.length > 0) return filled;
     return featuredExperts;
   } catch {
     try {
-      const filled = await fillHomeExperts([]);
+      const fixedMain = featuredExperts[0];
+      const fixedMiddle = featuredExperts[1];
+      const filled = await fillHomeExperts([fixedMain, fixedMiddle], HOME_EXPERT_TARGET);
       if (filled.length > 0) return filled;
       return featuredExperts;
     } catch {
@@ -258,8 +280,9 @@ export async function loadHomeCases(): Promise<CaseStudy[]> {
 }
 
 async function loadHomeInternalCoursesLegacy(): Promise<InternalCourse[]> {
-  const { list } = await getCourseList({ isOpen: false, page: 1, size: 36, sortBy: 'default' });
-  if (list.length === 0) return popularInternalCourses;
+  const page = await getCourseList({ isOpen: false, page: 1, size: 36, sortBy: 'default' });
+  const list = page?.list ?? [];
+  if (list.length === 0) return [];
 
   return pickHomeInternalCourses(list, 6).map((c) => ({
     id: c.id,
@@ -284,20 +307,21 @@ export async function loadHomeInternalCourses(): Promise<InternalCourse[]> {
     try {
       return await loadHomeInternalCoursesLegacy();
     } catch {
-      return popularInternalCourses;
+      return [];
     }
   }
 }
 
 async function loadHomePublicCoursesLegacy(): Promise<PublicCourse[]> {
-  const { list } = await getCourseList({
+  const page = await getCourseList({
     isOpen: true,
     page: 1,
     size: 30,
     sortBy: 'time'
   });
+  const list = page?.list ?? [];
   const courses = pickHomeOpenCourses(list, 3);
-  if (courses.length === 0) return upcomingPublicCourses;
+  if (courses.length === 0) return [];
 
   return courses.map((c) => ({
     id: c.id,
@@ -325,7 +349,7 @@ export async function loadHomePublicCourses(): Promise<PublicCourse[]> {
     try {
       return await loadHomePublicCoursesLegacy();
     } catch {
-      return upcomingPublicCourses;
+      return [];
     }
   }
 }

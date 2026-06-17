@@ -6,7 +6,9 @@ import com.taoke.common.security.RequireRole;
 import com.taoke.course.api.RecommendedResourceService;
 import com.taoke.course.dto.cms.AddRecommendedResourceRequest;
 import com.taoke.course.dto.cms.RecommendedResourceItemVO;
+import com.taoke.course.dto.cms.RecommendationSlotConfigVO;
 import com.taoke.course.dto.cms.ReorderRecommendedResourcesRequest;
+import com.taoke.course.dto.cms.UpdateRecommendationSlotConfigRequest;
 import com.taoke.course.dto.cms.UpdateRecommendedResourceRequest;
 import com.taoke.course.enums.RecommendationSlot;
 import io.swagger.v3.oas.annotations.Operation;
@@ -86,5 +88,19 @@ public class AdminRecommendationController {
     public ApiResponse<Void> reorder(@Valid @RequestBody ReorderRecommendedResourcesRequest request) {
         recommendedResourceService.reorder(request);
         return ApiResponse.ok(null);
+    }
+
+    @Operation(summary = "查询推荐位布局配置")
+    @GetMapping("/admin/recommendations/slots/{slotCode}/config")
+    public ApiResponse<RecommendationSlotConfigVO> getSlotConfig(@PathVariable String slotCode) {
+        return ApiResponse.ok(recommendedResourceService.getSlotConfig(slotCode));
+    }
+
+    @Operation(summary = "更新推荐位布局配置")
+    @PutMapping("/admin/recommendations/slots/{slotCode}/config")
+    public ApiResponse<RecommendationSlotConfigVO> updateSlotConfig(
+            @PathVariable String slotCode,
+            @RequestBody UpdateRecommendationSlotConfigRequest request) {
+        return ApiResponse.ok(recommendedResourceService.updateSlotConfig(slotCode, request));
     }
 }

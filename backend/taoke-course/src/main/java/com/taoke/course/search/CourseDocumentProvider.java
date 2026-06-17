@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -81,10 +80,10 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
                 .map(Course::getTrainerId)
                 .filter(id -> id != null && id > 0)
                 .collect(Collectors.toSet());
-        Map<Integer, String> trainerNameMap = Collections.emptyMap();
+        Map<Integer, String> trainerNameMap = new HashMap<>();
         if (!trainerIds.isEmpty()) {
-            trainerNameMap = trainerService.findByIds(trainerIds).stream()
-                    .collect(Collectors.toMap(Trainer::getId, Trainer::getName, (a, b) -> a));
+            trainerService.findByIds(trainerIds)
+                    .forEach(t -> trainerNameMap.put(t.getId(), t.getName()));
         }
 
         // 批量查关联的分类名称
@@ -97,10 +96,10 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
                 categoryIds.add(c.getSubCategoryId());
             }
         });
-        Map<Integer, String> categoryNameMap = Collections.emptyMap();
+        Map<Integer, String> categoryNameMap = new HashMap<>();
         if (!categoryIds.isEmpty()) {
-            categoryNameMap = categoryRepository.findAllById(categoryIds).stream()
-                    .collect(Collectors.toMap(Category::getId, Category::getName, (a, b) -> a));
+            categoryRepository.findAllById(categoryIds)
+                    .forEach(c -> categoryNameMap.put(c.getId(), c.getName()));
         }
 
         // 构建文档

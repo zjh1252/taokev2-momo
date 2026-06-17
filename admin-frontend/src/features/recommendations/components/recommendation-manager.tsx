@@ -25,6 +25,7 @@ import { getTrainerCases } from '@/features/trainer-cases/api/service';
 import { getCategoryTree } from '@/features/categories/api/service';
 import {
   recommendationKeys,
+  recommendationSlotConfigQueryOptions,
   recommendationSlotsQueryOptions,
   recommendationsQueryOptions
 } from '../api/queries';
@@ -33,10 +34,19 @@ import {
   getRecommendationSlots,
   removeRecommendation,
   reorderRecommendations,
-  updateRecommendation
+  updateRecommendation,
+  updateRecommendationSlotConfig
 } from '../api/service';
 import { resolveRecommendationDetailPath } from '../api/detail-path';
 import type { RecommendationManagerConfig, RecommendedResourceItem } from '../api/types';
+import { HomeTrainerDetailPanel } from './home-trainer-detail-panel';
+import { HomeTrainerPreview, type HomeTrainerSelection } from './home-trainer-preview';
+import {
+  buildHomeTrainerLayout,
+  countManagedSlots,
+  HOME_TRAINER_TOTAL_SLOTS,
+  type HomeTrainerFixedLocks
+} from '../utils/home-trainer-layout';
 
 type Props = {
   config: RecommendationManagerConfig;
@@ -47,6 +57,8 @@ export function RecommendationManager({ config }: Props) {
   const [slotCode, setSlotCode] = useState(config.defaultSlotCode);
   const [categoryId, setCategoryId] = useState<number | undefined>();
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [homeTrainerSelection, setHomeTrainerSelection] =
+    useState<HomeTrainerSelection | null>(null);
   const [search, setSearch] = useState('');
   const [candidatePage, setCandidatePage] = useState(1);
   const [backendWarning, setBackendWarning] = useState<string | null>(null);
@@ -82,7 +94,32 @@ export function RecommendationManager({ config }: Props) {
     recommendationsQueryOptions(slotCode, activeCategoryId)
   );
 
+  const isHomeTrainerSlot = slotCode === 'HOME_TRAINER';
+
+  const { data: homeSlotConfig } = useSuspenseQuery(
+    recommendationSlotConfigQueryOptions('HOME_TRAINER')
+  );
+
+  const homeTrainerLocks: HomeTrainerFixedLocks = isHomeTrainerSlot
+    ? {
+        main: homeSlotConfig.lockMain ?? true,
+        middle: homeSlotConfig.lockMiddle ?? true
+      }
+    : { main: true, middle: true };
+
+  const homeTrainerLayout = isHomeTrainerSlot
+    ? buildHomeTrainerLayout(homeTrainerLocks, items)
+    : null;
+  const homeTrainerManagedItems = homeTrainerLayout?.managedItems ?? [];
+  const homeTrainerMaxItems = isHomeTrainerSlot
+    ? countManagedSlots(homeTrainerLocks)
+    : HOME_TRAINER_TOTAL_SLOTS;
+
   const selected = items.find((item) => item.id === selectedId) ?? null;
+  const selectedManagedItem =
+    homeTrainerSelection?.kind === 'managed'
+      ? (items.find((item) => item.id === homeTrainerSelection.id) ?? null)
+      : null;
 
   const invalidate = () => {
     void queryClient.invalidateQueries({
@@ -99,6 +136,20 @@ export function RecommendationManager({ config }: Props) {
     onError: () => toast.error('添加失败')
   });
 
+  const tryAddRecommendation = (resourceId: number, roleType?: 'PRIMARY' | 'BACKUP') => {
+    if (isHomeTrainerSlot && homeTrainerManagedItems.length >= homeTrainerMaxItems) {
+      toast.error(`当前最多可推荐 ${homeTrainerMaxItems} 位专家`);
+      return;
+    }
+    addMutation.mutate({
+      slotCode,
+      resourceType: config.resourceType,
+      resourceId,
+      categoryId: activeCategoryId,
+      roleType
+    });
+  };
+
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Parameters<typeof updateRecommendation>[1] }) =>
       updateRecommendation(id, payload),
@@ -114,9 +165,25 @@ export function RecommendationManager({ config }: Props) {
     onSuccess: () => {
       toast.success('已移出推荐位');
       setSelectedId(null);
+      setHomeTrainerSelection(null);
       invalidate();
     },
     onError: () => toast.error('移除失败')
+  });
+
+  const lockMutation = useMutation({
+    mutationFn: (locks: HomeTrainerFixedLocks) =>
+      updateRecommendationSlotConfig('HOME_TRAINER', {
+        lockMain: locks.main,
+        lockMiddle: locks.middle
+      }),
+    onSuccess: () => {
+      toast.success('固定展示设置已更新');
+      void queryClient.invalidateQueries({
+        queryKey: recommendationKeys.slotConfig('HOME_TRAINER')
+      });
+    },
+    onError: () => toast.error('固定展示设置保存失败')
   });
 
   const reorderMutation = useMutation({
@@ -129,9 +196,10 @@ export function RecommendationManager({ config }: Props) {
   });
 
   const moveItem = (index: number, direction: -1 | 1) => {
+    const reorderItems = isHomeTrainerSlot ? homeTrainerManagedItems : items;
     const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= items.length) return;
-    const orderedIds = items.map((item) => item.id);
+    if (nextIndex < 0 || nextIndex >= reorderItems.length) return;
+    const orderedIds = reorderItems.map((item) => item.id);
     const [moved] = orderedIds.splice(index, 1);
     orderedIds.splice(nextIndex, 0, moved);
     reorderMutation.mutate({
@@ -156,6 +224,7 @@ export function RecommendationManager({ config }: Props) {
           onValueChange={(value) => {
             setSlotCode(value);
             setSelectedId(null);
+            setHomeTrainerSelection(null);
           }}
         >
           <SelectTrigger className='w-[240px]'>
@@ -177,26 +246,54 @@ export function RecommendationManager({ config }: Props) {
 
       <div className='grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_320px]'>
         <div className='flex min-h-0 flex-col gap-4'>
-          <PreviewPanel
-            slotLabel={slotLabel}
-            items={needsCategory ? [] : items}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onMove={moveItem}
-            onRemove={(id) => removeMutation.mutate(id)}
-            detailPathTemplate={config.detailPathTemplate}
-          />
-
-          <DetailPanel
-            item={selected}
-            slotLabel={slotLabel}
-            detailPathTemplate={config.detailPathTemplate}
-            isSaving={updateMutation.isPending}
-            onSave={(payload) => {
-              if (!selected) return;
-              updateMutation.mutate({ id: selected.id, payload });
-            }}
-          />
+          {isHomeTrainerSlot ? (
+            <>
+              <HomeTrainerPreview
+                items={needsCategory ? [] : items}
+                locks={homeTrainerLocks}
+                selection={homeTrainerSelection}
+                onSelect={setHomeTrainerSelection}
+                onMove={moveItem}
+                onRemove={(id) => removeMutation.mutate(id)}
+              />
+              <HomeTrainerDetailPanel
+                selection={homeTrainerSelection}
+                managedItems={homeTrainerManagedItems}
+                locks={homeTrainerLocks}
+                slotLabel={slotLabel}
+                detailPathTemplate={config.detailPathTemplate}
+                isSaving={updateMutation.isPending}
+                isSavingLocks={lockMutation.isPending}
+                onLocksChange={(locks) => lockMutation.mutate(locks)}
+                onSave={(payload) => {
+                  if (!selectedManagedItem) return;
+                  updateMutation.mutate({ id: selectedManagedItem.id, payload });
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <PreviewPanel
+                slotLabel={slotLabel}
+                items={needsCategory ? [] : items}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                onMove={moveItem}
+                onRemove={(id) => removeMutation.mutate(id)}
+                detailPathTemplate={config.detailPathTemplate}
+              />
+              <DetailPanel
+                item={selected}
+                slotLabel={slotLabel}
+                detailPathTemplate={config.detailPathTemplate}
+                isSaving={updateMutation.isPending}
+                onSave={(payload) => {
+                  if (!selected) return;
+                  updateMutation.mutate({ id: selected.id, payload });
+                }}
+              />
+            </>
+          )}
         </div>
 
         <CandidatePanel
@@ -205,18 +302,16 @@ export function RecommendationManager({ config }: Props) {
           categoryId={activeCategoryId}
           search={search}
           page={candidatePage}
-          existingIds={items.map((item) => item.resourceId)}
+          existingIds={
+            isHomeTrainerSlot
+              ? homeTrainerManagedItems.map((item) => item.resourceId)
+              : items.map((item) => item.resourceId)
+          }
+          maxItems={isHomeTrainerSlot ? homeTrainerMaxItems : undefined}
+          managedCount={isHomeTrainerSlot ? homeTrainerManagedItems.length : undefined}
           onSearchChange={setSearch}
           onPageChange={setCandidatePage}
-          onAdd={(resourceId, roleType) =>
-            addMutation.mutate({
-              slotCode,
-              resourceType: config.resourceType,
-              resourceId,
-              categoryId: activeCategoryId,
-              roleType
-            })
-          }
+          onAdd={(resourceId, roleType) => tryAddRecommendation(resourceId, roleType)}
           isAdding={addMutation.isPending}
         />
       </div>
@@ -493,6 +588,8 @@ function CandidatePanel({
   search,
   page,
   existingIds,
+  maxItems,
+  managedCount,
   onSearchChange,
   onPageChange,
   onAdd,
@@ -504,6 +601,8 @@ function CandidatePanel({
   search: string;
   page: number;
   existingIds: number[];
+  maxItems?: number;
+  managedCount?: number;
   onSearchChange: (value: string) => void;
   onPageChange: (page: number) => void;
   onAdd: (resourceId: number, roleType?: 'PRIMARY' | 'BACKUP') => void;
@@ -620,7 +719,14 @@ function CandidatePanel({
   return (
     <div className='flex min-h-0 flex-col rounded-lg border'>
       <div className='space-y-3 border-b p-4'>
-        <h3 className='font-semibold'>{config.candidateLabel}</h3>
+        <div>
+          <h3 className='font-semibold'>{config.candidateLabel}</h3>
+          {maxItems !== undefined ? (
+            <p className='text-muted-foreground mt-1 text-xs'>
+              取消固定大卡后可配置更多位置；当前已添加 {managedCount ?? existingIds.length}/{maxItems}
+            </p>
+          ) : null}
+        </div>
         <Input
           value={search}
           onChange={(e) => {
@@ -641,6 +747,7 @@ function CandidatePanel({
         ) : (
           rows.map((row) => {
             const added = existingIds.includes(row.id);
+            const slotFull = maxItems !== undefined && existingIds.length >= maxItems;
             return (
               <div
                 key={row.id}
@@ -665,10 +772,10 @@ function CandidatePanel({
                   ) : null}
                   <Button
                     size='sm'
-                    disabled={added || isAdding}
+                    disabled={added || isAdding || slotFull}
                     onClick={() => onAdd(row.id, 'PRIMARY')}
                   >
-                    {added ? '已添加' : '推荐'}
+                    {added ? '已添加' : slotFull ? '已满' : '推荐'}
                   </Button>
                 </div>
               </div>

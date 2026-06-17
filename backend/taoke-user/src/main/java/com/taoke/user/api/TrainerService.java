@@ -142,6 +142,11 @@ public interface TrainerService {
     List<Trainer> findByIds(Collection<Integer> ids);
 
     /**
+     * 按姓名批量查询已上架专家（status=2），用于迁移课程主讲人名称回填。
+     */
+    List<Trainer> findPublishedByNames(Collection<String> names);
+
+    /**
      * 检查是否有专家关联了指定的擅长领域分类
      */
     boolean hasExpertiseCategoryReference(Integer categoryId);

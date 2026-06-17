@@ -22,6 +22,7 @@ export interface PublicRecommendedItem {
   coverUrl?: string | null;
   title?: string | null;
   description?: string | null;
+  chiefIntro?: string | null;
   expertiseOverride?: string | null;
   keyTags?: string | null;
   resourceName?: string | null;
@@ -54,4 +55,10 @@ export interface GetPublicRecommendationsOptions {
   limit?: number;
   categoryId?: number;
   includeBackup?: boolean;
+}
+
+export interface RecommendationSlotConfig {
+  slotCode: string;
+  lockMain: boolean;
+  lockMiddle: boolean;
 }

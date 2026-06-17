@@ -69,20 +69,23 @@ export function mapSlotTrainersToListItems(items: PublicRecommendedItem[]): Trai
 export function mapSlotTrainersToExperts(items: PublicRecommendedItem[]): Expert[] {
   return items.map((item, index) => {
     const displayName = item.teachingName || item.resourceName || '';
-    const avatar = resolveImageSrc(item.avatar || item.resourceCoverUrl || '');
-    const cover = resolveImageSrc(item.coverUrl || item.avatar || item.resourceCoverUrl || avatar);
+    const avatarRaw = item.avatar || item.resourceCoverUrl || '';
+    const avatar = resolveImageSrc(avatarRaw);
+    const cover = resolveImageSrc(item.coverUrl || avatarRaw || avatar);
     const tags = parseTagList(item.expertiseTags || item.expertiseOverride || item.keyTags);
-    const bio = item.description || item.oneLineIntro || item.resourceDescription || '';
+    const oneLineIntro = (item.description ?? item.oneLineIntro ?? item.resourceDescription ?? '').trim();
+    const chiefIntro = (item.chiefIntro ?? '').trim();
+    const positionTitle = (item.title ?? item.trainerTitle ?? '').trim();
     return {
       id: item.resourceId,
       name: displayName,
-      title: item.trainerTitle || item.title || '',
+      title: positionTitle,
       avatar,
       coverImage: cover,
-      bio,
-      subtitle: item.description || item.oneLineIntro || item.resourceDescription || '',
+      bio: chiefIntro || oneLineIntro,
+      subtitle: oneLineIntro,
       tags,
-      badge: index === 0 ? (item.title || '首席专家') : undefined
+      badge: index === 0 ? '首席专家' : undefined
     };
   });
 }

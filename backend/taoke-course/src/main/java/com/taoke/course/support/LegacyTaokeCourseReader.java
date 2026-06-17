@@ -89,31 +89,48 @@ public class LegacyTaokeCourseReader {
 
         String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
 
-        List<Map.Entry<Integer, String>> rows = jdbcTemplate.query(
+        List<LecturerRow> rows = jdbcTemplate.query(
 
                 """
 
-                SELECT id, TRIM(lecturer) AS lecturer
-
-                FROM taoke.tk_courseinfo
-
-                WHERE id IN (%s) AND TRIM(COALESCE(lecturer, '')) != ''
+                SELECT ci.id,
+                       TRIM(ci.lecturer) AS lecturer,
+                       TRIM(COALESCE(NULLIF(TRIM(m.company), ''),
+                                     NULLIF(TRIM(m.realname), ''))) AS member_name
+                FROM taoke.tk_courseinfo ci
+                LEFT JOIN taoke.tk_member m ON m.id = ci.lecturerid AND ci.lecturerid > 0
+                WHERE ci.id IN (%s)
+                  AND (
+                    TRIM(COALESCE(ci.lecturer, '')) != ''
+                    OR (ci.lecturerid > 0
+                        AND TRIM(COALESCE(NULLIF(TRIM(m.company), ''),
+                                          NULLIF(TRIM(m.realname), ''))) != '')
+                  )
 
                 """.formatted(placeholders),
 
-                (rs, rowNum) -> Map.entry(rs.getInt("id"), rs.getString("lecturer")),
+                (rs, rowNum) -> new LecturerRow(
+                        rs.getInt("id"),
+                        rs.getString("lecturer"),
+                        rs.getString("member_name")),
 
                 ids.toArray());
 
         Map<Integer, String> result = new HashMap<>();
 
-        for (Map.Entry<Integer, String> row : rows) {
+        for (LecturerRow row : rows) {
 
-            String name = parseLecturerName(row.getValue());
+            String name = parseLecturerName(row.lecturer());
+
+            if (name.isEmpty() && row.memberName() != null) {
+
+                name = row.memberName().trim();
+
+            }
 
             if (!name.isEmpty()) {
 
-                result.put(row.getKey(), name);
+                result.put(row.courseId(), name);
 
             }
 
@@ -122,6 +139,116 @@ public class LegacyTaokeCourseReader {
         return result;
 
     }
+
+
+
+    /**
+
+     * 批量取老库主讲人会员 ID（lecturerid，与 user_trainers.user_id 对齐）。
+
+     */
+
+    public Map<Integer, Integer> findLecturerUserIds(Collection<Integer> courseInfoIds) {
+
+        if (courseInfoIds == null || courseInfoIds.isEmpty()) {
+
+            return Map.of();
+
+        }
+
+        List<Integer> ids = courseInfoIds.stream().filter(id -> id != null && id > 0).distinct().toList();
+
+        if (ids.isEmpty()) {
+
+            return Map.of();
+
+        }
+
+        String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
+
+        List<Map.Entry<Integer, Integer>> rows = jdbcTemplate.query(
+
+                """
+
+                SELECT id, lecturerid
+                FROM taoke.tk_courseinfo
+                WHERE id IN (%s) AND lecturerid > 0
+                """.formatted(placeholders),
+
+                (rs, rowNum) -> Map.entry(rs.getInt("id"), rs.getInt("lecturerid")),
+
+                ids.toArray());
+
+        Map<Integer, Integer> result = new HashMap<>();
+
+        for (Map.Entry<Integer, Integer> row : rows) {
+
+            result.put(row.getKey(), row.getValue());
+
+        }
+
+        return result;
+
+    }
+
+
+
+    /**
+
+     * 批量取老库课程标签（tk_courseinfo.tags），用于 keywords 为空时展示补全。
+
+     */
+
+    public Map<Integer, String> findKeywordsByCourseIds(Collection<Integer> courseInfoIds) {
+
+        if (courseInfoIds == null || courseInfoIds.isEmpty()) {
+
+            return Map.of();
+
+        }
+
+        List<Integer> ids = courseInfoIds.stream().filter(id -> id != null && id > 0).distinct().toList();
+
+        if (ids.isEmpty()) {
+
+            return Map.of();
+
+        }
+
+        String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
+
+        List<Map.Entry<Integer, String>> rows = jdbcTemplate.query(
+
+                """
+
+                SELECT id, TRIM(tags) AS tags
+                FROM taoke.tk_courseinfo
+                WHERE id IN (%s) AND TRIM(COALESCE(tags, '')) != ''
+                """.formatted(placeholders),
+
+                (rs, rowNum) -> Map.entry(rs.getInt("id"), rs.getString("tags")),
+
+                ids.toArray());
+
+        Map<Integer, String> result = new HashMap<>();
+
+        for (Map.Entry<Integer, String> row : rows) {
+
+            if (row.getValue() != null && !row.getValue().isBlank()) {
+
+                result.put(row.getKey(), row.getValue().trim());
+
+            }
+
+        }
+
+        return result;
+
+    }
+
+
+
+    private record LecturerRow(int courseId, String lecturer, String memberName) {}
 
 
 

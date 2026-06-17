@@ -14,6 +14,7 @@ public class UpdateRecommendedResourceRequest {
     private String coverUrl;
     private String title;
     private String description;
+    private String chiefIntro;
     private String expertiseOverride;
     private String keyTags;
     private String adminNote;

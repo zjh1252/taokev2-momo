@@ -6,6 +6,7 @@ import com.taoke.common.exception.BusinessException;
 
 import com.taoke.common.exception.ErrorCode;
 
+import com.taoke.course.api.RecommendationSlotConfigService;
 import com.taoke.course.api.RecommendedResourceService;
 
 import com.taoke.course.dto.cms.AddRecommendedResourceRequest;
@@ -13,6 +14,10 @@ import com.taoke.course.dto.cms.AddRecommendedResourceRequest;
 import com.taoke.course.dto.cms.RecommendedResourceItemVO;
 
 import com.taoke.course.dto.cms.ReorderRecommendedResourcesRequest;
+
+import com.taoke.course.dto.cms.RecommendationSlotConfigVO;
+
+import com.taoke.course.dto.cms.UpdateRecommendationSlotConfigRequest;
 
 import com.taoke.course.dto.cms.UpdateRecommendedResourceRequest;
 
@@ -25,8 +30,6 @@ import com.taoke.course.repository.RecommendedResourceRepository;
 import com.taoke.user.api.InstitutionService;
 
 import com.taoke.user.api.TrainerService;
-
-import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 
@@ -60,8 +63,6 @@ import java.util.stream.Collectors;
 
 @Service
 
-@RequiredArgsConstructor
-
 public class RecommendedResourceServiceImpl implements RecommendedResourceService {
 
 
@@ -82,13 +83,26 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
 
     private final RecommendedResourceRepository recommendedResourceRepository;
 
+    private final RecommendationSlotConfigService recommendationSlotConfigService;
+
     private final RecommendedResourceEnricher enricher;
 
     private final TrainerService trainerService;
 
     private final InstitutionService institutionService;
 
-
+    public RecommendedResourceServiceImpl(
+            RecommendedResourceRepository recommendedResourceRepository,
+            RecommendationSlotConfigService recommendationSlotConfigService,
+            RecommendedResourceEnricher enricher,
+            TrainerService trainerService,
+            InstitutionService institutionService) {
+        this.recommendedResourceRepository = recommendedResourceRepository;
+        this.recommendationSlotConfigService = recommendationSlotConfigService;
+        this.enricher = enricher;
+        this.trainerService = trainerService;
+        this.institutionService = institutionService;
+    }
 
     @Override
 
@@ -160,6 +174,8 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
 
         entity.setDescription(request.getDescription());
 
+        entity.setChiefIntro(request.getChiefIntro());
+
         entity.setExpertiseOverride(request.getExpertiseOverride());
 
         entity.setKeyTags(request.getKeyTags());
@@ -213,6 +229,12 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
         if (request.getDescription() != null) {
 
             entity.setDescription(request.getDescription());
+
+        }
+
+        if (request.getChiefIntro() != null) {
+
+            entity.setChiefIntro(request.getChiefIntro());
 
         }
 
@@ -430,6 +452,19 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
 
         }
 
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RecommendationSlotConfigVO getSlotConfig(String slotCode) {
+        return recommendationSlotConfigService.getSlotConfig(slotCode);
+    }
+
+    @Override
+    @Transactional
+    public RecommendationSlotConfigVO updateSlotConfig(
+            String slotCode, UpdateRecommendationSlotConfigRequest request) {
+        return recommendationSlotConfigService.updateSlotConfig(slotCode, request);
     }
 
 }

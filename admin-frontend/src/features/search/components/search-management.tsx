@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { indicesQueryOptions, searchKeys } from '../api/queries';
-import { createIndex, deleteIndex, reindexAll, reindexByType } from '../api/service';
+import { createIndex, deleteIndex, reindexAll, reindexByType, putMapping } from '../api/service';
 
 const DEFAULT_INDEX = 'taokev2app';
 
@@ -57,7 +57,18 @@ export function SearchManagement() {
     onError: () => toast.error('索引删除失败')
   });
 
-  // --------------- 重建索引 ---------------
+  // --------------- 更新 Mapping ---------------
+  const putMappingMutation = useMutation({
+    mutationFn: (name: string) => putMapping(name),
+    onSuccess: (resp) => {
+      if (resp.data) {
+        toast.success('Mapping 更新成功');
+      } else {
+        toast.info('索引不存在，无需更新');
+      }
+    },
+    onError: () => toast.error('Mapping 更新失败')
+  });
   const [reindexConfirm, setReindexConfirm] = useState<string | null>(null);
 
   const reindexAllMutation = useMutation({
@@ -122,15 +133,31 @@ export function SearchManagement() {
                     </span>
                   )}
                 </div>
-                <Button
-                  variant='ghost'
-                  size='sm'
-                  disabled={name === DEFAULT_INDEX}
-                  onClick={() => setDeleteTarget(name)}
-                  title={name === DEFAULT_INDEX ? '默认索引不可删除' : '删除索引'}
-                >
-                  <Icons.trash className='h-4 w-4 text-destructive' />
-                </Button>
+                <div className='flex items-center gap-1'>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    disabled={putMappingMutation.isPending}
+                    onClick={() => putMappingMutation.mutate(name)}
+                    title='更新 Mapping（加新字段后使用）'
+                  >
+                    {putMappingMutation.isPending &&
+                    putMappingMutation.variables === name ? (
+                      <Icons.spinner className='h-4 w-4 animate-spin' />
+                    ) : (
+                      <Icons.refresh className='h-4 w-4 text-muted-foreground' />
+                    )}
+                  </Button>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    disabled={name === DEFAULT_INDEX}
+                    onClick={() => setDeleteTarget(name)}
+                    title={name === DEFAULT_INDEX ? '默认索引不可删除' : '删除索引'}
+                  >
+                    <Icons.trash className='h-4 w-4 text-destructive' />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

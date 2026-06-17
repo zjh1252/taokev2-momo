@@ -52,6 +52,9 @@ public class RecommendedResource extends BaseEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "chief_intro", columnDefinition = "TEXT")
+    private String chiefIntro;
+
     @Column(name = "expertise_override", length = 200)
     private String expertiseOverride;
 

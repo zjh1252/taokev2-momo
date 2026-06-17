@@ -5,7 +5,8 @@ import { Suspense } from 'react';
 import { getQueryClient } from '@/lib/query-client';
 import {
   recommendationSlotsQueryOptions,
-  recommendationsQueryOptions
+  recommendationsQueryOptions,
+  recommendationSlotConfigQueryOptions
 } from '../api/queries';
 import type { RecommendationManagerConfig } from '../api/types';
 import { RecommendationManager } from './recommendation-manager';
@@ -24,6 +25,9 @@ export function RecommendationListing({ config }: { config: RecommendationManage
   void queryClient.prefetchQuery(
     recommendationsQueryOptions(config.defaultSlotCode)
   );
+  if (config.defaultSlotCode === 'HOME_TRAINER') {
+    void queryClient.prefetchQuery(recommendationSlotConfigQueryOptions('HOME_TRAINER'));
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

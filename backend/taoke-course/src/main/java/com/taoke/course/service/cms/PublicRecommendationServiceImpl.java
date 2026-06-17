@@ -2,7 +2,9 @@ package com.taoke.course.service.cms;
 
 import com.taoke.course.api.CourseService;
 import com.taoke.course.api.PublicRecommendationService;
+import com.taoke.course.api.RecommendationSlotConfigService;
 import com.taoke.course.dto.cms.PublicRecommendedItemVO;
+import com.taoke.course.dto.cms.RecommendationSlotConfigVO;
 import com.taoke.course.dto.cms.RecommendedResourceItemVO;
 import com.taoke.course.dto.course.CourseListItemVO;
 import com.taoke.course.entity.Course;
@@ -12,7 +14,6 @@ import com.taoke.user.api.TrainerCaseService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.dto.trainercase.TrainerCaseResponse;
 import com.taoke.user.entity.Trainer;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +27,6 @@ import java.util.stream.Collectors;
  * @date 2026-06-12 20:00
  */
 @Service
-@RequiredArgsConstructor
 public class PublicRecommendationServiceImpl implements PublicRecommendationService {
 
     private static final String ROLE_PRIMARY = "PRIMARY";
@@ -42,9 +42,25 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
 
     private final RecommendedResourceRepository recommendedResourceRepository;
     private final RecommendedResourceEnricher enricher;
+    private final RecommendationSlotConfigService recommendationSlotConfigService;
     private final CourseService courseService;
     private final TrainerCaseService trainerCaseService;
     private final TrainerService trainerService;
+
+    public PublicRecommendationServiceImpl(
+            RecommendedResourceRepository recommendedResourceRepository,
+            RecommendedResourceEnricher enricher,
+            RecommendationSlotConfigService recommendationSlotConfigService,
+            CourseService courseService,
+            TrainerCaseService trainerCaseService,
+            TrainerService trainerService) {
+        this.recommendedResourceRepository = recommendedResourceRepository;
+        this.enricher = enricher;
+        this.recommendationSlotConfigService = recommendationSlotConfigService;
+        this.courseService = courseService;
+        this.trainerCaseService = trainerCaseService;
+        this.trainerService = trainerService;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -74,6 +90,12 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
                 .map(item -> toPublicVO(item, courseById, caseById, trainerById))
                 .limit(limit > 0 ? limit : Integer.MAX_VALUE)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RecommendationSlotConfigVO getPublicSlotConfig(String slotCode) {
+        return recommendationSlotConfigService.getSlotConfig(slotCode);
     }
 
     private Map<Integer, CourseListItemVO> loadCourseListItems(List<RecommendedResourceItemVO> items) {
@@ -144,6 +166,7 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
         vo.setCoverUrl(item.getCoverUrl());
         vo.setTitle(item.getTitle());
         vo.setDescription(item.getDescription());
+        vo.setChiefIntro(item.getChiefIntro());
         vo.setExpertiseOverride(item.getExpertiseOverride());
         vo.setKeyTags(item.getKeyTags());
         vo.setResourceName(item.getResourceName());
@@ -155,7 +178,11 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
             case "TRAINER" -> {
                 vo.setTeachingName(item.getResourceName());
                 vo.setAvatar(item.getResourceCoverUrl());
-                vo.setOneLineIntro(item.getResourceDescription());
+                vo.setTrainerTitle(item.getTitle());
+                vo.setOneLineIntro(
+                        item.getDescription() != null && !item.getDescription().isBlank()
+                                ? item.getDescription() : item.getResourceDescription());
+                vo.setChiefIntro(item.getChiefIntro());
                 vo.setExpertiseTags(
                         item.getExpertiseOverride() != null && !item.getExpertiseOverride().isBlank()
                                 ? item.getExpertiseOverride() : item.getResourceMeta());

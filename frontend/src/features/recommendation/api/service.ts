@@ -3,7 +3,8 @@ import type { ApiResponse } from '@/features/trainer/types';
 import type {
   GetPublicRecommendationsOptions,
   PublicRecommendedItem,
-  RecommendationSlotCode
+  RecommendationSlotCode,
+  RecommendationSlotConfig
 } from './types';
 
 /**
@@ -23,4 +24,14 @@ export async function getPublicRecommendations(
     { silent: true }
   );
   return res.data ?? [];
+}
+
+export async function getPublicRecommendationSlotConfig(
+  slotCode: RecommendationSlotCode
+): Promise<RecommendationSlotConfig> {
+  const res = await apiGet<ApiResponse<RecommendationSlotConfig>>(
+    `/recommendations/public/config?slotCode=${encodeURIComponent(slotCode)}`,
+    { silent: true }
+  );
+  return res.data ?? { slotCode, lockMain: true, lockMiddle: true };
 }

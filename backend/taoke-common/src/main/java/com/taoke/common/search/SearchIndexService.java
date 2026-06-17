@@ -126,7 +126,11 @@ public class SearchIndexService {
         try {
             GetIndexResponse response = esClient.indices().get(g -> g.index("taokev2*"));
             return response.result().keySet();
-        } catch (IOException e) {
+        } catch (Exception e) {
+            // 无匹配索引时 ES 会返回 index_not_found_exception，也有 IOException
+            if (isIndexNotFound(e)) {
+                return Set.of();
+            }
             throw new SearchException(ErrorCode.SEARCH_INDEX_ERROR, "列出索引失败", e);
         }
     }
@@ -362,6 +366,7 @@ public class SearchIndexService {
                             .fields("keywords", hf -> hf.numberOfFragments(1).fragmentSize(100))
                             .fields("expertiseTags", hf -> hf.numberOfFragments(1).fragmentSize(100))
                             .fields("expertiseCategoryNames", hf -> hf.numberOfFragments(1).fragmentSize(100))
+                            .fields("industryCategoryNames", hf -> hf.numberOfFragments(1).fragmentSize(100))
                             .fields("categoryName", hf -> hf.numberOfFragments(1).fragmentSize(80))
                             .fields("trainerName", hf -> hf.numberOfFragments(1).fragmentSize(80))
                     );

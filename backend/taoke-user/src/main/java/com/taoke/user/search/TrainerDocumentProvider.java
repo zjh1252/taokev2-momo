@@ -23,7 +23,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -100,10 +99,10 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
                 regionIds.add(t.getCityId());
             }
         });
-        Map<Integer, String> regionNameMap = Collections.emptyMap();
+        Map<Integer, String> regionNameMap = new HashMap<>();
         if (!regionIds.isEmpty()) {
-            regionNameMap = regionRepository.findAllById(regionIds).stream()
-                    .collect(Collectors.toMap(Region::getId, Region::getName, (a, b) -> a));
+            regionRepository.findAllById(regionIds)
+                    .forEach(r -> regionNameMap.put(r.getId(), r.getName()));
         }
 
         // 批量查关联的擅长领域分类 ID
@@ -128,20 +127,22 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         Set<Integer> allCatIds = new HashSet<>();
         allExpCategories.forEach(ec -> allCatIds.add(ec.getCategoryId()));
         allIndCategories.forEach(ic -> allCatIds.add(ic.getCategoryId()));
-        final Map<Integer, String> catNameMap = allCatIds.isEmpty()
-                ? Collections.emptyMap()
-                : categoryRepository.findByIdIn(allCatIds).stream()
-                        .collect(Collectors.toMap(Category::getId, Category::getName, (a, b) -> a));
+        final Map<Integer, String> catNameMap = new HashMap<>();
+        if (!allCatIds.isEmpty()) {
+            categoryRepository.findByIdIn(allCatIds)
+                    .forEach(c -> catNameMap.put(c.getId(), c.getName()));
+        }
 
         Set<Integer> userIds = trainers.stream()
                 .map(Trainer::getUserId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        Map<Integer, String> userAvatarMap = userIds.isEmpty()
-                ? Collections.emptyMap()
-                : userRepository.findAllById(userIds).stream()
-                        .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
-                        .collect(Collectors.toMap(User::getId, User::getAvatarUrl, (a, b) -> a));
+        Map<Integer, String> userAvatarMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            userRepository.findAllById(userIds).stream()
+                    .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
+                    .forEach(u -> userAvatarMap.put(u.getId(), u.getAvatarUrl()));
+        }
 
         Map<Integer, String> finalRegionNameMap = regionNameMap;
         Map<Integer, String> finalCatNameMap = catNameMap;
