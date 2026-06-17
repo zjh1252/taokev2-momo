@@ -31,7 +31,7 @@ export function MaterialBatchBar({
   const needsConfirm =
     action === 'DELETE' ||
     action === 'DISABLE' ||
-    (hasDefault && (action === 'DELETE' || action === 'DISABLE' || action === 'UNSET_DEFAULT'));
+    (hasDefault && action === 'UNSET_DEFAULT');
 
   const mutation = useMutation({
     mutationFn: () => batchOperateMaterials({ ids: selectedIds, action }),

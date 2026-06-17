@@ -5,23 +5,32 @@
 #
 # 构建参数：
 #   BUILD_ENV — 环境名（test / prod 等），用于加载 .env.<env> 文件
+#
+# lan87 等 SELinux 构建机若仍 EPERM，可加：
+#   docker build --security-opt seccomp=unconfined --security-opt label=disable ...
 # ============================================================
 
 ARG BUILD_ENV=""
 
-# ---------- 阶段1：依赖安装 ----------
-FROM node:22-alpine AS deps
+# 构建阶段用 slim（Debian），Alpine 在部分 Docker+SELinux 环境易 EPERM
+FROM node:22-slim AS deps
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN mkdir -p /tmp/pnpm-store /tmp/home /tmp/npm-cache
+ENV HOME=/tmp/home
+ENV npm_config_cache=/tmp/npm-cache
+RUN npm install -g pnpm@10.32.1
 
 WORKDIR /app
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN printf "store-dir=/tmp/pnpm-store\npackage-import-method=copy\nnode-linker=hoisted\n" > .npmrc \
+    && pnpm install --frozen-lockfile
 
 # ---------- 阶段2：构建 ----------
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN mkdir -p /tmp/home
+ENV HOME=/tmp/home
+RUN npm install -g pnpm@10.32.1
 
 ARG BUILD_ENV
 

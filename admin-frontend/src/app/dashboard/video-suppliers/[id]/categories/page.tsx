@@ -1,6 +1,7 @@
 import PageContainer from '@/components/layout/page-container';
 import { SupplierCategoriesPanel } from '@/features/video-suppliers/components/supplier-categories-panel';
 import { supplierCategoriesQueryOptions } from '@/features/video-suppliers/api/queries';
+import type { SupplierCategoryNode } from '@/features/video-suppliers/api/types';
 import { getQueryClient } from '@/lib/query-client';
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { Suspense } from 'react';
@@ -22,7 +23,10 @@ export default async function SupplierCategoriesPage(props: PageProps) {
   try {
     await queryClient.prefetchQuery({
       ...supplierCategoriesQueryOptions(supplierId),
-      queryFn: () => serverFetch(`/admin/video-suppliers/${supplierId}/categories`)
+      queryFn: () =>
+        serverFetch<SupplierCategoryNode[]>(
+          `/admin/video-suppliers/${supplierId}/categories`
+        )
     });
   } catch {
     // 客户端重试

@@ -5,5 +5,7 @@ import { buildBookParams } from './service';
 export async function getBooksFromServer(
   filters: BookFilters
 ): Promise<BooksResponse> {
-  return serverFetch<BooksResponse>(`/admin/books?${buildBookParams(filters).toString()}`);
+  return serverFetch<BooksResponse['data']>(
+    `/admin/books?${buildBookParams(filters).toString()}`
+  );
 }

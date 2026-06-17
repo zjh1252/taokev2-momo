@@ -44,7 +44,7 @@ export function MaterialPicker({
     })
   );
 
-  const materials = resp.data?.list ?? [];
+  const materials = resp?.data?.list ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
