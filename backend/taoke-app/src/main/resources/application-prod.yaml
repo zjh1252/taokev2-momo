@@ -4,7 +4,7 @@
 
 spring:
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/taokev2?useSSL=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/v3test?useSSL=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8}
     username: ${DB_USERNAME:taoke}
     password: ${DB_PASSWORD:}
     hikari:
