@@ -78,6 +78,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
               alt={displayName}
               width={190}
               height={230}
+              useApiSrc
               className="w-[190px] h-[230px] object-cover border-[6px] border-white shadow-md rounded-sm transition-transform duration-300 group-hover:scale-[1.02]"
             />
             {trainer.isTrusted === 1 && (

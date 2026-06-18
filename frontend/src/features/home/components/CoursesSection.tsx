@@ -43,6 +43,7 @@ function CourseCard({ course }: { course: InternalCourse }) {
           alt={course.title}
           width={240}
           height={160}
+          useApiSrc
           className="w-full h-full object-cover transition-transform group-hover:scale-105"
         />
       </div>

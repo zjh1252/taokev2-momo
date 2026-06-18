@@ -172,8 +172,10 @@ function applyLegacyProxy(url: string, fallback: string): string {
 function resolveImageSrcRaw(
   src?: string | null,
   fallback = EMPTY_IMAGE_SRC,
+  skipPlaceholder = false,
 ): string {
-  if (!src?.trim() || isPlaceholderLegacyAvatar(src)) return fallback;
+  if (!src?.trim()) return fallback;
+  if (!skipPlaceholder && isPlaceholderLegacyAvatar(src)) return fallback;
 
   const value = src.trim();
 
@@ -240,6 +242,14 @@ export function resolveImageSrc(
   fallback = EMPTY_IMAGE_SRC,
 ): string {
   return resolveImageSrcRaw(src, fallback);
+}
+
+/** 接口已解析的展示图（含素材库默认），仅做路径规范化，不再二次剔除占位图 */
+export function resolveApiImageSrc(
+  src?: string | null,
+  fallback = EMPTY_IMAGE_SRC,
+): string {
+  return resolveImageSrcRaw(src, fallback, true);
 }
 
 /** 机构 Logo 加载失败占位（本地静态资源，避免外链不可用） */

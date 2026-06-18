@@ -107,6 +107,7 @@ export function TrainerRecommendedScroller({
                 src={t.avatar}
                 alt={displayName}
                 fill
+                useApiSrc
                 sizes="(max-width: 1024px) 33vw, 320px"
                 className="object-cover transition-transform duration-500 group-hover/item:scale-[1.04]"
               />

@@ -1,9 +1,8 @@
+import { Link } from '@/i18n/navigation';
 import { ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
-import { Link } from '@/i18n/navigation';
+import { resolveApiImageSrc } from '@/lib/media';
 import { SectionHeader } from './SectionHeader';
-import { resolveImageSrc } from '@/lib/media';
 import type { Expert } from '../types';
 
 interface ExpertsSectionProps {
@@ -49,7 +48,7 @@ export function ExpertsSection({ experts }: ExpertsSectionProps) {
   );
 }
 
-/** 专家封面/头像图（无 URL 时显示灰色底） */
+/** 专家封面/头像图（接口已解析，无 URL 时灰色底） */
 function ExpertCoverImage({
   src,
   alt,
@@ -65,7 +64,7 @@ function ExpertCoverImage({
   width?: number;
   height?: number;
 }) {
-  const resolved = resolveImageSrc(src);
+  const resolved = resolveApiImageSrc(src);
   if (!resolved) {
     if (fill) {
       return (
@@ -81,12 +80,15 @@ function ExpertCoverImage({
     );
   }
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={resolved}
       alt={alt}
-      fill={fill}
-      width={width}
-      height={height}
+      width={fill ? undefined : width}
+      height={fill ? undefined : height}
+      loading={fill ? 'lazy' : 'lazy'}
+      decoding="async"
+      referrerPolicy={resolved.startsWith('http') ? 'no-referrer' : undefined}
       className={className}
     />
   );

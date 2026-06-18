@@ -4,7 +4,7 @@ import type { InstitutionListItem } from '@/features/institution/types';
 import type { RecentTrainerCase } from '@/features/trainer/api/service';
 import type { TrainerListItem } from '@/features/trainer/types';
 import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recommended';
-import { resolveImageSrc } from '@/lib/media';
+import { resolveApiImageSrc, resolveImageSrc } from '@/lib/media';
 import type { PublicRecommendedItem } from './types';
 
 function parseTagList(value?: string | null): string[] {
@@ -24,7 +24,7 @@ function formatCaseDate(value?: string | null): string | undefined {
 
 export function mapSlotTrainerToListItem(item: PublicRecommendedItem): TrainerListItem {
   const displayName = item.teachingName || item.resourceName || '';
-  const avatar = resolveImageSrc(item.coverUrl || item.avatar || item.resourceCoverUrl || '');
+  const avatar = resolveApiImageSrc(item.avatar || item.resourceCoverUrl || '');
   const intro = item.description || item.oneLineIntro || item.resourceDescription || '';
   return {
     id: item.resourceId,
@@ -58,8 +58,9 @@ export function mapSlotTrainersToExperts(items: PublicRecommendedItem[]): Expert
   return items.map((item, index) => {
     const displayName = item.teachingName || item.resourceName || '';
     const avatarRaw = item.avatar || item.resourceCoverUrl || '';
-    const avatar = resolveImageSrc(avatarRaw);
-    const cover = resolveImageSrc(item.coverUrl || avatarRaw || avatar);
+    const avatar = avatarRaw.trim() ? resolveApiImageSrc(avatarRaw) : '';
+    const coverRaw = item.coverUrl?.trim() || '';
+    const cover = coverRaw ? resolveApiImageSrc(coverRaw) : avatar;
     const tags = parseTagList(item.expertiseTags || item.expertiseOverride || item.keyTags);
     const oneLineIntro = (item.description ?? item.oneLineIntro ?? item.resourceDescription ?? '').trim();
     const chiefIntro = (item.chiefIntro ?? '').trim();
@@ -147,7 +148,7 @@ export function mapSlotCoursesToInternalCourses(items: PublicRecommendedItem[]):
       id: course.id,
       title: course.title,
       subtitle: course.categoryName || '',
-      coverUrl: resolveImageSrc(course.coverUrl?.trim()) || undefined,
+      coverUrl: resolveApiImageSrc(course.coverUrl?.trim()) || undefined,
       instructorName: course.trainerName || '-',
       instructorAvatar: '',
       instructorDesc: course.keywords || course.categoryName || ''
@@ -165,7 +166,7 @@ export function mapSlotCoursesToPublicCourses(
     return {
       id: course.id,
       title: course.title,
-      coverUrl: rawCover || undefined,
+      coverUrl: rawCover ? resolveApiImageSrc(rawCover) : undefined,
       organizer: course.publisherName || '-',
       instructor: course.trainerName || '-',
       city: course.nextPlanCity?.trim() || '-',

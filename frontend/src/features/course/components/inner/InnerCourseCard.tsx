@@ -103,7 +103,7 @@ export function InnerCourseCard({ course }: InnerCourseCardProps) {
             </div>
             <div className="flex items-start gap-1 mt-1.5 text-xs min-w-0">
               <span className={FIELD_LABEL_CLASS}>关键字：</span>
-              <span className="text-slate-400 line-clamp-2 min-w-0 flex-1">{keywordText}</span>
+              <span className="text-slate-700 line-clamp-2 min-w-0 flex-1">{keywordText}</span>
             </div>
           </div>
         </div>

@@ -20,7 +20,7 @@ import {
 } from '@/features/trainer/api/service';
 import type { TrainerListItem } from '@/features/trainer/types';
 import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recommended';
-import { resolveImageSrc } from '@/lib/media';
+import { resolveApiImageSrc, resolveImageSrc } from '@/lib/media';
 import { featuredCases, featuredExperts } from '../data/mock';
 import type { CaseStudy, Expert, InternalCourse, PublicCourse } from '../types';
 
@@ -119,7 +119,11 @@ async function enrichPublicCourseCovers(courses: PublicCourse[]): Promise<Public
 
   return courses.map((course) => ({
     ...course,
-    coverUrl: course.coverUrl?.trim() || coverById.get(course.id)
+    coverUrl: course.coverUrl?.trim()
+      ? resolveApiImageSrc(course.coverUrl.trim())
+      : coverById.get(course.id)
+        ? resolveApiImageSrc(coverById.get(course.id))
+        : undefined
   }));
 }
 
@@ -156,8 +160,8 @@ function mapTrainerListItemToExpert(
     id: trainer.id,
     name: trainer.teachingName || trainer.name,
     title: trainer.title || '',
-    avatar: resolveImageSrc(trainer.avatar),
-    coverImage: resolveImageSrc(detail?.backgroundImage || trainer.avatar),
+    avatar: resolveApiImageSrc(trainer.avatar),
+    coverImage: resolveApiImageSrc(detail?.backgroundImage || trainer.avatar),
     bio: detail?.intro || detail?.bio || trainer.oneLineIntro || '',
     subtitle: trainer.oneLineIntro || '',
     tags,
@@ -176,6 +180,37 @@ async function mapTrainersToExperts(trainers: TrainerListItem[]): Promise<Expert
 }
 
 /** 运营位优先，不足时用推荐池与公开列表补齐至目标数量 */
+/** 运营位/mock 专家用详情接口补齐真实头像（有自定义用自定义，无则用素材库默认） */
+async function enrichExpertsFromApi(experts: Expert[]): Promise<Expert[]> {
+  return Promise.all(
+    experts.map(async (expert) => {
+      if (!expert.id) return expert;
+      try {
+        const detail = await getTrainerDetail(expert.id);
+        const avatarRaw = detail.avatar?.trim();
+        const coverRaw = detail.backgroundImage?.trim() || avatarRaw;
+        return {
+          ...expert,
+          name: detail.teachingName || detail.name || expert.name,
+          title: detail.title || expert.title,
+          avatar: avatarRaw ? resolveApiImageSrc(avatarRaw) : resolveApiImageSrc(expert.avatar),
+          coverImage: coverRaw
+            ? resolveApiImageSrc(coverRaw)
+            : resolveApiImageSrc(expert.coverImage || expert.avatar),
+          bio: detail.intro || detail.bio || expert.bio,
+          subtitle: detail.oneLineIntro || expert.subtitle
+        };
+      } catch {
+        return {
+          ...expert,
+          avatar: resolveApiImageSrc(expert.avatar),
+          coverImage: resolveApiImageSrc(expert.coverImage || expert.avatar)
+        };
+      }
+    })
+  );
+}
+
 async function fillHomeExperts(primary: Expert[], target = HOME_EXPERT_TARGET): Promise<Expert[]> {
   const merged: Expert[] = [...primary];
   const seen = new Set(merged.map((e) => e.id));
@@ -243,18 +278,18 @@ export async function loadHomeExperts(): Promise<Expert[]> {
     }
 
     if (composed.length >= HOME_EXPERT_TARGET) {
-      return composed.slice(0, HOME_EXPERT_TARGET);
+      return enrichExpertsFromApi(composed.slice(0, HOME_EXPERT_TARGET));
     }
     const filled = await fillHomeExperts(composed, HOME_EXPERT_TARGET);
-    if (filled.length > 0) return filled;
-    return featuredExperts;
+    if (filled.length > 0) return enrichExpertsFromApi(filled);
+    return enrichExpertsFromApi(featuredExperts);
   } catch {
     try {
       const fixedMain = featuredExperts[0];
       const fixedMiddle = featuredExperts[1];
       const filled = await fillHomeExperts([fixedMain, fixedMiddle], HOME_EXPERT_TARGET);
-      if (filled.length > 0) return filled;
-      return featuredExperts;
+      if (filled.length > 0) return enrichExpertsFromApi(filled);
+      return enrichExpertsFromApi(featuredExperts);
     } catch {
       return featuredExperts;
     }
@@ -302,7 +337,7 @@ async function loadHomeInternalCoursesLegacy(): Promise<InternalCourse[]> {
     id: c.id,
     title: c.title,
     subtitle: c.categoryName || '',
-    coverUrl: c.coverUrl?.trim() || undefined,
+    coverUrl: resolveApiImageSrc(c.coverUrl?.trim()) || undefined,
     instructorName: c.trainerName || '-',
     instructorAvatar: '',
     instructorDesc: c.keywords || c.categoryName || ''
@@ -339,7 +374,7 @@ async function loadHomePublicCoursesLegacy(): Promise<PublicCourse[]> {
   return courses.map((c) => ({
     id: c.id,
     title: c.title,
-    coverUrl: c.coverUrl?.trim() || undefined,
+    coverUrl: resolveApiImageSrc(c.coverUrl?.trim()) || undefined,
     organizer: c.publisherName || '-',
     instructor: c.trainerName || '-',
     city: c.nextPlanCity?.trim() || '-',

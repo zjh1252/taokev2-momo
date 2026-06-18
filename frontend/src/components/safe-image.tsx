@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ImgHTMLAttributes } from 'react';
 import {
   resolveImageSrc,
+  resolveApiImageSrc,
   EMPTY_IMAGE_SRC,
   isPlaceholderLegacyAvatar,
   isUnreliableLegacyImageHost,
@@ -14,6 +15,8 @@ type SafeImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt' | 
   fallback?: string;
   fill?: boolean;
   priority?: boolean;
+  /** 接口已解析的 URL（含素材库默认），不再二次剔除占位图 */
+  useApiSrc?: boolean;
 };
 
 const MAX_RETRIES = 5;
@@ -46,12 +49,16 @@ export function SafeImage({
   height,
   className,
   style,
+  useApiSrc = false,
   ...rest
 }: SafeImageProps) {
   const resolved = useMemo(() => {
+    if (useApiSrc) {
+      return resolveApiImageSrc(src, fallback);
+    }
     const cleaned = isPlaceholderLegacyAvatar(src) ? null : src;
     return resolveImageSrc(cleaned, fallback);
-  }, [src, fallback]);
+  }, [src, fallback, useApiSrc]);
   const [displaySrc, setDisplaySrc] = useState(resolved);
   const retryCountRef = useRef(0);
   const onFallbackRef = useRef(false);

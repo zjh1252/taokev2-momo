@@ -35,6 +35,7 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
           alt={displayName}
           width={100}
           height={120}
+          useApiSrc
           priority={priorityImage}
           className="w-[100px] h-[120px] object-cover rounded-sm border-2 border-white shadow-sm"
         />

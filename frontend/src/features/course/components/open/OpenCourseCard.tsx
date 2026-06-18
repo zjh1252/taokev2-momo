@@ -109,16 +109,7 @@ export function OpenCourseCard({ course }: OpenCourseCardProps) {
             {keywordTags.length > 0 && (
               <div className="flex items-start gap-1 md:col-span-2">
                 <span className="text-slate-400 min-w-[60px] shrink-0">关键词：</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {keywordTags.map((kw) => (
-                    <span
-                      key={kw}
-                      className="px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600"
-                    >
-                      {kw}
-                    </span>
-                  ))}
-                </div>
+                <span className="text-slate-700 line-clamp-2 min-w-0">{keywordTags.join(' ')}</span>
               </div>
             )}
           </div>
