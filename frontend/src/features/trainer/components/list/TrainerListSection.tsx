@@ -11,6 +11,8 @@ import { TrainerSortBar } from './TrainerSortBar';
 import { getTrainerList, type RecentTrainerCase } from '../../api/service';
 import { filtersToHtmPath, type TrainerSlugParams } from '../../utils/url';
 import type { TrainerListItem, CategoryTreeNode, PageResponse } from '../../types';
+import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-nav';
+import type { ChannelCategoryNavItem } from '@/components/layout/channel-category-nav';
 
 interface TrainerListSectionProps {
   initialData: PageResponse<TrainerListItem>;
@@ -24,6 +26,12 @@ interface TrainerListSectionProps {
   initialSlugParams?: TrainerSlugParams;
   /** 锁定城市 ID（城市子频道列表） */
   lockedCityId?: number;
+  /** 底部分类导航（页内筛选，与侧栏同款） */
+  bottomCategoryNav?: {
+    title: string;
+    countUnit: string;
+    itemsPromise: Promise<ChannelCategoryNavItem[]>;
+  };
 }
 
 export function TrainerListSection(props: TrainerListSectionProps) {
@@ -90,6 +98,7 @@ function TrainerListSectionInner({
   categoryExpertTrainers = [],
   initialSlugParams,
   lockedCityId,
+  bottomCategoryNav,
 }: TrainerListSectionProps) {
   const initialFilters = useMemo(() => slugToFilter(initialSlugParams || {}), [initialSlugParams]);
 
@@ -196,6 +205,17 @@ function TrainerListSectionInner({
     [fetchData, syncUrl, filters, sort],
   );
 
+  const handleBottomCategoryClick = useCallback(
+    (item: ChannelCategoryNavItem) => {
+      handleFilterChange({
+        ...filters,
+        fieldParentName: item.name,
+        fieldChildName: undefined,
+      });
+    },
+    [filters, handleFilterChange],
+  );
+
   return (
     <div className="flex flex-col gap-4">
       {categoryExpertTrainers.length > 0 ? (
@@ -250,6 +270,15 @@ function TrainerListSectionInner({
         onPageChange={handlePageChange}
         className="pt-6 border-t border-slate-200"
       />
+
+      {bottomCategoryNav ? (
+        <ListBottomCategoryNav
+          title={bottomCategoryNav.title}
+          countUnit={bottomCategoryNav.countUnit}
+          itemsPromise={bottomCategoryNav.itemsPromise}
+          onItemClick={handleBottomCategoryClick}
+        />
+      ) : null}
     </div>
   );
 }

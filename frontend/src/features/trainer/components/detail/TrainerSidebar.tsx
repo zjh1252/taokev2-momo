@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { SafeImage } from '@/components/safe-image';
-import { DEFAULT_COURSE_COVER, getTrainerAvatarFallback } from '@/lib/media';
 import { Link } from '@/i18n/navigation';
 import { Bot, Star, Flame, BookOpen, Briefcase, Users } from 'lucide-react';
 import type {
@@ -102,7 +101,6 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
                 >
                   <SafeImage
                     src={t.avatar}
-                    fallback={getTrainerAvatarFallback(relatedName)}
                     alt={relatedName}
                     width={40}
                     height={40}
@@ -195,7 +193,6 @@ function CourseCard({ course }: { course: RecommendedCourseItem }) {
     >
       <SafeImage
         src={course.coverUrl}
-        fallback={DEFAULT_COURSE_COVER}
         alt={decodeHtmlEntities(course.title)}
         width={56}
         height={42}

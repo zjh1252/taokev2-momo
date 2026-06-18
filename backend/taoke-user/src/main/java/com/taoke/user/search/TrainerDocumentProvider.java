@@ -7,7 +7,6 @@ import com.taoke.common.repository.RegionRepository;
 import com.taoke.common.search.BaseDocument;
 import com.taoke.common.search.DocumentSyncProvider;
 import com.taoke.common.service.OpsMaterialResolver;
-import com.taoke.common.util.LegacyAvatarUrls;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.TrainerExpertiseCategory;
 import com.taoke.user.entity.TrainerIndustryCategory;
@@ -169,13 +168,9 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
 
         doc.setName(trainer.getName());
         String userAvatar = trainer.getUserId() != null ? userAvatarMap.get(trainer.getUserId()) : null;
-        String custom = LegacyAvatarUrls.pickFirstUsable(userAvatar, trainer.getAvatar());
-        if (!custom.isBlank()) {
-            doc.setAvatar(custom);
-        } else {
-            int seed = trainer.getId() != null ? trainer.getId() : 0;
-            doc.setAvatar(opsMaterialResolver.resolveAvatarUrl(null, "TRAINER", true, seed));
-        }
+        String raw = firstNonBlankAvatar(userAvatar, trainer.getAvatar());
+        int seed = trainer.getId() != null ? trainer.getId() : 0;
+        doc.setAvatar(opsMaterialResolver.resolveAvatarUrl(raw, "TRAINER", true, seed));
         doc.setTitle(trainer.getTitle());
         doc.setBio(stripHtml(trainer.getBio()));
         doc.setIntro(stripHtml(trainer.getIntro()));
@@ -226,5 +221,17 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
             return null;
         }
         return html.replaceAll("<[^>]*>", "").replaceAll("&[a-zA-Z]+;", " ").trim();
+    }
+
+    private static String firstNonBlankAvatar(String... candidates) {
+        if (candidates == null) {
+            return null;
+        }
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate.trim();
+            }
+        }
+        return null;
     }
 }

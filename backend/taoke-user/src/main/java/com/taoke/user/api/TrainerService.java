@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 专家档案与入驻申请相关能力。
@@ -182,6 +183,11 @@ public interface TrainerService {
                                           Integer cityId,
                                           Integer isTrusted,
                                           Integer hasCopyrightCourse);
+
+    /**
+     * 批量解析专家展示头像（用户头像 → 档案头像 → 默认头像素材池）。
+     */
+    Map<Integer, String> resolveDisplayAvatars(Collection<Integer> trainerIds);
 
     /**
      * 调整指定专家（user_trainers.user_id）的累计评论数。

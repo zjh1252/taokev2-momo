@@ -1,5 +1,4 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
-import { ChannelCategoryNavSection } from '@/components/layout/channel-category-nav-section';
 import { VideoListSection } from '@/features/video/components/list/VideoListSection';
 import { getVideoList } from '@/features/video/api/service';
 import { getInstitutionDetail } from '@/features/institution/api/service';
@@ -66,12 +65,11 @@ export default async function VideosPage({ searchParams }: Props) {
         initialInstitutionId={validInstitutionId}
         initialInstitutionName={institution?.orgName}
         initialCategoryId={categoryId}
-      />
-
-      <ChannelCategoryNavSection
-        title="视频分类"
-        countUnit="门"
-        itemsPromise={categoryNavPromise}
+        bottomCategoryNav={{
+          title: '视频分类',
+          countUnit: '门',
+          itemsPromise: categoryNavPromise,
+        }}
       />
     </main>
   );

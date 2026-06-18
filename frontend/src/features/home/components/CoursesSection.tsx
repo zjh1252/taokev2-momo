@@ -1,25 +1,11 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { SafeImage } from '@/components/safe-image';
-import { DEFAULT_COURSE_COVER } from '@/lib/media';
 import { SectionHeader } from './SectionHeader';
 import type { InternalCourse } from '../types';
 
 interface CoursesSectionProps {
   courses: InternalCourse[];
-}
-
-const COURSE_FALLBACK_COVERS = [
-  '/statics/images/course-1.jpg',
-  '/statics/images/case-1.jpg',
-  '/statics/images/public-course-1.jpg',
-  '/statics/images/hero-banner.jpg',
-  '/statics/images/case-2.jpg',
-  DEFAULT_COURSE_COVER,
-];
-
-function courseFallback(course: InternalCourse): string {
-  return COURSE_FALLBACK_COVERS[Math.abs(course.id) % COURSE_FALLBACK_COVERS.length];
 }
 
 /**
@@ -46,8 +32,6 @@ export function CoursesSection({ courses }: CoursesSectionProps) {
 }
 
 function CourseCard({ course }: { course: InternalCourse }) {
-  const coverSrc = course.coverUrl || course.image;
-
   return (
     <Link
       href={`/inhousecourse/${course.id}.htm`}
@@ -55,8 +39,7 @@ function CourseCard({ course }: { course: InternalCourse }) {
     >
       <div className="w-1/3 overflow-hidden relative shrink-0 bg-slate-100">
         <SafeImage
-          src={coverSrc}
-          fallback={courseFallback(course)}
+          src={course.coverUrl}
           alt={course.title}
           width={240}
           height={160}

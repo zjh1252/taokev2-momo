@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
-import { ChannelCategoryNavSection } from '@/components/layout/channel-category-nav-section';
 import { OpenCourseListSection } from '@/features/course/components/open/OpenCourseListSection';
 import { getCityByEnName } from '@/features/city/api/service';
 import { cityChannelPath } from '@/features/city/lib/paths';
@@ -69,11 +68,11 @@ export default async function CityOpenCourseListPage({ params }: Props) {
         categoryTree={categoryTree}
         initialCityIds={cityIds}
         initialCityNames={[detail.cityName]}
-      />
-      <ChannelCategoryNavSection
-        title="公开课课程分类"
-        countUnit="门"
-        itemsPromise={categoryNavPromise}
+        bottomCategoryNav={{
+          title: '公开课课程分类',
+          countUnit: '门',
+          itemsPromise: categoryNavPromise,
+        }}
       />
     </main>
   );

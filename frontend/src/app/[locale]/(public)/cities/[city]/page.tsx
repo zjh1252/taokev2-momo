@@ -158,7 +158,11 @@ export default async function CityChannelPage({ params }: Props) {
         viewMoreHref={cityTrainerListPath(detail.enName)}
         viewMoreLabel="查看更多专家"
       >
-        <CityTrainerFlowList cityName={cityName} trainers={trainers.list} />
+        <CityTrainerFlowList
+          cityName={cityName}
+          cityEnName={detail.enName}
+          trainers={trainers.list}
+        />
       </CityChannelSection>
 
       <CityNavGrid cities={allCities} currentEnName={detail.enName} />

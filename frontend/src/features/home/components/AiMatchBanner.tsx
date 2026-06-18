@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from '@/i18n/navigation';
+import { ROUTES } from '@/config/routes';
 import { Brain, Sparkles, Headphones } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Link, useRouter } from '@/i18n/navigation';
-import { ROUTES } from '@/config/routes';
+import { CustomerServiceChatDialog } from '@/components/customer-service-chat-dialog';
 import { useAuth } from '@/lib/auth/auth-context';
 
 /**
@@ -15,6 +17,7 @@ export function AiMatchBanner() {
   const t = useTranslations('home');
   const router = useRouter();
   const { user, loading } = useAuth();
+  const [chatOpen, setChatOpen] = useState(false);
 
   const gotoPublishDemand = () => {
     if (loading) return;
@@ -34,13 +37,14 @@ export function AiMatchBanner() {
       </div>
 
       <div className="flex gap-4 w-full md:w-auto">
-        <Link
-          href="/support"
-          className="flex-1 md:flex-none bg-white text-primary font-bold px-8 py-4 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-lg text-sm"
+        <button
+          type="button"
+          onClick={() => setChatOpen(true)}
+          className="flex-1 md:flex-none bg-white text-primary font-bold px-8 py-4 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-lg text-sm cursor-pointer"
         >
           <Headphones className="size-5" />
           {t('aiMatch.ctaService')}
-        </Link>
+        </button>
         <button
           type="button"
           onClick={gotoPublishDemand}
@@ -50,6 +54,8 @@ export function AiMatchBanner() {
           {t('aiMatch.ctaPublish')}
         </button>
       </div>
+
+      <CustomerServiceChatDialog open={chatOpen} onOpenChange={setChatOpen} />
     </section>
   );
 }

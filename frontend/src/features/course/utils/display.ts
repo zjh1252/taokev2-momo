@@ -25,3 +25,11 @@ export function formatPlanStartDate(value?: string): string {
     day: 'numeric',
   });
 }
+
+/** 与后端 ENROLLING 筛选一致：开课开始时间 >= 当前时刻视为招生中 */
+export function isPlanEnrolling(plan: { startTime?: string | null }): boolean {
+  if (!plan.startTime) return false;
+  const start = new Date(plan.startTime);
+  if (Number.isNaN(start.getTime())) return false;
+  return start.getTime() >= Date.now();
+}

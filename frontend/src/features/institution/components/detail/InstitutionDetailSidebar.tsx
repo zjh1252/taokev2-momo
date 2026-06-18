@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Play, PenLine } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
-import { DEFAULT_COURSE_COVER } from '@/lib/media';
 import type { InstitutionDetail } from '../../types';
 import {
   getInstitutionSidebarOpenCourses,
@@ -65,7 +64,6 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
                 >
                   <SafeImage
                     src={c.coverUrl || undefined}
-                    fallback={DEFAULT_COURSE_COVER}
                     alt={c.title}
                     className="w-14 h-[42px] object-cover rounded border border-slate-200 shrink-0"
                   />
@@ -128,7 +126,6 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
                 >
                   <SafeImage
                     src={c.coverUrl || undefined}
-                    fallback={DEFAULT_COURSE_COVER}
                     alt={c.title}
                     className="w-14 h-[42px] object-cover rounded border border-slate-200 shrink-0"
                   />

@@ -1,14 +1,17 @@
 'use client';
 
-import { Suspense, useState, useCallback, useTransition, useMemo, useEffect } from 'react';
+import { Suspense, useState, useCallback, useTransition, useMemo, useEffect, useRef } from 'react';
 import { ArrowUpDown, X } from 'lucide-react';
 import { ListPagePagination } from '@/components/list-page-pagination';
-import { useRouter } from '@/i18n/navigation';
 import { useListPageUrlSync } from '@/hooks/use-list-page-url';
 import { InnerCourseCard } from './InnerCourseCard';
 import { InnerCourseFilters, type InnerCourseFilterValue } from './InnerCourseFilters';
 import { getCourseList } from '../../api/service';
 import type { CourseListItem, PageResponse, CategoryTreeNode } from '../../api/types';
+import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-nav';
+import type { ChannelCategoryNavItem } from '@/components/layout/channel-category-nav';
+import { parseCourseCategoryIdFromHref } from '@/lib/parse-category-nav-href';
+import { getBrowserPathname, navigateToSeoPath, replaceBrowserUrl, setPageParam } from '@/lib/sync-list-filter-url';
 
 interface InnerCourseListSectionProps {
   initialData: PageResponse<CourseListItem>;
@@ -18,6 +21,11 @@ interface InnerCourseListSectionProps {
   initialInstitutionName?: string;
   initialCategoryId?: number;
   initialCategoryName?: string;
+  bottomCategoryNav?: {
+    title: string;
+    countUnit: string;
+    itemsPromise: Promise<ChannelCategoryNavItem[]>;
+  };
 }
 
 const SORT_OPTIONS = [
@@ -68,8 +76,8 @@ function InnerCourseListSectionInner({
   initialInstitutionName,
   initialCategoryId,
   initialCategoryName,
+  bottomCategoryNav,
 }: InnerCourseListSectionProps) {
-  const router = useRouter();
   const [data, setData] = useState(initialData);
   const [filters, setFilters] = useState<InnerCourseFilterValue>(() => ({
     categoryId: initialCategoryId,
@@ -80,8 +88,21 @@ function InnerCourseListSectionInner({
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
 
-  /** SSR 刷新/底部分类栏跳转时同步列表与筛选 */
+  const serverFilterKey = useMemo(
+    () =>
+      JSON.stringify({
+        categoryId: initialCategoryId ?? null,
+        institutionId: initialInstitutionId ?? null,
+      }),
+    [initialCategoryId, initialInstitutionId],
+  );
+  const serverFilterKeyRef = useRef(serverFilterKey);
+
   useEffect(() => {
+    if (serverFilterKeyRef.current === serverFilterKey) {
+      return;
+    }
+    serverFilterKeyRef.current = serverFilterKey;
     startTransition(() => {
       setData(initialData);
       setCurrentPage(initialData.page ?? 1);
@@ -92,12 +113,31 @@ function InnerCourseListSectionInner({
       setInstitutionId(initialInstitutionId);
     });
   }, [
+    serverFilterKey,
     initialData,
     initialCategoryId,
     initialCategoryName,
     initialInstitutionId,
     startTransition,
   ]);
+
+  const syncUrl = useCallback(
+    (page: number, f: InnerCourseFilterValue) => {
+      const params = new URLSearchParams();
+      if (institutionId) {
+        params.set('institutionId', String(institutionId));
+      }
+      if (f.categoryId) {
+        params.set('categoryIds', String(f.categoryId));
+        if (f.categoryName) {
+          params.set('categoryName', f.categoryName);
+        }
+      }
+      setPageParam(params, page);
+      replaceBrowserUrl(getBrowserPathname(), params);
+    },
+    [institutionId],
+  );
 
   const fetchData = useCallback(
     (
@@ -136,34 +176,33 @@ function InnerCourseListSectionInner({
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);
     fetchData(1, filters, undefined, null);
-    router.replace('/inhousecourse');
-  }, [fetchData, filters, router]);
+    navigateToSeoPath('/inhousecourse');
+  }, [fetchData, filters]);
 
   const handleFilterChange = useCallback(
     (newFilters: InnerCourseFilterValue) => {
       setFilters(newFilters);
-      commitPageChange(1);
+      syncUrl(1, newFilters);
       fetchData(1, newFilters);
     },
-    [fetchData, commitPageChange],
+    [fetchData, syncUrl],
   );
 
   const handleSortChange = useCallback(
     (key: string) => {
       setSortKey(key);
-      commitPageChange(1);
       fetchData(1, filters, key);
     },
-    [fetchData, filters, commitPageChange],
+    [fetchData, filters],
   );
 
   const handlePageChange = useCallback(
     (page: number) => {
-      commitPageChange(page);
+      syncUrl(page, filters);
       fetchData(page);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [fetchData, commitPageChange],
+    [fetchData, syncUrl, filters],
   );
 
   const filterChips = useMemo(() => {
@@ -221,7 +260,21 @@ function InnerCourseListSectionInner({
     return chips;
   }, [filters]);
 
+  const handleBottomCategoryClick = useCallback(
+    (item: ChannelCategoryNavItem) => {
+      const categoryId = parseCourseCategoryIdFromHref(item.href);
+      if (!categoryId) return;
+      handleFilterChange({
+        ...filters,
+        categoryId,
+        categoryName: item.name,
+      });
+    },
+    [filters, handleFilterChange],
+  );
+
   return (
+    <div className="flex flex-col gap-6">
     <div className="flex gap-6 items-start">
       <InnerCourseFilters
         categoryTree={categoryTree}
@@ -304,6 +357,15 @@ function InnerCourseListSectionInner({
           className="mt-6"
         />
       </div>
+    </div>
+      {bottomCategoryNav ? (
+        <ListBottomCategoryNav
+          title={bottomCategoryNav.title}
+          countUnit={bottomCategoryNav.countUnit}
+          itemsPromise={bottomCategoryNav.itemsPromise}
+          onItemClick={handleBottomCategoryClick}
+        />
+      ) : null}
     </div>
   );
 }

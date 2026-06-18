@@ -64,6 +64,11 @@ taoke:
     allowed-origins: '*'
     allow-credentials: false
 
+# Docker Compose 内网：backend ↔ crawler
+crawler:
+  base-url: http://crawler:8100
+  callback-url: http://backend:8080/internal/crawl/callback
+
 logging:
   level:
     com.taoke: info

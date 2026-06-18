@@ -4,7 +4,7 @@ import type { InstitutionListItem } from '@/features/institution/types';
 import type { RecentTrainerCase } from '@/features/trainer/api/service';
 import type { TrainerListItem } from '@/features/trainer/types';
 import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recommended';
-import { DEFAULT_COURSE_COVER, resolveImageSrc } from '@/lib/media';
+import { resolveImageSrc } from '@/lib/media';
 import type { PublicRecommendedItem } from './types';
 
 function parseTagList(value?: string | null): string[] {
@@ -20,18 +20,6 @@ function formatCaseDate(value?: string | null): string | undefined {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return undefined;
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-}
-
-function courseFallbackCover(courseId: number): string {
-  const covers = [
-    '/statics/images/course-1.jpg',
-    '/statics/images/case-1.jpg',
-    '/statics/images/public-course-1.jpg',
-    '/statics/images/hero-banner.jpg',
-    '/statics/images/case-2.jpg',
-    DEFAULT_COURSE_COVER
-  ];
-  return covers[Math.abs(courseId) % covers.length];
 }
 
 export function mapSlotTrainerToListItem(item: PublicRecommendedItem): TrainerListItem {
@@ -96,7 +84,7 @@ export function mapSlotCasesToCaseStudies(items: PublicRecommendedItem[]): CaseS
     tag: item.industry || item.resourceMeta || '企业培训',
     title: item.caseTitle || item.resourceName || '',
     description: (item.description || item.resourceDescription || '').slice(0, 32),
-    image: resolveImageSrc(item.coverUrl || item.resourceCoverUrl || DEFAULT_COURSE_COVER, DEFAULT_COURSE_COVER),
+    image: resolveImageSrc(item.coverUrl || item.resourceCoverUrl),
     tags: item.industry ? [item.industry] : parseTagList(item.keyTags),
     caseDate: formatCaseDate(item.trainingDate),
     trainerName: item.trainerNameForCase || undefined
@@ -159,8 +147,7 @@ export function mapSlotCoursesToInternalCourses(items: PublicRecommendedItem[]):
       id: course.id,
       title: course.title,
       subtitle: course.categoryName || '',
-      coverUrl: course.coverUrl?.trim() || undefined,
-      image: courseFallbackCover(course.id),
+      coverUrl: resolveImageSrc(course.coverUrl?.trim()) || undefined,
       instructorName: course.trainerName || '-',
       instructorAvatar: '',
       instructorDesc: course.keywords || course.categoryName || ''
@@ -174,11 +161,11 @@ export function mapSlotCoursesToPublicCourses(
 ): PublicCourse[] {
   return items.map((item) => {
     const course = mapSlotCourseToListItem(item);
+    const rawCover = (course.coverUrl || '').trim();
     return {
       id: course.id,
       title: course.title,
-      coverUrl: course.coverUrl?.trim() || undefined,
-      image: courseFallbackCover(course.id),
+      coverUrl: rawCover || undefined,
       organizer: course.publisherName || '-',
       instructor: course.trainerName || '-',
       city: course.nextPlanCity?.trim() || '-',

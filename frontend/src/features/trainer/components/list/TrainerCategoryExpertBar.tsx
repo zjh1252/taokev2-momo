@@ -2,7 +2,6 @@
 
 import { Link } from '@/i18n/navigation';
 import { SafeImage } from '@/components/safe-image';
-import { getTrainerAvatarFallback } from '@/lib/media';
 import type { TrainerListItem } from '../../types';
 import { getTrainerDisplayName } from '../../utils/displayName';
 import { pickDisplayTitle } from '../../utils/displayTitle';
@@ -28,7 +27,6 @@ export function TrainerCategoryExpertBar({ items }: { items: TrainerListItem[] }
               <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-slate-100">
                 <SafeImage
                   src={t.avatar}
-                  fallback={getTrainerAvatarFallback(displayName)}
                   alt={displayName}
                   fill
                   sizes="64px"

@@ -16,6 +16,8 @@ import {
 } from '@/lib/institution-category-nav';
 import { pickGoldInstitutionRecommends } from '../../utils/gold-recommends';
 import type { InstitutionListItem, PageResponse } from '../../types';
+import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-nav';
+import { parseInstitutionCategoryIdFromHref } from '@/lib/parse-category-nav-href';
 
 interface InstitutionListSectionProps {
   initialData: PageResponse<InstitutionListItem>;
@@ -29,6 +31,11 @@ interface InstitutionListSectionProps {
   categoryTitle?: string;
   /** 锁定城市 ID（城市子频道列表页分页时保持筛选） */
   lockedCityId?: number;
+  bottomCategoryNav?: {
+    title: string;
+    countUnit: string;
+    items: ChannelCategoryNavItem[];
+  };
 }
 
 const SORT_OPTIONS = [
@@ -54,6 +61,7 @@ function InstitutionListSectionInner({
   initialExpertiseCategoryId,
   categoryTitle,
   lockedCityId,
+  bottomCategoryNav,
 }: InstitutionListSectionProps) {
   const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
   const [data, setData] = useState(initialData);
@@ -165,6 +173,17 @@ function InstitutionListSectionInner({
     [fetchData, commitPageChange],
   );
 
+  const handleBottomCategoryClick = useCallback(
+    (item: ChannelCategoryNavItem) => {
+      const categoryId = parseInstitutionCategoryIdFromHref(item.href);
+      if (!categoryId) return;
+      setExpertiseCategoryId(categoryId);
+      commitPageChange(1);
+      fetchData(1, keyword, sortKey, categoryId);
+    },
+    [fetchData, keyword, sortKey, commitPageChange],
+  );
+
   const displayRecommends =
     currentPage === 1
       ? pickGoldInstitutionRecommends(
@@ -176,6 +195,7 @@ function InstitutionListSectionInner({
       : [];
 
   return (
+    <div className="flex flex-col gap-6">
     <div className="flex gap-6 items-start">
       <InstitutionSidebar
         keyword={keyword}
@@ -268,6 +288,15 @@ function InstitutionListSectionInner({
 
         </div>
       </div>
+    </div>
+      {bottomCategoryNav && categoryItems.length > 0 ? (
+        <ListBottomCategoryNav
+          title={bottomCategoryNav.title}
+          countUnit={bottomCategoryNav.countUnit}
+          itemsPromise={Promise.resolve(categoryItems)}
+          onItemClick={handleBottomCategoryClick}
+        />
+      ) : null}
     </div>
   );
 }

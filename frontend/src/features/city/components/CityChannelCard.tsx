@@ -4,19 +4,19 @@ import type { ActiveCityItem } from '../api/types';
 import { cityChannelPath } from '../lib/paths';
 
 interface CityChannelCardProps {
-  /** 来自 GET /cities/active 的列表，最多展示 9 个 */
+  /** 来自 GET /cities/active 的列表，最多展示 18 个 */
   cities: ActiveCityItem[];
 }
 
 /**
  * 首页城市频道入口卡片
- * <p>显示最多 9 个「当前有有效公开课」的城市，每个城市点击跳转到 `/cities/[enName]`。</p>
+ * <p>显示最多 18 个「当前有有效公开课」的城市，每个城市点击跳转到 `/cities/[enName]`。</p>
  *
  * @author Fangxinxin
  * @date 2026-05-20 18:00
  */
 export function CityChannelCard({ cities }: CityChannelCardProps) {
-  const display = cities.slice(0, 9);
+  const display = cities.slice(0, 18);
 
   return (
     <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-5 h-full flex flex-col">
@@ -33,7 +33,7 @@ export function CityChannelCard({ cities }: CityChannelCardProps) {
           暂无开课城市
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-2 flex-1">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 flex-1">
           {display.map((city) => (
             <Link
               key={city.enName}

@@ -533,3 +533,22 @@
 - **可播性结论**：有地址且有权看的章节链路已通；约 **97%** 数据层可解析播放；**~3.3%** 仅封面或无法播放（空 URL 对齐老站 UX、SWF 无法 inline、56.com 等死链、第三方 iframe 环境/内容过期、付费章未购 403）
 - 浏览器抽测样例：`/videos/7449`（eceibs 试看）、`/videos/15832`（思酷）、`/videos/6579`（PXB 直链）、`/videos/6736`（优酷 embed）
 
+---
+
+2026-06-17 18:00
+**专家默认头像走素材库 + 首页客服与城市频道**
+
+**专家列表/详情默认头像**
+
+- 问题：无真实头像的专家出现空白、旧站「暂无照片」占位图或淘课 Logo，未回退到后台「头像素材库 → 专家头像 → 默认」
+- 根因：`LegacyAvatarUrls.isUsable()` 过宽，占位 URL / 无路径脏数据被当作有效头像，`pickFirstUsable()` 提前返回，未走 `OpsMaterialResolver.resolveAvatarUrl()`
+- 后端：`LegacyAvatarUrls` 扩展 `isPlaceholder()`（logo、expert-main、nophoto 等）；新增 `isUsableAvatar()`；`OpsMaterialResolver.resolveAvatarUrl()` 改用 `isUsableAvatar`；`TrainerServiceImpl` / `TrainerDocumentProvider` 统一经 `resolveAvatarUrl(raw, "TRAINER", …)` 解析
+- 前端：`media.ts` 的 `isPlaceholderLegacyAvatar()` 与后端占位规则对齐
+- 需手动重启后端后生效
+
+**首页 AI 智能客服与城市频道**
+
+- 首页「智能客服」入口（红色平台优势 Banner、右侧悬浮「在线客服」）改为唤起 `CustomerServiceChatDialog`，嵌入 `https://tk-service.taoke.com/chat-box?collection=tkw`（替换原 `/support`、`/ai-chat` 无效跳转）
+- 移除首页底部暗色 `AiEngagementBanner`（「有任何培训疑问？随时咨询 AI 智能客服」卡片）
+- 城市频道卡片全宽展示；展示城市数 9 → 18；网格 3/4/6 列响应式布局
+

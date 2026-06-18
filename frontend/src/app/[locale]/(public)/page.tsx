@@ -6,7 +6,6 @@ import {
   CasesSection,
   CoursesSection,
   PublicCoursesSection,
-  AiEngagementBanner,
 } from '@/features/home/components';
 import {
   loadHomeCases,
@@ -29,7 +28,7 @@ export default async function HomePage() {
   const [expertiseCategories, activeCities, experts, cases, internalCourses, publicCourses] =
     await Promise.all([
       getCategoryTree('TRAINER_EXPERTISE').catch(() => []),
-      getActiveCities(9).catch(() => []),
+      getActiveCities(18).catch(() => []),
       loadHomeExperts(),
       loadHomeCases(),
       loadHomeInternalCourses(),
@@ -45,11 +44,7 @@ export default async function HomePage() {
       <CoursesSection courses={internalCourses} />
       <PublicCoursesSection courses={publicCourses} />
 
-      {/* 底部：左侧 banner（70%）+ 右侧城市频道入口（30%），fr 比例分配以避开 gap 引起的溢出 */}
-      <section className="grid grid-cols-1 lg:grid-cols-[7fr_3fr] gap-4 items-stretch">
-        <AiEngagementBanner />
-        <CityChannelCard cities={activeCities} />
-      </section>
+      <CityChannelCard cities={activeCities} />
     </div>
   );
 }

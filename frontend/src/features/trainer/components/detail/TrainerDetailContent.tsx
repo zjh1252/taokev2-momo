@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { LegacyRichText } from '@/components/legacy-rich-text';
 import { SafeImage } from '@/components/safe-image';
-import { DEFAULT_COURSE_COVER } from '@/lib/media';
+import { resolveImageSrc } from '@/lib/media';
 import type { TrainerDetail, TrainerBook } from '../../types';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
@@ -384,7 +384,6 @@ function HomeView({
                   {c.coverImage ? (
                     <SafeImage
                       src={c.coverImage}
-                      fallback={DEFAULT_COURSE_COVER}
                       alt={c.caseTitle}
                       width={640}
                       height={400}
@@ -575,7 +574,6 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
                       {c.coverImage ? (
                         <SafeImage
                           src={c.coverImage}
-                          fallback={DEFAULT_COURSE_COVER}
                           alt={c.caseTitle}
                           width={300}
                           height={200}
@@ -883,7 +881,6 @@ function BooksView({ books }: { books: TrainerBook[] }) {
                   {book.coverUrl ? (
                     <SafeImage
                       src={book.coverUrl}
-                      fallback={DEFAULT_COURSE_COVER}
                       alt={book.title}
                       width={280}
                       height={373}

@@ -71,6 +71,7 @@ export function CourseDetailTabs({
                 courseId={course.id}
                 activePlanCode={activePlanCode}
                 title={planTableTitle}
+                upcomingOnly={!planTableTitle}
               />
             )}
 

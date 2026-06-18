@@ -19,6 +19,14 @@ spring:
       database: 0
       timeout: 3000ms
 
+  # Nacos 配置中心
+  nacos:
+    config:
+      server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+      namespace: ${NACOS_NAMESPACE:prod}
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+
 taoke:
   jwt:
     secret: ${JWT_SECRET:}
@@ -26,15 +34,6 @@ taoke:
   # 生产仅覆盖 UCenter 地址为生产 uc_server
   ucenter:
     api-url: ${UCENTER_API_URL:http://shequ.taoke.com/uc_server}
-
-# Nacos 配置中心
-spring:
-  nacos:
-    config:
-      server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
-      namespace: ${NACOS_NAMESPACE:prod}
-      username: ${NACOS_USERNAME:nacos}
-      password: ${NACOS_PASSWORD:nacos}
 
 logging:
   level:

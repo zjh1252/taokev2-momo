@@ -74,7 +74,10 @@ export function HomeTrainerPreview({
             if (cell.kind === 'empty') {
               return <EmptySideSlot key={`empty-${index}`} hint={sideEmptyHint(index, locks)} />;
             }
-            const expert = mapManagedToPreview(cell.item, 'side');
+            if (cell.kind !== 'managed') {
+              return null;
+            }
+            const expert = mapManagedToPreview(cell.item, cell.layout);
             const itemIndex = layout.managedItems.findIndex((item) => item.id === cell.item.id);
             return (
               <SideCard

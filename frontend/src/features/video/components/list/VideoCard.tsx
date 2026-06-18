@@ -4,7 +4,7 @@ import { Link } from '@/i18n/navigation';
 import { Users, Eye } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
 import { useBumpedViewCount } from '@/hooks/use-bumped-view-count';
-import { DEFAULT_VIDEO_COVER } from '@/lib/media';
+import { getVideoCoverFallback } from '@/lib/media';
 import type { VideoListItem } from '../../api/types';
 
 interface VideoCardProps {
@@ -27,7 +27,7 @@ export function VideoCard({ video }: VideoCardProps) {
           alt={video.title}
           fill
           className="object-cover"
-          fallback={DEFAULT_VIDEO_COVER}
+          fallback={getVideoCoverFallback()}
         />
         {/* 集数角标 */}
         {video.totalEpisodes > 0 && (

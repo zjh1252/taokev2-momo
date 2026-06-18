@@ -84,10 +84,11 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
         Map<Integer, CourseListItemVO> courseById = loadCourseListItems(enriched);
         Map<Integer, TrainerCaseResponse> caseById = loadCaseDetails(enriched);
         Map<Integer, Trainer> trainerById = loadTrainersForCases(caseById.values());
+        Map<Integer, String> trainerAvatarById = loadTrainerDisplayAvatars(enriched);
 
         return enriched.stream()
                 .filter(this::isPublished)
-                .map(item -> toPublicVO(item, courseById, caseById, trainerById))
+                .map(item -> toPublicVO(item, courseById, caseById, trainerById, trainerAvatarById))
                 .limit(limit > 0 ? limit : Integer.MAX_VALUE)
                 .toList();
     }
@@ -126,6 +127,17 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
         return map;
     }
 
+    private Map<Integer, String> loadTrainerDisplayAvatars(List<RecommendedResourceItemVO> items) {
+        Set<Integer> ids = items.stream()
+                .filter(item -> "TRAINER".equals(item.getResourceType()))
+                .map(RecommendedResourceItemVO::getResourceId)
+                .collect(Collectors.toSet());
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return trainerService.resolveDisplayAvatars(ids);
+    }
+
     private Map<Integer, Trainer> loadTrainersForCases(Collection<TrainerCaseResponse> cases) {
         Set<Integer> trainerIds = cases.stream()
                 .map(TrainerCaseResponse::getTrainerId)
@@ -156,14 +168,15 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
             RecommendedResourceItemVO item,
             Map<Integer, CourseListItemVO> courseById,
             Map<Integer, TrainerCaseResponse> caseById,
-            Map<Integer, Trainer> trainerById) {
+            Map<Integer, Trainer> trainerById,
+            Map<Integer, String> trainerAvatarById) {
 
         PublicRecommendedItemVO vo = new PublicRecommendedItemVO();
         vo.setResourceId(item.getResourceId());
         vo.setResourceType(item.getResourceType());
         vo.setRoleType(item.getRoleType());
         vo.setSortOrder(item.getSortOrder());
-        vo.setCoverUrl(item.getCoverUrl());
+        vo.setCoverUrl(firstNonBlank(item.getCoverUrl(), item.getResourceCoverUrl()));
         vo.setTitle(item.getTitle());
         vo.setDescription(item.getDescription());
         vo.setChiefIntro(item.getChiefIntro());
@@ -177,7 +190,14 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
         switch (item.getResourceType()) {
             case "TRAINER" -> {
                 vo.setTeachingName(item.getResourceName());
-                vo.setAvatar(item.getResourceCoverUrl());
+                String avatar = firstNonBlank(
+                        trainerAvatarById.get(item.getResourceId()),
+                        item.getCoverUrl(),
+                        item.getResourceCoverUrl());
+                vo.setAvatar(avatar);
+                if (vo.getCoverUrl() == null || vo.getCoverUrl().isBlank()) {
+                    vo.setCoverUrl(avatar);
+                }
                 vo.setTrainerTitle(item.getTitle());
                 vo.setOneLineIntro(
                         item.getDescription() != null && !item.getDescription().isBlank()
@@ -202,6 +222,16 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
                     if (course.getCategoryName() != null) {
                         vo.setResourceMeta(course.getCategoryName());
                     }
+                    String resolvedCover = course.getCoverUrl();
+                    if (resolvedCover == null || resolvedCover.isBlank()) {
+                        try {
+                            resolvedCover = courseService.getPublicDetail(item.getResourceId()).getCoverUrl();
+                        } catch (Exception ignored) {
+                            // 课程可能已下架
+                        }
+                    }
+                    vo.setCoverUrl(resolvedCover);
+                    vo.setResourceCoverUrl(resolvedCover);
                 }
             }
             case "CASE" -> {
@@ -232,5 +262,17 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
             default -> { }
         }
         return vo;
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return null;
     }
 }

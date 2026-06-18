@@ -1,16 +1,33 @@
 import { Link } from '@/i18n/navigation';
 import type { TrainerListItem } from '@/features/trainer/types';
-import { filtersToHtmPath } from '@/features/trainer/utils/url';
+import { cityTrainerListPath } from '@/features/city/lib/paths';
 
 interface CityTrainerFlowListProps {
   cityName: string;
+  cityEnName: string;
   trainers: TrainerListItem[];
+}
+
+function buildCityTrainerFieldHref(cityEnName: string, field: string): string {
+  const params = new URLSearchParams();
+  params.set('field', field);
+  return `${cityTrainerListPath(cityEnName)}?${params.toString()}`;
+}
+
+function buildCityTrainerIndustryHref(cityEnName: string, industry: string): string {
+  const params = new URLSearchParams();
+  params.set('industry', industry);
+  return `${cityTrainerListPath(cityEnName)}?${params.toString()}`;
 }
 
 /**
  * 城市频道 — 最新授课专家流式列表（含领域/行业标签）
  */
-export function CityTrainerFlowList({ cityName, trainers }: CityTrainerFlowListProps) {
+export function CityTrainerFlowList({
+  cityName,
+  cityEnName,
+  trainers,
+}: CityTrainerFlowListProps) {
   return (
     <div className="px-5 py-4 flex flex-col gap-3">
       {trainers.map((trainer) => {
@@ -24,7 +41,7 @@ export function CityTrainerFlowList({ cityName, trainers }: CityTrainerFlowListP
             {fieldTags.map((tag) => (
               <Link
                 key={`f-${trainer.id}-${tag.categoryId}`}
-                href={filtersToHtmPath({ field: tag.categoryName, region: cityName })}
+                href={buildCityTrainerFieldHref(cityEnName, tag.categoryName)}
                 className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 hover:bg-primary/10 hover:text-primary"
               >
                 {tag.categoryName}
@@ -33,7 +50,7 @@ export function CityTrainerFlowList({ cityName, trainers }: CityTrainerFlowListP
             {industryTags.map((tag) => (
               <Link
                 key={`i-${trainer.id}-${tag.categoryId}`}
-                href={filtersToHtmPath({ industry: tag.categoryName, region: cityName })}
+                href={buildCityTrainerIndustryHref(cityEnName, tag.categoryName)}
                 className="rounded bg-orange-50 px-2 py-0.5 text-xs text-orange-700 hover:bg-orange-100"
               >
                 {tag.categoryName}

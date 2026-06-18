@@ -1,5 +1,4 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
-import { ChannelCategoryNavSection } from '@/components/layout/channel-category-nav-section';
 import { InnerCourseListSection } from '@/features/course/components/inner/InnerCourseListSection';
 import { getCourseList } from '@/features/course/api/service';
 import { getInstitutionDetail } from '@/features/institution/api/service';
@@ -78,12 +77,11 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
         initialInstitutionName={institution?.orgName}
         initialCategoryId={initialCategoryId}
         initialCategoryName={initialCategoryName}
-      />
-
-      <ChannelCategoryNavSection
-        title="内训课课程分类"
-        countUnit="门"
-        itemsPromise={categoryNavPromise}
+        bottomCategoryNav={{
+          title: '内训课课程分类',
+          countUnit: '门',
+          itemsPromise: categoryNavPromise,
+        }}
       />
     </main>
   );

@@ -6,7 +6,6 @@ import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
-import com.taoke.common.util.LegacyAvatarUrls;
 import com.taoke.common.service.CategoryService;
 import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.common.service.RegionService;
@@ -979,12 +978,43 @@ public class TrainerServiceImpl implements TrainerService {
         String userUrl = trainer.getUserId() != null && userAvatarMap != null
                 ? userAvatarMap.get(trainer.getUserId())
                 : null;
-        String custom = LegacyAvatarUrls.pickFirstUsable(userUrl, trainer.getAvatar());
-        if (!custom.isBlank()) {
-            return custom;
-        }
+        String raw = firstNonBlankAvatar(userUrl, trainer.getAvatar());
         int seed = trainer.getId() != null ? trainer.getId() : 0;
-        return opsMaterialResolver.resolveAvatarUrl(null, "TRAINER", true, seed);
+        return opsMaterialResolver.resolveAvatarUrl(raw, "TRAINER", true, seed);
+    }
+
+    private static String firstNonBlankAvatar(String... candidates) {
+        if (candidates == null) {
+            return null;
+        }
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate.trim();
+            }
+        }
+        return null;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Integer, String> resolveDisplayAvatars(Collection<Integer> trainerIds) {
+        if (trainerIds == null || trainerIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Trainer> trainers = findByIds(trainerIds);
+        if (trainers.isEmpty()) {
+            return Map.of();
+        }
+        List<Integer> userIds = trainers.stream()
+                .map(Trainer::getUserId)
+                .filter(Objects::nonNull)
+                .toList();
+        Map<Integer, String> userAvatarMap = loadUserAvatarMap(userIds);
+        return trainers.stream()
+                .collect(Collectors.toMap(
+                        Trainer::getId,
+                        trainer -> resolveTrainerDisplayAvatar(trainer, userAvatarMap),
+                        (a, b) -> a));
     }
 
     /** 批量回填多个列表的 categoryName */

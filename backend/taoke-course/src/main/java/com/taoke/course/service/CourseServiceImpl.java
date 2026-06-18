@@ -376,7 +376,10 @@ public class CourseServiceImpl implements CourseService {
             return PageResponse.of(List.of(), 0, page, size);
         }
 
-        List<CourseListItemVO> items = assembleListItems(coursePage.getContent());
+        List<CourseListItemVO> items = assembleListItems(
+                coursePage.getContent(),
+                hasProvince ? query.getProvinceIds() : null,
+                hasCity ? query.getCityIds() : null);
         return PageResponse.of(items, coursePage.getTotalElements(), page, size);
     }
 
@@ -484,6 +487,13 @@ public class CourseServiceImpl implements CourseService {
      */
     @Override
     public List<CourseListItemVO> assembleListItems(List<Course> courses) {
+        return assembleListItems(courses, null, null);
+    }
+
+    @Override
+    public List<CourseListItemVO> assembleListItems(List<Course> courses,
+                                                    List<Integer> displayPlanProvinceIds,
+                                                    List<Integer> displayPlanCityIds) {
         if (courses == null || courses.isEmpty()) {
             return List.of();
         }
@@ -515,7 +525,8 @@ public class CourseServiceImpl implements CourseService {
                 .filter(c -> c.getType() != null && c.getType().isOpen())
                 .map(Course::getId)
                 .toList();
-        Map<Integer, CoursePlan> nearestPlanMap = pickDisplayPlansForOpenCourses(openCourseIds);
+        Map<Integer, CoursePlan> nearestPlanMap = pickDisplayPlansForOpenCourses(
+                openCourseIds, displayPlanProvinceIds, displayPlanCityIds);
 
         // 批量省/市名称
         Set<Integer> regionIds = new HashSet<>();
@@ -602,6 +613,12 @@ public class CourseServiceImpl implements CourseService {
             if (c.getCategoryId() != null && c.getCategoryId() > 0) {
                 vo.setCategoryName(catNameMap.get(c.getCategoryId()));
             }
+            if (vo.getCategoryName() == null || vo.getCategoryName().isBlank()) {
+                String legacyCat = legacyCategoryMap.get(c.getId());
+                if (legacyCat != null && !legacyCat.isBlank()) {
+                    vo.setCategoryName(legacyCat);
+                }
+            }
             Trainer trainer = resolveLinkedTrainer(c, trainerMap, trainerByUserId, legacyLecturerUserIds);
             if (trainer == null) {
                 String legacyLecturer = legacyLecturerMap.get(c.getId());
@@ -612,11 +629,12 @@ public class CourseServiceImpl implements CourseService {
                     }
                 }
             }
+            final String categoryNameForCover = vo.getCategoryName();
             if (trainer != null) {
                 applyTrainerToListItem(vo, trainer, trainerRegionNameMap);
-                vo.setCoverUrl(resolveCoverUrl(c, trainer.getAvatar(), vo.getCategoryName()));
+                vo.setCoverUrl(resolveCoverUrl(c, trainer.getAvatar(), categoryNameForCover));
             } else {
-                vo.setCoverUrl(resolveCoverUrl(c, null, vo.getCategoryName()));
+                vo.setCoverUrl(resolveCoverUrl(c, null, categoryNameForCover));
                 String legacyLecturer = legacyLecturerMap.get(c.getId());
                 if (legacyLecturer != null && !legacyLecturer.isBlank()) {
                     vo.setTrainerName(legacyLecturer);
@@ -637,12 +655,6 @@ public class CourseServiceImpl implements CourseService {
             if (nearest != null) {
                 vo.setNextPlanStartDate(nearest.getStartTime());
                 vo.setNextPlanCity(formatPlanLocation(nearest, regionNameMap));
-            }
-            if (vo.getCategoryName() == null || vo.getCategoryName().isBlank()) {
-                String legacyCat = legacyCategoryMap.get(c.getId());
-                if (legacyCat != null && !legacyCat.isBlank()) {
-                    vo.setCategoryName(legacyCat);
-                }
             }
             String organizerName = resolveOrganizerName(
                     c, institutionByUserId, legacyOrganizerUserIds, legacyOrganizerFromLecturer, legacyMemberNameMap);
@@ -771,17 +783,25 @@ public class CourseServiceImpl implements CourseService {
     }
 
     /**
-     * 公开课列表展示用计划：优先最近一场未开课（start &gt;= now），否则取最近一场历史排期（迁移数据多为过去时间）。
+     * 公开课列表展示用计划：优先最近一场未开课（start &gt;= now），否则取最近一场历史排期。
+     * <p>传入省/市筛选时，仅在该范围内挑选展示场次，避免「筛北京却展示上海最近一场」。</p>
      */
-    private Map<Integer, CoursePlan> pickDisplayPlansForOpenCourses(List<Integer> openCourseIds) {
+    private Map<Integer, CoursePlan> pickDisplayPlansForOpenCourses(List<Integer> openCourseIds,
+                                                                    List<Integer> provinceIds,
+                                                                    List<Integer> cityIds) {
         if (openCourseIds == null || openCourseIds.isEmpty()) {
             return Map.of();
         }
+        boolean restrictLocation = (provinceIds != null && !provinceIds.isEmpty())
+                || (cityIds != null && !cityIds.isEmpty());
         LocalDateTime now = LocalDateTime.now();
         List<CoursePlan> plans = coursePlanRepository.findByCourseIdInOrderByStartTimeAsc(openCourseIds);
         Map<Integer, CoursePlan> futurePick = new HashMap<>();
         Map<Integer, CoursePlan> latestPick = new HashMap<>();
         for (CoursePlan p : plans) {
+            if (restrictLocation && !planMatchesLocationFilter(p, provinceIds, cityIds)) {
+                continue;
+            }
             latestPick.put(p.getCourseId(), p);
             if (!p.getStartTime().isBefore(now)) {
                 futurePick.putIfAbsent(p.getCourseId(), p);
@@ -798,6 +818,25 @@ public class CourseServiceImpl implements CourseService {
             }
         }
         return result;
+    }
+
+    private static boolean planMatchesLocationFilter(CoursePlan plan,
+                                                     List<Integer> provinceIds,
+                                                     List<Integer> cityIds) {
+        if (plan == null) {
+            return false;
+        }
+        if (provinceIds != null && !provinceIds.isEmpty()) {
+            if (plan.getProvinceId() == null || !provinceIds.contains(plan.getProvinceId())) {
+                return false;
+            }
+        }
+        if (cityIds != null && !cityIds.isEmpty()) {
+            if (plan.getCityId() == null || !cityIds.contains(plan.getCityId())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String formatPlanLocation(CoursePlan plan, Map<Integer, String> regionNameMap) {
@@ -1010,7 +1049,15 @@ public class CourseServiceImpl implements CourseService {
                     RecommendedCourseVO vo = new RecommendedCourseVO();
                     vo.setId(course.getId());
                     vo.setTitle(course.getTitle());
-                    vo.setCoverUrl(resolveCoverUrl(course, trainerAvatar, null));
+                    String categoryName = null;
+                    if (course.getCategoryId() != null && course.getCategoryId() > 0) {
+                        categoryName = categoryService.getNameMap(Set.of(course.getCategoryId()))
+                                .get(course.getCategoryId());
+                    }
+                    if (categoryName == null || categoryName.isBlank()) {
+                        categoryName = resolveLegacyCategoryNameForCourse(course.getId()).orElse(null);
+                    }
+                    vo.setCoverUrl(resolveCoverUrl(course, trainerAvatar, categoryName));
                     vo.setViewCount(course.getViewCount());
                     vo.setType(course.getType() != null ? course.getType().name() : null);
                     return vo;

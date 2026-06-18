@@ -3,10 +3,10 @@ import type { ApiResponse } from '@/features/trainer/types';
 import type { ActiveCityItem, CityChannelDetail } from './types';
 
 /**
- * 拉取「有有效公开课」的城市，按课程数倒序，限制 9 个。
+ * 拉取「有有效公开课」的城市，按课程数倒序。
  * <p>用于首页底部「城市频道」卡片；接口失败时调用方应自行 fallback 到空数组。</p>
  */
-export async function getActiveCities(limit = 9): Promise<ActiveCityItem[]> {
+export async function getActiveCities(limit = 18): Promise<ActiveCityItem[]> {
   const res = await apiGet<ApiResponse<ActiveCityItem[]>>(`/cities/active?limit=${limit}`);
   return res.data ?? [];
 }

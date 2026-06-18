@@ -1,4 +1,4 @@
-import { getCourseList } from '@/features/course/api/service';
+import { getCourseDetail, getCourseList } from '@/features/course/api/service';
 import type { CourseListItem } from '@/features/course/api/types';
 import {
   formatPlanStartDate,
@@ -20,19 +20,9 @@ import {
 } from '@/features/trainer/api/service';
 import type { TrainerListItem } from '@/features/trainer/types';
 import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recommended';
-import { DEFAULT_COURSE_COVER, resolveImageSrc } from '@/lib/media';
+import { resolveImageSrc } from '@/lib/media';
 import { featuredCases, featuredExperts } from '../data/mock';
 import type { CaseStudy, Expert, InternalCourse, PublicCourse } from '../types';
-
-/** 无封面时的轮换占位图（与 mock 资源路径一致） */
-const COURSE_FALLBACK_COVERS = [
-  '/statics/images/course-1.jpg',
-  '/statics/images/case-1.jpg',
-  '/statics/images/public-course-1.jpg',
-  '/statics/images/hero-banner.jpg',
-  '/statics/images/case-2.jpg',
-  DEFAULT_COURSE_COVER
-];
 
 /** 优先选取封面 URL 不重复的课程，避免首页多张卡片显示同一张图 */
 function pickHomeInternalCourses(list: CourseListItem[], count = 6): CourseListItem[] {
@@ -63,10 +53,6 @@ function pickHomeInternalCourses(list: CourseListItem[], count = 6): CourseListI
   }
 
   return picked.slice(0, count);
-}
-
-function courseFallbackCover(courseId: number): string {
-  return COURSE_FALLBACK_COVERS[Math.abs(courseId) % COURSE_FALLBACK_COVERS.length];
 }
 
 /** 首页线下公开课：优先线下课、有排期、封面不重复 */
@@ -107,6 +93,34 @@ function pickHomeOpenCourses(list: CourseListItem[], count = 3): CourseListItem[
   }
 
   return picked.slice(0, count);
+}
+
+/** 推荐位列表封面可能未走详情同款解析，缺封面时用详情接口补齐 */
+async function enrichPublicCourseCovers(courses: PublicCourse[]): Promise<PublicCourse[]> {
+  const missing = courses.filter((c) => !c.coverUrl?.trim());
+  if (missing.length === 0) {
+    return courses;
+  }
+
+  const details = await Promise.all(
+    missing.map((course) => getCourseDetail(course.id).catch(() => null))
+  );
+  const coverById = new Map<number, string>();
+  missing.forEach((course, index) => {
+    const cover = details[index]?.coverUrl?.trim();
+    if (cover) {
+      coverById.set(course.id, cover);
+    }
+  });
+
+  if (coverById.size === 0) {
+    return courses;
+  }
+
+  return courses.map((course) => ({
+    ...course,
+    coverUrl: course.coverUrl?.trim() || coverById.get(course.id)
+  }));
 }
 
 function parseTags(
@@ -256,7 +270,7 @@ async function loadHomeCasesLegacy(): Promise<CaseStudy[]> {
     tag: c.industry || '企业培训',
     title: c.caseTitle,
     description: (c.description || '').slice(0, 32),
-    image: resolveImageSrc(c.coverImage || DEFAULT_COURSE_COVER, DEFAULT_COURSE_COVER),
+    image: resolveImageSrc(c.coverImage),
     tags: c.industry ? [c.industry] : [],
     caseDate: formatCaseDate(c.trainingDate),
     trainerName: c.trainerName
@@ -289,7 +303,6 @@ async function loadHomeInternalCoursesLegacy(): Promise<InternalCourse[]> {
     title: c.title,
     subtitle: c.categoryName || '',
     coverUrl: c.coverUrl?.trim() || undefined,
-    image: courseFallbackCover(c.id),
     instructorName: c.trainerName || '-',
     instructorAvatar: '',
     instructorDesc: c.keywords || c.categoryName || ''
@@ -327,7 +340,6 @@ async function loadHomePublicCoursesLegacy(): Promise<PublicCourse[]> {
     id: c.id,
     title: c.title,
     coverUrl: c.coverUrl?.trim() || undefined,
-    image: courseFallbackCover(c.id),
     organizer: c.publisherName || '-',
     instructor: c.trainerName || '-',
     city: c.nextPlanCity?.trim() || '-',
@@ -340,14 +352,15 @@ export async function loadHomePublicCourses(): Promise<PublicCourse[]> {
   try {
     const slotItems = await getPublicRecommendations(RecommendationSlotCode.HOME_OPEN_COURSE, { limit: 3 });
     if (slotItems.length >= 3) {
-      return mapSlotCoursesToPublicCourses(slotItems, (value) =>
+      const mapped = mapSlotCoursesToPublicCourses(slotItems, (value) =>
         formatPlanStartDate(value ?? undefined)
       );
+      return enrichPublicCourseCovers(mapped);
     }
-    return await loadHomePublicCoursesLegacy();
+    return enrichPublicCourseCovers(await loadHomePublicCoursesLegacy());
   } catch {
     try {
-      return await loadHomePublicCoursesLegacy();
+      return enrichPublicCourseCovers(await loadHomePublicCoursesLegacy());
     } catch {
       return [];
     }

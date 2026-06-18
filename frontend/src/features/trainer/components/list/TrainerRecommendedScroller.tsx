@@ -7,7 +7,6 @@ import { getTopRecommendedTrainers } from '../../api/service';
 import type { TrainerListItem } from '../../types';
 import { pickDisplayTitle } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
-import { getTrainerAvatarFallback } from '@/lib/media';
 
 /**
  * 专家列表页右上角「推荐位」步进式滚动条
@@ -106,7 +105,6 @@ export function TrainerRecommendedScroller({
             <div className="relative w-full h-full overflow-hidden rounded-md bg-slate-100">
               <SafeImage
                 src={t.avatar}
-                fallback={getTrainerAvatarFallback(displayName)}
                 alt={displayName}
                 fill
                 sizes="(max-width: 1024px) 33vw, 320px"

@@ -1,36 +1,6 @@
-
 services:
-
-  nacos:
-    image: 10.0.16.26:5000/taokev2/nacos:3.1.2
-    container_name: taokev2-nacos
-    ports:
-      - "8848:8848"
-      - "9848:9848"
-      - "8180:8080"
-    environment:
-      MODE: standalone
-      SPRING_DATASOURCE_PLATFORM: mysql
-      MYSQL_SERVICE_HOST: mysql
-      MYSQL_SERVICE_PORT: 3306
-      MYSQL_SERVICE_DB_NAME: nacos_config
-      MYSQL_SERVICE_USER: root
-      MYSQL_SERVICE_PASSWORD: root
-      NACOS_AUTH_ENABLE: "true"
-      NACOS_AUTH_TOKEN: "dGFva2V2Mi1uYWNvcy1hdXRoLXRva2VuLW11c3QtYmUtYXQtbGVhc3QtMzItY2hhcnM="
-      NACOS_AUTH_IDENTITY_KEY: taokev2
-      NACOS_AUTH_IDENTITY_VALUE: taokev2-nacos
-      TZ: Asia/Shanghai
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8848/nacos/v1/ns/operator/metrics || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
-
   nginx:
-    image: 10.0.16.26:5000/taokev2/nginx:1.27-alpine
+    image: 10.0.14.20:5000/taokev2/nginx:1.27-alpine
     container_name: taokev2-nginx
     ports:
       - "443:443"
@@ -45,7 +15,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: 10.0.16.26:5000/taokev2/backend:${VERSION:-latest}
+    image: 10.0.14.20:5000/taokev2/backend:${VERSION:-1.6.0}
     container_name: taokev2-backend
     ports:
       - "8080:8080"
@@ -54,11 +24,11 @@ services:
       - ./web/storage:/app/storage
     environment:
       SPRING_PROFILES_ACTIVE: test
+      CRAWLER_CALLBACK_TOKEN: test-crawler-token
+      CRAWLER_BASE_URL: http://crawler:8100
+      CRAWLER_CALLBACK_URL: http://backend:8080/internal/crawl/callback
       TZ: Asia/Shanghai
     command: ["--spring.config.additional-location=file:/app/config/"]
-    depends_on:
-      nacos:
-        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health || exit 1"]
@@ -68,7 +38,7 @@ services:
       start_period: 60s
 
   frontend:
-    image: 10.0.16.26:5000/taokev2/frontend:${VERSION:-latest}
+    image: 10.0.14.20:5000/taokev2/frontend:${VERSION:-latest}
     container_name: taokev2-frontend
     expose:
       - "3000"
@@ -81,7 +51,7 @@ services:
     restart: unless-stopped
 
   admin:
-    image: 10.0.16.26:5000/taokev2/admin:${VERSION:-latest}
+    image: 10.0.14.20:5000/taokev2/admin:${VERSION:-latest}
     container_name: taokev2-admin
     expose:
       - "3000"
@@ -93,11 +63,29 @@ services:
       - backend
     restart: unless-stopped
 
+  crawler:
+    image: 10.0.14.20:5000/taokev2/crawler:${VERSION:-latest}
+    container_name: taokev2-crawler
+    expose:
+      - "8100"
+    environment:
+      SERVER_PORT: 8100
+      CALLBACK_URL: http://backend:8080/internal/crawl/callback
+      CALLBACK_TOKEN: test-crawler-token
+      TZ: Asia/Shanghai
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/health', timeout=3).read()\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
   elasticsearch:
-    image: 10.0.16.26:5000/taokev2/elasticsearch-with-ik-m:8.19.13
-    build:
-      context: ./elasticsearch
-      dockerfile: Dockerfile
+    image: 10.0.14.20:5000/taokev2/elasticsearch-with-ik-m:8.19.13
     container_name: taokev2-elasticsearch
     ports:
       - "9200:9200"
@@ -110,7 +98,6 @@ services:
       - xpack.ml.enabled=false
       - xpack.monitoring.collection.enabled=false
       - xpack.watcher.enabled=false
-      - bootstrap.system_call_filter=false
       - ES_JAVA_OPTS=-Xms2g -Xmx2g
       - TZ=Asia/Shanghai
     volumes:
@@ -124,7 +111,7 @@ services:
       start_period: 30s
 
   es-setup:
-    image: 10.0.16.26:5000/taokev2/elasticsearch:8.19.13
+    image: 10.0.14.20:5000/taokev2/elasticsearch:8.19.13
     container_name: taokev2-es-setup
     depends_on:
       elasticsearch:
@@ -175,7 +162,7 @@ services:
       '
 
   kibana:
-    image: 10.0.16.26:5000/taokev2/kibana:8.19.13
+    image: 10.0.14.20:5000/taokev2/kibana:8.19.13
     container_name: taokev2-kibana
     ports:
       - "5601:5601"

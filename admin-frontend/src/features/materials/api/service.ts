@@ -85,6 +85,16 @@ export async function uploadImageFile(file: File): Promise<string> {
   return (body.data as { url: string }).url;
 }
 
+export async function uploadMaterials(
+  payloads: UploadMaterialPayload[]
+): Promise<MaterialResponse[]> {
+  const results: MaterialResponse[] = [];
+  for (const payload of payloads) {
+    results.push(await uploadMaterial(payload));
+  }
+  return results;
+}
+
 export async function uploadMaterial(
   payload: UploadMaterialPayload
 ): Promise<MaterialResponse> {

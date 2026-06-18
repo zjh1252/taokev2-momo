@@ -7,8 +7,6 @@ import { useBumpedViewCount } from '@/hooks/use-bumped-view-count';
 import type { TrainerListItem } from '../../types';
 import { pickDisplayTitle } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
-import { getTrainerAvatarFallback } from '@/lib/media';
-
 interface TrainerCardProps {
   trainer: TrainerListItem;
   /** 首屏前若干张优先加载，避免翻页后 16 张同时请求 */
@@ -34,7 +32,6 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
       <div className="shrink-0 relative">
         <SafeImage
           src={trainer.avatar}
-          fallback={getTrainerAvatarFallback(displayName)}
           alt={displayName}
           width={100}
           height={120}

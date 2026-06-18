@@ -71,6 +71,11 @@ export default async function InstitutionsPage({ searchParams }: Props) {
         categoryItems={categoryItems}
         initialExpertiseCategoryId={expertiseCategoryId}
         categoryTitle="培训机构类别"
+        bottomCategoryNav={{
+          title: '培训机构类别',
+          countUnit: '家',
+          items: categoryItems,
+        }}
       />
     </main>
   );

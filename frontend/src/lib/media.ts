@@ -1,20 +1,43 @@
 import { getApiBaseUrl, getCdnBaseUrl } from '@/lib/env/client';
 
-/** 无姓名时的专家头像占位（勿用 expert-main.jpg，避免显示外籍商务照 mock） */
-export const DEFAULT_TRAINER_AVATAR = '/statics/images/avatar-placeholder.svg';
-export const DEFAULT_COURSE_COVER = '/statics/images/course-1.jpg';
+/** 图片加载失败或无 URL 时的占位（由后台素材库解析，前端不再使用本地默认图） */
+export const EMPTY_IMAGE_SRC = '';
 
-/** 旧站默认占位图 middle/00/1.jpg，非真实头像 */
+/**
+ * @deprecated 默认头像由后台素材库统一解析，请使用接口返回的 avatar/coverUrl
+ */
+export const DEFAULT_TRAINER_AVATAR = EMPTY_IMAGE_SRC;
+
+/**
+ * @deprecated 默认封面由后台素材库统一解析，请使用接口返回的 coverUrl
+ */
+export const DEFAULT_COURSE_COVER = EMPTY_IMAGE_SRC;
+
+/** 旧站/本地默认占位图，非真实头像 */
 export function isPlaceholderLegacyAvatar(url?: string | null): boolean {
   if (!url?.trim()) return false;
-  const normalized = url.trim().replace(/\\/g, '/');
-  return normalized.includes('/middle/00/1.') || normalized.endsWith('/middle/00/1');
+  const normalized = url.trim().replace(/\\/g, '/').toLowerCase();
+  if (normalized.includes('/middle/00/1.') || normalized.endsWith('/middle/00/1')) {
+    return true;
+  }
+  return (
+    normalized.includes('taoke-new-logo')
+    || normalized.includes('expert-main')
+    || normalized.includes('avatar-placeholder')
+    || normalized.includes('nophoto')
+    || normalized.includes('no_photo')
+    || normalized.includes('no-photo')
+    || normalized.includes('noavatar')
+    || normalized.includes('no-avatar')
+    || normalized.includes('default_avatar')
+    || normalized.includes('default-avatar')
+    || normalized.includes('zwzp')
+  );
 }
 
-/** 专家头像加载失败时的姓名首字占位 */
-export function getTrainerAvatarFallback(displayName?: string): string {
-  const name = (displayName || '专家').trim();
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=f1f5f9&color=64748b&size=256&font-size=0.4`;
+/** @deprecated 默认头像由后台素材库统一解析 */
+export function getTrainerAvatarFallback(_displayName?: string): string {
+  return EMPTY_IMAGE_SRC;
 }
 
 /** 老站录播封面 onerror 占位（www.taoke.com/video/*.html 同源逻辑） */
@@ -148,7 +171,7 @@ function applyLegacyProxy(url: string, fallback: string): string {
  */
 function resolveImageSrcRaw(
   src?: string | null,
-  fallback = DEFAULT_TRAINER_AVATAR,
+  fallback = EMPTY_IMAGE_SRC,
 ): string {
   if (!src?.trim() || isPlaceholderLegacyAvatar(src)) return fallback;
 
@@ -214,7 +237,7 @@ function resolveImageSrcRaw(
 
 export function resolveImageSrc(
   src?: string | null,
-  fallback = DEFAULT_TRAINER_AVATAR,
+  fallback = EMPTY_IMAGE_SRC,
 ): string {
   return resolveImageSrcRaw(src, fallback);
 }
@@ -224,9 +247,9 @@ export function getInstitutionLogoFallback(_orgName?: string): string {
   return '/statics/images/taoke-new-logo.jpg';
 }
 
-/** 录播课封面加载失败占位（与老站 default_video.jpg 一致） */
+/** 录播课封面加载失败占位（封面应由接口经素材库解析后返回） */
 export function getVideoCoverFallback(_title?: string): string {
-  return DEFAULT_VIDEO_COVER;
+  return EMPTY_IMAGE_SRC;
 }
 
 /** 32 位 MD5 老库视频 key（无扩展名） */

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { ArrowUp, Phone, Headphones, MessageSquarePlus, Copy, Check } from 'lucide-react';
+import { CustomerServiceChatDialog } from '@/components/customer-service-chat-dialog';
 import { useAuth } from '@/lib/auth/auth-context';
 
 /** 平台客服电话 */
@@ -16,7 +17,7 @@ const SERVICE_PHONE = '021-34606062';
  * <ul>
  *   <li>回到顶部：常驻显示，点击平滑滚动到顶部</li>
  *   <li>电话：hover 显示气泡，气泡内可一键复制号码</li>
- *   <li>智能客服：跳 /ai-chat 占位页</li>
+ *   <li>智能客服：唤起培训宝智能客服（iframe 弹窗）</li>
  *   <li>发布需求：未登录 → /publish-demand，已登录 → /dashboard/demands/create</li>
  * </ul>
  *
@@ -27,6 +28,7 @@ export function FloatingActions() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [phoneCopied, setPhoneCopied] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -43,10 +45,6 @@ export function FloatingActions() {
     }
   };
 
-  const gotoAiChat = () => {
-    router.push('/ai-chat');
-  };
-
   const gotoPublishDemand = () => {
     if (loading) return;
     router.push(user ? ROUTES.UC_DEMANDS_CREATE : ROUTES.PUBLISH_DEMAND);
@@ -59,10 +57,11 @@ export function FloatingActions() {
   const labelBase = 'text-[11px] text-slate-600 group-hover:text-primary transition-colors';
 
   return (
-    <aside
-      aria-label="quick-actions"
-      className="fixed right-4 bottom-24 z-30 flex flex-col items-stretch w-[72px] rounded-xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-100 overflow-visible"
-    >
+    <>
+      <aside
+        aria-label="quick-actions"
+        className="fixed right-4 bottom-24 z-30 flex flex-col items-stretch w-[72px] rounded-xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-100 overflow-visible"
+      >
       {/* 回到顶部 — 常驻显示，hover 上抬 */}
       <button
         type="button"
@@ -114,7 +113,7 @@ export function FloatingActions() {
       {/* 智能客服 */}
       <button
         type="button"
-        onClick={gotoAiChat}
+        onClick={() => setChatOpen(true)}
         aria-label="智能客服"
         className={`${itemBase} border-b border-slate-100`}
       >
@@ -132,6 +131,8 @@ export function FloatingActions() {
         <MessageSquarePlus className="size-5 text-primary transition-transform group-hover:scale-110" />
         <span className="text-[11px] font-medium text-primary">发布需求</span>
       </button>
-    </aside>
+      </aside>
+      <CustomerServiceChatDialog open={chatOpen} onOpenChange={setChatOpen} />
+    </>
   );
 }

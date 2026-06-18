@@ -58,6 +58,11 @@ export default async function AssociationsPage({ searchParams }: Props) {
         categoryItems={categoryItems}
         initialExpertiseCategoryId={expertiseCategoryId}
         categoryTitle="培训协会类别"
+        bottomCategoryNav={{
+          title: '培训协会类别',
+          countUnit: '家',
+          items: categoryItems,
+        }}
       />
     </main>
   );

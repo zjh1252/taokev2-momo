@@ -1,5 +1,4 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
-import { ChannelCategoryNavSection } from '@/components/layout/channel-category-nav-section';
 import { OpenCourseListSection } from '@/features/course/components/open/OpenCourseListSection';
 import { getCourseList } from '@/features/course/api/service';
 import { getInstitutionDetail } from '@/features/institution/api/service';
@@ -17,6 +16,8 @@ interface Props {
     cityName?: string | string[];
     categoryIds?: string | string[];
     categoryName?: string | string[];
+    provinceIds?: string | string[];
+    provinceName?: string | string[];
   }>;
 }
 
@@ -38,6 +39,8 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
   const cityNames = normalizeStringValues(sp.cityName);
   const categoryIds = normalizeNumberIds(sp.categoryIds);
   const categoryNames = normalizeStringValues(sp.categoryName);
+  const provinceIds = normalizeNumberIds(sp.provinceIds);
+  const provinceNames = normalizeStringValues(sp.provinceName);
 
   const categoryTreePromise = getCachedCourseCategoryTree();
   const categoryNavPromise = categoryTreePromise
@@ -52,6 +55,7 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
       institutionId: validInstitutionId,
       cityIds: cityIds.length > 0 ? cityIds : undefined,
       categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
+      provinceIds: provinceIds.length > 0 ? provinceIds : undefined,
     }).catch(() => ({
       list: [],
       total: 0,
@@ -85,12 +89,13 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
         initialCityNames={cityNames.length > 0 ? cityNames : undefined}
         initialCategoryIds={categoryIds.length > 0 ? categoryIds : undefined}
         initialCategoryNames={categoryNames.length > 0 ? categoryNames : undefined}
-      />
-
-      <ChannelCategoryNavSection
-        title="公开课课程分类"
-        countUnit="门"
-        itemsPromise={categoryNavPromise}
+        initialProvinceIds={provinceIds.length > 0 ? provinceIds : undefined}
+        initialProvinceNames={provinceNames.length > 0 ? provinceNames : undefined}
+        bottomCategoryNav={{
+          title: '公开课课程分类',
+          countUnit: '门',
+          itemsPromise: categoryNavPromise,
+        }}
       />
     </main>
   );

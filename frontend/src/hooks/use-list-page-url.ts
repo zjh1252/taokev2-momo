@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { usePathname, useRouter } from '@/i18n/navigation';
+import { getBrowserPathname, replaceBrowserUrl, setPageParam } from '@/lib/sync-list-filter-url';
 import { parseListPageFromSearchParams } from '@/lib/list-page';
 
 type UseListPageUrlSyncOptions = {
@@ -16,8 +16,6 @@ type UseListPageUrlSyncOptions = {
  */
 export function useListPageUrlSync({ currentPage, onPageFromUrl }: UseListPageUrlSyncOptions) {
   const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const router = useRouter();
   const pageFromUrl = parseListPageFromSearchParams(searchParams);
   const skipNextSyncRef = useRef(false);
   const onPageFromUrlRef = useRef(onPageFromUrl);
@@ -26,15 +24,10 @@ export function useListPageUrlSync({ currentPage, onPageFromUrl }: UseListPageUr
   const writePageToUrl = useCallback(
     (page: number) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (page <= 1) {
-        params.delete('page');
-      } else {
-        params.set('page', String(page));
-      }
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      setPageParam(params, page);
+      replaceBrowserUrl(getBrowserPathname(), params);
     },
-    [searchParams, pathname, router],
+    [searchParams],
   );
 
   /** 用户主动翻页：写 URL，并跳过一次由 URL 触发的重复拉数 */

@@ -204,6 +204,14 @@ public interface CourseService {
     List<CourseListItemVO> assembleListItems(List<Course> courses);
 
     /**
+     * 批量组装课程列表项；{@code displayPlanProvinceIds}/{@code displayPlanCityIds} 非空时，
+     * 公开课展示排期优先取命中筛选条件的场次（避免筛北京却展示上海最近一场）。
+     */
+    List<CourseListItemVO> assembleListItems(List<Course> courses,
+                                             List<Integer> displayPlanProvinceIds,
+                                             List<Integer> displayPlanCityIds);
+
+    /**
      * 录播课详情页相关面授课：同分类公开课+内训课，优先仍可报名且热度高
      */
     List<CourseListItemVO> listRelatedForVideo(Integer categoryId, Integer subCategoryId, int limit);

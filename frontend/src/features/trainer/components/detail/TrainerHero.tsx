@@ -14,7 +14,6 @@ import TrainerMessageDialog from '@/features/interaction/components/TrainerMessa
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 import { pickDisplayTitle } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
-import { getTrainerAvatarFallback } from '@/lib/media';
 
 interface TrainerHeroProps {
   trainer: TrainerDetail;
@@ -76,7 +75,6 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           <div className="relative group">
             <SafeImage
               src={trainer.avatar}
-              fallback={getTrainerAvatarFallback(displayName)}
               alt={displayName}
               width={190}
               height={230}

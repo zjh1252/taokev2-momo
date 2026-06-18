@@ -11,19 +11,68 @@ public final class LegacyAvatarUrls {
     private LegacyAvatarUrls() {
     }
 
-    /** 旧站默认占位图 middle/00/1.jpg，非真实头像 */
+    /** 旧站/本地默认占位图，非真实头像 */
     public static boolean isPlaceholder(String url) {
         if (url == null || url.isBlank()) {
             return false;
         }
-        String normalized = url.trim().replace('\\', '/');
-        return normalized.contains("/middle/00/1.")
-                || normalized.endsWith("/middle/00/1");
+        String normalized = url.trim().replace('\\', '/').toLowerCase();
+        if (normalized.contains("/middle/00/1.")
+                || normalized.endsWith("/middle/00/1")) {
+            return true;
+        }
+        return normalized.contains("taoke-new-logo")
+                || normalized.contains("expert-main")
+                || normalized.contains("avatar-placeholder")
+                || normalized.contains("nophoto")
+                || normalized.contains("no_photo")
+                || normalized.contains("no-photo")
+                || normalized.contains("noavatar")
+                || normalized.contains("no-avatar")
+                || normalized.contains("default_avatar")
+                || normalized.contains("default-avatar")
+                || normalized.contains("zwzp");
     }
 
     /** 可用于展示的头像：非空且非占位图 */
     public static boolean isUsable(String url) {
         return url != null && !url.isBlank() && !isPlaceholder(url);
+    }
+
+    /**
+     * 可用于专家/机构头像展示的 URL：在 {@link #isUsable} 基础上排除无路径脏数据，
+     * 以便回退到素材库默认头像。
+     */
+    public static boolean isUsableAvatar(String url) {
+        if (!isUsable(url)) {
+            return false;
+        }
+        String normalized = url.trim().replace('\\', '/');
+        if (normalized.startsWith("http://") || normalized.startsWith("https://")
+                || normalized.startsWith("/uploads/") || normalized.startsWith("/statics/")
+                || normalized.startsWith("/attachments/") || normalized.startsWith("attachments/")
+                || normalized.startsWith("/u/") || normalized.startsWith("u/")) {
+            return true;
+        }
+        return normalized.contains("/");
+    }
+
+    /**
+     * 可用于课程封面的 URL：在 {@link #isUsable} 基础上排除无路径脏数据，
+     * 以便回退到素材库默认封面。
+     */
+    public static boolean isUsableCourseCover(String url) {
+        if (!isUsable(url)) {
+            return false;
+        }
+        String normalized = url.trim().replace('\\', '/');
+        if (normalized.startsWith("http://") || normalized.startsWith("https://")
+                || normalized.startsWith("/uploads/") || normalized.startsWith("/statics/")
+                || normalized.startsWith("/attachments/") || normalized.startsWith("attachments/")
+                || normalized.startsWith("/u/") || normalized.startsWith("u/")) {
+            return true;
+        }
+        return normalized.contains("/");
     }
 
     /** 将相对路径规范为 https 绝对地址（attachments/、/u/ 等） */

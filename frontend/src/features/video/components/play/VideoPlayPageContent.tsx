@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { SafeImage } from '@/components/safe-image';
-import { resolveImageSrc, DEFAULT_VIDEO_COVER } from '@/lib/media';
+import { resolveImageSrc, getVideoCoverFallback } from '@/lib/media';
 import type { VideoDetail, VideoChapter } from '../../api/types';
 import { useVideoPlayback } from '../../context/video-playback-context';
 import { VideoPlayerShell } from '../player/VideoPlayerShell';
@@ -139,7 +139,7 @@ export function VideoPlayPageContent({ video }: VideoPlayPageContentProps) {
                   alt={video.title}
                   fill
                   className="object-cover opacity-80"
-                  fallback={DEFAULT_VIDEO_COVER}
+                  fallback={getVideoCoverFallback()}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center">

@@ -29,10 +29,10 @@ public interface OpsMaterialResolver {
      */
     default String resolveCourseCoverUrl(String coverUrl, String trainerAvatar,
                                          String categoryName, String scene, int seed) {
-        if (coverUrl != null && !coverUrl.isBlank()) {
-            return coverUrl.trim();
+        if (LegacyAvatarUrls.isUsableCourseCover(coverUrl)) {
+            return LegacyAvatarUrls.normalize(coverUrl);
         }
-        if (LegacyAvatarUrls.isUsable(trainerAvatar)) {
+        if (LegacyAvatarUrls.isUsableAvatar(trainerAvatar)) {
             return LegacyAvatarUrls.normalize(trainerAvatar);
         }
         String picked = pickDefaultMaterialUrl("COVER", categoryName, scene, seed);
@@ -43,7 +43,7 @@ public interface OpsMaterialResolver {
      * 头像展示：可用自定义头像 &gt; 默认头像池（可选）&gt; 空串。
      */
     default String resolveAvatarUrl(String avatarUrl, String scene, boolean allowDefault, int seed) {
-        if (LegacyAvatarUrls.isUsable(avatarUrl)) {
+        if (LegacyAvatarUrls.isUsableAvatar(avatarUrl)) {
             return LegacyAvatarUrls.normalize(avatarUrl);
         }
         if (!allowDefault) {

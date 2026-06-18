@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ImgHTMLAttributes } from 'react';
 import {
   resolveImageSrc,
-  DEFAULT_TRAINER_AVATAR,
+  EMPTY_IMAGE_SRC,
   isPlaceholderLegacyAvatar,
   isUnreliableLegacyImageHost,
 } from '@/lib/media';
@@ -37,7 +37,7 @@ function alternateMiddleAvatarUrl(url: string): string | null {
  */
 export function SafeImage({
   src,
-  fallback = DEFAULT_TRAINER_AVATAR,
+  fallback = EMPTY_IMAGE_SRC,
   alt,
   priority,
   loading,
@@ -75,6 +75,11 @@ export function SafeImage({
 
   const handleError = () => {
     if (onFallbackRef.current) return;
+    if (!fallback) {
+      onFallbackRef.current = true;
+      setDisplaySrc('');
+      return;
+    }
     if (displaySrc === fallback) return;
 
     if (!triedAltExtRef.current) {
@@ -109,6 +114,10 @@ export function SafeImage({
   const imgStyle: CSSProperties | undefined = fill
     ? { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', ...style }
     : style;
+
+  if (!displaySrc) {
+    return null;
+  }
 
   return (
     // eslint-disable-next-line @next/next/no-img-element

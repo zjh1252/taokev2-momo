@@ -37,10 +37,8 @@ export interface InternalCourse {
   id: number;
   title: string;
   subtitle: string;
-  /** 原始封面 URL（优先用于 SafeImage 解析） */
+  /** 展示封面（由接口经素材库解析） */
   coverUrl?: string;
-  /** 兼容 mock 的展示图路径 */
-  image: string;
   instructorName: string;
   instructorAvatar: string;
   instructorDesc: string;
@@ -49,8 +47,8 @@ export interface InternalCourse {
 export interface PublicCourse {
   id: number;
   title: string;
+  /** 展示封面（由接口经素材库解析） */
   coverUrl?: string;
-  image: string;
   organizer: string;
   instructor: string;
   city: string;

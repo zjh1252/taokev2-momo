@@ -49,6 +49,49 @@ export function ExpertsSection({ experts }: ExpertsSectionProps) {
   );
 }
 
+/** 专家封面/头像图（无 URL 时显示灰色底） */
+function ExpertCoverImage({
+  src,
+  alt,
+  className,
+  fill,
+  width,
+  height,
+}: {
+  src?: string | null;
+  alt: string;
+  className?: string;
+  fill?: boolean;
+  width?: number;
+  height?: number;
+}) {
+  const resolved = resolveImageSrc(src);
+  if (!resolved) {
+    if (fill) {
+      return (
+        <div className={`absolute inset-0 bg-slate-100 ${className ?? ''}`} aria-hidden />
+      );
+    }
+    return (
+      <div
+        className={`bg-slate-100 ${className ?? ''}`}
+        style={width && height ? { width, height } : undefined}
+        aria-hidden
+      />
+    );
+  }
+  return (
+    <Image
+      src={resolved}
+      alt={alt}
+      fill={fill}
+      width={width}
+      height={height}
+      className={className}
+    />
+  );
+}
+
 /** 左侧首席专家大卡 */
 function MainExpertCard({ expert }: { expert: Expert }) {
   return (
@@ -57,8 +100,8 @@ function MainExpertCard({ expert }: { expert: Expert }) {
       className="col-span-1 md:col-span-6 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-slate-100 flex flex-col md:flex-row h-full group"
     >
       <div className="md:w-[45%] h-64 md:h-full overflow-hidden relative shrink-0">
-        <Image
-          src={resolveImageSrc(expert.coverImage || expert.avatar)}
+        <ExpertCoverImage
+          src={expert.coverImage || expert.avatar}
           alt={expert.name}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -115,8 +158,8 @@ function MiddleExpertCard({ expert }: { expert: Expert }) {
       className="col-span-1 md:col-span-3 bg-gradient-to-b from-slate-900 to-[#3b0a0a] rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all relative flex flex-col items-center pt-10 pb-8 px-6 group text-white h-full"
     >
       <div className="w-32 h-32 rounded-full overflow-hidden mb-5 border-4 border-primary/30 shadow-inner">
-        <Image
-          src={resolveImageSrc(expert.avatar)}
+        <ExpertCoverImage
+          src={expert.avatar}
           alt={expert.name}
           width={128}
           height={128}
@@ -153,8 +196,8 @@ function SideExpertCard({ expert }: { expert: Expert }) {
     >
       <div className="flex items-start gap-4 mb-3">
         <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 border border-slate-100">
-          <Image
-            src={resolveImageSrc(expert.avatar)}
+          <ExpertCoverImage
+            src={expert.avatar}
             alt={expert.name}
             width={56}
             height={56}

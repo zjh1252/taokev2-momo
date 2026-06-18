@@ -1,8 +1,7 @@
 'use client';
 
-import { Suspense, useState, useCallback, useTransition, useEffect, useRef } from 'react';
+import { Suspense, useState, useCallback, useTransition, useEffect, useRef, useMemo } from 'react';
 import { Search, ArrowUpDown, X } from 'lucide-react';
-import { useRouter } from '@/i18n/navigation';
 import { ListPagePagination } from '@/components/list-page-pagination';
 import { useListPageUrlSync } from '@/hooks/use-list-page-url';
 import { useListKeywordUrl } from '@/hooks/use-list-keyword-url';
@@ -10,6 +9,10 @@ import { VideoCard } from './VideoCard';
 import { getVideoList } from '../../api/service';
 import type { VideoListItem, PageResponse, CategoryTreeNode } from '../../api/types';
 import { cn } from '@/lib/utils';
+import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-nav';
+import type { ChannelCategoryNavItem } from '@/components/layout/channel-category-nav';
+import { parseCourseCategoryIdFromHref } from '@/lib/parse-category-nav-href';
+import { getBrowserPathname, navigateToSeoPath, replaceBrowserUrl, setPageParam } from '@/lib/sync-list-filter-url';
 
 interface VideoListSectionProps {
   initialData: PageResponse<VideoListItem>;
@@ -17,6 +20,11 @@ interface VideoListSectionProps {
   initialInstitutionId?: number;
   initialInstitutionName?: string;
   initialCategoryId?: number;
+  bottomCategoryNav?: {
+    title: string;
+    countUnit: string;
+    itemsPromise: Promise<ChannelCategoryNavItem[]>;
+  };
 }
 
 const SORT_OPTIONS = [
@@ -43,11 +51,12 @@ function VideoListSectionInner({
   initialInstitutionId,
   initialInstitutionName,
   initialCategoryId,
+  bottomCategoryNav,
 }: VideoListSectionProps) {
-  const router = useRouter();
   const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
   const [data, setData] = useState(initialData);
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>(initialCategoryId);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string | undefined>();
   const selectedCategoryRef = useRef<number | undefined>(undefined);
   selectedCategoryRef.current = selectedCategory;
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
@@ -57,15 +66,46 @@ function VideoListSectionInner({
   const [isPending, startTransition] = useTransition();
   const keywordBootstrappedRef = useRef(false);
 
-  /** SSR 刷新/底部分类栏跳转时同步列表与分类筛选 */
+  const serverFilterKey = useMemo(
+    () =>
+      JSON.stringify({
+        categoryId: initialCategoryId ?? null,
+        institutionId: initialInstitutionId ?? null,
+      }),
+    [initialCategoryId, initialInstitutionId],
+  );
+  const serverFilterKeyRef = useRef(serverFilterKey);
+
   useEffect(() => {
+    if (serverFilterKeyRef.current === serverFilterKey) {
+      return;
+    }
+    serverFilterKeyRef.current = serverFilterKey;
     startTransition(() => {
       setData(initialData);
       setCurrentPage(initialData.page ?? 1);
       setSelectedCategory(initialCategoryId);
       setInstitutionId(initialInstitutionId);
     });
-  }, [initialData, initialCategoryId, initialInstitutionId, startTransition]);
+  }, [serverFilterKey, initialData, initialCategoryId, initialInstitutionId, startTransition]);
+
+  const syncUrl = useCallback(
+    (page: number, catId?: number, catName?: string) => {
+      const params = new URLSearchParams();
+      if (institutionId) {
+        params.set('institutionId', String(institutionId));
+      }
+      if (catId) {
+        params.set('categoryId', String(catId));
+        if (catName) {
+          params.set('categoryName', catName);
+        }
+      }
+      setPageParam(params, page);
+      replaceBrowserUrl(getBrowserPathname(), params);
+    },
+    [institutionId],
+  );
 
   const fetchData = useCallback(
     (
@@ -121,25 +161,25 @@ function VideoListSectionInner({
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);
     fetchData(1, selectedCategory, sortKey, keyword, null);
-    router.replace('/videos');
-  }, [fetchData, router, selectedCategory, sortKey, keyword]);
+    navigateToSeoPath('/vedio');
+  }, [fetchData, selectedCategory, sortKey, keyword]);
 
   const handleCategoryChange = useCallback(
-    (catId?: number) => {
+    (catId?: number, catName?: string) => {
       setSelectedCategory(catId);
-      commitPageChange(1);
+      setSelectedCategoryName(catName);
+      syncUrl(1, catId, catName);
       fetchData(1, catId);
     },
-    [fetchData, commitPageChange],
+    [fetchData, syncUrl],
   );
 
   const handleSortChange = useCallback(
     (key: string) => {
       setSortKey(key);
-      commitPageChange(1);
       fetchData(1, selectedCategory, key);
     },
-    [fetchData, selectedCategory, commitPageChange],
+    [fetchData, selectedCategory],
   );
 
   const handleSearch = useCallback(() => {
@@ -150,11 +190,20 @@ function VideoListSectionInner({
 
   const handlePageChange = useCallback(
     (page: number) => {
-      commitPageChange(page);
+      syncUrl(page, selectedCategory, selectedCategoryName);
       fetchData(page);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [fetchData, commitPageChange],
+    [fetchData, syncUrl, selectedCategory, selectedCategoryName],
+  );
+
+  const handleBottomCategoryClick = useCallback(
+    (item: ChannelCategoryNavItem) => {
+      const categoryId = parseCourseCategoryIdFromHref(item.href);
+      if (!categoryId) return;
+      handleCategoryChange(categoryId, item.name);
+    },
+    [handleCategoryChange],
   );
 
   return (
@@ -194,7 +243,7 @@ function VideoListSectionInner({
           {categoryTree.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => handleCategoryChange(cat.id)}
+              onClick={() => handleCategoryChange(cat.id, cat.name)}
               className={cn(
                 'px-3 py-1 text-sm rounded-full transition-colors',
                 selectedCategory === cat.id
@@ -269,6 +318,15 @@ function VideoListSectionInner({
         totalPages={data.totalPages}
         onPageChange={handlePageChange}
       />
+
+      {bottomCategoryNav ? (
+        <ListBottomCategoryNav
+          title={bottomCategoryNav.title}
+          countUnit={bottomCategoryNav.countUnit}
+          itemsPromise={bottomCategoryNav.itemsPromise}
+          onItemClick={handleBottomCategoryClick}
+        />
+      ) : null}
     </div>
   );
 }
