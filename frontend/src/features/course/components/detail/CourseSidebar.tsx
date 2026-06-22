@@ -34,7 +34,8 @@ interface CourseSidebarProps {
 export function CourseSidebar({ course }: CourseSidebarProps) {
   const t = useTranslations('course.detail');
   const isOpen = course.type === 'OPEN_OFFLINE' || course.type === 'OPEN_ONLINE';
-  const isPurchasable = isOpen && course.price > 0 && course.isFree !== 1;
+  const isOverdue = Boolean(course.isOverdue);
+  const isPurchasable = isOpen && course.price > 0 && course.isFree !== 1 && !isOverdue;
   const { addItem } = useCart();
   const router = useRouter();
   const { requireAuth } = useAuthGuard();
@@ -160,7 +161,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
       )}
 
       {/* 非付费课程 — 内训课显示报名按钮，免费公开课显示预约按钮 */}
-      {!isPurchasable && (
+      {!isPurchasable && !isOverdue && (
         <button
           onClick={() => requireAuth(() => {
             if (!isOpen) {
@@ -178,6 +179,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
       )}
 
       {/* 立即咨询 */}
+      {!isOverdue && (
       <button
         type="button"
         onClick={() => setConsultOpen(true)}
@@ -186,6 +188,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         <MessageCircle className="size-4" />
         {t('consult')}
       </button>
+      )}
 
       {/* 收藏按钮 */}
       <button

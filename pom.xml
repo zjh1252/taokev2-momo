@@ -4,9 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.taoke</groupId>
+    <parent>
+        <groupId>com.taoke</groupId>
+        <artifactId>taoke-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>backend/pom.xml</relativePath>
+    </parent>
+
     <artifactId>taokev2-mono</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>taokev2-mono</name>
     <description>Monorepo 聚合 POM，仅供 IDE / Maven 识别多模块结构</description>

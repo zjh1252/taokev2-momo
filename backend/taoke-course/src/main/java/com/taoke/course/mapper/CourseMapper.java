@@ -61,6 +61,8 @@ public class CourseMapper {
         vo.setPublishedAt(course.getPublishedAt());
         vo.setCreatedAt(course.getCreatedAt());
         vo.setUpdatedAt(course.getUpdatedAt());
+        vo.setCourseOpenEndDate(course.getCourseOpenEndDate());
+        vo.setIsExpireHide(course.getIsExpireHide());
         return vo;
     }
 
@@ -89,6 +91,8 @@ public class CourseMapper {
         vo.setKeywords(course.getKeywords());
         vo.setPublishedAt(course.getPublishedAt());
         vo.setCreatedAt(course.getCreatedAt());
+        vo.setCourseOpenEndDate(course.getCourseOpenEndDate());
+        vo.setIsExpireHide(course.getIsExpireHide());
         return vo;
     }
 

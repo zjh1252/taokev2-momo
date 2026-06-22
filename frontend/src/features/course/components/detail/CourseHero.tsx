@@ -18,6 +18,26 @@ export function CourseHero({ course }: CourseHeroProps) {
     : null;
   const coverSrc = resolveImageSrc(course.coverUrl);
 
+  // 公开课：取主排期展示时间/地点
+  const primaryPlan = isOpen ? course.plans?.[0] : null;
+  const planLocation = primaryPlan
+    ? (() => {
+        if (primaryPlan.onlineUrl) return '线上';
+        if (primaryPlan.address?.trim()) return primaryPlan.address.trim();
+        const parts = [primaryPlan.provinceName, primaryPlan.cityName].filter(Boolean);
+        return parts.length > 0 ? parts.join(' ') : null;
+      })()
+    : null;
+  const planStartDate = primaryPlan?.startTime;
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  };
+
   return (
     <div className="bg-white rounded-xl p-8 shadow-sm border border-slate-100">
       <div className="flex flex-col lg:flex-row gap-8">
@@ -90,6 +110,20 @@ export function CourseHero({ course }: CourseHeroProps) {
               <div className="text-slate-500">
                 {t('publisher')}：
                 <span className="text-primary font-medium">{course.publisherName}</span>
+              </div>
+            ) : null}
+            {isOpen && planStartDate ? (
+              <div className="text-slate-500">
+                {t('planTime')}：
+                <span className="text-slate-800 font-medium">
+                  {formatDate(planStartDate)}
+                </span>
+              </div>
+            ) : null}
+            {isOpen && planLocation ? (
+              <div className="text-slate-500">
+                {t('planLocation')}：
+                <span className="text-slate-800 font-medium">{planLocation}</span>
               </div>
             ) : null}
           </div>

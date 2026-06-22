@@ -162,11 +162,11 @@ export function mapSlotCoursesToPublicCourses(
 ): PublicCourse[] {
   return items.map((item) => {
     const course = mapSlotCourseToListItem(item);
-    const rawCover = (course.coverUrl || '').trim();
+    const rawCover = (course.coverUrl || item.resourceCoverUrl || '').trim();
     return {
       id: course.id,
       title: course.title,
-      coverUrl: rawCover ? resolveApiImageSrc(rawCover) : undefined,
+      coverUrl: rawCover || undefined,
       organizer: course.publisherName || '-',
       instructor: course.trainerName || '-',
       city: course.nextPlanCity?.trim() || '-',

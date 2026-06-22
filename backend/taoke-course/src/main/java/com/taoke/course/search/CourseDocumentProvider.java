@@ -7,6 +7,7 @@ import com.taoke.common.search.DocumentSyncProvider;
 import com.taoke.course.entity.Course;
 import com.taoke.course.enums.CourseStatus;
 import com.taoke.course.repository.CourseRepository;
+import com.taoke.course.support.OpenCourseExpireSupport;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.entity.Trainer;
 import lombok.RequiredArgsConstructor;
@@ -47,26 +48,37 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
                 cb.greaterThan(root.get("updatedAt"), since),
                 cb.equal(root.get("status"), PUBLISHED)
         );
-        List<Course> courses = courseRepository.findAll(spec);
+        List<Course> courses = courseRepository.findAll(spec).stream()
+                .filter(course -> !OpenCourseExpireSupport.shouldHideFromPublic(course))
+                .toList();
         return buildDocuments(courses);
     }
 
     @Override
     public List<Integer> fetchRemovedSince(LocalDateTime since) {
-        Specification<Course> spec = (root, query, cb) -> cb.and(
+        Set<Integer> ids = new HashSet<>();
+        Specification<Course> statusRemoved = (root, query, cb) -> cb.and(
                 cb.greaterThan(root.get("updatedAt"), since),
                 cb.notEqual(root.get("status"), PUBLISHED)
         );
-        return courseRepository.findAll(spec).stream()
-                .map(Course::getId)
-                .toList();
+        courseRepository.findAll(statusRemoved).forEach(c -> ids.add(c.getId()));
+
+        Specification<Course> expireHidden = (root, query, cb) -> cb.and(
+                cb.greaterThan(root.get("updatedAt"), since),
+                cb.equal(root.get("status"), PUBLISHED),
+                cb.not(OpenCourseExpireSupport.publicVisiblePredicate(root, cb, java.time.LocalDate.now()))
+        );
+        courseRepository.findAll(expireHidden).forEach(c -> ids.add(c.getId()));
+        return ids.stream().toList();
     }
 
     @Override
     public List<? extends BaseDocument> fetchAll() {
         Specification<Course> spec = (root, query, cb) ->
                 cb.equal(root.get("status"), PUBLISHED);
-        List<Course> courses = courseRepository.findAll(spec);
+        List<Course> courses = courseRepository.findAll(spec).stream()
+                .filter(course -> !OpenCourseExpireSupport.shouldHideFromPublic(course))
+                .toList();
         return buildDocuments(courses);
     }
 
@@ -139,6 +151,8 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
         doc.setEnrollmentCount(course.getEnrollmentCount());
         doc.setScore(course.getScore());
         doc.setPublishedAt(course.getPublishedAt());
+        doc.setCourseOpenEndDate(course.getCourseOpenEndDate());
+        doc.setIsExpireHide(course.getIsExpireHide());
 
         // 关联字段
         if (course.getTrainerId() != null && course.getTrainerId() > 0) {

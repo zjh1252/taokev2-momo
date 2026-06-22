@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import type { ColumnDef } from '@tanstack/react-table';
 import { CERT_STATUS_MAP, CERT_STATUS_OPTIONS, type AdminWorkCert } from '../../api/types';
 import { CertFileLink } from '../cert-file-link';
+import { CertUserLink } from '../cert-user-link';
 import { AuditCellAction } from '../audit-cell-action';
 import { approveWork, rejectWork } from '../../api/service';
 
@@ -27,14 +28,13 @@ export const columns: ColumnDef<AdminWorkCert>[] = [
   },
   {
     id: 'user',
-    header: '专家',
+    header: '用户名',
     cell: ({ row }) => (
-      <div className='flex flex-col'>
-        <span className='font-medium'>{row.original.nickname || '-'}</span>
-        {row.original.phone && (
-          <span className='text-muted-foreground text-xs'>{row.original.phone}</span>
-        )}
-      </div>
+      <CertUserLink
+        userId={row.original.userId}
+        label={row.original.nickname || '-'}
+        phone={row.original.phone}
+      />
     )
   },
   {

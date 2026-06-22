@@ -20,7 +20,7 @@ import {
 } from '@/features/trainer/api/service';
 import type { TrainerListItem } from '@/features/trainer/types';
 import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recommended';
-import { resolveApiImageSrc, resolveImageSrc } from '@/lib/media';
+import { resolveImageSrc, resolveApiImageSrc } from '@/lib/media';
 import { featuredCases, featuredExperts } from '../data/mock';
 import type { CaseStudy, Expert, InternalCourse, PublicCourse } from '../types';
 
@@ -95,36 +95,21 @@ function pickHomeOpenCourses(list: CourseListItem[], count = 3): CourseListItem[
   return picked.slice(0, count);
 }
 
-/** 推荐位列表封面可能未走详情同款解析，缺封面时用详情接口补齐 */
+/** 首页公开课封面与详情页一致：优先详情接口 coverUrl，再 resolveImageSrc */
 async function enrichPublicCourseCovers(courses: PublicCourse[]): Promise<PublicCourse[]> {
-  const missing = courses.filter((c) => !c.coverUrl?.trim());
-  if (missing.length === 0) {
-    return courses;
-  }
+  if (courses.length === 0) return courses;
 
   const details = await Promise.all(
-    missing.map((course) => getCourseDetail(course.id).catch(() => null))
+    courses.map((course) => getCourseDetail(course.id).catch(() => null))
   );
-  const coverById = new Map<number, string>();
-  missing.forEach((course, index) => {
-    const cover = details[index]?.coverUrl?.trim();
-    if (cover) {
-      coverById.set(course.id, cover);
-    }
+
+  return courses.map((course, index) => {
+    const detailCover = details[index]?.coverUrl?.trim();
+    const slotCover = course.coverUrl?.trim();
+    const raw = detailCover || slotCover || '';
+    const resolved = raw ? resolveImageSrc(raw) : '';
+    return resolved ? { ...course, coverUrl: resolved } : course;
   });
-
-  if (coverById.size === 0) {
-    return courses;
-  }
-
-  return courses.map((course) => ({
-    ...course,
-    coverUrl: course.coverUrl?.trim()
-      ? resolveApiImageSrc(course.coverUrl.trim())
-      : coverById.get(course.id)
-        ? resolveApiImageSrc(coverById.get(course.id))
-        : undefined
-  }));
 }
 
 function parseTags(
@@ -386,7 +371,7 @@ async function loadHomePublicCoursesLegacy(): Promise<PublicCourse[]> {
 export async function loadHomePublicCourses(): Promise<PublicCourse[]> {
   try {
     const slotItems = await getPublicRecommendations(RecommendationSlotCode.HOME_OPEN_COURSE, { limit: 3 });
-    if (slotItems.length >= 3) {
+    if (slotItems.length > 0) {
       const mapped = mapSlotCoursesToPublicCourses(slotItems, (value) =>
         formatPlanStartDate(value ?? undefined)
       );

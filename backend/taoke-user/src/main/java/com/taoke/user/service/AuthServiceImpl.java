@@ -7,6 +7,7 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.AuthService;
 import com.taoke.user.api.VerificationCodeService;
+import com.taoke.user.auth.LoginLockoutService;
 import com.taoke.user.dto.auth.*;
 import com.taoke.user.entity.User;
 import com.taoke.user.entity.UserRole;
@@ -54,6 +55,7 @@ public class AuthServiceImpl implements AuthService {
     private final EventPublisher eventPublisher;
     private final UcenterProperties ucenterProperties;
     private final UcenterClient ucenterClient;
+    private final LoginLockoutService loginLockoutService;
 
     @Value("${taoke.jwt.access-token-expire-ms:7200000}")
     private long accessTokenExpireMs;
@@ -312,11 +314,20 @@ public class AuthServiceImpl implements AuthService {
                 log.warn("UCenter 重置密码失败：username={} rc={}", user.getUsername(), rc);
                 throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE);
             }
+            clearLoginLockout(user);
             return;
         }
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+        clearLoginLockout(user);
+    }
+
+    private void clearLoginLockout(User user) {
+        loginLockoutService.clear(user.getPhone());
+        if (user.getUsername() != null && !user.getUsername().isBlank()) {
+            loginLockoutService.clear(user.getUsername());
+        }
     }
 
     /**

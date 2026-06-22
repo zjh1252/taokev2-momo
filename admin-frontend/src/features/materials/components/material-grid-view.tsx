@@ -67,6 +67,10 @@ export function MaterialGridView({
                       ? 'h-28 w-28 rounded-full'
                       : 'h-28 w-full rounded-md'
                   }`}
+                  onClick={() => {
+                    const url = resolveAssetUrl(item.url);
+                    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                  }}
                 >
                   <Image
                     src={resolveAssetUrl(item.url)}

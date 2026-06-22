@@ -1,19 +1,16 @@
 package com.taoke.course.scheduler;
 
-import com.taoke.course.entity.Course;
-import com.taoke.course.enums.CourseStatus;
 import com.taoke.course.repository.CourseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 过期公开课自动下架 — 全部开课计划均已结束时将已上架公开课下架。
+ * 过期线下公开课识别 — 每日凌晨记录到期且开启自动隐藏的课程 ID，不修改上下架状态。
  *
  * @author Fangxinxin
  * @date 2026-06-11 10:00
@@ -25,26 +22,14 @@ public class ExpiredOpenCourseScheduler {
 
     private final CourseRepository courseRepository;
 
-    @Scheduled(cron = "0 5 * * * ?")
-    @Transactional
-    public void autoUnpublishExpiredOpenCourses() {
-        LocalDateTime now = LocalDateTime.now();
-        List<Integer> ids = courseRepository.findExpiredPublishedOpenCourseIds(now);
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void logExpiredOpenCoursesForHide() {
+        LocalDate today = LocalDate.now();
+        List<Integer> ids = courseRepository.findExpiredHideCandidateIds(today);
         if (ids.isEmpty()) {
+            log.info("过期线下公开课（自动隐藏开启）识别：今日无新增命中");
             return;
         }
-
-        List<Course> courses = courseRepository.findAllById(ids);
-        int count = 0;
-        for (Course course : courses) {
-            if (course.getStatus() == CourseStatus.PUBLISHED.getValue()) {
-                course.setStatus(CourseStatus.UNPUBLISHED.getValue());
-                count++;
-            }
-        }
-        if (count > 0) {
-            courseRepository.saveAll(courses);
-            log.info("自动下架过期公开课 {} 门", count);
-        }
+        log.info("过期线下公开课（自动隐藏开启）识别：共 {} 门，courseIds={}", ids.size(), ids);
     }
 }

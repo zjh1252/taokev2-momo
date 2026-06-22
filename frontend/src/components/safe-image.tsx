@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ImgHTMLAttributes } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   resolveImageSrc,
   resolveApiImageSrc,
@@ -9,14 +9,22 @@ import {
   isUnreliableLegacyImageHost,
 } from '@/lib/media';
 
-type SafeImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt' | 'onError'> & {
+type SafeImageProps = {
   src?: string | null;
   alt?: string;
   fallback?: string;
   fill?: boolean;
   priority?: boolean;
   /** 接口已解析的 URL（含素材库默认），不再二次剔除占位图 */
-  useApiSrc?: boolean;
+  apiResolved?: boolean;
+  className?: string;
+  style?: CSSProperties;
+  width?: number | string;
+  height?: number | string;
+  loading?: 'eager' | 'lazy' | 'auto';
+  sizes?: string;
+  crossOrigin?: '' | 'anonymous' | 'use-credentials';
+  draggable?: boolean;
 };
 
 const MAX_RETRIES = 5;
@@ -37,6 +45,7 @@ function alternateMiddleAvatarUrl(url: string): string | null {
 
 /**
  * 带加载失败回退的图片（原生 img，受控 src）。
+ * 自定义 props 显式声明，避免 reactCompiler 优化后透传到 DOM。
  */
 export function SafeImage({
   src,
@@ -49,16 +58,20 @@ export function SafeImage({
   height,
   className,
   style,
-  useApiSrc = false,
-  ...rest
+  apiResolved = false,
+  sizes,
+  crossOrigin,
+  draggable,
 }: SafeImageProps) {
+  'use no memo';
+
   const resolved = useMemo(() => {
-    if (useApiSrc) {
+    if (apiResolved) {
       return resolveApiImageSrc(src, fallback);
     }
     const cleaned = isPlaceholderLegacyAvatar(src) ? null : src;
     return resolveImageSrc(cleaned, fallback);
-  }, [src, fallback, useApiSrc]);
+  }, [src, fallback, apiResolved]);
   const [displaySrc, setDisplaySrc] = useState(resolved);
   const retryCountRef = useRef(0);
   const onFallbackRef = useRef(false);
@@ -90,10 +103,10 @@ export function SafeImage({
     if (displaySrc === fallback) return;
 
     if (!triedAltExtRef.current) {
-      const alt = alternateMiddleAvatarUrl(displaySrc);
-      if (alt && alt !== displaySrc) {
+      const altUrl = alternateMiddleAvatarUrl(displaySrc);
+      if (altUrl && altUrl !== displaySrc) {
         triedAltExtRef.current = true;
-        setDisplaySrc(alt);
+        setDisplaySrc(altUrl);
         return;
       }
     }
@@ -129,13 +142,15 @@ export function SafeImage({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      {...rest}
       src={displaySrc}
       alt={alt ?? ''}
       width={fill ? undefined : width}
       height={fill ? undefined : height}
       loading={priority ? 'eager' : loading === 'eager' ? 'eager' : 'lazy'}
       decoding="async"
+      sizes={sizes}
+      crossOrigin={crossOrigin}
+      draggable={draggable}
       referrerPolicy={needsNoReferrer(displaySrc) ? 'no-referrer' : undefined}
       className={className}
       style={imgStyle}

@@ -79,6 +79,12 @@ taoke:
     charset: utf-8
     timeout-ms: 10000
     user-agent: Taoke-UCenter-Client/2.0
+  # 密码登录失败锁定：连续密码错误达阈值后锁定账号
+  auth:
+    login-lockout:
+      enabled: true
+      max-failures: 5
+      lock-duration-minutes: 30
   # 滑块行为验证码（tianai-captcha）。前端接入完成前先关闭，接好后置 true 启用
   captcha:
     enabled: true

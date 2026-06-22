@@ -30,6 +30,20 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { stripHtml } from '@/lib/seo/helpers';
+
+const FIELD_ANCHORS = {
+  title: 'course-field-title',
+  category: 'course-field-category',
+  cover: 'course-field-cover',
+  duration: 'course-field-duration',
+  plans: 'course-field-plans',
+  intro: 'course-field-intro',
+} as const;
+
+function scrollToCourseField(key: keyof typeof FIELD_ANCHORS) {
+  document.getElementById(FIELD_ANCHORS[key])?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 
 interface CourseFormProps {
   initialData?: CourseDetail;
@@ -247,14 +261,47 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
    * @param draft true=保存草稿（仅校验标题），false=提交审核（完整校验）
    */
   const submitForm = async (draft: boolean) => {
-    if (!title.trim()) { toast.error('请填写课程标题'); return; }
+    const fail = (message: string, anchor?: keyof typeof FIELD_ANCHORS) => {
+      toast.error(message);
+      if (anchor) scrollToCourseField(anchor);
+    };
+
+    if (!title.trim()) {
+      fail('请填写课程标题', 'title');
+      return;
+    }
     if (!draft) {
-      if (!durationDays || durationDays < 1) { toast.error('课程天数至少 1 天'); return; }
-      if (!totalHours || totalHours < 1) { toast.error('课程总时长至少 1 小时'); return; }
+      if (!categoryId) {
+        fail('请选择课程分类', 'category');
+        return;
+      }
+      if (!coverUrl.trim()) {
+        fail('请上传课程封面', 'cover');
+        return;
+      }
+      if (!durationDays || durationDays < 1) {
+        fail('课程天数至少 1 天', 'duration');
+        return;
+      }
+      if (!totalHours || totalHours < 1) {
+        fail('课程总时长至少 1 小时', 'duration');
+        return;
+      }
+      if (stripHtml(intro).length === 0) {
+        fail('请填写课程介绍', 'intro');
+        return;
+      }
       if (hasPlan) {
+        if (plans.length === 0) {
+          fail('请添加至少一条开课计划', 'plans');
+          return;
+        }
         for (let i = 0; i < plans.length; i++) {
           const err = validatePlanTime(plans[i], i) ?? validatePlanFields(plans[i], planType, i);
-          if (err) { toast.error(err); return; }
+          if (err) {
+            fail(err, 'plans');
+            return;
+          }
         }
       }
     }
@@ -300,6 +347,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
         {/* ===== 区块1：基本信息 ===== */}
         <FormSection
           title="基本信息"
+          anchorId={FIELD_ANCHORS.title}
           headerRight={
             <MaterialUploadButton
               value={materialUrl}
@@ -312,7 +360,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="输入课程标题，建议 10-40 个字" maxLength={80} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
           </FieldRow>
 
-          <FieldRow label="课程分类">
+          <FieldRow label="课程分类" required anchorId={FIELD_ANCHORS.category}>
             <div className="flex gap-3">
               <div className="relative">
                 <select value={categoryId} onChange={(e) => { setCategoryId(Number(e.target.value)); setSubCategoryId(0); }} className="appearance-none border border-slate-200 rounded-lg pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white min-w-[160px]">
@@ -333,7 +381,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
             </div>
           </FieldRow>
 
-          <FieldRow label="课程封面">
+          <FieldRow label="课程封面" required anchorId={FIELD_ANCHORS.cover}>
             <div className="space-y-2">
               <ImageCropperUploader
                 value={coverUrl}
@@ -350,7 +398,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
             </div>
           </FieldRow>
 
-          <FieldRow label="课程时长" required>
+          <FieldRow label="课程时长" required anchorId={FIELD_ANCHORS.duration}>
             <div className="flex items-center gap-2">
               <input
                 type="number"
@@ -394,7 +442,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
           </FieldRow>
 
           {/* 开课计划 */}
-          <FieldRow label="开课计划">
+          <FieldRow label="开课计划" anchorId={FIELD_ANCHORS.plans}>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -458,7 +506,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
         </FormSection>
 
         {/* ===== 区块2：课程介绍（富文本详细） ===== */}
-        <FormSection title="课程介绍" required>
+        <FormSection title="课程介绍" required anchorId={FIELD_ANCHORS.intro}>
           <RichTextEditor value={intro} onChange={setIntro} placeholder="输入课程详细介绍..." />
         </FormSection>
 
@@ -644,16 +692,19 @@ function FormSection({
   title,
   required,
   headerRight,
+  anchorId,
   children,
 }: {
   title: string;
   required?: boolean;
   /** 标题行右侧自定义内容（如 AI 解析按钮） */
   headerRight?: React.ReactNode;
+  /** 校验失败时滚动定位锚点 */
+  anchorId?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+    <div id={anchorId} className="bg-white rounded-lg border border-slate-200 overflow-hidden scroll-mt-24">
       <div className="px-6 py-3.5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
         <h3 className="text-sm font-bold text-gray-700">
           {title}
@@ -667,9 +718,22 @@ function FormSection({
 }
 
 /* ---- 表单行 ---- */
-function FieldRow({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function FieldRow({
+  label,
+  required,
+  anchorId,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  anchorId?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 mb-5 last:mb-0">
+    <div
+      id={anchorId}
+      className="flex flex-col sm:flex-row gap-2 sm:gap-6 mb-5 last:mb-0 scroll-mt-24"
+    >
       <div className="sm:w-[100px] shrink-0 pt-2">
         <label className="text-sm text-gray-600">
           {label}

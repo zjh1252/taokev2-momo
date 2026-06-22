@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -43,6 +44,12 @@ public class CourseDocument extends BaseDocument {
     private BigDecimal score;
 
     private LocalDateTime publishedAt;
+
+    /** 线下公开课结束日期（用于搜索侧按日过滤到期隐藏） */
+    private LocalDate courseOpenEndDate;
+
+    /** 到期是否前台自动隐藏：1=是 0=否 */
+    private Integer isExpireHide;
 
     // ==================== 关联字段（由 Provider 构建时填充） ====================
 

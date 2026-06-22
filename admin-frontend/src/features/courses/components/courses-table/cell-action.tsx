@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { InlineAuditActions } from '@/components/admin/inline-audit-actions';
 import type { AdminCourse } from '../../api/types';
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   approveCourse,
+  batchUpdateExpireHide,
   rejectCourse,
   unpublishCourse,
   toggleFeatured
@@ -19,6 +20,7 @@ interface CellActionProps {
 }
 
 export function CellAction({ data }: CellActionProps) {
+  const queryClient = useQueryClient();
   const [unpublishOpen, setUnpublishOpen] = useState(false);
 
   const isPending = data.status === 1;
@@ -40,6 +42,19 @@ export function CellAction({ data }: CellActionProps) {
     },
     onError: () => toast.error('操作失败')
   });
+
+  const expireHideMutation = useMutation({
+    mutationFn: (next: 0 | 1) => batchUpdateExpireHide([data.id], next),
+    onSuccess: (_, next) => {
+      toast.success(next === 1 ? '已开启到期自动隐藏' : '已关闭到期自动隐藏');
+    },
+    onError: () => toast.error('操作失败'),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: courseKeys.all });
+    }
+  });
+
+  const isOfflineOpen = data.type === 'OPEN_OFFLINE';
 
   return (
     <>
@@ -81,6 +96,18 @@ export function CellAction({ data }: CellActionProps) {
             >
               {data.isFeatured === 1 ? '取消主打' : '设为主打'}
             </Button>
+            {isOfflineOpen ? (
+              <Button
+                size='sm'
+                variant='outline'
+                onClick={() =>
+                  expireHideMutation.mutate(data.isExpireHide === 1 ? 0 : 1)
+                }
+                disabled={expireHideMutation.isPending}
+              >
+                {data.isExpireHide === 1 ? '关闭自动隐藏' : '开启自动隐藏'}
+              </Button>
+            ) : null}
           </>
         }
         idleLabel={

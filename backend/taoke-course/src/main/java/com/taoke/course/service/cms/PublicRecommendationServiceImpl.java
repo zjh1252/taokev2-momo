@@ -10,6 +10,7 @@ import com.taoke.course.dto.course.CourseListItemVO;
 import com.taoke.course.entity.Course;
 import com.taoke.course.entity.cms.RecommendedResource;
 import com.taoke.course.repository.RecommendedResourceRepository;
+import com.taoke.course.support.OpenCourseExpireSupport;
 import com.taoke.user.api.TrainerCaseService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.dto.trainercase.TrainerCaseResponse;
@@ -88,6 +89,8 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
 
         return enriched.stream()
                 .filter(this::isPublished)
+                .filter(item -> !"COURSE".equals(item.getResourceType())
+                        || courseById.containsKey(item.getResourceId()))
                 .map(item -> toPublicVO(item, courseById, caseById, trainerById, trainerAvatarById))
                 .limit(limit > 0 ? limit : Integer.MAX_VALUE)
                 .toList();
@@ -107,7 +110,9 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
         if (ids.isEmpty()) {
             return Map.of();
         }
-        List<Course> courses = courseService.findByIds(ids);
+        List<Course> courses = courseService.findByIds(ids).stream()
+                .filter(course -> !OpenCourseExpireSupport.shouldHideFromPublic(course))
+                .toList();
         return courseService.assembleListItems(courses).stream()
                 .collect(Collectors.toMap(CourseListItemVO::getId, item -> item, (a, b) -> a));
     }

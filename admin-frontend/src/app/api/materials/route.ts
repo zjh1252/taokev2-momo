@@ -1,4 +1,4 @@
-import { serverFetch } from '@/lib/server-fetch';
+import { serverFetchWithStatus } from '@/lib/server-fetch';
 import { NextRequest, NextResponse } from 'next/server';
 
 function buildQuery(searchParams: URLSearchParams) {
@@ -24,15 +24,17 @@ function buildQuery(searchParams: URLSearchParams) {
 
 export async function GET(request: NextRequest) {
   const params = buildQuery(request.nextUrl.searchParams);
-  const result = await serverFetch<unknown>(`/admin/materials?${params.toString()}`);
-  return NextResponse.json(result);
+  const { status, body } = await serverFetchWithStatus<unknown>(
+    `/admin/materials?${params.toString()}`
+  );
+  return NextResponse.json(body, { status });
 }
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const result = await serverFetch<unknown>('/admin/materials', {
+  const { status, body: result } = await serverFetchWithStatus<unknown>('/admin/materials', {
     method: 'POST',
     body: JSON.stringify(body)
   });
-  return NextResponse.json(result);
+  return NextResponse.json(result, { status });
 }

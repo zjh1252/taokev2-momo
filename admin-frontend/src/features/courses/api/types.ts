@@ -20,6 +20,9 @@ export type AdminCourse = {
   trainerName: string | null;
   publishedAt: string | null;
   createdAt: string;
+  courseOpenEndDate: string | null;
+  isExpireHide: number;
+  isOverdue: boolean;
 };
 
 /** 课程详情中的开课计划（对齐后端 CoursePlanDTO） */
@@ -76,6 +79,9 @@ export type AdminCourseDetail = {
   createdAt: string;
   updatedAt: string;
   plans: CoursePlanItem[] | null;
+  courseOpenEndDate?: string | null;
+  isExpireHide?: number | null;
+  isOverdue?: boolean;
 };
 
 export type CourseDetailResponse = {

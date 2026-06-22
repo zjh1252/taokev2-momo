@@ -40,6 +40,10 @@
           <view v-if="course.typeLabel" class="cover__tag">{{ course.typeLabel }}</view>
         </view>
 
+        <view v-if="course.isOverdue" class="expired-banner">
+          <text class="expired-banner__txt">该线下公开课已结束，仅可查看历史课程资料</text>
+        </view>
+
         <!-- 标题 + 元数据 + 价格 -->
         <view class="meta-card">
           <text class="meta-card__title">{{ course.title || '—' }}</text>
@@ -140,7 +144,7 @@
     </scroll-view>
 
     <!-- 吸底操作栏 -->
-    <TkActionBar>
+    <TkActionBar v-if="!course.isOverdue">
       <TkActionBtn icon="chat" label="咨询客服" @tap="onConsult" />
       <TkActionBtn
         icon="heart"
@@ -324,6 +328,20 @@ onLoad((opt) => {
     font-size: $tk-fs-xs;
     font-weight: 700;
     border-radius: $tk-radius-xs;
+  }
+}
+
+.expired-banner {
+  margin-top: $tk-sp-2;
+  padding: 20rpx 24rpx;
+  border-radius: $tk-radius-md;
+  background: #f1f5f9;
+  border: 1rpx solid $tk-divider;
+
+  &__txt {
+    font-size: 26rpx;
+    color: $tk-text-2;
+    line-height: 1.5;
   }
 }
 

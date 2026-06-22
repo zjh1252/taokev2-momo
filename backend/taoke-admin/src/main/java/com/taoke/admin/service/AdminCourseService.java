@@ -12,6 +12,7 @@ import com.taoke.course.entity.Course;
 import com.taoke.course.entity.CoursePlan;
 import com.taoke.course.enums.CourseStatus;
 import com.taoke.course.enums.CourseType;
+import com.taoke.course.support.OpenCourseExpireSupport;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.entity.Institution;
@@ -105,6 +106,9 @@ public class AdminCourseService {
             vo.setEnrollmentCount(course.getEnrollmentCount());
             vo.setPublishedAt(course.getPublishedAt());
             vo.setCreatedAt(course.getCreatedAt());
+            vo.setCourseOpenEndDate(course.getCourseOpenEndDate());
+            vo.setIsExpireHide(course.getIsExpireHide());
+            vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(course));
 
             Trainer trainer = trainerMap.get(course.getTrainerId());
             if (trainer != null) {
@@ -177,6 +181,13 @@ public class AdminCourseService {
      */
     public void toggleFeatured(Integer courseId) {
         courseService.toggleFeatured(courseId);
+    }
+
+    /**
+     * 批量更新「到期自动隐藏」开关
+     */
+    public void batchUpdateExpireHide(java.util.List<Integer> ids, Integer isExpireHide) {
+        courseService.batchUpdateExpireHide(ids, isExpireHide);
     }
 
     /**

@@ -11,6 +11,7 @@ import jakarta.persistence.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -76,9 +77,13 @@ public class CityChannelServiceImpl implements CityChannelService {
                         + "  AND c.type = com.taoke.course.enums.CourseType.OPEN_OFFLINE "
                         + "  AND cp.cityId > 0 "
                         + "  AND cp.startTime >= :now "
+                        + "  AND (c.isExpireHide IS NULL OR c.isExpireHide <> 1 "
+                        + "       OR c.courseOpenEndDate IS NULL "
+                        + "       OR c.courseOpenEndDate >= :today) "
                         + "GROUP BY cp.cityId "
                         + "ORDER BY COUNT(DISTINCT cp.courseId) DESC, cp.cityId ASC");
         q.setParameter("now", LocalDateTime.now());
+        q.setParameter("today", LocalDate.now());
         q.setMaxResults(limit);
         @SuppressWarnings("unchecked")
         List<Object[]> rows = q.getResultList();

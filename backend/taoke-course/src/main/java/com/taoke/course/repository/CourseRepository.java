@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -40,6 +41,12 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
                     OR c.sub_category_id = sc.id
                     OR c.sub_category_id = sc2.id
                 )
+                AND NOT (
+                    c.type = 'OPEN_OFFLINE'
+                    AND c.is_expire_hide = 1
+                    AND c.course_open_end_date IS NOT NULL
+                    AND c.course_open_end_date < CURDATE()
+                )
             WHERE sc.type = 'COURSE_CATEGORY'
               AND sc.level = 1
               AND sc.is_visible = 1
@@ -59,6 +66,12 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
                     OR c.sub_category_id = sc.id
                     OR c.sub_category_id = sc2.id
                 )
+                AND NOT (
+                    c.type = 'OPEN_OFFLINE'
+                    AND c.is_expire_hide = 1
+                    AND c.course_open_end_date IS NOT NULL
+                    AND c.course_open_end_date < CURDATE()
+                )
             INNER JOIN course_plans cp ON cp.course_id = c.id AND cp.city_id IN (:cityIds)
             WHERE sc.type = 'COURSE_CATEGORY'
               AND sc.level = 1
@@ -67,13 +80,14 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
             """, nativeQuery = true)
     List<Object[]> countPublishedOpenByCategoryL1AndCityIds(@Param("cityIds") Collection<Integer> cityIds);
 
-    /** 已上架公开课：全部开课计划均已结束 */
+    /** 已上架线下公开课：到期且开启自动隐藏（定时任务日志用） */
     @Query("""
             SELECT c.id FROM Course c
             WHERE c.status = 2
-            AND c.type IN (com.taoke.course.enums.CourseType.OPEN_OFFLINE, com.taoke.course.enums.CourseType.OPEN_ONLINE)
-            AND EXISTS (SELECT 1 FROM CoursePlan p WHERE p.courseId = c.id)
-            AND NOT EXISTS (SELECT 1 FROM CoursePlan p WHERE p.courseId = c.id AND p.endTime >= :now)
+            AND c.type = com.taoke.course.enums.CourseType.OPEN_OFFLINE
+            AND c.isExpireHide = 1
+            AND c.courseOpenEndDate IS NOT NULL
+            AND c.courseOpenEndDate < :today
             """)
-    List<Integer> findExpiredPublishedOpenCourseIds(@Param("now") LocalDateTime now);
+    List<Integer> findExpiredHideCandidateIds(@Param("today") LocalDate today);
 }

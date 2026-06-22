@@ -65,6 +65,7 @@ export default async function VideosPage({ searchParams }: Props) {
         initialInstitutionId={validInstitutionId}
         initialInstitutionName={institution?.orgName}
         initialCategoryId={categoryId}
+        initialCategoryName={categoryName}
         bottomCategoryNav={{
           title: '视频分类',
           countUnit: '门',

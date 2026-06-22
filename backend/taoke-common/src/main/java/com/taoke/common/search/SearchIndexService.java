@@ -21,6 +21,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -271,6 +272,21 @@ public class SearchIndexService {
                     ));
                 }
 
+                // 课程搜索：排除到期且开启自动隐藏的线下公开课（按查询日实时判断）
+                if ("course".equalsIgnoreCase(request.getDocType())) {
+                    String today = LocalDate.now().toString();
+                    boolQuery.filter(f -> f.bool(b -> b
+                            .should(sh -> sh.bool(inner -> inner.mustNot(mn -> mn.term(t -> t
+                                    .field("type")
+                                    .value("OPEN_OFFLINE")))))
+                            .should(sh -> sh.term(t -> t.field("isExpireHide").value(0)))
+                            .should(sh -> sh.bool(inner -> inner.mustNot(mn -> mn.exists(e -> e
+                                    .field("courseOpenEndDate")))))
+                            .should(sh -> sh.range(r -> r.date(d -> d.field("courseOpenEndDate").gte(today))))
+                            .minimumShouldMatch("1")
+                    ));
+                }
+
                 // 课程子类型过滤（支持多选，如公开课 = OPEN_OFFLINE + OPEN_ONLINE）
                 if (request.getCourseType() != null && !request.getCourseType().isEmpty()) {
                     List<FieldValue> values = request.getCourseType().stream()
@@ -470,6 +486,8 @@ public class SearchIndexService {
                 .properties("subCategoryId", p -> p.integer(i -> i))
                 .properties("price", p -> p.scaledFloat(sf -> sf.scalingFactor(100.0)))
                 .properties("durationDays", p -> p.integer(i -> i))
+                .properties("courseOpenEndDate", p -> p.date(d -> d.format("yyyy-MM-dd||strict_date_optional_time||epoch_millis")))
+                .properties("isExpireHide", p -> p.integer(i -> i))
                 // 专家过滤字段
                 .properties("provinceId", p -> p.integer(i -> i))
                 .properties("cityId", p -> p.integer(i -> i))

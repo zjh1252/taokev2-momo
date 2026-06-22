@@ -41,10 +41,9 @@ function CourseCard({ course }: { course: InternalCourse }) {
         <SafeImage
           src={course.coverUrl}
           alt={course.title}
-          width={240}
-          height={160}
-          useApiSrc
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          fill
+          apiResolved
+          className="object-cover transition-transform group-hover:scale-105"
         />
       </div>
 

@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -146,4 +147,12 @@ public class Course extends BaseEntity {
     /** 上线时间 */
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
+
+    /** 线下公开课结束日期（最晚场次 end_time 的日期部分） */
+    @Column(name = "course_open_end_date")
+    private LocalDate courseOpenEndDate;
+
+    /** 到期是否前台自动隐藏：1=是 0=否（仅线下公开课生效） */
+    @Column(name = "is_expire_hide", nullable = false, columnDefinition = "tinyint(2)")
+    private Integer isExpireHide = 1;
 }

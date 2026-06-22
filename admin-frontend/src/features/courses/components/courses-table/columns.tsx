@@ -62,7 +62,7 @@ export const columns: ColumnDef<AdminCourse>[] = [
       <DataTableColumnHeader column={column} title='课程名称' />
     ),
     cell: ({ row }) => (
-      <div className='flex flex-col'>
+      <div className='flex flex-col max-w-[220px]'>
         <div className='flex items-center gap-2'>
           <Link
             href={`/dashboard/courses/${row.original.id}`}
@@ -89,6 +89,7 @@ export const columns: ColumnDef<AdminCourse>[] = [
       variant: 'text' as const,
       icon: Icons.text
     },
+    size: 220,
     enableColumnFilter: true
   },
   {
@@ -138,11 +139,6 @@ export const columns: ColumnDef<AdminCourse>[] = [
     cell: ({ cell }) => cell.getValue<string>() || '-'
   },
   {
-    accessorKey: 'trainerName',
-    header: '所属专家',
-    cell: ({ cell }) => cell.getValue<string>() || '-'
-  },
-  {
     accessorKey: 'price',
     header: '价格',
     cell: ({ row }) => {
@@ -156,11 +152,18 @@ export const columns: ColumnDef<AdminCourse>[] = [
     accessorKey: 'status',
     header: '状态',
     enableColumnFilter: true,
-    cell: ({ cell }) => {
-      const status = cell.getValue<number>();
+    cell: ({ row }) => {
+      const status = row.original.status;
+      const isOverdue = row.original.isOverdue;
+      const label =
+        status === 2 && isOverdue
+          ? `${COURSE_STATUS_MAP[status] ?? '未知'} · 已过期`
+          : (COURSE_STATUS_MAP[status] ?? '未知');
       return (
         <Badge variant={statusVariant(status)}>
-          {COURSE_STATUS_MAP[status] ?? '未知'}
+          <span className={status === 2 && isOverdue ? 'text-muted-foreground' : undefined}>
+            {label}
+          </span>
         </Badge>
       );
     },

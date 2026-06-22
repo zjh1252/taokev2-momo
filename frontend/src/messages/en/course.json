@@ -32,6 +32,7 @@
     "planTime": "Class Time",
     "consult": "Consult Now",
     "reserve": "Reserve Now",
+    "expiredBanner": "This offline open course has ended. Historical materials are available for viewing only.",
     "enroll": "Enroll Now",
     "favorite": "Add to Favorites",
     "share": "Share",

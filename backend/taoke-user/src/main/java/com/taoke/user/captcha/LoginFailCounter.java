@@ -9,7 +9,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * 登录失败计数（Redis，按 账号 + IP 维度）。
  * <p>
- * C 端账号密码登录：当失败次数 ≥ 1 时要求滑块验证；登录成功即清零。
+ * C 端账号密码登录：当失败次数 ≥ 阈值时要求滑块验证；登录成功即清零。
+ * 连续密码错误锁定见 {@link com.taoke.user.auth.LoginLockoutService}。
  *
  * @author Fangxinxin
  * @date 2026-05-23 15:00

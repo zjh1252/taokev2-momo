@@ -79,6 +79,7 @@ function ExpertCoverImage({
       />
     );
   }
+  const fillClass = fill ? 'absolute inset-0 h-full w-full object-cover' : '';
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -86,10 +87,10 @@ function ExpertCoverImage({
       alt={alt}
       width={fill ? undefined : width}
       height={fill ? undefined : height}
-      loading={fill ? 'lazy' : 'lazy'}
+      loading="lazy"
       decoding="async"
       referrerPolicy={resolved.startsWith('http') ? 'no-referrer' : undefined}
-      className={className}
+      className={[fillClass, className].filter(Boolean).join(' ')}
     />
   );
 }

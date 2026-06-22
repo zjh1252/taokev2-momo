@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api-client';
+import { apiClient, assertApiOk } from '@/lib/api-client';
 import type {
   BatchMaterialPayload,
   MaterialFilters,
@@ -30,17 +30,21 @@ export async function getMaterials(
 }
 
 export async function createMaterial(payload: SaveMaterialPayload) {
-  return apiClient<MaterialResponse>('/materials', {
+  const resp = await apiClient<MaterialResponse>('/materials', {
     method: 'POST',
     body: JSON.stringify(payload)
   });
+  assertApiOk(resp);
+  return resp;
 }
 
 export async function updateMaterial(id: number, payload: UpdateMaterialPayload) {
-  return apiClient<MaterialResponse>(`/materials/${id}`, {
+  const resp = await apiClient<MaterialResponse>(`/materials/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload)
   });
+  assertApiOk(resp);
+  return resp;
 }
 
 export async function deleteMaterial(id: number) {

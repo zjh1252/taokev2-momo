@@ -4,6 +4,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getCourseDetail } from '@/features/course/api/service';
 import { CourseHero } from '@/features/course/components/detail/CourseHero';
+import { ExpiredCourseBanner } from '@/features/course/components/detail/ExpiredCourseBanner';
 import { CourseSidebar } from '@/features/course/components/detail/CourseSidebar';
 import { CourseDetailTabs } from '@/features/course/components/detail/CourseDetailTabs';
 
@@ -51,6 +52,8 @@ export default async function OpenCourseDetailPage({ params }: Props) {
           { label: course.title || '公开课详情' },
         ]}
       />
+
+      <ExpiredCourseBanner show={Boolean(course.isOverdue)} />
 
       <CourseHero course={course} />
 

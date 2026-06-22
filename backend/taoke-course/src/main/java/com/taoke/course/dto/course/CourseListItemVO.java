@@ -3,6 +3,7 @@ package com.taoke.course.dto.course;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -56,4 +57,13 @@ public class CourseListItemVO {
 
     /** 最近一场开课城市名称（公开课列表展示用） */
     private String nextPlanCity;
+
+    /** 是否已过期（线下公开课且结束日期早于今日，后台列表用） */
+    private Boolean isOverdue;
+
+    /** 公开课报名截止日期 */
+    private LocalDate courseOpenEndDate;
+
+    /** 过期后是否隐藏（1=隐藏，0=不隐藏） */
+    private Integer isExpireHide;
 }

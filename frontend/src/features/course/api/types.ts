@@ -189,6 +189,12 @@ export interface CourseDetail {
   createdAt: string;
   updatedAt: string;
   plans: CoursePlan[];
+  /** 线下公开课结束日期 */
+  courseOpenEndDate?: string | null;
+  /** 到期是否前台自动隐藏：1=是 0=否 */
+  isExpireHide?: number | null;
+  /** 是否已过期（线下公开课且结束日期早于今日） */
+  isOverdue?: boolean;
 }
 
 /**

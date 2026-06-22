@@ -123,12 +123,6 @@ export default function RoleApplyPage({ params }: { params: Promise<{ role: stri
   const handleSubmit = async () => {
     if (submitLockRef.current || submitting) return;
 
-    const roleRecord = user.roles.find((r) => r.role === role);
-    if (roleRecord?.status === 1 && roleRecord.reapplying) {
-      toast.error('资料修改已提交，正在审核中，请耐心等待');
-      return;
-    }
-
     // 表单验证：失败时仅 toast 提示，避免顶部红条占位
     const rules = VALIDATION_RULES_MAP[role];
     const validation = validateForm(formData, rules);

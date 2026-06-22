@@ -82,3 +82,11 @@ export async function toggleFeatured(courseId: number) {
     { method: 'PUT' }
   );
 }
+
+/** 批量更新到期自动隐藏 */
+export async function batchUpdateExpireHide(ids: number[], isExpireHide: 0 | 1) {
+  return apiClient<{ code: number; message: string }>(
+    '/courses/expire-hide',
+    { method: 'PUT', body: JSON.stringify({ ids, isExpireHide }) }
+  );
+}

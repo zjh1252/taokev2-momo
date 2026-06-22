@@ -20,6 +20,7 @@ interface VideoListSectionProps {
   initialInstitutionId?: number;
   initialInstitutionName?: string;
   initialCategoryId?: number;
+  initialCategoryName?: string;
   bottomCategoryNav?: {
     title: string;
     countUnit: string;
@@ -37,6 +38,16 @@ const SORT_OPTIONS = [
 
 const PAGE_SIZE = 15;
 
+/** 解析当前选中分类对应的一级分类 ID（顶部分类栏高亮用） */
+function resolveTopCategoryId(tree: CategoryTreeNode[], categoryId?: number): number | undefined {
+  if (!categoryId) return undefined;
+  for (const cat of tree) {
+    if (cat.id === categoryId) return cat.id;
+    if (cat.children?.some((child) => child.id === categoryId)) return cat.id;
+  }
+  return categoryId;
+}
+
 export function VideoListSection(props: VideoListSectionProps) {
   return (
     <Suspense fallback={<div className="min-h-[320px] animate-pulse rounded-xl bg-slate-100" />}>
@@ -51,14 +62,21 @@ function VideoListSectionInner({
   initialInstitutionId,
   initialInstitutionName,
   initialCategoryId,
+  initialCategoryName,
   bottomCategoryNav,
 }: VideoListSectionProps) {
   const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
   const [data, setData] = useState(initialData);
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>(initialCategoryId);
-  const [selectedCategoryName, setSelectedCategoryName] = useState<string | undefined>();
-  const selectedCategoryRef = useRef<number | undefined>(undefined);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string | undefined>(
+    initialCategoryName,
+  );
+  const selectedCategoryRef = useRef<number | undefined>(initialCategoryId);
   selectedCategoryRef.current = selectedCategory;
+  const topCategoryId = useMemo(
+    () => resolveTopCategoryId(categoryTree, selectedCategory),
+    [categoryTree, selectedCategory],
+  );
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
   const [sortKey, setSortKey] = useState('default');
   const [keyword, setKeyword] = useState(keywordFromUrl);
@@ -85,9 +103,18 @@ function VideoListSectionInner({
       setData(initialData);
       setCurrentPage(initialData.page ?? 1);
       setSelectedCategory(initialCategoryId);
+      selectedCategoryRef.current = initialCategoryId;
+      setSelectedCategoryName(initialCategoryName);
       setInstitutionId(initialInstitutionId);
     });
-  }, [serverFilterKey, initialData, initialCategoryId, initialInstitutionId, startTransition]);
+  }, [
+    serverFilterKey,
+    initialData,
+    initialCategoryId,
+    initialCategoryName,
+    initialInstitutionId,
+    startTransition,
+  ]);
 
   const syncUrl = useCallback(
     (page: number, catId?: number, catName?: string) => {
@@ -166,6 +193,7 @@ function VideoListSectionInner({
 
   const handleCategoryChange = useCallback(
     (catId?: number, catName?: string) => {
+      selectedCategoryRef.current = catId;
       setSelectedCategory(catId);
       setSelectedCategoryName(catName);
       syncUrl(1, catId, catName);
@@ -233,7 +261,7 @@ function VideoListSectionInner({
             onClick={() => handleCategoryChange(undefined)}
             className={cn(
               'px-3 py-1 text-sm rounded-full transition-colors',
-              !selectedCategory
+              !topCategoryId
                 ? 'bg-primary text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
             )}
@@ -246,7 +274,7 @@ function VideoListSectionInner({
               onClick={() => handleCategoryChange(cat.id, cat.name)}
               className={cn(
                 'px-3 py-1 text-sm rounded-full transition-colors',
-                selectedCategory === cat.id
+                topCategoryId === cat.id
                   ? 'bg-primary text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
               )}

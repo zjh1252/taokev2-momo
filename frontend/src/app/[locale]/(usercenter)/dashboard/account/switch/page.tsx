@@ -149,7 +149,9 @@ export default function AccountSwitchPage() {
             const isReapplying = reapplyingRoles.has(role.code);
             const isCurrent = activeRole === role.code;
             const canEditProfile =
-              isActive && !isReapplying && role.code !== 'BUYER' && applyableRoleCodes.has(role.code);
+              isActive && role.code !== 'BUYER' && applyableRoleCodes.has(role.code);
+            const editProfileLabel = isReapplying ? '修改已提交资料' : '修改角色资料';
+            const canContinueApply = isPending && applyableRoleCodes.has(role.code);
             const Icon = role.icon;
 
             return (
@@ -212,7 +214,17 @@ export default function AccountSwitchPage() {
                         className="inline-flex items-center gap-1 text-gray-500 hover:text-primary font-medium cursor-pointer"
                       >
                         <Pencil className="size-3" />
-                        修改角色资料
+                        {editProfileLabel}
+                      </button>
+                    )}
+                    {canContinueApply && (
+                      <button
+                        type="button"
+                        onClick={() => handleApply(role.code)}
+                        className="inline-flex items-center gap-1 text-amber-700 hover:text-primary font-medium cursor-pointer"
+                      >
+                        <Pencil className="size-3" />
+                        继续完善资料
                       </button>
                     )}
                     {isPending && (

@@ -72,6 +72,7 @@ export function CourseDetailTabs({
                 activePlanCode={activePlanCode}
                 title={planTableTitle}
                 upcomingOnly={!planTableTitle}
+                courseOverdue={Boolean(course.isOverdue)}
               />
             )}
 

@@ -29,7 +29,7 @@ export function TrainerCategoryExpertBar({ items }: { items: TrainerListItem[] }
                   src={t.avatar}
                   alt={displayName}
                   fill
-                  useApiSrc
+                  apiResolved
                   sizes="64px"
                   className="object-cover"
                 />

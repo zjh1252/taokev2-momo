@@ -361,6 +361,20 @@ function VideoManageCard({
           <Edit className="size-3.5" />
           编辑
         </Link>
+        {video.videoType === 'SERIES' && (
+          <Link
+            href={`/dashboard/video/${video.id}/series`}
+            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
+          >
+            系列管理
+          </Link>
+        )}
+        <Link
+          href={`/dashboard/video/${video.id}/chapters`}
+          className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
+        >
+          章节管理
+        </Link>
         {!isPending && !isPublished && (
           <button
             type="button"

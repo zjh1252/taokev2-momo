@@ -215,4 +215,12 @@ public interface CourseService {
      * 录播课详情页相关面授课：同分类公开课+内训课，优先仍可报名且热度高
      */
     List<CourseListItemVO> listRelatedForVideo(Integer categoryId, Integer subCategoryId, int limit);
+
+    /**
+     * 批量更新「到期自动隐藏」开关（后台运营）
+     *
+     * @param courseIds    课程 ID 列表
+     * @param isExpireHide 1=开启 0=关闭
+     */
+    void batchUpdateExpireHide(List<Integer> courseIds, Integer isExpireHide);
 }

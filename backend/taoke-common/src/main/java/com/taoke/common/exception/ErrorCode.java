@@ -53,6 +53,7 @@ public enum ErrorCode {
     UCENTER_REGISTER_FAILED(400, 10019, "注册失败，请稍后再试"),
     SMS_SEND_FAILED(503, 10020, "短信发送失败，请稍后再试"),
     CAPTCHA_REQUIRED(400, 10021, "请先完成滑块验证"),
+    ACCOUNT_LOGIN_LOCKED(403, 10022, "密码错误次数过多，账号已锁定，请稍后再试"),
 
     /* ==================== 权限 101xx ==================== */
     UNAUTHORIZED(401, 10101, "请先登录"),

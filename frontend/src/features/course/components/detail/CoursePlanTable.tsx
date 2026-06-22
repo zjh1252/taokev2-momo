@@ -15,6 +15,8 @@ interface CoursePlanTableProps {
   title?: string;
   /** 仅展示未开课的场次（「近期开课计划」） */
   upcomingOnly?: boolean;
+  /** 课程整体已过期时，场次状态一律展示为已结束 */
+  courseOverdue?: boolean;
 }
 
 export function CoursePlanTable({
@@ -23,6 +25,7 @@ export function CoursePlanTable({
   activePlanCode,
   title,
   upcomingOnly = false,
+  courseOverdue = false,
 }: CoursePlanTableProps) {
   const t = useTranslations('course.plan');
 
@@ -43,10 +46,9 @@ export function CoursePlanTable({
     return '-';
   };
 
-  const visiblePlans = plans
+  const allPlans = plans
     .map((plan, index) => ({ plan, index, planCode: formatPlanCode(courseId, index + 1) }))
     .filter(({ planCode }) => planCode !== activePlanCode)
-    .filter(({ plan }) => !upcomingOnly || isPlanEnrolling(plan))
     .sort((a, b) => {
       const ta = new Date(a.plan.startTime).getTime();
       const tb = new Date(b.plan.startTime).getTime();
@@ -55,6 +57,13 @@ export function CoursePlanTable({
       if (Number.isNaN(tb)) return -1;
       return ta - tb;
     });
+
+  // upcomingOnly 时优先展示未开课的场次；全部已结束时回退到最近的历史场次
+  let visiblePlans = allPlans;
+  if (upcomingOnly) {
+    const upcoming = allPlans.filter(({ plan }) => isPlanEnrolling(plan));
+    visiblePlans = upcoming.length > 0 ? upcoming : allPlans;
+  }
 
   if (visiblePlans.length === 0) {
     return null;
@@ -76,7 +85,7 @@ export function CoursePlanTable({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {visiblePlans.map(({ plan, index, planCode }) => {
-              const enrolling = isPlanEnrolling(plan);
+              const enrolling = !courseOverdue && isPlanEnrolling(plan);
               return (
                 <tr key={plan.id || index} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3">

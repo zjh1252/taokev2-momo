@@ -20,6 +20,7 @@ import com.taoke.course.mapper.CourseMapper;
 import com.taoke.course.repository.CoursePlanRepository;
 import com.taoke.course.repository.CourseRepository;
 import com.taoke.course.support.LegacyTaokeCourseReader;
+import com.taoke.course.support.OpenCourseExpireSupport;
 import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
@@ -93,6 +94,7 @@ public class CourseServiceImpl implements CourseService {
 
         course = courseRepository.save(course);
         savePlans(course.getId(), type, request.getPlans());
+        syncOpenEndDateFromPlans(course.getId(), type);
 
         return assembleDetail(course);
     }
@@ -124,6 +126,7 @@ public class CourseServiceImpl implements CourseService {
         // 整体替换开课计划
         coursePlanRepository.deleteByCourseId(courseId);
         savePlans(courseId, type, request.getPlans());
+        syncOpenEndDateFromPlans(courseId, type);
 
         return assembleDetail(course);
     }
@@ -137,7 +140,7 @@ public class CourseServiceImpl implements CourseService {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的课程可提交审核");
         }
         // 草稿可能缺少必填内容，提交审核前做完整性校验
-        if (course.getIntro() == null || course.getIntro().isBlank()) {
+        if (isBlankHtml(course.getIntro())) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "请先完善课程介绍后再提交审核");
         }
         if (course.getType() != null && course.getType().isOpen()
@@ -313,6 +316,7 @@ public class CourseServiceImpl implements CourseService {
         Specification<Course> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()));
+            predicates.add(OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now()));
 
             if (!expandedCategoryIds.isEmpty()) {
                 predicates.add(cb.or(
@@ -662,6 +666,7 @@ public class CourseServiceImpl implements CourseService {
                 vo.setPublisherName(organizerName);
             }
             vo.setDurationDays(normalizeDisplayDurationDays(c.getDurationDays(), c.getTotalHours()));
+            vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(c));
             return vo;
         }).toList();
     }
@@ -947,6 +952,7 @@ public class CourseServiceImpl implements CourseService {
             predicates.add(cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()));
             predicates.add(cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION));
             predicates.add(cb.equal(root.get("publisherId"), institutionUserId));
+            predicates.add(OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now()));
 
             if ("OPEN".equalsIgnoreCase(type)) {
                 predicates.add(root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE));
@@ -985,7 +991,8 @@ public class CourseServiceImpl implements CourseService {
                 cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()),
                 cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION),
                 cb.equal(root.get("publisherId"), institutionUserId),
-                root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE)
+                root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now())
         );
         // 排序：last_enrolled_at DESC（NULL 在最后），view_count DESC，id DESC
         Sort sort = Sort.by(Sort.Direction.DESC, "lastEnrolledAt")
@@ -999,7 +1006,8 @@ public class CourseServiceImpl implements CourseService {
     public List<CourseListItemVO> listHotOpenCourses() {
         Specification<Course> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()),
-                root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE)
+                root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now())
         );
         Sort sort = Sort.by(Sort.Direction.DESC, "lastEnrolledAt")
                 .and(Sort.by(Sort.Direction.DESC, "createdAt"))
@@ -1016,7 +1024,8 @@ public class CourseServiceImpl implements CourseService {
         // 直接按 trainer_id 过滤，不做同名合并——不同专家即使同名，课程也不应混在一起
         Specification<Course> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("trainerId"), trainerId),
-                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue())
+                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now())
         );
         Sort sort = Sort.by(Sort.Direction.DESC, "publishedAt")
                 .and(Sort.by(Sort.Direction.DESC, "id"));
@@ -1036,7 +1045,8 @@ public class CourseServiceImpl implements CourseService {
         }
         Specification<Course> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("trainerId"), trainerId),
-                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue())
+                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now())
         );
         PageRequest pageable = PageRequest.of(0, 3,
                 Sort.by(Sort.Direction.DESC, "viewCount").and(Sort.by(Sort.Direction.DESC, "id")));
@@ -1135,6 +1145,7 @@ public class CourseServiceImpl implements CourseService {
         course.setPublishedAt(LocalDateTime.now());
         course.setRejectReason("");
         courseRepository.save(course);
+        syncOpenEndDateFromPlans(courseId, course.getType());
     }
 
     @Transactional
@@ -1210,7 +1221,30 @@ public class CourseServiceImpl implements CourseService {
 
     /** 提交审核时的内容完整性校验（草稿不做此校验，仅要求标题） */
     private void validateForSubmit(SaveCourseRequest request) {
-        // 课程简介（summary）与课程介绍（intro）均为选填，发布表单已移除对应输入
+        if (isBlankHtml(request.getIntro())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请填写课程介绍");
+        }
+        if (request.getCategoryId() == null || request.getCategoryId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请选择课程分类");
+        }
+        if (request.getCoverUrl() == null || request.getCoverUrl().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传课程封面");
+        }
+        if (request.getDurationDays() == null || request.getDurationDays() < 1) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "课程天数至少 1 天");
+        }
+        if (request.getTotalHours() == null || request.getTotalHours().compareTo(BigDecimal.ONE) < 0) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "课程总时长至少 1 小时");
+        }
+    }
+
+    /** 富文本去标签后是否为空（含仅 &nbsp; / 空段落） */
+    private static boolean isBlankHtml(String html) {
+        if (html == null || html.isBlank()) {
+            return true;
+        }
+        String text = html.replaceAll("<[^>]*>", "").replace("&nbsp;", " ").trim();
+        return text.isEmpty();
     }
 
     /** 公开课必须有计划，且按类型校验必填字段 */
@@ -1409,6 +1443,10 @@ public class CourseServiceImpl implements CourseService {
             vo.setPublisherName(organizerName);
         }
 
+        vo.setCourseOpenEndDate(course.getCourseOpenEndDate());
+        vo.setIsExpireHide(course.getIsExpireHide());
+        vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(course));
+
         return vo;
     }
 
@@ -1512,6 +1550,8 @@ public class CourseServiceImpl implements CourseService {
             vo.setCoverUrl(resolveCoverUrl(course, null, vo.getCategoryName()));
         }
 
+        vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(course));
+
         return vo;
     }
 
@@ -1580,7 +1620,8 @@ public class CourseServiceImpl implements CourseService {
                 cb.or(
                         root.get("categoryId").in(categoryIds),
                         root.get("subCategoryId").in(categoryIds)
-                )
+                ),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now())
         );
 
         Sort hotSort = Sort.by(Sort.Direction.DESC, "viewCount")
@@ -1633,5 +1674,38 @@ public class CourseServiceImpl implements CourseService {
                         && targetNames.contains(category.getName().trim()))
                 .map(Category::getId)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    /** 保存/更新开课计划后，同步线下公开课结束日期 */
+    private void syncOpenEndDateFromPlans(Integer courseId, CourseType type) {
+        if (type != CourseType.OPEN_OFFLINE) {
+            return;
+        }
+        Course course = courseRepository.findById(courseId).orElse(null);
+        if (course == null) {
+            return;
+        }
+        List<CoursePlan> plans = coursePlanRepository.findByCourseIdOrderBySortOrder(courseId);
+        course.setCourseOpenEndDate(OpenCourseExpireSupport.resolveOpenEndDate(plans));
+        if (course.getIsExpireHide() == null) {
+            course.setIsExpireHide(1);
+        }
+        courseRepository.save(course);
+    }
+
+    @Transactional
+    @Override
+    public void batchUpdateExpireHide(List<Integer> courseIds, Integer isExpireHide) {
+        if (courseIds == null || courseIds.isEmpty()) {
+            return;
+        }
+        if (isExpireHide == null || (isExpireHide != 0 && isExpireHide != 1)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "到期自动隐藏仅支持 0 或 1");
+        }
+        List<Course> courses = courseRepository.findAllById(courseIds);
+        for (Course course : courses) {
+            course.setIsExpireHide(isExpireHide);
+        }
+        courseRepository.saveAll(courses);
     }
 }

@@ -104,7 +104,7 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
                     alt={relatedName}
                     width={40}
                     height={40}
-                    useApiSrc
+                    apiResolved
                     className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
                   />
                   <div className="flex-1 min-w-0">

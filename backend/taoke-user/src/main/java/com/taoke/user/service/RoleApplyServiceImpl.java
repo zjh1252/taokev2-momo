@@ -50,7 +50,7 @@ public class RoleApplyServiceImpl implements RoleApplyService {
      *   <li>status=1（已生效）→ status 保持 1 + reapplying=1，进入「资料重审」流程，
      *       重审期间原身份继续生效（{@code SecurityUserService} 仍按 status=1 加载该角色），
      *       审核通过/驳回后由管理端清除 reapplying 标记</li>
-     *   <li>status=2 / 重审中 → 抛异常（已有进行中的申请）</li>
+     *   <li>status=2 / 重审中 → 允许覆盖更新已提交资料（保持 status=2 或 reapplying=1）</li>
      *   <li>status=4 → 抛异常（角色已被禁用）</li>
      * </ul>
      *
@@ -81,14 +81,15 @@ public class RoleApplyServiceImpl implements RoleApplyService {
             }
             case 1 -> {
                 // 已生效角色重新提交资料 → 资料重审，原身份保持可用
-                if (Boolean.TRUE.equals(userRole.getReapplying())) {
-                    throw new BusinessException(ErrorCode.ROLE_APPLICATION_PENDING);
-                }
                 userRole.setReapplying(true);
                 userRole.setRejectReason(null);
                 userRoleRepository.save(userRole);
             }
-            case 2 -> throw new BusinessException(ErrorCode.ROLE_APPLICATION_PENDING);
+            case 2 -> {
+                // 待审核期间允许继续完善并覆盖提交，保持 status=2
+                userRole.setRejectReason(null);
+                userRoleRepository.save(userRole);
+            }
             case 4 -> throw new BusinessException(ErrorCode.ROLE_DISABLED);
             default -> throw new BusinessException(ErrorCode.INTERNAL_ERROR, "未知的角色状态: " + userRole.getStatus());
         }
