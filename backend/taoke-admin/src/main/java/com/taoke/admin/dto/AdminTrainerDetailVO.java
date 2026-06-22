@@ -53,5 +53,5 @@ public class AdminTrainerDetailVO extends AdminTrainerVO {
     private Integer institutionBindingCount;
 
     /** 业务角色列表 */
-    private List<AdminUserVO.RoleItem> roles;
+    private List<AdminUserRoleItem> roles;
 }

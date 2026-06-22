@@ -95,6 +95,30 @@ function ExpertCoverImage({
   );
 }
 
+/** 专家标签列表（去重后展示，key 含 index 避免重复 tag 触发 React 警告） */
+function ExpertTagList({
+  tags,
+  limit,
+  className,
+  tagClassName
+}: {
+  tags: string[];
+  limit: number;
+  className?: string;
+  tagClassName: string;
+}) {
+  if (tags.length === 0) return null;
+  return (
+    <div className={['flex flex-wrap gap-2', className].filter(Boolean).join(' ')}>
+      {tags.slice(0, limit).map((tag, index) => (
+        <span key={`${index}-${tag}`} className={tagClassName}>
+          {tag}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** 左侧首席专家大卡 */
 function MainExpertCard({ expert }: { expert: Expert }) {
   return (
@@ -134,16 +158,11 @@ function MainExpertCard({ expert }: { expert: Expert }) {
           {expert.bio}
         </p>
         <div className="mt-auto flex flex-col gap-4">
-          <div className="flex gap-2">
-            {expert.tags.map((tag) => (
-              <span
-                key={tag}
-                className="bg-slate-100 text-slate-600 px-3 py-1 rounded text-xs font-medium"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+          <ExpertTagList
+            tags={expert.tags}
+            limit={4}
+            tagClassName="bg-slate-100 text-slate-600 px-3 py-1 rounded text-xs font-medium"
+          />
           <span className="bg-primary text-white px-6 py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 w-full mt-2 shadow-sm">
             查看专家详情
           </span>
@@ -173,16 +192,12 @@ function MiddleExpertCard({ expert }: { expert: Expert }) {
       <p className="text-white/80 text-sm text-center mb-6 leading-relaxed line-clamp-3">
         {expert.bio}
       </p>
-      <div className="flex gap-2 mb-8">
-        {expert.tags.map((tag) => (
-          <span
-            key={tag}
-            className="px-4 py-1.5 rounded-full border border-white/20 text-xs bg-white/5"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
+      <ExpertTagList
+        tags={expert.tags}
+        limit={3}
+        className="mb-8"
+        tagClassName="px-4 py-1.5 rounded-full border border-white/20 text-xs bg-white/5"
+      />
       <span className="w-full py-3 rounded-lg border border-primary/50 hover:bg-primary hover:border-primary transition-colors font-medium text-sm z-10 mt-auto shadow-sm text-center">
         查看专家详情
       </span>
@@ -217,16 +232,12 @@ function SideExpertCard({ expert }: { expert: Expert }) {
       <p className="text-slate-500 text-xs leading-relaxed mb-4 line-clamp-2">
         {expert.bio}
       </p>
-      <div className="flex gap-2 mt-auto">
-        {expert.tags.map((tag) => (
-          <span
-            key={tag}
-            className="bg-slate-50 text-slate-500 px-2 py-1 rounded text-[10px]"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
+      <ExpertTagList
+        tags={expert.tags}
+        limit={3}
+        className="mt-auto"
+        tagClassName="bg-slate-50 text-slate-500 px-2 py-1 rounded text-[10px]"
+      />
       <span className="absolute bottom-6 right-6 text-primary hover:text-primary/80 transition-colors">
         <ArrowRight className="size-5" />
       </span>

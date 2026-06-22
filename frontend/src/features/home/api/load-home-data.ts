@@ -112,18 +112,16 @@ async function enrichPublicCourseCovers(courses: PublicCourse[]): Promise<Public
   });
 }
 
+import { dedupeTags, parseDelimitedTags } from '@/lib/tags';
+
 function parseTags(
   expertiseCategories?: { categoryName: string }[],
   expertiseTags?: string
 ): string[] {
   if (expertiseCategories?.length) {
-    return expertiseCategories.map((c) => c.categoryName).filter(Boolean);
+    return dedupeTags(expertiseCategories.map((c) => c.categoryName).filter(Boolean));
   }
-  if (!expertiseTags) return [];
-  return expertiseTags
-    .split(/[,，、\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return parseDelimitedTags(expertiseTags);
 }
 
 function formatCaseDate(value?: string | null): string | undefined {

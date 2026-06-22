@@ -39,19 +39,20 @@ import {
 } from '../api/service';
 import { materialKeys } from '../api/queries';
 import type { Material } from '../api/types';
+import {
+  MAX_BATCH_FILES,
+  stripExtension,
+  type PendingMaterial
+} from '../material-utils';
 
 type MaterialFormDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   materialType: MaterialType;
   editData?: Material | null;
+  draftItem?: PendingMaterial | null;
+  onDraftSave?: (item: PendingMaterial) => void;
 };
-
-const MAX_BATCH_FILES = 20;
-
-function stripExtension(filename: string): string {
-  return filename.replace(/\.[^.]+$/, '');
-}
 
 function buildBatchName(baseName: string, index: number, total: number): string {
   const trimmed = baseName.trim();
@@ -66,8 +67,11 @@ export function MaterialFormDialog({
   open,
   onOpenChange,
   materialType,
-  editData
+  editData,
+  draftItem,
+  onDraftSave
 }: MaterialFormDialogProps) {
+  const isDraft = !!draftItem;
   const isEdit = !!editData;
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -83,7 +87,15 @@ export function MaterialFormDialog({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   useEffect(() => {
-    if (editData) {
+    if (draftItem) {
+      setName(draftItem.name);
+      setUrl('');
+      setCategory(draftItem.category || '其它');
+      setScene(draftItem.scene);
+      setEnabled(draftItem.enabled);
+      setIsDefault(draftItem.isDefault);
+      setPendingFiles([draftItem.file]);
+    } else if (editData) {
       setName(editData.name);
       setUrl(editData.url);
       setCategory(editData.category || '其它');
@@ -100,14 +112,26 @@ export function MaterialFormDialog({
       setIsDefault(false);
       setPendingFiles([]);
     }
-  }, [editData, open, materialType]);
+  }, [draftItem, editData, open, materialType]);
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!name.trim() && (isEdit || pendingFiles.length <= 1)) {
+      if (!name.trim()) {
         throw new Error('请输入 1-50 字符的素材名称');
       }
-      if (!isEdit && pendingFiles.length === 0 && !url) {
+      if (isDraft && draftItem && onDraftSave) {
+        onDraftSave({
+          ...draftItem,
+          name: name.trim().slice(0, 50),
+          category: materialType === 'COVER' ? category : '',
+          scene,
+          enabled,
+          isDefault,
+          file: pendingFiles[0] ?? draftItem.file
+        });
+        return null;
+      }
+      if (!isEdit && !isDraft && pendingFiles.length === 0 && !url) {
         throw new Error('请上传素材图片');
       }
 
@@ -165,6 +189,11 @@ export function MaterialFormDialog({
       });
     },
     onSuccess: () => {
+      if (isDraft) {
+        toast.success('已更新');
+        onOpenChange(false);
+        return;
+      }
       const batchCount = !isEdit && pendingFiles.length > 1 ? pendingFiles.length : 0;
       toast.success(
         batchCount > 0 ? `已新增 ${batchCount} 个素材` : isEdit ? '已更新' : '已新增'
@@ -196,7 +225,7 @@ export function MaterialFormDialog({
     }
     if (valid.length === 0) return;
 
-    if (isEdit) {
+    if (isEdit || isDraft) {
       setPendingFiles([valid[0]]);
       if (!name) setName(stripExtension(valid[0].name));
       return;
@@ -220,7 +249,9 @@ export function MaterialFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='sm:max-w-lg'>
         <DialogHeader>
-          <DialogTitle>{isEdit ? '编辑素材' : '新增素材'}</DialogTitle>
+          <DialogTitle>
+            {isEdit || isDraft ? '编辑素材' : '新增素材'}
+          </DialogTitle>
         </DialogHeader>
 
         <div className='space-y-4'>
@@ -230,13 +261,13 @@ export function MaterialFormDialog({
               value={name}
               maxLength={50}
               placeholder={
-                !isEdit && pendingFiles.length > 1
+                !isEdit && !isDraft && pendingFiles.length > 1
                   ? '批量时作为名称前缀，如：销售管理课程封面'
                   : '如：销售管理课程封面-1'
               }
               onChange={(e) => setName(e.target.value)}
             />
-            {!isEdit && pendingFiles.length > 1 ? (
+            {!isEdit && !isDraft && pendingFiles.length > 1 ? (
               <p className='text-muted-foreground text-xs'>
                 已选 {pendingFiles.length} 张，将自动命名为「前缀-1」「前缀-2」…；未填前缀则用文件名
               </p>
@@ -302,13 +333,13 @@ export function MaterialFormDialog({
               type='file'
               accept='image/jpeg,image/png,image/jpg'
               className='hidden'
-              multiple={!isEdit}
+              multiple={!isEdit && !isDraft}
               onChange={(e) => {
                 handleFilesSelected(e.target.files);
                 e.target.value = '';
               }}
             />
-            {!isEdit && pendingFiles.length > 1 ? (
+            {!isEdit && !isDraft && pendingFiles.length > 1 ? (
               <div className='grid max-h-48 grid-cols-4 gap-2 overflow-y-auto rounded-md border p-2'>
                 {pendingFiles.map((file, index) => (
                   <div key={`${file.name}-${index}`} className='relative'>
@@ -366,7 +397,11 @@ export function MaterialFormDialog({
                   variant='outline'
                   onClick={() => inputRef.current?.click()}
                 >
-                  {isEdit ? '更换图片' : pendingFiles.length > 0 ? '继续添加' : '上传图片（可多选）'}
+                  {isEdit || isDraft
+                    ? '更换图片'
+                    : pendingFiles.length > 0
+                      ? '继续添加'
+                      : '上传图片（可多选）'}
                 </Button>
               </div>
             )}

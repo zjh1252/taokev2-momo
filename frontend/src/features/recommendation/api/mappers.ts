@@ -5,15 +5,8 @@ import type { RecentTrainerCase } from '@/features/trainer/api/service';
 import type { TrainerListItem } from '@/features/trainer/types';
 import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recommended';
 import { resolveApiImageSrc, resolveImageSrc } from '@/lib/media';
+import { parseDelimitedTags } from '@/lib/tags';
 import type { PublicRecommendedItem } from './types';
-
-function parseTagList(value?: string | null): string[] {
-  if (!value) return [];
-  return value
-    .split(/[,，、\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
 
 function formatCaseDate(value?: string | null): string | undefined {
   if (!value) return undefined;
@@ -41,7 +34,7 @@ export function mapSlotTrainerToListItem(item: PublicRecommendedItem): TrainerLi
     provinceId: 0,
     cityId: 0,
     expertiseTags: item.expertiseTags || item.expertiseOverride || item.resourceMeta || '',
-    expertiseCategories: parseTagList(item.expertiseTags || item.expertiseOverride).map((name, index) => ({
+    expertiseCategories: parseDelimitedTags(item.expertiseTags || item.expertiseOverride).map((name, index) => ({
       id: 0,
       categoryId: 0,
       sortOrder: index,
@@ -61,7 +54,7 @@ export function mapSlotTrainersToExperts(items: PublicRecommendedItem[]): Expert
     const avatar = avatarRaw.trim() ? resolveApiImageSrc(avatarRaw) : '';
     const coverRaw = item.coverUrl?.trim() || '';
     const cover = coverRaw ? resolveApiImageSrc(coverRaw) : avatar;
-    const tags = parseTagList(item.expertiseTags || item.expertiseOverride || item.keyTags);
+    const tags = parseDelimitedTags(item.expertiseTags || item.expertiseOverride || item.keyTags);
     const oneLineIntro = (item.description ?? item.oneLineIntro ?? item.resourceDescription ?? '').trim();
     const chiefIntro = (item.chiefIntro ?? '').trim();
     const positionTitle = (item.title ?? item.trainerTitle ?? '').trim();
@@ -86,7 +79,7 @@ export function mapSlotCasesToCaseStudies(items: PublicRecommendedItem[]): CaseS
     title: item.caseTitle || item.resourceName || '',
     description: (item.description || item.resourceDescription || '').slice(0, 32),
     image: resolveImageSrc(item.coverUrl || item.resourceCoverUrl),
-    tags: item.industry ? [item.industry] : parseTagList(item.keyTags),
+    tags: item.industry ? [item.industry] : parseDelimitedTags(item.keyTags),
     caseDate: formatCaseDate(item.trainingDate),
     trainerName: item.trainerNameForCase || undefined
   }));

@@ -26,7 +26,7 @@ public class AdminUserVO {
     private LocalDateTime createdAt;
 
     /** 用户持有的业务角色 */
-    private List<RoleItem> roles;
+    private List<AdminUserRoleItem> roles;
 
     /** 注册来源：1=PC 2=H5 3=小程序 4=运营创建 等 */
     private Integer regOrigin;
@@ -42,10 +42,4 @@ public class AdminUserVO {
 
     /** 实名认证状态摘要：NULL=未提交 1=待审核 2=已通过 3=已驳回 */
     private Integer realNameCertStatus;
-
-    @Data
-    public static class RoleItem {
-        private String role;
-        private Integer status;
-    }
 }

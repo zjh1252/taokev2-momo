@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense, useState } from 'react';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
@@ -15,15 +15,23 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 import {
   AVATAR_SCENE_OPTIONS,
   COVER_CATEGORY_OPTIONS,
+  COVER_SCENE_OPTIONS,
   DEFAULT_FILTER_OPTIONS,
   type MaterialType
 } from '../constants';
+import {
+  createPendingMaterial,
+  MAX_BATCH_FILES,
+  validateImageFiles
+} from '../material-utils';
+import type { PendingMaterial } from '../material-utils';
 import { materialsQueryOptions } from '../api/queries';
 import { MaterialBatchBar } from './material-batch-bar';
-import { MaterialFormDialog } from './material-form-dialog';
+import { MaterialBatchPreviewDialog } from './material-batch-preview-dialog';
 import { MaterialGridView } from './material-grid-view';
 import { MaterialsTable } from './materials-table';
 
@@ -31,9 +39,11 @@ type MaterialTabPanelProps = {
   materialType: MaterialType;
 };
 
-function MaterialTabPanelContent({ materialType }: MaterialTabPanelProps) {
+function MaterialTabPanel({ materialType }: MaterialTabPanelProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [createOpen, setCreateOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [pendingItems, setPendingItems] = useState<PendingMaterial[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const [params, setParams] = useQueryStates({
@@ -55,12 +65,19 @@ function MaterialTabPanelContent({ materialType }: MaterialTabPanelProps) {
     ...(params.isDefault && { isDefault: params.isDefault })
   };
 
-  const { data: resp } = useSuspenseQuery(materialsQueryOptions(filters));
-  const list = resp.data?.list ?? [];
-  const total = resp.data?.total ?? 0;
+  const {
+    data: resp,
+    isPending,
+    isError,
+    error,
+    refetch
+  } = useQuery(materialsQueryOptions(filters));
+  const list = resp?.data?.list ?? [];
+  const total = resp?.data?.total ?? 0;
   const pageCount = Math.ceil(total / params.perPage) || 1;
 
   const selectedItems = list.filter((item) => selectedIds.includes(item.id));
+  const allSelected = list.length > 0 && selectedIds.length === list.length;
 
   const toggleSelection = (id: number) => {
     setSelectedIds((prev) =>
@@ -72,10 +89,60 @@ function MaterialTabPanelContent({ materialType }: MaterialTabPanelProps) {
     setSelectedIds(checked ? list.map((item) => item.id) : []);
   };
 
+  const handleFilesSelected = (files: FileList | null) => {
+    if (!files?.length) return;
+
+    const valid = validateImageFiles(files);
+    const skipped = Array.from(files).length - valid.length;
+    if (skipped > 0) {
+      toast.error(`${skipped} 个文件超过 2MB，已跳过`);
+    }
+    if (valid.length === 0) return;
+
+    const limited = valid.slice(0, MAX_BATCH_FILES);
+    if (limited.length < valid.length) {
+      toast.error(`最多批量上传 ${MAX_BATCH_FILES} 张`);
+    }
+
+    setPendingItems(limited.map((file) => createPendingMaterial(file, materialType)));
+    setPreviewOpen(true);
+  };
+
+  const filterCols = materialType === 'COVER' ? 'md:grid-cols-5' : 'md:grid-cols-4';
+
+  if (isPending) {
+    return <Skeleton className='h-64 w-full' />;
+  }
+
+  if (isError) {
+    return (
+      <div className='flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-16 text-center'>
+        <p className='text-muted-foreground text-sm'>
+          {error instanceof Error ? error.message : '素材列表加载失败'}
+        </p>
+        <Button size='sm' variant='outline' onClick={() => void refetch()}>
+          重试
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className='space-y-4'>
+      <input
+        ref={fileInputRef}
+        type='file'
+        accept='image/jpeg,image/png,image/jpg'
+        className='hidden'
+        multiple
+        onChange={(e) => {
+          handleFilesSelected(e.target.files);
+          e.target.value = '';
+        }}
+      />
+
       <div className='flex flex-wrap items-end justify-between gap-3'>
-        <div className='grid flex-1 gap-3 md:grid-cols-4'>
+        <div className={`grid flex-1 gap-3 ${filterCols}`}>
           <div className='space-y-1'>
             <Label>素材名称</Label>
             <Input
@@ -88,30 +155,57 @@ function MaterialTabPanelContent({ materialType }: MaterialTabPanelProps) {
           </div>
 
           {materialType === 'COVER' ? (
-            <div className='space-y-1'>
-              <Label>素材分类</Label>
-              <Select
-                value={params.category ?? 'all'}
-                onValueChange={(value) =>
-                  void setParams({
-                    category: value === 'all' ? null : value,
-                    page: 1
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder='全部分类' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='all'>全部分类</SelectItem>
-                  {COVER_CATEGORY_OPTIONS.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className='space-y-1'>
+                <Label>素材分类</Label>
+                <Select
+                  value={params.category ?? 'all'}
+                  onValueChange={(value) =>
+                    void setParams({
+                      category: value === 'all' ? null : value,
+                      page: 1
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder='全部分类' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='all'>全部分类</SelectItem>
+                    {COVER_CATEGORY_OPTIONS.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {item}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className='space-y-1'>
+                <Label>适用场景</Label>
+                <Select
+                  value={params.scene ?? 'all'}
+                  onValueChange={(value) =>
+                    void setParams({
+                      scene: value === 'all' ? null : value,
+                      page: 1
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder='全部场景' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='all'>全部场景</SelectItem>
+                    {COVER_SCENE_OPTIONS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
           ) : (
             <div className='space-y-1'>
               <Label>素材类型</Label>
@@ -180,7 +274,7 @@ function MaterialTabPanelContent({ materialType }: MaterialTabPanelProps) {
           >
             列表
           </Button>
-          <Button size='sm' onClick={() => setCreateOpen(true)}>
+          <Button size='sm' onClick={() => fileInputRef.current?.click()}>
             <Icons.add className='mr-1 h-4 w-4' />
             新增素材
           </Button>
@@ -229,24 +323,24 @@ function MaterialTabPanelContent({ materialType }: MaterialTabPanelProps) {
       </div>
 
       <MaterialBatchBar
+        materialType={materialType}
         selectedIds={selectedIds}
         selectedItems={selectedItems}
+        totalCount={list.length}
+        allSelected={allSelected}
+        onToggleAll={toggleAll}
         onClear={() => setSelectedIds([])}
       />
 
-      <MaterialFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
+      <MaterialBatchPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
         materialType={materialType}
+        items={pendingItems}
+        onItemsChange={setPendingItems}
       />
     </div>
   );
 }
 
-export function MaterialTabPanel(props: MaterialTabPanelProps) {
-  return (
-    <Suspense fallback={<Skeleton className='h-64 w-full' />}>
-      <MaterialTabPanelContent {...props} />
-    </Suspense>
-  );
-}
+export { MaterialTabPanel };

@@ -2,7 +2,8 @@ import {
   createSearchParamsCache,
   createSerializer,
   parseAsInteger,
-  parseAsString
+  parseAsString,
+  parseAsStringLiteral
 } from 'nuqs/server';
 
 export const searchParams = {
@@ -23,7 +24,11 @@ export const searchParams = {
   /** 培训评价管理 */
   reviewScope: parseAsString,
   reviewerKeyword: parseAsString,
-  reviewedBy: parseAsString
+  reviewedBy: parseAsString,
+  /** 素材库 */
+  tab: parseAsStringLiteral(['cover', 'avatar']).withDefault('cover'),
+  scene: parseAsString,
+  isDefault: parseAsString
 };
 
 export const searchParamsCache = createSearchParamsCache(searchParams);

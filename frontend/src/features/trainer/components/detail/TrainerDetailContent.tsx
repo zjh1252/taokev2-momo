@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
-import { Play, Star } from 'lucide-react';
+import { Play, Star, StarHalf } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { LegacyRichText } from '@/components/legacy-rich-text';
@@ -133,6 +133,8 @@ export function TrainerDetailContent({
           <ReviewsView
             trainerUserId={trainer.userId}
             trainerName={displayName}
+            trainerScore={trainer.score}
+            reviewTotal={trainer.commentCount ?? 0}
             courses={courses}
             videos={videos}
           />
@@ -713,14 +715,57 @@ function VideosView({
 
 // ==================== 学员评价视图 ====================
 
+function ReviewScoreSummary({
+  score,
+  total,
+  action,
+}: {
+  score: number;
+  total: number;
+  action?: React.ReactNode;
+}) {
+  const numericScore = Number(score) || 0;
+  const displayScore = numericScore > 0 ? numericScore.toFixed(1) : '0.0';
+  const fullStars = Math.floor(numericScore);
+  const hasHalf = numericScore - fullStars >= 0.25 && numericScore < 5;
+  const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+
+  return (
+    <article className="border border-slate-200 rounded-lg p-4 flex items-center justify-between gap-4">
+      <div>
+        <div className="text-sm font-medium text-slate-900 mb-2">综合评分</div>
+        <div className="flex items-baseline gap-0.5 mb-2">
+          <span className="text-[40px] leading-none font-extrabold text-slate-900">{displayScore}</span>
+          <span className="text-base text-slate-400">/ 5.0</span>
+        </div>
+        <div className="flex text-yellow-400 mb-2">
+          {Array.from({ length: fullStars }).map((_, i) => (
+            <Star key={`full-${i}`} className="size-5 fill-current" />
+          ))}
+          {hasHalf ? <StarHalf className="size-5 fill-current" /> : null}
+          {Array.from({ length: emptyStars }).map((_, i) => (
+            <Star key={`empty-${i}`} className="size-5 text-slate-200" />
+          ))}
+        </div>
+        <p className="text-sm text-slate-500">共{total}条真实评价</p>
+      </div>
+      {action}
+    </article>
+  );
+}
+
 function ReviewsView({
   trainerUserId,
   trainerName,
+  trainerScore,
+  reviewTotal,
   courses,
   videos,
 }: {
   trainerUserId: number;
   trainerName: string;
+  trainerScore: number;
+  reviewTotal: number;
   courses: CourseListItem[];
   videos: VideoListItem[];
 }) {
@@ -766,68 +811,65 @@ function ReviewsView({
       .catch(() => setLoaded(true));
   }, [trainerUserId]);
 
-  const avgScore = reviews.length
-    ? (reviews.reduce((sum, r) => sum + Number(r.avgScore), 0) / reviews.length).toFixed(1)
-    : '0.0';
+  const summaryScore =
+    trainerScore > 0
+      ? trainerScore
+      : reviews.length
+        ? reviews.reduce((sum, r) => sum + Number(r.avgScore), 0) / reviews.length
+        : 0;
+  const summaryTotal = reviewTotal > 0 ? reviewTotal : reviews.length;
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
-        <h3 className="text-[20px] font-bold text-slate-900">
-          学员评价 <span className="text-primary mx-1">{reviews.length}</span> 个
-        </h3>
-        <button
-          type="button"
-          onClick={handleOpenReview}
-          className="px-4 py-2 rounded-md bg-primary text-white text-sm cursor-pointer hover:bg-primary/90 transition-colors"
-        >
-          我要评价
-        </button>
-      </div>
-
-      {/* 评分统计 */}
-      <div className="grid md:grid-cols-[220px_1fr] gap-6 mb-8 md:items-center">
-        <div className="rounded-lg border border-slate-200 p-4 bg-slate-50 flex flex-col items-center justify-center text-center md:self-center">
-          <div className="text-3xl font-extrabold text-primary">{avgScore}</div>
-          <div className="text-sm text-slate-500 mt-1">综合评分</div>
-        </div>
-        <div className="space-y-3">
-          {reviews.length === 0 && loaded && (
-            <p className="text-sm text-slate-400 py-8 text-center">暂无评价数据</p>
-          )}
-          {reviews.map((review) => (
-            <article key={review.id} className="border border-slate-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">
-                    {review.anonymous ? '匿名用户' : (review.submitterName || '学员')}
-                  </span>
-                </div>
-                <div className="text-xs text-slate-500">
-                  {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
-                </div>
+      <div className="space-y-3">
+        <ReviewScoreSummary
+          score={summaryScore}
+          total={summaryTotal}
+          action={
+            <button
+              type="button"
+              onClick={handleOpenReview}
+              className="shrink-0 px-4 py-2 rounded-md bg-primary text-white text-sm cursor-pointer hover:bg-primary/90 transition-colors"
+            >
+              我要评价
+            </button>
+          }
+        />
+        {reviews.length === 0 && loaded && (
+          <p className="text-sm text-slate-400 py-8 text-center">暂无评价数据</p>
+        )}
+        {reviews.map((review) => (
+          <article key={review.id} className="border border-slate-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">
+                  {review.anonymous ? '匿名用户' : (review.submitterName || '学员')}
+                </span>
               </div>
-              <div className="flex items-center gap-2 mt-2">
-                <div className="flex text-[#FFD700]">
-                  {Array.from({ length: Math.floor(Number(review.avgScore)) }).map((_, i) => (
-                    <Star key={i} className="size-4 fill-current" />
-                  ))}
-                </div>
-                <span className="text-[#FFD700] font-bold text-[14px]">{review.avgScore}</span>
-                {review.courseTitle && (
-                  <span className="text-[14px] text-primary">{review.courseTitle}</span>
-                )}
+              <div className="text-xs text-slate-500">
+                {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
               </div>
-              <div className="flex gap-4 mt-2 text-xs text-slate-400">
-                <span>内容 {review.ratingContent}分</span>
-                <span>水平 {review.ratingTeaching}分</span>
-                <span>服务 {review.ratingService}分</span>
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex text-[#FFD700]">
+                {Array.from({ length: Math.floor(Number(review.avgScore)) }).map((_, i) => (
+                  <Star key={i} className="size-4 fill-current" />
+                ))}
               </div>
-              <p className="text-sm text-slate-600 mt-2">{review.commentText}</p>
-              <ReviewPhotoList urls={review.photoUrls} />
-            </article>
-          ))}
-        </div>
+              <span className="text-[#FFD700] font-bold text-[14px]">{review.avgScore}</span>
+              {review.courseTitle && (
+                <span className="text-[14px] text-primary">{review.courseTitle}</span>
+              )}
+            </div>
+            <div className="flex gap-4 mt-2 text-xs text-slate-400">
+              <span>内容 {review.ratingContent}分</span>
+              <span>水平 {review.ratingTeaching}分</span>
+              <span>服务 {review.ratingService}分</span>
+            </div>
+            <p className="text-sm text-slate-600 mt-2">{review.commentText}</p>
+            <ReviewPhotoList urls={review.photoUrls} />
+          </article>
+        ))}
       </div>
 
       <ReviewDialog
