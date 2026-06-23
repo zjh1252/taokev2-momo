@@ -1,7 +1,6 @@
+import { getBackendUrl } from '@/lib/backend-url';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
 async function authHeaders() {
   const cookieStore = await cookies();
@@ -50,7 +49,7 @@ export async function POST(request: NextRequest) {
     uploadHeaders.Authorization = `Bearer ${accessToken}`;
   }
 
-  const uploadRes = await fetch(`${BACKEND_URL}/uploads/images`, {
+  const uploadRes = await fetch(`${getBackendUrl()}/uploads/images`, {
     method: 'POST',
     headers: uploadHeaders,
     body: uploadForm
@@ -80,7 +79,7 @@ export async function POST(request: NextRequest) {
   const enabled = formData.get('enabled') !== 'false';
   const isDefault = formData.get('isDefault') === 'true';
 
-  const createRes = await fetch(`${BACKEND_URL}/admin/materials`, {
+  const createRes = await fetch(`${getBackendUrl()}/admin/materials`, {
     method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify({

@@ -1,0 +1,61 @@
+-- 培训宝 legacy：V112 新增字段基础回填（可重复执行）
+-- 依赖：V112 列已存在（若 V112 仅记录在 flyway 未落库，先执行 V112 防御 DDL）
+
+DROP PROCEDURE IF EXISTS v114_backfill_video_package_labels;
+
+DELIMITER $$
+CREATE PROCEDURE v114_backfill_video_package_labels()
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'topic_id'
+    ) THEN
+        UPDATE video_package_labels
+        SET topic_id   = id,
+            topic_name = name
+        WHERE topic_id = 0
+           OR topic_name = '';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'price'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_groups'
+    ) THEN
+        UPDATE video_package_labels l
+            INNER JOIN (
+                SELECT package_id,
+                       MIN(price)         AS min_price,
+                       MIN(company_price) AS min_company_price
+                FROM video_package_groups
+                GROUP BY package_id
+            ) g ON g.package_id = l.id
+        SET l.price         = IF(l.price = 0, CAST(g.min_price AS SIGNED), l.price),
+            l.company_price = IF(l.company_price = 0, g.min_company_price, l.company_price)
+        WHERE l.price = 0
+           OR l.company_price = 0;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'item_parent'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_groups'
+    ) THEN
+        UPDATE video_package_labels l
+            INNER JOIN video_package_groups g ON g.id = l.id
+        SET l.name          = IF(l.name = '' OR l.name IS NULL, g.name, l.name),
+            l.item_parent   = IF(l.item_parent = 0 AND g.parent_id > 0, g.package_id, l.item_parent),
+            l.topic_id      = IF(l.topic_id = 0, g.topic_id, l.topic_id),
+            l.price         = IF(l.price = 0, CAST(g.price AS SIGNED), l.price),
+            l.company_price = IF(l.company_price = 0, g.company_price, l.company_price)
+        WHERE g.parent_id > 0 OR g.topic_id > 0;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL v114_backfill_video_package_labels();
+DROP PROCEDURE IF EXISTS v114_backfill_video_package_labels;

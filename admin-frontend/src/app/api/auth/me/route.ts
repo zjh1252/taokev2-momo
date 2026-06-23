@@ -1,13 +1,13 @@
-import { serverFetch } from '@/lib/server-fetch';
+import { serverFetchWithStatus } from '@/lib/server-fetch';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const result = await serverFetch<Record<string, unknown>>('/users/me');
+  const { status, body: result } = await serverFetchWithStatus<Record<string, unknown>>('/users/me');
 
   if (result.code !== 0) {
     return NextResponse.json(
       { code: result.code, message: result.message },
-      { status: 401 }
+      { status: status >= 400 ? status : 401 }
     );
   }
 

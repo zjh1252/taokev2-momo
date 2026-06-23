@@ -2,10 +2,9 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
-const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080').replace(
-  /\/$/,
-  '',
-);
+const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8080')
+  .replace(/\/$/, '')
+  .replace('://localhost:', '://127.0.0.1:');
 
 const nextConfig = {
   output: 'standalone' as const,

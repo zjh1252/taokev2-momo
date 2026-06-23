@@ -36,6 +36,9 @@ public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {
             "/auth/**",
             "/uploads/**",
+            "/api/*.php",
+            "/getData",
+            "/getData/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
