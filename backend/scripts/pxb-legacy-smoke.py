@@ -12,6 +12,8 @@
   python pxb-legacy-smoke.py call --opt getCourseTopic --uid 123456
   python pxb-legacy-smoke.py call-get --opt trainer --param trainer_name=张三
   python pxb-legacy-smoke.py call-get --opt video_state --param video_id=1001
+  python pxb-legacy-smoke.py call-trainer --opt get_trainer_list --param trade=1
+  python pxb-legacy-smoke.py call-trainer --opt get_trainer_detail --param role_id=123
   python pxb-legacy-smoke.py call --opt adsList
 
   # 仅打印签名（不发起 HTTP）
@@ -63,6 +65,8 @@ SUITE_OPTS: list[tuple[str, dict[str, str], str]] = [
     ("videoSupplierNext", {"video_id": "1"}, "search_course"),
     ("trainer", {"trainer_name": "张"}, "get"),
     ("video_state", {"video_id": "1"}, "get"),
+    ("get_trainer_list", {"trade": "1"}, "trainer"),
+    ("get_trainer_detail", {"role_id": "1"}, "trainer"),
 ]
 
 
@@ -196,6 +200,41 @@ def call_get(
     return ok
 
 
+def call_trainer(
+    base: str,
+    appid: str,
+    secret: str,
+    opt: str,
+    extra_body: dict[str, str] | None = None,
+    verbose: bool = True,
+) -> bool:
+    ts, sig = sign_get(appid, opt, secret)
+    query = {"opt": opt, "appid": appid, "timetamp": str(ts), "signature": sig}
+    body: dict[str, str] = dict(extra_body or {})
+
+    url = base.rstrip("/") + "/api/trainer.php"
+    if verbose:
+        print(f"\n=== POST {url}")
+        print(f"    query: {query}")
+        if body:
+            print(f"    body:  {body}")
+
+    status, text = http_post_form(url, query, body)
+    ok = status == 200 and text.strip() != "Access Denied"
+    if ok:
+        try:
+            parsed = json.loads(text)
+            ok = parsed.get("isok") is True
+        except json.JSONDecodeError:
+            ok = False
+
+    if verbose:
+        print(f"    HTTP {status}  {'OK' if ok else 'FAIL'}")
+        print(pretty_json(text))
+
+    return ok
+
+
 GOLDEN_COURSE_LIST_SIG = "354c97b0688a485da6d818584dd6247e"  # ts=1719000000, appid=pxb, opt=courseList
 
 
@@ -252,6 +291,12 @@ def cmd_call_get(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
+def cmd_call_trainer(args: argparse.Namespace) -> int:
+    extra = parse_kv_pairs(args.param)
+    ok = call_trainer(args.base, args.appid, args.secret, args.opt, extra_body=extra)
+    return 0 if ok else 1
+
+
 def cmd_suite(args: argparse.Namespace) -> int:
     print(f"Base URL : {args.base}")
     print(f"AppID    : {args.appid}")
@@ -263,6 +308,8 @@ def cmd_suite(args: argparse.Namespace) -> int:
     for opt, extra, api in SUITE_OPTS:
         if api == "get":
             ok = call_get(args.base, args.appid, args.secret, opt, extra_body=extra)
+        elif api == "trainer":
+            ok = call_trainer(args.base, args.appid, args.secret, opt, extra_body=extra)
         else:
             ok = call_search_course(
                 args.base, args.appid, args.secret, opt,
@@ -390,6 +437,11 @@ def build_parser() -> argparse.ArgumentParser:
     call_get_p.add_argument("--opt", required=True)
     call_get_p.add_argument("--param", action="append", help="query/body 字段，如 trainer_name=张三")
     call_get_p.set_defaults(func=cmd_call_get)
+
+    call_trainer_p = sub.add_parser("call-trainer", help="调用单个 trainer.php opt")
+    call_trainer_p.add_argument("--opt", required=True)
+    call_trainer_p.add_argument("--param", action="append", help="POST 字段，如 trade=1 或 role_id=123")
+    call_trainer_p.set_defaults(func=cmd_call_trainer)
 
     suite_p = sub.add_parser("suite", help="运行预设冒烟 opt 列表")
     suite_p.set_defaults(func=cmd_suite)
