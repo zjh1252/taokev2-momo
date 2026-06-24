@@ -39,6 +39,8 @@ const nextConfig = {
       { protocol: 'https' as const, hostname: 'www.taoke.com', pathname: '/**' },
       { protocol: 'https' as const, hostname: 'taoke.com', pathname: '/**' },
       { protocol: 'https' as const, hostname: 'cdn-static.taoke.com', pathname: '/**' },
+      { protocol: 'http' as const, hostname: 'cdn.test.taoke.com', pathname: '/**' },
+      { protocol: 'https' as const, hostname: 'cdn.test.taoke.com', pathname: '/**' },
       { protocol: 'https' as const, hostname: 'cdn5-pxb-videos.taoke.com', pathname: '/**' },
       // 老库录播课封面常见域名（迁移数据）
       { protocol: 'https' as const, hostname: 'www.91pxb.com', pathname: '/**' },

@@ -17,3 +17,20 @@ export function getApiBaseUrl(): string {
 export function getCdnBaseUrl(): string {
   return process.env.NEXT_PUBLIC_CDN_BASE_URL || getApiBaseUrl();
 }
+
+/** 老站静态 CDN（attachments/、statics/images/trainers/ 等） */
+export function getLegacyStaticCdnBase(): string {
+  return (
+    process.env.NEXT_PUBLIC_LEGACY_STATIC_CDN_BASE ||
+    'https://cdn-static.taoke.com/taoke/'
+  );
+}
+
+/** 老站主站根（u/ 路径）；未配置时回退 LEGACY_ASSET_BASE_URL */
+export function getLegacyMainSiteBase(): string {
+  const main =
+    process.env.NEXT_PUBLIC_LEGACY_MAIN_SITE_BASE ||
+    process.env.NEXT_PUBLIC_LEGACY_ASSET_BASE_URL ||
+    'https://www.taoke.com/';
+  return main.endsWith('/') ? main : `${main}/`;
+}
