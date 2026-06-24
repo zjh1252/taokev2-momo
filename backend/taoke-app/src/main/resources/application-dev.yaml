@@ -6,6 +6,12 @@ server:
 
 # Nacos 配置中心
 spring:
+  config:
+    import:
+      - optional:file:.env.local[.properties]
+      - optional:file:../.env.local[.properties]
+      - optional:file:backend/.env.local[.properties]
+
   datasource:
     url: jdbc:mysql://10.0.14.20:3306/v3test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
     username: root

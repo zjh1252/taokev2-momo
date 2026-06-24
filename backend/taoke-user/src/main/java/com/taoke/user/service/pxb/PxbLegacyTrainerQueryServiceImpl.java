@@ -4,6 +4,7 @@ import com.taoke.common.entity.Category;
 import com.taoke.common.enums.CategoryType;
 import com.taoke.common.repository.CategoryRepository;
 import com.taoke.common.service.CategoryService;
+import com.taoke.common.service.LegacyStaticAssetUrlResolver;
 import com.taoke.user.api.PxbLegacyTrainerQueryService;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.TrainerExpertiseCategory;
@@ -50,6 +51,7 @@ public class PxbLegacyTrainerQueryServiceImpl implements PxbLegacyTrainerQuerySe
     private final CategoryService categoryService;
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final LegacyStaticAssetUrlResolver legacyStaticAssetUrlResolver;
 
     @Override
     public Map<Integer, Map<String, Object>> searchByName(String trainerName, int limit, boolean accurate) {
@@ -124,7 +126,7 @@ public class PxbLegacyTrainerQueryServiceImpl implements PxbLegacyTrainerQuerySe
         row.put("id", trainer.getUserId());
         row.put("roleid", trainer.getId());
         row.put("realname", trainer.getName());
-        row.put("icon", normalizeIcon(trainer.getAvatar()));
+        row.put("icon", legacyStaticAssetUrlResolver.resolve(trainer.getAvatar()));
         row.put("intro", trainer.getIntro() != null ? trainer.getIntro() : "");
         row.put("teaching_experience", trainer.getTeachingYears() != null ? trainer.getTeachingYears() : 0);
 
@@ -199,7 +201,7 @@ public class PxbLegacyTrainerQueryServiceImpl implements PxbLegacyTrainerQuerySe
             row.put("id", trainer.getUserId());
             row.put("roleid", trainer.getId());
             row.put("realname", trainer.getName());
-            row.put("icon", normalizeIcon(trainer.getAvatar()));
+            row.put("icon", legacyStaticAssetUrlResolver.resolve(trainer.getAvatar()));
             row.put("intro", trainer.getBio() != null ? trainer.getBio() : "");
 
             List<TrainerExpertiseCategory> expertise = expertiseByTrainer.getOrDefault(trainer.getId(), List.of());
@@ -237,7 +239,7 @@ public class PxbLegacyTrainerQueryServiceImpl implements PxbLegacyTrainerQuerySe
         row.put("roleid", trainer.getId());
         row.put("nickname", user != null && StringUtils.hasText(user.getNickname()) ? user.getNickname() : "");
         row.put("username", user != null && StringUtils.hasText(user.getUsername()) ? user.getUsername() : "");
-        row.put("icon", normalizeIcon(trainer.getAvatar()));
+        row.put("icon", legacyStaticAssetUrlResolver.resolve(trainer.getAvatar()));
         row.put("company", trainer.getPartialClients() != null ? trainer.getPartialClients() : "");
         row.put("realname", trainer.getName());
         row.put("isrec", trainer.getIsRecommended() != null ? trainer.getIsRecommended() : 0);
@@ -341,17 +343,6 @@ public class PxbLegacyTrainerQueryServiceImpl implements PxbLegacyTrainerQuerySe
         List<Trainer> copy = new ArrayList<>(candidates);
         Collections.shuffle(copy);
         return copy.subList(0, Math.min(pickCount, copy.size()));
-    }
-
-    private static String normalizeIcon(String avatar) {
-        if (!StringUtils.hasText(avatar)) {
-            return "";
-        }
-        String trimmed = avatar.trim();
-        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-            return trimmed;
-        }
-        return trimmed;
     }
 
     private Map<Integer, List<String>> findFeaturedCourseTitles(java.util.Collection<Integer> publisherIds,
