@@ -18,12 +18,18 @@ public class PxbLegacyTrainerRelatedServiceImpl implements PxbLegacyTrainerRelat
     @Override
     @Transactional
     public void addRelated(int trainerUid, int pxbUid, String pxbUsername, String mobile) {
-        PxbTrainerRelatedLog log = new PxbTrainerRelatedLog();
-        log.setTrainerUid(trainerUid);
-        log.setPxbUid(pxbUid);
-        log.setPxbUsername(pxbUsername != null ? pxbUsername.trim() : "");
-        log.setMobile(mobile != null ? mobile.trim() : "");
-        log.setCreatedAt(LocalDateTime.now());
+        String username = pxbUsername != null ? pxbUsername.trim() : "";
+        String mobileValue = mobile != null ? mobile.trim() : "";
+
+        PxbTrainerRelatedLog log = relatedLogRepository.findByTrainerUidAndPxbUid(trainerUid, pxbUid)
+                .orElseGet(PxbTrainerRelatedLog::new);
+        if (log.getId() == null) {
+            log.setTrainerUid(trainerUid);
+            log.setPxbUid(pxbUid);
+            log.setCreatedAt(LocalDateTime.now());
+        }
+        log.setPxbUsername(username);
+        log.setMobile(mobileValue);
         relatedLogRepository.save(log);
     }
 }
