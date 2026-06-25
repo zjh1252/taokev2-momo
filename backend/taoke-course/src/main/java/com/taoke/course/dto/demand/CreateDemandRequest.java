@@ -52,8 +52,32 @@ public class CreateDemandRequest {
     /** 联系人 */
     private String contactName;
 
-    /** 联系电话 */
+    /** 联系电话（手机） */
     private String contactPhone;
+
+    /** 公司名称 */
+    private String companyName;
+
+    /** 联系邮箱 */
+    private String contactEmail;
+
+    /** 公司电话 */
+    private String companyTel;
+
+    /** 擅长领域一级分类 ID（公开课） */
+    private Integer expertiseCategoryId;
+
+    /** 期望方案数（内训课） */
+    private Integer expectedProposalCount;
+
+    /** 指定讲师 ID */
+    private Integer sourceTrainerId;
+
+    /** 课程种类：OPEN / INTERNAL */
+    private String courseKind;
+
+    /** 滑块验证码令牌（游客公开课提交时必填） */
+    private String captchaToken;
 
     /** 省份 ID（线下/混合时传入） */
     private Integer provinceId;

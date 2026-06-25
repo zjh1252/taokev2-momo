@@ -35,6 +35,11 @@ body.pxb-embed-active #pxb_content.pxb-institution-list {
   overflow: visible;
 }
 
+body.pxb-embed-active #pxb_content.pxb-demand-form {
+  padding-bottom: 24px;
+  overflow: visible;
+}
+
 html:has(body.pxb-embed-active) {
   overflow: visible !important;
   height: auto !important;
@@ -44,6 +49,16 @@ html:has(body.pxb-embed-active) {
 body.pxb-embed-active .pxb-course-list span.pxb-filter-chip.is-selected {
   background-color: #e3f1f3 !important;
   color: #006cb8 !important;
+}
+
+body.pxb-embed-active .pxb-demand-form input.pxb-date-input {
+  appearance: none;
+  display: inline-block;
+  width: 102px;
+  height: 28px;
+  border: 1px solid #ccc !important;
+  background-color: #fff !important;
+  color: #333 !important;
 }
 
 body.pxb-embed-active .pxb-course-list button.pxb-confirm-btn {

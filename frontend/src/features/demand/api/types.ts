@@ -72,6 +72,16 @@ export interface CreateDemandRequest {
   sourceCourseId?: number;
   contactName?: string;
   contactPhone?: string;
+  companyName?: string;
+  contactEmail?: string;
+  companyTel?: string;
+  expertiseCategoryId?: number;
+  expectedProposalCount?: number;
+  sourceTrainerId?: number;
+  /** OPEN | INTERNAL */
+  courseKind?: string;
+  /** 游客公开课提交滑块令牌 */
+  captchaToken?: string;
   provinceId?: number;
   cityId?: number;
   districtId?: number;

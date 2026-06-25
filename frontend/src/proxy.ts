@@ -67,6 +67,14 @@ export function proxy(request: NextRequest) {
     return rewriteKeepingQuery(request, `/${locale}/institutions`);
   }
 
+  // 培训宝 iframe：发布需求
+  if (pathname === '/opencourse/supplier') {
+    return rewriteKeepingQuery(request, `/${locale}/opencourses/supplier`);
+  }
+  if (pathname === '/inhousecourse/supplier') {
+    return rewriteKeepingQuery(request, `/${locale}/innercourses/supplier`);
+  }
+
   // 去s → 带s 内部路由映射
   const map: Record<string, string> = {
     '/trainer': '/trainers',

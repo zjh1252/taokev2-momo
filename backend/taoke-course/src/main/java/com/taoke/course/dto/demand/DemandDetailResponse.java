@@ -1,6 +1,7 @@
 package com.taoke.course.dto.demand;
 
 import com.taoke.course.entity.demand.Demand;
+import com.taoke.course.enums.DemandCourseKind;
 import com.taoke.course.enums.DemandFormat;
 import com.taoke.course.enums.DemandStatus;
 import com.taoke.course.enums.DemandType;
@@ -39,6 +40,14 @@ public class DemandDetailResponse {
     private Integer sourceCourseId;
     private String contactName;
     private String contactPhone;
+    private String companyName;
+    private String contactEmail;
+    private String companyTel;
+    private Integer expertiseCategoryId;
+    private Integer expectedProposalCount;
+    private Integer sourceTrainerId;
+    private String courseKind;
+    private String courseKindLabel;
     private Integer provinceId;
     private Integer cityId;
     private Integer districtId;
@@ -81,6 +90,20 @@ public class DemandDetailResponse {
         r.setSourceCourseId(d.getSourceCourseId());
         r.setContactName(d.getContactName());
         r.setContactPhone(d.getContactPhone());
+        r.setCompanyName(d.getCompanyName());
+        r.setContactEmail(d.getContactEmail());
+        r.setCompanyTel(d.getCompanyTel());
+        r.setExpertiseCategoryId(d.getExpertiseCategoryId());
+        r.setExpectedProposalCount(d.getExpectedProposalCount());
+        r.setSourceTrainerId(d.getSourceTrainerId());
+        r.setCourseKind(d.getCourseKind());
+        if (d.getCourseKind() != null) {
+            try {
+                r.setCourseKindLabel(DemandCourseKind.valueOf(d.getCourseKind()).getLabel());
+            } catch (Exception ignored) {
+                r.setCourseKindLabel(d.getCourseKind());
+            }
+        }
         r.setProvinceId(d.getProvinceId());
         r.setCityId(d.getCityId());
         r.setDistrictId(d.getDistrictId());

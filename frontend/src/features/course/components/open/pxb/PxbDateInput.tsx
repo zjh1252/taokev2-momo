@@ -26,9 +26,10 @@ interface Props {
   onChange: (value: string) => void;
   min?: string;
   max?: string;
+  placeholder?: string;
 }
 
-export function PxbDateInput({ id, value, onChange, min, max }: Props) {
+export function PxbDateInput({ id, value, onChange, min, max, placeholder = '请选择时间' }: Props) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Date | undefined>(() => parseDateValue(value));
   const rootRef = useRef<HTMLDivElement>(null);
@@ -95,6 +96,7 @@ export function PxbDateInput({ id, value, onChange, min, max }: Props) {
         className="pxb-date-input"
         readOnly
         value={value}
+        placeholder={placeholder}
         onClick={openPicker}
         onFocus={openPicker}
         aria-haspopup="dialog"
