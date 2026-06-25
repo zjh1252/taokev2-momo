@@ -39,6 +39,10 @@ export interface InstitutionListParams {
   association?: boolean;
   /** 擅长领域一级分类 ID */
   expertiseCategoryId?: number;
+  /** 擅长行业一级分类 ID */
+  industryCategoryId?: number;
+  /** 机构所在省份 ID */
+  provinceId?: number;
   /** 机构所在城市 ID */
   cityId?: number;
 }
@@ -57,6 +61,12 @@ export async function getInstitutionList(
   if (params.association != null) query.set('association', String(params.association));
   if (params.expertiseCategoryId) {
     query.set('expertiseCategoryId', String(params.expertiseCategoryId));
+  }
+  if (params.industryCategoryId) {
+    query.set('industryCategoryId', String(params.industryCategoryId));
+  }
+  if (params.provinceId) {
+    query.set('provinceId', String(params.provinceId));
   }
   if (params.cityId) {
     query.set('cityId', String(params.cityId));

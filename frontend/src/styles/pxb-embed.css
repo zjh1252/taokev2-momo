@@ -30,6 +30,11 @@ body.pxb-embed-active #pxb_content.pxb-trainer-list {
   overflow: visible;
 }
 
+body.pxb-embed-active #pxb_content.pxb-institution-list {
+  padding-bottom: 24px;
+  overflow: visible;
+}
+
 html:has(body.pxb-embed-active) {
   overflow: visible !important;
   height: auto !important;
