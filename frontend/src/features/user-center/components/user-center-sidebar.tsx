@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, usePathname } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/lib/auth/auth-context';
+import {
+  listEnterpriseAgentMembers,
+  listInstitutionEmployees,
+} from '@/features/binding/api/service';
+import { BINDING_STATUS } from '@/features/binding/api/types';
 import {
   Home,
   Mail,
@@ -246,6 +251,32 @@ export function UserCenterSidebar() {
   const pathname = usePathname();
   const { activeRole } = useAuth();
 
+  // 经纪公司「我的经纪人」/ 机构「我的员工」待确认申请数角标
+  const [pendingBindingCount, setPendingBindingCount] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        let list = [] as { status: number }[];
+        if (activeRole === 'ENTERPRISE_AGENT') {
+          list = await listEnterpriseAgentMembers();
+        } else if (activeRole === 'INSTITUTION') {
+          list = await listInstitutionEmployees();
+        } else {
+          if (alive) setPendingBindingCount(0);
+          return;
+        }
+        if (alive) setPendingBindingCount(list.filter((b) => b.status === BINDING_STATUS.PENDING).length);
+      } catch {
+        if (alive) setPendingBindingCount(0);
+      }
+    };
+    load();
+    return () => {
+      alive = false;
+    };
+  }, [activeRole]);
+
   /** 子菜单按 visibleForRoles 过滤（含三级孙菜单按角色过滤） */
   const filterChildren = (children: NavChild[]) =>
     children
@@ -328,6 +359,10 @@ export function UserCenterSidebar() {
         <nav className="flex flex-col py-2">
           {visibleEntries.map((entry) => {
             if (entry.kind === 'item') {
+              const dynamicBadge =
+                entry.href === ROUTES.UC_MY_AGENTS_TEAM || entry.href === ROUTES.UC_MY_EMPLOYEES
+                  ? pendingBindingCount
+                  : entry.badge;
               return (
                 <Link
                   key={entry.href + entry.label}
@@ -346,9 +381,9 @@ export function UserCenterSidebar() {
                       即将上线
                     </span>
                   )}
-                  {entry.badge !== undefined && entry.badge > 0 && (
+                  {dynamicBadge !== undefined && dynamicBadge > 0 && (
                     <span className="ml-auto bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                      {entry.badge}
+                      {dynamicBadge}
                     </span>
                   )}
                 </Link>

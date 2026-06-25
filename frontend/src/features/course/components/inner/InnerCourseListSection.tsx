@@ -16,7 +16,6 @@ import { getBrowserPathname, navigateToSeoPath, replaceBrowserUrl, setPageParam 
 interface InnerCourseListSectionProps {
   initialData: PageResponse<CourseListItem>;
   categoryTree: CategoryTreeNode[];
-  industryTree: CategoryTreeNode[];
   initialInstitutionId?: number;
   initialInstitutionName?: string;
   initialCategoryId?: number;
@@ -30,12 +29,12 @@ interface InnerCourseListSectionProps {
 
 const SORT_OPTIONS = [
   { key: 'default', label: '默认', sortBy: 'default' },
+  { key: 'viewCount', label: '人气', sortBy: 'viewCount' },
+  { key: 'time', label: '发布时间', sortBy: 'time' },
   { key: 'rating', label: '评分', sortBy: 'score' },
 ];
 
-function resolveSortBy(filters: InnerCourseFilterValue, sortKey: string): string | undefined {
-  const sidebar = filters.sortBy;
-  if (sidebar && sidebar !== 'default') return sidebar;
+function resolveSortBy(sortKey: string): string | undefined {
   const top = SORT_OPTIONS.find((o) => o.key === sortKey)?.sortBy ?? 'default';
   return top === 'default' ? undefined : top;
 }
@@ -51,9 +50,8 @@ function buildListParams(
     size: 15,
     isOpen: false as const,
     categoryIds: filters.categoryId ? [filters.categoryId] : undefined,
-    sortBy: resolveSortBy(filters, sortKey),
+    sortBy: resolveSortBy(sortKey),
     institutionId,
-    trainerIndustryCategoryId: filters.industryCategoryId,
     trainerProvinceId: filters.trainerProvinceId,
     trainerIsTrusted: filters.trainerTrusted ? 1 : undefined,
     trainerHasCopyright: filters.trainerHasCopyright ? 1 : undefined,
@@ -71,7 +69,6 @@ export function InnerCourseListSection(props: InnerCourseListSectionProps) {
 function InnerCourseListSectionInner({
   initialData,
   categoryTree,
-  industryTree,
   initialInstitutionId,
   initialInstitutionName,
   initialCategoryId,
@@ -214,17 +211,6 @@ function InnerCourseListSectionInner({
         onRemove: () => ({ ...filters, categoryId: undefined, categoryName: undefined }),
       });
     }
-    if (filters.industryCategoryName) {
-      chips.push({
-        key: 'industry',
-        label: `行业：${filters.industryCategoryName}`,
-        onRemove: () => ({
-          ...filters,
-          industryCategoryId: undefined,
-          industryCategoryName: undefined,
-        }),
-      });
-    }
     if (filters.trainerProvinceName) {
       chips.push({
         key: 'province',
@@ -234,13 +220,6 @@ function InnerCourseListSectionInner({
           trainerProvinceId: undefined,
           trainerProvinceName: undefined,
         }),
-      });
-    }
-    if (filters.sortLabel) {
-      chips.push({
-        key: 'sort',
-        label: filters.sortLabel,
-        onRemove: () => ({ ...filters, sortBy: undefined, sortLabel: undefined }),
       });
     }
     if (filters.trainerHasCopyright) {
@@ -278,7 +257,6 @@ function InnerCourseListSectionInner({
     <div className="flex gap-6 items-start">
       <InnerCourseFilters
         categoryTree={categoryTree}
-        industryTree={industryTree}
         value={filters}
         onChange={handleFilterChange}
       />
@@ -326,7 +304,7 @@ function InnerCourseListSectionInner({
               type="button"
               onClick={() => handleSortChange(opt.key)}
               className={`px-6 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-1 ${
-                sortKey === opt.key && !filters.sortBy
+                sortKey === opt.key
                   ? 'font-bold text-primary bg-primary/5'
                   : 'font-medium text-slate-600 hover:bg-slate-50'
               }`}

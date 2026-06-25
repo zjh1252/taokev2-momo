@@ -67,7 +67,7 @@ taoke:
       access-type: 109
       template-code: SMS_498620164
       auth: 44
-      token-ttl-seconds: 7000
+      token-ttl-seconds: 3600
   # UCenter 账号中心接入（登录/注册/改密）。enabled=false 时走新站本地流程。
   # 凭据全环境通用（appid/key 捞自老站）；api-url 默认指向测试 UCenter，prod 覆盖为生产地址
   ucenter:

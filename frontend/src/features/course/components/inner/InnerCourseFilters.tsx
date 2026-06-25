@@ -29,12 +29,11 @@ export interface InnerCourseFilterValue {
 
 interface InnerCourseFiltersProps {
   categoryTree: CategoryTreeNode[];
-  industryTree: CategoryTreeNode[];
   value: InnerCourseFilterValue;
   onChange: (value: InnerCourseFilterValue) => void;
 }
 
-type FilterKey = 'comprehensive' | 'category' | 'trainerCity' | 'industry' | 'exclusive';
+type FilterKey = 'category' | 'trainerCity' | 'exclusive';
 
 interface FilterMeta {
   key: FilterKey;
@@ -43,18 +42,9 @@ interface FilterMeta {
 }
 
 const FILTER_ITEMS: FilterMeta[] = [
-  { key: 'comprehensive', label: '综合类', flyoutWidth: 400 },
   { key: 'category', label: '课程分类', flyoutWidth: 520 },
   { key: 'trainerCity', label: '讲师城市', flyoutWidth: 520 },
-  { key: 'industry', label: '课程行业', flyoutWidth: 520 },
   { key: 'exclusive', label: '讲师独家', flyoutWidth: 240 },
-];
-
-const COMPREHENSIVE_OPTIONS: { label: string; sortBy?: string }[] = [
-  { label: '全部', sortBy: undefined },
-  { label: '最新发布', sortBy: 'time' },
-  { label: '人气最高', sortBy: 'viewCount' },
-  { label: '评分最高', sortBy: 'score' },
 ];
 
 interface RegionItem {
@@ -72,7 +62,6 @@ async function fetchProvinces(): Promise<RegionItem[]> {
 
 export function InnerCourseFilters({
   categoryTree,
-  industryTree,
   value,
   onChange,
 }: InnerCourseFiltersProps) {
@@ -109,18 +98,8 @@ export function InnerCourseFilters({
     closeFlyout();
   };
 
-  const handleIndustry = (id?: number, name?: string) => {
-    patch({ industryCategoryId: id, industryCategoryName: name });
-    closeFlyout();
-  };
-
   const handleProvince = (id?: number, name?: string) => {
     patch({ trainerProvinceId: id, trainerProvinceName: name });
-    closeFlyout();
-  };
-
-  const handleComprehensive = (label: string, sortBy?: string) => {
-    patch({ sortBy, sortLabel: sortBy ? label : undefined });
     closeFlyout();
   };
 
@@ -187,24 +166,6 @@ export function InnerCourseFilters({
             className="bg-white rounded-xl shadow-xl border border-slate-100 p-6 max-h-[70vh] overflow-y-auto"
             style={{ width: activeMeta.flyoutWidth }}
           >
-            {activeFilter === 'comprehensive' && (
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                {COMPREHENSIVE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.label}
-                    type="button"
-                    onClick={() => handleComprehensive(opt.label, opt.sortBy)}
-                    className={`text-left cursor-pointer transition-colors ${
-                      (opt.sortBy ?? 'default') === (value.sortBy ?? 'default')
-                        ? 'text-primary font-medium'
-                        : 'text-slate-600 hover:text-primary'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
             {activeFilter === 'category' && (
               <CategoryTwoLevelPanel
                 tree={categoryTree}
@@ -217,13 +178,6 @@ export function InnerCourseFilters({
                 provinces={provinces}
                 selectedId={value.trainerProvinceId}
                 onPick={handleProvince}
-              />
-            )}
-            {activeFilter === 'industry' && (
-              <CategoryTwoLevelPanel
-                tree={industryTree}
-                selectedId={value.industryCategoryId}
-                onPick={handleIndustry}
               />
             )}
             {activeFilter === 'exclusive' && (
@@ -259,14 +213,10 @@ export function InnerCourseFilters({
 
 function pickSelectedLabel(key: FilterKey, v: InnerCourseFilterValue): string | undefined {
   switch (key) {
-    case 'comprehensive':
-      return v.sortLabel;
     case 'category':
       return v.categoryName;
     case 'trainerCity':
       return v.trainerProvinceName;
-    case 'industry':
-      return v.industryCategoryName;
     case 'exclusive':
       if (v.trainerHasCopyright) return '独家讲师';
       if (v.trainerTrusted) return '平台认证';

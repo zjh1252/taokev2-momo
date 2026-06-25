@@ -16,6 +16,7 @@ import type { CourseListItem } from '@/features/course/api/types';
 import { isPresentableRecommendedTrainer } from '../utils/recommended';
 import type { VideoListItem } from '@/features/video/api/types';
 import type { TrainerCase } from '@/features/trainer-case/api/types';
+import type { TrainerHighlight } from '@/features/trainer-highlight/api/types';
 
 function authHeaders(): Record<string, string> {
   const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
@@ -212,6 +213,22 @@ export async function getTrainerVideos(
  */
 export async function getTrainerApprovedCases(trainerId: number): Promise<TrainerCase[]> {
   const res = await apiGet<ApiResponse<TrainerCase[]>>(`/trainers/${trainerId}/cases`);
+  return res.data || [];
+}
+
+/**
+ * 单个已审核案例详情 — 公开
+ */
+export async function getApprovedCaseDetail(caseId: number): Promise<TrainerCase> {
+  const res = await apiGet<ApiResponse<TrainerCase>>(`/trainer-cases/${caseId}`);
+  return res.data;
+}
+
+/**
+ * 专家「精彩瞬间」 — 公开列表（已审核通过）
+ */
+export async function getTrainerApprovedHighlights(trainerId: number): Promise<TrainerHighlight[]> {
+  const res = await apiGet<ApiResponse<TrainerHighlight[]>>(`/trainers/${trainerId}/highlights`);
   return res.data || [];
 }
 

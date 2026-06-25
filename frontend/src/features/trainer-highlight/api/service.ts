@@ -50,6 +50,19 @@ export async function createHighlight(
   return res.data;
 }
 
+/** 保存精彩瞬间草稿（不进入审核，允许信息不完整） */
+export async function createHighlightDraft(
+  data: SaveTrainerHighlightRequest,
+  trainerUserId?: number,
+): Promise<TrainerHighlight> {
+  const res = await apiPost<ApiResponse<TrainerHighlight>>(
+    `/trainers/me/highlights/draft${buildQs(trainerUserId)}`,
+    data,
+    { headers: authHeaders() }
+  );
+  return res.data;
+}
+
 /** 编辑精彩瞬间 */
 export async function updateHighlight(
   id: number,
@@ -58,6 +71,20 @@ export async function updateHighlight(
 ): Promise<TrainerHighlight> {
   const res = await apiPut<ApiResponse<TrainerHighlight>>(
     `/trainers/me/highlights/${id}${buildQs(trainerUserId)}`,
+    data,
+    { headers: authHeaders() }
+  );
+  return res.data;
+}
+
+/** 保存精彩瞬间草稿（编辑，不进入审核，允许信息不完整） */
+export async function updateHighlightDraft(
+  id: number,
+  data: SaveTrainerHighlightRequest,
+  trainerUserId?: number,
+): Promise<TrainerHighlight> {
+  const res = await apiPut<ApiResponse<TrainerHighlight>>(
+    `/trainers/me/highlights/${id}/draft${buildQs(trainerUserId)}`,
     data,
     { headers: authHeaders() }
   );

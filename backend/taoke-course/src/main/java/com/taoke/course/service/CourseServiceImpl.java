@@ -209,9 +209,36 @@ public class CourseServiceImpl implements CourseService {
             return PageResponse.of(List.of(), 0, page, size);
         }
 
-        List<CourseListItemVO> items = coursePage.getContent().stream()
+        List<Course> content = coursePage.getContent();
+        List<CourseListItemVO> items = content.stream()
                 .map(this::toListItemVO)
                 .toList();
+
+        // 公开课回填最近一场开课时间 / 开课地点（内训课、在线课无计划则留空）
+        List<Integer> openCourseIds = content.stream()
+                .filter(c -> c.getType() != null && c.getType().isOpen())
+                .map(Course::getId)
+                .toList();
+        if (!openCourseIds.isEmpty()) {
+            Map<Integer, CoursePlan> nearestPlanMap = pickDisplayPlansForOpenCourses(openCourseIds);
+            Set<Integer> regionIds = new HashSet<>();
+            for (CoursePlan p : nearestPlanMap.values()) {
+                if (p.getProvinceId() != null && p.getProvinceId() > 0) regionIds.add(p.getProvinceId());
+                if (p.getCityId() != null && p.getCityId() > 0) regionIds.add(p.getCityId());
+            }
+            Map<Integer, String> regionNameMap = regionIds.isEmpty()
+                    ? Map.of()
+                    : regionService.getNamesByIds(regionIds);
+            Map<Integer, CourseListItemVO> voById = items.stream()
+                    .collect(Collectors.toMap(CourseListItemVO::getId, v -> v, (a, b) -> a));
+            for (Map.Entry<Integer, CoursePlan> e : nearestPlanMap.entrySet()) {
+                CourseListItemVO vo = voById.get(e.getKey());
+                if (vo != null) {
+                    vo.setNextPlanStartDate(e.getValue().getStartTime());
+                    vo.setNextPlanCity(formatPlanLocation(e.getValue(), regionNameMap));
+                }
+            }
+        }
         return PageResponse.of(items, coursePage.getTotalElements(), page, size);
     }
 
@@ -1014,6 +1041,14 @@ public class CourseServiceImpl implements CourseService {
                 .and(Sort.by(Sort.Direction.DESC, "id"));
         PageRequest pageable = PageRequest.of(0, 5, sort);
         return assembleListItems(courseRepository.findAll(spec, pageable).getContent());
+    }
+
+    @Override
+    public List<Integer> listRecentlyActiveInstitutionUserIds(int days, int limit) {
+        int d = days > 0 ? days : 7;
+        int n = limit > 0 ? limit : 5;
+        LocalDateTime since = LocalDateTime.now().minusDays(d);
+        return courseRepository.findRecentlyActiveInstitutionUserIds(since, PageRequest.of(0, n));
     }
 
     @Override

@@ -7,6 +7,7 @@ import type {
   EnterpriseBuyerFormData,
   TrainerFormData,
   TrainerBookFormItem,
+  TrainerHonorFileItem,
   AgentFormData,
   AssistantFormData,
   EnterpriseAgentFormData,
@@ -183,7 +184,6 @@ interface TrainerFullProfile {
   background?: string;
   partialClients?: string;
   goodAt?: string;
-  expertiseTags?: string;
   teachingStyle?: string;
   experienceYears?: number;
   teachingYears?: number;
@@ -198,6 +198,22 @@ interface TrainerFullProfile {
   expertiseCategories?: { categoryId: number }[];
   industryCategories?: { categoryId: number }[];
   books?: TrainerBookFormItem[];
+  /** 荣誉与资质文件 JSON 字符串（数组 [{name,url}]） */
+  honorFiles?: string;
+}
+
+/** 解析后端 honorFiles JSON 字符串为前端结构化数组 */
+function parseHonorFiles(raw: string | undefined | null): TrainerHonorFileItem[] {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((it) => it && typeof it === 'object' && typeof it.url === 'string')
+      .map((it) => ({ name: it.name ?? it.url, url: it.url }));
+  } catch {
+    return [];
+  }
 }
 
 interface ApiResponse<T> {
@@ -238,7 +254,6 @@ export async function getMyTrainerProfileAsForm(): Promise<Partial<TrainerFormDa
       background: t.background ?? '',
       partialClients: t.partialClients ?? '',
       goodAt: t.goodAt ?? '',
-      expertiseTags: t.expertiseTags ?? '',
       teachingStyle: t.teachingStyle ?? '',
       experienceYears: t.experienceYears ?? null,
       teachingYears: t.teachingYears ?? null,
@@ -255,6 +270,7 @@ export async function getMyTrainerProfileAsForm(): Promise<Partial<TrainerFormDa
       industryCategoryIds: (t.industryCategories ?? []).map((c) => c.categoryId),
       expertiseCategoryIds: (t.expertiseCategories ?? []).map((c) => c.categoryId),
       books: t.books ?? [],
+      honorFiles: parseHonorFiles(t.honorFiles),
     };
   } catch {
     return null;
@@ -444,6 +460,7 @@ interface InstitutionFullProfile {
   licenseNo?: string;
   establishedAt?: string;
   logoUrl?: string;
+  licenseDocUrl?: string;
   bio?: string;
   industries?: string;
   specialties?: string;
@@ -487,6 +504,7 @@ export async function getMyInstitutionProfileAsForm(): Promise<Partial<Instituti
       licenseNo: t.licenseNo ?? '',
       establishedAt: t.establishedAt ?? '',
       logoUrl: t.logoUrl ?? '',
+      licenseDocUrl: t.licenseDocUrl ?? '',
       bio: t.bio ?? '',
       industryCategoryIds: parseIdList(t.industries),
       expertiseCategoryIds: parseIdList(t.specialties),

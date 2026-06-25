@@ -16,11 +16,13 @@ import {
 import { meQueryOptions } from '@/features/auth/api/queries';
 import { logoutMutation } from '@/features/auth/api/mutations';
 import { useAuthStore } from '@/features/auth/stores/auth-store';
-import { useEffect } from 'react';
+import { ChangePasswordDialog } from '@/features/auth/components/change-password-dialog';
+import { useEffect, useState } from 'react';
 
 export function UserNav() {
   const router = useRouter();
   const { setUser } = useAuthStore();
+  const [pwdOpen, setPwdOpen] = useState(false);
 
   const { data } = useQuery(meQueryOptions());
 
@@ -68,8 +70,17 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            setPwdOpen(true);
+          }}
+        >
+          修改密码
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => doLogout()}>退出登录</DropdownMenuItem>
       </DropdownMenuContent>
+      <ChangePasswordDialog open={pwdOpen} onOpenChange={setPwdOpen} />
     </DropdownMenu>
   );
 }

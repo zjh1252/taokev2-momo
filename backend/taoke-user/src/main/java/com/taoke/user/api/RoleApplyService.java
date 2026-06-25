@@ -32,6 +32,18 @@ public interface RoleApplyService {
     void applyAndAutoApprove(Integer userId, String roleCode);
 
     /**
+     * 幂等地确保用户拥有某业务角色且为生效状态（无需后台审核）。
+     * <p>
+     * 与 {@link #applyAndAutoApprove} 的区别：当角色已生效（status=1）时直接返回、不抛异常，
+     * 便于「申请即通过」且允许重复申请的角色（如 AGENT、INSTITUTION_EMPLOYEE）。
+     * 角色被禁用（status=4）时仍抛 {@link com.taoke.common.exception.ErrorCode#ROLE_DISABLED}。
+     *
+     * @param userId   用户 ID
+     * @param roleCode 角色编码
+     */
+    void ensureRoleActive(Integer userId, String roleCode);
+
+    /**
      * 审批通过用户的角色申请。
      *
      * @param userId   用户 ID

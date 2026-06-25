@@ -32,6 +32,8 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
+  MapPin,
+  CalendarClock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { resolveImageSrc } from '@/lib/media';
@@ -326,6 +328,22 @@ function CourseCard({
             {course.price > 0 && <span>· ¥{course.price}</span>}
             {course.isFree === 1 && <span className="text-green-600">· 免费</span>}
           </div>
+          {(course.nextPlanStartDate || course.nextPlanCity) && (
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-1.5">
+              {course.nextPlanStartDate && (
+                <span className="inline-flex items-center gap-1">
+                  <CalendarClock className="size-3.5 text-gray-400" />
+                  开课时间 {course.nextPlanStartDate.slice(0, 16).replace('T', ' ')}
+                </span>
+              )}
+              {course.nextPlanCity && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="size-3.5 text-gray-400" />
+                  开课地点 {course.nextPlanCity}
+                </span>
+              )}
+            </div>
+          )}
           {isRejected && (
             <div className="flex items-center gap-1 mt-2 text-xs text-red-500">
               <AlertCircle className="size-3.5" />

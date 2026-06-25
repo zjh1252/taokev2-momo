@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { SafeImage } from '@/components/safe-image';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -90,10 +91,14 @@ export default function DashboardPage() {
       {/* 模块 1：欢迎与资产总览 */}
       <section className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div className="flex items-center gap-5">
-          {/* 头像 */}
-          <div className="relative group cursor-pointer">
+          {/* 头像 — 点击进入「个人资料」编辑页 */}
+          <Link
+            href="/dashboard/account/base"
+            className="relative group cursor-pointer block shrink-0"
+            title="编辑个人资料"
+          >
             {user?.avatarUrl ? (
-              <Image
+              <SafeImage
                 src={user.avatarUrl}
                 alt={nickname}
                 width={80}
@@ -108,7 +113,7 @@ export default function DashboardPage() {
             <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <Camera className="size-5 text-white" />
             </div>
-          </div>
+          </Link>
           {/* 基础信息 */}
           <div>
             <div className="flex items-center gap-3 mb-2">

@@ -91,6 +91,14 @@ public class Video extends BaseEntity {
     @Column(name = "is_free", nullable = false, columnDefinition = "tinyint")
     private Integer isFree = 0;
 
+    /** 封顶人数：0=不限（不封顶） */
+    @Column(name = "cap_count", nullable = false)
+    private Integer capCount = 0;
+
+    /** 封顶价（批量采购优惠价，单价×封顶人数），NULL=不设置 */
+    @Column(name = "cap_price", precision = 10, scale = 2)
+    private BigDecimal capPrice;
+
     /** 关键词，逗号分隔 */
     @Column(name = "keywords", length = 500)
     private String keywords;

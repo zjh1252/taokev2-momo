@@ -41,6 +41,17 @@ export const FORMAT_OPTIONS = [
   { value: 'HYBRID', label: '混合' },
 ] as const;
 
+/** 培训类型：公开课 / 内训课 */
+export const COURSE_TYPE_OPTIONS = [
+  { value: 'PUBLIC', label: '公开课' },
+  { value: 'INTERNAL', label: '内训课' },
+] as const;
+
+export const COURSE_TYPE_MAP: Record<string, string> = {
+  PUBLIC: '公开课',
+  INTERNAL: '内训课',
+};
+
 /** 后端统一响应结构 */
 export interface ApiResponse<T> {
   code: number;
@@ -67,6 +78,10 @@ export interface CreateDemandRequest {
   budgetMax?: number;
   expectedStartDate?: string;
   format?: string;
+  /** 培训类型：PUBLIC=公开课, INTERNAL=内训课 */
+  courseType?: string;
+  /** 意向专家（自由文本，选填） */
+  intendedTrainer?: string;
   description?: string;
   sourceCaseId?: number;
   sourceCourseId?: number;
@@ -90,6 +105,8 @@ export interface DemandListItem {
   budgetMin: number | null;
   budgetMax: number | null;
   format: string | null;
+  /** 培训类型：PUBLIC=公开课, INTERNAL=内训课 */
+  courseType?: string | null;
   traineeCount: number | null;
   createdAt: string;
   userId: number | null;
@@ -127,6 +144,11 @@ export interface DemandDetail {
   expectedStartDate: string | null;
   format: string | null;
   formatLabel: string | null;
+  /** 培训类型：PUBLIC=公开课, INTERNAL=内训课 */
+  courseType: string | null;
+  courseTypeLabel: string | null;
+  /** 意向专家（自由文本） */
+  intendedTrainer: string | null;
   description: string | null;
   sourceCaseId: number | null;
   sourceCourseId: number | null;

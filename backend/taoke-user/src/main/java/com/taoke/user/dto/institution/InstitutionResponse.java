@@ -23,6 +23,8 @@ public class InstitutionResponse {
     private String licenseNo;
     private LocalDate establishedAt;
     private String logoUrl;
+    /** 营业执照附件 URL（图片） */
+    private String licenseDocUrl;
     private String bio;
     /** 擅长行业 — 分类 ID 逗号串（前端解析为 number[]） */
     private String industries;

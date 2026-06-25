@@ -43,6 +43,10 @@ public class VideoDetailVO {
     private BigDecimal price;
     private BigDecimal originalPrice;
     private Integer isFree;
+    /** 封顶人数：0=不限 */
+    private Integer capCount;
+    /** 封顶价（批量采购优惠价），null=不设置 */
+    private BigDecimal capPrice;
     private String keywords;
 
     private Integer duration;

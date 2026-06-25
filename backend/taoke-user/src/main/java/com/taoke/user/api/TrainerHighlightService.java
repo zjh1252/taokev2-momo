@@ -21,10 +21,10 @@ public interface TrainerHighlightService {
 
     List<TrainerHighlightResponse> listMyHighlights(Integer userId);
 
-    TrainerHighlightResponse createHighlight(Integer userId, SaveTrainerHighlightRequest request);
+    TrainerHighlightResponse createHighlight(Integer userId, SaveTrainerHighlightRequest request, boolean draft);
 
     TrainerHighlightResponse updateHighlight(Integer userId, Integer highlightId,
-                                             SaveTrainerHighlightRequest request);
+                                             SaveTrainerHighlightRequest request, boolean draft);
 
     void deleteHighlight(Integer userId, Integer highlightId);
 

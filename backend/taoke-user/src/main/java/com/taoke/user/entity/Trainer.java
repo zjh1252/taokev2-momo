@@ -121,6 +121,10 @@ public class Trainer extends BaseEntity {
     @Column(name = "certification_files", columnDefinition = "json")
     private String certificationFiles;
 
+    /** 荣誉与资质文件（JSON 数组，元素形如 {"name","url"}，仅文件上传展示用） */
+    @Column(name = "honor_files", columnDefinition = "json")
+    private String honorFiles;
+
     /** 专业认证状态：NULL=未提交 1=待审核 2=已通过 3=已驳回 */
     @Column(name = "professional_status", columnDefinition = "tinyint")
     private Integer professionalStatus;

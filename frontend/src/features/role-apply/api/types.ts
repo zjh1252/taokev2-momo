@@ -93,6 +93,14 @@ export interface EnterpriseBuyerFormData {
   trainingTags: string;
 }
 
+/** 荣誉与资质文件条目（与后端 TrainerHonorFileItem 对齐） */
+export interface TrainerHonorFileItem {
+  /** 文件名（含扩展名，用于展示） */
+  name: string;
+  /** 文件可访问 URL（图片或 PDF） */
+  url: string;
+}
+
 /** 申请表单内嵌的著作条目（与后端 SaveTrainerBookRequest 对齐） */
 export interface TrainerBookFormItem {
   title: string;
@@ -134,7 +142,6 @@ export interface TrainerFormData {
   industryCategoryIds: number[];
   /** 擅长领域一级分类 ID 列表 */
   expertiseCategoryIds: number[];
-  expertiseTags: string;
   teachingStyle: string;
   experienceYears: number | null;
   teachingYears: number | null;
@@ -148,6 +155,8 @@ export interface TrainerFormData {
   taokeCommission: number | null;
   /** 我的著作（提交时整体替换） */
   books: TrainerBookFormItem[];
+  /** 荣誉与资质文件（图片/PDF，多文件，提交时整体替换） */
+  honorFiles: TrainerHonorFileItem[];
   /** 是否同意《淘课网注册专家合作协议》 */
   agreementSigned: boolean;
   /** 协议版本号，默认 v1 */
@@ -237,8 +246,10 @@ export interface InstitutionFormData {
   licenseNo: string;
   /** 成立时间（YYYY-MM-DD） */
   establishedAt: string;
-  /** 机构 Logo URL */
+  /** 机构 Logo URL（选填） */
   logoUrl: string;
+  /** 营业执照附件 URL（图片，必填） */
+  licenseDocUrl: string;
   /** 机构简介 */
   bio: string;
   /** 擅长行业一级分类 ID 列表（复用 TRAINER_INDUSTRY 分类树） */

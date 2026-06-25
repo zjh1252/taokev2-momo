@@ -195,6 +195,8 @@ export async function listEmployeeInstitutionTrainers(): Promise<BindingItem[]> 
 
 export interface LookupUserResult {
   id: number;
+  /** 真实姓名（优先专家档案姓名） */
+  realName?: string;
   nickname?: string;
   avatarUrl?: string;
   phone?: string;
