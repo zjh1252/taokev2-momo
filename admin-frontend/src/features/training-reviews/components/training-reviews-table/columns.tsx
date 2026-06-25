@@ -89,10 +89,24 @@ export const columns: ColumnDef<AdminTrainingReview>[] = [
   {
     id: 'avgScore',
     accessorKey: 'avgScore',
-    header: '均分',
-    cell: ({ cell }) => {
-      const v = cell.getValue<string | number>();
-      return v != null ? String(v) : '-';
+    header: ({ column }: { column: Column<AdminTrainingReview, unknown> }) => (
+      <DataTableColumnHeader column={column} title='综合评分' />
+    ),
+    cell: ({ row }) => {
+      const { ratingContent, ratingTeaching, ratingService, avgScore } = row.original;
+      const parts = [
+        ratingContent ? `内容 ${ratingContent}` : null,
+        ratingTeaching ? `授课 ${ratingTeaching}` : null,
+        ratingService ? `服务 ${ratingService}` : null
+      ].filter(Boolean);
+      if (parts.length > 0) {
+        return (
+          <span className='text-xs whitespace-nowrap' title={parts.join(' · ')}>
+            {parts.join(' / ')}
+          </span>
+        );
+      }
+      return avgScore != null ? String(avgScore) : '-';
     }
   },
   {
@@ -146,7 +160,7 @@ export const columns: ColumnDef<AdminTrainingReview>[] = [
   {
     id: 'reviewedBy',
     accessorKey: 'reviewedBy',
-    header: '审核人 ID',
+    header: '审核人',
     enableColumnFilter: true,
     meta: {
       label: '审核人 ID',

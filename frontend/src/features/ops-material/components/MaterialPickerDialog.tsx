@@ -1,10 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Image from 'next/image';
 import { Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { resolveImageSrc } from '@/lib/media';
+import { resolveApiImageSrc } from '@/lib/media';
 import { listOpsMaterials, pickOpsMaterial } from '../api/service';
 import type { OpsMaterialItem, OpsMaterialType } from '../api/types';
 
@@ -106,7 +105,12 @@ export function MaterialPickerDialog({
             </p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {items.map((item) => (
+              {items.map((item) => {
+                const previewSrc = resolveApiImageSrc(
+                  item.url,
+                  '/statics/images/taoke-new-logo.jpg',
+                );
+                return (
                 <button
                   key={item.id}
                   type="button"
@@ -120,12 +124,15 @@ export function MaterialPickerDialog({
                         : 'h-20 w-full rounded-md'
                     }`}
                   >
-                    <Image
-                      src={resolveImageSrc(item.url, '')}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={previewSrc}
                       alt={item.name}
-                      fill
-                      className="object-cover"
-                      unoptimized
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = '/statics/images/taoke-new-logo.jpg';
+                      }}
                     />
                   </div>
                   <p className="truncate text-xs font-medium text-gray-700">
@@ -135,7 +142,8 @@ export function MaterialPickerDialog({
                     <span className="text-[10px] text-primary">默认素材</span>
                   ) : null}
                 </button>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>

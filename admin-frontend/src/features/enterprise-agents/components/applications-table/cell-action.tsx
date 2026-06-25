@@ -1,6 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { InlineAuditActions } from '@/components/admin/inline-audit-actions';
+import { Button } from '@/components/ui/button';
+import { Icons } from '@/components/icons';
 import type { AdminEnterpriseAgentApplication } from '../../api/types';
 import { approveEAApplication, rejectEAApplication } from '../../api/service';
 import { eaKeys } from '../../api/queries';
@@ -27,6 +30,14 @@ export function CellAction({ data }: CellActionProps) {
       invalidateKey={eaKeys.all}
       idleLabel={
         data.status === 1 ? '已通过' : data.status === 3 ? '已驳回' : undefined
+      }
+      extra={
+        <Link href={`/dashboard/enterprise-agents/applications/${data.userId}`}>
+          <Button size='sm' variant='outline'>
+            <Icons.eye className='size-3.5 mr-1' />
+            详情
+          </Button>
+        </Link>
       }
     />
   );

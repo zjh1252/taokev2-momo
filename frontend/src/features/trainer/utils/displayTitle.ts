@@ -1,11 +1,29 @@
+/** 去除 HTML 标签与常见实体，供卡片/列表纯文本展示 */
+export function toPlainIntroText(text?: string | null): string {
+  if (!text?.trim()) return '';
+  return text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&[a-zA-Z]+;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** 转为纯文本简介，空则 undefined */
+export function plainIntroOrUndefined(text?: string | null): string | undefined {
+  const plain = toPlainIntroText(text);
+  return plain || undefined;
+}
+
 /**
  * 从长文本中提取首句作为一句话简介（以 ；;。\n 为分隔）。
  * 最多返回 48 字，确保适合作为姓名旁的简短头衔展示。
  */
 export function pickFirstSentence(text?: string | null): string | undefined {
-  if (!text?.trim()) return undefined;
-  // 去除 HTML 标签，避免 <br> 等被当作简介的一部分
-  const plain = text.replace(/<[^>]*>/g, ' ').replace(/&[a-zA-Z]+;/g, ' ').trim();
+  const plain = toPlainIntroText(text);
   if (!plain) return undefined;
   const first = plain.split(/[；;。\n]/)[0]?.trim();
   if (!first || first.length === 0) return undefined;
@@ -41,5 +59,6 @@ export function isDisplayTitle(title: string | undefined, name: string): title i
 }
 
 export function pickDisplayTitle(title: string | undefined, name: string): string | undefined {
-  return isDisplayTitle(title, name) ? title.trim() : undefined;
+  const t = toPlainIntroText(title);
+  return isDisplayTitle(t, name) ? t : undefined;
 }

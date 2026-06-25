@@ -53,6 +53,34 @@ function slugToFilter(p: TrainerSlugParams): TrainerFilterValue {
   };
 }
 
+/** 从 slug 名称补全分类 ID，避免仅靠名称匹配产生偏差 */
+function enrichFilterFromTree(
+  f: TrainerFilterValue,
+  expertiseTree: CategoryTreeNode[],
+  industryTree: CategoryTreeNode[],
+): TrainerFilterValue {
+  const expertiseCategoryId = f.expertiseCategoryId ?? (
+    f.fieldParentName
+      ? findCategoryId(expertiseTree, f.fieldParentName, f.fieldChildName)
+      : undefined
+  );
+  const industryCategoryId = f.industryCategoryId ?? (
+    f.industryName ? findCategoryIdByName(industryTree, f.industryName) : undefined
+  );
+  return { ...f, expertiseCategoryId, industryCategoryId };
+}
+
+function resolveExpertiseCategoryId(
+  f: TrainerFilterValue,
+  expertiseTree: CategoryTreeNode[],
+): number | undefined {
+  if (f.expertiseCategoryId) return f.expertiseCategoryId;
+  if (!f.fieldParentName) return undefined;
+  const id = findCategoryId(expertiseTree, f.fieldParentName, f.fieldChildName);
+  // 名称无法解析时不传 undefined（会误展示全量），用无效 ID 使结果为空
+  return id ?? -1;
+}
+
 function filterToFieldParam(f: TrainerFilterValue): string | undefined {
   if (f.fieldParentName && f.fieldChildName) return `${f.fieldParentName}_${f.fieldChildName}`;
   if (f.fieldParentName) return f.fieldParentName;
@@ -100,7 +128,10 @@ function TrainerListSectionInner({
   lockedCityId,
   bottomCategoryNav,
 }: TrainerListSectionProps) {
-  const initialFilters = useMemo(() => slugToFilter(initialSlugParams || {}), [initialSlugParams]);
+  const initialFilters = useMemo(
+    () => enrichFilterFromTree(slugToFilter(initialSlugParams || {}), expertiseTree, industryTree),
+    [initialSlugParams, expertiseTree, industryTree],
+  );
 
   const [data, setData] = useState(initialData);
   const [filters, setFilters] = useState<TrainerFilterValue>(initialFilters);
@@ -110,13 +141,17 @@ function TrainerListSectionInner({
 
   /** SSR 刷新/软导航时同步数据与筛选（底部分类栏跳转、浏览器前进后退等） */
   useEffect(() => {
-    const nextFilters = slugToFilter(initialSlugParams || {});
+    const nextFilters = enrichFilterFromTree(
+      slugToFilter(initialSlugParams || {}),
+      expertiseTree,
+      industryTree,
+    );
     startTransition(() => {
       setData(initialData);
       setCurrentPage(initialData.page ?? 1);
       setFilters(nextFilters);
     });
-  }, [initialData, initialSlugParams, startTransition]);
+  }, [initialData, initialSlugParams, expertiseTree, industryTree, startTransition]);
 
   /** 首次加载时，若 URL 带了 slug 查询参数（proxy 重定向），替换地址栏为 .htm SEO URL */
   useEffect(() => {
@@ -135,12 +170,10 @@ function TrainerListSectionInner({
           const result = await getTrainerList({
             page,
             size: 16,
-            expertiseCategoryId: f.fieldParentName
-              ? findCategoryId(expertiseTree, f.fieldParentName, f.fieldChildName)
-              : undefined,
-            industryCategoryId: f.industryName
-              ? findCategoryIdByName(industryTree, f.industryName)
-              : undefined,
+            expertiseCategoryId: resolveExpertiseCategoryId(f, expertiseTree),
+            industryCategoryId: f.industryCategoryId ?? (
+              f.industryName ? findCategoryIdByName(industryTree, f.industryName) : undefined
+            ),
             provinceId: f.provinceId,
             cityId: lockedCityId,
             sort: s,
@@ -211,6 +244,7 @@ function TrainerListSectionInner({
         ...filters,
         fieldParentName: item.name,
         fieldChildName: undefined,
+        expertiseCategoryId: item.categoryId,
       });
     },
     [filters, handleFilterChange],

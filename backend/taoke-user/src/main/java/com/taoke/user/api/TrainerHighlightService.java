@@ -49,7 +49,7 @@ public interface TrainerHighlightService {
 
     TrainerHighlightResponse adminGetDetail(Integer highlightId);
 
-    Page<TrainerHighlight> adminSearch(Integer trainerId, Integer status, int page, int size);
+    Page<TrainerHighlight> adminSearch(Integer trainerId, Integer status, String keyword, int page, int size);
 
     void approve(Integer highlightId, Integer reviewerUserId);
 

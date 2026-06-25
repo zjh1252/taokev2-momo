@@ -12,7 +12,7 @@ import {
 } from '@/features/interaction/api/service';
 import TrainerMessageDialog from '@/features/interaction/components/TrainerMessageDialog';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
-import { pickDisplayTitle } from '../../utils/displayTitle';
+import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
 
 interface TrainerHeroProps {
@@ -36,7 +36,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
   const displayName = getTrainerDisplayName(trainer);
   const displayTitle =
     pickDisplayTitle(trainer.title, displayName)
-    || (trainer.oneLineIntro?.trim() ? trainer.oneLineIntro.trim() : undefined);
+    || plainIntroOrUndefined(trainer.oneLineIntro);
   const { requireAuth } = useAuthGuard();
   const [msgOpen, setMsgOpen] = useState(false);
   const [favorited, setFavorited] = useState(false);

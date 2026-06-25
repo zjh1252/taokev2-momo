@@ -106,4 +106,12 @@ export const Validators = {
     }
     return undefined;
   },
+  /** 营业执照号 / 统一社会信用代码（15位纯数字 或 18位大写字母/数字） */
+  businessLicenseNo: (value: unknown) => {
+    const no = String(value ?? '').trim();
+    if (!/^\d{15}$|^[A-Z\d]{18}$/.test(no)) {
+      return '营业执照号需为15位纯数字或18位大写统一社会信用代码';
+    }
+    return undefined;
+  },
 };

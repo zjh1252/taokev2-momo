@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Icons } from '@/components/icons';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -27,6 +28,7 @@ type MaterialBatchControlsProps = {
   onApplyScene: (scene: string) => void;
   onBatchEnable: () => void;
   onBatchDisable: () => void;
+  onBatchDelete: () => void;
 };
 
 export function MaterialBatchControls({
@@ -38,7 +40,8 @@ export function MaterialBatchControls({
   onApplyCategory,
   onApplyScene,
   onBatchEnable,
-  onBatchDisable
+  onBatchDisable,
+  onBatchDelete
 }: MaterialBatchControlsProps) {
   const sceneOptions =
     materialType === 'COVER' ? COVER_SCENE_OPTIONS : AVATAR_SCENE_OPTIONS;
@@ -110,6 +113,16 @@ export function MaterialBatchControls({
         onClick={onBatchDisable}
       >
         批量禁用
+      </Button>
+      <Button
+        type='button'
+        size='sm'
+        variant='destructive'
+        disabled={selectedCount === 0}
+        onClick={onBatchDelete}
+      >
+        <Icons.trash className='mr-1 h-4 w-4' />
+        批量删除
       </Button>
     </div>
   );

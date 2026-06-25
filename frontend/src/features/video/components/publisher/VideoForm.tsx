@@ -5,6 +5,7 @@ import Image from 'next/image';
 import RichTextEditor from '@/components/rich-text-editor';
 import { getVideoCategoryTree } from '@/features/video/api/service';
 import {
+  deleteVideoChapter,
   uploadImage,
   uploadVideoFile,
   validateVideoFile,
@@ -17,7 +18,9 @@ import type {
   CategoryTreeNode,
   SaveVideoRequest,
   VideoDetail,
+  VideoChapter,
 } from '@/features/video/api/types';
+import { VideoStatus } from '@/features/video/api/types';
 import { ImagePlus, X, ChevronDown, Film, CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -34,11 +37,38 @@ export interface UploadedVideoItem {
   url: string;
 }
 
+type SeriesVideoItem = {
+  fileName: string;
+  url: string;
+  uploading: boolean;
+  progress: number;
+  /** 已有章节 ID，编辑模式下删除时需调用后端 */
+  existingChapterId?: number;
+};
+
 const VIDEO_TYPES: { value: VideoType; label: string }[] = [
   { value: 'SERIES', label: '多节视频' },
   { value: 'SINGLE', label: '单个视频' },
   { value: 'EXTERNAL', label: '外部网页视频' },
 ];
+
+function collectExistingChapters(detail: VideoDetail): VideoChapter[] {
+  if (detail.standaloneChapters?.length) {
+    return detail.standaloneChapters;
+  }
+  return detail.seriesList?.flatMap((s) => s.chapters ?? []) ?? [];
+}
+
+function buildInitialSeriesVideos(detail?: VideoDetail): SeriesVideoItem[] {
+  if (!detail || detail.videoType !== 'SERIES') return [];
+  return collectExistingChapters(detail).map((ch) => ({
+    fileName: ch.title,
+    url: ch.videoUrl,
+    uploading: false,
+    progress: 100,
+    existingChapterId: ch.id,
+  }));
+}
 
 /**
  * 录播课创建/编辑表单
@@ -75,9 +105,13 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   const [singleVideoProgress, setSingleVideoProgress] = useState(0);
 
   // SERIES 类型：多个视频
-  const [seriesVideos, setSeriesVideos] = useState<
-    { fileName: string; url: string; uploading: boolean; progress: number }[]
-  >([]);
+  const [seriesVideos, setSeriesVideos] = useState<SeriesVideoItem[]>(
+    () => buildInitialSeriesVideos(initialData),
+  );
+
+  const canSaveDraft = !initialData
+    || initialData.status === VideoStatus.DRAFT
+    || initialData.status === VideoStatus.REJECTED;
 
   useEffect(() => {
     getVideoCategoryTree().then(setCategories).catch(() => {});
@@ -205,7 +239,16 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
     e.target.value = '';
   }, [seriesVideos.length, autoGenerateCoverFromVideo]);
 
-  const removeSeriesVideo = (idx: number) => {
+  const removeSeriesVideo = async (idx: number) => {
+    const item = seriesVideos[idx];
+    if (item?.existingChapterId && initialData?.id) {
+      try {
+        await deleteVideoChapter(initialData.id, item.existingChapterId);
+      } catch {
+        toast.error('删除章节失败');
+        return;
+      }
+    }
     setSeriesVideos((prev) => prev.filter((_, i) => i !== idx));
   };
 
@@ -250,9 +293,11 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       keywords: keywords || undefined,
     };
 
-    // SERIES 类型时，将已上传的视频列表传给父组件，由父组件调用批量创建章节
+    // SERIES 类型时，将新上传的视频列表传给父组件，由父组件调用批量创建章节
     const uploadedVideos = videoType === 'SERIES'
-      ? seriesVideos.filter((v) => v.url && !v.uploading).map((v) => ({ fileName: v.fileName, url: v.url }))
+      ? seriesVideos
+        .filter((v) => v.url && !v.uploading && !v.existingChapterId)
+        .map((v) => ({ fileName: v.fileName, url: v.url }))
       : undefined;
 
     await onSubmit(data, uploadedVideos);
@@ -637,20 +682,22 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
 
       {/* 提交按钮 */}
       <div className="flex items-center gap-4 pt-4 pl-28">
-        <button
-          type="button"
-          onClick={() => submitForm(true)}
-          disabled={submitting || isAnySeriesUploading}
-          className="border border-primary/40 text-primary font-medium px-8 py-2.5 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
-        >
-          保存草稿
-        </button>
+        {canSaveDraft ? (
+          <button
+            type="button"
+            onClick={() => submitForm(true)}
+            disabled={submitting || isAnySeriesUploading}
+            className="border border-primary/40 text-primary font-medium px-8 py-2.5 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
+          >
+            保存草稿
+          </button>
+        ) : null}
         <button
           type="submit"
           disabled={submitting || isAnySeriesUploading}
           className="bg-primary text-white font-medium px-8 py-2.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
-          {submitting ? '保存中...' : '提交发布'}
+          {submitting ? '保存中...' : initialData ? '保存并提交审核' : '提交发布'}
         </button>
       </div>
     </form>

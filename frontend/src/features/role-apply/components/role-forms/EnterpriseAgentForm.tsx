@@ -65,11 +65,12 @@ export function EnterpriseAgentForm({ data, onChange }: EnterpriseAgentFormProps
           <FormField label="营业执照号" required>
             <input
               type="text"
+              inputMode="numeric"
               value={data.licenseNo || ''}
-              onChange={(e) => update({ licenseNo: e.target.value })}
-              placeholder="统一社会信用代码"
+              onChange={(e) => update({ licenseNo: e.target.value.replace(/[^\dA-Za-z]/g, '').toUpperCase() })}
+              placeholder="15位或18位数字"
               className="form-input"
-              maxLength={64}
+              maxLength={18}
             />
           </FormField>
           <FormField label="法定代表人">
@@ -207,7 +208,11 @@ export function EnterpriseAgentForm({ data, onChange }: EnterpriseAgentFormProps
  */
 export const ENTERPRISE_AGENT_RULES: FormValidationRules<EnterpriseAgentFormData> = {
   companyName: { required: true, requiredMessage: '请输入公司名称' },
-  licenseNo: { required: true, requiredMessage: '请输入营业执照号' },
+  licenseNo: {
+    required: true,
+    requiredMessage: '请输入营业执照号',
+    validator: Validators.businessLicenseNo,
+  },
   contactName: { required: true, requiredMessage: '请输入联系人姓名' },
   contactPhone: {
     required: true,

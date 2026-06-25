@@ -15,7 +15,7 @@ export function CoursesTable() {
     name: parseAsString,
     status: parseAsString,
     type: parseAsString,
-    trainerId: parseAsString,
+    trainerName: parseAsString,
     publisherType: parseAsString
   });
 
@@ -25,7 +25,7 @@ export function CoursesTable() {
     ...(params.name && { search: params.name }),
     ...(params.status && { status: params.status }),
     ...(params.type && { type: params.type }),
-    ...(params.trainerId && { trainerId: params.trainerId }),
+    ...(params.trainerName && { trainerName: params.trainerName }),
     ...(params.publisherType && { publisherType: params.publisherType })
   };
 

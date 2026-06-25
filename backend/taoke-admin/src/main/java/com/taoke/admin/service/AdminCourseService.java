@@ -15,8 +15,10 @@ import com.taoke.course.enums.CourseType;
 import com.taoke.course.support.OpenCourseExpireSupport;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
+import com.taoke.user.api.UserService;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.Trainer;
+import com.taoke.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -43,6 +45,7 @@ public class AdminCourseService {
     private final TrainerService trainerService;
     private final InstitutionService institutionService;
     private final CategoryService categoryService;
+    private final UserService userService;
 
     /**
      * 分页查询课程列表
@@ -54,10 +57,12 @@ public class AdminCourseService {
         );
 
         java.util.Collection<Integer> publisherUserIds = resolvePublisherUserIds(query.getPublisherName());
+        java.util.Collection<Integer> filterTrainerIds = resolveTrainerIds(query.getTrainerName());
+        Integer trainerId = filterTrainerIds != null ? null : query.getTrainerId();
 
         Page<Course> page = courseService.searchForAdmin(
                 query.getKeyword(), query.getStatus(), query.getType(),
-                query.getTrainerId(), query.getPublisherType(), query.getPublisherId(),
+                trainerId, filterTrainerIds, query.getPublisherType(), query.getPublisherId(),
                 publisherUserIds,
                 pageable);
         List<Course> courses = page.getContent();
@@ -76,17 +81,27 @@ public class AdminCourseService {
                 : categoryService.getNameMap(categoryIds);
 
         // 批量获取讲师名称
-        Set<Integer> trainerIds = courses.stream()
+        Set<Integer> courseTrainerIds = courses.stream()
                 .map(Course::getTrainerId)
                 .filter(id -> id != null && id > 0)
                 .collect(Collectors.toSet());
-        Map<Integer, Trainer> trainerMap = trainerIds.isEmpty()
+        Map<Integer, Trainer> trainerMap = courseTrainerIds.isEmpty()
                 ? Map.of()
-                : trainerService.findByIds(trainerIds).stream()
+                : trainerService.findByIds(courseTrainerIds).stream()
                         .collect(Collectors.toMap(Trainer::getId, Function.identity()));
+
+        Set<Integer> publisherUserIdSet = courses.stream()
+                .map(Course::getPublisherId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+        Map<Integer, User> publisherUserMap = publisherUserIdSet.isEmpty()
+                ? Map.of()
+                : userService.findAllByIds(new ArrayList<>(publisherUserIdSet)).stream()
+                        .collect(Collectors.toMap(User::getId, Function.identity()));
 
         List<AdminCourseVO> voList = courses.stream().map(course -> {
             AdminCourseVO vo = new AdminCourseVO();
+            Trainer trainer = trainerMap.get(course.getTrainerId());
             vo.setId(course.getId());
             vo.setTitle(course.getTitle());
             vo.setType(course.getType().name());
@@ -94,6 +109,10 @@ public class AdminCourseService {
             vo.setCoverUrl(course.getCoverUrl());
             vo.setPublisherId(course.getPublisherId());
             vo.setPublisherType(course.getPublisherType());
+            vo.setPublisherDisplayName(formatPublisherDisplay(
+                    course.getPublisherType(),
+                    publisherUserMap.get(course.getPublisherId()),
+                    trainer != null ? trainer.getName() : null));
             vo.setCategoryId(course.getCategoryId());
             vo.setCategoryName(categoryNameMap.get(course.getCategoryId()));
             vo.setDurationDays(course.getDurationDays());
@@ -110,7 +129,6 @@ public class AdminCourseService {
             vo.setIsExpireHide(course.getIsExpireHide());
             vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(course));
 
-            Trainer trainer = trainerMap.get(course.getTrainerId());
             if (trainer != null) {
                 vo.setTrainerName(trainer.getName());
             }
@@ -119,6 +137,22 @@ public class AdminCourseService {
         }).toList();
 
         return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), voList);
+    }
+
+    /**
+     * 按专家姓名解析 trainer_id 列表
+     */
+    private java.util.Collection<Integer> resolveTrainerIds(String trainerName) {
+        if (trainerName == null || trainerName.isBlank()) {
+            return null;
+        }
+        Page<Trainer> trainers = trainerService.searchForAdmin(trainerName.trim(), null,
+                PageRequest.of(0, 50));
+        List<Integer> ids = trainers.getContent().stream()
+                .map(Trainer::getId)
+                .filter(id -> id != null && id > 0)
+                .toList();
+        return ids.isEmpty() ? List.of(-1) : ids;
     }
 
     /**
@@ -146,6 +180,39 @@ public class AdminCourseService {
             return java.util.List.of(-1);
         }
         return ids;
+    }
+
+    private static String formatPublisherDisplay(String publisherType, User user, String trainerName) {
+        String roleLabel = publisherRoleLabel(publisherType);
+        String name = null;
+        if (trainerName != null && !trainerName.isBlank()) {
+            name = trainerName.trim();
+        }
+        if (name == null && user != null) {
+            name = user.getRealName();
+            if (name == null || name.isBlank()) {
+                name = user.getNickname();
+            }
+        }
+        if (name == null || name.isBlank()) {
+            return roleLabel;
+        }
+        return roleLabel + "：" + name;
+    }
+
+    private static String publisherRoleLabel(String publisherType) {
+        if (publisherType == null || publisherType.isBlank()) {
+            return "-";
+        }
+        return switch (publisherType) {
+            case "TRAINER" -> "专家";
+            case "ASSISTANT" -> "专家助理";
+            case "AGENT" -> "专家经纪人";
+            case "ENTERPRISE_AGENT" -> "专家经纪公司";
+            case "INSTITUTION" -> "机构";
+            case "INSTITUTION_EMPLOYEE" -> "机构员工";
+            default -> publisherType;
+        };
     }
 
     /**

@@ -16,6 +16,7 @@ export function TrainerDetailPageView({
   courses,
   coursesTotal,
   cases,
+  highlights,
   videos,
   videosTotal,
   books,
@@ -41,6 +42,7 @@ export function TrainerDetailPageView({
             courses={courses}
             coursesTotal={coursesTotal}
             cases={cases}
+            highlights={highlights}
             videos={videos}
             videosTotal={videosTotal}
             books={books}

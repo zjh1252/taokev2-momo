@@ -20,7 +20,7 @@ export default async function TrainerHighlightsPage(props: PageProps) {
     <PageContainer
       scrollable={false}
       pageTitle='精彩瞬间管理'
-      pageDescription='管理专家精彩瞬间，审核图片与视频内容'
+      pageDescription='管理专家精彩瞬间，支持按标题或专家姓名搜索与审核'
       pageHeaderAction={<AddComingSoonButton label='添加精彩瞬间' />}
     >
       <HighlightListingPage />

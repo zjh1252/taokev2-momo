@@ -86,9 +86,10 @@ public class VideoServiceImpl implements VideoService {
 
         video = videoRepository.save(video);
 
-        // SINGLE 类型且有视频地址时，自动创建一个章节
+        // SINGLE 类型且有视频地址时，自动创建一个章节（已有章节则跳过，避免重复）
         if (video.getVideoType() == VideoType.SINGLE
-                && request.getVideoUrl() != null && !request.getVideoUrl().isBlank()) {
+                && request.getVideoUrl() != null && !request.getVideoUrl().isBlank()
+                && videoChapterRepository.countByVideoId(video.getId()) == 0) {
             VideoChapter chapter = new VideoChapter();
             chapter.setVideoId(video.getId());
             chapter.setSeriesId(0);
@@ -107,13 +108,21 @@ public class VideoServiceImpl implements VideoService {
     public VideoDetailVO update(Integer videoId, Integer publisherId, SaveVideoRequest request) {
         Video video = getOwnedVideo(videoId, publisherId);
         assertEditable(video);
+
         boolean draft = Boolean.TRUE.equals(request.getDraft());
+        if (draft && video.getStatus() != VideoStatus.DRAFT.getValue()
+                && video.getStatus() != VideoStatus.REJECTED.getValue()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的录播课可保存为草稿");
+        }
         if (!draft) {
             validateForSubmit(request);
         }
         applyRequest(video, request);
         // draft=true 时保持草稿；否则编辑保存后进入待审核
         video.setStatus(draft ? VideoStatus.DRAFT.getValue() : VideoStatus.PENDING.getValue());
+        if (!draft) {
+            video.setRejectReason(null);
+        }
         video = videoRepository.save(video);
         return assembleDetail(video);
     }
@@ -266,6 +275,7 @@ public class VideoServiceImpl implements VideoService {
     public PageResponse<VideoListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                                      String keyword, String sortBy,
                                                      Integer institutionId,
+                                                     Integer isFeatured,
                                                      int page, int size, Integer viewerUserId) {
         // 机构过滤：先反查机构 user_id，机构不存在直接返回空页
         final Integer institutionUserId;
@@ -309,6 +319,9 @@ public class VideoServiceImpl implements VideoService {
             if (institutionUserId != null) {
                 predicates.add(cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION));
                 predicates.add(cb.equal(root.get("publisherId"), institutionUserId));
+            }
+            if (isFeatured != null && isFeatured == 1) {
+                predicates.add(cb.equal(root.get("isFeatured"), 1));
             }
             return predicates.isEmpty()
                     ? cb.conjunction()
@@ -537,6 +550,26 @@ public class VideoServiceImpl implements VideoService {
                 .toList();
         enrichPublisherNames(items);
         return PageResponse.of(items, videoPage.getTotalElements(), page, size);
+    }
+
+    @Override
+    public List<VideoListItemVO> listByPublisherForAdmin(Integer publisherUserId, int limit) {
+        if (publisherUserId == null || publisherUserId <= 0 || limit <= 0) {
+            return List.of();
+        }
+        int capped = Math.min(limit, 50);
+        Sort sort = Sort.by(Sort.Direction.DESC, "id");
+        Specification<Video> spec = (root, cq, cb) ->
+                cb.equal(root.get("publisherId"), publisherUserId);
+        Page<Video> page = videoRepository.findAll(spec, PageRequest.of(0, capped, sort));
+        if (page.isEmpty()) {
+            return List.of();
+        }
+        List<VideoListItemVO> items = page.getContent().stream()
+                .map(this::toListItemVO)
+                .toList();
+        enrichPublisherNames(items);
+        return items;
     }
 
     @Override
@@ -778,6 +811,10 @@ public class VideoServiceImpl implements VideoService {
         List<VideoChapterVO> result = new ArrayList<>();
         for (int i = 0; i < requests.size(); i++) {
             SaveVideoChapterRequest req = requests.get(i);
+            String videoUrl = req.getVideoUrl() != null ? req.getVideoUrl().trim() : "";
+            if (!videoUrl.isEmpty() && videoChapterRepository.existsByVideoIdAndVideoUrl(videoId, videoUrl)) {
+                continue;
+            }
             VideoChapter chapter = new VideoChapter();
             chapter.setVideoId(videoId);
             applyChapterRequest(chapter, req);
@@ -886,10 +923,15 @@ public class VideoServiceImpl implements VideoService {
         throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此录播课");
     }
 
+    /**
+     * 发布者编辑权限：除待审核外均可编辑；保存后由 update 统一回到待审核（草稿保存除外）。
+     */
     private void assertEditable(Video video) {
-        int status = video.getStatus();
-        if (status != VideoStatus.DRAFT.getValue() && status != VideoStatus.REJECTED.getValue()) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的录播课可编辑");
+        if (video.getStatus() == null) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "录播课状态异常，无法编辑");
+        }
+        if (video.getStatus() == VideoStatus.PENDING.getValue()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "待审核中的录播课不可编辑，请等待审核结果");
         }
     }
 
@@ -1044,7 +1086,7 @@ public class VideoServiceImpl implements VideoService {
         }
         return switch (sortBy) {
             case "price" -> Sort.by(Sort.Direction.ASC, "price")
-                    .and(Sort.by(Sort.Direction.DESC, "id"));
+                    .and(Sort.by(Sort.Direction.ASC, "id"));
             case "score" -> Sort.by(Sort.Direction.DESC, "score")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             case "time" -> Sort.by(Sort.Direction.DESC, "publishedAt")

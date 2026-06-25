@@ -39,6 +39,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import { getSystemInfo } from '@/utils/system';
 
 const props = defineProps({
   title:       { type: String, default: '' },
@@ -52,7 +53,7 @@ const props = defineProps({
 const emit = defineEmits(['left-click', 'right-click']);
 
 // 状态栏高度（跨端 OK）
-const sysInfo = uni.getSystemInfoSync();
+const sysInfo = getSystemInfo();
 const statusBarHeight = ref(sysInfo.statusBarHeight || 20);
 
 function onLeftClick() {

@@ -52,8 +52,8 @@ export function MaterialBatchBar({
   const batchMutation = useMutation({
     mutationFn: (action: string) =>
       batchOperateMaterials({ ids: selectedIds, action }),
-    onSuccess: () => {
-      toast.success('批量操作成功');
+    onSuccess: (_data, action) => {
+      toast.success(action === 'DELETE' ? '批量删除成功' : '批量操作成功');
       setConfirmOpen(false);
       setPendingAction(null);
       onClear();
@@ -74,21 +74,28 @@ export function MaterialBatchBar({
     },
     onSuccess: () => {
       toast.success('批量更新成功');
+      onClear();
       invalidate();
     },
     onError: (err: Error) => toast.error(err.message || '批量更新失败')
   });
 
-  const runExtraAction = (action: 'DELETE' | 'SET_DEFAULT' | 'UNSET_DEFAULT') => {
+  const handleBatchDelete = () => {
     if (selectedIds.length === 0) {
       toast.error('请先勾选素材');
       return;
     }
-    if (
-      action === 'DELETE' ||
-      (hasDefault && action === 'UNSET_DEFAULT')
-    ) {
-      setPendingAction(action === 'DELETE' ? 'DELETE' : 'UNSET_DEFAULT');
+    setPendingAction('DELETE');
+    setConfirmOpen(true);
+  };
+
+  const runExtraAction = (action: 'SET_DEFAULT' | 'UNSET_DEFAULT') => {
+    if (selectedIds.length === 0) {
+      toast.error('请先勾选素材');
+      return;
+    }
+    if (hasDefault && action === 'UNSET_DEFAULT') {
+      setPendingAction('UNSET_DEFAULT');
       setConfirmOpen(true);
       return;
     }
@@ -117,6 +124,7 @@ export function MaterialBatchBar({
             toast.success('批量更新成功');
             setConfirmOpen(false);
             setPendingAction(null);
+            onClear();
             invalidate();
           }
         }
@@ -175,6 +183,7 @@ export function MaterialBatchBar({
             updateMutation.mutate({ enabled: true });
           }}
           onBatchDisable={handleBatchDisable}
+          onBatchDelete={handleBatchDelete}
         />
 
         <div className='flex flex-wrap items-center gap-2 border-t pt-3'>
@@ -191,12 +200,6 @@ export function MaterialBatchBar({
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => runExtraAction('UNSET_DEFAULT')}>
                 取消默认
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className='text-destructive'
-                onClick={() => runExtraAction('DELETE')}
-              >
-                删除
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

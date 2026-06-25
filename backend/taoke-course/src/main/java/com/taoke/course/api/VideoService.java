@@ -81,6 +81,7 @@ public interface VideoService {
     PageResponse<VideoListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                               String keyword, String sortBy,
                                               Integer institutionId,
+                                              Integer isFeatured,
                                               int page, int size, Integer viewerUserId);
 
     /**
@@ -118,6 +119,11 @@ public interface VideoService {
      * 后台分页查询录播课列表
      */
     PageResponse<VideoListItemVO> listForAdmin(Integer status, String keyword, int page, int size);
+
+    /**
+     * 后台按发布者用户 ID 查询录播课（专家详情资源区使用，最多 {@code limit} 条）
+     */
+    List<VideoListItemVO> listByPublisherForAdmin(Integer publisherUserId, int limit);
 
     /**
      * 后台录播课详情（无状态限制）

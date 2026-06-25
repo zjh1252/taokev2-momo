@@ -1,20 +1,20 @@
 <script setup>
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
 import { useUserStore } from '@/stores/user';
+import { logDebug } from '@/utils/logger';
 
 onLaunch(() => {
-  // App 启动时回填登录态
   const userStore = useUserStore();
   userStore.bootstrap();
-  console.log('[App] Launch');
+  logDebug('[App] Launch');
 });
 
 onShow(() => {
-  console.log('[App] Show');
+  logDebug('[App] Show');
 });
 
 onHide(() => {
-  console.log('[App] Hide');
+  logDebug('[App] Hide');
 });
 </script>
 

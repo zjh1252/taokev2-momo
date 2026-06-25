@@ -15,8 +15,9 @@ public interface RoleApplyService {
      *
      * @param userId   用户 ID
      * @param roleCode 角色编码
+     * @return true 表示触发了「资料重审」（status=1 + reapplying=true），调用方应在此时记录变更日志
      */
-    void apply(Integer userId, String roleCode);
+    boolean apply(Integer userId, String roleCode);
 
     /**
      * 用户发起某业务角色的入驻申请并自动通过（无需后台审核）。

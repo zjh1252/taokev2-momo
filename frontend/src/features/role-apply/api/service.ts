@@ -50,6 +50,7 @@ function buildTrainerApplyPayload(data: TrainerFormData): TrainerFormData {
     .filter((b) => b?.title?.trim())
     .map((b) => {
       const item: TrainerBookFormItem = { title: b.title.trim() };
+      if (b.authorName?.trim()) item.authorName = b.authorName.trim();
       if (b.coverUrl?.trim()) item.coverUrl = b.coverUrl.trim();
       if (b.publisher?.trim()) item.publisher = b.publisher.trim();
       if (b.publishDate?.trim()) item.publishDate = b.publishDate.trim();

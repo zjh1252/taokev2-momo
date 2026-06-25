@@ -25,8 +25,17 @@ export const searchParams = {
   reviewScope: parseAsString,
   reviewerKeyword: parseAsString,
   reviewedBy: parseAsString,
+  /** 精彩瞬间 / 通用关键词 */
+  keyword: parseAsString,
   /** 素材库 */
   tab: parseAsStringLiteral(['cover', 'avatar']).withDefault('cover'),
+  /** 专家资质认证 Tab */
+  certTab: parseAsStringLiteral([
+    'real-name',
+    'professional',
+    'education',
+    'work'
+  ]).withDefault('real-name'),
   scene: parseAsString,
   isDefault: parseAsString
 };

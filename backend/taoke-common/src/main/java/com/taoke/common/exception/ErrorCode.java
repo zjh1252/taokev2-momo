@@ -90,6 +90,9 @@ public enum ErrorCode {
     CANNOT_BUY_OWN_PRODUCT(400, 40011, "不能购买自己发布的课程"),
     INVOICE_ALREADY_REQUESTED(400, 40012, "该订单已申请过发票"),
     INVOICE_ORDER_NOT_PAID(400, 40013, "仅已支付订单可申请发票"),
+    PAYMENT_CHANNEL_NOT_CONFIGURED(400, 40014, "支付渠道未配置或未启用"),
+    PAYMENT_PREPAY_FAILED(500, 40015, "发起第三方支付失败"),
+    PAYMENT_OPENID_REQUIRED(400, 40016, "微信支付缺少 openId，请先完成微信授权"),
 
     /* ==================== 评价/互动 500xx ==================== */
     FAVORITE_ALREADY_EXISTS(400, 50001, "已收藏，请勿重复操作"),

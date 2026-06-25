@@ -54,4 +54,6 @@ export interface PublicCourse {
   city: string;
   startDate: string;
   durationDays: number | null;
+  categoryName?: string;
+  keywords?: string;
 }

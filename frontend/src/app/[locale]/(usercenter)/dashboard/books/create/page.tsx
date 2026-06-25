@@ -12,13 +12,16 @@ import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
 import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
+import { useAuth } from '@/lib/auth/auth-context';
 
 export default function CreateBookPage() {
   const router = useRouter();
-  const { trainerUserId, banner, valid } = usePublishingTarget('著作');
+  const { activeRole } = useAuth();
+  const { trainerUserId, setTrainerUserId, banner, valid } = usePublishingTarget('著作');
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<Partial<SaveTrainerBookRequest>>({
     title: '',
+    authorName: '',
     coverUrl: '',
     publisher: '',
     publishDate: '',
@@ -69,6 +72,9 @@ export default function CreateBookPage() {
           <BookFormFields
             form={form}
             onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+            activeRole={activeRole}
+            trainerUserId={trainerUserId}
+            onTrainerUserIdChange={setTrainerUserId}
           />
 
           <div className="flex gap-3 pt-6">

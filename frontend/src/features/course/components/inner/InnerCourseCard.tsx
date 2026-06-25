@@ -29,7 +29,7 @@ function formatTrainerLocation(course: CourseListItem): string {
   return parts.length > 0 ? parts.join(' ') : '-';
 }
 
-/** 与「讲师常驻地：」等最长标签同宽，保证各行取值左对齐 */
+/** 与「专家常驻地：」等最长标签同宽，保证各行取值左对齐 */
 const FIELD_LABEL_CLASS = 'text-slate-400 shrink-0 w-[4.5rem]';
 
 /**
@@ -83,17 +83,17 @@ export function InnerCourseCard({ course }: InnerCourseCardProps) {
           <div className="bg-slate-50/50 p-2.5 rounded-md mb-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-1.5 text-xs text-slate-600">
               <div className="flex items-center gap-1 min-w-0">
-                <span className={FIELD_LABEL_CLASS}>授课讲师：</span>
+                <span className={FIELD_LABEL_CLASS}>授课专家：</span>
                 <span className="text-slate-700 truncate">{course.trainerName || '-'}</span>
               </div>
               <div className="flex items-center gap-1 min-w-0">
-                <span className={FIELD_LABEL_CLASS}>确定天数：</span>
+                <span className={FIELD_LABEL_CLASS}>培训天数：</span>
                 <span className="text-slate-700">
                   {durationDays != null ? `${durationDays}天` : '-'}
                 </span>
               </div>
               <div className="flex items-center gap-1 min-w-0">
-                <span className={FIELD_LABEL_CLASS}>讲师常驻地：</span>
+                <span className={FIELD_LABEL_CLASS}>专家常驻地：</span>
                 <span className="text-slate-700 truncate">{formatTrainerLocation(course)}</span>
               </div>
               <div className="flex items-center gap-1 min-w-0">
@@ -102,7 +102,7 @@ export function InnerCourseCard({ course }: InnerCourseCardProps) {
               </div>
             </div>
             <div className="flex items-start gap-1 mt-1.5 text-xs min-w-0">
-              <span className={FIELD_LABEL_CLASS}>关键字：</span>
+              <span className={FIELD_LABEL_CLASS}>关键词：</span>
               <span className="text-slate-700 line-clamp-2 min-w-0 flex-1">{keywordText}</span>
             </div>
           </div>

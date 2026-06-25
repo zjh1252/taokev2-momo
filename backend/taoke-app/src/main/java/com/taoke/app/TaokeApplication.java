@@ -14,6 +14,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 // 扫描 com.taoke 下组件；EnableJpaRepositories / EntityScan 注册各模块 Repository 与实体
 //标签不展示：老站 tags 单独渲染，新站 expertise_tags 未展示
+//18117252701
 @SpringBootApplication(scanBasePackages = "com.taoke")
 @EnableJpaRepositories(basePackages = "com.taoke")
 @EntityScan(basePackages = "com.taoke")

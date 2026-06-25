@@ -11,19 +11,27 @@
   "maven.executable.path": "E:\\JAVA\\apache-maven-3.9.14-bin\\apache-maven-3.9.14\\bin\\mvn.cmd",
   "java.import.exclusions": [
     "**/node_modules/**",
+    "**/target/**",
     "**/frontend/**",
     "**/admin-frontend/**",
     "**/taoke-uniapp/**",
     "**/data-trans/**",
     "**/data-crawler/**",
+    "**/crawler-service/**",
     "**/deploy/**",
     "**/dataClaw-master/**",
-    "**/tkw/**"
+    "**/tkw/**",
+    "**/tmp/**",
+    "**/testdoc/**",
+    "**/scripts/**",
+    "**/docs/**"
   ],
+  "npm.exclude": ["**/taoke-uniapp/**"],
   "files.watcherExclude": {
     "**/node_modules/**": true,
     "**/frontend/.next/**": true,
     "**/admin-frontend/.next/**": true,
     "**/taoke-uniapp/dist/**": true
-  }
+  },
+  "java.jdt.ls.vmargs": "-XX:+UseG1GC -XX:+UseStringDeduplication -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms256m -Xlog:disable"
 }

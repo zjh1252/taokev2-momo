@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Star } from 'lucide-react';
 import { submitReview } from '../api/service';
 import type { SubmitReviewPayload } from '../api/types';
+import { ReviewPhotoUploader } from './ReviewPhotoUploader';
 import {
   validateForm,
   getFirstError,
@@ -158,6 +159,7 @@ export default function ReviewDialog({
   const [trainingLocation, setTrainingLocation] = useState(prefillTrainingLocation ?? '');
   const [trainingDate, setTrainingDate] = useState(prefillTrainingDate ?? '');
   const [submitterName, setSubmitterName] = useState('');
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -198,6 +200,7 @@ export default function ReviewDialog({
     setTrainingLocation(prefillTrainingLocation ?? '');
     setTrainingDate(prefillTrainingDate ?? '');
     setSubmitterName('');
+    setPhotoUrls([]);
     setError('');
   }, [
     resolvedExpertName,
@@ -293,6 +296,7 @@ export default function ReviewDialog({
       ratingService,
       commentText,
       submitterName,
+      photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
     };
 
     setSubmitting(true);
@@ -420,6 +424,11 @@ export default function ReviewDialog({
             <span className="text-xs text-muted-foreground text-right">
               {commentText.length}/20 字
             </span>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>培训现场照片</Label>
+            <ReviewPhotoUploader value={photoUrls} onChange={setPhotoUrls} disabled={submitting} />
           </div>
 
           <div className="grid gap-1.5">

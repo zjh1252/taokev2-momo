@@ -1,6 +1,5 @@
 package com.taoke.course.dto.course;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -16,10 +15,10 @@ public class CoursePlanDTO {
 
     private Integer id;
 
-    @NotNull(message = "开课开始时间不能为空")
+    /** 提交审核时在服务层校验 */
     private LocalDateTime startTime;
 
-    @NotNull(message = "开课结束时间不能为空")
+    /** 提交审核时在服务层校验 */
     private LocalDateTime endTime;
 
     /** 省份 ID（线下公开课必填） */

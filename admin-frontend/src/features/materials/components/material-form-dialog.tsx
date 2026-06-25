@@ -41,6 +41,8 @@ import { materialKeys } from '../api/queries';
 import type { Material } from '../api/types';
 import {
   MAX_BATCH_FILES,
+  MAX_FILE_SIZE,
+  MAX_FILE_SIZE_MB,
   stripExtension,
   type PendingMaterial
 } from '../material-utils';
@@ -217,8 +219,8 @@ export function MaterialFormDialog({
     if (!files?.length) return;
     const valid: File[] = [];
     for (const file of Array.from(files)) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error(`${file.name} 超过 2MB，已跳过`);
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`${file.name} 超过 ${MAX_FILE_SIZE_MB}MB，已跳过`);
         continue;
       }
       valid.push(file);
@@ -407,8 +409,8 @@ export function MaterialFormDialog({
             )}
             <p className='text-muted-foreground text-xs'>
               {materialType === 'COVER'
-                ? 'JPG/PNG，建议 1280×720，单文件 ≤2MB，最多批量 20 张'
-                : 'JPG/PNG，建议 400×400，单文件 ≤2MB，最多批量 20 张'}
+                ? `JPG/PNG，建议 1280×720，单文件 ≤${MAX_FILE_SIZE_MB}MB，最多批量 20 张`
+                : `JPG/PNG，建议 400×400，单文件 ≤${MAX_FILE_SIZE_MB}MB，最多批量 20 张`}
             </p>
           </div>
 

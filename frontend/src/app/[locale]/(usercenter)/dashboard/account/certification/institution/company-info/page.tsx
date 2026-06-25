@@ -108,6 +108,11 @@ export default function InstitutionCompanyInfoPage() {
       return toast.error('请填写 0-100 之间的最高佣金比例');
     }
     if (!licenseDocUrl) return toast.error('请上传营业执照附件');
+    if (licenseNo.trim()) {
+      if (!/^\d{15}$|^[A-Z\d]{18}$/.test(licenseNo.trim())) {
+        return toast.error('营业执照号需为15位纯数字或18位大写统一社会信用代码');
+      }
+    }
 
     setSubmitting(true);
     try {

@@ -111,6 +111,7 @@ export default function ManageBooksPage() {
     setEditBook(book);
     setEditForm({
       title: book.title,
+      authorName: book.authorName,
       coverUrl: book.coverUrl,
       publisher: book.publisher,
       publishDate: book.publishDate,
@@ -242,6 +243,9 @@ export default function ManageBooksPage() {
           <BookFormFields
             form={editForm}
             onChange={(patch) => setEditForm((prev) => ({ ...prev, ...patch }))}
+            activeRole={activeRole}
+            trainerUserId={trainerUserId}
+            onTrainerUserIdChange={setTrainerUserId}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditBook(null)}>

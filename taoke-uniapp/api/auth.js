@@ -6,8 +6,8 @@ import http from '@/utils/request';
  *   - username: ^[a-zA-Z0-9_]{4,32}$
  *   - password: 6-32 位
  */
-export const loginByUsername = ({ username, password }) =>
-  http.post('/auth/login/username', { username, password });
+export const loginByUsername = ({ username, password, captchaToken }) =>
+  http.post('/auth/login/username', { username, password, captchaToken });
 
 /**
  * 账号 + 密码 注册（与 frontend 对齐）
@@ -37,8 +37,8 @@ export const loginBySms = ({ phone, code }) =>
  *   - type:   REGISTER / LOGIN / RESET_PASSWORD / CHANGE_PHONE / CHANGE_EMAIL
  *   - sendType: SMS（默认）/ EMAIL
  */
-export const sendCode = ({ target, type = 'LOGIN', sendType = 'SMS' }) =>
-  http.post('/auth/send-code', { target, type, sendType });
+export const sendCode = ({ target, type = 'LOGIN', sendType = 'SMS', captchaToken }, options = {}) =>
+  http.post('/auth/send-code', { target, type, sendType, captchaToken }, options);
 
 /**
  * dev 环境：拉取后端为指定手机号生成的 mock 验证码
@@ -54,15 +54,15 @@ export const refreshToken = ({ refreshToken: rt }) =>
 
 /** 重置密码 */
 export const resetPassword = ({ phone, code, password }) =>
-  http.post('/auth/reset-password', { phone, code, password });
+  http.post('/auth/reset-password', { phone, code, newPassword: password });
 
 // ================================================================
 // 旧接口（保留向下兼容；新业务请使用 loginByUsername / registerByUsername）
 // ================================================================
 
-/** @deprecated 请使用 loginByUsername */
-export const loginByPassword = ({ account, password }) =>
-  http.post('/auth/login', { account, password });
+/** @deprecated 请使用 loginByUsername；字段已与后端 LoginRequest 对齐 */
+export const loginByPassword = ({ account, phone, password, captchaToken }) =>
+  http.post('/auth/login', { phone: phone || account, password, captchaToken });
 
 /** @deprecated 旧版手机号 + 验证码注册；新业务用 registerByUsername */
 export const register = ({ phone, code, password, nickname }) =>

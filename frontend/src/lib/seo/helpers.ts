@@ -6,6 +6,22 @@ export function stripHtml(text: string): string {
 }
 
 /**
+ * 富文本是否为空（与后端 CourseServiceImpl#isBlankHtml 规则对齐）。
+ * 含仅空段落、&nbsp;、零宽空格等视为未填写。
+ */
+export function isBlankHtml(html?: string | null): boolean {
+  if (!html || !html.trim()) return true;
+  const text = html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\u200B/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length === 0;
+}
+
+/**
  * 将描述截断到 SEO 规范区间（默认 80-120 字）。
  * 不足 80 字时原样返回；超出 120 字时截断并加省略号。
  */

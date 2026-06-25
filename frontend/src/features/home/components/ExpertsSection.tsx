@@ -2,6 +2,7 @@ import { Link } from '@/i18n/navigation';
 import { ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { resolveApiImageSrc } from '@/lib/media';
+import { toPlainIntroText } from '@/features/trainer/utils/displayTitle';
 import { SectionHeader } from './SectionHeader';
 import type { Expert } from '../types';
 
@@ -149,13 +150,13 @@ function MainExpertCard({ expert }: { expert: Expert }) {
             </span>
           )}
         </h3>
-        {expert.subtitle && (
+        {expert.subtitle ? (
           <p className="text-primary text-sm font-bold mb-6">
-            {expert.subtitle}
+            {toPlainIntroText(expert.subtitle)}
           </p>
-        )}
+        ) : null}
         <p className="text-slate-500 text-sm mb-8 leading-relaxed line-clamp-4">
-          {expert.bio}
+          {toPlainIntroText(expert.bio)}
         </p>
         <div className="mt-auto flex flex-col gap-4">
           <ExpertTagList
@@ -179,24 +180,24 @@ function MiddleExpertCard({ expert }: { expert: Expert }) {
       href={`/trainer/${expert.id}.htm`}
       className="col-span-1 md:col-span-3 bg-gradient-to-b from-slate-900 to-[#3b0a0a] rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all relative flex flex-col items-center pt-10 pb-8 px-6 group text-white h-full"
     >
-      <div className="w-32 h-32 rounded-full overflow-hidden mb-5 border-4 border-primary/30 shadow-inner">
+      <div className="w-40 h-40 rounded-full overflow-hidden mb-5 border-4 border-primary/30 shadow-inner">
         <ExpertCoverImage
           src={expert.avatar}
           alt={expert.name}
-          width={128}
-          height={128}
+          width={160}
+          height={160}
           className="w-full h-full object-cover"
         />
       </div>
-      <h3 className="text-2xl font-bold mb-3 tracking-wide">{expert.name}</h3>
-      <p className="text-white/80 text-sm text-center mb-6 leading-relaxed line-clamp-3">
-        {expert.bio}
+      <h3 className="text-3xl font-bold mb-3 tracking-wide">{expert.name}</h3>
+      <p className="text-white/80 text-base text-center mb-6 leading-relaxed line-clamp-3">
+        {toPlainIntroText(expert.bio)}
       </p>
       <ExpertTagList
         tags={expert.tags}
         limit={3}
-        className="mb-8"
-        tagClassName="px-4 py-1.5 rounded-full border border-white/20 text-xs bg-white/5"
+        className="mb-8 justify-center"
+        tagClassName="px-3 py-1 rounded text-sm text-white/90 bg-white/5 border border-white/15"
       />
       <span className="w-full py-3 rounded-lg border border-primary/50 hover:bg-primary hover:border-primary transition-colors font-medium text-sm z-10 mt-auto shadow-sm text-center">
         查看专家详情
@@ -212,31 +213,31 @@ function SideExpertCard({ expert }: { expert: Expert }) {
       href={`/trainer/${expert.id}.htm`}
       className="bg-white rounded-xl p-6 flex flex-col border border-slate-100 shadow-sm hover:shadow-md transition-all flex-1 group relative overflow-hidden"
     >
-      <div className="flex items-start gap-4 mb-3">
-        <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 border border-slate-100">
+      <div className="flex items-start gap-5 mb-3">
+        <div className="w-20 h-20 rounded-full overflow-hidden shrink-0 border border-slate-100">
           <ExpertCoverImage
             src={expert.avatar}
             alt={expert.name}
-            width={56}
-            height={56}
+            width={80}
+            height={80}
             className="w-full h-full object-cover"
           />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary transition-colors">
+          <h3 className="text-xl font-bold text-slate-800 group-hover:text-primary transition-colors">
             {expert.name}
           </h3>
-          <p className="text-slate-500 text-xs mt-1">{expert.title}</p>
+          <p className="text-slate-500 text-sm mt-1">{expert.title}</p>
         </div>
       </div>
-      <p className="text-slate-500 text-xs leading-relaxed mb-4 line-clamp-2">
-        {expert.bio}
+      <p className="text-slate-500 text-sm leading-relaxed mb-4 line-clamp-2">
+        {toPlainIntroText(expert.bio)}
       </p>
       <ExpertTagList
         tags={expert.tags}
         limit={3}
-        className="mt-auto"
-        tagClassName="bg-slate-50 text-slate-500 px-2 py-1 rounded text-[10px]"
+        className="mt-auto gap-2"
+        tagClassName="bg-slate-50 text-slate-600 px-2.5 py-1 rounded text-xs"
       />
       <span className="absolute bottom-6 right-6 text-primary hover:text-primary/80 transition-colors">
         <ArrowRight className="size-5" />

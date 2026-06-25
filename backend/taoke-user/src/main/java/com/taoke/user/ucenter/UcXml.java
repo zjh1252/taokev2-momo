@@ -1,7 +1,9 @@
 package com.taoke.user.ucenter;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,7 +27,50 @@ public final class UcXml {
     private static final Pattern CDATA = Pattern.compile(
             "^\\s*<!\\[CDATA\\[(.*?)\\]\\]>\\s*$", Pattern.DOTALL);
 
+    private static final Pattern NAMED_ITEM = Pattern.compile(
+            "<item\\s+id=\"([^\"]+)\">(.*?)</item>", Pattern.DOTALL);
+
     private UcXml() {
+    }
+
+    /**
+     * 解析 {@code select_users_by_contact} 等接口返回的首个用户字段。
+     * UCenter 常见结构为 {@code <item id="0"><item id="uid">...</item>...</item>}。
+     */
+    public static Map<String, String> parseFirstContactUser(String xml) {
+        if (xml == null || xml.isBlank()) {
+            return Map.of();
+        }
+        Pattern outer = Pattern.compile(
+                "<item\\s+id=\"0\">(.*?)</item>\\s*(?:</root>|$)", Pattern.DOTALL);
+        Matcher om = outer.matcher(xml);
+        if (om.find()) {
+            return parseNamedItems(om.group(1));
+        }
+        return parseNamedItems(xml);
+    }
+
+    /**
+     * 解析带语义 id 的 XML 字段（如 uid / username），值支持 CDATA 包裹。
+     */
+    public static Map<String, String> parseNamedItems(String xml) {
+        Map<String, String> map = new LinkedHashMap<>();
+        if (xml == null) {
+            return map;
+        }
+        Matcher m = NAMED_ITEM.matcher(xml);
+        while (m.find()) {
+            map.put(m.group(1), unwrapCdata(m.group(2)).trim());
+        }
+        return map;
+    }
+
+    private static String unwrapCdata(String value) {
+        if (value == null) {
+            return "";
+        }
+        Matcher c = CDATA.matcher(value);
+        return c.matches() ? c.group(1) : value;
     }
 
     /**
@@ -40,10 +85,7 @@ public final class UcXml {
         while (m.find()) {
             int id = Integer.parseInt(m.group(1));
             String value = m.group(2);
-            Matcher c = CDATA.matcher(value);
-            if (c.matches()) {
-                value = c.group(1);
-            }
+            value = unwrapCdata(value);
             map.put(id, value.trim());
         }
         return new ArrayList<>(map.values());

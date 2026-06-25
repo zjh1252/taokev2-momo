@@ -23,6 +23,8 @@ public class AdminCourseVO {
 
     private Integer publisherId;
     private String publisherType;
+    /** 发布方展示：角色 + 姓名，如「专家：王五」 */
+    private String publisherDisplayName;
 
     private Integer categoryId;
     private String categoryName;

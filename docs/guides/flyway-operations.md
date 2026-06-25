@@ -188,7 +188,10 @@ Either revert the changes to the migration, or run repair to update the schema h
 |---|---|
 | `data-trans/scripts/_fix_flyway_v67_checksum.py` | V67 checksum → `-524896563` |
 | `data-trans/scripts/_fix_flyway_v68_checksum.py` | V68 checksum → `-100945177` |
+| `data-trans/scripts/_fix_flyway_v111_v112_checksum.py` | V111 → `58602019`、V112 → `138274204` |
 | `data-trans/scripts/_fix_flyway_v66.py` | 删除 V66 **失败**记录（`success=0`），非 checksum |
+
+> **Agent 约定**：出现 checksum 不匹配且已有/可编写 `_fix_flyway_*.py` 时，**直接执行脚本 repair**，无需额外向用户确认；执行后提示重启 `taoke-app`。
 
 > **教训**：迁移脚本一旦在某环境 Flyway 执行成功，**不要再改该文件**；应追加 V69 等新版本。DevTools 热重启会重新跑 Flyway validate，checksum 不一致会导致 8080 起不来，前端表现为「网络连接失败」。
 
@@ -230,6 +233,16 @@ C 端 `apiClient` 在无法连接后端（`localhost:8080`）时会 toast：
 ## 7. 操作记录（changelog）
 
 > 后续凡涉及 Flyway 脚本的增删改、生产/测试库 repair、与手工 SQL 的联动，在此追加一条。
+
+### 2026-06-23 — V111/V112 checksum repair
+
+**背景**：V111（公开课到期隐藏）、V112（`is_expire_hide` 列类型修正）在 `v3test` 已成功执行后，本地迁移文件再次编辑，Flyway validate 报 checksum 不匹配，后端无法启动。
+
+**操作**：
+
+1. 新增 `data-trans/scripts/_fix_flyway_v111_v112_checksum.py`。
+2. 在 `v3test` 执行 repair：V111 `2145619465` → `58602019`，V112 `245971258` → `138274204`（均为 `success=1`）。
+3. 重启 `taoke-app` 验证 Flyway 通过。
 
 ### 2026-05-23 — V66 清理测试课程 + 启动失败修复
 

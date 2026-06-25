@@ -36,6 +36,8 @@ public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {
             "/auth/**",
             "/uploads/**",
+            "/payments/alipay/notify",
+            "/payments/wechat/notify",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",

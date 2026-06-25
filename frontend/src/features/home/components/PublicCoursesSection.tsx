@@ -71,6 +71,12 @@ function PublicCourseItem({ course }: { course: PublicCourse }) {
               ? t('publicCourses.durationDays', { count: course.durationDays })
               : '-'}
           </div>
+          <div>
+            {t('publicCourses.labels.category')}：{course.categoryName || '-'}
+          </div>
+          <div className="col-span-2 sm:col-span-1 line-clamp-1">
+            {t('publicCourses.labels.keywords')}：{course.keywords || '-'}
+          </div>
         </div>
       </div>
 

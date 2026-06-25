@@ -9,11 +9,13 @@ export default async function HighlightListingPage() {
   const page = searchParamsCache.get('page');
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
+  const keyword = searchParamsCache.get('keyword');
 
   const filters = {
     page,
     limit: pageLimit,
-    ...(status && { status })
+    ...(status && { status }),
+    ...(keyword && { keyword })
   };
 
   const queryClient = getQueryClient();

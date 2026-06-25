@@ -74,6 +74,7 @@ export async function buildTrainerCategoryNavItems(
     name: cat.name,
     count: counts[cat.id] ?? 0,
     href: filtersToHtmPath({ field: cat.name }),
+    categoryId: cat.id,
   }));
 
   return sortByTreeOrder(l1Categories, items);

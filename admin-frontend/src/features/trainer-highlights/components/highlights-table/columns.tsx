@@ -56,8 +56,18 @@ export const columns: ColumnDef<AdminTrainerHighlight>[] = [
     }
   },
   {
+    id: 'keyword',
     accessorKey: 'title',
-    header: '标题',
+    header: ({ column }: { column: Column<AdminTrainerHighlight, unknown> }) => (
+      <DataTableColumnHeader column={column} title='标题' />
+    ),
+    enableColumnFilter: true,
+    meta: {
+      label: '关键词',
+      placeholder: '标题或专家姓名...',
+      variant: 'text' as const,
+      icon: Icons.text
+    },
     cell: ({ row }) => (
       <Link
         href={`/dashboard/trainers/highlights/${row.original.id}`}

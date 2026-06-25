@@ -18,4 +18,10 @@ public class PayRequest {
 
     /** 支付方式：MOCK / ALIPAY / WECHAT，默认 MOCK */
     private String method = "MOCK";
+
+    /** 客户端类型：PC / H5 / MINI_PROGRAM / APP，默认 PC */
+    private String clientType = "PC";
+
+    /** 微信 JSAPI 所需 openId（小程序 login code 换取后传入） */
+    private String openId;
 }

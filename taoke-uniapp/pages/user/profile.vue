@@ -4,8 +4,7 @@
   - 昵称：可改
   - 真实姓名：可改
   - 性别：男 / 女 / 未知（保留扩展）
-  - 学习标签 studyTags：逗号分隔的关键词
-  - 手机号：只读
+  - 手机号：只读（学习标签见「更多信息」页）
   - 保存按钮 → PUT /users/me
 -->
 <template>
@@ -70,22 +69,6 @@
           </view>
         </view>
 
-        <!-- 学员补充资料：学习标签 -->
-        <view class="form">
-          <view class="row row--block">
-            <text class="row__label">学习标签</text>
-            <text class="row__sub">用于推荐内容，例如「领导力,数字化,数据分析」</text>
-            <input
-              class="row__input row__input--block"
-              :value="form.studyTags"
-              placeholder="多个关键词以逗号分隔"
-              placeholder-style="color:#999"
-              maxlength="200"
-              @input="onInput('studyTags', $event)"
-            />
-          </view>
-        </view>
-
         <view class="hint" v-if="error">
           <text class="hint__txt">{{ error }}</text>
         </view>
@@ -111,8 +94,9 @@ import { onLoad } from '@dcloudio/uni-app';
 import { useUserStore } from '@/stores/user';
 import * as uploadApi from '@/api/upload';
 
-const sysInfo = uni.getSystemInfoSync();
-const navBarH = (sysInfo.statusBarHeight || 20) + 44;
+import { getNavBarHeight } from '@/utils/system';
+
+const navBarH = getNavBarHeight();
 const userStore = useUserStore();
 
 const genders = [
@@ -126,7 +110,6 @@ const form = reactive({
   realName: '',
   avatarUrl: '',
   gender: 0,
-  studyTags: '',
 });
 
 const initial = ref({});
@@ -158,7 +141,6 @@ function hydrate(p) {
   form.realName  = p.realName  ?? '';
   form.avatarUrl = p.avatarUrl ?? p.avatar ?? '';
   form.gender    = p.gender    ?? 0;
-  form.studyTags = p.studyTags ?? '';
   phone.value    = p.phone || '';
   initial.value = { ...form };
 }
@@ -205,7 +187,6 @@ async function onSave() {
       realName:  form.realName,
       avatarUrl: form.avatarUrl,
       gender:    form.gender,
-      studyTags: form.studyTags,
     };
     await userStore.updateProfile(payload);
     initial.value = { ...form };

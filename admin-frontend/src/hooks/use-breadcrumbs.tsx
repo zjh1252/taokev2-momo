@@ -11,7 +11,7 @@ type BreadcrumbItem = {
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   overview: '总览',
-  users: '个人学员',
+  users: '平台所有用户管理',
   courses: '课程管理',
   plans: '排课管理',
   'training-reviews': '评价管理',
@@ -61,7 +61,7 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
   '/dashboard/users': [
     { title: 'Dashboard', link: '/dashboard' },
     { title: '用户管理', link: '#' },
-    { title: '个人学员', link: '/dashboard/users' }
+    { title: '平台所有用户管理', link: '/dashboard/users' }
   ],
   '/dashboard/trainers': [
     { title: 'Dashboard', link: '/dashboard' },

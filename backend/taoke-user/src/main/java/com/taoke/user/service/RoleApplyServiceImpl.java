@@ -59,7 +59,7 @@ public class RoleApplyServiceImpl implements RoleApplyService {
      */
     @Transactional
     @Override
-    public void apply(Integer userId, String roleCode) {
+    public boolean apply(Integer userId, String roleCode) {
         UserRole userRole = userRoleRepository.findByUserIdAndRole(userId, roleCode).orElse(null);
 
         if (userRole == null) {
@@ -69,7 +69,7 @@ public class RoleApplyServiceImpl implements RoleApplyService {
             userRole.setStatus(2);
             userRole.setReapplying(false);
             userRoleRepository.save(userRole);
-            return;
+            return false;
         }
 
         switch (userRole.getStatus()) {
@@ -78,17 +78,20 @@ public class RoleApplyServiceImpl implements RoleApplyService {
                 userRole.setRejectReason(null);
                 userRole.setReapplying(false);
                 userRoleRepository.save(userRole);
+                return false;
             }
             case 1 -> {
                 // 已生效角色重新提交资料 → 资料重审，原身份保持可用
                 userRole.setReapplying(true);
                 userRole.setRejectReason(null);
                 userRoleRepository.save(userRole);
+                return true;
             }
             case 2 -> {
                 // 待审核期间允许继续完善并覆盖提交，保持 status=2
                 userRole.setRejectReason(null);
                 userRoleRepository.save(userRole);
+                return false;
             }
             case 4 -> throw new BusinessException(ErrorCode.ROLE_DISABLED);
             default -> throw new BusinessException(ErrorCode.INTERNAL_ERROR, "未知的角色状态: " + userRole.getStatus());

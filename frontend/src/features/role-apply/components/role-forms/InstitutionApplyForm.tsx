@@ -103,11 +103,12 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
           <FormField label="营业执照号" required>
             <input
               type="text"
+              inputMode="numeric"
               value={data.licenseNo || ''}
-              onChange={(e) => update({ licenseNo: e.target.value })}
-              placeholder="统一社会信用代码"
+              onChange={(e) => update({ licenseNo: e.target.value.replace(/[^\dA-Za-z]/g, '').toUpperCase() })}
+              placeholder="15位或18位数字"
               className="form-input"
-              maxLength={64}
+              maxLength={18}
             />
           </FormField>
           <FormField label="成立时间">
@@ -304,7 +305,11 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
 export const INSTITUTION_RULES: FormValidationRules<InstitutionFormData> = {
   orgName: { required: true, requiredMessage: '请输入机构名称' },
   orgType: { required: true, requiredMessage: '请选择机构类型' },
-  licenseNo: { required: true, requiredMessage: '请输入营业执照号' },
+  licenseNo: {
+    required: true,
+    requiredMessage: '请输入营业执照号',
+    validator: Validators.businessLicenseNo,
+  },
   bio: { required: true, requiredMessage: '请输入机构简介' },
   industryCategoryIds: { required: true, requiredMessage: '请至少选择一个擅长行业' },
   expertiseCategoryIds: { required: true, requiredMessage: '请至少选择一个擅长领域' },

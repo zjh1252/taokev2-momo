@@ -25,3 +25,10 @@ export async function approveEAApplication(userId: number) {
 export async function rejectEAApplication(userId: number, reason: string) {
   return apiClient<{ code: number; message: string }>(`/enterprise-agents/applications/${userId}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) });
 }
+
+/** 获取经纪公司申请详情 */
+export async function getEAApplicationDetail(userId: number) {
+  return apiClient<{ code: number; message: string; data: import('@/features/trainers/api/types').AdminApplicationDetail }>(
+    `/enterprise-agents/applications/${userId}/detail`
+  );
+}

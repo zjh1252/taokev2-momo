@@ -5,7 +5,7 @@ import { Star, MapPin } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
 import { useBumpedViewCount } from '@/hooks/use-bumped-view-count';
 import type { TrainerListItem } from '../../types';
-import { pickDisplayTitle } from '../../utils/displayTitle';
+import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
 interface TrainerCardProps {
   trainer: TrainerListItem;
@@ -17,7 +17,7 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
   const { viewCount, onCardClick } = useBumpedViewCount(trainer.viewCount, 'trainer', trainer.id);
   const displayName = getTrainerDisplayName(trainer);
   const displayTitle = pickDisplayTitle(trainer.title, displayName)
-    || (trainer.oneLineIntro?.trim() || undefined);
+    || plainIntroOrUndefined(trainer.oneLineIntro);
   const expertiseNames = trainer.expertiseCategories?.map((c) => c.categoryName).filter(Boolean) ?? [];
   const industryNames = trainer.industryCategories?.map((c) => c.categoryName).filter(Boolean) ?? [];
   const displayTags = [...expertiseNames, ...industryNames];

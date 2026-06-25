@@ -20,6 +20,7 @@ import {
 } from '@/features/trainer/api/service';
 import type { TrainerListItem } from '@/features/trainer/types';
 import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recommended';
+import { toPlainIntroText } from '@/features/trainer/utils/displayTitle';
 import { resolveImageSrc, resolveApiImageSrc } from '@/lib/media';
 import { featuredCases, featuredExperts } from '../data/mock';
 import type { CaseStudy, Expert, InternalCourse, PublicCourse } from '../types';
@@ -142,11 +143,11 @@ function mapTrainerListItemToExpert(
   return {
     id: trainer.id,
     name: trainer.teachingName || trainer.name,
-    title: trainer.title || '',
+    title: toPlainIntroText(trainer.title || ''),
     avatar: resolveApiImageSrc(trainer.avatar),
     coverImage: resolveApiImageSrc(detail?.backgroundImage || trainer.avatar),
-    bio: detail?.intro || detail?.bio || trainer.oneLineIntro || '',
-    subtitle: trainer.oneLineIntro || '',
+    bio: toPlainIntroText(detail?.intro || detail?.bio || trainer.oneLineIntro || ''),
+    subtitle: toPlainIntroText(trainer.oneLineIntro || ''),
     tags,
     badge: index === 0 ? '首席专家' : undefined
   };
@@ -175,13 +176,13 @@ async function enrichExpertsFromApi(experts: Expert[]): Promise<Expert[]> {
         return {
           ...expert,
           name: detail.teachingName || detail.name || expert.name,
-          title: detail.title || expert.title,
+          title: toPlainIntroText(detail.title || expert.title),
           avatar: avatarRaw ? resolveApiImageSrc(avatarRaw) : resolveApiImageSrc(expert.avatar),
           coverImage: coverRaw
             ? resolveApiImageSrc(coverRaw)
             : resolveApiImageSrc(expert.coverImage || expert.avatar),
-          bio: detail.intro || detail.bio || expert.bio,
-          subtitle: detail.oneLineIntro || expert.subtitle
+          bio: toPlainIntroText(detail.intro || detail.bio || expert.bio),
+          subtitle: toPlainIntroText(detail.oneLineIntro || expert.subtitle)
         };
       } catch {
         return {
@@ -362,7 +363,9 @@ async function loadHomePublicCoursesLegacy(): Promise<PublicCourse[]> {
     instructor: c.trainerName || '-',
     city: c.nextPlanCity?.trim() || '-',
     startDate: formatPlanStartDate(c.nextPlanStartDate),
-    durationDays: normalizeCourseDurationDays(c.durationDays, c.totalHours)
+    durationDays: normalizeCourseDurationDays(c.durationDays, c.totalHours),
+    categoryName: c.categoryName || undefined,
+    keywords: c.keywords?.trim() || undefined
   }));
 }
 

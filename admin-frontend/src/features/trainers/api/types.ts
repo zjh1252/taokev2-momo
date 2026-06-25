@@ -1,3 +1,11 @@
+import type {
+  AdminTrainerBookItem,
+  AdminTrainerCategoryRef,
+  AdminTrainerHonor,
+  AdminTrainerMaintainer,
+  AdminTrainerResourceItem
+} from './detail-types';
+
 export type AdminTrainer = {
   id: number;
   userId: number;
@@ -32,8 +40,69 @@ export type AdminTrainerDetail = AdminTrainer & {
   reviewCount?: number | null;
   agentBindingCount?: number | null;
   institutionBindingCount?: number | null;
-  roles?: { role: string; status: number }[];
+  roles?: { role: string; status: number; reapplying?: boolean | null }[];
+
+  resumeUrl?: string | null;
+  idCardNo?: string | null;
+  provinceId?: number | null;
+  cityId?: number | null;
+  provinceName?: string | null;
+  cityName?: string | null;
+
+  bio?: string | null;
+  oneLineIntro?: string | null;
+  background?: string | null;
+  partialClients?: string | null;
+  goodAt?: string | null;
+  specialties?: string | null;
+  teachingStyle?: string | null;
+  experienceYears?: number | null;
+  teachingYears?: number | null;
+  quoteMin?: number | null;
+  quoteMax?: number | null;
+  quoteUnit?: string | null;
+  quoteRemark?: string | null;
+  taokePrice?: number | null;
+  taokeCommission?: number | null;
+
+  honors?: AdminTrainerHonor[] | null;
+  expertiseCategories?: AdminTrainerCategoryRef[] | null;
+  industryCategories?: AdminTrainerCategoryRef[] | null;
+  books?: AdminTrainerBookItem[] | null;
+
+  maintainers?: AdminTrainerMaintainer[] | null;
+  courses?: AdminTrainerResourceItem[] | null;
+  cases?: AdminTrainerResourceItem[] | null;
+  videos?: AdminTrainerResourceItem[] | null;
+  highlights?: AdminTrainerResourceItem[] | null;
 };
+
+// ---- 申请详情（通用，前端渲染用） ----
+
+export interface AdminApplicationField {
+  fieldName: string;
+  fieldLabel: string;
+  value: string | null;
+  /** 本批次是否变更（资料重审时 marker） */
+  changed: boolean | null;
+}
+
+export interface AdminApplicationDetail {
+  id: number;
+  userId: number;
+  phone: string | null;
+  nickname: string | null;
+  role: string;
+  roleName: string;
+  status: number;
+  reapplying: boolean | null;
+  rejectReason: string | null;
+  createdAt: string;
+  approvedAt: string | null;
+  entityId: number | null;
+  applicantName: string | null;
+  fields: AdminApplicationField[];
+}
 
 export type TrainerDetailResponse = {
   code: number;

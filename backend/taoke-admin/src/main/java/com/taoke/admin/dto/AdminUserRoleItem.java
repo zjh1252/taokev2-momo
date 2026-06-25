@@ -13,4 +13,7 @@ public class AdminUserRoleItem {
 
     private String role;
     private Integer status;
+
+    /** 已生效身份资料重审中 */
+    private Boolean reapplying;
 }

@@ -92,11 +92,11 @@
     "review": "评价"
   },
   "labels": {
-    "trainer": "授课讲师",
-    "days": "课程天数",
+    "trainer": "授课专家",
+    "days": "培训天数",
     "category": "课程分类",
-    "keywords": "关键字",
-    "trainerCity": "讲师常驻地",
+    "keywords": "关键词",
+    "trainerCity": "专家常驻地",
     "openTime": "开课时间",
     "openLocation": "开课地点",
     "totalCourses": "共 {total} 门课程"

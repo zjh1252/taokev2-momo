@@ -1,0 +1,15 @@
+{
+  "libVersion": "3.15.3",
+  "projectname": "taoke-uniapp",
+  "setting": {
+    "urlCheck": false,
+    "coverView": true,
+    "lazyloadPlaceholderEnable": false,
+    "skylineRenderEnable": false,
+    "preloadBackgroundData": false,
+    "autoAudits": false,
+    "showShadowRootInWxmlPanel": true,
+    "compileHotReLoad": true,
+    "useApiHook": false
+  }
+}

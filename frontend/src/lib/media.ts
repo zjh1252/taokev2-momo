@@ -185,7 +185,14 @@ function resolveImageSrcRaw(
 
   if (value.startsWith('http://') || value.startsWith('https://')) {
     try {
-      new URL(value);
+      const parsed = new URL(value);
+      // 素材库可能存 C 端绝对地址，统一为同源 /uploads 走 rewrite
+      if (
+        /^localhost|127\.0\.0\.1$/i.test(parsed.hostname)
+        && parsed.pathname.startsWith('/uploads/')
+      ) {
+        return parsed.pathname;
+      }
       return normalizeHttpCoverUrl(value);
     } catch {
       return fallback;

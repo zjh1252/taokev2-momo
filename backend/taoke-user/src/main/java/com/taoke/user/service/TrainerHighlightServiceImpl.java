@@ -221,13 +221,28 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     }
 
     @Override
-    public Page<TrainerHighlight> adminSearch(Integer trainerId, Integer status, int page, int size) {
+    public Page<TrainerHighlight> adminSearch(Integer trainerId, Integer status, String keyword,
+                                              int page, int size) {
         Specification<TrainerHighlight> spec = Specification.where(null);
         if (trainerId != null) {
             spec = spec.and((root, q, cb) -> cb.equal(root.get("trainerId"), trainerId));
         }
         if (status != null) {
             spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            String kw = keyword.trim().toLowerCase();
+            String like = "%" + kw + "%";
+            List<Integer> trainerIdsByName = trainerRepository.findAll(
+                    (root, q, cb) -> cb.like(cb.lower(root.get("name")), like)
+            ).stream().map(Trainer::getId).distinct().toList();
+            spec = spec.and((root, q, cb) -> {
+                var titleMatch = cb.like(cb.lower(root.get("title")), like);
+                if (trainerIdsByName.isEmpty()) {
+                    return titleMatch;
+                }
+                return cb.or(titleMatch, root.get("trainerId").in(trainerIdsByName));
+            });
         }
         return highlightRepository.findAll(spec,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")));

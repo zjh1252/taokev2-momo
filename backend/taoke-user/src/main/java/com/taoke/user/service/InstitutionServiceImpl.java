@@ -57,6 +57,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     private final CategoryService categoryService;
     private final OpsMaterialResolver opsMaterialResolver;
     private final UserRepository userRepository;
+    private final RoleApplicationChangeLogService changeLogService;
 
     @Override
     public InstitutionResponse getByUserId(Integer userId) {
@@ -77,8 +78,18 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             throw new BusinessException(ErrorCode.PARAM_INVALID,
                     "请先勾选并同意《淘课网注册培训机构合作协议》");
         }
-        roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION);
+        // 在写数据前先获取旧快照（用于资料重审变更记录）
+        Institution oldSnapshot = institutionRepository.findByUserId(userId).orElse(null);
+        boolean isReapply = roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION);
         saveOrUpdateExtension(userId, request);
+        if (isReapply && oldSnapshot != null && changeLogService != null) {
+            Institution newSnapshot = institutionRepository.findByUserId(userId).orElse(null);
+            if (newSnapshot != null) {
+                String batch = RoleApplicationChangeLogService.batchKey(userId, BusinessRole.Code.INSTITUTION);
+                changeLogService.recordChanges(userId, BusinessRole.Code.INSTITUTION, batch,
+                        toFieldMap(oldSnapshot), toFieldMap(newSnapshot), INSTITUTION_FIELD_LABELS);
+            }
+        }
     }
 
     @Override
@@ -649,7 +660,10 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         if (request.getOrgName() != null) ent.setOrgName(request.getOrgName());
         if (request.getOrgType() != null) ent.setOrgType(request.getOrgType());
         if (request.getLegalRepresentative() != null) ent.setLegalRepresentative(request.getLegalRepresentative());
-        if (request.getLicenseNo() != null) ent.setLicenseNo(request.getLicenseNo());
+        if (request.getLicenseNo() != null) {
+            validateLicenseNo(request.getLicenseNo());
+            ent.setLicenseNo(request.getLicenseNo());
+        }
         if (request.getEstablishedAt() != null) ent.setEstablishedAt(request.getEstablishedAt());
         if (request.getLogoUrl() != null) ent.setLogoUrl(request.getLogoUrl());
         if (request.getBio() != null) ent.setBio(request.getBio());
@@ -696,5 +710,62 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                 .filter(java.util.Objects::nonNull)
                 .map(String::valueOf)
                 .collect(Collectors.joining(","));
+    }
+
+    /** 营业执照号校验：15位纯数字 或 18位大写字母/数字 */
+    static void validateLicenseNo(String licenseNo) {
+        if (licenseNo == null || licenseNo.isBlank()) return;
+        if (!licenseNo.trim().matches("\\d{15}|[A-Z\\d]{18}")) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "营业执照号需为15位纯数字或18位大写统一社会信用代码");
+        }
+    }
+
+    // ---- 变更日志辅助 ----
+
+    /** 机构字段 → 中文标签映射 */
+    static final Map<String, String> INSTITUTION_FIELD_LABELS = Map.<String, String>ofEntries(
+            Map.entry("orgName", "机构名称"),
+            Map.entry("orgType", "机构类型"),
+            Map.entry("legalRepresentative", "法人代表"),
+            Map.entry("licenseNo", "营业执照号"),
+            Map.entry("establishedAt", "成立时间"),
+            Map.entry("logoUrl", "机构Logo"),
+            Map.entry("bio", "机构简介"),
+            Map.entry("industries", "擅长行业"),
+            Map.entry("specialties", "擅长领域"),
+            Map.entry("hasVenue", "是否有场地"),
+            Map.entry("hasExperts", "是否有专家"),
+            Map.entry("contactName", "联系人姓名"),
+            Map.entry("contactPhone", "联系电话"),
+            Map.entry("showContact", "公开联系方式"),
+            Map.entry("address", "详细地址"),
+            Map.entry("clientCases", "我的客户")
+    );
+
+    /** 将 Institution entity 的关键字段转为 Map（仅记录有值字段，用于 diff） */
+    private static Map<String, String> toFieldMap(Institution e) {
+        if (e == null) return Map.of();
+        Map<String, String> m = new HashMap<>();
+        putIf(m, "orgName", e.getOrgName());
+        putIf(m, "orgType", e.getOrgType());
+        putIf(m, "legalRepresentative", e.getLegalRepresentative());
+        putIf(m, "licenseNo", e.getLicenseNo());
+        putIf(m, "establishedAt", e.getEstablishedAt());
+        putIf(m, "logoUrl", e.getLogoUrl());
+        putIf(m, "bio", e.getBio());
+        putIf(m, "industries", e.getIndustries());
+        putIf(m, "specialties", e.getSpecialties());
+        putIf(m, "hasVenue", e.getHasVenue());
+        putIf(m, "hasExperts", e.getHasExperts());
+        putIf(m, "contactName", e.getContactName());
+        putIf(m, "contactPhone", e.getContactPhone());
+        putIf(m, "showContact", e.getShowContact());
+        putIf(m, "address", e.getAddress());
+        putIf(m, "clientCases", e.getClientCases());
+        return m;
+    }
+
+    private static void putIf(Map<String, String> m, String key, Object val) {
+        if (val != null) m.put(key, String.valueOf(val));
     }
 }

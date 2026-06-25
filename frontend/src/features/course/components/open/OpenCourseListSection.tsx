@@ -393,14 +393,17 @@ function OpenCourseListSectionInner({
   return (
     <div className="flex flex-col gap-6">
     <div className="flex gap-6 items-start">
-      <OpenCourseFilters
-        categoryTree={categoryTree}
-        value={filters}
-        onChange={handleFilterChange}
-      />
+      <div className="w-64 shrink-0 sticky top-[120px] self-start z-30">
+        <OpenCourseFilters
+          categoryTree={categoryTree}
+          value={filters}
+          onChange={handleFilterChange}
+        />
+      </div>
 
-      <div className="flex-1 flex flex-col gap-4">
-        {/* 排序栏 */}
+      <div className="flex-1 flex flex-col gap-4 min-w-0">
+        {/* 排序栏 + 已选条件（滚动时冻结） */}
+        <div className="sticky top-[120px] z-20 space-y-4 pb-1">
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex items-center gap-2">
           {SORT_OPTIONS.map((opt) => (
             <button
@@ -451,6 +454,7 @@ function OpenCourseListSectionInner({
             </button>
           </div>
         )}
+        </div>
 
         {/* 列表 */}
         <div className={`flex flex-col gap-3 transition-opacity ${isPending ? 'opacity-50' : ''}`}>

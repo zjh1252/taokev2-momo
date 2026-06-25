@@ -65,3 +65,21 @@ export async function setTrainerRecommended(
     { method: 'PATCH' }
   );
 }
+
+/** 获取专家申请详情 */
+export async function getTrainerApplicationDetail(userId: number) {
+  return apiClient<{ code: number; message: string; data: import('./types').AdminApplicationDetail }>(
+    `/trainers/applications/${userId}/detail`
+  );
+}
+
+/** 运营编辑专家档案 */
+export async function updateTrainerDetail(
+  trainerId: number,
+  payload: import('./detail-types').AdminTrainerUpdatePayload
+) {
+  return apiClient<import('./types').TrainerDetailResponse>(
+    `/trainers/${trainerId}`,
+    { method: 'PUT', body: JSON.stringify(payload) }
+  );
+}

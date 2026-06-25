@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { getCoursePublicUrl } from '@/lib/frontend-links';
 import Link from 'next/link';
 import Image from 'next/image';
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
+import { resolveAssetUrl, isLikelyImageAssetUrl } from '@/lib/resolve-asset-url';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { AdminCourse } from '../../api/types';
 import {
@@ -40,18 +40,22 @@ export const columns: ColumnDef<AdminCourse>[] = [
     id: 'cover',
     header: '封面',
     cell: ({ row }) => {
-      const cover = resolveAssetUrl(row.original.coverUrl);
-      return cover ? (
-        <div className='relative h-10 w-16 overflow-hidden rounded'>
+      const raw = row.original.coverUrl;
+      if (!isLikelyImageAssetUrl(raw)) {
+        return <span className='text-muted-foreground text-xs'>-</span>;
+      }
+      const cover = resolveAssetUrl(raw);
+      return (
+        <div className='relative h-10 w-16 overflow-hidden rounded bg-muted'>
           <Image
             src={cover}
             alt={row.original.title}
             fill
             className='object-cover'
+            sizes='64px'
+            unoptimized
           />
         </div>
-      ) : (
-        <span className='text-muted-foreground text-xs'>-</span>
       );
     }
   },
@@ -79,7 +83,6 @@ export const columns: ColumnDef<AdminCourse>[] = [
         </div>
         <span className='text-muted-foreground text-xs'>
           {row.original.typeLabel}
-          {row.original.trainerName && ` · ${row.original.trainerName}`}
         </span>
       </div>
     ),
@@ -105,31 +108,34 @@ export const columns: ColumnDef<AdminCourse>[] = [
     }
   },
   {
-    id: 'trainerId',
+    id: 'trainerName',
     accessorKey: 'trainerName',
     header: '所属专家',
     cell: ({ row }) => row.original.trainerName || '-',
     enableColumnFilter: true,
     meta: {
-      label: '专家ID',
-      placeholder: '专家 trainerId...',
+      label: '专家姓名',
+      placeholder: '按专家姓名搜索...',
       variant: 'text' as const,
       icon: Icons.user
     }
   },
   {
     id: 'publisherType',
-    accessorKey: 'publisherType',
-    header: '发布方类型',
-    cell: ({ cell }) => cell.getValue<string>() || '-',
+    accessorKey: 'publisherDisplayName',
+    header: '发布方',
+    cell: ({ row }) => row.original.publisherDisplayName || row.original.publisherType || '-',
     enableColumnFilter: true,
     meta: {
-      label: '发布方',
+      label: '发布方类型',
       variant: 'select' as const,
       options: [
         { value: 'TRAINER', label: '专家' },
+        { value: 'ASSISTANT', label: '专家助理' },
+        { value: 'AGENT', label: '专家经纪人' },
+        { value: 'ENTERPRISE_AGENT', label: '专家经纪公司' },
         { value: 'INSTITUTION', label: '机构' },
-        { value: 'ENTERPRISE_AGENT', label: '经纪公司' }
+        { value: 'INSTITUTION_EMPLOYEE', label: '机构员工' }
       ]
     }
   },

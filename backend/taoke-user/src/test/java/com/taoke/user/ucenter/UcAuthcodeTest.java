@@ -62,6 +62,33 @@ class UcAuthcodeTest {
     }
 
     @Test
+    void parsesNestedContactLookupXml() {
+        String xml = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><root>"
+                + "<item id=\"0\">"
+                + "<item id=\"uid\"><![CDATA[1463789]]></item>"
+                + "<item id=\"username\"><![CDATA[COPLE]]></item>"
+                + "<item id=\"email\"><![CDATA[]]></item>"
+                + "<item id=\"mobile\"><![CDATA[17365492590]]></item>"
+                + "</item></root>";
+        var fields = UcXml.parseFirstContactUser(xml);
+        assertEquals("1463789", fields.get("uid"));
+        assertEquals("COPLE", fields.get("username"));
+        assertEquals("17365492590", fields.get("mobile"));
+    }
+
+    @Test
+    void parsesNamedContactLookupXml() {
+        String xml = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><root>"
+                + "<item id=\"uid\"><![CDATA[123456]]></item>"
+                + "<item id=\"username\"><![CDATA[TPC_ABCDEF20260331]]></item>"
+                + "<item id=\"email\"><![CDATA[]]></item>"
+                + "</root>";
+        var fields = UcXml.parseNamedItems(xml);
+        assertEquals("123456", fields.get("uid"));
+        assertEquals("TPC_ABCDEF20260331", fields.get("username"));
+    }
+
+    @Test
     void parsesLoginXml() {
         String xml = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><root>"
                 + "<item id=\"0\">123456</item>"

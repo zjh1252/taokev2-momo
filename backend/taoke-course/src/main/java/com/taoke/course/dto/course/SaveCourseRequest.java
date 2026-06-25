@@ -1,6 +1,5 @@
 package com.taoke.course.dto.course;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -80,8 +79,7 @@ public class SaveCourseRequest {
     private Integer hasPlan;
 
     /**
-     * 公开课开课计划列表，hasPlan=1 时必填
+     * 公开课开课计划列表，hasPlan=1 且提交审核时在服务层校验
      */
-    @Valid
     private List<CoursePlanDTO> plans;
 }

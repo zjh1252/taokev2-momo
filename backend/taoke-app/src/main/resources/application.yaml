@@ -137,6 +137,27 @@ taoke:
       enabled: true
       api-url: http://test.scho.com.cn
       secret-key: 1E904D6E91A01D4A5C86EDE8B13370BE
+  # 在线支付（支付宝 PC 网站支付 + 微信 Native 扫码）。enabled=false 时仅 MOCK 可用
+  payment:
+    enabled: false
+    api-base-url: http://localhost:8080
+    site-base-url: http://localhost:3000
+    alipay:
+      app-id: ${ALIPAY_APP_ID:}
+      private-key: ${ALIPAY_PRIVATE_KEY:}
+      alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
+      gateway-url: https://openapi.alipay.com/gateway.do
+      notify-path: /payments/alipay/notify
+      return-path: /checkout
+      mobile-return-path: /pages/order/checkout
+    wechat:
+      app-id: ${WECHAT_PAY_APP_ID:}
+      mch-id: ${WECHAT_PAY_MCH_ID:}
+      api-v3-key: ${WECHAT_PAY_API_V3_KEY:}
+      merchant-serial-number: ${WECHAT_PAY_SERIAL_NO:}
+      private-key: ${WECHAT_PAY_PRIVATE_KEY:}
+      mini-program-secret: ${WECHAT_MINI_PROGRAM_SECRET:}
+      notify-path: /payments/wechat/notify
 
 # 滑块验证码（tianai-captcha）自身配置，详见 cloud.tianai.captcha.autoconfiguration.ImageCaptchaProperties
 # 注意：此为 tianai 顶层 captcha.* 前缀；启用/卡点开关是另一套 taoke.captcha.*

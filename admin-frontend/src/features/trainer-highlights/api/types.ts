@@ -43,6 +43,7 @@ export type TrainerHighlightFilters = {
   limit?: number;
   trainerId?: number;
   status?: string;
+  keyword?: string;
 };
 
 export type TrainerHighlightsResponse = {

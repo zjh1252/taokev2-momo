@@ -2,6 +2,7 @@
 export const TRAINER_TAB_SLUGS = {
   courses: 'courses',
   cases: 'cases',
+  highlights: 'highlight',
   videos: 'video',
   comments: 'comment',
   books: 'book',
@@ -17,6 +18,7 @@ const SLUG_TO_TAB: Record<string, Exclude<TrainerTabId, 'home'>> = {
   course: 'courses', // 旧版单数，兼容
   cases: 'cases',
   case: 'cases', // 旧版单数，兼容
+  highlight: 'highlights',
   video: 'videos',
   comment: 'comments',
   book: 'books',
@@ -28,6 +30,8 @@ const TAB_QUERY_ALIASES: Record<string, TrainerTabId> = {
   course: 'courses',
   cases: 'cases',
   case: 'cases',
+  highlights: 'highlights',
+  highlight: 'highlights',
   videos: 'videos',
   video: 'videos',
   comments: 'comments',

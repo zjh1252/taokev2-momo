@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ import {
 import {
   createPendingMaterial,
   MAX_BATCH_FILES,
+  MAX_FILE_SIZE_MB,
   validateImageFiles
 } from '../material-utils';
 import type { PendingMaterial } from '../material-utils';
@@ -54,6 +55,15 @@ function MaterialTabPanel({ materialType }: MaterialTabPanelProps) {
     scene: parseAsString,
     isDefault: parseAsString
   });
+
+  const prevPageRef = useRef(params.page);
+
+  useEffect(() => {
+    if (prevPageRef.current !== params.page) {
+      prevPageRef.current = params.page;
+      setSelectedIds([]);
+    }
+  }, [params.page]);
 
   const filters = {
     page: params.page,
@@ -95,7 +105,7 @@ function MaterialTabPanel({ materialType }: MaterialTabPanelProps) {
     const valid = validateImageFiles(files);
     const skipped = Array.from(files).length - valid.length;
     if (skipped > 0) {
-      toast.error(`${skipped} 个文件超过 2MB，已跳过`);
+      toast.error(`${skipped} 个文件超过 ${MAX_FILE_SIZE_MB}MB，已跳过`);
     }
     if (valid.length === 0) return;
 
@@ -276,7 +286,7 @@ function MaterialTabPanel({ materialType }: MaterialTabPanelProps) {
           </Button>
           <Button size='sm' onClick={() => fileInputRef.current?.click()}>
             <Icons.add className='mr-1 h-4 w-4' />
-            新增素材
+            批量上传
           </Button>
         </div>
       </div>
@@ -297,6 +307,16 @@ function MaterialTabPanel({ materialType }: MaterialTabPanelProps) {
           onSelectionChange={setSelectedIds}
         />
       )}
+
+      <MaterialBatchBar
+        materialType={materialType}
+        selectedIds={selectedIds}
+        selectedItems={selectedItems}
+        totalCount={list.length}
+        allSelected={allSelected}
+        onToggleAll={toggleAll}
+        onClear={() => setSelectedIds([])}
+      />
 
       <div className='flex flex-wrap items-center justify-between gap-3 border-t pt-3'>
         <p className='text-muted-foreground text-sm'>
@@ -321,16 +341,6 @@ function MaterialTabPanel({ materialType }: MaterialTabPanelProps) {
           </Button>
         </div>
       </div>
-
-      <MaterialBatchBar
-        materialType={materialType}
-        selectedIds={selectedIds}
-        selectedItems={selectedItems}
-        totalCount={list.length}
-        allSelected={allSelected}
-        onToggleAll={toggleAll}
-        onClear={() => setSelectedIds([])}
-      />
 
       <MaterialBatchPreviewDialog
         open={previewOpen}

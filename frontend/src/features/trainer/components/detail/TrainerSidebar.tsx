@@ -10,7 +10,7 @@ import type {
   RecommendedTrainerItem,
 } from '../../types';
 import { getRecommendedCourses, getRecommendedTrainers } from '../../api/service';
-import { pickDisplayTitle } from '../../utils/displayTitle';
+import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
 import { getCourseDetailPath, isOpenCourseType } from '@/features/course/utils/routes';
 import { decodeHtmlEntities } from '@/lib/html-entities';
@@ -92,7 +92,7 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
               const relatedName = getTrainerDisplayName(t);
               const subtitle =
                 pickDisplayTitle(t.title, relatedName) ||
-                (t.oneLineIntro?.trim() || undefined);
+                plainIntroOrUndefined(t.oneLineIntro);
               return (
                 <Link
                   key={t.id}

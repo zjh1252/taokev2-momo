@@ -9,6 +9,7 @@ import { TOKEN_KEY } from '@/lib/auth/constants';
 import { updateProfile } from '@/features/user-center/api/service';
 import { useRealNameLock } from '@/features/user-center/hooks/useRealNameLock';
 import { MaterialPickerButton } from '@/features/ops-material/components/MaterialPickerButton';
+import { resolveImageSrc } from '@/lib/media';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
@@ -99,7 +100,7 @@ export default function AccountBasePage() {
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={avatarUrl}
+                  src={resolveImageSrc(avatarUrl, '')}
                   alt="头像"
                   className="w-full h-full object-cover"
                 />

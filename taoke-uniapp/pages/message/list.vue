@@ -88,8 +88,9 @@ import { onLoad } from '@dcloudio/uni-app';
 import * as notificationApi from '@/api/notification';
 import { useUserStore } from '@/stores/user';
 
-const sysInfo = uni.getSystemInfoSync();
-const navBarH = (sysInfo.statusBarHeight || 20) + 44;
+import { getNavBarHeight } from '@/utils/system';
+
+const navBarH = getNavBarHeight();
 const userStore = useUserStore();
 
 const list = ref([]);

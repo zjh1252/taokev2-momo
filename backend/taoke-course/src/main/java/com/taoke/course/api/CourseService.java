@@ -149,7 +149,8 @@ public interface CourseService {
      * 后台分页搜索课程
      */
     Page<Course> searchForAdmin(String keyword, Integer status, String type,
-                               Integer trainerId, String publisherType, Integer publisherId,
+                               Integer trainerId, java.util.Collection<Integer> trainerIds,
+                               String publisherType, Integer publisherId,
                                java.util.Collection<Integer> publisherUserIds,
                                Pageable pageable);
 

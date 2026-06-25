@@ -16,4 +16,6 @@ public interface UserRoleAssignmentRepository extends JpaRepository<UserRoleAssi
     List<UserRoleAssignment> findByUserId(Integer userId);
 
     void deleteByUserIdAndRoleId(Integer userId, Integer roleId);
+
+    void deleteByUserId(Integer userId);
 }

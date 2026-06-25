@@ -41,7 +41,7 @@ public class AuthController {
     private final CaptchaProperties captchaProperties;
 
     /**
-     * 手机号 + 密码登录（后台管理登录走此接口）。后台登录始终要求滑块验证。
+     * 手机号 + 密码登录（后台管理登录走此接口）。后台登录始终要求滑块验证，不启用连续密码错误锁定。
      */
     @Public
     @Operation(summary = "手机号 + 密码登录（后台，始终需滑块）")
@@ -53,7 +53,7 @@ public class AuthController {
             throw new BusinessException(ErrorCode.CAPTCHA_REQUIRED);
         }
         String ip = getClientIp(httpRequest);
-        return executePasswordLogin(request.getPhone(), ip, false, () -> authService.loginByPassword(request));
+        return executePasswordLogin(request.getPhone(), ip, false, false, () -> authService.loginByPassword(request));
     }
 
     @Public
@@ -89,7 +89,7 @@ public class AuthController {
             throw new BusinessException(ErrorCode.CAPTCHA_REQUIRED);
         }
 
-        return executePasswordLogin(account, ip, captchaOn, () -> authService.loginByUsername(request));
+        return executePasswordLogin(account, ip, captchaOn, true, () -> authService.loginByUsername(request));
     }
 
     @Public
@@ -135,31 +135,38 @@ public class AuthController {
     }
 
     /**
-     * 密码登录统一包装：锁定校验、失败计数、成功清零。
+     * 密码登录统一包装：可选锁定校验、失败计数、成功清零。
+     *
+     * @param lockoutOn 是否启用连续密码错误锁定（后台登录关闭，C 端开启）
      */
     private ApiResponse<TokenResponse> executePasswordLogin(
             String account,
             String ip,
             boolean captchaOn,
+            boolean lockoutOn,
             java.util.function.Supplier<TokenResponse> loginAction) {
-        loginLockoutService.checkNotLocked(account);
+        if (lockoutOn) {
+            loginLockoutService.checkNotLocked(account);
+        }
         try {
             TokenResponse token = loginAction.get();
-            loginLockoutService.clear(account);
+            if (lockoutOn) {
+                loginLockoutService.clear(account);
+            }
             if (captchaOn) {
                 loginFailCounter.reset(account, ip);
             }
             return ApiResponse.ok(token);
         } catch (BusinessException e) {
-            if (e.getErrorCode() == ErrorCode.PASSWORD_INCORRECT) {
+            if (lockoutOn && e.getErrorCode() == ErrorCode.PASSWORD_INCORRECT) {
                 try {
                     loginLockoutService.recordPasswordFailure(account);
                 } catch (BusinessException lockEx) {
                     throw lockEx;
                 }
-                if (captchaOn) {
-                    loginFailCounter.increment(account, ip);
-                }
+            }
+            if (captchaOn && e.getErrorCode() == ErrorCode.PASSWORD_INCORRECT) {
+                loginFailCounter.increment(account, ip);
             }
             throw e;
         }

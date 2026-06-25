@@ -1,6 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { InlineAuditActions } from '@/components/admin/inline-audit-actions';
+import { Button } from '@/components/ui/button';
+import { Icons } from '@/components/icons';
 import type { AdminInstitutionApplication } from '../../api/types';
 import {
   approveInstitutionApplication,
@@ -30,6 +33,14 @@ export function CellAction({ data }: CellActionProps) {
       invalidateKey={institutionKeys.all}
       idleLabel={
         data.status === 1 ? '已通过' : data.status === 3 ? '已驳回' : undefined
+      }
+      extra={
+        <Link href={`/dashboard/institutions/applications/${data.userId}`}>
+          <Button size='sm' variant='outline'>
+            <Icons.eye className='size-3.5 mr-1' />
+            详情
+          </Button>
+        </Link>
       }
     />
   );

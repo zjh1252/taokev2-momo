@@ -18,6 +18,7 @@ import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 import type { VideoDetail } from '../../api/types';
 import { getVideoComments, submitVideoComment } from '../../api/service';
 import { VideoStarDisplay } from './VideoStarDisplay';
+import { ApiException } from '@/lib/http/client';
 
 type VideoPlayRatingCardProps = {
   video: VideoDetail;
@@ -78,14 +79,16 @@ export function VideoPlayRatingCard({ video }: VideoPlayRatingCardProps) {
     setSubmitting(true);
     try {
       await submitVideoComment(video.id, { rating, content: trimmed });
-      toast.success('评分发表成功');
+      toast.success('评分已提交，审核通过后将展示');
       setRating(0);
       setContent('');
       setDialogOpen(false);
       const page = await getVideoComments(video.id, 1, 1);
       setCommentTotal(page.total ?? 0);
-    } catch {
-      toast.error('发表失败，请稍后重试');
+    } catch (err) {
+      if (!(err instanceof ApiException)) {
+        toast.error('发表失败，请稍后重试');
+      }
     } finally {
       setSubmitting(false);
     }

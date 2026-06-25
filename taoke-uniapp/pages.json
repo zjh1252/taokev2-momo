@@ -4,7 +4,8 @@
       "path": "pages/home/index",
       "style": {
         "navigationStyle": "custom",
-        "navigationBarTitleText": "淘课网"
+        "navigationBarTitleText": "淘课网",
+        "enablePullDownRefresh": true
       }
     },
     {
@@ -82,6 +83,111 @@
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "消息中心"
+      }
+    },
+    {
+      "path": "pages/learning/list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的学习"
+      }
+    },
+    {
+      "path": "pages/order/list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的订单"
+      }
+    },
+    {
+      "path": "pages/order/checkout",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "确认订单"
+      }
+    },
+    {
+      "path": "pages/video/play",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "视频学习"
+      }
+    },
+    {
+      "path": "pages/demand/list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的需求"
+      }
+    },
+    {
+      "path": "pages/review/list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的点评"
+      }
+    },
+    {
+      "path": "pages/user/switch",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "修改身份"
+      }
+    },
+    {
+      "path": "pages/user/more-info",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "更多信息"
+      }
+    },
+    {
+      "path": "pages/user/bind",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "账号绑定"
+      }
+    },
+    {
+      "path": "pages/user/delete-account",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "注销账号"
+      }
+    },
+    {
+      "path": "pages/user/withdraw-role",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "注销身份"
+      }
+    },
+    {
+      "path": "pages/user/cert/real-name",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "实名认证"
+      }
+    },
+    {
+      "path": "pages/user/cert/professional",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "专业认证"
+      }
+    },
+    {
+      "path": "pages/user/cert/education",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "学历认证"
+      }
+    },
+    {
+      "path": "pages/user/cert/work",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "工作认证"
       }
     }
   ],

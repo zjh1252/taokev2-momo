@@ -8,10 +8,10 @@ import { useAuth } from '@/lib/auth/auth-context';
 import {
   getMyVideos,
   submitVideo,
-  unpublishVideo,
   deleteVideo,
   type MyVideoListParams,
 } from '@/features/video/api/publisher-service';
+import { VideoEditDialog } from '@/features/video/components/publisher/VideoEditDialog';
 import { TrainerSwitcher } from '@/features/binding/components/trainer-switcher';
 import { isDelegatingRole, selfPublishingAllowed } from '@/features/binding/lib/delegating-role';
 import {
@@ -26,7 +26,6 @@ import {
   Edit,
   Trash2,
   Send,
-  EyeOff,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
@@ -64,6 +63,8 @@ export default function ManageVideosPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [trainerUserId, setTrainerUserId] = useState<number | undefined>(undefined);
+  const [editVideoId, setEditVideoId] = useState<number | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -113,16 +114,6 @@ export default function ManageVideosPage() {
     }
   };
 
-  const handleUnpublish = async (id: number) => {
-    if (!confirm('确定要下架此录播课吗？')) return;
-    try {
-      await unpublishVideo(id);
-      fetchVideos();
-    } catch {
-      alert('下架失败');
-    }
-  };
-
   const handleDelete = async (id: number) => {
     if (!confirm('确定要删除此录播课吗？此操作不可恢复。')) return;
     try {
@@ -131,6 +122,11 @@ export default function ManageVideosPage() {
     } catch {
       alert('删除失败');
     }
+  };
+
+  const handleEdit = (id: number) => {
+    setEditVideoId(id);
+    setEditOpen(true);
   };
 
   return (
@@ -223,7 +219,7 @@ export default function ManageVideosPage() {
                 key={video.id}
                 video={video}
                 onSubmit={handleSubmit}
-                onUnpublish={handleUnpublish}
+                onEdit={handleEdit}
                 onDelete={handleDelete}
               />
             ))}
@@ -255,6 +251,13 @@ export default function ManageVideosPage() {
           </div>
         )}
       </div>
+
+      <VideoEditDialog
+        videoId={editVideoId}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSaved={fetchVideos}
+      />
     </section>
   );
 }
@@ -262,12 +265,12 @@ export default function ManageVideosPage() {
 function VideoManageCard({
   video,
   onSubmit,
-  onUnpublish,
+  onEdit,
   onDelete,
 }: {
   video: VideoListItem;
   onSubmit: (id: number) => void;
-  onUnpublish: (id: number) => void;
+  onEdit: (id: number) => void;
   onDelete: (id: number) => void;
 }) {
   const statusLabel = VideoStatusLabelMap[video.status as VideoStatusValue] || video.statusLabel;
@@ -334,6 +337,17 @@ function VideoManageCard({
 
       {/* 操作按钮 */}
       <div className="flex flex-col gap-2 shrink-0 justify-center">
+        {!isPending && (
+          <button
+            type="button"
+            onClick={() => onEdit(video.id)}
+            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
+            title={isPublished ? '编辑后将回到待审核状态' : undefined}
+          >
+            <Edit className="size-3.5" />
+            编辑
+          </button>
+        )}
         {(isDraft || isRejected) && (
           <button
             type="button"
@@ -344,37 +358,6 @@ function VideoManageCard({
             提交审核
           </button>
         )}
-        {isPublished && (
-          <button
-            type="button"
-            onClick={() => onUnpublish(video.id)}
-            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-amber-300 text-amber-600 hover:bg-amber-50 transition-colors"
-          >
-            <EyeOff className="size-3.5" />
-            下架
-          </button>
-        )}
-        <Link
-          href={`/dashboard/video/${video.id}/edit`}
-          className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
-        >
-          <Edit className="size-3.5" />
-          编辑
-        </Link>
-        {video.videoType === 'SERIES' && (
-          <Link
-            href={`/dashboard/video/${video.id}/series`}
-            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
-          >
-            系列管理
-          </Link>
-        )}
-        <Link
-          href={`/dashboard/video/${video.id}/chapters`}
-          className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
-        >
-          章节管理
-        </Link>
         {!isPending && !isPublished && (
           <button
             type="button"

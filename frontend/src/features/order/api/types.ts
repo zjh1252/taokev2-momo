@@ -57,6 +57,7 @@ export type CreateOrderRequest =
 export interface PayRequest {
   orderNo: string;
   method?: string;
+  clientType?: string;
 }
 
 /** 支付结果 */
@@ -68,6 +69,9 @@ export interface PayResultVO {
   status: number;
   statusLabel: string;
   paidAt: string | null;
+  payUrl?: string | null;
+  qrCodeUrl?: string | null;
+  payParams?: Record<string, string> | null;
 }
 
 /** 发票类型：SPECIAL=全电发票-增值税专用发票 NORMAL=全电发票-普通发票 */

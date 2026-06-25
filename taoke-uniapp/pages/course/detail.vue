@@ -81,6 +81,56 @@
           </view>
         </view>
 
+        <!-- 操作区（对齐 PC CourseSidebar） -->
+        <view v-if="!course.isOverdue" class="action-panel">
+          <view v-if="isOpenCourse && Number(course.price) > 0" class="action-panel__price">
+            <text class="action-panel__price-label">培训参考价</text>
+            <view class="action-panel__price-row">
+              <text class="action-panel__price-val">¥ {{ formatPrice(course.price) }}</text>
+              <text
+                v-if="course.originalPrice && Number(course.originalPrice) > Number(course.price || 0)"
+                class="action-panel__price-old"
+              >
+                ¥ {{ formatPrice(course.originalPrice) }}
+              </text>
+            </view>
+          </view>
+
+          <view
+            v-if="isPurchasable"
+            class="action-panel__btn action-panel__btn--primary"
+            :class="{ 'is-disabled': buying }"
+            @tap="onBuy"
+          >
+            <TkIcon name="fire" :size="28" color="#fff" />
+            <text>{{ buying ? '处理中...' : '立即购买' }}</text>
+          </view>
+
+          <view
+            v-if="isPurchasable"
+            class="action-panel__btn action-panel__btn--outline"
+            @tap="onAddCart"
+          >
+            <TkIcon name="cart" :size="28" color="#E62117" />
+            <text>加入购物车</text>
+          </view>
+
+          <view v-if="!isPurchasable && isOpenCourse" class="action-panel__btn action-panel__btn--primary" @tap="onConsult">
+            <TkIcon name="fire" :size="28" color="#fff" />
+            <text>预约咨询</text>
+          </view>
+
+          <view class="action-panel__btn action-panel__btn--ghost" @tap="onConsult">
+            <TkIcon name="chat" :size="28" color="#666" />
+            <text>立即咨询</text>
+          </view>
+
+          <view class="action-panel__btn action-panel__btn--ghost" @tap="onFavorite">
+            <TkIcon name="heart" :filled="favorited" :size="28" :color="favorited ? '#E62117' : '#666'" />
+            <text>{{ favorited ? '已收藏' : '加入收藏' }}</text>
+          </view>
+        </view>
+
         <!-- 专家卡 -->
         <view v-if="course.trainerName" class="trainer-card" @tap="goTrainer">
           <view class="trainer-card__left">
@@ -139,22 +189,9 @@
           </view>
         </TkSection>
 
-        <view style="height: 200rpx;" />
+        <view style="height: 40rpx;" />
       </view>
     </scroll-view>
-
-    <!-- 吸底操作栏 -->
-    <TkActionBar v-if="!course.isOverdue">
-      <TkActionBtn icon="chat" label="咨询客服" @tap="onConsult" />
-      <TkActionBtn
-        icon="heart"
-        :icon-filled="favorited"
-        :icon-color="favorited ? '#E62117' : '#666'"
-        :label="favorited ? '已收藏' : '收藏'"
-        @tap="onFavorite"
-      />
-      <TkActionBtn label="立即报名" type="primary" @tap="onEnroll" />
-    </TkActionBar>
 
     <TkLoading v-if="loading && !course.id" />
   </view>
@@ -164,18 +201,37 @@
 import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import * as courseApi from '@/api/course';
+import * as orderApi from '@/api/order';
+import * as cartApi from '@/api/cart';
 import * as interactionApi from '@/api/interaction';
+import { requireLogin } from '@/utils/auth';
 import { MOCK_COURSE_DETAIL } from '@/utils/mock';
 import { toAssetUrl } from '@/utils/asset';
+import { formatPlanStartDate } from '@/utils/course-display';
 
-const sysInfo = uni.getSystemInfoSync();
-const navBarH = (sysInfo.statusBarHeight || 20) + 44;
+import { getNavBarHeight } from '@/utils/system';
+
+const navBarH = getNavBarHeight();
 
 const id = ref('');
 const course = ref({});
 const loading = ref(false);
 const refreshing = ref(false);
 const favorited = ref(false);
+const buying = ref(false);
+const cartLoading = ref(false);
+
+const isOpenCourse = computed(() => {
+  const t = course.value.type;
+  return t === 'OPEN_OFFLINE' || t === 'OPEN_ONLINE' || course.value.isOpen === true;
+});
+
+const isPurchasable = computed(() => {
+  if (!isOpenCourse.value || course.value.isOverdue) return false;
+  if (course.value.isFree === 1) return false;
+  const price = Number(course.value.price || 0);
+  return price > 0;
+});
 
 const metaLine = computed(
   () => course.value.nextPlanStartDate || course.value.nextPlanCity || course.value.durationDays,
@@ -200,11 +256,7 @@ function formatPrice(p) {
 }
 
 function formatDate(t) {
-  if (!t) return '';
-  const s = String(t);
-  // 'YYYY-MM-DDTHH:mm:ss' / 'YYYY-MM-DD HH:mm:ss' / 'YYYY-MM-DD' 一律截前 10 位
-  const head = s.replace('T', ' ').slice(0, 10);
-  return head;
+  return formatPlanStartDate(t);
 }
 
 async function loadDetail() {
@@ -244,11 +296,79 @@ function goTrainer() {
 }
 
 function onConsult() {
-  uni.showToast({ title: '咨询入口建设中', icon: 'none' });
+  uni.showActionSheet({
+    itemList: ['消息中心留言', '返回'],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        if (!requireLogin()) return;
+        uni.navigateTo({ url: '/pages/message/list' });
+      }
+    },
+  });
 }
 
-function onEnroll() {
-  uni.showToast({ title: '报名流程建设中（Iteration 4）', icon: 'none' });
+async function submitOrder() {
+  const order = await orderApi.createOrder({
+    directItem: { productType: 'OPEN_COURSE', productId: course.value.id, quantity: 1 },
+  });
+  uni.navigateTo({ url: `/pages/order/checkout?orderNo=${order.orderNo}` });
+}
+
+async function onBuy() {
+  if (!course.value.id) return;
+  if (course.value.isOverdue) {
+    uni.showToast({ title: '课程已结束', icon: 'none' });
+    return;
+  }
+  if (!requireLogin()) return;
+  if (!isPurchasable.value) {
+    onConsult();
+    return;
+  }
+  if (buying.value) return;
+  buying.value = true;
+  try {
+    const pending = await orderApi.getPendingOrderByProduct('OPEN_COURSE', course.value.id);
+    if (pending?.orderNo) {
+      uni.showModal({
+        title: '待支付订单',
+        content: '您有一笔待支付订单，是否前往支付？',
+        confirmText: '去支付',
+        confirmColor: '#E62117',
+        success: (res) => {
+          if (res.confirm) {
+            uni.navigateTo({ url: `/pages/order/checkout?orderNo=${pending.orderNo}` });
+          }
+        },
+      });
+      return;
+    }
+    await submitOrder();
+  } catch (e) {
+    uni.showToast({ title: e?.message || '下单失败', icon: 'none' });
+  } finally {
+    buying.value = false;
+  }
+}
+
+async function onAddCart() {
+  if (!course.value.id) return;
+  if (!isPurchasable.value) {
+    uni.showToast({ title: '该课程暂不支持加入购物车', icon: 'none' });
+    return;
+  }
+  if (!requireLogin()) return;
+  if (cartLoading.value) return;
+  cartLoading.value = true;
+  try {
+    await cartApi.addCartItem({ productType: 'OPEN_COURSE', productId: course.value.id, quantity: 1 });
+    uni.showToast({ title: '已加入购物车', icon: 'success' });
+  } catch (e) {
+    if (e && (e.code === 401 || e.code === 10001)) return;
+    uni.showToast({ title: e?.message || '加入失败', icon: 'none' });
+  } finally {
+    cartLoading.value = false;
+  }
 }
 
 async function onFavorite() {
@@ -414,6 +534,82 @@ onLoad((opt) => {
     display: flex;
     align-items: center;
     gap: 4rpx;
+  }
+}
+
+// 操作区（对齐 PC 侧栏）
+.action-panel {
+  background: $tk-bg-card;
+  border-radius: $tk-radius-lg;
+  padding: $tk-sp-3;
+  box-shadow: $tk-shadow-card;
+  display: flex;
+  flex-direction: column;
+  gap: $tk-sp-2;
+
+  &__price {
+    text-align: center;
+    padding-bottom: $tk-sp-2;
+    border-bottom: 2rpx solid $tk-divider-light;
+  }
+
+  &__price-label {
+    display: block;
+    font-size: $tk-fs-sm;
+    color: $tk-text-3;
+    margin-bottom: 4rpx;
+  }
+
+  &__price-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8rpx;
+  }
+
+  &__price-val {
+    font-size: 56rpx;
+    font-weight: 800;
+    color: $tk-primary;
+  }
+
+  &__price-old {
+    font-size: $tk-fs-sm;
+    color: $tk-text-4;
+    text-decoration: line-through;
+  }
+
+  &__btn {
+    height: 88rpx;
+    border-radius: $tk-radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8rpx;
+    font-size: $tk-fs-md;
+    font-weight: 600;
+
+    &--primary {
+      background: $tk-primary;
+      color: #fff;
+      box-shadow: $tk-shadow-primary;
+    }
+
+    &--outline {
+      background: #fff;
+      color: $tk-primary;
+      border: 2rpx solid $tk-primary;
+    }
+
+    &--ghost {
+      background: #fff;
+      color: $tk-text-2;
+      border: 2rpx solid $tk-border;
+    }
+
+    &.is-disabled {
+      opacity: 0.6;
+    }
   }
 }
 

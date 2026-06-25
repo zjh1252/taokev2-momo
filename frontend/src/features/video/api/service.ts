@@ -32,6 +32,8 @@ export interface VideoListParams {
   sortBy?: string;
   /** 机构 ID 过滤（仅返回该机构发布的录播课） */
   institutionId?: number;
+  /** 1=仅精品推荐录播课 */
+  isFeatured?: number;
 }
 
 /**
@@ -49,6 +51,7 @@ export async function getVideoList(
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sortBy) query.set('sortBy', params.sortBy);
   if (params.institutionId) query.set('institutionId', String(params.institutionId));
+  if (params.isFeatured != null) query.set('isFeatured', String(params.isFeatured));
 
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<VideoListItem>>>(

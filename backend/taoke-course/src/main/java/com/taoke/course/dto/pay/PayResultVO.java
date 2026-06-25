@@ -34,4 +34,13 @@ public class PayResultVO {
 
     /** 支付完成时间 */
     private LocalDateTime paidAt;
+
+    /** 支付宝跳转地址（PC 网站支付） */
+    private String payUrl;
+
+    /** 微信 Native 扫码 code_url */
+    private String qrCodeUrl;
+
+    /** 微信 JSAPI 调起参数 */
+    private java.util.Map<String, String> payParams;
 }

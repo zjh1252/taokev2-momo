@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { SafeImage } from '@/components/safe-image';
 import { getTopRecommendedTrainers } from '../../api/service';
 import type { TrainerListItem } from '../../types';
-import { pickDisplayTitle } from '../../utils/displayTitle';
+import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
 
 /**
@@ -95,7 +95,7 @@ export function TrainerRecommendedScroller({
         {loopItems.map((t, idx) => {
           const displayName = getTrainerDisplayName(t);
           const subtitle = pickDisplayTitle(t.title, displayName)
-            || (t.oneLineIntro?.trim() || undefined);
+            || plainIntroOrUndefined(t.oneLineIntro);
           return (
           <Link
             key={`${t.id}-${idx}`}

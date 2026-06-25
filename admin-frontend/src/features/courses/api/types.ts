@@ -7,6 +7,7 @@ export type AdminCourse = {
   coverUrl: string | null;
   publisherId: number;
   publisherType: string;
+  publisherDisplayName: string | null;
   categoryId: number;
   categoryName: string | null;
   durationDays: number;
@@ -115,6 +116,7 @@ export type CourseFilters = {
   status?: string;
   type?: string;
   trainerId?: string;
+  trainerName?: string;
   publisherType?: string;
   publisherId?: string;
   publisherName?: string;

@@ -99,17 +99,31 @@ export function resolveTrainerCoverUrl(
   return resolved || resolveAssetUrl(DEFAULT_TRAINER_AVATAR);
 }
 
+/** 去除 HTML 标签，供预览卡片纯文本展示 */
+function toPlainIntroText(text?: string | null): string {
+  if (!text?.trim()) return '';
+  return text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&[a-zA-Z]+;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /** 描述 = 运营覆盖的一句话简介，否则专家档案一句话简介 */
 export function resolveOneLineIntro(item: RecommendedResourceItem): string {
-  return (item.description ?? item.resourceDescription ?? '').trim();
+  return toPlainIntroText(item.description ?? item.resourceDescription ?? '');
 }
 
 export function resolvePositionTitle(item: RecommendedResourceItem): string {
-  return (item.title ?? '').trim();
+  return toPlainIntroText(item.title ?? '');
 }
 
 export function resolveChiefIntro(item: RecommendedResourceItem): string {
-  return (item.chiefIntro ?? '').trim();
+  return toPlainIntroText(item.chiefIntro ?? '');
 }
 
 export type PreviewExpertView = {
@@ -188,4 +202,53 @@ export function formatListedAt(value?: string | null): string {
   if (Number.isNaN(d.getTime())) return value;
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+export type HomeTrainerPreviewSlot = {
+  key: 'main' | 'middle' | 'side-0' | 'side-1';
+  cell: HomeTrainerSlotCell;
+  /** managedItems 中的目标序号；fixed 格为 null */
+  managedIndex: number | null;
+  droppable: boolean;
+  draggable: boolean;
+};
+
+/** 四卡预览格与 managedItems 下标的对应关系（用于拖拽排序/投放） */
+export function enumeratePreviewSlots(layout: HomeTrainerLayout): HomeTrainerPreviewSlot[] {
+  let pendingIndex = 0;
+
+  const walk = (key: HomeTrainerPreviewSlot['key'], cell: HomeTrainerSlotCell): HomeTrainerPreviewSlot => {
+    if (cell.kind === 'fixed') {
+      return { key, cell, managedIndex: null, droppable: false, draggable: false };
+    }
+    if (cell.kind === 'managed') {
+      const managedIndex = layout.managedItems.findIndex((item) => item.id === cell.item.id);
+      pendingIndex = Math.max(pendingIndex, managedIndex + 1);
+      return { key, cell, managedIndex, droppable: true, draggable: true };
+    }
+    const managedIndex = pendingIndex;
+    pendingIndex += 1;
+    return { key, cell, managedIndex, droppable: true, draggable: false };
+  };
+
+  return [
+    walk('main', layout.main),
+    walk('middle', layout.middle),
+    walk('side-0', layout.sides[0]),
+    walk('side-1', layout.sides[1])
+  ];
+}
+
+export function reorderManagedIds(
+  items: RecommendedResourceItem[],
+  fromIndex: number,
+  toIndex: number
+): number[] {
+  const orderedIds = items.map((item) => item.id);
+  if (fromIndex < 0 || fromIndex >= orderedIds.length) return orderedIds;
+  if (toIndex < 0 || toIndex > orderedIds.length) return orderedIds;
+  if (fromIndex === toIndex) return orderedIds;
+  const [moved] = orderedIds.splice(fromIndex, 1);
+  orderedIds.splice(Math.min(toIndex, orderedIds.length), 0, moved);
+  return orderedIds;
 }

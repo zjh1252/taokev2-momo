@@ -4,7 +4,7 @@ import { Link } from '@/i18n/navigation';
 import { SafeImage } from '@/components/safe-image';
 import type { TrainerListItem } from '../../types';
 import { getTrainerDisplayName } from '../../utils/displayName';
-import { pickDisplayTitle } from '../../utils/displayTitle';
+import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
 
 /** 擅长领域筛选时的领域推荐专家（运营配置 3 名 PRIMARY） */
 export function TrainerCategoryExpertBar({ items }: { items: TrainerListItem[] }) {
@@ -17,7 +17,7 @@ export function TrainerCategoryExpertBar({ items }: { items: TrainerListItem[] }
         {items.map((t) => {
           const displayName = getTrainerDisplayName(t);
           const subtitle = pickDisplayTitle(t.title, displayName)
-            || (t.oneLineIntro?.trim() || undefined);
+            || plainIntroOrUndefined(t.oneLineIntro);
           return (
             <Link
               key={t.id}

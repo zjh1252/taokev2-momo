@@ -3,6 +3,7 @@ import type { Expert, CaseStudy, InternalCourse, PublicCourse } from '@/features
 import type { InstitutionListItem } from '@/features/institution/types';
 import type { RecentTrainerCase } from '@/features/trainer/api/service';
 import type { TrainerListItem } from '@/features/trainer/types';
+import { toPlainIntroText } from '@/features/trainer/utils/displayTitle';
 import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recommended';
 import { resolveApiImageSrc, resolveImageSrc } from '@/lib/media';
 import { parseDelimitedTags } from '@/lib/tags';
@@ -18,13 +19,15 @@ function formatCaseDate(value?: string | null): string | undefined {
 export function mapSlotTrainerToListItem(item: PublicRecommendedItem): TrainerListItem {
   const displayName = item.teachingName || item.resourceName || '';
   const avatar = resolveApiImageSrc(item.avatar || item.resourceCoverUrl || '');
-  const intro = item.description || item.oneLineIntro || item.resourceDescription || '';
+  const intro = toPlainIntroText(
+    item.description || item.oneLineIntro || item.resourceDescription || ''
+  );
   return {
     id: item.resourceId,
     name: displayName,
     teachingName: displayName,
     avatar,
-    title: item.title || item.trainerTitle || '',
+    title: toPlainIntroText(item.title || item.trainerTitle || ''),
     oneLineIntro: intro,
     score: 0,
     isRecommended: 1,
@@ -55,9 +58,11 @@ export function mapSlotTrainersToExperts(items: PublicRecommendedItem[]): Expert
     const coverRaw = item.coverUrl?.trim() || '';
     const cover = coverRaw ? resolveApiImageSrc(coverRaw) : avatar;
     const tags = parseDelimitedTags(item.expertiseTags || item.expertiseOverride || item.keyTags);
-    const oneLineIntro = (item.description ?? item.oneLineIntro ?? item.resourceDescription ?? '').trim();
-    const chiefIntro = (item.chiefIntro ?? '').trim();
-    const positionTitle = (item.title ?? item.trainerTitle ?? '').trim();
+    const oneLineIntro = toPlainIntroText(
+      item.description ?? item.oneLineIntro ?? item.resourceDescription ?? ''
+    );
+    const chiefIntro = toPlainIntroText(item.chiefIntro ?? '');
+    const positionTitle = toPlainIntroText(item.title ?? item.trainerTitle ?? '');
     return {
       id: item.resourceId,
       name: displayName,
@@ -164,7 +169,9 @@ export function mapSlotCoursesToPublicCourses(
       instructor: course.trainerName || '-',
       city: course.nextPlanCity?.trim() || '-',
       startDate: formatStartDate(course.nextPlanStartDate),
-      durationDays: course.durationDays ?? null
+      durationDays: course.durationDays ?? null,
+      categoryName: course.categoryName || undefined,
+      keywords: course.keywords?.trim() || undefined
     };
   });
 }

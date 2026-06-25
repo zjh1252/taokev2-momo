@@ -56,7 +56,7 @@ export const columns: ColumnDef<AdminTrainer>[] = [
         )}
         <div className='flex flex-col'>
           <Link
-            href={`/dashboard/trainers/${row.original.id}`}
+            href={`/dashboard/trainers/${row.original.id}?from=list`}
             className='font-medium text-primary hover:underline'
           >
             {row.original.name || '-'}
@@ -81,6 +81,8 @@ export const columns: ColumnDef<AdminTrainer>[] = [
       variant: 'text' as const,
       icon: Icons.text
     },
+    size: 320,
+    minSize: 260,
     enableColumnFilter: true
   },
   {

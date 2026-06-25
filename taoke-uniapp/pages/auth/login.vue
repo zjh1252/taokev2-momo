@@ -171,9 +171,11 @@ import { onLoad } from '@dcloudio/uni-app';
 import { useUserStore } from '@/stores/user';
 import * as authApi from '@/api/auth';
 import config from '@/configs';
+import { withCaptcha } from '@/utils/captcha';
 
-const sysInfo = uni.getSystemInfoSync();
-const navBarH = (sysInfo.statusBarHeight || 20) + 44;
+import { getNavBarHeight } from '@/utils/system';
+
+const navBarH = getNavBarHeight();
 const userStore = useUserStore();
 
 // dev=true / prod=false（与 configs/env.js 中 MOCK_SMS 一致）
@@ -194,6 +196,7 @@ const redirect = ref('');
 const countdown = ref(0);
 const sendingCode = ref(false);
 const devCode = ref('');
+const pwdCaptchaRequired = ref(false);
 let countdownTimer = null;
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{4,32}$/;
@@ -257,7 +260,12 @@ async function handleSendCode() {
   error.value = '';
   sendingCode.value = true;
   try {
-    await authApi.sendCode({ target: phone.value, type: 'LOGIN', sendType: 'SMS' });
+    await withCaptcha((token, silent) =>
+      authApi.sendCode(
+        { target: phone.value, type: 'LOGIN', sendType: 'SMS', captchaToken: token },
+        { silent },
+      ),
+    );
     startCountdown();
 
     if (isMockSms) {
@@ -293,7 +301,25 @@ async function onSubmit() {
     if (tab.value === 'sms') {
       await userStore.loginBySms({ phone: phone.value, code: code.value });
     } else {
-      await userStore.loginByUsername({ username: username.value, password: password.value });
+      try {
+        await userStore.loginByUsername({
+          username: username.value,
+          password: password.value,
+        });
+      } catch (e) {
+        if (e?.code === 10021) {
+          pwdCaptchaRequired.value = true;
+          await withCaptcha((token) =>
+            userStore.loginByUsername({
+              username: username.value,
+              password: password.value,
+              captchaToken: token,
+            }),
+          );
+        } else {
+          throw e;
+        }
+      }
     }
     finishLogin();
   } catch (e) {

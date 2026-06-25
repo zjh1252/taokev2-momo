@@ -30,7 +30,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { stripHtml } from '@/lib/seo/helpers';
+import { isBlankHtml } from '@/lib/seo/helpers';
 
 const FIELD_ANCHORS = {
   title: 'course-field-title',
@@ -287,7 +287,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
         fail('课程总时长至少 1 小时', 'duration');
         return;
       }
-      if (stripHtml(intro).length === 0) {
+      if (isBlankHtml(intro)) {
         fail('请填写课程介绍', 'intro');
         return;
       }

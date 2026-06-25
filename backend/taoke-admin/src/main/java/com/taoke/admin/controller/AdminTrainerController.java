@@ -59,6 +59,19 @@ public class AdminTrainerController {
         return ApiResponse.ok(null);
     }
 
+    @Operation(summary = "专家申请详情（查看入驻/重审时填写的全部资料）")
+    @GetMapping("/admin/trainers/applications/{userId}/detail")
+    public ApiResponse<AdminApplicationDetailVO> applicationDetail(@PathVariable Integer userId) {
+        return ApiResponse.ok(adminTrainerService.getApplicationDetail(userId));
+    }
+
+    @Operation(summary = "更新专家档案（运营编辑）")
+    @PutMapping("/admin/trainers/{id}")
+    public ApiResponse<AdminTrainerDetailVO> update(@PathVariable Integer id,
+                                                    @Valid @RequestBody AdminTrainerUpdateRequest request) {
+        return ApiResponse.ok(adminTrainerService.updateTrainerDetail(id, request));
+    }
+
     @Operation(summary = "切换专家推荐位（首页/列表页推荐位展示）")
     @PatchMapping("/admin/trainers/{id}/recommend")
     public ApiResponse<Void> setRecommended(@PathVariable Integer id,

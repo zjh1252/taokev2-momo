@@ -50,9 +50,10 @@ public class AdminTrainerHighlightController {
     public ApiResponse<PageResponse<AdminTrainerHighlightVO>> list(
             @RequestParam(required = false) Integer trainerId,
             @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Page<TrainerHighlight> result = highlightService.adminSearch(trainerId, status,
+        Page<TrainerHighlight> result = highlightService.adminSearch(trainerId, status, keyword,
                 page - 1, size);
 
         List<Integer> trainerIds = result.getContent().stream()

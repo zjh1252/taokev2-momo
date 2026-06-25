@@ -28,7 +28,7 @@ export const columns: ColumnDef<User>[] = [
     id: 'nickname',
     accessorKey: 'nickname',
     header: ({ column }: { column: Column<User, unknown> }) => (
-      <DataTableColumnHeader column={column} title='昵称' />
+      <DataTableColumnHeader column={column} title='用户名/真实姓名' />
     ),
     cell: ({ row }) => (
       <div className='flex flex-col'>
@@ -46,7 +46,7 @@ export const columns: ColumnDef<User>[] = [
       </div>
     ),
     meta: {
-      label: '昵称',
+      label: '用户名/真实姓名',
       placeholder: '搜索用户...',
       variant: 'text' as const,
       icon: Icons.text
@@ -148,11 +148,18 @@ export const columns: ColumnDef<User>[] = [
   },
   {
     accessorKey: 'createdAt',
-    header: '注册时间',
-    cell: ({ cell }) => {
-      const val = cell.getValue<string>();
-      if (!val) return '-';
-      return new Date(val).toLocaleDateString('zh-CN');
+    header: '注册时间/最后登录时间',
+    cell: ({ row }) => {
+      const formatDate = (val: string | null | undefined) =>
+        val ? new Date(val).toLocaleDateString('zh-CN') : '-';
+      return (
+        <div className='flex flex-col'>
+          <span>{formatDate(row.original.createdAt)}</span>
+          <span className='text-muted-foreground text-xs'>
+            {formatDate(row.original.lastLoginAt)}
+          </span>
+        </div>
+      );
     }
   },
   {

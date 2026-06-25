@@ -19,17 +19,17 @@ export const listSameExpertiseTrainers = (id) =>
 /**
  * 专家详情（公开主页）
  */
-export const getTrainerDetail = (id) => http.get(`/trainers/${id}`);
+export const getTrainerDetail = (id, options = {}) => http.get(`/trainers/${id}`, {}, options);
 
 /** 专家授课案例 */
-export const listTrainerCases = (id) => http.get(`/trainers/${id}/cases`);
+export const listTrainerCases = (id, options = {}) => http.get(`/trainers/${id}/cases`, {}, options);
 
 /** 专家精彩片段 */
-export const listTrainerHighlights = (id) => http.get(`/trainers/${id}/highlights`);
+export const listTrainerHighlights = (id, options = {}) => http.get(`/trainers/${id}/highlights`, {}, options);
 
 /** 专家课程列表 */
-export const listTrainerCourses = (id, params) =>
-  http.get(`/trainers/${id}/courses`, params);
+export const listTrainerCourses = (id, params, options = {}) =>
+  http.get(`/trainers/${id}/courses`, params, options);
 
 /** 专家最近案例（首页推荐用） */
 export const listRecentCases = (params) =>

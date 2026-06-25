@@ -5,10 +5,10 @@
  * @date 2026-06-12 10:00
  */
 
-const FRONTEND_BASE_URL = (process.env.NEXT_PUBLIC_FRONTEND_BASE_URL ?? '').replace(
-  /\/+$/,
-  '',
-);
+const FRONTEND_BASE_URL = (
+  process.env.NEXT_PUBLIC_FRONTEND_BASE_URL ??
+  (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '')
+).replace(/\/+$/, '');
 
 const DEFAULT_LOCALE = 'zh-CN';
 

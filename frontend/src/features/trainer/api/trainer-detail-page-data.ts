@@ -4,11 +4,13 @@ import {
   getTrainerApprovedCases,
   getTrainerBooks,
 } from './service';
+import { getTrainerHighlights } from '@/features/trainer-highlight/api/service';
 import { getTrainerDetailCached } from './server';
 import type { TrainerDetail, TrainerBook } from '../types';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
 import type { TrainerCase } from '@/features/trainer-case/api/types';
+import type { TrainerHighlight } from '@/features/trainer-highlight/api/types';
 
 export const TRAINER_DETAIL_PAGE_SIZE = 20;
 
@@ -17,6 +19,7 @@ export interface TrainerDetailPageData {
   courses: CourseListItem[];
   coursesTotal: number;
   cases: TrainerCase[];
+  highlights: TrainerHighlight[];
   videos: VideoListItem[];
   videosTotal: number;
   books: TrainerBook[];
@@ -32,7 +35,7 @@ export async function getTrainerDetailPageData(
     return null;
   }
 
-  const [coursesPage, videosPage, cases, books] = await Promise.all([
+  const [coursesPage, videosPage, cases, books, highlights] = await Promise.all([
     getTrainerCourses(trainerId, 1, TRAINER_DETAIL_PAGE_SIZE).catch(() => ({
       list: [],
       total: 0,
@@ -49,6 +52,7 @@ export async function getTrainerDetailPageData(
     })),
     getTrainerApprovedCases(trainerId).catch(() => []),
     getTrainerBooks(trainerId).catch(() => []),
+    getTrainerHighlights(trainerId).catch(() => []),
   ]);
 
   return {
@@ -56,6 +60,7 @@ export async function getTrainerDetailPageData(
     courses: coursesPage.list,
     coursesTotal: coursesPage.total,
     cases,
+    highlights,
     videos: videosPage.list,
     videosTotal: videosPage.total,
     books,

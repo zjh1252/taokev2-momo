@@ -24,7 +24,7 @@ export const navGroups: NavGroup[] = [
     label: '用户管理',
     items: [
       {
-        title: '个人学员',
+        title: '平台所有用户管理',
         url: '/dashboard/users',
         icon: 'teams',
         isActive: false,
@@ -50,25 +50,7 @@ export const navGroups: NavGroup[] = [
           },
           {
             title: '资质认证',
-            url: '#',
-            items: [
-              {
-                title: '实名认证',
-                url: '/dashboard/trainers/certifications/real-name'
-              },
-              {
-                title: '学历认证',
-                url: '/dashboard/trainers/certifications/education'
-              },
-              {
-                title: '专业认证',
-                url: '/dashboard/trainers/certifications/professional'
-              },
-              {
-                title: '工作认证',
-                url: '/dashboard/trainers/certifications/work'
-              }
-            ]
+            url: '/dashboard/trainers/certifications'
           }
         ]
       },
@@ -81,10 +63,6 @@ export const navGroups: NavGroup[] = [
           {
             title: '采购方列表',
             url: '/dashboard/enterprise-buyers'
-          },
-          {
-            title: '资质认证',
-            url: '/dashboard/enterprise-buyers/certifications'
           }
         ]
       },
@@ -97,10 +75,6 @@ export const navGroups: NavGroup[] = [
           {
             title: '助理列表',
             url: '/dashboard/assistants'
-          },
-          {
-            title: '资质认证',
-            url: '/dashboard/assistants/certifications'
           }
         ]
       },
@@ -310,10 +284,6 @@ export const navGroups: NavGroup[] = [
         icon: 'search',
         isActive: false,
         items: [
-          {
-            title: '爬取专家',
-            url: '/dashboard/crawl/trainers'
-          },
           {
             title: '爬取课程',
             url: '/dashboard/crawl/courses'

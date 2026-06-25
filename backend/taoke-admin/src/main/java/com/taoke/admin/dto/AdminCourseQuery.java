@@ -29,6 +29,9 @@ public class AdminCourseQuery {
     /** 按关联专家 ID 过滤（courses.trainer_id） */
     private Integer trainerId;
 
+    /** 按专家姓名模糊搜索（解析为 trainer_id 集合） */
+    private String trainerName;
+
     /** 按发布者类型过滤：TRAINER / INSTITUTION / ENTERPRISE_AGENT */
     private String publisherType;
 

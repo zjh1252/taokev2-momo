@@ -6,6 +6,8 @@ import com.taoke.course.enums.CourseType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -20,6 +22,8 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
+@DynamicInsert
+@DynamicUpdate
 @Table(name = "courses")
 public class Course extends BaseEntity {
 
@@ -56,17 +60,17 @@ public class Course extends BaseEntity {
     @Column(name = "intro", columnDefinition = "longtext")
     private String intro;
 
-    /** 课程简介（短文本） */
+    /** 课程简介（短文本）；库列 NOT NULL DEFAULT '' */
     @Column(name = "summary", length = 500)
-    private String summary;
+    private String summary = "";
 
     /** 课程大纲（富文本 HTML） */
     @Column(name = "syllabus", columnDefinition = "longtext")
     private String syllabus;
 
-    /** 课程资料文件 URL（doc/docx/pdf） */
+    /** 课程资料文件 URL（doc/docx/pdf）；库列 NOT NULL DEFAULT '' */
     @Column(name = "material_url", length = 500)
-    private String materialUrl;
+    private String materialUrl = "";
 
     /** 课程资料抽取后的全文，供 AI 解析或后续重跑使用 */
     @Column(name = "material_text", columnDefinition = "longtext")

@@ -12,10 +12,10 @@
  */
 
 /** C 端前台站点 BaseURL — 用于解析后端返回的相对资源路径 */
-const FRONTEND_BASE_URL = (process.env.NEXT_PUBLIC_FRONTEND_BASE_URL ?? '').replace(
-  /\/+$/,
-  '',
-);
+const FRONTEND_BASE_URL = (
+  process.env.NEXT_PUBLIC_FRONTEND_BASE_URL ??
+  (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '')
+).replace(/\/+$/, '');
 
 /** 老站静态资源域名（资质证明等 attachments 路径） */
 const LEGACY_ASSET_BASE = (
@@ -55,4 +55,26 @@ export function resolveAssetUrl(
 
   if (!FRONTEND_BASE_URL) return path;
   return `${FRONTEND_BASE_URL}${path}`;
+}
+
+/** 是否像可展示的图片资源 URL（过滤纯数字等脏数据） */
+export function isLikelyImageAssetUrl(url: string | null | undefined): boolean {
+  if (!url?.trim()) return false;
+  const trimmed = url.trim();
+  if (/^(https?:|data:|blob:)/i.test(trimmed)) {
+    return (
+      /\/uploads\//i.test(trimmed)
+      || /\/statics\//i.test(trimmed)
+      || /\/attachments\//i.test(trimmed)
+      || /\.(png|jpe?g|gif|webp|bmp|svg)(\?|#|$)/i.test(trimmed)
+    );
+  }
+  return (
+    trimmed.startsWith('/uploads/')
+    || trimmed.startsWith('uploads/')
+    || trimmed.startsWith('/statics/')
+    || trimmed.startsWith('statics/')
+    || /\/attachments\//i.test(trimmed)
+    || /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(trimmed)
+  );
 }

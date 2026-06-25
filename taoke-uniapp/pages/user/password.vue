@@ -101,8 +101,9 @@
 import { ref, computed } from 'vue';
 import * as userApi from '@/api/user';
 
-const sysInfo = uni.getSystemInfoSync();
-const navBarH = (sysInfo.statusBarHeight || 20) + 44;
+import { getNavBarHeight } from '@/utils/system';
+
+const navBarH = getNavBarHeight();
 
 const oldPassword = ref('');
 const newPassword = ref('');

@@ -7,6 +7,8 @@ export interface ChannelCategoryNavItem {
   name: string;
   count: number;
   href: string;
+  /** 分类 ID（页内筛选时直接使用，避免名称解析偏差） */
+  categoryId?: number;
 }
 
 interface ChannelCategoryNavProps {

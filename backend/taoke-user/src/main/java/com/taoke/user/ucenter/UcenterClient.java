@@ -102,15 +102,36 @@ public class UcenterClient {
         args.put("emailstatus", "");
         args.put("mobilestatus", "");
         String body = post("user", "select_users_by_contact", args);
-        // 打印原始返回（XML），便于核对结构后校准解析
-        log.info("[UCenter] select_users_by_contact mobile={} 原始返回={}", mobile, body);
-        // 返回为（可能多个）用户的嵌套数组，这里取首个用户的 uid / username
-        int uid = firstGroupInt(body, "<item id=\"uid\">(\\d+)</item>", 0);
-        if (uid <= 0) {
-            uid = firstGroupInt(body, "<item id=\"cdbid\">(\\d+)</item>", 0);
+        if (!body.contains("<item")) {
+            int code = parseLeadingInt(body, 0);
+            log.debug("[UCenter] select_users_by_contact mobile={} 非 XML 响应={}", mobile, body);
+            return new UcLoginResult(code, null, null, mobile);
         }
-        String username = firstGroup(body, "<item id=\"username\">([^<]*)</item>");
-        return new UcLoginResult(uid, username, null, mobile);
+        Map<String, String> fields = UcXml.parseFirstContactUser(body);
+        int uid = parseIntSafe(fields.get("uid"), 0);
+        if (uid <= 0) {
+            uid = parseIntSafe(fields.get("cdbid"), 0);
+        }
+        String username = blankToNull(fields.get("username"));
+        if (uid <= 0) {
+            log.warn("[UCenter] select_users_by_contact 未解析到 uid：mobile={} body={}", mobile, body);
+        }
+        return new UcLoginResult(uid, username, blankToNull(fields.get("email")), mobile);
+    }
+
+    private static String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
+    }
+
+    private static int parseIntSafe(String s, int def) {
+        if (s == null || s.isBlank()) {
+            return def;
+        }
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (NumberFormatException e) {
+            return def;
+        }
     }
 
     /**
@@ -131,6 +152,18 @@ public class UcenterClient {
         args.put("email", "");
         args.put("ignoreoldpw", ignoreOldPassword ? "1" : "0");
         String body = post("user", "edit", args);
+        return parseLeadingInt(body, Integer.MIN_VALUE);
+    }
+
+    /**
+     * 删除 UCenter 用户（对应 {@code uc_user_delete}）。
+     *
+     * @return 删除条数（>0 成功）；负值为错误码
+     */
+    public int deleteUser(int ucUid) {
+        Map<String, String> args = new LinkedHashMap<>();
+        args.put("uid", String.valueOf(ucUid));
+        String body = post("user", "delete", args);
         return parseLeadingInt(body, Integer.MIN_VALUE);
     }
 

@@ -21,6 +21,8 @@ import { getCourseDetailPath, isOpenCourseType } from '@/features/course/utils/r
 import { getTrainerDisplayName } from '../../utils/displayName';
 import { getTrainerDetailTabHref, type TrainerTabId } from '../../utils/routes';
 import { getTrainerCourses, getTrainerVideos } from '../../api/service';
+import { getTrainerHighlights } from '@/features/trainer-highlight/api/service';
+import type { TrainerHighlight } from '@/features/trainer-highlight/api/types';
 import { decodeHtmlEntities } from '@/lib/html-entities';
 import { legacyRichTextToPlain } from '@/lib/legacy-rich-text';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
@@ -33,6 +35,7 @@ interface TrainerDetailContentProps {
   /** 主讲课程总数（API total，可能与 courses.length 不同） */
   coursesTotal: number;
   cases: TrainerCase[];
+  highlights?: TrainerHighlight[];
   videos: VideoListItem[];
   videosTotal: number;
   books: TrainerBook[];
@@ -41,13 +44,14 @@ interface TrainerDetailContentProps {
 interface TabConfig {
   id: TrainerTabId;
   label: string;
-  countKey?: 'courses' | 'cases' | 'videos' | 'reviews' | 'books';
+  countKey?: 'courses' | 'cases' | 'highlights' | 'videos' | 'reviews' | 'books';
 }
 
 const TABS: TabConfig[] = [
   { id: 'home', label: '主页' },
   { id: 'courses', label: '主讲课程', countKey: 'courses' },
   { id: 'cases', label: '授课案例', countKey: 'cases' },
+  { id: 'highlights', label: '精彩瞬间', countKey: 'highlights' },
   { id: 'videos', label: '录播课', countKey: 'videos' },
   { id: 'comments', label: '学员评价', countKey: 'reviews' },
   { id: 'books', label: '著作', countKey: 'books' },
@@ -68,6 +72,7 @@ export function TrainerDetailContent({
   courses,
   coursesTotal,
   cases,
+  highlights = [],
   videos,
   videosTotal,
   books,
@@ -76,6 +81,7 @@ export function TrainerDetailContent({
   const counts = {
     courses: coursesTotal,
     cases: cases.length,
+    highlights: highlights.length,
     videos: videosTotal,
     reviews: trainer.commentCount ?? 0,
     books: books.length,
@@ -126,6 +132,9 @@ export function TrainerDetailContent({
           <CoursesView trainerId={trainer.id} initialCourses={courses} total={coursesTotal} />
         )}
         {activeTab === 'cases' && <CasesView cases={cases} />}
+        {activeTab === 'highlights' && (
+          <HighlightsView trainerId={trainer.id} initialHighlights={highlights} />
+        )}
         {activeTab === 'videos' && (
           <VideosView trainerId={trainer.id} initialVideos={videos} total={videosTotal} />
         )}
@@ -595,6 +604,88 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== 精彩瞬间视图 ====================
+
+function HighlightsView({
+  trainerId,
+  initialHighlights,
+}: {
+  trainerId: number;
+  initialHighlights: TrainerHighlight[];
+}) {
+  const [items, setItems] = useState(initialHighlights);
+  const [loading, setLoading] = useState(initialHighlights.length === 0);
+
+  useEffect(() => {
+    if (initialHighlights.length > 0) {
+      setItems(initialHighlights);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    getTrainerHighlights(trainerId)
+      .then((list) => {
+        if (!cancelled) setItems(list);
+      })
+      .catch(() => {
+        if (!cancelled) setItems([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [trainerId, initialHighlights]);
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-6">
+      <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
+        <h3 className="text-[20px] font-bold text-slate-900">
+          精彩瞬间 <span className="text-primary mx-1">{items.length}</span> 个
+        </h3>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-slate-400 py-12 text-center">加载中...</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-slate-400 py-12 text-center">暂无精彩瞬间</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {items.map((item) => {
+            const cover = item.coverImage || item.files?.[0]?.thumbnailUrl || item.files?.[0]?.fileUrl;
+            return (
+              <div
+                key={item.id}
+                className="group rounded-lg border border-slate-200 overflow-hidden bg-slate-50"
+              >
+                <div className="aspect-video relative bg-slate-100">
+                  {cover ? (
+                    <SafeImage
+                      src={cover}
+                      alt={item.title || '精彩瞬间'}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+                      暂无封面
+                    </div>
+                  )}
+                </div>
+                {item.title ? (
+                  <p className="px-3 py-2 text-sm text-slate-800 line-clamp-2">{item.title}</p>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

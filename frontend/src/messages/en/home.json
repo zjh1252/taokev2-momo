@@ -36,7 +36,9 @@
       "instructor": "Instructor",
       "city": "City",
       "startDate": "Start Date",
-      "duration": "Duration"
+      "duration": "Duration",
+      "category": "Category",
+      "keywords": "Keywords"
     },
     "durationDays": "{count} days"
   },

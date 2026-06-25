@@ -68,10 +68,15 @@ export async function setMaterialDefault(id: number, isDefault: boolean) {
 }
 
 export async function batchOperateMaterials(payload: BatchMaterialPayload) {
-  return apiClient<{ code: number; message: string }>('/materials/batch', {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  });
+  const resp = await apiClient<{ code: number; message: string }>(
+    '/materials/batch',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }
+  );
+  assertApiOk({ ...resp, data: null });
+  return resp;
 }
 
 export async function uploadImageFile(file: File): Promise<string> {

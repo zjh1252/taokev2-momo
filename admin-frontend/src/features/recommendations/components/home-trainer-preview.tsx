@@ -8,6 +8,7 @@ import type { RecommendedResourceItem } from '../api/types';
 import {
   buildHomeTrainerLayout,
   cellToSelection,
+  enumeratePreviewSlots,
   isSelectionMatch,
   mapFixedToPreview,
   mapManagedToPreview,
@@ -16,6 +17,10 @@ import {
   type HomeTrainerSlotCell,
   type PreviewExpertView
 } from '../utils/home-trainer-layout';
+import {
+  DraggableManagedCard,
+  DroppablePreviewSlot
+} from './home-trainer-dnd';
 
 export type { HomeTrainerSelection } from '../utils/home-trainer-layout';
 
@@ -37,8 +42,13 @@ export function HomeTrainerPreview({
   onRemove
 }: Props) {
   const layout = buildHomeTrainerLayout(locks, items);
+  const previewSlots = enumeratePreviewSlots(layout);
   const managedCount = layout.managedItems.length;
   const maxManaged = 4 - (locks.main ? 1 : 0) - (locks.middle ? 1 : 0);
+
+  const mainSlot = previewSlots[0]!;
+  const middleSlot = previewSlots[1]!;
+  const sideSlots = [previewSlots[2]!, previewSlots[3]!];
 
   return (
     <div className='rounded-lg border p-4'>
@@ -46,56 +56,126 @@ export function HomeTrainerPreview({
         <h3 className='font-semibold'>预览区 · 首页-推荐专家</h3>
         <p className='text-muted-foreground text-xs'>
           展示首页四卡布局。默认前两张大卡固定；取消固定后专家按从左到右依次填入四个位置。已配置{' '}
-          {managedCount}/{maxManaged} 位可管专家。
+          {managedCount}/{maxManaged} 位可管专家。支持拖动排序，也可从右侧专家列表拖入空位或已有卡片。
         </p>
       </div>
 
       <div className='grid grid-cols-1 gap-4 md:grid-cols-12 md:h-[360px]'>
-        <MainCard
-          cell={layout.main}
-          expert={cellToExpert(layout.main)}
-          selected={isCellSelected(selection, layout.main)}
-          onSelect={() => {
-            const sel = cellToSelection(layout.main);
-            if (sel) onSelect(sel);
-          }}
-        />
-        <MiddleCard
-          cell={layout.middle}
-          expert={cellToExpert(layout.middle)}
-          selected={isCellSelected(selection, layout.middle)}
-          onSelect={() => {
-            const sel = cellToSelection(layout.middle);
-            if (sel) onSelect(sel);
-          }}
-        />
+        <PreviewSlotWrapper slot={mainSlot}>
+          <MainCard
+            cell={mainSlot.cell}
+            expert={cellToExpert(mainSlot.cell)}
+            selected={isCellSelected(selection, mainSlot.cell)}
+            managedIndex={mainSlot.managedIndex}
+            draggable={mainSlot.draggable}
+            onSelect={() => {
+              const sel = cellToSelection(mainSlot.cell);
+              if (sel) onSelect(sel);
+            }}
+            onMoveUp={
+              mainSlot.managedIndex != null && mainSlot.managedIndex > 0
+                ? () => onMove(mainSlot.managedIndex!, -1)
+                : undefined
+            }
+            onMoveDown={
+              mainSlot.managedIndex != null &&
+              mainSlot.managedIndex < layout.managedItems.length - 1
+                ? () => onMove(mainSlot.managedIndex!, 1)
+                : undefined
+            }
+            onRemove={
+              mainSlot.cell.kind === 'managed'
+                ? () => onRemove(mainSlot.cell.item.id)
+                : undefined
+            }
+          />
+        </PreviewSlotWrapper>
+
+        <PreviewSlotWrapper slot={middleSlot}>
+          <MiddleCard
+            cell={middleSlot.cell}
+            expert={cellToExpert(middleSlot.cell)}
+            selected={isCellSelected(selection, middleSlot.cell)}
+            managedIndex={middleSlot.managedIndex}
+            draggable={middleSlot.draggable}
+            onSelect={() => {
+              const sel = cellToSelection(middleSlot.cell);
+              if (sel) onSelect(sel);
+            }}
+            onMoveUp={
+              middleSlot.managedIndex != null && middleSlot.managedIndex > 0
+                ? () => onMove(middleSlot.managedIndex!, -1)
+                : undefined
+            }
+            onMoveDown={
+              middleSlot.managedIndex != null &&
+              middleSlot.managedIndex < layout.managedItems.length - 1
+                ? () => onMove(middleSlot.managedIndex!, 1)
+                : undefined
+            }
+            onRemove={
+              middleSlot.cell.kind === 'managed'
+                ? () => onRemove(middleSlot.cell.item.id)
+                : undefined
+            }
+          />
+        </PreviewSlotWrapper>
+
         <div className='col-span-1 flex h-full flex-col gap-4 md:col-span-3'>
-          {layout.sides.map((cell, index) => {
-            if (cell.kind === 'empty') {
-              return <EmptySideSlot key={`empty-${index}`} hint={sideEmptyHint(index, locks)} />;
-            }
-            if (cell.kind !== 'managed') {
-              return null;
-            }
-            const expert = mapManagedToPreview(cell.item, cell.layout);
-            const itemIndex = layout.managedItems.findIndex((item) => item.id === cell.item.id);
-            return (
-              <SideCard
-                key={expert.key}
-                expert={expert}
-                selected={isCellSelected(selection, cell)}
-                onSelect={() => onSelect({ kind: 'managed', id: cell.item.id })}
-                onMoveUp={() => onMove(itemIndex, -1)}
-                onMoveDown={() => onMove(itemIndex, 1)}
-                onRemove={() => onRemove(cell.item.id)}
-                canMoveUp={itemIndex > 0}
-                canMoveDown={itemIndex < layout.managedItems.length - 1}
-              />
-            );
-          })}
+          {sideSlots.map((slot, index) => (
+            <PreviewSlotWrapper key={slot.key} slot={slot}>
+              {slot.cell.kind === 'empty' ? (
+                <EmptySideSlot hint={sideEmptyHint(index, locks)} />
+              ) : slot.cell.kind === 'managed' ? (
+                <SideCard
+                  expert={mapManagedToPreview(slot.cell.item, slot.cell.layout)}
+                  selected={isCellSelected(selection, slot.cell)}
+                  managedIndex={slot.managedIndex!}
+                  itemId={slot.cell.item.id}
+                  draggable
+                  onSelect={() => onSelect({ kind: 'managed', id: slot.cell.item.id })}
+                  onMoveUp={
+                    slot.managedIndex! > 0 ? () => onMove(slot.managedIndex!, -1) : undefined
+                  }
+                  onMoveDown={
+                    slot.managedIndex! < layout.managedItems.length - 1
+                      ? () => onMove(slot.managedIndex!, 1)
+                      : undefined
+                  }
+                  onRemove={() => onRemove(slot.cell.item.id)}
+                />
+              ) : null}
+            </PreviewSlotWrapper>
+          ))}
         </div>
       </div>
     </div>
+  );
+}
+
+function PreviewSlotWrapper({
+  slot,
+  children
+}: {
+  slot: ReturnType<typeof enumeratePreviewSlots>[number];
+  children: React.ReactNode;
+}) {
+  const colClass =
+    slot.key === 'main'
+      ? 'col-span-1 min-h-0 md:col-span-6'
+      : slot.key === 'middle'
+        ? 'col-span-1 min-h-0 md:col-span-3'
+        : 'min-h-0 flex-1';
+
+  return (
+    <DroppablePreviewSlot
+      slotKey={slot.key}
+      managedIndex={slot.managedIndex}
+      droppable={slot.droppable}
+      className={colClass}
+    >
+      {children}
+    </DroppablePreviewSlot>
   );
 }
 
@@ -115,9 +195,9 @@ function isCellSelected(
 
 function sideEmptyHint(index: number, locks: HomeTrainerFixedLocks): string {
   if (locks.main && locks.middle) {
-    return index === 0 ? '右侧上卡：请从专家列表推荐' : '右侧下卡：请从专家列表推荐';
+    return index === 0 ? '右侧上卡：拖动专家到此处' : '右侧下卡：拖动专家到此处';
   }
-  return '空位：请从专家列表推荐专家';
+  return '空位：拖动专家到此处';
 }
 
 function cardShellClass(selected: boolean) {
@@ -161,37 +241,101 @@ function ExpertAvatar({
   return <Image src={src} alt={alt} fill className={className} unoptimized />;
 }
 
+function CardActions({
+  onMoveUp,
+  onMoveDown,
+  onRemove
+}: {
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onRemove?: () => void;
+}) {
+  if (!onMoveUp && !onMoveDown && !onRemove) return null;
+  return (
+    <div className='absolute top-2 right-2 flex gap-0.5'>
+      {onMoveUp != null ? (
+        <Button
+          type='button'
+          size='icon'
+          variant='ghost'
+          className='h-6 w-6'
+          onClick={(e) => {
+            e.stopPropagation();
+            onMoveUp();
+          }}
+        >
+          <Icons.chevronUp className='h-3.5 w-3.5' />
+        </Button>
+      ) : null}
+      {onMoveDown != null ? (
+        <Button
+          type='button'
+          size='icon'
+          variant='ghost'
+          className='h-6 w-6'
+          onClick={(e) => {
+            e.stopPropagation();
+            onMoveDown();
+          }}
+        >
+          <Icons.chevronDown className='h-3.5 w-3.5' />
+        </Button>
+      ) : null}
+      {onRemove ? (
+        <Button
+          type='button'
+          size='icon'
+          variant='ghost'
+          className='text-destructive h-6 w-6'
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+        >
+          <Icons.trash className='h-3.5 w-3.5' />
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 function MainCard({
   cell,
   expert,
   selected,
-  onSelect
+  managedIndex,
+  draggable,
+  onSelect,
+  onMoveUp,
+  onMoveDown,
+  onRemove
 }: {
   cell: HomeTrainerSlotCell;
   expert: PreviewExpertView | null;
   selected: boolean;
+  managedIndex: number | null;
+  draggable: boolean;
   onSelect: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onRemove?: () => void;
 }) {
   if (cell.kind === 'empty' || !expert) {
     return (
-      <div className='text-muted-foreground col-span-1 flex h-full items-center justify-center rounded-xl border border-dashed text-xs md:col-span-6'>
-        左侧大卡空位
+      <div className='text-muted-foreground flex h-full min-h-[120px] w-full items-center justify-center rounded-xl border border-dashed text-xs'>
+        左侧大卡空位 · 拖动专家到此处
       </div>
     );
   }
 
-  return (
+  const body = (
     <button
       type='button'
       onClick={onSelect}
-      className={`col-span-1 flex h-full flex-col overflow-hidden rounded-xl border bg-white text-left shadow-sm transition-all md:col-span-6 md:flex-row ${cardShellClass(selected)}`}
+      className={`col-span-1 flex h-full w-full flex-col overflow-hidden rounded-xl border bg-white text-left shadow-sm transition-all md:flex-row ${cardShellClass(selected)} ${draggable ? 'pl-8' : ''}`}
     >
       <div className='relative h-40 shrink-0 overflow-hidden md:h-full md:w-[42%]'>
-        <ExpertAvatar
-          src={expert.coverUrl}
-          alt={expert.name}
-          className='object-cover'
-        />
+        <ExpertAvatar src={expert.coverUrl} alt={expert.name} className='object-cover' />
         {expert.badge ? (
           <span className='absolute top-3 left-3 z-10 rounded bg-primary px-2 py-0.5 text-[10px] font-bold text-white'>
             {expert.badge}
@@ -226,32 +370,63 @@ function MainCard({
       </div>
     </button>
   );
+
+  if (draggable && cell.kind === 'managed' && managedIndex != null) {
+    return (
+      <DraggableManagedCard
+        itemId={cell.item.id}
+        managedIndex={managedIndex}
+        name={expert.name}
+        className='relative h-full min-h-[120px] w-full'
+      >
+        {body}
+        <CardActions onMoveUp={onMoveUp} onMoveDown={onMoveDown} onRemove={onRemove} />
+      </DraggableManagedCard>
+    );
+  }
+
+  return (
+    <div className='relative h-full min-h-[120px] w-full'>
+      {body}
+      <CardActions onMoveUp={onMoveUp} onMoveDown={onMoveDown} onRemove={onRemove} />
+    </div>
+  );
 }
 
 function MiddleCard({
   cell,
   expert,
   selected,
-  onSelect
+  managedIndex,
+  draggable,
+  onSelect,
+  onMoveUp,
+  onMoveDown,
+  onRemove
 }: {
   cell: HomeTrainerSlotCell;
   expert: PreviewExpertView | null;
   selected: boolean;
+  managedIndex: number | null;
+  draggable: boolean;
   onSelect: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onRemove?: () => void;
 }) {
   if (cell.kind === 'empty' || !expert) {
     return (
-      <div className='text-muted-foreground col-span-1 flex h-full items-center justify-center rounded-xl border border-dashed text-xs md:col-span-3'>
-        中间大卡空位
+      <div className='text-muted-foreground flex h-full min-h-[120px] w-full items-center justify-center rounded-xl border border-dashed text-xs'>
+        中间大卡空位 · 拖动专家到此处
       </div>
     );
   }
 
-  return (
+  const body = (
     <button
       type='button'
       onClick={onSelect}
-      className={`relative col-span-1 flex h-full flex-col items-center overflow-hidden rounded-xl border bg-gradient-to-b from-slate-900 to-[#3b0a0a] px-4 pt-6 pb-4 text-white shadow-lg transition-all md:col-span-3 ${cardShellClass(selected)}`}
+      className={`relative flex h-full w-full flex-col items-center overflow-hidden rounded-xl border bg-gradient-to-b from-slate-900 to-[#3b0a0a] px-4 pt-6 pb-4 text-white shadow-lg transition-all ${cardShellClass(selected)} ${draggable ? 'pl-8' : ''}`}
     >
       {expert.isFixed ? (
         <Badge variant='secondary' className='absolute top-3 right-3 text-[10px]'>
@@ -282,32 +457,53 @@ function MiddleCard({
       </div>
     </button>
   );
+
+  if (draggable && cell.kind === 'managed' && managedIndex != null) {
+    return (
+      <DraggableManagedCard
+        itemId={cell.item.id}
+        managedIndex={managedIndex}
+        name={expert.name}
+        className='relative h-full min-h-[120px] w-full'
+      >
+        {body}
+        <CardActions onMoveUp={onMoveUp} onMoveDown={onMoveDown} onRemove={onRemove} />
+      </DraggableManagedCard>
+    );
+  }
+
+  return (
+    <div className='relative h-full min-h-[120px] w-full'>
+      {body}
+      <CardActions onMoveUp={onMoveUp} onMoveDown={onMoveDown} onRemove={onRemove} />
+    </div>
+  );
 }
 
 function SideCard({
   expert,
   selected,
+  managedIndex,
+  itemId,
+  draggable,
   onSelect,
   onMoveUp,
   onMoveDown,
-  onRemove,
-  canMoveUp,
-  canMoveDown
+  onRemove
 }: {
   expert: PreviewExpertView;
   selected: boolean;
+  managedIndex: number;
+  itemId: number;
+  draggable: boolean;
   onSelect: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   onRemove: () => void;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
 }) {
-  return (
-    <div
-      className={`relative flex flex-1 flex-col rounded-xl border bg-white p-4 text-left shadow-sm transition-all ${cardShellClass(selected)}`}
-    >
-      <button type='button' onClick={onSelect} className='flex flex-1 flex-col text-left'>
+  const body = (
+    <>
+      <button type='button' onClick={onSelect} className='flex flex-1 flex-col pl-6 text-left'>
         <div className='mb-2 flex items-start gap-3'>
           <div className='h-12 w-12 shrink-0 overflow-hidden rounded-full border border-slate-100'>
             <ExpertAvatar
@@ -337,48 +533,26 @@ function SideCard({
           ))}
         </div>
       </button>
-      <div className='absolute top-2 right-2 flex gap-0.5'>
-        <Button
-          type='button'
-          size='icon'
-          variant='ghost'
-          className='h-6 w-6'
-          disabled={!canMoveUp}
-          onClick={(e) => {
-            e.stopPropagation();
-            onMoveUp();
-          }}
-        >
-          <Icons.chevronUp className='h-3.5 w-3.5' />
-        </Button>
-        <Button
-          type='button'
-          size='icon'
-          variant='ghost'
-          className='h-6 w-6'
-          disabled={!canMoveDown}
-          onClick={(e) => {
-            e.stopPropagation();
-            onMoveDown();
-          }}
-        >
-          <Icons.chevronDown className='h-3.5 w-3.5' />
-        </Button>
-        <Button
-          type='button'
-          size='icon'
-          variant='ghost'
-          className='text-destructive h-6 w-6'
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-        >
-          <Icons.trash className='h-3.5 w-3.5' />
-        </Button>
-      </div>
-    </div>
+      <CardActions onMoveUp={onMoveUp} onMoveDown={onMoveDown} onRemove={onRemove} />
+    </>
   );
+
+  const shellClass = `relative flex flex-1 flex-col rounded-xl border bg-white p-4 text-left shadow-sm transition-all ${cardShellClass(selected)}`;
+
+  if (draggable) {
+    return (
+      <DraggableManagedCard
+        itemId={itemId}
+        managedIndex={managedIndex}
+        name={expert.name}
+        className={shellClass}
+      >
+        {body}
+      </DraggableManagedCard>
+    );
+  }
+
+  return <div className={shellClass}>{body}</div>;
 }
 
 function EmptySideSlot({ hint }: { hint: string }) {

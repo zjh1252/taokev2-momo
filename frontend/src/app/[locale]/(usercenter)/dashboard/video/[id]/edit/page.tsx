@@ -5,7 +5,12 @@ import { useRouter } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
 import { ROUTES } from '@/config/routes';
 import VideoForm from '@/features/video/components/publisher/VideoForm';
-import { getMyVideoDetail, updateVideo } from '@/features/video/api/publisher-service';
+import type { UploadedVideoItem } from '@/features/video/components/publisher/VideoForm';
+import {
+  batchCreateVideoChapters,
+  getMyVideoDetail,
+  updateVideo,
+} from '@/features/video/api/publisher-service';
 import type { SaveVideoRequest, VideoDetail } from '@/features/video/api/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
@@ -33,10 +38,21 @@ export default function EditVideoPage() {
       .finally(() => setLoading(false));
   }, [videoId]);
 
-  const handleSubmit = async (data: SaveVideoRequest) => {
+  const handleSubmit = async (data: SaveVideoRequest, videoFiles?: UploadedVideoItem[]) => {
     setSubmitting(true);
     try {
       await updateVideo(videoId, data);
+
+      if (data.videoType === 'SERIES' && videoFiles && videoFiles.length > 0) {
+        const existingCount = video?.totalEpisodes ?? 0;
+        const chapterRequests = videoFiles.map((v, idx) => ({
+          title: `${data.title} - 章节${existingCount + idx + 1}`,
+          videoUrl: v.url,
+          sortOrder: existingCount + idx + 1,
+        }));
+        await batchCreateVideoChapters(videoId, chapterRequests);
+      }
+
       toast.success(
         data.draft
           ? '草稿已保存，可在「管理录播课-草稿」中继续编辑'

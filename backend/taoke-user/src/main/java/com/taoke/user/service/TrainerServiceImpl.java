@@ -67,6 +67,7 @@ public class TrainerServiceImpl implements TrainerService {
     /** 头像统一存到 sys_users.avatar_url，保存专家档案时一并更新 User 表 */
     private final UserRepository userRepository;
     private final OpsMaterialResolver opsMaterialResolver;
+    private final RoleApplicationChangeLogService changeLogService;
 
     @Override
     public TrainerResponse getByUserId(Integer userId) {
@@ -600,12 +601,22 @@ public class TrainerServiceImpl implements TrainerService {
             throw new BusinessException(ErrorCode.PARAM_INVALID,
                     "请先勾选并同意《淘课网注册专家合作协议》");
         }
-        roleApplyService.apply(userId, BusinessRole.Code.TRAINER);
+        // 在写数据前先获取旧快照（用于资料重审变更记录）
+        Trainer oldSnapshot = trainerRepository.findByUserId(userId).orElse(null);
+        boolean isReapply = roleApplyService.apply(userId, BusinessRole.Code.TRAINER);
         Trainer trainer = saveOrUpdateMainTable(userId, request);
         // 一次性持久化擅长行业 / 擅长领域 / 著作，避免分步调用受 RequireRole(TRAINER active) 拦截
         replaceExpertiseCategoriesByIds(trainer.getId(), request.getExpertiseCategoryIds());
         replaceIndustryCategoriesByIds(trainer.getId(), request.getIndustryCategoryIds());
         replaceBooks(trainer.getId(), request.getBooks());
+        if (isReapply && oldSnapshot != null && changeLogService != null) {
+            Trainer newSnapshot = trainerRepository.findByUserId(userId).orElse(null);
+            if (newSnapshot != null) {
+                String batch = RoleApplicationChangeLogService.batchKey(userId, BusinessRole.Code.TRAINER);
+                changeLogService.recordChanges(userId, BusinessRole.Code.TRAINER, batch,
+                        toTrainerFieldMap(oldSnapshot), toTrainerFieldMap(newSnapshot), TRAINER_FIELD_LABELS);
+            }
+        }
     }
 
     /** 整体替换擅长领域分类（apply / save 通用） */
@@ -1015,6 +1026,73 @@ public class TrainerServiceImpl implements TrainerService {
                         Trainer::getId,
                         trainer -> resolveTrainerDisplayAvatar(trainer, userAvatarMap),
                         (a, b) -> a));
+    }
+
+    // ---- 变更日志辅助 ----
+
+    static final Map<String, String> TRAINER_FIELD_LABELS = Map.<String, String>ofEntries(
+            Map.entry("name", "真实姓名"),
+            Map.entry("teachingName", "授课姓名"),
+            Map.entry("title", "头衔"),
+            Map.entry("gender", "性别"),
+            Map.entry("phone", "联系电话"),
+            Map.entry("email", "邮箱"),
+            Map.entry("idCardNo", "身份证号"),
+            Map.entry("oneLineIntro", "一句话介绍"),
+            Map.entry("bio", "个人简介"),
+            Map.entry("background", "从业背景"),
+            Map.entry("partialClients", "服务过客户"),
+            Map.entry("goodAt", "擅长领域"),
+            Map.entry("expertiseTags", "擅长标签"),
+            Map.entry("teachingStyle", "授课风格"),
+            Map.entry("experienceYears", "从业年限"),
+            Map.entry("teachingYears", "授课年限"),
+            Map.entry("quoteMin", "最低报价"),
+            Map.entry("quoteMax", "最高报价"),
+            Map.entry("quoteUnit", "报价单位"),
+            Map.entry("quoteRemark", "报价备注"),
+            Map.entry("taokePrice", "淘课网售价"),
+            Map.entry("taokeCommission", "合作课酬"),
+            Map.entry("provinceId", "省份"),
+            Map.entry("cityId", "城市"),
+            Map.entry("districtId", "区县"),
+            Map.entry("address", "详细地址")
+    );
+
+    private static Map<String, String> toTrainerFieldMap(Trainer t) {
+        if (t == null) return Map.of();
+        Map<String, String> m = new HashMap<>();
+        putIf(m, "name", t.getName());
+        putIf(m, "teachingName", t.getTeachingName());
+        putIf(m, "title", t.getTitle());
+        putIf(m, "gender", t.getGender());
+        putIf(m, "phone", t.getPhone());
+        putIf(m, "email", t.getEmail());
+        putIf(m, "idCardNo", t.getIdCardNo());
+        putIf(m, "oneLineIntro", t.getOneLineIntro());
+        putIf(m, "bio", t.getBio());
+        putIf(m, "background", t.getBackground());
+        putIf(m, "partialClients", t.getPartialClients());
+        putIf(m, "goodAt", t.getGoodAt());
+        putIf(m, "expertiseTags", t.getExpertiseTags());
+        putIf(m, "teachingStyle", t.getTeachingStyle());
+        putIf(m, "experienceYears", t.getExperienceYears());
+        putIf(m, "teachingYears", t.getTeachingYears());
+        putIf(m, "quoteMin", t.getQuoteMin());
+        putIf(m, "quoteMax", t.getQuoteMax());
+        putIf(m, "quoteUnit", t.getQuoteUnit());
+        putIf(m, "quoteRemark", t.getQuoteRemark());
+        putIf(m, "taokePrice", t.getTaokePrice());
+        putIf(m, "taokeCommission", t.getTaokeCommission());
+        putIf(m, "provinceId", t.getProvinceId());
+        putIf(m, "cityId", t.getCityId());
+        putIf(m, "districtId", t.getDistrictId());
+        putIf(m, "address", t.getAddress());
+        return m;
+    }
+
+    private static void putIf(Map<String, String> m, String key, Object val) {
+        if (val != null) m.put(key, String.valueOf(val));
     }
 
     /** 批量回填多个列表的 categoryName */

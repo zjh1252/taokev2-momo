@@ -39,12 +39,15 @@ import {
 } from '../api/service';
 import { resolveRecommendationDetailPath } from '../api/detail-path';
 import type { RecommendationManagerConfig, RecommendedResourceItem } from '../api/types';
+import { DraggableCandidateRow } from './home-trainer-dnd';
 import { HomeTrainerDetailPanel } from './home-trainer-detail-panel';
+import { HomeTrainerDndProvider } from './home-trainer-dnd';
 import { HomeTrainerPreview, type HomeTrainerSelection } from './home-trainer-preview';
 import {
   buildHomeTrainerLayout,
   countManagedSlots,
   HOME_TRAINER_TOTAL_SLOTS,
+  reorderManagedIds,
   type HomeTrainerFixedLocks
 } from '../utils/home-trainer-layout';
 
@@ -209,8 +212,128 @@ export function RecommendationManager({ config }: Props) {
     });
   };
 
+  const handleDragReorder = (fromIndex: number, toIndex: number) => {
+    const orderedIds = reorderManagedIds(homeTrainerManagedItems, fromIndex, toIndex);
+    reorderMutation.mutate({
+      slotCode,
+      categoryId: activeCategoryId,
+      orderedIds
+    });
+  };
+
+  const handleDropCandidate = async (resourceId: number, targetIndex: number) => {
+    const existingIndex = homeTrainerManagedItems.findIndex(
+      (item) => item.resourceId === resourceId
+    );
+    if (existingIndex >= 0) {
+      handleDragReorder(existingIndex, targetIndex);
+      return;
+    }
+    if (homeTrainerManagedItems.length >= homeTrainerMaxItems) {
+      toast.error(`当前最多可推荐 ${homeTrainerMaxItems} 位专家`);
+      return;
+    }
+    try {
+      const resp = await addRecommendation({
+        slotCode,
+        resourceType: config.resourceType,
+        resourceId,
+        categoryId: activeCategoryId
+      });
+      if (resp.code !== 0 || !resp.data) {
+        toast.error(resp.message || '添加失败');
+        return;
+      }
+      const orderedIds = homeTrainerManagedItems.map((item) => item.id);
+      orderedIds.splice(Math.min(targetIndex, orderedIds.length), 0, resp.data.id);
+      await reorderRecommendations({
+        slotCode,
+        categoryId: activeCategoryId,
+        orderedIds
+      });
+      toast.success('已加入推荐位');
+      invalidate();
+    } catch {
+      toast.error('添加失败');
+    }
+  };
+
   const slotLabel = slots.find((s) => s.code === slotCode)?.label ?? slotCode;
 
+  const previewAndDetail = (
+    <div className='flex min-h-0 flex-col gap-4'>
+      {isHomeTrainerSlot ? (
+        <>
+          <HomeTrainerPreview
+            items={needsCategory ? [] : items}
+            locks={homeTrainerLocks}
+            selection={homeTrainerSelection}
+            onSelect={setHomeTrainerSelection}
+            onMove={moveItem}
+            onRemove={(id) => removeMutation.mutate(id)}
+          />
+          <HomeTrainerDetailPanel
+            selection={homeTrainerSelection}
+            managedItems={homeTrainerManagedItems}
+            locks={homeTrainerLocks}
+            slotLabel={slotLabel}
+            detailPathTemplate={config.detailPathTemplate}
+            isSaving={updateMutation.isPending}
+            isSavingLocks={lockMutation.isPending}
+            onLocksChange={(locks) => lockMutation.mutate(locks)}
+            onSave={(payload) => {
+              if (!selectedManagedItem) return;
+              updateMutation.mutate({ id: selectedManagedItem.id, payload });
+            }}
+          />
+        </>
+      ) : (
+        <>
+          <PreviewPanel
+            slotLabel={slotLabel}
+            items={needsCategory ? [] : items}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onMove={moveItem}
+            onRemove={(id) => removeMutation.mutate(id)}
+            detailPathTemplate={config.detailPathTemplate}
+          />
+          <DetailPanel
+            item={selected}
+            slotLabel={slotLabel}
+            detailPathTemplate={config.detailPathTemplate}
+            isSaving={updateMutation.isPending}
+            onSave={(payload) => {
+              if (!selected) return;
+              updateMutation.mutate({ id: selected.id, payload });
+            }}
+          />
+        </>
+      )}
+    </div>
+  );
+
+  const candidatePanel = (
+    <CandidatePanel
+      config={config}
+      slotCode={slotCode}
+      categoryId={activeCategoryId}
+      search={search}
+      page={candidatePage}
+      existingIds={
+        isHomeTrainerSlot
+          ? homeTrainerManagedItems.map((item) => item.resourceId)
+          : items.map((item) => item.resourceId)
+      }
+      maxItems={isHomeTrainerSlot ? homeTrainerMaxItems : undefined}
+      managedCount={isHomeTrainerSlot ? homeTrainerManagedItems.length : undefined}
+      enableCandidateDrag={isHomeTrainerSlot}
+      onSearchChange={setSearch}
+      onPageChange={setCandidatePage}
+      onAdd={(resourceId, roleType) => tryAddRecommendation(resourceId, roleType)}
+      isAdding={addMutation.isPending}
+    />
+  );
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-4'>
       {backendWarning ? (
@@ -244,77 +367,22 @@ export function RecommendationManager({ config }: Props) {
         ) : null}
       </div>
 
-      <div className='grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_320px]'>
-        <div className='flex min-h-0 flex-col gap-4'>
-          {isHomeTrainerSlot ? (
-            <>
-              <HomeTrainerPreview
-                items={needsCategory ? [] : items}
-                locks={homeTrainerLocks}
-                selection={homeTrainerSelection}
-                onSelect={setHomeTrainerSelection}
-                onMove={moveItem}
-                onRemove={(id) => removeMutation.mutate(id)}
-              />
-              <HomeTrainerDetailPanel
-                selection={homeTrainerSelection}
-                managedItems={homeTrainerManagedItems}
-                locks={homeTrainerLocks}
-                slotLabel={slotLabel}
-                detailPathTemplate={config.detailPathTemplate}
-                isSaving={updateMutation.isPending}
-                isSavingLocks={lockMutation.isPending}
-                onLocksChange={(locks) => lockMutation.mutate(locks)}
-                onSave={(payload) => {
-                  if (!selectedManagedItem) return;
-                  updateMutation.mutate({ id: selectedManagedItem.id, payload });
-                }}
-              />
-            </>
-          ) : (
-            <>
-              <PreviewPanel
-                slotLabel={slotLabel}
-                items={needsCategory ? [] : items}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-                onMove={moveItem}
-                onRemove={(id) => removeMutation.mutate(id)}
-                detailPathTemplate={config.detailPathTemplate}
-              />
-              <DetailPanel
-                item={selected}
-                slotLabel={slotLabel}
-                detailPathTemplate={config.detailPathTemplate}
-                isSaving={updateMutation.isPending}
-                onSave={(payload) => {
-                  if (!selected) return;
-                  updateMutation.mutate({ id: selected.id, payload });
-                }}
-              />
-            </>
-          )}
+      {isHomeTrainerSlot ? (
+        <HomeTrainerDndProvider
+          onReorder={handleDragReorder}
+          onDropCandidate={handleDropCandidate}
+        >
+          <div className='grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_320px]'>
+            {previewAndDetail}
+            {candidatePanel}
+          </div>
+        </HomeTrainerDndProvider>
+      ) : (
+        <div className='grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_320px]'>
+          {previewAndDetail}
+          {candidatePanel}
         </div>
-
-        <CandidatePanel
-          config={config}
-          slotCode={slotCode}
-          categoryId={activeCategoryId}
-          search={search}
-          page={candidatePage}
-          existingIds={
-            isHomeTrainerSlot
-              ? homeTrainerManagedItems.map((item) => item.resourceId)
-              : items.map((item) => item.resourceId)
-          }
-          maxItems={isHomeTrainerSlot ? homeTrainerMaxItems : undefined}
-          managedCount={isHomeTrainerSlot ? homeTrainerManagedItems.length : undefined}
-          onSearchChange={setSearch}
-          onPageChange={setCandidatePage}
-          onAdd={(resourceId, roleType) => tryAddRecommendation(resourceId, roleType)}
-          isAdding={addMutation.isPending}
-        />
-      </div>
+      )}
     </div>
   );
 }
@@ -590,6 +658,7 @@ function CandidatePanel({
   existingIds,
   maxItems,
   managedCount,
+  enableCandidateDrag,
   onSearchChange,
   onPageChange,
   onAdd,
@@ -603,6 +672,7 @@ function CandidatePanel({
   existingIds: number[];
   maxItems?: number;
   managedCount?: number;
+  enableCandidateDrag?: boolean;
   onSearchChange: (value: string) => void;
   onPageChange: (page: number) => void;
   onAdd: (resourceId: number, roleType?: 'PRIMARY' | 'BACKUP') => void;
@@ -724,7 +794,10 @@ function CandidatePanel({
           {maxItems !== undefined ? (
             <p className='text-muted-foreground mt-1 text-xs'>
               取消固定大卡后可配置更多位置；当前已添加 {managedCount ?? existingIds.length}/{maxItems}
+              {enableCandidateDrag ? '。可拖动专家到左侧预览区' : ''}
             </p>
+          ) : enableCandidateDrag ? (
+            <p className='text-muted-foreground mt-1 text-xs'>可拖动专家到左侧预览区</p>
           ) : null}
         </div>
         <Input
@@ -748,17 +821,31 @@ function CandidatePanel({
           rows.map((row) => {
             const added = existingIds.includes(row.id);
             const slotFull = maxItems !== undefined && existingIds.length >= maxItems;
+            const nameBlock = (
+              <div className='min-w-0 flex-1'>
+                <p className='truncate font-medium'>{row.name}</p>
+                {row.meta ? (
+                  <p className='text-muted-foreground truncate text-xs'>{row.meta}</p>
+                ) : null}
+              </div>
+            );
+
             return (
               <div
                 key={row.id}
-                className='flex items-center justify-between gap-2 border-b px-4 py-3 last:border-b-0'
+                className='flex items-center gap-2 border-b px-4 py-3 last:border-b-0'
               >
-                <div className='min-w-0'>
-                  <p className='truncate font-medium'>{row.name}</p>
-                  {row.meta ? (
-                    <p className='text-muted-foreground truncate text-xs'>{row.meta}</p>
-                  ) : null}
-                </div>
+                {enableCandidateDrag ? (
+                  <DraggableCandidateRow
+                    resourceId={row.id}
+                    name={row.name}
+                    disabled={slotFull && !added}
+                  >
+                    {nameBlock}
+                  </DraggableCandidateRow>
+                ) : (
+                  nameBlock
+                )}
                 <div className='flex shrink-0 gap-1'>
                   {showBackup ? (
                     <Button

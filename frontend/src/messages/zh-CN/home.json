@@ -36,7 +36,9 @@
       "instructor": "授课专家",
       "city": "开课城市",
       "startDate": "开课时间",
-      "duration": "课程天数"
+      "duration": "课程天数",
+      "category": "课程分类",
+      "keywords": "关键词"
     },
     "durationDays": "{count}天"
   },

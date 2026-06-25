@@ -14,6 +14,10 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/favicon.ico',
+        destination: '/statics/images/taoke-new-logo.jpg',
+      },
+      {
         source: '/taoke-legacy/:path*',
         destination: 'https://www.taoke.com/:path*',
       },
@@ -34,6 +38,7 @@ const nextConfig = {
       { protocol: 'https' as const, hostname: 'images.unsplash.com' },
       { protocol: 'https' as const, hostname: 'ui-avatars.com' },
       { protocol: 'http' as const, hostname: 'localhost', port: '8080', pathname: '/**' },
+      { protocol: 'http' as const, hostname: 'localhost', port: '3000', pathname: '/**' },
       { protocol: 'http' as const, hostname: 'localhost', port: '18080', pathname: '/**' },
       { protocol: 'http' as const, hostname: '10.0.14.20', port: '8080', pathname: '/**' },
       { protocol: 'https' as const, hostname: 'v2.taoke.com', pathname: '/**' },

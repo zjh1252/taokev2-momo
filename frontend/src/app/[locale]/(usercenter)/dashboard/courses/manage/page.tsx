@@ -34,6 +34,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { resolveImageSrc } from '@/lib/media';
 
 const STATUS_TABS: { label: string; value: number | undefined }[] = [
   { label: '全部', value: undefined },
@@ -296,11 +297,12 @@ function CourseCard({
       <div className="w-[160px] h-[100px] rounded-lg overflow-hidden bg-slate-100 shrink-0">
         {course.coverUrl ? (
           <Image
-            src={course.coverUrl}
+            src={resolveImageSrc(course.coverUrl, '/statics/images/taoke-new-logo.jpg')}
             alt={course.title}
             width={160}
             height={100}
             className="w-full h-full object-cover"
+            unoptimized
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-300">

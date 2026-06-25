@@ -59,6 +59,7 @@ export function HeroSection({ categories }: HeroSectionProps) {
           src="/statics/images/hero-banner.jpg"
           alt="Hero Banner"
           fill
+          sizes="(max-width: 768px) 100vw, 75vw"
           className="object-cover opacity-70"
           priority
         />

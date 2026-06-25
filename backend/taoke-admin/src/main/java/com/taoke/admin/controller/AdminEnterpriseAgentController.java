@@ -53,4 +53,10 @@ public class AdminEnterpriseAgentController {
         adminEnterpriseAgentService.rejectApplication(userId, request.getReason());
         return ApiResponse.ok(null);
     }
+
+    @Operation(summary = "经纪公司申请详情")
+    @GetMapping("/admin/enterprise-agents/applications/{userId}/detail")
+    public ApiResponse<AdminApplicationDetailVO> applicationDetail(@PathVariable Integer userId) {
+        return ApiResponse.ok(adminEnterpriseAgentService.getApplicationDetail(userId));
+    }
 }

@@ -1079,7 +1079,8 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public Page<Course> searchForAdmin(String keyword, Integer status, String type,
-                                       Integer trainerId, String publisherType, Integer publisherId,
+                                       Integer trainerId, java.util.Collection<Integer> trainerIds,
+                                       String publisherType, Integer publisherId,
                                        java.util.Collection<Integer> publisherUserIds,
                                        Pageable pageable) {
         Specification<Course> spec = (root, cq, cb) -> {
@@ -1090,7 +1091,9 @@ public class CourseServiceImpl implements CourseService {
             if (type != null && !type.isBlank()) {
                 predicates.add(cb.equal(root.get("type"), CourseType.valueOf(type)));
             }
-            if (trainerId != null && trainerId > 0) {
+            if (trainerIds != null && !trainerIds.isEmpty()) {
+                predicates.add(root.get("trainerId").in(trainerIds));
+            } else if (trainerId != null && trainerId > 0) {
                 predicates.add(cb.equal(root.get("trainerId"), trainerId));
             }
             if (publisherType != null && !publisherType.isBlank()) {
@@ -1238,12 +1241,17 @@ public class CourseServiceImpl implements CourseService {
         }
     }
 
-    /** 富文本去标签后是否为空（含仅 &nbsp; / 空段落） */
+    /** 富文本去标签后是否为空（含仅 &nbsp; / 空段落 / 零宽字符） */
     private static boolean isBlankHtml(String html) {
         if (html == null || html.isBlank()) {
             return true;
         }
-        String text = html.replaceAll("<[^>]*>", "").replace("&nbsp;", " ").trim();
+        String text = html.replaceAll("<[^>]*>", "")
+                .replace("&nbsp;", " ")
+                .replace('\u00A0', ' ')
+                .replace("\u200B", "")
+                .replaceAll("\\s+", " ")
+                .trim();
         return text.isEmpty();
     }
 
@@ -1255,7 +1263,18 @@ public class CourseServiceImpl implements CourseService {
         if (plans == null || plans.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "公开课必须添加至少一条开课计划");
         }
-        for (CoursePlanDTO plan : plans) {
+        for (int i = 0; i < plans.size(); i++) {
+            CoursePlanDTO plan = plans.get(i);
+            String label = "开课计划 " + (i + 1);
+            if (plan.getStartTime() == null) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, label + "：请填写开始时间");
+            }
+            if (plan.getEndTime() == null) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, label + "：请填写结束时间");
+            }
+            if (!plan.getEndTime().isAfter(plan.getStartTime())) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, label + "：结束时间必须晚于开始时间");
+            }
             if (type == CourseType.OPEN_OFFLINE) {
                 if (plan.getProvinceId() == null || plan.getProvinceId() == 0) {
                     throw new BusinessException(ErrorCode.PARAM_INVALID, "线下公开课的开课计划必须选择省份");

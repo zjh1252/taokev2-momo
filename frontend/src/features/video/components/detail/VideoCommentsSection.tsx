@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { VideoComment } from '../../api/types';
 import { getVideoComments, submitVideoComment } from '../../api/service';
 import { cn } from '@/lib/utils';
+import { ApiException } from '@/lib/http/client';
 
 interface VideoCommentsSectionProps {
   videoId: number;
@@ -75,10 +76,8 @@ function CommentList({ comments }: { comments: VideoComment[] }) {
 
 function CommentForm({
   videoId,
-  onSubmitted,
 }: {
   videoId: number;
-  onSubmitted: () => void;
 }) {
   const { user } = useAuth();
   const pathname = usePathname();
@@ -102,12 +101,13 @@ function CommentForm({
     setSubmitting(true);
     try {
       await submitVideoComment(videoId, { rating, content: trimmed });
-      toast.success('评论发表成功');
+      toast.success('评论已提交，审核通过后将展示');
       setRating(0);
       setContent('');
-      onSubmitted();
-    } catch {
-      toast.error('发表评论失败，请稍后重试');
+    } catch (err) {
+      if (!(err instanceof ApiException)) {
+        toast.error('发表评论失败，请稍后重试');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -190,7 +190,7 @@ export function VideoCommentsSection({ videoId }: VideoCommentsSectionProps) {
         <CommentList comments={comments} />
       ) : null}
 
-      <CommentForm videoId={videoId} onSubmitted={loadComments} />
+      <CommentForm videoId={videoId} />
     </div>
   );
 }

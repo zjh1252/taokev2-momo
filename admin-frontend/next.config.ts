@@ -29,11 +29,26 @@ const nextConfig: NextConfig = {
         hostname: 'taoke.com',
         port: ''
       },
-      // 本地开发环境：C 端前端及后端静态资源
+      // 本地开发：C 端静态资源、后端直出 uploads
       {
         protocol: 'http',
         hostname: 'localhost',
         port: '3000'
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8080'
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '3000'
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '8080'
       }
     ]
   },

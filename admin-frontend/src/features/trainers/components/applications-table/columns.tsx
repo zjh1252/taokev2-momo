@@ -41,7 +41,7 @@ export const columns: ColumnDef<AdminTrainerApplication>[] = [
     cell: ({ row }) => {
       const name = row.original.trainerName || row.original.nickname || '-';
       const href = row.original.trainerId
-        ? `/dashboard/trainers/${row.original.trainerId}`
+        ? `/dashboard/trainers/${row.original.trainerId}?from=applications`
         : getAdminUserDetailUrl(row.original.userId);
       return (
         <div className='flex items-center gap-3'>
@@ -84,16 +84,14 @@ export const columns: ColumnDef<AdminTrainerApplication>[] = [
     header: '状态',
     enableColumnFilter: true,
     cell: ({ cell, row }) => {
+      if (row.original.reapplying) {
+        return <Badge variant='secondary'>重提申请</Badge>;
+      }
       const status = cell.getValue<number>();
       return (
-        <div className='flex items-center gap-1'>
-          <Badge variant={statusVariant(status)}>
-            {APPLICATION_STATUS_MAP[status] ?? '未知'}
-          </Badge>
-          {row.original.reapplying ? (
-            <Badge variant='secondary'>资料重审</Badge>
-          ) : null}
-        </div>
+        <Badge variant={statusVariant(status)}>
+          {APPLICATION_STATUS_MAP[status] ?? '未知'}
+        </Badge>
       );
     },
     meta: {

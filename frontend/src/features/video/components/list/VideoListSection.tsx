@@ -38,6 +38,13 @@ const SORT_OPTIONS = [
 
 const PAGE_SIZE = 15;
 
+type VideoListMode = 'all' | 'featured';
+
+const LIST_MODE_TABS: { key: VideoListMode; label: string }[] = [
+  { key: 'all', label: '全部课程' },
+  { key: 'featured', label: '精品录播课' },
+];
+
 /** 解析当前选中分类对应的一级分类 ID（顶部分类栏高亮用） */
 function resolveTopCategoryId(tree: CategoryTreeNode[], categoryId?: number): number | undefined {
   if (!categoryId) return undefined;
@@ -78,6 +85,9 @@ function VideoListSectionInner({
     [categoryTree, selectedCategory],
   );
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
+  const [listMode, setListMode] = useState<VideoListMode>('all');
+  const listModeRef = useRef<VideoListMode>('all');
+  listModeRef.current = listMode;
   const [sortKey, setSortKey] = useState('default');
   const [keyword, setKeyword] = useState(keywordFromUrl);
   const [currentPage, setCurrentPage] = useState(1);
@@ -141,6 +151,7 @@ function VideoListSectionInner({
       sort?: string,
       kw?: string,
       overrideInstitutionId?: number | null,
+      mode?: VideoListMode,
     ) => {
       const sortByValue = SORT_OPTIONS.find((o) => o.key === (sort ?? sortKey))?.sortBy ?? 'default';
       const instId =
@@ -149,6 +160,7 @@ function VideoListSectionInner({
           : overrideInstitutionId !== undefined
             ? overrideInstitutionId
             : institutionId;
+      const effectiveMode = mode ?? listModeRef.current;
       startTransition(async () => {
         try {
           const result = await getVideoList({
@@ -158,6 +170,7 @@ function VideoListSectionInner({
             sortBy: sortByValue === 'default' ? undefined : sortByValue,
             keyword: (kw ?? keyword) || undefined,
             institutionId: instId,
+            isFeatured: effectiveMode === 'featured' ? 1 : undefined,
           });
           setData(result);
           setCurrentPage(page);
@@ -191,15 +204,26 @@ function VideoListSectionInner({
     navigateToSeoPath('/vedio');
   }, [fetchData, selectedCategory, sortKey, keyword]);
 
+  const handleListModeChange = useCallback(
+    (mode: VideoListMode) => {
+      listModeRef.current = mode;
+      setListMode(mode);
+      commitPageChange(1);
+      fetchData(1, selectedCategory, sortKey, keyword, undefined, mode);
+    },
+    [fetchData, selectedCategory, sortKey, keyword, commitPageChange],
+  );
+
   const handleCategoryChange = useCallback(
     (catId?: number, catName?: string) => {
       selectedCategoryRef.current = catId;
       setSelectedCategory(catId);
       setSelectedCategoryName(catName);
       syncUrl(1, catId, catName);
+      commitPageChange(1);
       fetchData(1, catId);
     },
-    [fetchData, syncUrl],
+    [fetchData, syncUrl, commitPageChange],
   );
 
   const handleSortChange = useCallback(
@@ -243,6 +267,7 @@ function VideoListSectionInner({
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs">
             机构：{initialInstitutionName}
             <button
+              type="button"
               onClick={handleClearInstitution}
               className="hover:text-primary/70 inline-flex items-center"
               aria-label="清除机构筛选"
@@ -253,76 +278,101 @@ function VideoListSectionInner({
         </div>
       )}
 
-      {/* 分类筛选栏 */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-slate-700 mr-2">分类：</span>
-          <button
-            onClick={() => handleCategoryChange(undefined)}
-            className={cn(
-              'px-3 py-1 text-sm rounded-full transition-colors',
-              !topCategoryId
-                ? 'bg-primary text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
-            )}
-          >
-            全部
-          </button>
-          {categoryTree.map((cat) => (
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100">
+        {/* 默认 / 精品录播课 */}
+        <div className="flex border-b border-slate-100 px-4 pt-2">
+          {LIST_MODE_TABS.map((tab) => (
             <button
-              key={cat.id}
-              onClick={() => handleCategoryChange(cat.id, cat.name)}
+              key={tab.key}
+              type="button"
+              onClick={() => handleListModeChange(tab.key)}
+              className={cn(
+                'px-6 py-3 text-[15px] transition-colors border-b-2 -mb-px',
+                listMode === tab.key
+                  ? 'font-bold text-primary border-primary'
+                  : 'font-medium text-slate-600 border-transparent hover:text-primary',
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 分类筛选栏 */}
+        <div className="p-4 border-b border-slate-100">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-slate-700 mr-2">分类：</span>
+            <button
+              type="button"
+              onClick={() => handleCategoryChange(undefined)}
               className={cn(
                 'px-3 py-1 text-sm rounded-full transition-colors',
-                topCategoryId === cat.id
+                !topCategoryId
                   ? 'bg-primary text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
               )}
             >
-              {cat.name}
+              全部
+            </button>
+            {categoryTree.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => handleCategoryChange(cat.id, cat.name)}
+                className={cn(
+                  'px-3 py-1 text-sm rounded-full transition-colors',
+                  topCategoryId === cat.id
+                    ? 'bg-primary text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                )}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 排序 + 搜索栏 */}
+        <div className="p-2 flex items-center gap-2 flex-wrap">
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => handleSortChange(opt.key)}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-1',
+                sortKey === opt.key
+                  ? 'font-bold text-primary bg-primary/5'
+                  : 'font-medium text-slate-600 hover:bg-slate-50',
+              )}
+            >
+              {opt.label}
+              <ArrowUpDown className="size-3.5" />
             </button>
           ))}
+
+          <div className="ml-auto flex items-center gap-2">
+            <input
+              type="text"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="搜索录播课..."
+              className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="border border-slate-200 rounded-lg px-3 py-1.5 text-slate-500 hover:bg-slate-50 transition-colors"
+            >
+              <Search className="size-4" />
+            </button>
+          </div>
+
+          <span className="text-sm text-slate-500 pr-2 shrink-0">
+            共 <strong className="text-slate-900">{data.total}</strong> 门课程
+          </span>
         </div>
-      </div>
-
-      {/* 排序 + 搜索栏 */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex items-center gap-2">
-        {SORT_OPTIONS.map((opt) => (
-          <button
-            key={opt.key}
-            onClick={() => handleSortChange(opt.key)}
-            className={cn(
-              'px-4 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-1',
-              sortKey === opt.key
-                ? 'font-bold text-primary bg-primary/5'
-                : 'font-medium text-slate-600 hover:bg-slate-50',
-            )}
-          >
-            {opt.label}
-            <ArrowUpDown className="size-3.5" />
-          </button>
-        ))}
-
-        <div className="ml-auto flex items-center gap-2">
-          <input
-            type="text"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="搜索录播课..."
-            className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
-          <button
-            onClick={handleSearch}
-            className="border border-slate-200 rounded-lg px-3 py-1.5 text-slate-500 hover:bg-slate-50 transition-colors"
-          >
-            <Search className="size-4" />
-          </button>
-        </div>
-
-        <span className="text-sm text-slate-500 pr-2 shrink-0">
-          共 <strong className="text-slate-900">{data.total}</strong> 门课程
-        </span>
       </div>
 
       {/* 卡片网格 */}

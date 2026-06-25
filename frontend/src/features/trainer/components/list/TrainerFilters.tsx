@@ -27,8 +27,12 @@ export interface TrainerFilterValue {
   fieldParentName?: string;
   /** 擅长领域 — 二级名称（有则传 "一级_二级"） */
   fieldChildName?: string;
+  /** 擅长领域分类 ID（优先于名称解析） */
+  expertiseCategoryId?: number;
   /** 擅长行业 — 行业名称 */
   industryName?: string;
+  /** 擅长行业分类 ID */
+  industryCategoryId?: number;
   /** 长驻省市 — 省份名称 */
   regionName?: string;
   /** 长驻省市 — 省份 ID（传给后端筛选） */
@@ -96,18 +100,19 @@ export function TrainerFilters({
     leaveTimer.current = setTimeout(() => setActiveFilter(null), 80);
   }, []);
 
-  // ---- 擅长领域：追踪 parent + child ----
-  const handleExpertisePick = (parentName?: string, childName?: string) => {
+  // ---- 擅长领域：追踪 parent + child + 分类 ID ----
+  const handleExpertisePick = (parentName?: string, childName?: string, categoryId?: number) => {
     onChange({
       ...value,
       fieldParentName: parentName,
       fieldChildName: childName,
+      expertiseCategoryId: categoryId,
     });
   };
 
   // ---- 擅长行业：单选 ----
-  const handleIndustryPick = (name?: string) => {
-    onChange({ ...value, industryName: name });
+  const handleIndustryPick = (name?: string, categoryId?: number) => {
+    onChange({ ...value, industryName: name, industryCategoryId: categoryId });
   };
 
   // ---- 长驻省市：单选 ----
@@ -243,14 +248,14 @@ function ExpertisePanel({
   tree: CategoryTreeNode[];
   parentName?: string;
   childName?: string;
-  onPick: (parentName?: string, childName?: string) => void;
+  onPick: (parentName?: string, childName?: string, categoryId?: number) => void;
 }) {
   return (
     <div className="text-sm">
       <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
         <button
           type="button"
-          onClick={() => onPick(undefined, undefined)}
+          onClick={() => onPick(undefined, undefined, undefined)}
           className={`text-left cursor-pointer transition-colors ${
             !parentName ? 'text-primary font-semibold' : 'text-slate-500 hover:text-primary'
           }`}
@@ -263,7 +268,7 @@ function ExpertisePanel({
           <button
             key={lvl1.id}
             type="button"
-            onClick={() => onPick(lvl1.name, undefined)}
+            onClick={() => onPick(lvl1.name, undefined, lvl1.id)}
             className={`text-left cursor-pointer transition-colors truncate ${
               parentName === lvl1.name
                 ? 'text-primary font-semibold'
@@ -288,7 +293,7 @@ function SingleSelectPanel({
 }: {
   tree: CategoryTreeNode[];
   selectedName?: string;
-  onPick: (name?: string) => void;
+  onPick: (name?: string, categoryId?: number) => void;
   label: string;
 }) {
   return (
@@ -296,7 +301,7 @@ function SingleSelectPanel({
       <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
         <button
           type="button"
-          onClick={() => onPick(undefined)}
+          onClick={() => onPick(undefined, undefined)}
           className={`text-left cursor-pointer transition-colors ${
             !selectedName ? 'text-primary font-semibold' : 'text-slate-500 hover:text-primary'
           }`}
@@ -309,7 +314,7 @@ function SingleSelectPanel({
           <button
             key={lvl1.id}
             type="button"
-            onClick={() => onPick(lvl1.name)}
+            onClick={() => onPick(lvl1.name, lvl1.id)}
             className={`text-left cursor-pointer transition-colors truncate ${
               selectedName === lvl1.name
                 ? 'text-primary font-semibold'

@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import * as z from 'zod';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
@@ -18,12 +20,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { createBook } from '../api/service';
 import { getTrainers } from '@/features/trainers/api/service';
+import { uploadImageFile } from '@/features/materials/api/service';
+import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 
 const formSchema = z.object({
   trainerId: z.string().min(1, '请选择专家'),
   title: z.string().min(1, '请输入书名'),
   authorName: z.string().optional(),
-  coverUrl: z.string().optional(),
   publisher: z.string().optional(),
   publishDate: z.string().optional(),
   description: z.string().optional(),
@@ -34,9 +37,12 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function BookCreateForm() {
   const router = useRouter();
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [trainerOptions, setTrainerOptions] = useState<
     { value: string; label: string }[]
   >([]);
+  const [coverUrl, setCoverUrl] = useState('');
+  const [coverUploading, setCoverUploading] = useState(false);
 
   useEffect(() => {
     void getTrainers({ page: 1, limit: 100, status: '2' })
@@ -66,7 +72,6 @@ export function BookCreateForm() {
       trainerId: '',
       title: '',
       authorName: '',
-      coverUrl: '',
       publisher: '',
       publishDate: '',
       description: '',
@@ -80,7 +85,7 @@ export function BookCreateForm() {
         trainerId: Number(value.trainerId),
         title: value.title,
         authorName: value.authorName || undefined,
-        coverUrl: value.coverUrl || undefined,
+        coverUrl: coverUrl || undefined,
         publisher: value.publisher || undefined,
         publishDate: value.publishDate || undefined,
         description: value.description || undefined,
@@ -90,6 +95,28 @@ export function BookCreateForm() {
   });
 
   const { FormTextField, FormTextareaField } = useFormFields<FormValues>();
+
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('请选择图片文件');
+      return;
+    }
+    setCoverUploading(true);
+    try {
+      const url = await uploadImageFile(file);
+      setCoverUrl(url);
+      toast.success('封面上传成功');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '封面上传失败');
+    } finally {
+      setCoverUploading(false);
+    }
+  };
+
+  const coverPreview = coverUrl ? resolveAssetUrl(coverUrl) : '';
 
   return (
     <Card>
@@ -123,7 +150,59 @@ export function BookCreateForm() {
             </form.AppField>
             <FormTextField name='title' label='书名' required />
             <FormTextField name='authorName' label='作者名' />
-            <FormTextField name='coverUrl' label='封面 URL' />
+            <div className='space-y-2'>
+              <Label>封面</Label>
+              <div className='flex items-start gap-3'>
+                <div className='relative h-[100px] w-[72px] overflow-hidden rounded border border-dashed border-muted-foreground/30 bg-muted/30'>
+                  {coverPreview ? (
+                    <Image
+                      src={coverPreview}
+                      alt='著作封面'
+                      fill
+                      className='object-cover'
+                      unoptimized
+                    />
+                  ) : (
+                    <div className='flex h-full w-full items-center justify-center text-muted-foreground text-xs'>
+                      暂无封面
+                    </div>
+                  )}
+                </div>
+                <div className='space-y-2'>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    disabled={coverUploading}
+                    onClick={() => coverInputRef.current?.click()}
+                  >
+                    {coverUploading ? (
+                      <Loader2 className='mr-1 size-4 animate-spin' />
+                    ) : (
+                      <Upload className='mr-1 size-4' />
+                    )}
+                    上传封面
+                  </Button>
+                  {coverUrl ? (
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => setCoverUrl('')}
+                    >
+                      清除
+                    </Button>
+                  ) : null}
+                </div>
+                <input
+                  ref={coverInputRef}
+                  type='file'
+                  accept='image/*'
+                  className='hidden'
+                  onChange={(e) => void handleCoverChange(e)}
+                />
+              </div>
+            </div>
             <FormTextField name='publisher' label='出版社' />
             <FormTextField name='publishDate' label='出版日期' placeholder='YYYY-MM-DD' />
             <FormTextareaField name='description' label='简介' rows={4} />

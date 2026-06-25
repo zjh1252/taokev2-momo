@@ -12,13 +12,15 @@ export function ApplicationsTable() {
   const [params] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
-    status: parseAsString
+    status: parseAsString,
+    search: parseAsString
   });
 
   const filters = {
     page: params.page,
     limit: params.perPage,
-    ...(params.status && { status: params.status })
+    ...(params.status && { status: params.status }),
+    ...(params.search && { search: params.search })
   };
 
   const { data: resp } = useSuspenseQuery(trainerApplicationsQueryOptions(filters));
