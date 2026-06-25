@@ -62,3 +62,35 @@ export function getPxbSelectionUrl(): string {
   }
   return url.toString();
 }
+
+/** 与老站 PageHeight.js 对齐的额外缓冲（px） */
+export const PXB_IFRAME_HEIGHT_BUFFER = 20;
+
+/** 列表内容变化时触发高度重算（分页、筛选结果等） */
+export const PXB_CONTENT_RESIZE_EVENT = 'pxb-content-resize';
+
+export function dispatchPxbContentResize(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(PXB_CONTENT_RESIZE_EVENT));
+  }
+}
+
+/**
+ * 测量 #pxb_content 实际占用高度。
+ * offsetHeight 不含最后一个子元素的 bottom margin（margin collapse），
+ * iframe 按精确像素设高时会导致底部分页被裁切。
+ */
+export function measurePxbContentHeight(root: HTMLElement): number {
+  const rootRect = root.getBoundingClientRect();
+  let bottom = rootRect.bottom;
+
+  const last = root.lastElementChild;
+  if (last instanceof HTMLElement) {
+    const lastRect = last.getBoundingClientRect();
+    const marginBottom = parseFloat(window.getComputedStyle(last).marginBottom) || 0;
+    bottom = Math.max(bottom, lastRect.bottom + marginBottom);
+  }
+
+  const contentHeight = Math.ceil(bottom - rootRect.top);
+  return Math.max(contentHeight, root.scrollHeight, root.offsetHeight) + PXB_IFRAME_HEIGHT_BUFFER;
+}

@@ -1,9 +1,9 @@
 /**
- * 培训宝 iframe 公开课列表 — 样式在新项目内自包含，不依赖老站 CDN。
- * 作用域：.pxb-open-course
+ * PXB iframe course list styles (open + internal).
+ * Scope: .pxb-course-list
  */
 
-.pxb-open-course {
+.pxb-course-list {
   --pxb-primary: #47cccc;
   --pxb-primary-hover: #47a8a8;
   --pxb-link: #006cbf;
@@ -18,32 +18,33 @@
   color: #333;
   line-height: 1.5;
   box-sizing: border-box;
+  padding-right: 10px;
 }
 
-.pxb-open-course *,
-.pxb-open-course *::before,
-.pxb-open-course *::after {
+.pxb-course-list *,
+.pxb-course-list *::before,
+.pxb-course-list *::after {
   box-sizing: border-box;
 }
 
-.pxb-open-course a {
+.pxb-course-list a {
   color: var(--pxb-link);
   text-decoration: none;
 }
 
-.pxb-open-course a:hover {
+.pxb-course-list a:hover {
   color: var(--pxb-link-hover);
   text-decoration: underline;
 }
 
-/* ---------- 筛选区 ---------- */
-.pxb-open-course .pxb-insearch {
+/* ---------- filters ---------- */
+.pxb-course-list .pxb-insearch {
   border: 1px solid var(--pxb-border);
   margin: 18px 0 24px;
   width: 100%;
 }
 
-.pxb-open-course .pxb-search-box {
+.pxb-course-list .pxb-search-box {
   height: 60px;
   line-height: 58px;
   border-bottom: 1px solid var(--pxb-border);
@@ -51,7 +52,7 @@
   font-size: 14px;
 }
 
-.pxb-open-course .pxb-search-box input#keywords {
+.pxb-course-list .pxb-search-box input#keywords {
   width: 240px;
   height: 26px;
   line-height: 26px;
@@ -62,12 +63,12 @@
   font-size: 14px;
 }
 
-.pxb-open-course .pxb-search-box input#keywords:focus {
+.pxb-course-list .pxb-search-box input#keywords:focus {
   border-color: var(--pxb-primary);
   outline: none;
 }
 
-.pxb-open-course .pxb-search-btn {
+.pxb-course-list .pxb-search-btn {
   display: inline-block;
   cursor: pointer;
   color: #fff;
@@ -82,28 +83,28 @@
   background: var(--pxb-primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E") no-repeat 18px center;
 }
 
-.pxb-open-course .pxb-search-btn:hover {
+.pxb-course-list .pxb-search-btn:hover {
   background-color: var(--pxb-primary-hover);
 }
 
-.pxb-open-course .pxb-search-content {
+.pxb-course-list .pxb-search-content {
   padding: 10px 20px;
 }
 
-.pxb-open-course .pxb-filter-row {
+.pxb-course-list .pxb-filter-row {
   min-height: 30px;
   line-height: 30px;
   overflow: visible;
   clear: both;
 }
 
-.pxb-open-course .pxb-filter-row::after {
+.pxb-course-list .pxb-filter-row::after {
   content: '';
   display: table;
   clear: both;
 }
 
-.pxb-open-course .pxb-filter-label {
+.pxb-course-list .pxb-filter-label {
   float: left;
   width: 80px;
   text-align: right;
@@ -112,7 +113,7 @@
   color: #333;
 }
 
-.pxb-open-course .pxb-filter-value {
+.pxb-course-list .pxb-filter-value {
   float: left;
   width: calc(100% - 80px);
   padding-left: 8px;
@@ -120,13 +121,13 @@
   overflow: visible;
 }
 
-.pxb-open-course .pxb-filter-group {
+.pxb-course-list .pxb-filter-group {
   position: relative;
   min-height: 35px;
   padding-right: 56px;
 }
 
-.pxb-open-course span.pxb-filter-chip {
+.pxb-course-list span.pxb-filter-chip {
   display: inline-block;
   margin-right: 11px;
   cursor: pointer;
@@ -142,29 +143,29 @@
   white-space: nowrap;
 }
 
-.pxb-open-course span.pxb-filter-chip:hover {
+.pxb-course-list span.pxb-filter-chip:hover {
   color: #006cb8;
 }
 
-.pxb-open-course span.pxb-filter-chip.is-selected {
+.pxb-course-list span.pxb-filter-chip.is-selected {
   background-color: #e3f1f3;
   color: #006cb8;
   padding: 5px 8px;
   border-radius: 4px;
 }
 
-.pxb-open-course .pxb-more-anchor {
+.pxb-course-list .pxb-more-anchor {
   position: absolute;
   right: 0;
   top: 0;
   display: inline-block;
 }
 
-.pxb-open-course .pxb-more-anchor.is-open {
+.pxb-course-list .pxb-more-anchor.is-open {
   z-index: 20;
 }
 
-.pxb-open-course .pxb-more-trigger {
+.pxb-course-list .pxb-more-trigger {
   cursor: pointer;
   display: inline-block;
   color: #333;
@@ -174,11 +175,11 @@
   white-space: nowrap;
 }
 
-.pxb-open-course .pxb-more-trigger:hover {
+.pxb-course-list .pxb-more-trigger:hover {
   color: #006cb8;
 }
 
-.pxb-open-course .pxb-more-panel {
+.pxb-course-list .pxb-more-panel {
   display: none;
   position: absolute;
   right: 0;
@@ -193,7 +194,7 @@
   box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
 }
 
-.pxb-open-course .pxb-more-panel::before {
+.pxb-course-list .pxb-more-panel::before {
   content: '';
   position: absolute;
   left: -48px;
@@ -202,11 +203,11 @@
   height: 16px;
 }
 
-.pxb-open-course .pxb-more-panel.is-open {
+.pxb-course-list .pxb-more-panel.is-open {
   display: block;
 }
 
-.pxb-open-course .pxb-sub-panel {
+.pxb-course-list .pxb-sub-panel {
   line-height: 25px;
   border: 1px solid #d7d7d7;
   background: #f9f9f9;
@@ -215,7 +216,7 @@
   border-radius: 4px;
 }
 
-.pxb-open-course .pxb-inline-controls {
+.pxb-course-list .pxb-inline-controls {
   display: inline-flex;
   align-items: center;
   flex-wrap: nowrap;
@@ -225,18 +226,18 @@
   white-space: nowrap;
 }
 
-.pxb-open-course .pxb-range-sep {
+.pxb-course-list .pxb-range-sep {
   margin: 0 4px;
   color: #666;
 }
 
-.pxb-open-course .pxb-date-field {
+.pxb-course-list .pxb-date-field {
   position: relative;
   display: inline-block;
   vertical-align: middle;
 }
 
-.pxb-open-course .pxb-date-input {
+.pxb-course-list .pxb-date-input {
   width: 86px;
   height: 20px;
   line-height: 18px;
@@ -250,12 +251,12 @@
   cursor: pointer;
 }
 
-.pxb-open-course .pxb-date-input:focus {
+.pxb-course-list .pxb-date-input:focus {
   border-color: #47cccc;
   outline: none;
 }
 
-.pxb-open-course .pxb-date-popup {
+.pxb-course-list .pxb-date-popup {
   position: absolute;
   top: calc(100% + 2px);
   left: 0;
@@ -266,7 +267,7 @@
   padding: 6px 8px 4px;
 }
 
-.pxb-open-course .pxb-day-picker {
+.pxb-course-list .pxb-day-picker {
   --rdp-day-height: 26px;
   --rdp-day-width: 26px;
   --rdp-day_button-height: 24px;
@@ -277,31 +278,31 @@
   margin: 0;
 }
 
-.pxb-open-course .pxb-day-picker .rdp-months {
+.pxb-course-list .pxb-day-picker .rdp-months {
   justify-content: center;
 }
 
-.pxb-open-course .pxb-day-picker .rdp-dropdowns {
+.pxb-course-list .pxb-day-picker .rdp-dropdowns {
   font-size: 12px;
 }
 
-.pxb-open-course .pxb-day-picker .rdp-day_button {
+.pxb-course-list .pxb-day-picker .rdp-day_button {
   font-size: 12px;
   border-radius: 2px;
 }
 
-.pxb-open-course .pxb-day-picker .rdp-selected .rdp-day_button {
+.pxb-course-list .pxb-day-picker .rdp-selected .rdp-day_button {
   background: #47cccc;
   color: #fff;
   border-color: #47cccc;
 }
 
-.pxb-open-course .pxb-day-picker .rdp-today:not(.rdp-selected) .rdp-day_button {
+.pxb-course-list .pxb-day-picker .rdp-today:not(.rdp-selected) .rdp-day_button {
   border: 1px solid #47cccc;
   color: #47cccc;
 }
 
-.pxb-open-course .pxb-date-popup-actions {
+.pxb-course-list .pxb-date-popup-actions {
   display: flex;
   justify-content: center;
   gap: 8px;
@@ -310,7 +311,7 @@
   padding-top: 6px;
 }
 
-.pxb-open-course .pxb-date-popup-actions button {
+.pxb-course-list .pxb-date-popup-actions button {
   min-width: 40px;
   height: 22px;
   line-height: 20px;
@@ -324,12 +325,12 @@
   padding: 0 8px;
 }
 
-.pxb-open-course .pxb-date-popup-actions button:hover {
+.pxb-course-list .pxb-date-popup-actions button:hover {
   background: #e0e0e0;
   border-color: #888;
 }
 
-.pxb-open-course .pxb-mini-input {
+.pxb-course-list .pxb-mini-input {
   width: 50px;
   height: 20px;
   line-height: 18px;
@@ -343,12 +344,12 @@
   vertical-align: middle;
 }
 
-.pxb-open-course .pxb-mini-input:focus {
+.pxb-course-list .pxb-mini-input:focus {
   border-color: #47cccc;
   outline: none;
 }
 
-.pxb-open-course button.pxb-confirm-btn {
+.pxb-course-list button.pxb-confirm-btn {
   display: inline-block;
   min-width: 36px;
   height: 20px;
@@ -367,31 +368,31 @@
   vertical-align: middle;
 }
 
-.pxb-open-course button.pxb-confirm-btn:hover {
+.pxb-course-list button.pxb-confirm-btn:hover {
   background: #e0e0e0;
   border-color: #888;
   color: #333;
 }
 
-.pxb-open-course .pxb-reset-link {
+.pxb-course-list .pxb-reset-link {
   float: right;
   margin-top: -22px;
   padding-right: 10px;
 }
 
-.pxb-open-course .pxb-reset-link a {
+.pxb-course-list .pxb-reset-link a {
   color: #666;
   font-size: 12px;
 }
 
-/* ---------- 排序栏 ---------- */
-.pxb-open-course .pxb-sort-bar {
+/* ---------- sort bar ---------- */
+.pxb-course-list .pxb-sort-bar {
   border-bottom: 1px solid #ccc;
   background: #fff;
   margin-bottom: 4px;
 }
 
-.pxb-open-course .pxb-sort-bar ul {
+.pxb-course-list .pxb-sort-bar ul {
   list-style: none;
   margin: 0;
   padding: 8px 0;
@@ -400,13 +401,13 @@
   flex-wrap: wrap;
 }
 
-.pxb-open-course .pxb-sort-bar li {
+.pxb-course-list .pxb-sort-bar li {
   font-size: 14px;
   color: #666;
   line-height: 20px;
 }
 
-.pxb-open-course .pxb-sort-bar li a {
+.pxb-course-list .pxb-sort-bar li a {
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -417,14 +418,14 @@
   vertical-align: middle;
 }
 
-.pxb-open-course .pxb-sort-bar li a:hover,
-.pxb-open-course .pxb-sort-bar li a.is-active {
+.pxb-course-list .pxb-sort-bar li a:hover,
+.pxb-course-list .pxb-sort-bar li a.is-active {
   color: var(--pxb-sort-active);
   background: #fff;
 }
 
-.pxb-open-course .pxb-sort-bar li a.sort-asc i,
-.pxb-open-course .pxb-sort-bar li a.sort-desc i {
+.pxb-course-list .pxb-sort-bar li a.sort-asc i,
+.pxb-course-list .pxb-sort-bar li a.sort-desc i {
   display: block;
   width: 10px;
   height: 10px;
@@ -433,38 +434,38 @@
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23ff9a57' d='M5 1 L9 6 H1 Z'/%3E%3C/svg%3E") no-repeat center / contain;
 }
 
-.pxb-open-course .pxb-sort-bar li a.sort-desc i {
+.pxb-course-list .pxb-sort-bar li a.sort-desc i {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23ff9a57' d='M5 9 L1 4 H9 Z'/%3E%3C/svg%3E");
 }
 
-.pxb-open-course .pxb-sort-bar li a:not(.sort-asc):not(.sort-desc) i {
+.pxb-course-list .pxb-sort-bar li a:not(.sort-asc):not(.sort-desc) i {
   display: none;
 }
 
-/* ---------- 列表项 ---------- */
-.pxb-open-course .pxb-course-item {
+/* ---------- list items ---------- */
+.pxb-course-list .pxb-course-item {
   width: 100%;
   border-bottom: 1px solid var(--pxb-border);
   padding-bottom: 10px;
   margin-bottom: 0;
 }
 
-.pxb-open-course .pxb-course-item:hover {
+.pxb-course-list .pxb-course-item:hover {
   background: #f4faff;
 }
 
-.pxb-open-course .pxb-course-top {
+.pxb-course-list .pxb-course-top {
   overflow: hidden;
   height: 42px;
   line-height: 42px;
 }
 
-.pxb-open-course .pxb-course-title-wrap {
+.pxb-course-list .pxb-course-title-wrap {
   float: left;
   width: calc(100% - 270px);
 }
 
-.pxb-open-course .pxb-course-title {
+.pxb-course-list .pxb-course-title {
   float: left;
   font-size: 16px;
   color: var(--pxb-link);
@@ -476,64 +477,63 @@
   white-space: nowrap;
 }
 
-.pxb-open-course .pxb-course-meta {
+.pxb-course-list .pxb-course-meta {
   float: right;
   width: 270px;
   text-align: right;
   font-size: 12px;
 }
 
-.pxb-open-course .pxb-hit {
+.pxb-course-list .pxb-hit {
   color: var(--pxb-hit);
 }
 
-.pxb-open-course .pxb-stars {
+.pxb-course-list .pxb-stars {
   display: inline-flex;
   gap: 1px;
   vertical-align: middle;
   margin-left: 4px;
 }
 
-.pxb-open-course .pxb-star {
+.pxb-course-list .pxb-star {
   color: #ddd;
   font-size: 14px;
   line-height: 1;
 }
 
-.pxb-open-course .pxb-star.is-filled {
+.pxb-course-list .pxb-star.is-filled {
   color: #f5a623;
 }
 
-.pxb-open-course .pxb-course-body {
+.pxb-course-list .pxb-course-body {
   border: 1px solid #e6e6e6;
   background: #f9f9f9;
   padding: 10px 20px;
   margin-top: 4px;
 }
 
-.pxb-open-course .pxb-course-grid {
+.pxb-course-list .pxb-course-grid {
   overflow: hidden;
 }
 
-.pxb-open-course .pxb-grid-cell {
+.pxb-course-list .pxb-grid-cell {
   float: left;
-  /*height: 27px;*/
   line-height: 21px;
   font-size: 12px;
 }
 
-.pxb-open-course .pxb-grid-cell.w260 { width: 34%; }
-.pxb-open-course .pxb-grid-cell.w160 { width: 22%; }
-.pxb-open-course .pxb-grid-cell.w290 { width: 44%; }
+.pxb-course-list .pxb-grid-cell.w260 { width: 34%; }
+.pxb-course-list .pxb-grid-cell.w160 { width: 22%; }
+.pxb-course-list .pxb-grid-cell.w290 { width: 44%; }
 
-.pxb-open-course .pxb-keywords {
+.pxb-course-list .pxb-keywords {
   margin-top: 6px;
   font-size: 12px;
   color: #666;
   clear: both;
 }
 
-.pxb-open-course .pxb-empty {
+.pxb-course-list .pxb-empty {
   padding: 30px 0;
   text-align: center;
   font-size: 14px;
@@ -541,17 +541,19 @@
   background: #fff;
 }
 
-.pxb-open-course .pxb-pagination {
+.pxb-course-list .pxb-pagination {
   margin: 10px 0;
+  padding-bottom: 4px;
   font-size: 12px;
   text-align: right;
+  line-height: 20px;
 }
 
-.pxb-open-course .pxb-pagination a {
+.pxb-course-list .pxb-pagination a {
   margin: 0 4px;
   color: #666;
 }
 
-.pxb-open-course .pxb-pagination strong {
+.pxb-course-list .pxb-pagination strong {
   margin: 0 4px;
 }
