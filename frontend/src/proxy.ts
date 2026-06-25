@@ -1,9 +1,34 @@
 import createMiddleware from 'next-intl/middleware';
 import { routing } from '@/i18n/routing';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
+import { PXB_EMBED_HEADER, PXB_ORIGIN_VALUE } from '@/lib/pxb-embed';
 
 const intlMiddleware = createMiddleware(routing);
+
+function pxbEmbedRequestHeaders(request: NextRequest): Headers {
+  const requestHeaders = new Headers(request.headers);
+  if (request.nextUrl.searchParams.get('origin') === PXB_ORIGIN_VALUE) {
+    requestHeaders.set(PXB_EMBED_HEADER, '1');
+  }
+  return requestHeaders;
+}
+
+function rewriteKeepingQuery(request: NextRequest, pathname: string) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  return NextResponse.rewrite(url, {
+    request: { headers: pxbEmbedRequestHeaders(request) },
+  });
+}
+
+function runIntlMiddleware(request: NextRequest) {
+  const headers = pxbEmbedRequestHeaders(request);
+  return intlMiddleware(
+    new NextRequest(request.url, {
+      headers,
+    }),
+  );
+}
 
 /**
  * proxy: 所有频道页和详情页 SEO URL 用 rewrite 内部转换，
@@ -16,25 +41,30 @@ export function proxy(request: NextRequest) {
   // 老站录播播放页: /video_play/17946.htm → /videos/17946/play
   const videoPlayMatch = pathname.match(/^\/video_play\/(\d+)(?:\.htm)?$/);
   if (videoPlayMatch) {
-    return NextResponse.rewrite(
-      new URL(`/${locale}/videos/${videoPlayMatch[1]}/play`, request.url),
+    return rewriteKeepingQuery(
+      request,
+      `/${locale}/videos/${videoPlayMatch[1]}/play`,
     );
   }
 
   // 城市频道 SEO: /city/shanghai → /zh-CN/cities/shanghai
   const cityHomeMatch = pathname.match(/^\/city\/([a-z0-9-]+)$/);
   if (cityHomeMatch) {
-    return NextResponse.rewrite(
-      new URL(`/${locale}/cities/${cityHomeMatch[1]}`, request.url),
-    );
+    return rewriteKeepingQuery(request, `/${locale}/cities/${cityHomeMatch[1]}`);
   }
 
   // 城市子频道: /city/shanghai/opencourse → /zh-CN/city/shanghai/opencourse
   const citySubMatch = pathname.match(/^\/city\/([a-z0-9-]+)\/(opencourse|institutions|trainers)$/);
   if (citySubMatch) {
-    return NextResponse.rewrite(
-      new URL(`/${locale}/city/${citySubMatch[1]}/${citySubMatch[2]}`, request.url),
+    return rewriteKeepingQuery(
+      request,
+      `/${locale}/city/${citySubMatch[1]}/${citySubMatch[2]}`,
     );
+  }
+
+  // 培训宝 iframe：/company/list.htm → 机构列表
+  if (pathname === '/company/list.htm') {
+    return rewriteKeepingQuery(request, `/${locale}/institutions`);
   }
 
   // 去s → 带s 内部路由映射
@@ -50,9 +80,7 @@ export function proxy(request: NextRequest) {
 
   // 精确匹配频道页: /trainer → rewrite → /zh-CN/trainers (地址栏不变，保留 query)
   if (map[pathname]) {
-    const url = request.nextUrl.clone();
-    url.pathname = `/${locale}${map[pathname]}`;
-    return NextResponse.rewrite(url);
+    return rewriteKeepingQuery(request, `/${locale}${map[pathname]}`);
   }
 
   // 案例详情: /case/123(.htm) → /zh-CN/cases/123
@@ -125,7 +153,7 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  return intlMiddleware(request);
+  return runIntlMiddleware(request);
 }
 
 export const config = {

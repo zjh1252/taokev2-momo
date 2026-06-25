@@ -10,6 +10,20 @@ const nextConfig = {
   output: 'standalone' as const,
   reactCompiler: true,
   transpilePackages: ['video.js'],
+  async headers() {
+    return [
+      {
+        source: '/opencourse',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value:
+              "frame-ancestors 'self' http://*.91pxb.com https://*.91pxb.com http://*.taoke.com https://*.taoke.com http://localhost:* http://127.0.0.1:*",
+          },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

@@ -1,0 +1,30 @@
+/** 培训宝 iframe 嵌入页：仅保留最小布局重置 */
+
+body.pxb-embed-active {
+  display: block !important;
+  min-height: auto !important;
+  margin: 0;
+  padding: 0;
+  background: #fff !important;
+  font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+}
+
+body.pxb-embed-active .pxb-embed-main {
+  display: block !important;
+  flex: none !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: #fff !important;
+}
+
+/* 抵消 Tailwind preflight 对 embed 筛选项的覆盖 */
+body.pxb-embed-active .pxb-open-course span.pxb-filter-chip.is-selected {
+  background-color: #e3f1f3 !important;
+  color: #006cb8 !important;
+}
+
+body.pxb-embed-active .pxb-open-course button.pxb-confirm-btn {
+  appearance: none;
+  background-color: #ececec;
+}
