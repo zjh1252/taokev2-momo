@@ -27,7 +27,7 @@ BEGIN
         WHERE table_schema = DATABASE() AND table_name = 'video_package_groups' AND column_name = 'item_index'
     ) THEN
         ALTER TABLE video_package_groups
-            ADD COLUMN item_index TINYINT NOT NULL DEFAULT 0 COMMENT '排序（老站 item_index）' AFTER serial_index;
+            ADD COLUMN item_index TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '排序（老站 item_index）' AFTER serial_index;
     END IF;
 
     IF NOT EXISTS (
