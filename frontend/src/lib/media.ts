@@ -1,4 +1,5 @@
 import { getApiBaseUrl, getCdnBaseUrl } from '@/lib/env/client';
+import { tryResolveLegacyStaticAssetUrl } from '@/lib/legacy-static-asset';
 
 /** 图片加载失败或无 URL 时的占位（由后台素材库解析，前端不再使用本地默认图） */
 export const EMPTY_IMAGE_SRC = '';
@@ -180,7 +181,14 @@ function resolveImageSrcRaw(
   const value = src.trim();
 
   if (value.startsWith('//')) {
-    return normalizeHttpCoverUrl(`https:${value}`);
+    const protocolRelative = normalizeHttpCoverUrl(`https:${value}`);
+    const legacy = tryResolveLegacyStaticAssetUrl(protocolRelative);
+    return legacy ?? protocolRelative;
+  }
+
+  const legacyStatic = tryResolveLegacyStaticAssetUrl(value);
+  if (legacyStatic) {
+    return normalizeHttpCoverUrl(legacyStatic);
   }
 
   if (value.startsWith('http://') || value.startsWith('https://')) {
@@ -208,12 +216,9 @@ function resolveImageSrcRaw(
     if (legacyPath.startsWith('/data/attachment/')) {
       return joinBase('https://www.91pxb.com', legacyPath);
     }
+    const proxyLegacy = tryResolveLegacyStaticAssetUrl(legacyPath);
+    if (proxyLegacy) return normalizeHttpCoverUrl(proxyLegacy);
     return joinBase(LEGACY_ASSET_BASE, legacyPath);
-  }
-
-  // 旧站绝对路径：/attachments/、/u/ 拼旧站域名直连
-  if (value.startsWith('/attachments/') || value.startsWith('/u/')) {
-    return joinBase(LEGACY_ASSET_BASE, value);
   }
 
   // v2 本地上传目录（storage.base-dir → frontend/public）
@@ -228,10 +233,12 @@ function resolveImageSrcRaw(
     }
   }
 
-  // /statics 由 Next 本地 public 或 ingress 静态目录提供，保持相对路径
+  // /statics 本地占位与站点静态资源；迁移讲师图已在 tryResolveLegacyStaticAssetUrl 处理
   if (value.startsWith('/')) return value;
 
   if (isLegacyRelativePath(value)) {
+    const legacy = tryResolveLegacyStaticAssetUrl(value);
+    if (legacy) return normalizeHttpCoverUrl(legacy);
     return joinBase(LEGACY_ASSET_BASE, value);
   }
 

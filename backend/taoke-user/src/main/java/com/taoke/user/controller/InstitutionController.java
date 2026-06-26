@@ -59,9 +59,12 @@ public class InstitutionController {
             @RequestParam(defaultValue = "default") String sort,
             @RequestParam(required = false) Boolean association,
             @RequestParam(required = false) Integer expertiseCategoryId,
+            @RequestParam(required = false) Integer industryCategoryId,
+            @RequestParam(required = false) Integer provinceId,
             @RequestParam(required = false) Integer cityId) {
         return ApiResponse.ok(institutionService.listPublic(
-                page, size, keyword, sort, association, expertiseCategoryId, cityId));
+                page, size, keyword, sort, association, expertiseCategoryId,
+                industryCategoryId, provinceId, cityId));
     }
 
     @Public

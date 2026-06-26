@@ -3,6 +3,7 @@ package com.taoke.course.repository.video;
 import com.taoke.course.entity.video.Video;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
@@ -44,4 +45,20 @@ public interface VideoRepository extends JpaRepository<Video, Integer>, JpaSpeci
             "SELECT v.publisherId, COUNT(v) FROM Video v WHERE v.publisherId IN :ids GROUP BY v.publisherId")
     List<Object[]> countGroupByPublisherIds(
             @org.springframework.data.repository.query.Param("ids") java.util.Collection<Integer> ids);
+
+    @Query("""
+            SELECT v FROM Video v
+            WHERE v.status = 2 AND (v.isFeatured = 1 OR v.stickyPriority > 0)
+            ORDER BY v.sortOrder DESC, v.id DESC
+            """)
+    List<Video> findLegacyFeaturedVideos(Pageable pageable);
+
+    @Query("""
+            SELECT v FROM Video v
+            WHERE v.status = 2
+            ORDER BY v.sortOrder DESC, v.id DESC
+            """)
+    List<Video> findLegacyPublishedVideos(Pageable pageable);
+
+    Optional<Video> findFirstByPxbSupplierIdAndLegacyVType(Integer pxbSupplierId, Integer legacyVType);
 }

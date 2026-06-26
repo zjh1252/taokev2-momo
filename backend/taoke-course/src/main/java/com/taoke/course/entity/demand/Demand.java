@@ -98,6 +98,34 @@ public class Demand extends BaseEntity {
     @Column(name = "contact_phone", length = 30)
     private String contactPhone;
 
+    /** 公司名称 */
+    @Column(name = "company_name", length = 200)
+    private String companyName;
+
+    /** 联系邮箱 */
+    @Column(name = "contact_email", length = 100)
+    private String contactEmail;
+
+    /** 公司电话 */
+    @Column(name = "company_tel", length = 30)
+    private String companyTel;
+
+    /** 擅长领域一级分类 ID（公开课） */
+    @Column(name = "expertise_category_id")
+    private Integer expertiseCategoryId;
+
+    /** 期望方案数（内训课） */
+    @Column(name = "expected_proposal_count")
+    private Integer expectedProposalCount;
+
+    /** 指定讲师 ID */
+    @Column(name = "source_trainer_id")
+    private Integer sourceTrainerId;
+
+    /** 课程种类：OPEN / INTERNAL */
+    @Column(name = "course_kind", length = 20)
+    private String courseKind;
+
     /** 省份 ID */
     @Column(name = "province_id")
     private Integer provinceId;

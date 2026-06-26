@@ -2,15 +2,28 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
-const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080').replace(
-  /\/$/,
-  '',
-);
+const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8080')
+  .replace(/\/$/, '')
+  .replace('://localhost:', '://127.0.0.1:');
 
 const nextConfig = {
   output: 'standalone' as const,
   reactCompiler: true,
   transpilePackages: ['video.js'],
+  async headers() {
+    return [
+      {
+        source: '/opencourse',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value:
+              "frame-ancestors 'self' http://*.91pxb.com https://*.91pxb.com http://*.taoke.com https://*.taoke.com http://localhost:* http://127.0.0.1:*",
+          },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
@@ -45,6 +58,8 @@ const nextConfig = {
       { protocol: 'https' as const, hostname: 'www.taoke.com', pathname: '/**' },
       { protocol: 'https' as const, hostname: 'taoke.com', pathname: '/**' },
       { protocol: 'https' as const, hostname: 'cdn-static.taoke.com', pathname: '/**' },
+      { protocol: 'http' as const, hostname: 'cdn.test.taoke.com', pathname: '/**' },
+      { protocol: 'https' as const, hostname: 'cdn.test.taoke.com', pathname: '/**' },
       { protocol: 'https' as const, hostname: 'cdn5-pxb-videos.taoke.com', pathname: '/**' },
       // 老库录播课封面常见域名（迁移数据）
       { protocol: 'https' as const, hostname: 'www.91pxb.com', pathname: '/**' },

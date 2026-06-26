@@ -1,12 +1,17 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { TrainerListSection } from '@/features/trainer/components/list/TrainerListSection';
+import { PxbTrainerListSection } from '@/features/trainer/components/pxb/PxbTrainerListSection';
+import {
+  parsePxbTrainerListUrl,
+  pxbTrainerListParams,
+} from '@/features/trainer/components/pxb/pxb-trainer-list-url';
 import { parseListPageFromSearchParams } from '@/lib/list-page';
 import { parseSlug } from '@/features/trainer/utils/url';
 import { getTrainerList } from '@/features/trainer/api/service';
 import {
   loadCategoryExpertTrainers,
   loadTrainerListRecommended,
-  loadTrainerPageCases
+  loadTrainerPageCases,
 } from '@/features/recommendation/api/loaders';
 import { resolveExpertiseCategoryId } from '@/features/trainer/utils/expertise-categories';
 import { buildTrainerCategoryNavItems } from '@/lib/channel-category-stats';
@@ -14,16 +19,46 @@ import {
   getCachedTrainerExpertiseTree,
   getCachedTrainerIndustryTree,
 } from '@/lib/cached-categories';
+import { isPxbEmbedOrigin } from '@/lib/pxb-embed';
 import { trainerListMetadata, trainerListH1 } from '@/lib/seo';
 import { filterStandardTrainerExpertiseTree } from '@/features/trainer/utils/expertise-categories';
 import { slugParamsToTrainerListParams } from '@/features/trainer/utils/list-params';
 
+function embedSearchParams(
+  sp: Record<string, string | string[] | undefined>,
+): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    if (key === 'origin' || value == null) continue;
+    if (Array.isArray(value)) {
+      value.forEach((v) => params.append(key, v));
+    } else {
+      params.set(key, value);
+    }
+  }
+  return params;
+}
+
 type TrainersPageProps = {
-  searchParams: Promise<{ page?: string; slug?: string }>;
+  searchParams: Promise<{
+    origin?: string;
+    page?: string;
+    slug?: string;
+    keyword?: string;
+    expertiseCategoryId?: string;
+    industryCategoryId?: string;
+    provinceId?: string;
+    cityId?: string;
+    quality?: string;
+    sortBy?: string;
+  }>;
 };
 
 export async function generateMetadata({ searchParams }: TrainersPageProps) {
   const sp = await searchParams;
+  if (isPxbEmbedOrigin(sp.origin)) {
+    return { title: '讲师列表' };
+  }
   const slugParams = parseSlug(sp.slug || '');
   return trainerListMetadata({
     city: slugParams.region,
@@ -34,14 +69,39 @@ export async function generateMetadata({ searchParams }: TrainersPageProps) {
 
 export default async function TrainersPage({ searchParams }: TrainersPageProps) {
   const sp = await searchParams;
+  const rawExpertiseTreePromise = getCachedTrainerExpertiseTree();
+  const expertiseTreePromise = rawExpertiseTreePromise.then(filterStandardTrainerExpertiseTree);
+  const industryTreePromise = getCachedTrainerIndustryTree();
+
+  if (isPxbEmbedOrigin(sp.origin)) {
+    const urlState = parsePxbTrainerListUrl(embedSearchParams(sp));
+    const [initialData, expertiseTree, industryTree] = await Promise.all([
+      getTrainerList(pxbTrainerListParams(urlState)).catch(() => ({
+        list: [],
+        total: 0,
+        page: urlState.page,
+        size: 15,
+        totalPages: 0,
+      })),
+      expertiseTreePromise,
+      industryTreePromise,
+    ]);
+
+    return (
+      <PxbTrainerListSection
+        initialData={initialData}
+        expertiseTree={expertiseTree}
+        industryTree={industryTree}
+      />
+    );
+  }
+
   const page = parseListPageFromSearchParams(
     new URLSearchParams(sp.page != null ? `page=${sp.page}` : ''),
   );
 
   const slugParams = parseSlug(sp.slug || '');
 
-  const rawExpertiseTreePromise = getCachedTrainerExpertiseTree();
-  const expertiseTreePromise = rawExpertiseTreePromise.then(filterStandardTrainerExpertiseTree);
   const categoryNavPromise = expertiseTreePromise.then(buildTrainerCategoryNavItems).catch(() => []);
 
   const listPromise = Promise.all([
@@ -66,7 +126,7 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
   const [expertiseTree, industryTree, recommendedTrainers, recentCases, initialData, categoryExpertTrainers] =
     await Promise.all([
       expertiseTreePromise,
-      getCachedTrainerIndustryTree(),
+      industryTreePromise,
       loadTrainerListRecommended(9),
       loadTrainerPageCases(10),
       listPromise,

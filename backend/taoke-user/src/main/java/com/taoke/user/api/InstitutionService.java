@@ -63,12 +63,15 @@ public interface InstitutionService {
      * @param sort        排序方式：default / popularity / newly_joined
      * @param association           可选筛选：是否培训协会（null=不过滤）
      * @param expertiseCategoryId   擅长领域一级分类 ID（匹配 specialties 逗号串）
+     * @param industryCategoryId    擅长行业一级分类 ID（匹配 industries 逗号串）
+     * @param provinceId            省份 ID（可选）
      * @param cityId                城市 ID（可选，匹配机构所在城市）
      * @return 分页结果
      */
     PageResponse<InstitutionListItemResponse> listPublic(int page, int size, String keyword, String sort,
                                                        Boolean association, Integer expertiseCategoryId,
-                                                       Integer cityId);
+                                                       Integer industryCategoryId,
+                                                       Integer provinceId, Integer cityId);
 
     /**
      * 获取机构公开详情。

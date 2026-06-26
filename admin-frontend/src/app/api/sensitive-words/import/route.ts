@@ -1,7 +1,6 @@
+import { getBackendUrl } from '@/lib/backend-url';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
@@ -14,7 +13,7 @@ export async function POST(request: NextRequest) {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const res = await fetch(`${BACKEND_URL}/admin/sensitive-words/import`, {
+  const res = await fetch(`${getBackendUrl()}/admin/sensitive-words/import`, {
     method: 'POST',
     headers,
     body: formData

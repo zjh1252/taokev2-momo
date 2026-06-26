@@ -3,6 +3,7 @@ package com.taoke.course.repository.video;
 import com.taoke.course.entity.video.VideoPackageGroup;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -15,4 +16,8 @@ public interface VideoPackageGroupRepository extends JpaRepository<VideoPackageG
 
     Optional<VideoPackageGroup> findByPackageIdAndTopicIdAndParentId(
             Integer packageId, Integer topicId, Integer parentId);
+
+    List<VideoPackageGroup> findByParentId(Integer parentId);
+
+    Optional<VideoPackageGroup> findFirstByParentIdAndTopicId(Integer parentId, Integer topicId);
 }

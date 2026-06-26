@@ -8,7 +8,9 @@ import com.taoke.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 用户资料与账号相关能力（查询资料、修改资料、改密、改手机号、账号状态）。
@@ -98,6 +100,19 @@ public interface UserService {
      * @return 用户列表
      */
     List<User> findAllByIds(List<Integer> ids);
+
+    /**
+     * 按 UCenter 用户 ID（培训宝 cdbid / uc_uid）解析本地用户 ID。
+     *
+     * @param ucUid UCenter 用户 ID
+     * @return 本地 sys_users.id，未关联时 empty
+     */
+    Optional<Integer> findUserIdByUcUid(Integer ucUid);
+
+    /**
+     * 批量按 UCenter ID（培训宝 cdbid）解析本地用户 ID 列表。
+     */
+    List<Integer> findUserIdsByUcUids(Collection<Integer> ucUids);
 
     /**
      * 为爬虫导入创建系统用户（随机密码，默认 BUYER 角色）。

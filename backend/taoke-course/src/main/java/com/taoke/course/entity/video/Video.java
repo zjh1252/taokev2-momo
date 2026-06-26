@@ -150,4 +150,12 @@ public class Video extends BaseEntity {
     /** 上线时间 */
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
+
+    /** 培训宝共享课程外部 ID（老站 supplier_id / pxb_id） */
+    @Column(name = "pxb_supplier_id", nullable = false)
+    private Integer pxbSupplierId = 0;
+
+    /** 老站 v_type：6=培训宝共享视频 */
+    @Column(name = "legacy_v_type", nullable = false, columnDefinition = "tinyint")
+    private Integer legacyVType = 0;
 }
