@@ -39,7 +39,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
@@ -664,7 +663,7 @@ public class AdminCrawlService {
             request.setSortOrder(sortOrder++);
 
             try {
-                Integer caseId = trainerCaseService.createCase(trainerUserId, request).getId();
+                Integer caseId = trainerCaseService.createCase(trainerUserId, request, false).getId();
                 trainerCaseService.approve(caseId, 0);
             } catch (Exception e) {
                 log.warn("导入专家案例失败: trainerUserId={}, title={}, error={}", trainerUserId, request.getCaseTitle(), e.getMessage());
