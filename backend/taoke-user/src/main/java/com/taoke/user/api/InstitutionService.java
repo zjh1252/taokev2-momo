@@ -161,12 +161,4 @@ public interface InstitutionService {
      * @return 简化后的机构列表（id / userId / orgName / association / address）
      */
     List<Map<String, Object>> lookup(String keyword, int size);
-
-    /**
-     * 根据 userId 列表批量查询机构列表项（用于 C 端聚合接口）。
-     *
-     * @param userIds 用户 ID 列表
-     * @return 机构列表项（仅返回已发布的机构）
-     */
-    List<InstitutionListItemResponse> listByUserIds(List<Integer> userIds);
 }

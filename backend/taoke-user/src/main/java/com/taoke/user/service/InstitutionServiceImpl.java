@@ -655,20 +655,6 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     }
 
     @Override
-    public List<InstitutionListItemResponse> listByUserIds(List<Integer> userIds) {
-        if (userIds == null || userIds.isEmpty()) {
-            return List.of();
-        }
-        List<Institution> institutions = institutionRepository.findByUserIdIn(userIds)
-                .stream()
-                .filter(inst -> inst.getStatus() != null && inst.getStatus() == 1)
-                .toList();
-        return institutions.stream()
-                .map(institutionMapper::toListItemResponse)
-                .toList();
-    }
-
-    @Override
     public List<Map<String, Object>> lookup(String keyword, int size) {
         int limit = size > 0 ? Math.min(size, 50) : 20;
 

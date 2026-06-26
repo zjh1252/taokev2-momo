@@ -93,9 +93,9 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
     public TrainerCaseResponse updateCase(Integer userId, Integer caseId, SaveTrainerCaseRequest request, boolean draft) {
         Trainer trainer = getTrainerByUserId(userId);
         TrainerCase entity = getCaseAndCheckOwner(caseId, trainer.getId());
-        applyRequest(entity, request);
+        applyRequest(entity, request, draft);
         // 编辑后重新回到待审核状态（draft 模式不进入审核）
-        entity.setStatus(draft ? 1 : 0);
+        entity.setStatus(draft ? STATUS_DRAFT : 0);
         entity.setRejectReason("");
         entity.setReviewerId(null);
         entity.setReviewedAt(null);
