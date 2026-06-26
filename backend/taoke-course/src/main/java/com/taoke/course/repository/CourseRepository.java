@@ -1,6 +1,7 @@
 package com.taoke.course.repository;
 
 import com.taoke.course.entity.Course;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -90,7 +91,18 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
             AND c.courseOpenEndDate < :today
             """)
     List<Integer> findExpiredHideCandidateIds(@Param("today") LocalDate today);
-    List<Integer> findExpiredPublishedOpenCourseIds(@Param("now") LocalDateTime now);
+
+    /** 最近 N 天有上架课程的机构发布者 userId（按最近发课时间降序） */
+    @Query(value = """
+            SELECT c.publisher_id
+            FROM courses c
+            WHERE c.publisher_type = 'INSTITUTION'
+              AND c.status = 2
+              AND c.created_at >= :since
+            GROUP BY c.publisher_id
+            ORDER BY MAX(c.created_at) DESC
+            """, nativeQuery = true)
+    List<Integer> findRecentlyActiveInstitutionUserIds(@Param("since") LocalDateTime since, Pageable pageable);
 
     /** 已上架课程按专家 ID 批量计数 */
     @Query("""

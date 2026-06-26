@@ -134,6 +134,11 @@ public interface InstitutionService {
     List<Institution> findByUserIds(List<Integer> userIds);
 
     /**
+     * 按 userId 顺序返回公开展示的机构列表项（跳过不存在或未发布的机构）。
+     */
+    List<InstitutionListItemResponse> listByUserIds(List<Integer> userIds);
+
+    /**
      * 根据机构 ID 列表批量查询机构
      */
     List<Institution> findByIds(java.util.Collection<Integer> ids);

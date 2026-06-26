@@ -664,7 +664,7 @@ public class AdminCrawlService {
             request.setSortOrder(sortOrder++);
 
             try {
-                Integer caseId = trainerCaseService.createCase(trainerUserId, request).getId();
+                Integer caseId = trainerCaseService.createCase(trainerUserId, request, false).getId();
                 trainerCaseService.approve(caseId, 0);
             } catch (Exception e) {
                 log.warn("导入专家案例失败: trainerUserId={}, title={}, error={}", trainerUserId, request.getCaseTitle(), e.getMessage());

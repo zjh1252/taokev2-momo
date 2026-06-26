@@ -38,6 +38,8 @@ import java.util.Objects;
 public class TrainerCaseServiceImpl implements TrainerCaseService {
 
     private static final int BINDING_ACTIVE = 1;
+    /** 草稿状态（不进入后台审核列表） */
+    private static final int STATUS_DRAFT = 3;
 
     private final TrainerCaseRepository caseRepository;
     private final TrainerCaseFileRepository caseFileRepository;
@@ -72,13 +74,13 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
 
     @Override
     @Transactional
-    public TrainerCaseResponse createCase(Integer userId, SaveTrainerCaseRequest request) {
+    public TrainerCaseResponse createCase(Integer userId, SaveTrainerCaseRequest request, boolean draft) {
         Trainer trainer = getTrainerByUserId(userId);
         TrainerCase entity = new TrainerCase();
         entity.setTrainerId(trainer.getId());
-        applyRequest(entity, request);
+        applyRequest(entity, request, draft);
         entity.setAutoExtracted(false);
-        entity.setStatus(0);
+        entity.setStatus(draft ? STATUS_DRAFT : 0);
         entity.setRejectReason("");
         entity = caseRepository.save(entity);
         TrainerCaseResponse r = TrainerCaseResponse.from(entity);
@@ -88,15 +90,21 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
 
     @Override
     @Transactional
-    public TrainerCaseResponse updateCase(Integer userId, Integer caseId, SaveTrainerCaseRequest request) {
+    public TrainerCaseResponse updateCase(Integer userId, Integer caseId, SaveTrainerCaseRequest request, boolean draft) {
         Trainer trainer = getTrainerByUserId(userId);
         TrainerCase entity = getCaseAndCheckOwner(caseId, trainer.getId());
-        applyRequest(entity, request);
-        // 编辑后重新回到待审核状态
-        entity.setStatus(0);
-        entity.setRejectReason("");
-        entity.setReviewerId(null);
-        entity.setReviewedAt(null);
+        if (draft && entity.getStatus() != STATUS_DRAFT && entity.getStatus() != 2) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的案例可保存为草稿");
+        }
+        applyRequest(entity, request, draft);
+        if (draft) {
+            entity.setStatus(STATUS_DRAFT);
+        } else {
+            entity.setStatus(0);
+            entity.setRejectReason("");
+            entity.setReviewerId(null);
+            entity.setReviewedAt(null);
+        }
         entity = caseRepository.save(entity);
         TrainerCaseResponse r = TrainerCaseResponse.from(entity);
         r.setFiles(getFileResponses(entity.getId()));
@@ -340,11 +348,34 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
         return entity;
     }
 
-    private void applyRequest(TrainerCase entity, SaveTrainerCaseRequest req) {
+    private void applyRequest(TrainerCase entity, SaveTrainerCaseRequest req, boolean draft) {
+        if (draft) {
+            if (req.getCaseTitle() != null) entity.setCaseTitle(req.getCaseTitle());
+            else if (entity.getCaseTitle() == null) entity.setCaseTitle("");
+            if (req.getEnterpriseName() != null) entity.setEnterpriseName(req.getEnterpriseName());
+            else if (entity.getEnterpriseName() == null) entity.setEnterpriseName("");
+            if (req.getIndustry() != null) entity.setIndustry(req.getIndustry());
+            if (req.getTrainingTopic() != null) entity.setTrainingTopic(req.getTrainingTopic());
+            if (req.getKeyword() != null) entity.setKeyword(req.getKeyword());
+            if (req.getTrainingEffect() != null) entity.setTrainingEffect(req.getTrainingEffect());
+            if (req.getTraineeCount() != null) entity.setTraineeCount(req.getTraineeCount());
+            if (req.getProvinceId() != null) entity.setProvinceId(req.getProvinceId());
+            if (req.getCityId() != null) entity.setCityId(req.getCityId());
+            if (req.getDistrictId() != null) entity.setDistrictId(req.getDistrictId());
+            if (req.getTownId() != null) entity.setTownId(req.getTownId());
+            if (req.getTrainingAddress() != null) entity.setTrainingAddress(req.getTrainingAddress());
+            if (req.getTrainingDate() != null) entity.setTrainingDate(req.getTrainingDate());
+            if (req.getTrainingEndDate() != null) entity.setTrainingEndDate(req.getTrainingEndDate());
+            if (req.getDescription() != null) entity.setDescription(req.getDescription());
+            if (req.getCoverImage() != null) entity.setCoverImage(req.getCoverImage());
+            if (req.getSortOrder() != null) entity.setSortOrder(req.getSortOrder());
+            return;
+        }
         entity.setCaseTitle(req.getCaseTitle());
         entity.setEnterpriseName(req.getEnterpriseName());
         entity.setIndustry(req.getIndustry() != null ? req.getIndustry() : "");
         entity.setTrainingTopic(req.getTrainingTopic() != null ? req.getTrainingTopic() : "");
+        entity.setKeyword(req.getKeyword() != null ? req.getKeyword() : "");
         entity.setTrainingEffect(req.getTrainingEffect());
         entity.setTraineeCount(req.getTraineeCount());
         entity.setProvinceId(req.getProvinceId());
@@ -353,6 +384,7 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
         entity.setTownId(req.getTownId());
         entity.setTrainingAddress(req.getTrainingAddress());
         entity.setTrainingDate(req.getTrainingDate());
+        entity.setTrainingEndDate(req.getTrainingEndDate());
         entity.setDescription(req.getDescription());
         entity.setCoverImage(req.getCoverImage() != null ? req.getCoverImage() : "");
         entity.setSortOrder(req.getSortOrder() != null ? req.getSortOrder() : 0);

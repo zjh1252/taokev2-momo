@@ -139,11 +139,4 @@ public class TrainerCaseController {
             @RequestParam(defaultValue = "10") int limit) {
         return ApiResponse.ok(trainerCaseService.listRecentApproved(limit));
     }
-
-    @Public
-    @Operation(summary = "已审核案例详情（C端公开）")
-    @GetMapping("/trainer-cases/{id}")
-    public ApiResponse<TrainerCaseResponse> getApprovedCaseDetail(@PathVariable Integer id) {
-        return ApiResponse.ok(trainerCaseService.getApprovedCaseDetail(id));
-    }
 }

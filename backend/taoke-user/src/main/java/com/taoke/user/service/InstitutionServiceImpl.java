@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -603,6 +604,46 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             return List.of();
         }
         return institutionRepository.findByUserIdIn(userIds);
+    }
+
+    @Override
+    public List<InstitutionListItemResponse> listByUserIds(List<Integer> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        Map<Integer, Institution> byUserId = institutionRepository.findByUserIdIn(userIds).stream()
+                .filter(inst -> inst.getStatus() != null && inst.getStatus() == 1)
+                .collect(Collectors.toMap(Institution::getUserId, inst -> inst, (a, b) -> a));
+        List<Institution> ordered = userIds.stream()
+                .map(byUserId::get)
+                .filter(Objects::nonNull)
+                .toList();
+        if (ordered.isEmpty()) {
+            return List.of();
+        }
+        Set<Integer> regionIds = new HashSet<>();
+        for (Institution inst : ordered) {
+            if (inst.getProvinceId() != null && inst.getProvinceId() > 0) {
+                regionIds.add(inst.getProvinceId());
+            }
+            if (inst.getCityId() != null && inst.getCityId() > 0) {
+                regionIds.add(inst.getCityId());
+            }
+        }
+        Map<Integer, String> regionNameMap = regionIds.isEmpty()
+                ? Map.of()
+                : regionService.getNamesByIds(regionIds);
+        List<InstitutionListItemResponse> items = ordered.stream()
+                .map(inst -> {
+                    InstitutionListItemResponse item = institutionMapper.toListItemResponse(inst);
+                    item.setProvinceName(resolveRegionDisplayName(inst.getProvinceId(), regionNameMap));
+                    item.setCityName(resolveRegionDisplayName(inst.getCityId(), regionNameMap));
+                    return item;
+                })
+                .toList();
+        fillMissingLogos(ordered, items);
+        resolveCategoryDisplayNames(items);
+        return items;
     }
 
     @Override

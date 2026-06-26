@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
 public class TrainerHighlightServiceImpl implements TrainerHighlightService {
 
     private static final int BINDING_ACTIVE = 1;
+    /** 草稿状态（不进入后台审核列表） */
+    private static final int STATUS_DRAFT = 3;
 
     private final TrainerHighlightRepository highlightRepository;
     private final TrainerHighlightFileRepository highlightFileRepository;
@@ -71,7 +73,8 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     @Transactional
     public TrainerHighlightResponse createHighlight(Integer userId,
-                                                    SaveTrainerHighlightRequest request) {
+                                                    SaveTrainerHighlightRequest request,
+                                                    boolean draft) {
         PublisherScope scope = resolvePublisherScope(userId);
 
         TrainerHighlight h = new TrainerHighlight();
@@ -89,7 +92,7 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         h.setDuration(0);
         h.setFileSize(0L);
         h.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
-        h.setStatus(0);
+        h.setStatus(draft ? STATUS_DRAFT : 0);
         h.setViewCount(0);
         highlightRepository.save(h);
 
@@ -101,20 +104,30 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     @Transactional
     public TrainerHighlightResponse updateHighlight(Integer userId, Integer highlightId,
-                                                    SaveTrainerHighlightRequest request) {
+                                                    SaveTrainerHighlightRequest request,
+                                                    boolean draft) {
         PublisherScope scope = resolvePublisherScope(userId);
         TrainerHighlight h = highlightRepository.findById(highlightId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "精彩瞬间不存在"));
         requireOwnsHighlight(scope, h);
+
+        if (draft && h.getStatus() != STATUS_DRAFT && h.getStatus() != 2) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的精彩瞬间可保存为草稿");
+        }
 
         if (request.getTitle() != null) h.setTitle(request.getTitle());
         if (request.getDescription() != null) h.setDescription(request.getDescription());
         if (request.getCoverImage() != null) h.setCoverImage(request.getCoverImage());
         if (request.getSortOrder() != null) h.setSortOrder(request.getSortOrder());
 
-        // 修改后重新进入待审核
-        h.setStatus(0);
-        h.setRejectReason(null);
+        if (draft) {
+            h.setStatus(STATUS_DRAFT);
+        } else {
+            h.setStatus(0);
+            h.setRejectReason(null);
+            h.setReviewerId(null);
+            h.setReviewedAt(null);
+        }
         highlightRepository.save(h);
 
         return toResponseWithFiles(h);
