@@ -9,6 +9,8 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:check": "powershell -ExecutionPolicy Bypass -File ./scripts/check-backend.ps1",
+    "predev": "powershell -ExecutionPolicy Bypass -File ./scripts/check-backend.ps1 -WarnOnly",
     "build": "next build",
     "start": "next start",
     "lint": "oxlint",

@@ -18,7 +18,9 @@ import com.taoke.user.entity.Institution;
 import com.taoke.user.mapper.InstitutionMapper;
 import com.taoke.user.repository.InstitutionRepository;
 import com.taoke.user.repository.UserRepository;
+import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -102,10 +105,17 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                                                                  String keyword, String sort,
                                                                  Boolean association,
                                                                  Integer expertiseCategoryId,
+                                                                 Integer industryCategoryId,
+                                                                 Integer provinceId,
                                                                  Integer cityId) {
         Sort jpaSort = switch (sort != null ? sort : "") {
             case "popularity" -> Sort.by(Sort.Direction.DESC, "viewCount")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "popularity_asc" -> Sort.by(Sort.Direction.ASC, "viewCount")
+                    .and(Sort.by(Sort.Direction.ASC, "id"));
+            case "default_asc" -> Sort.by(Sort.Direction.ASC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.ASC, "viewCount"))
+                    .and(Sort.by(Sort.Direction.ASC, "id"));
             case "newly_joined" -> Sort.by(Sort.Direction.DESC, "createdAt")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             default -> Sort.by(Sort.Direction.DESC, "sortOrder")
@@ -115,7 +125,8 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
 
         PageRequest pageable = PageRequest.of(page - 1, size, jpaSort);
 
-        Specification<Institution> spec = buildListSpec(keyword, association, expertiseCategoryId, cityId);
+        Specification<Institution> spec = buildListSpec(
+                keyword, association, expertiseCategoryId, industryCategoryId, provinceId, cityId);
         Page<Institution> result = institutionRepository.findAll(spec, pageable);
 
         if (result.isEmpty()) {
@@ -170,7 +181,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             default -> Sort.by(Sort.Direction.DESC, "sortOrder")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
         };
-        Specification<Institution> spec = buildListSpec(null, association, null, null);
+        Specification<Institution> spec = buildListSpec(null, association, null, null, null, null);
         Page<Institution> page = institutionRepository.findAll(spec, PageRequest.of(0, n, sort));
         if (page.isEmpty()) {
             return List.of();
@@ -496,6 +507,8 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     /** 构建公开列表查询的动态条件（仅状态=1 的已发布机构） */
     private Specification<Institution> buildListSpec(String keyword, Boolean association,
                                                    Integer expertiseCategoryId,
+                                                   Integer industryCategoryId,
+                                                   Integer provinceId,
                                                    Integer cityId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -503,6 +516,10 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             predicates.add(cb.equal(root.get("publicListEligible"), true));
             // 迁移占位名，公开列表不展示
             predicates.add(cb.notLike(root.get("orgName"), "未命名机构#%"));
+
+            if (provinceId != null && provinceId > 0) {
+                predicates.add(cb.equal(root.get("provinceId"), provinceId));
+            }
 
             if (cityId != null && cityId > 0) {
                 predicates.add(cb.equal(root.get("cityId"), cityId));
@@ -513,13 +530,11 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             }
 
             if (expertiseCategoryId != null && expertiseCategoryId > 0) {
-                String idStr = expertiseCategoryId.toString();
-                predicates.add(cb.or(
-                        cb.equal(root.get("specialties"), idStr),
-                        cb.like(root.get("specialties"), idStr + ",%"),
-                        cb.like(root.get("specialties"), "%," + idStr + ",%"),
-                        cb.like(root.get("specialties"), "%," + idStr)
-                ));
+                predicates.add(categoryIdInCommaField(root, cb, "specialties", expertiseCategoryId));
+            }
+
+            if (industryCategoryId != null && industryCategoryId > 0) {
+                predicates.add(categoryIdInCommaField(root, cb, "industries", industryCategoryId));
             }
 
             if (keyword != null && !keyword.isBlank()) {
@@ -533,6 +548,17 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
 
             return cb.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    private static Predicate categoryIdInCommaField(Root<Institution> root, CriteriaBuilder cb,
+                                                    String field, Integer categoryId) {
+        String idStr = categoryId.toString();
+        return cb.or(
+                cb.equal(root.get(field), idStr),
+                cb.like(root.get(field), idStr + ",%"),
+                cb.like(root.get(field), "%," + idStr + ",%"),
+                cb.like(root.get(field), "%," + idStr)
+        );
     }
 
     @Override
@@ -578,6 +604,46 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             return List.of();
         }
         return institutionRepository.findByUserIdIn(userIds);
+    }
+
+    @Override
+    public List<InstitutionListItemResponse> listByUserIds(List<Integer> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        Map<Integer, Institution> byUserId = institutionRepository.findByUserIdIn(userIds).stream()
+                .filter(inst -> inst.getStatus() != null && inst.getStatus() == 1)
+                .collect(Collectors.toMap(Institution::getUserId, inst -> inst, (a, b) -> a));
+        List<Institution> ordered = userIds.stream()
+                .map(byUserId::get)
+                .filter(Objects::nonNull)
+                .toList();
+        if (ordered.isEmpty()) {
+            return List.of();
+        }
+        Set<Integer> regionIds = new HashSet<>();
+        for (Institution inst : ordered) {
+            if (inst.getProvinceId() != null && inst.getProvinceId() > 0) {
+                regionIds.add(inst.getProvinceId());
+            }
+            if (inst.getCityId() != null && inst.getCityId() > 0) {
+                regionIds.add(inst.getCityId());
+            }
+        }
+        Map<Integer, String> regionNameMap = regionIds.isEmpty()
+                ? Map.of()
+                : regionService.getNamesByIds(regionIds);
+        List<InstitutionListItemResponse> items = ordered.stream()
+                .map(inst -> {
+                    InstitutionListItemResponse item = institutionMapper.toListItemResponse(inst);
+                    item.setProvinceName(resolveRegionDisplayName(inst.getProvinceId(), regionNameMap));
+                    item.setCityName(resolveRegionDisplayName(inst.getCityId(), regionNameMap));
+                    return item;
+                })
+                .toList();
+        fillMissingLogos(ordered, items);
+        resolveCategoryDisplayNames(items);
+        return items;
     }
 
     @Override

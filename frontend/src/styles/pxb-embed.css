@@ -1,0 +1,67 @@
+/** 培训宝 iframe 嵌入页：仅保留最小布局重置 */
+
+body.pxb-embed-active {
+  display: block !important;
+  min-height: auto !important;
+  margin: 0;
+  padding: 0;
+  background: #fff !important;
+  font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+}
+
+body.pxb-embed-active .pxb-embed-main {
+  display: block !important;
+  flex: none !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: #fff !important;
+  overflow: visible !important;
+}
+
+/* iframe 内：底部留白 + 防止 margin collapse 导致高度少算 */
+body.pxb-embed-active #pxb_content.pxb-course-list {
+  padding-bottom: 24px;
+  overflow: visible;
+}
+
+body.pxb-embed-active #pxb_content.pxb-trainer-list {
+  padding-bottom: 24px;
+  overflow: visible;
+}
+
+body.pxb-embed-active #pxb_content.pxb-institution-list {
+  padding-bottom: 24px;
+  overflow: visible;
+}
+
+body.pxb-embed-active #pxb_content.pxb-demand-form {
+  padding-bottom: 24px;
+  overflow: visible;
+}
+
+html:has(body.pxb-embed-active) {
+  overflow: visible !important;
+  height: auto !important;
+}
+
+/* 抵消 Tailwind preflight 对 embed 筛选项的覆盖 */
+body.pxb-embed-active .pxb-course-list span.pxb-filter-chip.is-selected {
+  background-color: #e3f1f3 !important;
+  color: #006cb8 !important;
+}
+
+body.pxb-embed-active .pxb-demand-form input.pxb-date-input {
+  appearance: none;
+  display: inline-block;
+  width: 102px;
+  height: 28px;
+  border: 1px solid #ccc !important;
+  background-color: #fff !important;
+  color: #333 !important;
+}
+
+body.pxb-embed-active .pxb-course-list button.pxb-confirm-btn {
+  appearance: none;
+  background-color: #ececec;
+}

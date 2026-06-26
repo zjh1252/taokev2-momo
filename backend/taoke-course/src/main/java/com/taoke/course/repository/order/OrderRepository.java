@@ -29,6 +29,8 @@ public interface OrderRepository extends JpaRepository<Order, Integer>, JpaSpeci
 
     Page<Order> findByUserIdAndStatus(Integer userId, Integer status, Pageable pageable);
 
+    List<Order> findByUserIdAndStatus(Integer userId, Integer status);
+
     /** 查询已过期但仍为待支付的订单（定时任务关闭用） */
     List<Order> findByStatusAndExpiredAtBefore(Integer status, LocalDateTime now);
 

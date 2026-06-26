@@ -1,14 +1,13 @@
 import { toast } from 'sonner';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
+import { getApiBaseUrl } from '@/lib/env/client';
 
 /** 从 localStorage 读取 accessToken，供请求自动附带 Authorization */
 function getStoredAccessToken(): string | null {
   const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
   return tokenData?.accessToken ?? null;
 }
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 /**
  * API 异常类，携带 HTTP 状态码和业务错误码
@@ -82,8 +81,8 @@ export async function apiClient<T>(
   endpoint: string,
   init?: ApiRequestOptions,
 ): Promise<T> {
-  const { silent, skipAuth, ...fetchInit } = init || {};
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    const { silent, skipAuth, ...fetchInit } = init || {};
+  const url = endpoint.startsWith('http') ? endpoint : `${getApiBaseUrl()}${endpoint}`;
 
   const token = skipAuth ? null : getStoredAccessToken();
   const mergedHeaders = new Headers(fetchInit.headers ?? {});

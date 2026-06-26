@@ -29,6 +29,10 @@
             <groupId>com.taoke</groupId>
             <artifactId>taoke-admin</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.taoke</groupId>
+            <artifactId>taoke-legacy</artifactId>
+        </dependency>
 
         <!-- ========== 基础设施依赖（仅启动入口需要） ========== -->
         <!-- 数据库 -->
@@ -140,6 +144,19 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <!-- 开发库 flyway repair：V111/V112 等已执行脚本被改内容后 checksum 不一致时使用 -->
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <configuration>
+                    <url>jdbc:mysql://10.0.14.20:3306/v3test?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8</url>
+                    <user>root</user>
+                    <password>root</password>
+                    <locations>
+                        <location>filesystem:src/main/resources/db/migration</location>
+                    </locations>
                 </configuration>
             </plugin>
         </plugins>

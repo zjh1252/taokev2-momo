@@ -40,6 +40,15 @@ public class TrainerListItemResponse {
     /** 是否信得过专家 */
     private Integer isTrusted;
 
+    /** 淘课价（列表展示） */
+    private java.math.BigDecimal taokePrice;
+
+    /** 已上架课程数 */
+    private Integer courseCount;
+
+    /** 已上架课程标题（按浏览量降序，最多若干条） */
+    private List<String> courseTitles;
+
     /** 累计评论数 */
     private Integer commentCount;
 

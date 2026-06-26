@@ -97,6 +97,13 @@ taoke:
   event:
     enabled: true
     exchange: taoke.events
+  legacy-api:
+    enabled: true
+    signature-keys:
+      pxb: fn234gyty4542
+      taoke: adfdsrve34243
+    search-course-timestamp-skew-seconds: 7200
+    default-timestamp-skew-seconds: 864000
   upload:
     base-dir: uploads
     max-file-size: 10485760

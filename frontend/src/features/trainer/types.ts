@@ -107,6 +107,12 @@ export interface TrainerListItem {
   /** 是否后台推荐位：0=否，1=是 */
   isRecommended?: number;
   isTrusted: number;
+  /** 淘课价（列表） */
+  taokePrice?: number;
+  /** 已上架课程数 */
+  courseCount?: number;
+  /** 课程标题（按浏览量降序） */
+  courseTitles?: string[];
   commentCount: number;
   viewCount: number;
   provinceId: number;

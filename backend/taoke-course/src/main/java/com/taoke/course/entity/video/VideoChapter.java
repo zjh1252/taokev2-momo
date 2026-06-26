@@ -59,4 +59,8 @@ public class VideoChapter extends BaseEntity {
     /** 是否可免费预览：0=否 1=是 */
     @Column(name = "is_preview", nullable = false, columnDefinition = "tinyint")
     private Integer isPreview = 0;
+
+    /** 培训宝分集外部 ID（老站 series supplier_id） */
+    @Column(name = "pxb_supplier_id", nullable = false)
+    private Integer pxbSupplierId = 0;
 }

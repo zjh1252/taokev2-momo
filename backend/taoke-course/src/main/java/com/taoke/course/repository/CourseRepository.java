@@ -1,6 +1,7 @@
 package com.taoke.course.repository;
 
 import com.taoke.course.entity.Course;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -92,6 +93,36 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
             AND c.courseOpenEndDate < :today
             """)
     List<Integer> findExpiredHideCandidateIds(@Param("today") LocalDate today);
+
+    /** 最近 N 天有上架课程的机构发布者 userId（按最近发课时间降序） */
+    @Query(value = """
+            SELECT c.publisher_id
+            FROM courses c
+            WHERE c.publisher_type = 'INSTITUTION'
+              AND c.status = 2
+              AND c.created_at >= :since
+            GROUP BY c.publisher_id
+            ORDER BY MAX(c.created_at) DESC
+            """, nativeQuery = true)
+    List<Integer> findRecentlyActiveInstitutionUserIds(@Param("since") LocalDateTime since, Pageable pageable);
+
+    /** 已上架课程按专家 ID 批量计数 */
+    @Query("""
+            SELECT c.trainerId, COUNT(c)
+            FROM Course c
+            WHERE c.status = 2 AND c.trainerId IN :trainerIds
+            GROUP BY c.trainerId
+            """)
+    List<Object[]> countPublishedGroupByTrainerIds(@Param("trainerIds") Collection<Integer> trainerIds);
+
+    /** 已上架课程标题（按浏览量降序，供列表批量拉取后在内存分组截断） */
+    @Query("""
+            SELECT c.trainerId, c.title
+            FROM Course c
+            WHERE c.status = 2 AND c.trainerId IN :trainerIds
+            ORDER BY c.viewCount DESC, c.id DESC
+            """)
+    List<Object[]> findPublishedTitlesByTrainerIds(@Param("trainerIds") Collection<Integer> trainerIds);
 
     /** 最近 N 天内发布过已上架课程的机构 user_id，按最近发布时间倒序 */
     @Query("""

@@ -10,6 +10,7 @@ import com.taoke.course.dto.demand.*;
 import com.taoke.course.entity.demand.Demand;
 import com.taoke.course.entity.demand.DemandFollowUp;
 import com.taoke.course.entity.interaction.TrainerLeadMessage;
+import com.taoke.course.enums.DemandCourseKind;
 import com.taoke.course.enums.DemandStatus;
 import com.taoke.course.enums.DemandType;
 import com.taoke.course.enums.FollowUpAction;
@@ -17,6 +18,8 @@ import com.taoke.course.repository.demand.DemandFollowUpRepository;
 import com.taoke.course.repository.demand.DemandRepository;
 import com.taoke.course.repository.interaction.TrainerLeadMessageRepository;
 import com.taoke.user.api.EnterpriseBuyerService;
+import com.taoke.user.captcha.CaptchaProperties;
+import com.taoke.user.captcha.CaptchaTokenStore;
 import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +46,8 @@ public class DemandServiceImpl implements DemandService {
     private final TrainerLeadMessageRepository trainerLeadMessageRepository;
     private final EnterpriseBuyerService enterpriseBuyerService;
     private final EventPublisher eventPublisher;
+    private final CaptchaTokenStore captchaTokenStore;
+    private final CaptchaProperties captchaProperties;
 
     // ==================== C 端操作 ====================
 
@@ -55,7 +60,20 @@ public class DemandServiceImpl implements DemandService {
     @Override
     @Transactional
     public DemandDetailResponse createPublic(CreateDemandRequest req) {
+        validatePublicCaptcha(req);
         return doCreate(null, req, "游客提交需求");
+    }
+
+    private void validatePublicCaptcha(CreateDemandRequest req) {
+        if (!DemandCourseKind.OPEN.name().equals(req.getCourseKind())) {
+            return;
+        }
+        if (!captchaProperties.isEnabled()) {
+            return;
+        }
+        if (!captchaTokenStore.consume(req.getCaptchaToken())) {
+            throw new BusinessException(ErrorCode.CAPTCHA_REQUIRED);
+        }
     }
 
     @Override
@@ -129,6 +147,13 @@ public class DemandServiceImpl implements DemandService {
         demand.setSourceCourseId(req.getSourceCourseId());
         demand.setContactName(req.getContactName());
         demand.setContactPhone(req.getContactPhone());
+        demand.setCompanyName(req.getCompanyName());
+        demand.setContactEmail(req.getContactEmail());
+        demand.setCompanyTel(req.getCompanyTel());
+        demand.setExpertiseCategoryId(req.getExpertiseCategoryId());
+        demand.setExpectedProposalCount(req.getExpectedProposalCount());
+        demand.setSourceTrainerId(req.getSourceTrainerId());
+        demand.setCourseKind(req.getCourseKind());
         demand.setProvinceId(req.getProvinceId());
         demand.setCityId(req.getCityId());
         demand.setDistrictId(req.getDistrictId());

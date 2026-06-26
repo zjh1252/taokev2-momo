@@ -1,4 +1,5 @@
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_MB } from '@/features/materials/material-utils';
+import { getBackendUrl } from '@/lib/backend-url';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     uploadHeaders.Authorization = `Bearer ${accessToken}`;
   }
 
-  const uploadRes = await fetch(`${BACKEND_URL}/uploads/images`, {
+  const uploadRes = await fetch(`${getBackendUrl()}/uploads/images`, {
     method: 'POST',
     headers: uploadHeaders,
     body: uploadForm

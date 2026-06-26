@@ -26,7 +26,14 @@ import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.Trainer;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
@@ -66,6 +73,9 @@ public class CourseServiceImpl implements CourseService {
     private final LegacyTaokeCourseReader legacyTaokeCourseReader;
     private final BindingAuthority bindingAuthority;
     private final OpsMaterialResolver opsMaterialResolver;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     // ==================== C 端发布者操作 ====================
 
@@ -389,6 +399,11 @@ public class CourseServiceImpl implements CourseService {
             if (query.getPriceMax() != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("price"), query.getPriceMax()));
             }
+            if (query.getMinScore() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(
+                        root.get("score"),
+                        java.math.BigDecimal.valueOf(query.getMinScore())));
+            }
             // 计划维度命中集合
             if (planIdsFinal != null) {
                 predicates.add(root.get("id").in(planIdsFinal));
@@ -402,7 +417,12 @@ public class CourseServiceImpl implements CourseService {
 
         Sort sort = resolvePublicSort(query.getSortBy());
         PageRequest pageable = PageRequest.of(page - 1, size, sort);
-        Page<Course> coursePage = courseRepository.findAll(spec, pageable);
+        Page<Course> coursePage = isPlanStartTimeSort(query.getSortBy())
+                ? findCoursesSortedByDisplayPlanStart(
+                        spec,
+                        "time_asc".equals(query.getSortBy()) ? Sort.Direction.ASC : Sort.Direction.DESC,
+                        PageRequest.of(page - 1, size))
+                : courseRepository.findAll(spec, pageable);
 
         if (coursePage.isEmpty()) {
             return PageResponse.of(List.of(), 0, page, size);
@@ -940,6 +960,73 @@ public class CourseServiceImpl implements CourseService {
         }
     }
 
+    private boolean isPlanStartTimeSort(String sortBy) {
+        return "time".equals(sortBy) || "time_asc".equals(sortBy);
+    }
+
+    /**
+     * 按列表展示用的「最近一场开课时间」排序，逻辑与 {@link #pickDisplayPlansForOpenCourses} 一致：
+     * 优先取 startTime &gt;= now 的最早场次，否则取历史最近一场。
+     */
+    private Page<Course> findCoursesSortedByDisplayPlanStart(
+            Specification<Course> spec,
+            Sort.Direction direction,
+            Pageable pageable) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        Root<Course> countRoot = countQuery.from(Course.class);
+        Predicate countPredicate = spec.toPredicate(countRoot, countQuery, cb);
+        if (countPredicate != null) {
+            countQuery.where(countPredicate);
+        }
+        countQuery.select(cb.count(countRoot));
+        long total = entityManager.createQuery(countQuery).getSingleResult();
+        if (total == 0) {
+            return Page.empty(pageable);
+        }
+
+        CriteriaQuery<Course> cq = cb.createQuery(Course.class);
+        Root<Course> root = cq.from(Course.class);
+        LocalDateTime now = LocalDateTime.now();
+
+        Subquery<LocalDateTime> futureMinSq = cq.subquery(LocalDateTime.class);
+        Root<CoursePlan> futurePlan = futureMinSq.from(CoursePlan.class);
+        futureMinSq.select(cb.function("min", LocalDateTime.class, futurePlan.get("startTime")));
+        futureMinSq.where(
+                cb.equal(futurePlan.get("courseId"), root.get("id")),
+                cb.greaterThanOrEqualTo(futurePlan.get("startTime"), now));
+
+        Subquery<LocalDateTime> latestMaxSq = cq.subquery(LocalDateTime.class);
+        Root<CoursePlan> latestPlan = latestMaxSq.from(CoursePlan.class);
+        latestMaxSq.select(cb.function("max", LocalDateTime.class, latestPlan.get("startTime")));
+        latestMaxSq.where(cb.equal(latestPlan.get("courseId"), root.get("id")));
+
+        LocalDateTime nullSentinel = direction == Sort.Direction.DESC
+                ? LocalDateTime.of(1970, 1, 1, 0, 0)
+                : LocalDateTime.of(2099, 12, 31, 23, 59, 59);
+        Expression<LocalDateTime> displayStart = cb.coalesce(
+                cb.coalesce(futureMinSq, latestMaxSq),
+                cb.literal(nullSentinel));
+
+        Predicate predicate = spec.toPredicate(root, cq, cb);
+        if (predicate != null) {
+            cq.where(predicate);
+        }
+        cq.select(root);
+        if (direction == Sort.Direction.DESC) {
+            cq.orderBy(cb.desc(displayStart), cb.desc(root.get("id")));
+        } else {
+            cq.orderBy(cb.asc(displayStart), cb.desc(root.get("id")));
+        }
+
+        List<Course> content = entityManager.createQuery(cq)
+                .setFirstResult((int) pageable.getOffset())
+                .setMaxResults(pageable.getPageSize())
+                .getResultList();
+        return new PageImpl<>(content, pageable, total);
+    }
+
     private Sort resolvePublicSort(String sortBy) {
         if (sortBy == null || sortBy.isBlank() || "default".equals(sortBy)) {
             return Sort.by(Sort.Direction.DESC, "sortOrder")
@@ -949,10 +1036,19 @@ public class CourseServiceImpl implements CourseService {
         return switch (sortBy) {
             case "price" -> Sort.by(Sort.Direction.ASC, "price")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "price_desc" -> Sort.by(Sort.Direction.DESC, "price")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
             case "score" -> Sort.by(Sort.Direction.DESC, "score")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "score_asc" -> Sort.by(Sort.Direction.ASC, "score")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             case "time" -> Sort.by(Sort.Direction.DESC, "publishedAt")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "time_asc" -> Sort.by(Sort.Direction.ASC, "publishedAt")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "default_asc" -> Sort.by(Sort.Direction.ASC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.ASC, "publishedAt"))
+                    .and(Sort.by(Sort.Direction.ASC, "id"));
             case "viewCount" -> Sort.by(Sort.Direction.DESC, "viewCount")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             default -> Sort.by(Sort.Direction.DESC, "sortOrder")
