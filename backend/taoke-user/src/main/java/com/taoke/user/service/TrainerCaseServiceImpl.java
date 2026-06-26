@@ -72,13 +72,13 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
 
     @Override
     @Transactional
-    public TrainerCaseResponse createCase(Integer userId, SaveTrainerCaseRequest request) {
+    public TrainerCaseResponse createCase(Integer userId, SaveTrainerCaseRequest request, boolean draft) {
         Trainer trainer = getTrainerByUserId(userId);
         TrainerCase entity = new TrainerCase();
         entity.setTrainerId(trainer.getId());
         applyRequest(entity, request);
         entity.setAutoExtracted(false);
-        entity.setStatus(0);
+        entity.setStatus(draft ? 1 : 0);
         entity.setRejectReason("");
         entity = caseRepository.save(entity);
         TrainerCaseResponse r = TrainerCaseResponse.from(entity);
@@ -88,12 +88,12 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
 
     @Override
     @Transactional
-    public TrainerCaseResponse updateCase(Integer userId, Integer caseId, SaveTrainerCaseRequest request) {
+    public TrainerCaseResponse updateCase(Integer userId, Integer caseId, SaveTrainerCaseRequest request, boolean draft) {
         Trainer trainer = getTrainerByUserId(userId);
         TrainerCase entity = getCaseAndCheckOwner(caseId, trainer.getId());
         applyRequest(entity, request);
-        // 编辑后重新回到待审核状态
-        entity.setStatus(0);
+        // 编辑后重新回到待审核状态（draft 模式不进入审核）
+        entity.setStatus(draft ? 1 : 0);
         entity.setRejectReason("");
         entity.setReviewerId(null);
         entity.setReviewedAt(null);

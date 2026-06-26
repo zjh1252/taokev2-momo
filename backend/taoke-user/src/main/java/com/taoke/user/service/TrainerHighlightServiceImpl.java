@@ -71,7 +71,8 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     @Transactional
     public TrainerHighlightResponse createHighlight(Integer userId,
-                                                    SaveTrainerHighlightRequest request) {
+                                                    SaveTrainerHighlightRequest request,
+                                                    boolean draft) {
         PublisherScope scope = resolvePublisherScope(userId);
 
         TrainerHighlight h = new TrainerHighlight();
@@ -89,7 +90,7 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         h.setDuration(0);
         h.setFileSize(0L);
         h.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
-        h.setStatus(0);
+        h.setStatus(draft ? 1 : 0);
         h.setViewCount(0);
         highlightRepository.save(h);
 
@@ -101,7 +102,8 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     @Transactional
     public TrainerHighlightResponse updateHighlight(Integer userId, Integer highlightId,
-                                                    SaveTrainerHighlightRequest request) {
+                                                    SaveTrainerHighlightRequest request,
+                                                    boolean draft) {
         PublisherScope scope = resolvePublisherScope(userId);
         TrainerHighlight h = highlightRepository.findById(highlightId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "精彩瞬间不存在"));
@@ -112,8 +114,8 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         if (request.getCoverImage() != null) h.setCoverImage(request.getCoverImage());
         if (request.getSortOrder() != null) h.setSortOrder(request.getSortOrder());
 
-        // 修改后重新进入待审核
-        h.setStatus(0);
+        // 修改后重新进入待审核（draft 模式不进入审核）
+        h.setStatus(draft ? 1 : 0);
         h.setRejectReason(null);
         highlightRepository.save(h);
 
@@ -223,7 +225,7 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     public Page<TrainerHighlight> adminSearch(Integer trainerId, Integer status, String keyword,
                                               int page, int size) {
-        Specification<TrainerHighlight> spec = Specification.where(null);
+        Specification<TrainerHighlight> spec = (root, query, cb) -> cb.conjunction();
         if (trainerId != null) {
             spec = spec.and((root, q, cb) -> cb.equal(root.get("trainerId"), trainerId));
         }

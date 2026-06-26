@@ -220,7 +220,8 @@ public class CourseServiceImpl implements CourseService {
                 .map(Course::getId)
                 .toList();
         if (!openCourseIds.isEmpty()) {
-            Map<Integer, CoursePlan> nearestPlanMap = pickDisplayPlansForOpenCourses(openCourseIds);
+            Map<Integer, CoursePlan> nearestPlanMap = pickDisplayPlansForOpenCourses(
+                    openCourseIds, null, null);
             Set<Integer> regionIds = new HashSet<>();
             for (CoursePlan p : nearestPlanMap.values()) {
                 if (p.getProvinceId() != null && p.getProvinceId() > 0) regionIds.add(p.getProvinceId());
