@@ -1,5 +1,6 @@
 package com.taoke.user.dto.binding;
 
+import com.taoke.user.dto.uc.UcMemberBriefResponse;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -76,4 +77,7 @@ public class BindingItemResponse {
 
     /** 确认时间 */
     private LocalDateTime confirmedAt;
+
+    /** UC 成员关联摘要（已绑 UC 时填充） */
+    private UcMemberBriefResponse ucMember;
 }

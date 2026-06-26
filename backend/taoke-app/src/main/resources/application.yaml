@@ -79,6 +79,14 @@ taoke:
     charset: utf-8
     timeout-ms: 10000
     user-agent: Taoke-UCenter-Client/2.0
+  # UC OpenAPI（组织成员 lookup，AppToken + AUTH，凭据与 sms.pxb 共用）
+  uc:
+    open-api:
+      enabled: true
+      uc-site: https://uc.91pxb.com
+      app-id: 1J0VhhE846yerwUm
+      app-secret: ITB1M494QKDI8zhpH9g0DpZBzIZOfUlQyCCLUKZ8
+      token-ttl-seconds: 3600
   # 密码登录失败锁定：连续密码错误达阈值后锁定账号
   auth:
     login-lockout:

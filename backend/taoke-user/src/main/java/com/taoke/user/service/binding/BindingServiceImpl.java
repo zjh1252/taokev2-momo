@@ -7,10 +7,12 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.BindingService;
 import com.taoke.user.api.NotificationService;
+import com.taoke.user.api.UcIntegrationService;
 import com.taoke.user.dto.binding.BindingItemResponse;
 import com.taoke.user.dto.binding.BindingType;
 import com.taoke.user.dto.binding.InitiateBindingRequest;
 import com.taoke.user.entity.*;
+import com.taoke.user.enums.UcOrgType;
 import com.taoke.user.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +50,7 @@ public class BindingServiceImpl implements BindingService {
     private final BindingAuthorizationService bindingAuthorizationService;
     private final NotificationService notificationService;
     private final UserRoleRepository userRoleRepository;
+    private final UcIntegrationService ucIntegrationService;
 
     private static final int ACTIVE = BindingStatus.ACTIVE.getCode();
     private static final int PENDING = BindingStatus.PENDING.getCode();
@@ -89,9 +92,9 @@ public class BindingServiceImpl implements BindingService {
             case ENTERPRISE_AGENT_TRAINER:
                 return initiateEnterpriseAgentTrainer(operatorUserId, req.getTargetUserId(), req.getNote());
             case INSTITUTION_EMPLOYEE:
-                return initiateInstitutionEmployee(operatorUserId, req.getTargetUserId(), req.getNote());
+                return initiateInstitutionEmployee(operatorUserId, req);
             case ENTERPRISE_AGENT_MEMBER:
-                return initiateEnterpriseAgentMember(operatorUserId, req.getTargetUserId(), req.getNote());
+                return initiateEnterpriseAgentMember(operatorUserId, req);
             default:
                 throw new BusinessException(ErrorCode.PARAM_INVALID, "未知的绑定类型");
         }
@@ -209,7 +212,9 @@ public class BindingServiceImpl implements BindingService {
         return toResponse(b, BindingType.ENTERPRISE_AGENT_TRAINER, operatorUserId, trainerUserId);
     }
 
-    private BindingItemResponse initiateInstitutionEmployee(Integer operatorUserId, Integer employeeUserId, String note) {
+    private BindingItemResponse initiateInstitutionEmployee(Integer operatorUserId, InitiateBindingRequest req) {
+        Integer employeeUserId = req.getTargetUserId();
+        String note = req.getNote();
         Institution inst = institutionRepository.findByUserId(operatorUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN, "当前用户不是机构主体"));
         InstitutionEmployeeBinding b = institutionEmployeeBindingRepository
@@ -239,11 +244,15 @@ public class BindingServiceImpl implements BindingService {
         b.setRejectReason(null);
         b.setConfirmedAt(null);
         institutionEmployeeBindingRepository.save(b);
+        attachUcMemberLinkIfPresent(req.getUcMemberLinkId(), employeeUserId,
+                BindingType.INSTITUTION_EMPLOYEE.name(), b.getId());
         notifyBindingRequest(employeeUserId, operatorUserId, BindingType.INSTITUTION_EMPLOYEE, inst.getOrgName());
         return toResponse(b, BindingType.INSTITUTION_EMPLOYEE, operatorUserId, employeeUserId);
     }
 
-    private BindingItemResponse initiateEnterpriseAgentMember(Integer operatorUserId, Integer agentUserId, String note) {
+    private BindingItemResponse initiateEnterpriseAgentMember(Integer operatorUserId, InitiateBindingRequest req) {
+        Integer agentUserId = req.getTargetUserId();
+        String note = req.getNote();
         EnterpriseAgent ea = enterpriseAgentRepository.findByUserId(operatorUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN, "当前用户不是经纪公司负责人"));
         EnterpriseAgentMember m = enterpriseAgentMemberRepository
@@ -275,8 +284,21 @@ public class BindingServiceImpl implements BindingService {
             m.setJoinedAt(LocalDateTime.now());
         }
         enterpriseAgentMemberRepository.save(m);
+        attachUcMemberLinkIfPresent(req.getUcMemberLinkId(), agentUserId,
+                BindingType.ENTERPRISE_AGENT_MEMBER.name(), m.getId());
         notifyBindingRequest(agentUserId, operatorUserId, BindingType.ENTERPRISE_AGENT_MEMBER, ea.getCompanyName());
         return toResponse(m, BindingType.ENTERPRISE_AGENT_MEMBER, operatorUserId, agentUserId);
+    }
+
+    private void attachUcMemberLinkIfPresent(Integer ucMemberLinkId, Integer userId, String bindingRefType, Integer bindingRefId) {
+        if (ucMemberLinkId == null) {
+            return;
+        }
+        try {
+            ucIntegrationService.attachMemberLinkToBinding(ucMemberLinkId, userId, bindingRefType, bindingRefId);
+        } catch (Exception e) {
+            log.warn("UC 成员关联回填失败 linkId={} bindingRef={}/{}", ucMemberLinkId, bindingRefType, bindingRefId, e);
+        }
     }
 
     @Override
@@ -532,6 +554,8 @@ public class BindingServiceImpl implements BindingService {
         }
         result.sort(Comparator.comparing(BindingItemResponse::getCreatedAt,
                 Comparator.nullsLast(Comparator.reverseOrder())));
+        ucIntegrationService.enrichBindingsWithUcMembers(
+                UcOrgType.INSTITUTION, inst.getId(), BindingType.INSTITUTION_EMPLOYEE.name(), result);
         return result;
     }
 
@@ -606,6 +630,8 @@ public class BindingServiceImpl implements BindingService {
         }
         result.sort(Comparator.comparing(BindingItemResponse::getCreatedAt,
                 Comparator.nullsLast(Comparator.reverseOrder())));
+        ucIntegrationService.enrichBindingsWithUcMembers(
+                UcOrgType.ENTERPRISE_AGENT, ea.getId(), BindingType.ENTERPRISE_AGENT_MEMBER.name(), result);
         return result;
     }
 

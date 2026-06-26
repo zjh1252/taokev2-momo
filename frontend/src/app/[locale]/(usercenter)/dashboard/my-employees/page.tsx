@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   UserPlus, Plus, Search, X, Loader2, AlertCircle, Users,
-  CheckCircle2, XCircle,
+  CheckCircle2, XCircle, Link2,
 } from 'lucide-react';
 import {
   listInstitutionEmployees,
@@ -23,6 +23,13 @@ import {
 } from '@/features/binding/api/types';
 import { RejectReasonDialog } from '@/features/binding/components/reject-reason-dialog';
 import { getDisplayStatusLabel } from '@/features/binding/lib/status-label';
+import { EmployeeUcBindDialog } from '@/features/uc-integration/components/EmployeeUcBindDialog';
+import {
+  getUcIdentityField,
+  lookupUcMember,
+  syncUcMemberProfile,
+} from '@/features/uc-integration/api/service';
+import type { UcIdentityField, UcMemberLookupResult } from '@/features/uc-integration/api/types';
 import { useAuth } from '@/lib/auth/auth-context';
 
 /**
@@ -72,6 +79,7 @@ export default function MyEmployeesPage() {
   const [adding, setAdding] = useState(false);
   const [actingId, setActingId] = useState<number | null>(null);
   const [rejectingItem, setRejectingItem] = useState<BindingItem | null>(null);
+  const [ucBindingItem, setUcBindingItem] = useState<BindingItem | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -201,6 +209,7 @@ export default function MyEmployeesPage() {
                 onApprove={handleApprove}
                 onReject={handleReject}
                 onUnbind={handleUnbind}
+                onUcManage={setUcBindingItem}
               />
             ))}
           </div>
@@ -212,6 +221,20 @@ export default function MyEmployeesPage() {
           onClose={() => setAdding(false)}
           onAdded={() => {
             setAdding(false);
+            fetchData();
+          }}
+        />
+      )}
+
+      {ucBindingItem && (
+        <EmployeeUcBindDialog
+          orgType="INSTITUTION"
+          bindingId={ucBindingItem.id}
+          employeeName={ucBindingItem.counterpartNickname || `员工#${ucBindingItem.counterpartUserId}`}
+          ucMember={ucBindingItem.ucMember}
+          onClose={() => setUcBindingItem(null)}
+          onDone={() => {
+            setUcBindingItem(null);
             fetchData();
           }}
         />
@@ -241,12 +264,14 @@ function EmployeeCard({
   onApprove,
   onReject,
   onUnbind,
+  onUcManage,
 }: {
   item: BindingItem;
   acting: boolean;
   onApprove: (i: BindingItem) => void;
   onReject: (i: BindingItem) => void;
   onUnbind: (i: BindingItem) => void;
+  onUcManage: (i: BindingItem) => void;
 }) {
   const status = item.status;
   // 待我审核：员工主动申请的 PENDING 绑定
@@ -291,6 +316,18 @@ function EmployeeCard({
               <span className="line-clamp-2">拒绝理由：{item.rejectReason}</span>
             </div>
           )}
+          {status === BINDING_STATUS.ACTIVE && (
+            <div className="text-xs mt-1">
+              {item.ucMember ? (
+                <span className="text-green-600">
+                  UC 已绑定 · {item.ucMember.identityValue}
+                  {item.ucMember.pStuId ? ` (#${item.ucMember.pStuId})` : ''}
+                </span>
+              ) : (
+                <span className="text-gray-400">未绑定 UC 成员</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2 justify-end">
@@ -328,6 +365,17 @@ function EmployeeCard({
             {status === BINDING_STATUS.PENDING ? '撤回邀请' : '解除绑定'}
           </button>
         )}
+        {status === BINDING_STATUS.ACTIVE && (
+          <button
+            type="button"
+            disabled={acting}
+            onClick={() => onUcManage(item)}
+            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 hover:border-primary/30 hover:text-primary disabled:opacity-50 transition-colors"
+          >
+            <Link2 className="size-3.5" />
+            {item.ucMember ? 'UC 重新绑定' : '绑定 UC'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -340,6 +388,69 @@ function AddEmployeeDialog({ onClose, onAdded }: { onClose: () => void; onAdded:
   const [submitting, setSubmitting] = useState(false);
   const [picked, setPicked] = useState<LookupUserResult | null>(null);
   const [note, setNote] = useState('');
+
+  const [ucLinked, setUcLinked] = useState(false);
+  const [identityField, setIdentityField] = useState<UcIdentityField | null>(null);
+  const [identityValue, setIdentityValue] = useState('');
+  const [ucLooking, setUcLooking] = useState(false);
+  const [ucResult, setUcResult] = useState<UcMemberLookupResult | null>(null);
+  const [ucProfile, setUcProfile] = useState<Record<string, unknown> | null>(null);
+  const [syncingProfile, setSyncingProfile] = useState(false);
+  const [profileConsented, setProfileConsented] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const field = await getUcIdentityField('INSTITUTION');
+        setUcLinked(true);
+        setIdentityField(field);
+      } catch {
+        setUcLinked(false);
+        setIdentityField(null);
+      }
+    })();
+  }, []);
+
+  const handleUcLookup = async () => {
+    if (!identityValue.trim()) {
+      toast.error(identityField?.placeholder || '请先输入身份标识');
+      return;
+    }
+    setUcLooking(true);
+    setUcResult(null);
+    setUcProfile(null);
+    setProfileConsented(false);
+    try {
+      const result = await lookupUcMember('INSTITUTION', identityValue.trim());
+      setUcResult(result);
+      if (result.matched && result.preview) {
+        const mobile = String(result.preview.mobile || result.preview.phone || '');
+        if (mobile) {
+          setPhone(mobile);
+        }
+      } else if (!result.matched) {
+        toast.message(result.message || '未在 UC 找到成员，可继续纯淘课绑定');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'UC 查询失败');
+    } finally {
+      setUcLooking(false);
+    }
+  };
+
+  const handleSyncProfile = async () => {
+    if (!ucResult?.memberLinkId) return;
+    setSyncingProfile(true);
+    try {
+      const profile = await syncUcMemberProfile('INSTITUTION', ucResult.memberLinkId);
+      setUcProfile(profile);
+      setProfileConsented(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '拉取详情失败');
+    } finally {
+      setSyncingProfile(false);
+    }
+  };
 
   const handleSearch = async () => {
     if (!phone.trim()) {
@@ -375,6 +486,7 @@ function AddEmployeeDialog({ onClose, onAdded }: { onClose: () => void; onAdded:
         bindingType: 'INSTITUTION_EMPLOYEE',
         targetUserId: picked.id,
         note: note.trim() || undefined,
+        ucMemberLinkId: ucResult?.memberLinkId,
       });
       toast.success('员工绑定请求已发送，等待对方确认');
       onAdded();
@@ -399,6 +511,58 @@ function AddEmployeeDialog({ onClose, onAdded }: { onClose: () => void; onAdded:
           </button>
         </div>
         <div className="p-6 space-y-4">
+          {ucLinked && identityField && (
+            <div className="border border-slate-200 rounded-lg p-4 space-y-3 bg-slate-50/50">
+              <div className="text-sm font-medium text-gray-700">UC 成员匹配（可选）</div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">{identityField.fieldLabel}</label>
+                <div className="flex gap-2">
+                  <input
+                    value={identityValue}
+                    onChange={(e) => setIdentityValue(e.target.value)}
+                    placeholder={identityField.placeholder}
+                    className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleUcLookup}
+                    disabled={ucLooking}
+                    className="inline-flex items-center gap-1 border border-slate-200 text-sm px-4 py-2 rounded-lg hover:bg-white disabled:opacity-50"
+                  >
+                    {ucLooking ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
+                    UC 查询
+                  </button>
+                </div>
+              </div>
+              {ucResult?.matched && ucResult.preview && (
+                <div className="text-xs text-gray-600 space-y-1">
+                  <div>
+                    已匹配 UC 成员：
+                    {String(ucResult.preview.chinese_name || ucResult.preview.realname || ucResult.preview.name || `#${ucResult.pStuId}`)}
+                  </div>
+                  {!profileConsented && (
+                    <button
+                      type="button"
+                      onClick={handleSyncProfile}
+                      disabled={syncingProfile}
+                      className="text-primary hover:underline"
+                    >
+                      {syncingProfile ? '拉取中…' : '查看并同步 UC 成员详情'}
+                    </button>
+                  )}
+                  {ucProfile && (
+                    <pre className="mt-2 max-h-40 overflow-auto text-[11px] bg-white border border-slate-200 rounded p-2 whitespace-pre-wrap break-all">
+                      {JSON.stringify(ucProfile, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
+              {ucResult && !ucResult.matched && (
+                <p className="text-xs text-amber-600">{ucResult.message}</p>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm text-gray-700 mb-1">员工手机号</label>
             <div className="flex gap-2">

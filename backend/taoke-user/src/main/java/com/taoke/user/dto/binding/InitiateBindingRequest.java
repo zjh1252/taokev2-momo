@@ -29,4 +29,7 @@ public class InitiateBindingRequest {
 
     /** 备注 */
     private String note;
+
+    /** UC 成员 lookup 记录 ID（可选，绑定成功后回填关联） */
+    private Integer ucMemberLinkId;
 }
