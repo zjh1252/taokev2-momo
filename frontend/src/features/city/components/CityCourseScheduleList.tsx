@@ -10,6 +10,8 @@ interface CityCourseScheduleListProps {
   courses: CourseListItem[];
   /** 空数据文案 */
   emptyText?: string;
+  /** 0 元课程标签文案 */
+  freeLabel?: string;
 }
 
 /**
@@ -24,12 +26,15 @@ export function CityCourseScheduleList({
   cityName,
   courses,
   emptyText = '暂无开课信息',
+  freeLabel = '免费体验课',
 }: CityCourseScheduleListProps) {
   return (
-    <section className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden">
-      <header className="px-5 py-3 border-b border-slate-100 bg-slate-50">
-        <h2 className="text-base font-bold text-slate-900">{title}</h2>
-      </header>
+    <section className={title ? 'bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden' : ''}>
+      {title ? (
+        <header className="px-5 py-3 border-b border-slate-100 bg-slate-50">
+          <h2 className="text-base font-bold text-slate-900">{title}</h2>
+        </header>
+      ) : null}
 
       {courses.length === 0 ? (
         <div className="py-10 text-center text-sm text-slate-400">{emptyText}</div>
@@ -44,7 +49,7 @@ export function CityCourseScheduleList({
 
           <ul className="divide-y divide-slate-50">
             {courses.map((course) => (
-              <CityScheduleRow key={course.id} course={course} cityName={cityName} />
+              <CityScheduleRow key={course.id} course={course} cityName={cityName} freeLabel={freeLabel} />
             ))}
           </ul>
         </>
@@ -53,22 +58,32 @@ export function CityCourseScheduleList({
   );
 }
 
-function CityScheduleRow({ course, cityName }: { course: CourseListItem; cityName: string }) {
+function CityScheduleRow({
+  course,
+  cityName,
+  freeLabel,
+}: {
+  course: CourseListItem;
+  cityName: string;
+  freeLabel: string;
+}) {
   // 优先取后端 VO 的 nextPlanStartDate（最近一场公开课日期），缺失时显示「咨询客服」
   const dateLabel = course.nextPlanStartDate
     ? formatDate(course.nextPlanStartDate)
     : '咨询客服';
-  const priceLabel = formatPrice(course.price);
+  const priceLabel = formatPrice(course.price, freeLabel);
 
   return (
     <li className="px-5 py-3 grid grid-cols-1 sm:grid-cols-[1fr_120px_140px] sm:items-center gap-1 sm:gap-3 hover:bg-slate-50 transition-colors">
-      <Link
-        href={`/opencourses/${course.id}`}
-        className="text-sm text-slate-800 hover:text-primary line-clamp-1"
-      >
-        <span className="text-primary mr-1">[{cityName}]</span>
-        {course.title}
-      </Link>
+      <h3 className="text-sm font-normal m-0">
+        <Link
+          href={`/opencourse/${course.id}.htm`}
+          className="text-slate-800 hover:text-primary line-clamp-1"
+        >
+          <span className="text-primary mr-1">[{cityName}]</span>
+          {course.title}
+        </Link>
+      </h3>
       <span className="text-sm text-orange-600 font-medium sm:text-center">{priceLabel}</span>
       <span className="text-xs text-slate-500 sm:text-center">{dateLabel}</span>
     </li>
@@ -86,8 +101,8 @@ function formatDate(iso: string): string {
   return `${y}-${m}-${day}`;
 }
 
-function formatPrice(price: number | null | undefined): string {
+function formatPrice(price: number | null | undefined, freeLabel = '免费'): string {
   if (price == null) return '咨询客服';
-  if (price === 0) return '免费';
+  if (price === 0) return freeLabel;
   return `${price}元`;
 }

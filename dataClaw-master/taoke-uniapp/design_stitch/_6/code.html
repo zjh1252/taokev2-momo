@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>淘课网 - 课程详情</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface": "#fbf9f8",
+                        "outline-variant": "#e7bdb6",
+                        "outline": "#926e69",
+                        "on-primary-fixed-variant": "#930002",
+                        "inverse-primary": "#ffb4a8",
+                        "on-surface": "#1b1c1c",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#410000",
+                        "inverse-surface": "#303030",
+                        "on-surface-variant": "#5e3f3b",
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "primary-fixed-dim": "#ffb4a8",
+                        "on-tertiary-container": "#fffeff",
+                        "surface-container-highest": "#e4e2e1",
+                        "tertiary": "#835200",
+                        "surface-tint": "#c00003",
+                        "surface-dim": "#dcd9d9",
+                        "secondary-container": "#e1dfdf",
+                        "surface-container-low": "#f6f3f2",
+                        "primary-container": "#e62117",
+                        "surface-variant": "#e4e2e1",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "on-tertiary-fixed": "#2a1700",
+                        "primary": "#be0003",
+                        "on-primary-container": "#fffeff",
+                        "on-secondary-container": "#626262",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#464747",
+                        "on-background": "#1b1c1c",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#c7c6c6",
+                        "on-secondary": "#ffffff",
+                        "surface-bright": "#fbf9f8",
+                        "secondary": "#5e5e5e",
+                        "surface-container-high": "#eae8e7",
+                        "tertiary-fixed": "#ffddb8",
+                        "primary-fixed": "#ffdad5",
+                        "secondary-fixed": "#e4e2e2",
+                        "on-secondary-fixed": "#1b1c1c",
+                        "background": "#fbf9f8",
+                        "tertiary-container": "#a56800",
+                        "surface-container": "#f0eded",
+                        "inverse-on-surface": "#f3f0f0"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#f7f9fc] font-body text-on-surface pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full flex justify-between items-center px-4 h-12 bg-[#f7f9fc] border-b border-[#e0e3e6] z-50 shadow-sm">
+<button class="w-8 h-8 flex items-center justify-center text-slate-800 hover:bg-slate-100 transition-colors rounded-full active:opacity-70">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline text-base font-semibold text-slate-800 truncate px-4 flex-1 text-center">
+            课程详情
+        </h1>
+<button class="w-8 h-8 flex items-center justify-center text-slate-800 hover:bg-slate-100 transition-colors rounded-full active:opacity-70">
+<span class="material-symbols-outlined">share</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="pt-12 px-4 space-y-6">
+<!-- 顶区：大尺寸圆角课程封面图 -->
+<div class="mt-4 rounded-xl overflow-hidden shadow-sm h-48 md:h-64 relative bg-surface-container-high">
+<img alt="Detail Hero" class="w-full h-full object-cover" data-alt="professional corporate training session in a modern bright conference room with participants looking at a screen, high quality, soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDG8eEgIcc8VN_XuHE96pnnXZN-SBlRc3TASpoF02R8LCNmVB8as9ADBY2da-s3mG0ZE6Tar0_HF8Lcf7-PbCEyNRQA9_cYLAbt-8hSslUimOnJnQx4eljdVaS4JUNEnTdBJG-RvuWCZyEAte2oPXNhwf38ybtaKpYGr4lK8U6oo__dgRLFe8tt-rKwE7n-NhhvGuDWOMPittX9iLwlOeAOcibI0gMRrdh_q-Fu49-CAF6n3NWPIUlyZtwXNrds4HI_jQSRe0dYxQ"/>
+</div>
+<!-- 元数据行与价格行 -->
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm space-y-4">
+<div>
+<h2 class="font-headline text-xl font-bold text-on-surface leading-snug">
+                    战略落地与年度经营计划制定实战班
+                </h2>
+<div class="flex items-center space-x-2 mt-2 text-sm text-[#666666]">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span>2026-05-12</span>
+<span class="px-1">·</span>
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span>上海</span>
+</div>
+</div>
+<!-- 价格行 -->
+<div class="flex items-end space-x-2 border-t border-surface-container pt-4">
+<span class="text-[#E62117] font-bold text-2xl font-headline leading-none">¥ 2500</span>
+<span class="text-sm text-[#666666] mb-0.5">含资料费</span>
+</div>
+</div>
+<!-- 讲师组件 -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<img alt="Instructor Avatar" class="w-10 h-10 rounded-full object-cover border border-surface-variant" data-alt="professional headshot of a confident asian male business instructor in a sharp suit against a neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBufYMH2RJRkVyq9vWC7H1BcCDcJ5VtTrv1k8zxd8-dqbM7U8QDpADUpqIKjy3QOr3aKpJTlAV9z4txRnm3UbIiCiB5g8OBiLpaPYhSXXuA6dv549MofOwiF1gzBmVixbZZPD6dPcmwGRqsjDDeix7K_gqA3C9a8VmgxBrFP9_ULspBxKma7mBowjRCRz5dPDo6Jtb0c8b4QmqkFngOpJj7ATRqqasj3ZbEohbiW90dB2YnJyaAbT4fo6MJWNKCvxjg3ZW79tsOXA"/>
+<div>
+<h3 class="font-medium text-on-surface text-sm">王健林 导师</h3>
+<p class="text-xs text-[#666666]">资深战略管理专家</p>
+</div>
+</div>
+<a class="text-sm text-[#E62117] font-medium flex items-center active:opacity-70" href="#">
+                查看讲师
+                <span class="material-symbols-outlined text-[16px] ml-0.5">chevron_right</span>
+</a>
+</div>
+<!-- 详情内容 -->
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm">
+<h3 class="font-headline font-bold text-lg text-on-surface mb-4 border-b border-surface-container pb-2">课程介绍</h3>
+<div class="space-y-4 text-sm text-[#333333] leading-relaxed">
+<p>
+                    在当今复杂多变的商业环境中，企业的战略制定与落地能力成为决定生存和发展的关键。本课程旨在帮助企业高管、战略负责人以及相关业务骨干，掌握科学、系统的战略规划工具与方法，将宏伟的战略蓝图切实转化为可执行的年度经营计划。
+                </p>
+<p>
+                    课程通过大量实战案例分析、沙盘演练和现场辅导，引导学员从行业洞察、竞争分析入手，明确企业战略定位与核心竞争力。在此基础上，运用平衡计分卡（BSC）、战略地图等工具，将战略目标层层分解至各业务单元和职能部门，确保战略执行不走样。
+                </p>
+<p>
+                    重点内容包括：
+                    </p><ul class="list-disc pl-5 mt-2 space-y-1 text-[#666666]">
+<li>宏观环境与行业趋势分析框架</li>
+<li>企业核心竞争力识别与培育</li>
+<li>战略目标的设定与量化指标设计</li>
+<li>年度经营计划的编制流程与关键节点管控</li>
+<li>战略执行过程中的绩效监控与复盘机制</li>
+</ul>
+<p></p>
+</div>
+</div>
+</main>
+<!-- 吸底操作栏 -->
+<div class="fixed bottom-0 left-0 w-full bg-surface-container-lowest border-t border-surface-container p-3 px-4 pb-safe flex items-center space-x-3 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-40">
+<button class="flex-1 max-w-[120px] py-3 px-4 rounded-lg border border-[#e0e3e6] text-on-surface font-medium text-sm flex items-center justify-center space-x-1 hover:bg-surface-container-low transition-colors active:opacity-70">
+<span class="material-symbols-outlined text-[18px] text-[#666666]">support_agent</span>
+<span>咨询客服</span>
+</button>
+<button class="flex-1 py-3 px-6 rounded-lg bg-[#E62117] text-white font-medium text-sm hover:bg-[#c41c14] transition-colors shadow-md active:opacity-70">
+            立即报名
+        </button>
+</div>
+<style>
+        /* Safe Area Polyfill */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .pb-safe {
+                padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+            }
+        }
+    </style>
+</body></html>

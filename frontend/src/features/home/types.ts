@@ -28,13 +28,17 @@ export interface CaseStudy {
   description: string;
   image: string;
   tags: string[];
+  /** 案例时间（培训日期），展示如 2026-5-19 */
+  caseDate?: string;
+  trainerName?: string;
 }
 
 export interface InternalCourse {
   id: number;
   title: string;
   subtitle: string;
-  image: string;
+  /** 展示封面（由接口经素材库解析） */
+  coverUrl?: string;
   instructorName: string;
   instructorAvatar: string;
   instructorDesc: string;
@@ -43,10 +47,13 @@ export interface InternalCourse {
 export interface PublicCourse {
   id: number;
   title: string;
-  image: string;
+  /** 展示封面（由接口经素材库解析） */
+  coverUrl?: string;
   organizer: string;
   instructor: string;
   city: string;
   startDate: string;
-  durationDays: number;
+  durationDays: number | null;
+  categoryName?: string;
+  keywords?: string;
 }

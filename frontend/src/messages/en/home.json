@@ -20,6 +20,7 @@
   "cases": {
     "sectionTitle": "Expert Cases",
     "readMore": "Read Full Case",
+    "caseDate": "Case date: {date}",
     "serviceInstructor": "Instructor: {name}"
   },
   "courses": {
@@ -35,7 +36,9 @@
       "instructor": "Instructor",
       "city": "City",
       "startDate": "Start Date",
-      "duration": "Duration"
+      "duration": "Duration",
+      "category": "Category",
+      "keywords": "Keywords"
     },
     "durationDays": "{count} days"
   },

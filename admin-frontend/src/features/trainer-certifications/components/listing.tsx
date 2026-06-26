@@ -21,7 +21,7 @@ import { WorkCertTable } from './work-table';
  */
 type Dimension = 'real-name' | 'professional' | 'education' | 'work';
 
-export default function CertListingPage({ dimension }: { dimension: Dimension }) {
+export default async function CertListingPage({ dimension }: { dimension: Dimension }) {
   const page = searchParamsCache.get('page');
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
@@ -37,31 +37,47 @@ export default function CertListingPage({ dimension }: { dimension: Dimension })
 
   switch (dimension) {
     case 'real-name':
-      void queryClient.prefetchQuery({
-        queryKey: certKeys.realName(filters),
-        queryFn: () => getRealNameCertsFromServer(filters)
-      });
+      try {
+        await queryClient.prefetchQuery({
+          queryKey: certKeys.realName(filters),
+          queryFn: () => getRealNameCertsFromServer(filters)
+        });
+      } catch {
+        // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+      }
       table = <RealNameCertTable />;
       break;
     case 'professional':
-      void queryClient.prefetchQuery({
-        queryKey: certKeys.professional(filters),
-        queryFn: () => getProfessionalCertsFromServer(filters)
-      });
+      try {
+        await queryClient.prefetchQuery({
+          queryKey: certKeys.professional(filters),
+          queryFn: () => getProfessionalCertsFromServer(filters)
+        });
+      } catch {
+        // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+      }
       table = <ProfessionalCertTable />;
       break;
     case 'education':
-      void queryClient.prefetchQuery({
-        queryKey: certKeys.education(filters),
-        queryFn: () => getEducationCertsFromServer(filters)
-      });
+      try {
+        await queryClient.prefetchQuery({
+          queryKey: certKeys.education(filters),
+          queryFn: () => getEducationCertsFromServer(filters)
+        });
+      } catch {
+        // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+      }
       table = <EducationCertTable />;
       break;
     case 'work':
-      void queryClient.prefetchQuery({
-        queryKey: certKeys.work(filters),
-        queryFn: () => getWorkCertsFromServer(filters)
-      });
+      try {
+        await queryClient.prefetchQuery({
+          queryKey: certKeys.work(filters),
+          queryFn: () => getWorkCertsFromServer(filters)
+        });
+      } catch {
+        // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+      }
       table = <WorkCertTable />;
       break;
   }

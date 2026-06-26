@@ -28,6 +28,12 @@ export async function createDemand(data: CreateDemandRequest): Promise<DemandDet
   return res.data;
 }
 
+/** 游客发布需求（无需登录） */
+export async function createPublicDemand(data: CreateDemandRequest): Promise<DemandDetail> {
+  const res = await apiPost<ApiResponse<DemandDetail>>('/demands/public', data);
+  return res.data;
+}
+
 /** 我的需求列表 */
 export async function listMyDemands(
   params: { status?: number; page?: number; size?: number } = {},

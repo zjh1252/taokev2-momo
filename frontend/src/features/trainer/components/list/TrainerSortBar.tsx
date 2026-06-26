@@ -6,9 +6,6 @@ import type { TrainerFilterValue } from './TrainerFilters';
 /**
  * 专家列表排序栏 — 综合排序 / 好评率
  *
- * <p>样式与 {@code /opencourses} 排序栏一致：左侧排序按钮 + 已选筛选 chips 内联紧贴；
- * 右侧贴边显示总数。</p>
- *
  * @author Fangxinxin
  * @date 2026-04-22 21:30
  */
@@ -34,40 +31,29 @@ export function TrainerSortBar({
   onReset: () => void;
 }) {
   const chips: { key: string; label: string; clear: () => void }[] = [];
-  if (filters.expertiseCategoryId && filters.expertiseCategoryName) {
+
+  if (filters.fieldParentName) {
+    const label = filters.fieldChildName
+      ? `擅长领域：${filters.fieldParentName} / ${filters.fieldChildName}`
+      : `擅长领域：${filters.fieldParentName}`;
     chips.push({
-      key: 'expertise',
-      label: `擅长领域：${filters.expertiseCategoryName}`,
-      clear: () =>
-        onFilterChange({
-          ...filters,
-          expertiseCategoryId: undefined,
-          expertiseCategoryName: undefined,
-        }),
+      key: 'field',
+      label,
+      clear: () => onFilterChange({ ...filters, fieldParentName: undefined, fieldChildName: undefined }),
     });
   }
-  if (filters.industryCategoryId && filters.industryCategoryName) {
+  if (filters.industryName) {
     chips.push({
       key: 'industry',
-      label: `擅长行业：${filters.industryCategoryName}`,
-      clear: () =>
-        onFilterChange({
-          ...filters,
-          industryCategoryId: undefined,
-          industryCategoryName: undefined,
-        }),
+      label: `擅长行业：${filters.industryName}`,
+      clear: () => onFilterChange({ ...filters, industryName: undefined }),
     });
   }
-  if (filters.provinceId && filters.provinceName) {
+  if (filters.regionName) {
     chips.push({
-      key: 'province',
-      label: `长驻：${filters.provinceName}`,
-      clear: () =>
-        onFilterChange({
-          ...filters,
-          provinceId: undefined,
-          provinceName: undefined,
-        }),
+      key: 'region',
+      label: `长驻：${filters.regionName}`,
+      clear: () => onFilterChange({ ...filters, regionName: undefined }),
     });
   }
   if (filters.trustedOnly) {
@@ -80,7 +66,6 @@ export function TrainerSortBar({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex items-center flex-wrap gap-2">
-      {/* 排序按钮组 */}
       {SORT_OPTIONS.map((opt) => (
         <button
           key={opt.key}
@@ -97,7 +82,6 @@ export function TrainerSortBar({
         </button>
       ))}
 
-      {/* 已选筛选 chips — 紧贴排序按钮后面，留出明显间距 */}
       {chips.length > 0 && (
         <div className="flex items-center flex-wrap gap-2 ml-4 pl-4 border-l border-slate-200">
           {chips.map((c) => (

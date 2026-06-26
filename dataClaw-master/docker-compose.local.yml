@@ -1,0 +1,141 @@
+name: taoke-local
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: taoke-local-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_DATABASE: taokev2
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    volumes:
+      - taoke-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p123456 --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: taoke-local-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - taoke-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: taoke-local-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /taokev2-dev
+      TZ: Asia/Shanghai
+    volumes:
+      - taoke-rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.3
+    container_name: taoke-local-elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      discovery.type: single-node
+      ELASTIC_PASSWORD: taokev2es
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      xpack.security.transport.ssl.enabled: "false"
+      xpack.ml.enabled: "false"
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+      TZ: Asia/Shanghai
+    volumes:
+      - taoke-es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -u elastic:taokev2es http://localhost:9200/_cluster/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  es-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.3
+    container_name: taoke-local-es-setup
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+    command: >
+      bash -c '
+        ES="http://elasticsearch:9200";
+        AUTH="elastic:taokev2es";
+        H="Content-Type: application/json";
+
+        echo "Creating app_search role and user...";
+        curl -sf -u "$$AUTH" -X PUT "$$ES/_security/role/app_search_role" \
+          -H "$$H" -d "{\"cluster\":[\"monitor\"],\"indices\":[{\"names\":[\"taokev2*\"],\"privileges\":[\"all\"]}]}" >/dev/null;
+
+        curl -sf -u "$$AUTH" -X POST "$$ES/_security/user/app_search" \
+          -H "$$H" -d "{\"password\":\"taokev2search\",\"roles\":[\"app_search_role\"],\"full_name\":\"Taoke Local App Search\"}" >/dev/null \
+          || curl -sf -u "$$AUTH" -X POST "$$ES/_security/user/app_search/_password" \
+          -H "$$H" -d "{\"password\":\"taokev2search\"}" >/dev/null;
+
+        echo "Elasticsearch app_search is ready.";
+      '
+    restart: "no"
+
+  crawler-service:
+    build:
+      context: ./crawler-service
+    container_name: taoke-local-crawler-service
+    ports:
+      - "8100:8100"
+    environment:
+      SERVER_PORT: 8100
+      CALLBACK_URL: http://host.docker.internal:8080/internal/crawl/callback
+      CALLBACK_TOKEN: local-crawler-token
+      TZ: Asia/Shanghai
+    volumes:
+      - ./crawler-service:/app
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8100", "--reload"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/health', timeout=3).read()\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  taoke-mysql-data:
+  taoke-redis-data:
+  taoke-rabbitmq-data:
+  taoke-es-data:

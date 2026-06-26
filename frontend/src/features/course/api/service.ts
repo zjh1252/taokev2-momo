@@ -1,4 +1,5 @@
 import { apiGet } from '@/lib/http/client';
+import { fetchCategoryCountMap } from '@/lib/category-counts';
 import type {
   ApiResponse,
   PageResponse,
@@ -112,9 +113,24 @@ export async function getCourseList(
   return res.data;
 }
 
-/**
- * 课程公开详情
- */
+export interface CourseCategoryCountParams {
+  isOpen: boolean;
+  cityIds?: number[];
+}
+
+/** 课程一级分类批量计数（频道底部分类导航） */
+export async function getCourseCategoryCounts(
+  params: CourseCategoryCountParams,
+): Promise<Record<number, number>> {
+  const query = new URLSearchParams();
+  query.set('isOpen', String(params.isOpen));
+  if (params.cityIds?.length) {
+    params.cityIds.forEach((id) => query.append('cityIds', String(id)));
+  }
+  return fetchCategoryCountMap(`/courses/category-counts?${query.toString()}`);
+}
+
+/** 课程公开详情 */
 export async function getCourseDetail(id: number): Promise<CourseDetail> {
   const res = await apiGet<ApiResponse<CourseDetail>>(`/courses/${id}`);
   return res.data;

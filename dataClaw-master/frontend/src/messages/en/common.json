@@ -1,0 +1,15 @@
+{
+  "site": {
+    "title": "TaoKe — Enterprise Training Platform",
+    "description": "Connecting training buyers with resource providers"
+  },
+  "save": "Save",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "delete": "Delete",
+  "loading": "Loading...",
+  "saving": "Saving...",
+  "footer": {
+    "copyright": "© 2026 TaoKe. All rights reserved."
+  }
+}

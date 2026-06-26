@@ -5,7 +5,7 @@ import { courseKeys } from '../api/queries';
 import { getCoursesFromServer } from '../api/server-service';
 import { CoursesTable } from './courses-table';
 
-export default function CourseListingPage() {
+export default async function CourseListingPage() {
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('name');
   const pageLimit = searchParamsCache.get('perPage');
@@ -20,10 +20,14 @@ export default function CourseListingPage() {
 
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery({
-    queryKey: courseKeys.list(filters),
-    queryFn: () => getCoursesFromServer(filters)
-  });
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: courseKeys.list(filters),
+      queryFn: () => getCoursesFromServer(filters)
+    });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

@@ -1,0 +1,107 @@
+{
+  "inner": {
+    "title": "Internal Training",
+    "subtitle": "Professional training courses tailored for enterprise teams",
+    "empty": "No internal training courses available",
+    "meta": {
+      "title": "Internal Training — Taoke",
+      "description": "Browse premium internal training courses for enterprise teams"
+    }
+  },
+  "open": {
+    "title": "Public Courses",
+    "subtitle": "Upcoming public courses across the country, enroll now",
+    "empty": "No public courses available",
+    "meta": {
+      "title": "Public Courses — Taoke",
+      "description": "Browse public courses nationwide, filter by city and category"
+    }
+  },
+  "detail": {
+    "courseId": "Course ID",
+    "duration": "Duration",
+    "daysUnit": "days",
+    "hoursUnit": "hours",
+    "audience": "Target Audience",
+    "trainer": "Instructor",
+    "category": "Category",
+    "rating": "Rating",
+    "publisher": "Publisher",
+    "location": "Location",
+    "consult": "Consult Now",
+    "reserve": "Reserve Now",
+    "favorite": "Add to Favorites",
+    "share": "Share",
+    "popularity": "Popularity",
+    "views": "Views",
+    "review": "Reviews",
+    "price": "Reference Price",
+    "tabIntro": "Course Introduction",
+    "tabReview": "Reviews",
+    "tabDetail": "Course Details",
+    "trainingTarget": "Target Audience",
+    "courseHighlights": "Course Benefits",
+    "courseSyllabus": "Course Syllabus",
+    "trainerProfile": "Instructor",
+    "viewTrainerPage": "View Instructor Profile",
+    "tagInternal": "Internal",
+    "tagOpen": "Public",
+    "tagFeatured": "Featured",
+    "tagFree": "Free"
+  },
+  "plan": {
+    "title": "Upcoming Class Schedule",
+    "courseId": "Course ID",
+    "location": "Location",
+    "classType": "Class Type",
+    "startTime": "Start Time",
+    "price": "Price",
+    "status": "Status",
+    "action": "Action",
+    "enroll": "Enroll Now",
+    "consulting": "Consult",
+    "enrolling": "Enrolling",
+    "confirmed": "Confirmed",
+    "cancelled": "Cancelled"
+  },
+  "filters": {
+    "all": "All",
+    "category": "Category",
+    "city": "City",
+    "industry": "Industry",
+    "exclusive": "Exclusive",
+    "comprehensive": "Comprehensive",
+    "openCity": "Course City",
+    "openTime": "Course Time",
+    "priceRange": "Price Range",
+    "courseRating": "Rating",
+    "enrollStatus": "Enrollment Status",
+    "courseExtras": "Course Extras"
+  },
+  "sort": {
+    "default": "Default",
+    "rating": "Rating",
+    "time": "Schedule",
+    "price": "Price",
+    "review": "Reviews"
+  },
+  "labels": {
+    "trainer": "Instructor",
+    "days": "Duration (days)",
+    "category": "Category",
+    "keywords": "Keywords",
+    "trainerCity": "Instructor City",
+    "openTime": "Start Time",
+    "openLocation": "Location",
+    "totalCourses": "{total} courses found"
+  },
+  "list": {
+    "title": "All Courses",
+    "subtitle": "Professional training courses for enterprise teams",
+    "empty": "No courses available",
+    "meta": {
+      "title": "Courses — Taoke",
+      "description": "Browse enterprise training courses"
+    }
+  }
+}

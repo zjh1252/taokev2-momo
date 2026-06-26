@@ -20,14 +20,22 @@ public class TrainerListItemResponse {
     private Integer userId;
 
     private String name;
+    /** 授课姓名（列表/卡片对外展示） */
+    private String teachingName;
     private String avatar;
     private String title;
+
+    /** 一句话介绍（对外展示的头衔/签名） */
+    private String oneLineIntro;
 
     /** 综合评分（1.00-5.00） */
     private BigDecimal score;
 
     /** 讲师自选标签，逗号分隔 */
     private String expertiseTags;
+
+    /** 是否后台推荐位：0=否，1=是 */
+    private Integer isRecommended;
 
     /** 是否信得过专家 */
     private Integer isTrusted;

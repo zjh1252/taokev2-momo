@@ -1,68 +1,105 @@
 'use client';
 
-import { useState } from 'react';
-import { VideoChapterList } from './VideoChapterList';
+import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from '@/i18n/navigation';
+import { resolveRichTextHtml } from '@/lib/rich-text';
+import { VideoRelatedCourses } from './VideoRelatedCourses';
+import { VideoCommentsSection } from './VideoCommentsSection';
+import { VideoSeriesVideoList } from './VideoSeriesVideoList';
 import type { VideoDetail } from '../../api/types';
-import { cn } from '@/lib/utils';
 
 interface VideoDetailTabsProps {
   video: VideoDetail;
 }
 
-const TABS = [
-  { key: 'intro', label: '课程介绍' },
-  { key: 'chapters', label: '课程目录' },
-] as const;
-
-type TabKey = typeof TABS[number]['key'];
-
 export function VideoDetailTabs({ video }: VideoDetailTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>('intro');
+  const hasSeriesPackage = Boolean(video.hasSeriesPackage);
+  const tabs = hasSeriesPackage
+    ? [
+        { key: 'intro', label: '视频介绍' },
+        { key: 'series', label: '系列介绍' },
+      ]
+    : [{ key: 'intro', label: '视频介绍' }];
+
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const activeTab =
+    searchParams.get('tab') === 'series' && hasSeriesPackage ? 'series' : 'intro';
+
+  const switchTab = (key: string) => {
+    if (key === 'series' && hasSeriesPackage) {
+      router.replace(`${pathname}?tab=series`, { scroll: false });
+      return;
+    }
+    router.replace(pathname, { scroll: false });
+  };
+
+  const resolvedIntroHtml = resolveRichTextHtml(video.intro ?? '');
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      {/* Tab 导航 */}
-      <div className="flex border-b border-slate-200">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'px-6 py-4 text-sm font-medium transition-colors border-b-2 -mb-px',
-              activeTab === tab.key
-                ? 'text-primary border-primary'
-                : 'text-slate-500 border-transparent hover:text-slate-700',
-            )}
-          >
-            {tab.label}
-            {tab.key === 'chapters' && (
-              <span className="ml-1 text-xs text-slate-400">({video.totalEpisodes})</span>
-            )}
-          </button>
-        ))}
-      </div>
+    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+      {hasSeriesPackage ? (
+        <div className="flex border-b border-slate-100">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => switchTab(tab.key)}
+              className={`px-8 py-4 text-sm font-medium transition-colors relative ${
+                activeTab === tab.key
+                  ? 'text-primary'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {tab.label}
+              {activeTab === tab.key && (
+                <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary rounded-full" />
+              )}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
-      {/* Tab 内容 */}
-      <div className="p-6">
+      <div className="p-6 space-y-8">
         {activeTab === 'intro' && (
-          <div>
-            {video.intro ? (
-              <div
-                className="prose prose-slate max-w-none prose-sm"
-                dangerouslySetInnerHTML={{ __html: video.intro }}
-              />
-            ) : (
-              <p className="text-slate-400 text-center py-8">暂无课程介绍</p>
-            )}
-          </div>
+          <>
+            <section>
+              {!hasSeriesPackage ? (
+                <h2 className="text-base font-bold text-primary mb-4">视频介绍</h2>
+              ) : null}
+              {video.intro ? (
+                <div
+                  className="prose prose-slate max-w-none prose-sm"
+                  dangerouslySetInnerHTML={{ __html: resolvedIntroHtml }}
+                />
+              ) : (
+                <p className="text-slate-400 text-center py-8 text-sm">暂无视频介绍</p>
+              )}
+            </section>
+
+            <VideoRelatedCourses videoId={video.id} />
+
+            <section>
+              <h2 className="text-base font-bold text-primary mb-4">{video.title}的评论</h2>
+              <VideoCommentsSection videoId={video.id} />
+            </section>
+          </>
         )}
 
-        {activeTab === 'chapters' && (
-          <VideoChapterList
-            seriesList={video.seriesList || []}
-            standaloneChapters={video.standaloneChapters || []}
-          />
+        {activeTab === 'series' && hasSeriesPackage && (
+          <>
+            <section>
+              <VideoSeriesVideoList videoId={video.id} />
+            </section>
+
+            <VideoRelatedCourses videoId={video.id} />
+
+            <section>
+              <h2 className="text-base font-bold text-primary mb-4">{video.title}的评论</h2>
+              <VideoCommentsSection videoId={video.id} />
+            </section>
+          </>
         )}
       </div>
     </div>

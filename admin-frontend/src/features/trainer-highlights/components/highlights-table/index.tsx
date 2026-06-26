@@ -12,13 +12,15 @@ export function TrainerHighlightsTable() {
   const [params] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
-    status: parseAsString
+    status: parseAsString,
+    keyword: parseAsString
   });
 
   const filters = {
     page: params.page,
     limit: params.perPage,
-    ...(params.status && { status: params.status })
+    ...(params.status && { status: params.status }),
+    ...(params.keyword && { keyword: params.keyword })
   };
 
   const { data: resp } = useSuspenseQuery(

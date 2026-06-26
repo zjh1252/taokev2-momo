@@ -1,4 +1,4 @@
-import { getTranslations } from 'next-intl/server';
+import { homeMetadata } from '@/lib/seo';
 import {
   HeroSection,
   AiMatchBanner,
@@ -6,37 +6,34 @@ import {
   CasesSection,
   CoursesSection,
   PublicCoursesSection,
-  AiEngagementBanner,
 } from '@/features/home/components';
 import {
-  featuredExperts,
-  featuredCases,
-  popularInternalCourses,
-  upcomingPublicCourses,
-} from '@/features/home/data/mock';
+  loadHomeCases,
+  loadHomeExperts,
+  loadHomeInternalCourses,
+  loadHomePublicCourses,
+} from '@/features/home/api/load-home-data';
 import { getCategoryTree } from '@/features/course/api/service';
 import { getActiveCities } from '@/features/city/api/service';
 import { CityChannelCard } from '@/features/city/components/CityChannelCard';
 
 export async function generateMetadata() {
-  const t = await getTranslations('common');
-  return { title: t('site.title'), description: t('site.description') };
+  return homeMetadata();
 }
 
 /**
- * 首页 — SSR，分类侧栏与城市频道已接入后端 API，其他区块仍使用 mock
- * TODO: 将其余 mock 数据替换为 fetch('/api/...') 调用
+ * 首页 — SSR，推荐专家/案例/课程等区块接入后端 API（v3test），接口失败时课程区块为空（不再回退 mock）
  */
 export default async function HomePage() {
-  const [expertiseCategories, activeCities] = await Promise.all([
-    getCategoryTree('TRAINER_EXPERTISE').catch(() => []),
-    getActiveCities(9).catch(() => []),
-  ]);
-
-  const experts = featuredExperts;
-  const cases = featuredCases;
-  const internalCourses = popularInternalCourses;
-  const publicCourses = upcomingPublicCourses;
+  const [expertiseCategories, activeCities, experts, cases, internalCourses, publicCourses] =
+    await Promise.all([
+      getCategoryTree('TRAINER_EXPERTISE').catch(() => []),
+      getActiveCities(18).catch(() => []),
+      loadHomeExperts(),
+      loadHomeCases(),
+      loadHomeInternalCourses(),
+      loadHomePublicCourses(),
+    ]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-12">
@@ -47,11 +44,7 @@ export default async function HomePage() {
       <CoursesSection courses={internalCourses} />
       <PublicCoursesSection courses={publicCourses} />
 
-      {/* 底部：左侧 banner（70%）+ 右侧城市频道入口（30%），fr 比例分配以避开 gap 引起的溢出 */}
-      <section className="grid grid-cols-1 lg:grid-cols-[7fr_3fr] gap-4 items-stretch">
-        <AiEngagementBanner />
-        <CityChannelCard cities={activeCities} />
-      </section>
+      <CityChannelCard cities={activeCities} />
     </div>
   );
 }

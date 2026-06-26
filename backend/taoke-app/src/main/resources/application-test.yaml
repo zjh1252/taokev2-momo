@@ -10,7 +10,7 @@ spring:
   #     namespace: test
 
   datasource:
-    url: jdbc:mysql://10.0.14.20:3306/taokev2?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
+    url: jdbc:mysql://10.0.14.20:3306/v3test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
     username: root
     password: 'root'
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -63,6 +63,11 @@ taoke:
   cors:
     allowed-origins: '*'
     allow-credentials: false
+
+# Docker Compose 内网：backend ↔ crawler
+crawler:
+  base-url: http://crawler:8100
+  callback-url: http://backend:8080/internal/crawl/callback
 
 logging:
   level:

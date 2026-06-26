@@ -7,6 +7,7 @@ import { ROUTES } from '@/config/routes';
 import CourseForm from '@/features/course/components/publisher/CourseForm';
 import { createCourse } from '@/features/course/api/publisher-service';
 import type { SaveCourseRequest } from '@/features/course/api/types';
+import { ApiException } from '@/lib/http/client';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
@@ -20,25 +21,35 @@ import { BoundPublisherGuard } from '@/features/binding/components/BoundPublishe
  */
 export default function CreateCoursePage() {
   const router = useRouter();
-  const { trainerUserId, banner, valid } = usePublishingTarget('课程');
+  const { trainerUserId, enterpriseAgentUserId, banner, valid } = usePublishingTarget('课程', {
+    allowEnterpriseAgentDelegation: true,
+  });
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: SaveCourseRequest) => {
     if (!valid) {
-      toast.error('请先在顶部选择要代发课程的专家');
+      toast.error('请先在顶部选择要代发课程的专家或经纪公司');
       return;
     }
     setSubmitting(true);
     try {
-      await createCourse(data, trainerUserId);
-      toast.success('已提交审核，请等待平台审核');
-      router.push(
-        trainerUserId
-          ? `${ROUTES.UC_COURSES_MANAGE}?trainerUserId=${trainerUserId}`
-          : ROUTES.UC_COURSES_MANAGE,
+      await createCourse(data, trainerUserId, enterpriseAgentUserId);
+      toast.success(
+        data.draft
+          ? '草稿已保存，可在「管理课程-草稿」中继续编辑'
+          : '已提交审核，请等待平台审核',
       );
-    } catch {
-      // 错误提示由全局 http client 统一弹出（含后端具体校验信息），此处不再重复 toast
+      const manageQuery = trainerUserId
+        ? `?trainerUserId=${trainerUserId}`
+        : enterpriseAgentUserId
+          ? `?enterpriseAgentUserId=${enterpriseAgentUserId}`
+          : '';
+      router.push(`${ROUTES.UC_COURSES_MANAGE}${manageQuery}`);
+    } catch (err) {
+      // ApiException 已由 http client 弹出后端具体失败原因，这里只兜底未知错误
+      if (!(err instanceof ApiException)) {
+        toast.error('保存失败，请稍后重试');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -55,7 +66,7 @@ export default function CreateCoursePage() {
         </Link>
         <h1 className="text-lg font-bold text-gray-800">发布新课程</h1>
       </div>
-      <BoundPublisherGuard>
+      <BoundPublisherGuard options={{ allowEnterpriseAgentFallback: true }}>
         {banner}
         <CourseForm onSubmit={handleSubmit} submitting={submitting} />
       </BoundPublisherGuard>

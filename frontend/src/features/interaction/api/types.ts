@@ -32,6 +32,10 @@ export interface FavoriteItem {
   title: string;
   subtitle: string;
   coverUrl: string;
+  /** 录播课是否已解锁（仅 targetType=VIDEO 时有值） */
+  unlocked?: boolean;
+  /** 资源详情页相对路径（点击跳转用），如 /trainers/25、/opencourses/12 */
+  linkUrl?: string;
   createdAt: string;
 }
 

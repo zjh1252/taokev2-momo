@@ -1,11 +1,22 @@
 'use client';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { User } from '../../api/types';
+import {
+  REG_ORIGIN_MAP,
+  REG_ORIGIN_OPTIONS,
+  REAL_NAME_CERT_STATUS_MAP,
+  REAL_NAME_CERT_STATUS_OPTIONS
+} from '../../api/types';
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import { CellAction } from './cell-action';
-import { STATUS_OPTIONS, ROLE_LABEL_MAP } from './options';
+import {
+  STATUS_OPTIONS,
+  ROLE_LABEL_MAP,
+  ROLE_FILTER_OPTIONS
+} from './options';
 
 export const columns: ColumnDef<User>[] = [
   {
@@ -17,13 +28,16 @@ export const columns: ColumnDef<User>[] = [
     id: 'nickname',
     accessorKey: 'nickname',
     header: ({ column }: { column: Column<User, unknown> }) => (
-      <DataTableColumnHeader column={column} title='昵称' />
+      <DataTableColumnHeader column={column} title='用户名/真实姓名' />
     ),
     cell: ({ row }) => (
       <div className='flex flex-col'>
-        <span className='font-medium'>
+        <Link
+          href={`/dashboard/users/${row.original.id}`}
+          className='font-medium text-primary hover:underline'
+        >
           {row.original.nickname || '-'}
-        </span>
+        </Link>
         {row.original.realName && (
           <span className='text-muted-foreground text-xs'>
             {row.original.realName}
@@ -32,7 +46,7 @@ export const columns: ColumnDef<User>[] = [
       </div>
     ),
     meta: {
-      label: '昵称',
+      label: '用户名/真实姓名',
       placeholder: '搜索用户...',
       variant: 'text' as const,
       icon: Icons.text
@@ -61,6 +75,59 @@ export const columns: ColumnDef<User>[] = [
     }
   },
   {
+    id: 'role',
+    accessorKey: 'role',
+    header: '角色筛选',
+    enableColumnFilter: true,
+    meta: {
+      label: '角色',
+      variant: 'select' as const,
+      options: ROLE_FILTER_OPTIONS
+    }
+  },
+  {
+    id: 'regOrigin',
+    accessorKey: 'regOrigin',
+    header: '注册来源',
+    enableColumnFilter: true,
+    cell: ({ row }) => {
+      const v = row.original.regOrigin;
+      if (v == null) return '-';
+      return REG_ORIGIN_MAP[v] ?? String(v);
+    },
+    meta: {
+      label: '注册来源',
+      variant: 'select' as const,
+      options: REG_ORIGIN_OPTIONS
+    }
+  },
+  {
+    accessorKey: 'courseCount',
+    header: '课程数',
+    cell: ({ row }) => row.original.courseCount ?? 0
+  },
+  {
+    accessorKey: 'caseCount',
+    header: '案例数',
+    cell: ({ row }) => row.original.caseCount ?? 0
+  },
+  {
+    id: 'realNameCertStatus',
+    accessorKey: 'realNameCertStatus',
+    header: '实名认证',
+    enableColumnFilter: true,
+    cell: ({ row }) => {
+      const v = row.original.realNameCertStatus;
+      if (v == null) return '未提交';
+      return REAL_NAME_CERT_STATUS_MAP[v] ?? String(v);
+    },
+    meta: {
+      label: '实名认证',
+      variant: 'select' as const,
+      options: REAL_NAME_CERT_STATUS_OPTIONS
+    }
+  },
+  {
     id: 'status',
     accessorKey: 'status',
     header: '状态',
@@ -81,11 +148,18 @@ export const columns: ColumnDef<User>[] = [
   },
   {
     accessorKey: 'createdAt',
-    header: '注册时间',
-    cell: ({ cell }) => {
-      const val = cell.getValue<string>();
-      if (!val) return '-';
-      return new Date(val).toLocaleDateString('zh-CN');
+    header: '注册时间/最后登录时间',
+    cell: ({ row }) => {
+      const formatDate = (val: string | null | undefined) =>
+        val ? new Date(val).toLocaleDateString('zh-CN') : '-';
+      return (
+        <div className='flex flex-col'>
+          <span>{formatDate(row.original.createdAt)}</span>
+          <span className='text-muted-foreground text-xs'>
+            {formatDate(row.original.lastLoginAt)}
+          </span>
+        </div>
+      );
     }
   },
   {

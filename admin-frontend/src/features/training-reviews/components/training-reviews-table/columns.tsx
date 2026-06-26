@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { AdminTrainingReview } from '../../api/types';
@@ -11,6 +12,7 @@ import {
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import { CellAction } from './cell-action';
+import { getAdminUserDetailUrl } from '@/lib/frontend-links';
 
 function statusVariant(status: number) {
   switch (status) {
@@ -40,6 +42,8 @@ function targetLabelFallback(row: AdminTrainingReview): string {
       );
     case 'INSTITUTION':
       return row.institutionId != null ? `机构 #${row.institutionId}` : '-';
+    case 'CASE':
+      return row.caseId != null ? `案例 #${row.caseId}` : '-';
     default:
       return '-';
   }
@@ -85,34 +89,96 @@ export const columns: ColumnDef<AdminTrainingReview>[] = [
   {
     id: 'avgScore',
     accessorKey: 'avgScore',
-    header: '均分',
-    cell: ({ cell }) => {
-      const v = cell.getValue<string | number>();
-      return v != null ? String(v) : '-';
+    header: ({ column }: { column: Column<AdminTrainingReview, unknown> }) => (
+      <DataTableColumnHeader column={column} title='综合评分' />
+    ),
+    cell: ({ row }) => {
+      const { ratingContent, ratingTeaching, ratingService, avgScore } = row.original;
+      const parts = [
+        ratingContent ? `内容 ${ratingContent}` : null,
+        ratingTeaching ? `授课 ${ratingTeaching}` : null,
+        ratingService ? `服务 ${ratingService}` : null
+      ].filter(Boolean);
+      if (parts.length > 0) {
+        return (
+          <span className='text-xs whitespace-nowrap' title={parts.join(' · ')}>
+            {parts.join(' / ')}
+          </span>
+        );
+      }
+      return avgScore != null ? String(avgScore) : '-';
     }
   },
   {
     accessorKey: 'commentText',
     header: '评价内容',
-    cell: ({ cell }) => {
+    cell: ({ row, cell }) => {
       const t = cell.getValue<string>();
       if (!t) return '-';
       return (
-        <div className='max-w-[220px] truncate' title={t}>
+        <Link
+          href={`/dashboard/training-reviews/${row.original.id}`}
+          className='text-primary max-w-[220px] truncate block hover:underline'
+          title={t}
+        >
           {t.length > 80 ? `${t.slice(0, 80)}…` : t}
-        </div>
+        </Link>
       );
     }
   },
   {
+    id: 'reviewerKeyword',
     accessorKey: 'submitterName',
-    header: '提交人',
+    header: ({ column }: { column: Column<AdminTrainingReview, unknown> }) => (
+      <DataTableColumnHeader column={column} title='提交人' />
+    ),
+    enableColumnFilter: true,
+    meta: {
+      label: '评价人',
+      placeholder: '评价人姓名...',
+      variant: 'text' as const,
+      icon: Icons.text
+    },
     cell: ({ row }) => {
       const name = row.original.submitterName;
-      if (row.original.anonymous) {
-        return name ? `${name}（匿名）` : '匿名';
-      }
-      return name || `用户 #${row.original.userId}`;
+      const label = row.original.anonymous
+        ? name
+          ? `${name}（匿名）`
+          : '匿名'
+        : name || `用户 #${row.original.userId}`;
+      if (row.original.anonymous) return label;
+      return (
+        <Link
+          href={getAdminUserDetailUrl(row.original.userId)}
+          className='text-primary hover:underline'
+        >
+          {label}
+        </Link>
+      );
+    }
+  },
+  {
+    id: 'reviewedBy',
+    accessorKey: 'reviewedBy',
+    header: '审核人',
+    enableColumnFilter: true,
+    meta: {
+      label: '审核人 ID',
+      placeholder: '审核人用户 ID...',
+      variant: 'text' as const,
+      icon: Icons.user
+    },
+    cell: ({ row }) => {
+      const reviewedBy = row.original.reviewedBy;
+      if (!reviewedBy) return '-';
+      return (
+        <Link
+          href={getAdminUserDetailUrl(reviewedBy)}
+          className='text-primary hover:underline'
+        >
+          {reviewedBy}
+        </Link>
+      );
     }
   },
   {

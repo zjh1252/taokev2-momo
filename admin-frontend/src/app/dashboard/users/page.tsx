@@ -19,8 +19,8 @@ export default async function UsersPage(props: PageProps) {
   return (
     <PageContainer
       scrollable={false}
-      pageTitle='用户管理'
-      pageDescription='查询、冻结/解冻平台用户'
+      pageTitle='平台所有用户管理'
+      pageDescription='查询与管理平台所有用户账号；可按角色筛选查看不同用户类型'
       pageHeaderAction={<UserFormSheetTrigger />}
     >
       <UserListingPage />

@@ -13,7 +13,7 @@ import { getRecentTrainerCases, type RecentTrainerCase } from '../../api/service
  *   <li>整块只占 1 行高，单行内并排显示 2 条案例。</li>
  *   <li>每 8 秒整体向上步进一行，到末尾无缝回到第 1 行；hover 暂停。</li>
  *   <li>每条只显示「主色 NEW icon + 案例标题 + 整数评分」。</li>
- *   <li>无数据时整块隐藏。点击行跳转到对应专家详情页 {@code ?tab=cases}。</li>
+ *   <li>无数据时整块隐藏。点击行跳转到对应专家详情页授课案例 Tab。</li>
  * </ul>
  *
  * @author Fangxinxin
@@ -109,7 +109,7 @@ export function TrainerCaseScroller({
               c ? (
                 <Link
                   key={`${c.id}-${colIdx}`}
-                  href={`/trainers/${c.trainerId}?tab=cases`}
+                  href={`/case/${c.id}.htm`}
                   className="flex-1 min-w-0 px-4 flex items-center gap-3 cursor-pointer bg-white border border-slate-100 rounded-xl shadow-sm hover:border-primary/40 hover:shadow-md transition-all group/item"
                 >
                   <Sparkles className="shrink-0 size-3.5 text-primary" />

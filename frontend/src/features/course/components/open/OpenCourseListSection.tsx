@@ -1,14 +1,17 @@
 'use client';
 
-import { Suspense, useState, useCallback, useTransition, useMemo } from 'react';
+import { Suspense, useState, useCallback, useTransition, useMemo, useEffect, useRef } from 'react';
 import { ArrowUpDown, X, RotateCcw } from 'lucide-react';
 import { ListPagePagination } from '@/components/list-page-pagination';
-import { useRouter } from '@/i18n/navigation';
 import { useListPageUrlSync } from '@/hooks/use-list-page-url';
 import { OpenCourseCard } from './OpenCourseCard';
 import { OpenCourseFilters, type OpenCourseFilterValue } from './OpenCourseFilters';
 import { getCourseList } from '../../api/service';
 import type { CourseListItem, PageResponse, CategoryTreeNode } from '../../api/types';
+import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-nav';
+import type { ChannelCategoryNavItem } from '@/components/layout/channel-category-nav';
+import { parseCourseCategoryIdFromHref } from '@/lib/parse-category-nav-href';
+import { getBrowserPathname, navigateToSeoPath, replaceBrowserUrl, setPageParam } from '@/lib/sync-list-filter-url';
 
 interface OpenCourseListSectionProps {
   initialData: PageResponse<CourseListItem>;
@@ -17,11 +20,22 @@ interface OpenCourseListSectionProps {
   initialInstitutionName?: string;
   /**
    * 锁定的城市 ID 集合（来自 /cities/[pinyin] 跳转），不在左侧筛选器里出现，
-   * 与 institutionId 类似：作为「上下文」固定参与查询；点 chip 上的 X 后跳回 /opencourses 清除。
+   * 与 institutionId 类似：作为「上下文」固定参与查询；点 chip 上的 X 后跳回 /opencourse 清除。
    */
   initialCityIds?: number[];
   /** 锁定城市的展示名集合，与 initialCityIds 一一对应（chip 文本「开课城市：南通」） */
   initialCityNames?: string[];
+  /** 来自底部分类导航或 URL 的初始分类筛选 */
+  initialCategoryIds?: number[];
+  initialCategoryNames?: string[];
+  /** 来自 URL 的初始开课省份筛选 */
+  initialProvinceIds?: number[];
+  initialProvinceNames?: string[];
+  bottomCategoryNav?: {
+    title: string;
+    countUnit: string;
+    itemsPromise: Promise<ChannelCategoryNavItem[]>;
+  };
 }
 
 const SORT_OPTIONS = [
@@ -56,10 +70,19 @@ function OpenCourseListSectionInner({
   initialInstitutionName,
   initialCityIds,
   initialCityNames,
+  initialCategoryIds,
+  initialCategoryNames,
+  initialProvinceIds,
+  initialProvinceNames,
+  bottomCategoryNav,
 }: OpenCourseListSectionProps) {
-  const router = useRouter();
   const [data, setData] = useState(initialData);
-  const [filters, setFilters] = useState<OpenCourseFilterValue>({});
+  const [filters, setFilters] = useState<OpenCourseFilterValue>(() => ({
+    categoryIds: initialCategoryIds,
+    categoryNames: initialCategoryNames,
+    provinceIds: initialProvinceIds,
+    provinceNames: initialProvinceNames,
+  }));
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
   /** 锁定城市 IDs：来自城市频道页跳转，存在时随每次查询一起送给后端 */
   const [lockedCityIds, setLockedCityIds] = useState<number[] | undefined>(
@@ -69,6 +92,79 @@ function OpenCourseListSectionInner({
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
+
+  const serverFilterKey = useMemo(
+    () =>
+      JSON.stringify({
+        categoryIds: initialCategoryIds ?? [],
+        provinceIds: initialProvinceIds ?? [],
+        institutionId: initialInstitutionId ?? null,
+        cityIds: initialCityIds ?? [],
+      }),
+    [initialCategoryIds, initialProvinceIds, initialInstitutionId, initialCityIds],
+  );
+  const serverFilterKeyRef = useRef(serverFilterKey);
+
+  /** SSR 导航（带 categoryIds 等查询参数）时同步列表与筛选，避免 client fetch 后被无参 SSR 覆盖 */
+  useEffect(() => {
+    if (serverFilterKeyRef.current === serverFilterKey) {
+      return;
+    }
+    serverFilterKeyRef.current = serverFilterKey;
+    startTransition(() => {
+      setData(initialData);
+      setCurrentPage(initialData.page ?? 1);
+      setFilters({
+        categoryIds: initialCategoryIds,
+        categoryNames: initialCategoryNames,
+        provinceIds: initialProvinceIds,
+        provinceNames: initialProvinceNames,
+      });
+      setInstitutionId(initialInstitutionId);
+      setLockedCityIds(
+        initialCityIds && initialCityIds.length > 0 ? initialCityIds : undefined,
+      );
+    });
+  }, [
+    serverFilterKey,
+    initialData,
+    initialCategoryIds,
+    initialCategoryNames,
+    initialProvinceIds,
+    initialProvinceNames,
+    initialInstitutionId,
+    initialCityIds,
+    startTransition,
+  ]);
+
+  const syncUrl = useCallback(
+    (page: number, f: OpenCourseFilterValue) => {
+      const params = new URLSearchParams();
+      if (institutionId) {
+        params.set('institutionId', String(institutionId));
+      }
+      if (lockedCityIds?.length) {
+        lockedCityIds.forEach((id, idx) => {
+          params.append('cityIds', String(id));
+          const name = initialCityNames?.[idx];
+          if (name) params.append('cityName', name);
+        });
+      }
+      f.categoryIds?.forEach((id, idx) => {
+        params.append('categoryIds', String(id));
+        const name = f.categoryNames?.[idx];
+        if (name) params.append('categoryName', name);
+      });
+      f.provinceIds?.forEach((id, idx) => {
+        params.append('provinceIds', String(id));
+        const name = f.provinceNames?.[idx];
+        if (name) params.append('provinceName', name);
+      });
+      setPageParam(params, page);
+      replaceBrowserUrl(getBrowserPathname(), params);
+    },
+    [institutionId, lockedCityIds, initialCityNames],
+  );
 
   const fetchData = useCallback(
     (
@@ -125,49 +221,48 @@ function OpenCourseListSectionInner({
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);
     fetchData(1, undefined, undefined, null);
-    router.replace('/opencourses');
-  }, [fetchData, router]);
+    navigateToSeoPath('/opencourse');
+  }, [fetchData]);
 
-  /** 清除锁定城市，跳回不带 cityIds 的 /opencourses */
+  /** 清除锁定城市，跳回不带 cityIds 的 /opencourse */
   const handleClearCity = useCallback(() => {
     setLockedCityIds(undefined);
-    // 直接路由刷新，重新 SSR 不带 cityIds 的列表，避免与本组件内 fetch 并发争抢
-    router.replace('/opencourses');
-  }, [router]);
+    navigateToSeoPath('/opencourse');
+  }, []);
 
   const handleFilterChange = useCallback(
     (newFilters: OpenCourseFilterValue) => {
       setFilters(newFilters);
-      commitPageChange(1);
+      syncUrl(1, newFilters);
       fetchData(1, newFilters);
     },
-    [fetchData, commitPageChange],
+    [fetchData, syncUrl],
   );
 
   const handleSortChange = useCallback(
     (key: string) => {
       setSortKey(key);
-      commitPageChange(1);
       fetchData(1, filters, key);
     },
-    [fetchData, filters, commitPageChange],
+    [fetchData, filters],
   );
 
   const handlePageChange = useCallback(
     (page: number) => {
-      commitPageChange(page);
+      syncUrl(page, filters);
       fetchData(page);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [fetchData, commitPageChange],
+    [fetchData, syncUrl, filters],
   );
 
   const handleResetAll = useCallback(() => {
-    setFilters({});
+    const cleared: OpenCourseFilterValue = {};
+    setFilters(cleared);
     setSortKey('default');
-    commitPageChange(1);
-    fetchData(1, {}, 'default');
-  }, [fetchData, commitPageChange]);
+    syncUrl(1, cleared);
+    fetchData(1, cleared, 'default');
+  }, [fetchData, syncUrl]);
 
   // 当前已激活的过滤 chips（城市、机构、分类、省、时间、价格、报名状态）
   const activeChips = useMemo<ActiveChip[]>(() => {
@@ -282,16 +377,33 @@ function OpenCourseListSectionInner({
     handleFilterChange(next);
   };
 
-  return (
-    <div className="flex gap-6 items-start">
-      <OpenCourseFilters
-        categoryTree={categoryTree}
-        value={filters}
-        onChange={handleFilterChange}
-      />
+  const handleBottomCategoryClick = useCallback(
+    (item: ChannelCategoryNavItem) => {
+      const categoryId = parseCourseCategoryIdFromHref(item.href);
+      if (!categoryId) return;
+      handleFilterChange({
+        ...filters,
+        categoryIds: [categoryId],
+        categoryNames: [item.name],
+      });
+    },
+    [filters, handleFilterChange],
+  );
 
-      <div className="flex-1 flex flex-col gap-4">
-        {/* 排序栏 */}
+  return (
+    <div className="flex flex-col gap-6">
+    <div className="flex gap-6 items-start">
+      <div className="w-64 shrink-0 sticky top-[120px] self-start z-30">
+        <OpenCourseFilters
+          categoryTree={categoryTree}
+          value={filters}
+          onChange={handleFilterChange}
+        />
+      </div>
+
+      <div className="flex-1 flex flex-col gap-4 min-w-0">
+        {/* 排序栏 + 已选条件（滚动时冻结） */}
+        <div className="sticky top-[120px] z-20 space-y-4 pb-1">
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex items-center gap-2">
           {SORT_OPTIONS.map((opt) => (
             <button
@@ -342,6 +454,7 @@ function OpenCourseListSectionInner({
             </button>
           </div>
         )}
+        </div>
 
         {/* 列表 */}
         <div className={`flex flex-col gap-3 transition-opacity ${isPending ? 'opacity-50' : ''}`}>
@@ -362,6 +475,15 @@ function OpenCourseListSectionInner({
           className="mt-6"
         />
       </div>
+    </div>
+      {bottomCategoryNav ? (
+        <ListBottomCategoryNav
+          title={bottomCategoryNav.title}
+          countUnit={bottomCategoryNav.countUnit}
+          itemsPromise={bottomCategoryNav.itemsPromise}
+          onItemClick={handleBottomCategoryClick}
+        />
+      ) : null}
     </div>
   );
 }

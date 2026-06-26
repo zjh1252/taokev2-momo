@@ -31,6 +31,14 @@ public class TrainerBook extends BaseEntity {
     @Column(name = "title", nullable = false, length = 200)
     private String title;
 
+    /** 专家/作者展示名 */
+    @Column(name = "author_name", length = 200)
+    private String authorName;
+
+    /** 提交著作的用户 ID */
+    @Column(name = "submitter_user_id")
+    private Integer submitterUserId;
+
     /** 封面图 URL */
     @Column(name = "cover_url", length = 500)
     private String coverUrl;
@@ -54,4 +62,20 @@ public class TrainerBook extends BaseEntity {
     /** 排序值，越大越靠前 */
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 0;
+
+    /** 审核状态：0=待审核, 1=已通过, 2=已驳回 */
+    @Column(name = "status", nullable = false, columnDefinition = "tinyint(2)")
+    private Integer status = 1;
+
+    /** 驳回原因 */
+    @Column(name = "reject_reason", length = 500)
+    private String rejectReason;
+
+    /** 审核人 ID */
+    @Column(name = "reviewer_id")
+    private Integer reviewerId;
+
+    /** 审核时间 */
+    @Column(name = "reviewed_at")
+    private java.time.LocalDateTime reviewedAt;
 }

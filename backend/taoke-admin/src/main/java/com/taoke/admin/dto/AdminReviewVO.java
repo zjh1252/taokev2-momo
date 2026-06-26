@@ -22,6 +22,7 @@ public class AdminReviewVO {
     private Integer courseId;
     private Integer trainerUserId;
     private Integer institutionId;
+    private Integer caseId;
 
     private String expertName;
     private LocalDate trainingDate;
@@ -46,6 +47,9 @@ public class AdminReviewVO {
 
     /** 提交人用户 ID */
     private Integer userId;
+
+    /** 审核操作人用户 ID */
+    private Integer reviewedBy;
     /** 驳回理由 */
     private String rejectReason;
     /** 提交人联系方式（管理端可见） */

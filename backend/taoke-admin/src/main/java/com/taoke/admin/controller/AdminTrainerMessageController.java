@@ -6,12 +6,16 @@ import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.security.RequireRole;
+import com.taoke.common.security.SecurityUtils;
+import com.taoke.course.api.DemandService;
+import com.taoke.course.dto.demand.DemandDetailResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminTrainerMessageController {
 
     private final AdminTrainerMessageService messageService;
+    private final DemandService demandService;
 
     @Operation(summary = "分页查询留言列表")
     @GetMapping("/admin/trainer-messages")
@@ -56,5 +61,12 @@ public class AdminTrainerMessageController {
     public ApiResponse<Void> markProcessed(@PathVariable Integer id) {
         messageService.markProcessed(id);
         return ApiResponse.ok();
+    }
+
+    @Operation(summary = "转为培训需求")
+    @PostMapping("/admin/trainer-messages/{id}/to-demand")
+    public ApiResponse<DemandDetailResponse> convertToDemand(@PathVariable Integer id) {
+        return ApiResponse.ok(
+                demandService.createFromTrainerMessage(id, SecurityUtils.getRequiredUserId()));
     }
 }

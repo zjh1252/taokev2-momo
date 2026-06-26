@@ -60,4 +60,10 @@ public class AdminInstitutionController {
         adminInstitutionService.setAssociation(id, request.getAssociation());
         return ApiResponse.ok(null);
     }
+
+    @Operation(summary = "机构申请详情（查看入驻/重审时填写的全部资料）")
+    @GetMapping("/admin/institutions/applications/{userId}/detail")
+    public ApiResponse<AdminApplicationDetailVO> applicationDetail(@PathVariable Integer userId) {
+        return ApiResponse.ok(adminInstitutionService.getApplicationDetail(userId));
+    }
 }

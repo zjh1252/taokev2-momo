@@ -7,6 +7,7 @@ import { ROUTES } from '@/config/routes';
 import CourseForm from '@/features/course/components/publisher/CourseForm';
 import { getMyCourseDetail, updateCourse } from '@/features/course/api/publisher-service';
 import type { SaveCourseRequest, CourseDetail } from '@/features/course/api/types';
+import { ApiException } from '@/lib/http/client';
 import { ArrowLeft } from 'lucide-react';
 import { OwnedTrainerBanner } from '@/features/binding/components/owned-trainer-banner';
 import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
@@ -40,10 +41,17 @@ export default function EditCoursePage({
     setSubmitting(true);
     try {
       await updateCourse(courseId, data);
-      toast.success('已保存并提交审核，请等待平台审核');
+      toast.success(
+        data.draft
+          ? '草稿已保存，可在「管理课程-草稿」中继续编辑'
+          : '已保存并提交审核，请等待平台审核',
+      );
       router.push(ROUTES.UC_COURSES_MANAGE);
-    } catch {
-      toast.error('保存失败，请稍后重试');
+    } catch (err) {
+      // ApiException 已由 http client 弹出后端具体失败原因，这里只兜底未知错误
+      if (!(err instanceof ApiException)) {
+        toast.error('保存失败，请稍后重试');
+      }
     } finally {
       setSubmitting(false);
     }

@@ -1,16 +1,16 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { InstitutionListSection } from '@/features/institution/components/list/InstitutionListSection';
-import {
-  getInstitutionList,
-  getInstitutionFacets,
-  getProvinces,
-  getRecommendedInstitutions,
-  getTopRatedInstitutions,
-  getWeeklyActiveInstitutions,
-  getNewestInstitutions,
-} from '@/features/institution/api/service';
+import { getInstitutionList } from '@/features/institution/api/service';
+import { getCachedTrainerExpertiseTree } from '@/lib/cached-categories';
+import { buildInstitutionCategoryLinks } from '@/lib/institution-category-nav';
+import { normalizeNumberIds } from '@/lib/search-params';
 
-export const dynamic = 'force-dynamic';
+interface Props {
+  searchParams: Promise<{
+    expertiseCategoryId?: string;
+    categoryName?: string;
+  }>;
+}
 
 export async function generateMetadata() {
   return {
@@ -19,39 +19,50 @@ export async function generateMetadata() {
   };
 }
 
-const EMPTY_PAGE = { list: [], total: 0, page: 1, size: 15, totalPages: 0 };
-const EMPTY_FACETS = { specialties: [], industries: [] };
-
 /**
  * 培训协会列表页 — 复用机构列表组件，筛选 association=true
  */
-export default async function AssociationsPage() {
-  const [initialData, facets, provinces, recommended, topRated, weeklyActive, newest] = await Promise.all([
-    getInstitutionList({ page: 1, size: 15, association: true }).catch(() => EMPTY_PAGE),
-    getInstitutionFacets().catch(() => EMPTY_FACETS),
-    getProvinces().catch(() => []),
-    getRecommendedInstitutions(4).catch(() => []),
-    getTopRatedInstitutions(5).catch(() => []),
-    getWeeklyActiveInstitutions(5).catch(() => []),
-    getNewestInstitutions(5).catch(() => []),
+export default async function AssociationsPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const expertiseCategoryId = normalizeNumberIds(
+    sp.expertiseCategoryId ? [sp.expertiseCategoryId] : undefined,
+  )[0];
+
+  const [initialData, expertiseTree] = await Promise.all([
+    getInstitutionList({
+      page: 1,
+      size: 15,
+      association: true,
+      expertiseCategoryId,
+    }).catch(() => ({
+      list: [],
+      total: 0,
+      page: 1,
+      size: 15,
+      totalPages: 0,
+    })),
+    getCachedTrainerExpertiseTree(),
   ]);
+
+  const categoryItems = buildInstitutionCategoryLinks(expertiseTree, '/association');
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
-      {/* 面包屑导航 — 公共组件 */}
       <PageBreadcrumb items={[{ label: '培训协会' }]} />
 
       <InstitutionListSection
         initialData={initialData}
-        facets={facets}
-        provinces={provinces}
-        recommended={recommended}
-        topRated={topRated}
-        weeklyActive={weeklyActive}
-        newest={newest}
         association={true}
-        basePath="/associations"
+        basePath="/association"
         title="培训协会"
+        categoryItems={categoryItems}
+        initialExpertiseCategoryId={expertiseCategoryId}
+        categoryTitle="培训协会类别"
+        bottomCategoryNav={{
+          title: '培训协会类别',
+          countUnit: '家',
+          items: categoryItems,
+        }}
       />
     </main>
   );

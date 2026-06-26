@@ -1,50 +1,91 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { TrainerListSection } from '@/features/trainer/components/list/TrainerListSection';
+import { parseListPageFromSearchParams } from '@/lib/list-page';
+import { parseSlug } from '@/features/trainer/utils/url';
+import { getTrainerList } from '@/features/trainer/api/service';
 import {
-  getTrainerList,
-  getCategoryTree,
-  getTopRecommendedTrainers,
-  getRecentTrainerCases,
-} from '@/features/trainer/api/service';
+  loadCategoryExpertTrainers,
+  loadTrainerListRecommended,
+  loadTrainerPageCases
+} from '@/features/recommendation/api/loaders';
+import { resolveExpertiseCategoryId } from '@/features/trainer/utils/expertise-categories';
+import { buildTrainerCategoryNavItems } from '@/lib/channel-category-stats';
+import {
+  getCachedTrainerExpertiseTree,
+  getCachedTrainerIndustryTree,
+} from '@/lib/cached-categories';
+import { trainerListMetadata, trainerListH1 } from '@/lib/seo';
+import { filterStandardTrainerExpertiseTree } from '@/features/trainer/utils/expertise-categories';
+import { slugParamsToTrainerListParams } from '@/features/trainer/utils/list-params';
 
-export async function generateMetadata() {
-  return {
-    title: '专家列表 - 淘课网',
-    description: '发现全国优秀培训专家，按擅长领域、行业筛选，查看评分与评价。',
-  };
+type TrainersPageProps = {
+  searchParams: Promise<{ page?: string; slug?: string }>;
+};
+
+export async function generateMetadata({ searchParams }: TrainersPageProps) {
+  const sp = await searchParams;
+  const slugParams = parseSlug(sp.slug || '');
+  return trainerListMetadata({
+    city: slugParams.region,
+    industry: slugParams.industry,
+    field: slugParams.field,
+  });
 }
 
-/**
- * 专家列表页 — SSR 首屏数据 + 客户端筛选交互
- *
- * <p>布局：</p>
- * <ol>
- *   <li>顶部面包屑（与 /opencourses 保持一致）。</li>
- *   <li>左侧：hover 弹出式筛选侧栏（擅长领域 / 擅长行业 / 长驻省市）。</li>
- *   <li>右侧主区：顶部「3 张推荐专家头像 + NEW 案例两条滚动」 + 已选 chips +
- *       排序栏 + 专家列表 + 分页。</li>
- * </ol>
- */
-export default async function TrainersPage() {
-  const [initialData, expertiseTree, industryTree, recommendedTrainers, recentCases] =
-    await Promise.all([
-      getTrainerList({ page: 1, size: 16 }).catch(() => ({
-        list: [],
-        total: 0,
-        page: 1,
+export default async function TrainersPage({ searchParams }: TrainersPageProps) {
+  const sp = await searchParams;
+  const page = parseListPageFromSearchParams(
+    new URLSearchParams(sp.page != null ? `page=${sp.page}` : ''),
+  );
+
+  const slugParams = parseSlug(sp.slug || '');
+
+  const rawExpertiseTreePromise = getCachedTrainerExpertiseTree();
+  const expertiseTreePromise = rawExpertiseTreePromise.then(filterStandardTrainerExpertiseTree);
+  const categoryNavPromise = expertiseTreePromise.then(buildTrainerCategoryNavItems).catch(() => []);
+
+  const listPromise = Promise.all([
+    expertiseTreePromise,
+    getCachedTrainerIndustryTree(),
+  ]).then(([expertiseTree, industryTree]) =>
+    getTrainerList(
+      slugParamsToTrainerListParams(slugParams, expertiseTree, industryTree, {
+        page,
         size: 16,
-        totalPages: 0,
-      })),
-      getCategoryTree('TRAINER_EXPERTISE').catch(() => []),
-      getCategoryTree('TRAINER_INDUSTRY').catch(() => []),
-      getTopRecommendedTrainers(9).catch(() => []),
-      getRecentTrainerCases(10).catch(() => []),
+        sort: 'default',
+      }),
+    ).catch(() => ({
+      list: [],
+      total: 0,
+      page,
+      size: 16,
+      totalPages: 0,
+    })),
+  );
+
+  const [expertiseTree, industryTree, recommendedTrainers, recentCases, initialData, categoryExpertTrainers] =
+    await Promise.all([
+      expertiseTreePromise,
+      getCachedTrainerIndustryTree(),
+      loadTrainerListRecommended(9),
+      loadTrainerPageCases(10),
+      listPromise,
+      expertiseTreePromise.then((tree) => {
+        const categoryId = resolveExpertiseCategoryId(tree, slugParams.field);
+        return categoryId ? loadCategoryExpertTrainers(categoryId, 3) : Promise.resolve([]);
+      }),
     ]);
+
+  const listH1 = trainerListH1({
+    city: slugParams.region,
+    industry: slugParams.industry,
+    field: slugParams.field,
+  });
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
-      {/* 面包屑导航 — 公共组件 */}
       <PageBreadcrumb items={[{ label: '培训专家' }]} />
+      <h1 className="text-2xl font-bold text-slate-900">{listH1}</h1>
 
       <TrainerListSection
         initialData={initialData}
@@ -52,6 +93,13 @@ export default async function TrainersPage() {
         industryTree={industryTree}
         recommendedTrainers={recommendedTrainers}
         recentCases={recentCases}
+        categoryExpertTrainers={categoryExpertTrainers}
+        initialSlugParams={slugParams}
+        bottomCategoryNav={{
+          title: '推荐讲师分类',
+          countUnit: '位',
+          itemsPromise: categoryNavPromise,
+        }}
       />
     </main>
   );

@@ -6,6 +6,30 @@
 
 @import './theme.css';
 
+/*
+ * 系统字体栈 — 替代 Google Fonts（避免构建时网络请求）
+ * 每个 --font-xxx 变量对应 font.config.ts 中的同名变量，
+ * 主题 CSS 文件通过 var(--font-xxx) 引用这些变量。
+ */
+:root {
+  --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', system-ui,
+    -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', ui-monospace,
+    'Courier New', monospace;
+  --font-inter: var(--font-sans);
+  --font-outfit: var(--font-sans);
+  --font-dm-sans: var(--font-sans);
+  --font-instrument: var(--font-sans);
+  --font-mullish: var(--font-sans);
+  --font-architects-daughter: 'Comic Sans MS', 'KaiTi', cursive, sans-serif;
+  --font-merriweather: 'Georgia', 'Noto Serif CJK SC', 'SimSun', serif;
+  --font-playfair-display: 'Georgia', 'Noto Serif CJK SC', serif;
+  --font-fira-code: var(--font-mono);
+  --font-jetbrains-mono: var(--font-mono);
+  --font-space-mono: var(--font-mono);
+  --font-noto-mono: var(--font-mono);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

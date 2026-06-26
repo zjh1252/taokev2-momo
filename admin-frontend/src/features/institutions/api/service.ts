@@ -55,6 +55,13 @@ export async function rejectInstitutionApplication(
   );
 }
 
+/** 获取机构申请详情 */
+export async function getInstitutionApplicationDetail(userId: number) {
+  return apiClient<{ code: number; message: string; data: import('@/features/trainers/api/types').AdminApplicationDetail }>(
+    `/institutions/applications/${userId}/detail`
+  );
+}
+
 /** 设为/取消培训协会 */
 export async function setInstitutionAssociation(
   id: number,

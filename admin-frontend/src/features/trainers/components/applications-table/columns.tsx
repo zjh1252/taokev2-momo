@@ -5,7 +5,10 @@ import { APPLICATION_STATUS_MAP, APPLICATION_STATUS_OPTIONS } from '../../api/ty
 import { ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import Image from 'next/image';
+import Link from 'next/link';
 import { CellAction } from './cell-action';
+import { resolveAssetUrl } from '@/lib/resolve-asset-url';
+import { getAdminUserDetailUrl } from '@/lib/frontend-links';
 
 function statusVariant(status: number) {
   switch (status) {
@@ -23,39 +26,52 @@ function statusVariant(status: number) {
 export const columns: ColumnDef<AdminTrainerApplication>[] = [
   {
     accessorKey: 'id',
-    header: 'ID',
+    header: '申请ID',
     enableSorting: false
+  },
+  {
+    accessorKey: 'trainerId',
+    header: '专家ID',
+    enableSorting: false,
+    cell: ({ cell }) => cell.getValue<number | null>() ?? '-'
   },
   {
     id: 'applicant',
     header: '申请人',
-    cell: ({ row }) => (
-      <div className='flex items-center gap-3'>
-        {row.original.trainerAvatar ? (
-          <Image
-            src={row.original.trainerAvatar}
-            alt={row.original.trainerName || ''}
-            width={32}
-            height={32}
-            className='h-8 w-8 rounded-full object-cover'
-          />
-        ) : (
-          <div className='flex h-8 w-8 items-center justify-center rounded-full bg-muted'>
-            <Icons.user className='h-4 w-4 text-muted-foreground' />
-          </div>
-        )}
-        <div className='flex flex-col'>
-          <span className='font-medium'>
-            {row.original.trainerName || row.original.nickname || '-'}
-          </span>
-          {row.original.phone && (
-            <span className='text-muted-foreground text-xs'>
-              {row.original.phone}
-            </span>
+    cell: ({ row }) => {
+      const name = row.original.trainerName || row.original.nickname || '-';
+      const href = row.original.trainerId
+        ? `/dashboard/trainers/${row.original.trainerId}?from=applications`
+        : getAdminUserDetailUrl(row.original.userId);
+      return (
+        <div className='flex items-center gap-3'>
+          {row.original.trainerAvatar ? (
+            <Image
+              src={resolveAssetUrl(row.original.trainerAvatar)}
+              alt={name}
+              width={32}
+              height={32}
+              className='h-8 w-8 rounded-full object-cover'
+              unoptimized
+            />
+          ) : (
+            <div className='flex h-8 w-8 items-center justify-center rounded-full bg-muted'>
+              <Icons.user className='h-4 w-4 text-muted-foreground' />
+            </div>
           )}
+          <div className='flex flex-col'>
+            <Link href={href} className='font-medium text-primary hover:underline'>
+              {name}
+            </Link>
+            {row.original.phone && (
+              <span className='text-muted-foreground text-xs'>
+                {row.original.phone}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
-    )
+      );
+    }
   },
   {
     accessorKey: 'trainerTitle',
@@ -67,7 +83,10 @@ export const columns: ColumnDef<AdminTrainerApplication>[] = [
     accessorKey: 'status',
     header: '状态',
     enableColumnFilter: true,
-    cell: ({ cell }) => {
+    cell: ({ cell, row }) => {
+      if (row.original.reapplying) {
+        return <Badge variant='secondary'>重提申请</Badge>;
+      }
       const status = cell.getValue<number>();
       return (
         <Badge variant={statusVariant(status)}>
@@ -94,10 +113,11 @@ export const columns: ColumnDef<AdminTrainerApplication>[] = [
     }
   },
   {
-    accessorKey: 'createdAt',
-    header: '申请时间',
-    cell: ({ cell }) => {
-      const val = cell.getValue<string>();
+    id: 'submittedAt',
+    header: '提交时间',
+    cell: ({ row }) => {
+      // 二次申请后 updatedAt 为最近提交时间，优先展示
+      const val = row.original.updatedAt || row.original.createdAt;
       if (!val) return '-';
       return new Date(val).toLocaleString('zh-CN', {
         year: 'numeric',

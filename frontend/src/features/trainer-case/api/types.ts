@@ -15,8 +15,6 @@ export type TrainerCase = {
   enterpriseName: string;
   industry: string | null;
   trainingTopic: string | null;
-  /** 关键字（逗号分隔） */
-  keyword: string | null;
   trainingEffect: string | null;
   traineeCount: number | null;
   /** 培训地点 - 省 ID */
@@ -29,18 +27,11 @@ export type TrainerCase = {
   townId: number | null;
   /** 培训地点 - 详细地址 */
   trainingAddress: string | null;
-  /** 培训地点 - 省名称（公开详情接口填充） */
-  provinceName?: string | null;
-  /** 培训地点 - 市名称（公开详情接口填充） */
-  cityName?: string | null;
-  /** 培训地点 - 区/县名称（公开详情接口填充） */
-  districtName?: string | null;
-  /** 培训日期 - 起始日 */
   trainingDate: string | null;
-  /** 培训日期 - 结束日 */
-  trainingEndDate: string | null;
   description: string | null;
   coverImage: string | null;
+  /** 案例详情页访问次数 */
+  viewCount?: number;
   autoExtracted: boolean;
   sortOrder: number;
   status: number;
@@ -72,8 +63,6 @@ export type SaveTrainerCaseRequest = {
   enterpriseName: string;
   industry?: string;
   trainingTopic?: string;
-  /** 关键字（逗号分隔，选填） */
-  keyword?: string;
   trainingEffect?: string;
   traineeCount?: number;
   /** 培训地点 - 省 ID（必填） */
@@ -86,10 +75,7 @@ export type SaveTrainerCaseRequest = {
   townId?: number;
   /** 培训地点 - 详细地址（选填） */
   trainingAddress?: string;
-  /** 培训日期 - 起始日（提交必填） */
   trainingDate?: string;
-  /** 培训日期 - 结束日（提交必填） */
-  trainingEndDate?: string;
   description?: string;
   coverImage?: string;
   sortOrder?: number;
@@ -98,13 +84,11 @@ export type SaveTrainerCaseRequest = {
 export const CaseStatus = {
   PENDING: 0,
   APPROVED: 1,
-  REJECTED: 2,
-  DRAFT: 3
+  REJECTED: 2
 } as const;
 
 export const CaseStatusLabelMap: Record<number, string> = {
   [CaseStatus.PENDING]: '待审核',
   [CaseStatus.APPROVED]: '已通过',
-  [CaseStatus.REJECTED]: '已驳回',
-  [CaseStatus.DRAFT]: '草稿'
+  [CaseStatus.REJECTED]: '已驳回'
 };

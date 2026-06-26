@@ -2,7 +2,8 @@ import {
   createSearchParamsCache,
   createSerializer,
   parseAsInteger,
-  parseAsString
+  parseAsString,
+  parseAsStringLiteral
 } from 'nuqs/server';
 
 export const searchParams = {
@@ -17,9 +18,26 @@ export const searchParams = {
   category: parseAsString,
   enabled: parseAsString,
   role: parseAsString,
+  regOrigin: parseAsString,
+  realNameCertStatus: parseAsString,
   sort: parseAsString,
-  /** 培训评价管理：COURSE / TRAINER / INSTITUTION */
-  reviewScope: parseAsString
+  /** 培训评价管理 */
+  reviewScope: parseAsString,
+  reviewerKeyword: parseAsString,
+  reviewedBy: parseAsString,
+  /** 精彩瞬间 / 通用关键词 */
+  keyword: parseAsString,
+  /** 素材库 */
+  tab: parseAsStringLiteral(['cover', 'avatar']).withDefault('cover'),
+  /** 专家资质认证 Tab */
+  certTab: parseAsStringLiteral([
+    'real-name',
+    'professional',
+    'education',
+    'work'
+  ]).withDefault('real-name'),
+  scene: parseAsString,
+  isDefault: parseAsString
 };
 
 export const searchParamsCache = createSearchParamsCache(searchParams);

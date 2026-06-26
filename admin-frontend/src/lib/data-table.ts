@@ -60,3 +60,27 @@ export function getValidFilters<TData>(
         : filter.value !== '' && filter.value !== null && filter.value !== undefined)
   );
 }
+
+/** 将 URL/表格筛选中的 dateRange 参数解析为 API 所需的 startDate、endDate（YYYY-MM-DD） */
+export function parseDateRangeQueryParam(
+  value: string | string[] | number | null | undefined
+): { startDate?: string; endDate?: string } {
+  if (value === null || value === undefined) {
+    return {};
+  }
+
+  const parts = Array.isArray(value)
+    ? value.map(String).filter(Boolean)
+    : typeof value === 'string'
+      ? value.split(/[^0-9]+/).filter(Boolean)
+      : [String(value)];
+
+  const startDate = parts[0]
+    ? new Date(Number(parts[0])).toISOString().slice(0, 10)
+    : undefined;
+  const endDate = parts[1]
+    ? new Date(Number(parts[1])).toISOString().slice(0, 10)
+    : undefined;
+
+  return { startDate, endDate };
+}

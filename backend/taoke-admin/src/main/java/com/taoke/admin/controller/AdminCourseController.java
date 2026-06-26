@@ -4,6 +4,7 @@ import com.taoke.admin.dto.AdminCoursePlanQuery;
 import com.taoke.admin.dto.AdminCoursePlanVO;
 import com.taoke.admin.dto.AdminCourseQuery;
 import com.taoke.admin.dto.AdminCourseVO;
+import com.taoke.admin.dto.BatchCourseExpireHideRequest;
 import com.taoke.admin.dto.RejectApplicationRequest;
 import com.taoke.admin.service.AdminCourseService;
 import com.taoke.common.dto.PageResult;
@@ -69,6 +70,13 @@ public class AdminCourseController {
     @PutMapping("/admin/courses/{id}/feature")
     public ApiResponse<Void> toggleFeatured(@PathVariable Integer id) {
         adminCourseService.toggleFeatured(id);
+        return ApiResponse.ok();
+    }
+
+    @Operation(summary = "批量更新到期自动隐藏开关")
+    @PutMapping("/admin/courses/expire-hide")
+    public ApiResponse<Void> batchUpdateExpireHide(@Valid @RequestBody BatchCourseExpireHideRequest request) {
+        adminCourseService.batchUpdateExpireHide(request.getIds(), request.getIsExpireHide());
         return ApiResponse.ok();
     }
 

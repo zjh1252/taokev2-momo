@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import 'video.js/dist/video-js.css';
 import './video-player.css';
 import { inferVideoMimeType } from '../../lib/playback-sources';
+import { resolveVideoPlaybackSrc } from '@/lib/media';
 import { updateVideoProgress } from '../../api/service';
 
 type VideoJsPlayerProps = {
@@ -23,12 +24,14 @@ type VideoJsPlayerProps = {
 
 const PROGRESS_REPORT_INTERVAL = 15;
 
+function isProgressiveMp4(url: string): boolean {
+  return /\.mp4(\?|$)/i.test(url);
+}
+
 /**
  * Video.js 封装（客户端），v8 已内置 HLS/VHS。
  * <p>采用容器 ref + 动态创建 {@code <video>} 的方式，避免 React Strict Mode
  * 下 dispose 移除 DOM 后二次挂载 ref 失效的问题。</p>
- * <p>换源时请由父组件变更 {@code key}（例如 {@code key={playbackSrc}}），
- * 整组件卸载重建。</p>
  *
  * @author Fangxinxin
  * @date 2026-04-08 15:30
@@ -46,6 +49,14 @@ export function VideoJsPlayer({
   const playerRef = useRef<Player | null>(null);
   const lastReportTimeRef = useRef(0);
 
+  /** 二次解析，确保本地 dev 走 /pxb-videos 反代而非 CDN 直连（Referer=localhost 会 403） */
+  const playbackUrl = useMemo(
+    () => resolveVideoPlaybackSrc(src) ?? src,
+    [src],
+  );
+  const mimeType = useMemo(() => inferVideoMimeType(playbackUrl), [playbackUrl]);
+  const useNativeMp4 = isProgressiveMp4(playbackUrl);
+
   const reportProgress = useCallback((currentTime: number, duration: number) => {
     if (!videoId || !chapterId || duration <= 0) return;
     const now = Date.now() / 1000;
@@ -59,15 +70,14 @@ export function VideoJsPlayer({
   }, [videoId, chapterId]);
 
   useEffect(() => {
-    if (playerRef.current) return;
-
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !playbackUrl) return;
 
     const videoEl = document.createElement('video-js');
     videoEl.classList.add('video-js', 'vjs-big-play-centered', 'vjs-fill');
     videoEl.setAttribute('playsinline', '');
-    container.appendChild(videoEl);
+    videoEl.setAttribute('referrerpolicy', 'no-referrer');
+    container.replaceChildren(videoEl);
 
     const player = videojs(videoEl, {
       controls: true,
@@ -75,24 +85,32 @@ export function VideoJsPlayer({
       autoplay: autoplay ?? false,
       preload: 'metadata',
       poster: poster ?? undefined,
-      sources: [{ src, type: inferVideoMimeType(src) }],
+      playbackRates: [0.5, 1, 1.25, 1.5, 2],
+      html5: {
+        vhs: {
+          overrideNative: !useNativeMp4,
+        },
+      },
+      sources: [{ src: playbackUrl, type: mimeType }],
     });
 
-    // 设置初始播放位置
+    player.ready(() => {
+      const el = container.querySelector('video');
+      el?.setAttribute('referrerpolicy', 'no-referrer');
+    });
+
     if (initialTime && initialTime > 0) {
       player.one('loadedmetadata', () => {
         player.currentTime(initialTime);
       });
     }
 
-    // 进度上报
     player.on('timeupdate', () => {
       const ct = player.currentTime() ?? 0;
       const dur = player.duration() ?? 0;
       reportProgress(ct, dur);
     });
 
-    // 播放结束时强制上报一次
     player.on('ended', () => {
       if (!videoId || !chapterId) return;
       const dur = player.duration() ?? 0;
@@ -109,26 +127,35 @@ export function VideoJsPlayer({
     playerRef.current = player;
 
     return () => {
-      // 卸载前上报一次进度
       const p = playerRef.current;
-      if (p && !p.isDisposed() && videoId && chapterId) {
-        const ct = p.currentTime() ?? 0;
-        const dur = p.duration() ?? 0;
-        if (ct > 0 && dur > 0) {
-          updateVideoProgress(videoId, {
-            chapterId,
-            watchDuration: Math.floor(ct),
-            chapterDuration: Math.floor(dur),
-          }).catch(() => {});
+      if (p && !p.isDisposed()) {
+        if (videoId && chapterId) {
+          const ct = p.currentTime() ?? 0;
+          const dur = p.duration() ?? 0;
+          if (ct > 0 && dur > 0) {
+            updateVideoProgress(videoId, {
+              chapterId,
+              watchDuration: Math.floor(ct),
+              chapterDuration: Math.floor(dur),
+            }).catch(() => {});
+          }
         }
-        p.dispose();
-      } else if (p && !p.isDisposed()) {
         p.dispose();
       }
       playerRef.current = null;
+      container.replaceChildren();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [
+    playbackUrl,
+    mimeType,
+    useNativeMp4,
+    autoplay,
+    poster,
+    initialTime,
+    videoId,
+    chapterId,
+    reportProgress,
+  ]);
 
   return <div ref={containerRef} data-vjs-player className={className} />;
 }

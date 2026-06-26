@@ -19,6 +19,16 @@ public class AdminTrainerHighlightVO {
     private Integer id;
     private Integer trainerId;
     private String trainerName;
+    /** 所属主体类型：TRAINER / INSTITUTION */
+    private String ownerSubjectType;
+    /** 所属主体名称 */
+    private String ownerSubjectName;
+    /** 发布用户 ID */
+    private Integer submitterUserId;
+    /** 发布用户名 */
+    private String submitterUsername;
+    private Integer institutionId;
+    private String institutionName;
     private String title;
     private String description;
     private String coverImage;

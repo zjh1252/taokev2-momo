@@ -1,5 +1,7 @@
 'use client';
 
+import { toast } from 'sonner';
+
 const BINDINGS = [
   { name: '微信', bound: false },
   { name: '支付宝', bound: false },
@@ -7,7 +9,7 @@ const BINDINGS = [
 ];
 
 /**
- * 账号绑定页 — 第三方账号绑定（无后端 API，全部写死）
+ * 账号绑定页 — 第三方账号绑定（扫码绑定能力暂未上线，点击提示）
  *
  * @author Fangxinxin
  * @date 2026-04-03 11:30
@@ -23,9 +25,11 @@ export default function AccountBindPage() {
             className="border border-slate-200 rounded-lg p-4 flex items-center justify-between"
           >
             <div className="text-sm">{item.name}</div>
-            {/* TODO: 接入第三方绑定 API */}
             <button
               type="button"
+              onClick={() =>
+                toast.info(`${item.name}绑定功能暂未开放，敬请期待`)
+              }
               className="text-xs border border-slate-300 rounded px-3 py-1.5 hover:border-primary hover:text-primary transition-colors"
             >
               {item.bound ? '解绑' : '去绑定'}

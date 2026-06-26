@@ -17,6 +17,9 @@ public class SaveVideoRequest {
     @NotBlank(message = "录播课标题不能为空")
     private String title;
 
+    /** 是否保存为草稿：true=存草稿（仅校验标题），false/null=提交审核 */
+    private Boolean draft;
+
     /** 视频类型：SERIES / SINGLE / EXTERNAL */
     private String videoType;
 
@@ -29,8 +32,7 @@ public class SaveVideoRequest {
     /** 封面图URL */
     private String coverUrl;
 
-    /** 课程介绍（富文本HTML） */
-    @NotBlank(message = "课程介绍不能为空")
+    /** 课程介绍（富文本HTML）；提交审核时必填，存草稿时可空（服务层校验） */
     private String intro;
 
     /** 视频地址（SINGLE类型时使用） */

@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Play, PenLine } from 'lucide-react';
+import { SafeImage } from '@/components/safe-image';
 import type { InstitutionDetail } from '../../types';
 import {
   getInstitutionSidebarOpenCourses,
@@ -12,7 +12,8 @@ import {
 } from '../../api/service';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
-import { useAuthGuard } from '@/lib/auth/auth-guard-context';
+import { useAuth } from '@/lib/auth/auth-context';
+import { ROUTES } from '@/config/routes';
 import { useRouter } from '@/i18n/navigation';
 
 interface InstitutionDetailSidebarProps {
@@ -28,7 +29,7 @@ interface InstitutionDetailSidebarProps {
  */
 export function InstitutionDetailSidebar({ institution }: InstitutionDetailSidebarProps) {
   const router = useRouter();
-  const { requireAuth } = useAuthGuard();
+  const { user } = useAuth();
   const [openCourses, setOpenCourses] = useState<CourseListItem[]>([]);
   const [videos, setVideos] = useState<VideoListItem[]>([]);
   const [hotCourses, setHotCourses] = useState<CourseListItem[]>([]);
@@ -46,7 +47,7 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
   }, [institution.id]);
 
   const goPublishDemand = () => {
-    requireAuth(() => router.push('/dashboard/demands/create'));
+    router.push(user ? ROUTES.UC_DEMANDS_CREATE : ROUTES.PUBLISH_DEMAND);
   };
 
   return (
@@ -58,20 +59,14 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
             {openCourses.map((c) => (
               <li key={c.id} className="py-2 first:pt-0 last:pb-0">
                 <Link
-                  href={`/opencourses/${c.id}`}
+                  href={`/opencourse/${c.id}.htm`}
                   className="flex items-center gap-3 group"
                 >
-                  {c.coverUrl ? (
-                    <Image
-                      src={c.coverUrl}
-                      alt={c.title}
-                      width={56}
-                      height={42}
-                      className="w-14 h-[42px] object-cover rounded border border-slate-200 shrink-0"
-                    />
-                  ) : (
-                    <div className="w-14 h-[42px] bg-slate-100 rounded border border-slate-200 shrink-0" />
-                  )}
+                  <SafeImage
+                    src={c.coverUrl || undefined}
+                    alt={c.title}
+                    className="w-14 h-[42px] object-cover rounded border border-slate-200 shrink-0"
+                  />
                   <div className="flex-1 min-w-0">
                     <h4 className="text-[13px] font-medium text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
                       {c.title}
@@ -93,17 +88,13 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
           <ul className="divide-y divide-slate-100">
             {videos.map((v) => (
               <li key={v.id} className="py-2 first:pt-0 last:pb-0">
-                <Link href={`/videos/${v.id}`} className="flex items-center gap-3 group">
+                <Link href={`/vedio/${v.id}.htm`} className="flex items-center gap-3 group">
                   <div className="relative w-14 h-[42px] rounded border border-slate-200 overflow-hidden shrink-0 bg-slate-100">
-                    {v.coverUrl ? (
-                      <Image
-                        src={v.coverUrl}
-                        alt={v.title}
-                        width={56}
-                        height={42}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : null}
+                    <SafeImage
+                      src={v.coverUrl || undefined}
+                      alt={v.title}
+                      className="w-full h-full object-cover"
+                    />
                     <span className="absolute inset-0 flex items-center justify-center bg-black/20">
                       <Play className="size-3.5 text-white fill-white" />
                     </span>
@@ -130,20 +121,14 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
             {hotCourses.map((c) => (
               <li key={c.id} className="py-2 first:pt-0 last:pb-0">
                 <Link
-                  href={`/opencourses/${c.id}`}
+                  href={`/opencourse/${c.id}.htm`}
                   className="flex items-center gap-3 group"
                 >
-                  {c.coverUrl ? (
-                    <Image
-                      src={c.coverUrl}
-                      alt={c.title}
-                      width={56}
-                      height={42}
-                      className="w-14 h-[42px] object-cover rounded border border-slate-200 shrink-0"
-                    />
-                  ) : (
-                    <div className="w-14 h-[42px] bg-slate-100 rounded border border-slate-200 shrink-0" />
-                  )}
+                  <SafeImage
+                    src={c.coverUrl || undefined}
+                    alt={c.title}
+                    className="w-14 h-[42px] object-cover rounded border border-slate-200 shrink-0"
+                  />
                   <div className="flex-1 min-w-0">
                     <h4 className="text-[13px] font-medium text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
                       {c.title}

@@ -1,11 +1,13 @@
 package com.taoke.user.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.taoke.common.dto.CategoryTreeVO;
+import com.taoke.common.entity.Category;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.service.CategoryService;
+import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.common.service.RegionService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.api.TrainerService;
@@ -14,6 +16,9 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.*;
 import com.taoke.user.mapper.TrainerMapper;
 import com.taoke.user.repository.*;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -45,6 +50,9 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class TrainerServiceImpl implements TrainerService {
 
+    /** V10/V11 演示种子用户手机号段，与迁移库真实用户区分 */
+    private static final String SEED_IMPORT_PHONE_PREFIX = "132666600";
+
     private final TrainerRepository trainerRepository;
     private final TrainerEducationRepository educationRepository;
     private final TrainerWorkExperienceRepository workExperienceRepository;
@@ -58,9 +66,8 @@ public class TrainerServiceImpl implements TrainerService {
     private final RegionService regionService;
     /** 头像统一存到 sys_users.avatar_url，保存专家档案时一并更新 User 表 */
     private final UserRepository userRepository;
-
-    /** 荣誉与资质文件 JSON 序列化用 */
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private final OpsMaterialResolver opsMaterialResolver;
+    private final RoleApplicationChangeLogService changeLogService;
 
     @Override
     public TrainerResponse getByUserId(Integer userId) {
@@ -76,20 +83,26 @@ public class TrainerServiceImpl implements TrainerService {
                                                             Integer expertiseCategoryId,
                                                             Integer industryCategoryId,
                                                             Integer provinceId,
+                                                            Integer cityId,
                                                             String keyword,
                                                             String sort,
                                                             Integer isTrusted) {
         // 构建排序
-        Sort jpaSort = "score".equals(sort)
-                ? Sort.by(Sort.Direction.DESC, "score").and(Sort.by(Sort.Direction.DESC, "id"))
-                : Sort.by(Sort.Direction.DESC, "sortOrder")
-                      .and(Sort.by(Sort.Direction.DESC, "score"))
-                      .and(Sort.by(Sort.Direction.DESC, "id"));
+        Sort jpaSort = switch (sort != null ? sort : "") {
+            case "score" -> Sort.by(Sort.Direction.DESC, "score")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "newly_joined" -> Sort.by(Sort.Direction.DESC, "createdAt")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            default -> Sort.by(Sort.Direction.DESC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.DESC, "score"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        };
 
         PageRequest pageable = PageRequest.of(page - 1, size, jpaSort);
 
         // 第一段：查分页 ID（带动态条件）
-        Specification<Trainer> spec = buildListSpec(expertiseCategoryId, industryCategoryId, provinceId, keyword, isTrusted);
+        Specification<Trainer> spec = buildListSpec(
+                expertiseCategoryId, industryCategoryId, provinceId, cityId, keyword, isTrusted);
         Page<Trainer> trainerPage = trainerRepository.findAll(spec, pageable);
 
         if (trainerPage.isEmpty()) {
@@ -131,14 +144,14 @@ public class TrainerServiceImpl implements TrainerService {
                 ? Map.of()
                 : regionService.getNamesByIds(regionIds);
 
-        // 头像统一取 sys_users.avatar_url
-        Map<Integer, String> avatarByUserId = resolveUserAvatars(trainerMap.values());
+        Map<Integer, String> userAvatarMap = loadUserAvatarMap(
+                trainerMap.values().stream().map(Trainer::getUserId).filter(Objects::nonNull).toList());
 
         // 组装结果，保持 ID 原始顺序
         List<TrainerListItemResponse> items = trainerIds.stream().map(id -> {
             Trainer t = trainerMap.get(id);
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
-            applyUserAvatar(item, t, avatarByUserId);
+            applyUserAvatar(item, t, userAvatarMap);
 
             List<CategoryRefDTO> catRefs = expertiseMap.getOrDefault(id, List.of()).stream().map(ec -> {
                 CategoryRefDTO dto = new CategoryRefDTO();
@@ -170,32 +183,17 @@ public class TrainerServiceImpl implements TrainerService {
         return PageResponse.of(items, trainerPage.getTotalElements(), page, size);
     }
 
-    /**
-     * 批量解析专家头像 — 统一以 sys_users.avatar_url 为准（trainer.avatar 已弃用）。
-     *
-     * @return userId → avatarUrl（仅含非空头像）
-     */
-    private Map<Integer, String> resolveUserAvatars(Collection<Trainer> trainers) {
-        Set<Integer> userIds = trainers.stream()
-                .map(Trainer::getUserId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        if (userIds.isEmpty()) {
-            return Map.of();
-        }
-        return userRepository.findAllById(userIds).stream()
-                .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
-                .collect(Collectors.toMap(User::getId, User::getAvatarUrl));
-    }
-
-    /** 用 sys_users.avatar_url 覆盖列表项头像 */
-    private void applyUserAvatar(TrainerListItemResponse item, Trainer t, Map<Integer, String> avatarByUserId) {
-        if (t.getUserId() != null) {
-            String avatar = avatarByUserId.get(t.getUserId());
-            if (avatar != null) {
-                item.setAvatar(avatar);
+    @Override
+    public Map<Integer, Long> countPublicByExpertiseL1() {
+        Map<Integer, Long> map = new HashMap<>();
+        for (Object[] row : expertiseCategoryRepository.countPublishedTrainersByExpertiseL1()) {
+            if (row[0] == null) {
+                continue;
             }
+            long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            map.put(((Number) row[0]).intValue(), count);
         }
+        return map;
     }
 
     @Override
@@ -209,14 +207,39 @@ public class TrainerServiceImpl implements TrainerService {
         return trainerRepository.findAll(spec).stream().map(Trainer::getId).toList();
     }
 
+    /**
+     * 擅长领域筛选 ID 集合。
+     * <p>一级分类时展开为其下全部二级，与专家列表底部分类统计口径一致；
+     * 老站 PHP 列表仅按一级 {@code categoryIds} 精确匹配，底部分类数来自
+     * {@code membercate_relation.cid = 一级ID}（见 {@code tkw/shell/statics_resourse_for_cate.php}）。</p>
+     */
+    private List<Integer> resolveExpertiseCategoryFilterIds(Integer expertiseCategoryId) {
+        Category category = categoryService.getById(expertiseCategoryId);
+        if (category == null) {
+            return List.of(expertiseCategoryId);
+        }
+        if (!"TRAINER_EXPERTISE".equals(category.getType()) || category.getLevel() == null
+                || category.getLevel() != 1) {
+            return List.of(expertiseCategoryId);
+        }
+        List<Integer> ids = new ArrayList<>();
+        ids.add(expertiseCategoryId);
+        categoryService.getChildren("TRAINER_EXPERTISE", expertiseCategoryId).stream()
+                .map(CategoryTreeVO::getId)
+                .filter(Objects::nonNull)
+                .forEach(ids::add);
+        return ids;
+    }
+
     /** 构建列表查询的动态条件 */
     private Specification<Trainer> buildListSpec(Integer expertiseCategoryId,
                                                  Integer industryCategoryId,
                                                  Integer provinceId,
+                                                 Integer cityId,
                                                  String keyword,
                                                  Integer isTrusted) {
         return buildTrainerDimensionSpec(
-                expertiseCategoryId, industryCategoryId, provinceId, null, isTrusted, null, keyword);
+                expertiseCategoryId, industryCategoryId, provinceId, cityId, isTrusted, null, keyword);
     }
 
   /** 专家维度筛选（列表 / 课程反查共用） */
@@ -258,11 +281,14 @@ public class TrainerServiceImpl implements TrainerService {
             }
 
             if (expertiseCategoryId != null) {
-                Subquery<Integer> sub = query.subquery(Integer.class);
-                Root<TrainerExpertiseCategory> ecRoot = sub.from(TrainerExpertiseCategory.class);
-                sub.select(ecRoot.get("trainerId"))
-                   .where(cb.equal(ecRoot.get("categoryId"), expertiseCategoryId));
-                predicates.add(root.get("id").in(sub));
+                List<Integer> expertiseFilterIds = resolveExpertiseCategoryFilterIds(expertiseCategoryId);
+                if (!expertiseFilterIds.isEmpty()) {
+                    Subquery<Integer> sub = query.subquery(Integer.class);
+                    Root<TrainerExpertiseCategory> ecRoot = sub.from(TrainerExpertiseCategory.class);
+                    sub.select(ecRoot.get("trainerId"))
+                       .where(ecRoot.get("categoryId").in(expertiseFilterIds));
+                    predicates.add(root.get("id").in(sub));
+                }
             }
 
             if (industryCategoryId != null) {
@@ -273,8 +299,115 @@ public class TrainerServiceImpl implements TrainerService {
                 predicates.add(root.get("id").in(sub));
             }
 
+            // FIXME: 同名去重子查询导致分页查询极慢（每行一次 sys_users 关联），暂时关闭
+            // 迁移数据与种子数据同名时，列表/筛选只展示迁移档案（如钟越 id=56185 优先于种子 id=16）
+            // predicates.add(notExistsHigherPrioritySameNameTrainer(root, query, cb));
+
             return cb.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    /**
+     * 同名专家去重：存在更高优先级档案时隐藏当前记录。
+     * <p>优先级：旧站迁移（user_id=id）&gt; 非种子导入手机号 &gt; 专家 id 较大。</p>
+     */
+    private Predicate notExistsHigherPrioritySameNameTrainer(Root<Trainer> root,
+                                                             CriteriaQuery<?> query,
+                                                             CriteriaBuilder cb) {
+        Subquery<Integer> dup = query.subquery(Integer.class);
+        Root<Trainer> other = dup.from(Trainer.class);
+
+        Expression<Integer> selfPriority = trainerListPriorityScore(root, query, cb);
+        Expression<Integer> otherPriority = trainerListPriorityScore(other, query, cb);
+
+        dup.select(cb.literal(1)).where(
+                cb.equal(other.get("status"), 2),
+                cb.equal(other.get("name"), root.get("name")),
+                cb.notEqual(other.get("id"), root.get("id")),
+                cb.or(
+                        cb.greaterThan(otherPriority, selfPriority),
+                        cb.and(
+                                cb.equal(otherPriority, selfPriority),
+                                cb.greaterThan(other.get("id"), root.get("id"))
+                        )
+                )
+        );
+        return cb.not(cb.exists(dup));
+    }
+
+    /** 列表同名去重优先级分（越大越优先展示） */
+    private Expression<Integer> trainerListPriorityScore(Root<Trainer> trainer,
+                                                         CriteriaQuery<?> query,
+                                                         CriteriaBuilder cb) {
+        Expression<Integer> legacyScore = cb.<Integer>selectCase()
+                .when(cb.equal(trainer.get("userId"), trainer.get("id")), 100)
+                .otherwise(0);
+
+        Subquery<Integer> seedPhone = query.subquery(Integer.class);
+        Root<User> user = seedPhone.from(User.class);
+        seedPhone.select(cb.literal(1)).where(
+                cb.equal(user.get("id"), trainer.get("userId")),
+                cb.like(user.get("phone"), SEED_IMPORT_PHONE_PREFIX + "%")
+        );
+        Expression<Integer> nonSeedScore = cb.<Integer>selectCase()
+                .when(cb.exists(seedPhone), 0)
+                .otherwise(10);
+
+        return cb.sum(legacyScore, nonSeedScore);
+    }
+
+    @Override
+    public Integer resolveCourseTrainerId(Integer trainerId) {
+        if (trainerId == null || trainerId <= 0) {
+            return trainerId;
+        }
+        Trainer current = trainerRepository.findById(trainerId).orElse(null);
+        if (current == null || current.getName() == null || current.getName().isBlank()) {
+            return trainerId;
+        }
+
+        List<Trainer> sameName = trainerRepository.findByName(current.getName());
+        if (sameName.size() <= 1) {
+            return trainerId;
+        }
+
+        Trainer best = current;
+        int bestScore = trainerListPriorityScoreValue(best);
+        for (Trainer other : sameName) {
+            if (Objects.equals(other.getId(), current.getId())) {
+                continue;
+            }
+            int otherScore = trainerListPriorityScoreValue(other);
+            if (otherScore > bestScore
+                    || (otherScore == bestScore && other.getId() > best.getId())) {
+                best = other;
+                bestScore = otherScore;
+            }
+        }
+
+        if (bestScore > trainerListPriorityScoreValue(current) && isLegacyMigratedTrainer(best)) {
+            return best.getId();
+        }
+        return trainerId;
+    }
+
+    private boolean isLegacyMigratedTrainer(Trainer trainer) {
+        return trainer.getUserId() != null && trainer.getUserId().equals(trainer.getId());
+    }
+
+    private int trainerListPriorityScoreValue(Trainer trainer) {
+        int legacy = isLegacyMigratedTrainer(trainer) ? 100 : 0;
+        int nonSeed = isSeedImportTrainer(trainer) ? 0 : 10;
+        return legacy + nonSeed;
+    }
+
+    private boolean isSeedImportTrainer(Trainer trainer) {
+        if (trainer.getUserId() == null) {
+            return false;
+        }
+        return userRepository.findById(trainer.getUserId())
+                .map(u -> u.getPhone() != null && u.getPhone().startsWith(SEED_IMPORT_PHONE_PREFIX))
+                .orElse(false);
     }
 
     @Override
@@ -287,6 +420,8 @@ public class TrainerServiceImpl implements TrainerService {
         }
 
         TrainerPublicResponse response = trainerMapper.toPublicResponse(trainer);
+        response.setAvatar(resolveTrainerDisplayAvatar(trainer, loadUserAvatarMap(
+                trainer.getUserId() != null ? List.of(trainer.getUserId()) : List.of())));
         fillSubTableData(response, trainerId);
 
         // 填充省市名称
@@ -304,6 +439,18 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Transactional
     @Override
+    public void incrementViewCount(Integer trainerId) {
+        Trainer trainer = trainerRepository.findById(trainerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "专家不存在"));
+        if (trainer.getStatus() != 2) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "专家不存在");
+        }
+        trainer.setViewCount((trainer.getViewCount() != null ? trainer.getViewCount() : 0) + 1);
+        trainerRepository.save(trainer);
+    }
+
+    @Transactional
+    @Override
     public void setRecommended(Integer trainerId, Integer value) {
         Trainer trainer = trainerRepository.findById(trainerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "专家不存在"));
@@ -314,30 +461,48 @@ public class TrainerServiceImpl implements TrainerService {
     @Override
     public List<TrainerListItemResponse> listRecommendedForTop(int limit) {
         int target = limit > 0 ? limit : 9;
+        Sort recSort = Sort.by(Sort.Direction.DESC, "sortOrder")
+                .and(Sort.by(Sort.Direction.DESC, "score"))
+                .and(Sort.by(Sort.Direction.DESC, "id"));
 
-        // 1) 优先取已推荐 + 已上架，按 sortOrder/score/id 倒序
+        // 1) 优先取已推荐 + 已上架
         Specification<Trainer> recSpec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("status"), 2),
                 cb.equal(root.get("isRecommended"), 1)
         );
-        PageRequest recPageable = PageRequest.of(0, target,
-                Sort.by(Sort.Direction.DESC, "sortOrder")
-                        .and(Sort.by(Sort.Direction.DESC, "score"))
-                        .and(Sort.by(Sort.Direction.DESC, "id")));
-        List<Trainer> picked = new ArrayList<>(trainerRepository.findAll(recSpec, recPageable).getContent());
+        List<Trainer> recommended = trainerRepository.findAll(recSpec, PageRequest.of(0, target, recSort))
+                .getContent();
 
-        // 2) 不够 target 时，按 id 倒序取已上架专家补齐；按 id 去重，避免与已选重复展示
+        LinkedHashSet<Integer> pickedIds = new LinkedHashSet<>();
+        List<Trainer> picked = new ArrayList<>();
+        for (Trainer trainer : recommended) {
+            if (picked.size() >= target) {
+                break;
+            }
+            if (pickedIds.add(trainer.getId())) {
+                picked.add(trainer);
+            }
+        }
+
+        // 2) 不足时按同排序规则用其他已上架专家补齐（去重）
         if (picked.size() < target) {
-            Set<Integer> pickedIds = picked.stream().map(Trainer::getId).collect(Collectors.toSet());
-            Specification<Trainer> latestSpec = (root, cq, cb) -> cb.equal(root.get("status"), 2);
-            // 多取一些以便去重后仍能补满
-            PageRequest latestPageable = PageRequest.of(0, target * 2,
-                    Sort.by(Sort.Direction.DESC, "id"));
-            List<Trainer> latest = trainerRepository.findAll(latestSpec, latestPageable).getContent();
-            for (Trainer t : latest) {
-                if (picked.size() >= target) break;
-                if (pickedIds.add(t.getId())) {
-                    picked.add(t);
+            int need = target - picked.size();
+            Specification<Trainer> fillSpec = (root, cq, cb) -> {
+                List<Predicate> predicates = new ArrayList<>();
+                predicates.add(cb.equal(root.get("status"), 2));
+                if (!pickedIds.isEmpty()) {
+                    predicates.add(cb.not(root.get("id").in(pickedIds)));
+                }
+                return cb.and(predicates.toArray(Predicate[]::new));
+            };
+            List<Trainer> fillers = trainerRepository.findAll(fillSpec, PageRequest.of(0, need, recSort))
+                    .getContent();
+            for (Trainer trainer : fillers) {
+                if (picked.size() >= target) {
+                    break;
+                }
+                if (pickedIds.add(trainer.getId())) {
+                    picked.add(trainer);
                 }
             }
         }
@@ -346,13 +511,13 @@ public class TrainerServiceImpl implements TrainerService {
             return List.of();
         }
 
-        // 头像统一以 sys_users.avatar_url 为准（覆盖 mapper 从已弃用的 trainer.avatar 同步的旧值）
-        Map<Integer, String> avatarByUserId = resolveUserAvatars(picked);
+        Map<Integer, String> userAvatarMap = loadUserAvatarMap(
+                picked.stream().map(Trainer::getUserId).filter(Objects::nonNull).toList());
 
         return picked.stream().map(t -> {
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
+            applyUserAvatar(item, t, userAvatarMap);
             item.setExpertiseCategories(List.of());
-            applyUserAvatar(item, t, avatarByUserId);
             return item;
         }).toList();
     }
@@ -410,12 +575,14 @@ public class TrainerServiceImpl implements TrainerService {
             return List.of();
         }
 
+        Map<Integer, String> userAvatarMap = loadUserAvatarMap(
+                trainers.stream().map(Trainer::getUserId).filter(Objects::nonNull).toList());
+
         // 组装列表项（不需要分类、地区名称，留空即可，前端只展示头像/姓名/头衔/评分）
-        Map<Integer, String> avatarByUserId = resolveUserAvatars(trainers);
         return trainers.stream().map(t -> {
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
+            applyUserAvatar(item, t, userAvatarMap);
             item.setExpertiseCategories(List.of());
-            applyUserAvatar(item, t, avatarByUserId);
             return item;
         }).toList();
     }
@@ -434,12 +601,22 @@ public class TrainerServiceImpl implements TrainerService {
             throw new BusinessException(ErrorCode.PARAM_INVALID,
                     "请先勾选并同意《淘课网注册专家合作协议》");
         }
-        roleApplyService.apply(userId, BusinessRole.Code.TRAINER);
+        // 在写数据前先获取旧快照（用于资料重审变更记录）
+        Trainer oldSnapshot = trainerRepository.findByUserId(userId).orElse(null);
+        boolean isReapply = roleApplyService.apply(userId, BusinessRole.Code.TRAINER);
         Trainer trainer = saveOrUpdateMainTable(userId, request);
         // 一次性持久化擅长行业 / 擅长领域 / 著作，避免分步调用受 RequireRole(TRAINER active) 拦截
         replaceExpertiseCategoriesByIds(trainer.getId(), request.getExpertiseCategoryIds());
         replaceIndustryCategoriesByIds(trainer.getId(), request.getIndustryCategoryIds());
         replaceBooks(trainer.getId(), request.getBooks());
+        if (isReapply && oldSnapshot != null && changeLogService != null) {
+            Trainer newSnapshot = trainerRepository.findByUserId(userId).orElse(null);
+            if (newSnapshot != null) {
+                String batch = RoleApplicationChangeLogService.batchKey(userId, BusinessRole.Code.TRAINER);
+                changeLogService.recordChanges(userId, BusinessRole.Code.TRAINER, batch,
+                        toTrainerFieldMap(oldSnapshot), toTrainerFieldMap(newSnapshot), TRAINER_FIELD_LABELS);
+            }
+        }
     }
 
     /** 整体替换擅长领域分类（apply / save 通用） */
@@ -447,10 +624,14 @@ public class TrainerServiceImpl implements TrainerService {
         if (categoryIds == null) return;
         expertiseCategoryRepository.deleteByTrainerId(trainerId);
         if (categoryIds.isEmpty()) return;
-        int sort = categoryIds.size();
-        List<TrainerExpertiseCategory> entities = new ArrayList<>(categoryIds.size());
-        for (Integer cid : categoryIds) {
-            if (cid == null) continue;
+        List<Integer> uniqueIds = categoryIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (uniqueIds.isEmpty()) return;
+        int sort = uniqueIds.size();
+        List<TrainerExpertiseCategory> entities = new ArrayList<>(uniqueIds.size());
+        for (Integer cid : uniqueIds) {
             TrainerExpertiseCategory ec = new TrainerExpertiseCategory();
             ec.setTrainerId(trainerId);
             ec.setCategoryId(cid);
@@ -465,10 +646,14 @@ public class TrainerServiceImpl implements TrainerService {
         if (categoryIds == null) return;
         industryCategoryRepository.deleteByTrainerId(trainerId);
         if (categoryIds.isEmpty()) return;
-        int sort = categoryIds.size();
-        List<TrainerIndustryCategory> entities = new ArrayList<>(categoryIds.size());
-        for (Integer cid : categoryIds) {
-            if (cid == null) continue;
+        List<Integer> uniqueIds = categoryIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (uniqueIds.isEmpty()) return;
+        int sort = uniqueIds.size();
+        List<TrainerIndustryCategory> entities = new ArrayList<>(uniqueIds.size());
+        for (Integer cid : uniqueIds) {
             TrainerIndustryCategory ic = new TrainerIndustryCategory();
             ic.setTrainerId(trainerId);
             ic.setCategoryId(cid);
@@ -637,7 +822,6 @@ public class TrainerServiceImpl implements TrainerService {
         if (req.getTaokeCommission() != null) trainer.setTaokeCommission(req.getTaokeCommission());
         if (req.getResumeUrl() != null) trainer.setResumeUrl(req.getResumeUrl());
         if (req.getBackgroundImage() != null) trainer.setBackgroundImage(req.getBackgroundImage());
-        if (req.getHonorFiles() != null) trainer.setHonorFiles(serializeHonorFiles(req.getHonorFiles()));
 
         // 协议签署：首次勾选时回写时间与版本，已有签署时间时不重复覆盖
         if (Boolean.TRUE.equals(req.getAgreementSigned())) {
@@ -662,13 +846,8 @@ public class TrainerServiceImpl implements TrainerService {
         TrainerResponse response = trainerMapper.toResponse(trainer);
         Integer trainerId = trainer.getId();
 
-        // 头像统一以 sys_users.avatar_url 为准（覆盖 mapper 从 trainer.avatar 同步过来的旧值）
-        if (trainer.getUserId() != null) {
-            userRepository.findById(trainer.getUserId())
-                    .map(User::getAvatarUrl)
-                    .filter(s -> s != null && !s.isBlank())
-                    .ifPresent(response::setAvatar);
-        }
+        response.setAvatar(resolveTrainerDisplayAvatar(trainer, loadUserAvatarMap(
+                trainer.getUserId() != null ? List.of(trainer.getUserId()) : List.of())));
 
         response.setEducations(
                 trainerMapper.toEducationDTOList(educationRepository.findByTrainerIdOrderBySortOrder(trainerId)));
@@ -749,6 +928,22 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     @Override
+    public List<Trainer> findPublishedByNames(Collection<String> names) {
+        if (names == null || names.isEmpty()) {
+            return List.of();
+        }
+        List<String> distinct = names.stream()
+                .filter(name -> name != null && !name.isBlank())
+                .map(String::trim)
+                .distinct()
+                .toList();
+        if (distinct.isEmpty()) {
+            return List.of();
+        }
+        return trainerRepository.findByNameInAndStatus(distinct, 2);
+    }
+
+    @Override
     public boolean hasExpertiseCategoryReference(Integer categoryId) {
         return expertiseCategoryRepository.existsByCategoryId(categoryId);
     }
@@ -770,16 +965,134 @@ public class TrainerServiceImpl implements TrainerService {
         });
     }
 
-    /**
-     * 序列化荣誉与资质文件列表为 JSON 字符串（存入 honor_files 列）。
-     * 空列表序列化为 "[]"，序列化失败时降级为 "[]" 避免阻断保存。
-     */
-    private String serializeHonorFiles(List<TrainerHonorFileItem> files) {
-        try {
-            return OBJECT_MAPPER.writeValueAsString(files == null ? List.of() : files);
-        } catch (Exception e) {
-            return "[]";
+    /** 列表/推荐位头像与详情一致：优先 sys_users.avatar_url */
+    private Map<Integer, String> loadUserAvatarMap(Collection<Integer> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
         }
+        return userRepository.findAllById(userIds).stream()
+                .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
+                .collect(Collectors.toMap(User::getId, User::getAvatarUrl, (a, b) -> a));
+    }
+
+    private void applyUserAvatar(TrainerListItemResponse item, Trainer trainer, Map<Integer, String> userAvatarMap) {
+        item.setAvatar(resolveTrainerDisplayAvatar(trainer, userAvatarMap));
+    }
+
+    /**
+     * 专家展示头像：用户表优先，跳过旧站占位图，回退 trainer.avatar，再回退默认头像素材池。
+     */
+    private String resolveTrainerDisplayAvatar(Trainer trainer, Map<Integer, String> userAvatarMap) {
+        if (trainer == null) {
+            return "";
+        }
+        String userUrl = trainer.getUserId() != null && userAvatarMap != null
+                ? userAvatarMap.get(trainer.getUserId())
+                : null;
+        String raw = firstNonBlankAvatar(userUrl, trainer.getAvatar());
+        int seed = trainer.getId() != null ? trainer.getId() : 0;
+        return opsMaterialResolver.resolveAvatarUrl(raw, "TRAINER", true, seed);
+    }
+
+    private static String firstNonBlankAvatar(String... candidates) {
+        if (candidates == null) {
+            return null;
+        }
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate.trim();
+            }
+        }
+        return null;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Integer, String> resolveDisplayAvatars(Collection<Integer> trainerIds) {
+        if (trainerIds == null || trainerIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Trainer> trainers = findByIds(trainerIds);
+        if (trainers.isEmpty()) {
+            return Map.of();
+        }
+        List<Integer> userIds = trainers.stream()
+                .map(Trainer::getUserId)
+                .filter(Objects::nonNull)
+                .toList();
+        Map<Integer, String> userAvatarMap = loadUserAvatarMap(userIds);
+        return trainers.stream()
+                .collect(Collectors.toMap(
+                        Trainer::getId,
+                        trainer -> resolveTrainerDisplayAvatar(trainer, userAvatarMap),
+                        (a, b) -> a));
+    }
+
+    // ---- 变更日志辅助 ----
+
+    static final Map<String, String> TRAINER_FIELD_LABELS = Map.<String, String>ofEntries(
+            Map.entry("name", "真实姓名"),
+            Map.entry("teachingName", "授课姓名"),
+            Map.entry("title", "头衔"),
+            Map.entry("gender", "性别"),
+            Map.entry("phone", "联系电话"),
+            Map.entry("email", "邮箱"),
+            Map.entry("idCardNo", "身份证号"),
+            Map.entry("oneLineIntro", "一句话介绍"),
+            Map.entry("bio", "个人简介"),
+            Map.entry("background", "从业背景"),
+            Map.entry("partialClients", "服务过客户"),
+            Map.entry("goodAt", "擅长领域"),
+            Map.entry("expertiseTags", "擅长标签"),
+            Map.entry("teachingStyle", "授课风格"),
+            Map.entry("experienceYears", "从业年限"),
+            Map.entry("teachingYears", "授课年限"),
+            Map.entry("quoteMin", "最低报价"),
+            Map.entry("quoteMax", "最高报价"),
+            Map.entry("quoteUnit", "报价单位"),
+            Map.entry("quoteRemark", "报价备注"),
+            Map.entry("taokePrice", "淘课网售价"),
+            Map.entry("taokeCommission", "合作课酬"),
+            Map.entry("provinceId", "省份"),
+            Map.entry("cityId", "城市"),
+            Map.entry("districtId", "区县"),
+            Map.entry("address", "详细地址")
+    );
+
+    private static Map<String, String> toTrainerFieldMap(Trainer t) {
+        if (t == null) return Map.of();
+        Map<String, String> m = new HashMap<>();
+        putIf(m, "name", t.getName());
+        putIf(m, "teachingName", t.getTeachingName());
+        putIf(m, "title", t.getTitle());
+        putIf(m, "gender", t.getGender());
+        putIf(m, "phone", t.getPhone());
+        putIf(m, "email", t.getEmail());
+        putIf(m, "idCardNo", t.getIdCardNo());
+        putIf(m, "oneLineIntro", t.getOneLineIntro());
+        putIf(m, "bio", t.getBio());
+        putIf(m, "background", t.getBackground());
+        putIf(m, "partialClients", t.getPartialClients());
+        putIf(m, "goodAt", t.getGoodAt());
+        putIf(m, "expertiseTags", t.getExpertiseTags());
+        putIf(m, "teachingStyle", t.getTeachingStyle());
+        putIf(m, "experienceYears", t.getExperienceYears());
+        putIf(m, "teachingYears", t.getTeachingYears());
+        putIf(m, "quoteMin", t.getQuoteMin());
+        putIf(m, "quoteMax", t.getQuoteMax());
+        putIf(m, "quoteUnit", t.getQuoteUnit());
+        putIf(m, "quoteRemark", t.getQuoteRemark());
+        putIf(m, "taokePrice", t.getTaokePrice());
+        putIf(m, "taokeCommission", t.getTaokeCommission());
+        putIf(m, "provinceId", t.getProvinceId());
+        putIf(m, "cityId", t.getCityId());
+        putIf(m, "districtId", t.getDistrictId());
+        putIf(m, "address", t.getAddress());
+        return m;
+    }
+
+    private static void putIf(Map<String, String> m, String key, Object val) {
+        if (val != null) m.put(key, String.valueOf(val));
     }
 
     /** 批量回填多个列表的 categoryName */

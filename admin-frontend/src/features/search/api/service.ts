@@ -21,6 +21,13 @@ export async function deleteIndex(indexName: string): Promise<ApiResponse<null>>
   });
 }
 
+/** 更新索引 mapping（用于加新字段） */
+export async function putMapping(indexName: string): Promise<ApiResponse<boolean>> {
+  return apiClient<ApiResponse<boolean>>(`/search/indices/${indexName}/mapping`, {
+    method: 'PUT'
+  });
+}
+
 /** 全量重建所有类型 */
 export async function reindexAll(targetIndex?: string): Promise<ApiResponse<ReindexResult>> {
   return apiClient<ApiResponse<ReindexResult>>('/search/reindex', {

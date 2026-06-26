@@ -53,6 +53,7 @@ public enum ErrorCode {
     UCENTER_REGISTER_FAILED(400, 10019, "注册失败，请稍后再试"),
     SMS_SEND_FAILED(503, 10020, "短信发送失败，请稍后再试"),
     CAPTCHA_REQUIRED(400, 10021, "请先完成滑块验证"),
+    ACCOUNT_LOGIN_LOCKED(403, 10022, "密码错误次数过多，账号已锁定，请稍后再试"),
 
     /* ==================== 权限 101xx ==================== */
     UNAUTHORIZED(401, 10101, "请先登录"),
@@ -87,6 +88,11 @@ public enum ErrorCode {
     ALREADY_ENROLLED(400, 40009, "您已报名该课程"),
     ORDER_ITEMS_EMPTY(400, 40010, "订单商品不能为空"),
     CANNOT_BUY_OWN_PRODUCT(400, 40011, "不能购买自己发布的课程"),
+    INVOICE_ALREADY_REQUESTED(400, 40012, "该订单已申请过发票"),
+    INVOICE_ORDER_NOT_PAID(400, 40013, "仅已支付订单可申请发票"),
+    PAYMENT_CHANNEL_NOT_CONFIGURED(400, 40014, "支付渠道未配置或未启用"),
+    PAYMENT_PREPAY_FAILED(500, 40015, "发起第三方支付失败"),
+    PAYMENT_OPENID_REQUIRED(400, 40016, "微信支付缺少 openId，请先完成微信授权"),
 
     /* ==================== 评价/互动 500xx ==================== */
     FAVORITE_ALREADY_EXISTS(400, 50001, "已收藏，请勿重复操作"),

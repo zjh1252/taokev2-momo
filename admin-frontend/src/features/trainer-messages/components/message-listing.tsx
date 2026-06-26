@@ -5,7 +5,7 @@ import { trainerMessageKeys } from '../api/queries';
 import { getTrainerMessagesFromServer } from '../api/server-service';
 import { TrainerMessagesTable } from './messages-table';
 
-export default function MessageListingPage() {
+export default async function MessageListingPage() {
   const page = searchParamsCache.get('page');
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
@@ -18,10 +18,14 @@ export default function MessageListingPage() {
 
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery({
-    queryKey: trainerMessageKeys.list(filters),
-    queryFn: () => getTrainerMessagesFromServer(filters),
-  });
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: trainerMessageKeys.list(filters),
+      queryFn: () => getTrainerMessagesFromServer(filters),
+    });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

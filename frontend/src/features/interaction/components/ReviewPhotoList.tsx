@@ -1,7 +1,6 @@
 'use client';
 
 import { SafeImage } from '@/components/safe-image';
-import { DEFAULT_COURSE_COVER } from '@/lib/media';
 
 interface ReviewPhotoListProps {
   urls?: string[] | null;
@@ -17,7 +16,6 @@ export function ReviewPhotoList({ urls }: ReviewPhotoListProps) {
         <SafeImage
           key={`${url}-${idx}`}
           src={url}
-          fallback={DEFAULT_COURSE_COVER}
           alt="评价配图"
           width={120}
           height={90}

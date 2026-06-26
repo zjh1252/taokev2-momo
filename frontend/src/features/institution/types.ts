@@ -3,6 +3,8 @@
 /** 机构列表项（对应后端 InstitutionListItemResponse） */
 export interface InstitutionListItem {
   id: number;
+  /** 老站 URL 段 roleid，优先用于 /company/{slug}.htm */
+  legacyRoleId?: number;
   orgName: string;
   specialties?: string;
   industries?: string;
@@ -24,6 +26,7 @@ export interface InstitutionListItem {
 /** 机构公开详情（对应后端 InstitutionPublicResponse） */
 export interface InstitutionDetail {
   id: number;
+  legacyRoleId?: number;
   orgName: string;
   orgType: number;
   bio?: string;

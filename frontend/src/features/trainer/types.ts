@@ -54,6 +54,8 @@ export interface TrainerDetail {
   userId: number;
   trainerCode?: string;
   name: string;
+  /** 授课姓名（对外展示，可与 name 不同） */
+  teachingName?: string;
   avatar: string;
   title: string;
   gender: number;
@@ -96,10 +98,14 @@ export interface TrainerListItem {
   id: number;
   userId?: number;
   name: string;
+  teachingName?: string;
   avatar: string;
   title: string;
+  oneLineIntro?: string;
   score: number;
   expertiseTags?: string;
+  /** 是否后台推荐位：0=否，1=是 */
+  isRecommended?: number;
   isTrusted: number;
   commentCount: number;
   viewCount: number;
@@ -201,28 +207,35 @@ export interface RecommendedCourseItem {
 export interface RecommendedTrainerItem {
   id: number;
   name: string;
+  teachingName?: string;
   title?: string;
   avatar?: string;
   score?: number;
   isRecommended?: number;
+  oneLineIntro?: string;
 }
 
-/** 专家著作（对应后端 TrainerBookResponse） */
+/** 专家著作（对应后端 TrainerBookResponse，公开列表仅返回已通过项） */
 export interface TrainerBook {
   id: number;
   trainerId: number;
   title: string;
+  authorName?: string;
   coverUrl?: string;
   publisher?: string;
   publishDate?: string;
   description?: string;
   buyUrl?: string;
   sortOrder: number;
+  status?: number;
+  rejectReason?: string | null;
+  reviewedAt?: string | null;
 }
 
-/** 保存著作请求 */
+/** 保存著作请求（与后端 SaveTrainerBookRequest 对齐） */
 export interface SaveTrainerBookRequest {
   title: string;
+  authorName?: string;
   coverUrl?: string;
   publisher?: string;
   publishDate?: string;

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90" fill="none">
+  <defs>
+    <linearGradient id="guangzhou-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E0F7FA"/>
+      <stop offset="100%" stop-color="#F0FDFF"/>
+    </linearGradient>
+    <linearGradient id="guangzhou-tower" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="100%" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="90" fill="url(#guangzhou-sky)"/>
+  <ellipse cx="58" cy="78" rx="36" ry="5" fill="#B8E6EF" opacity="0.8"/>
+  <path d="M58 10 Q62 40 58 70 Q54 40 58 10" fill="url(#guangzhou-tower)"/>
+  <path d="M58 10 Q66 35 58 70 Q50 35 58 10" fill="#06B6D4" opacity="0.6"/>
+  <ellipse cx="58" cy="72" rx="8" ry="3" fill="#64748B"/>
+</svg>

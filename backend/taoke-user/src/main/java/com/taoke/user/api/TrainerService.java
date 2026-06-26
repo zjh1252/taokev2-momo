@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 专家档案与入驻申请相关能力。
@@ -31,22 +32,45 @@ public interface TrainerService {
      * @param expertiseCategoryId  擅长领域分类 ID（可选）
      * @param industryCategoryId   擅长行业分类 ID（可选）
      * @param provinceId           省份 ID（可选）
+     * @param cityId               城市 ID（可选，匹配专家常驻地）
      * @param keyword              搜索关键词（可选，匹配 name / title / expertiseTags）
-     * @param sort                 排序方式：default / score
+     * @param sort                 排序方式：default / score / newly_joined
      * @param isTrusted            质量承诺过滤：1=仅显示信得过专家，其他/null 不限
      */
     PageResponse<TrainerListItemResponse> listPublic(int page, int size,
                                                      Integer expertiseCategoryId,
                                                      Integer industryCategoryId,
                                                      Integer provinceId,
+                                                     Integer cityId,
                                                      String keyword,
                                                      String sort,
                                                      Integer isTrusted);
 
     /**
+     * 已发布专家按擅长领域一级分类批量计数（含二级展开，与 listPublic 筛选口径一致）。
+     *
+     * @return key=一级分类 ID，value=专家数
+     */
+    java.util.Map<Integer, Long> countPublicByExpertiseL1();
+
+    /**
      * 按专家 ID 查询公开档案（不含报价敏感字段）
      */
     TrainerPublicResponse getPublicProfile(Integer trainerId);
+
+    /**
+     * 列表页点击曝光 +1（仅已审核通过专家）
+     */
+    void incrementViewCount(Integer trainerId);
+
+    /**
+     * 解析专家主讲课程应使用的 {@code courses.trainer_id}。
+     * <p>
+     * 迁移后常见同名双行：种子档案 {@code status=2} 用于列表/URL，旧站课程挂在
+     * {@code user_id=id} 的迁移行。访问种子 id 时返回迁移行 id，避免详情页课程数偏少。
+     * </p>
+     */
+    Integer resolveCourseTrainerId(Integer trainerId);
 
     /**
      * 专家详情页推荐相关专家
@@ -119,6 +143,11 @@ public interface TrainerService {
     List<Trainer> findByIds(Collection<Integer> ids);
 
     /**
+     * 按姓名批量查询已上架专家（status=2），用于迁移课程主讲人名称回填。
+     */
+    List<Trainer> findPublishedByNames(Collection<String> names);
+
+    /**
      * 检查是否有专家关联了指定的擅长领域分类
      */
     boolean hasExpertiseCategoryReference(Integer categoryId);
@@ -139,9 +168,8 @@ public interface TrainerService {
     /**
      * C 端首页/列表页推荐专家位
      * <p>
-     * 先取 {@code status=2 AND is_recommended=1}，按 sortOrder/score/id 倒序；
-     * 数量不够 {@code limit} 时，直接按 id 倒序取最新的 status=2 专家补齐
-     * （允许与已选重复，前端按 id 不去重；上层取前 limit 个）。
+     * 仅取 {@code status=2 AND is_recommended=1}，按 sortOrder/score/id 倒序；
+     * 数量不足 {@code limit} 时返回实际条数，不补齐非推荐专家。
      * </p>
      */
     List<TrainerListItemResponse> listRecommendedForTop(int limit);
@@ -155,6 +183,11 @@ public interface TrainerService {
                                           Integer cityId,
                                           Integer isTrusted,
                                           Integer hasCopyrightCourse);
+
+    /**
+     * 批量解析专家展示头像（用户头像 → 档案头像 → 默认头像素材池）。
+     */
+    Map<Integer, String> resolveDisplayAvatars(Collection<Integer> trainerIds);
 
     /**
      * 调整指定专家（user_trainers.user_id）的累计评论数。

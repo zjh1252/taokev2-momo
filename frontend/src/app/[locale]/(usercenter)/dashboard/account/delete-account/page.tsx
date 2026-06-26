@@ -36,7 +36,11 @@ export default function DeleteAccountPage() {
 
   const handleConfirm = async () => {
     const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
-    if (!tokenData?.accessToken) return;
+    if (!tokenData?.accessToken) {
+      toast.error('登录状态已失效，请重新登录后再试');
+      router.push(ROUTES.LOGIN);
+      return;
+    }
     setSubmitting(true);
     try {
       await deleteOwnAccount(tokenData.accessToken);
@@ -45,7 +49,10 @@ export default function DeleteAccountPage() {
       logout();
       router.push(ROUTES.LOGIN);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '注销失败，请稍后重试');
+      const msg = err instanceof Error ? err.message : '注销失败，请稍后重试';
+      toast.error(msg.includes('access token') || msg.includes('Access token')
+        ? '登录状态已失效，请重新登录'
+        : msg);
     } finally {
       setSubmitting(false);
     }

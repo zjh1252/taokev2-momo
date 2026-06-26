@@ -131,8 +131,9 @@ import { ref, computed } from 'vue';
 import { useUserStore } from '@/stores/user';
 import * as authApi from '@/api/auth';
 
-const sysInfo = uni.getSystemInfoSync();
-const navBarH = (sysInfo.statusBarHeight || 20) + 44;
+import { getNavBarHeight } from '@/utils/system';
+
+const navBarH = getNavBarHeight();
 const userStore = useUserStore();
 
 const username = ref('');

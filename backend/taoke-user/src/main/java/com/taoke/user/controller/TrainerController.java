@@ -70,11 +70,19 @@ public class TrainerController {
             @RequestParam(required = false) Integer expertiseCategoryId,
             @RequestParam(required = false) Integer industryCategoryId,
             @RequestParam(required = false) Integer provinceId,
+            @RequestParam(required = false) Integer cityId,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "default") String sort,
             @RequestParam(required = false) Integer isTrusted) {
         return ApiResponse.ok(trainerService.listPublic(page, size,
-                expertiseCategoryId, industryCategoryId, provinceId, keyword, sort, isTrusted));
+                expertiseCategoryId, industryCategoryId, provinceId, cityId, keyword, sort, isTrusted));
+    }
+
+    @Public
+    @Operation(summary = "专家擅长领域一级分类批量计数（底部分类导航）")
+    @GetMapping("/trainers/expertise-category-counts")
+    public ApiResponse<java.util.Map<Integer, Long>> expertiseCategoryCounts() {
+        return ApiResponse.ok(trainerService.countPublicByExpertiseL1());
     }
 
     @Public
@@ -86,10 +94,24 @@ public class TrainerController {
     }
 
     @Public
-    @Operation(summary = "专家公开详情页（不含报价信息）")
+    @Operation(summary = "专家公开详情页（不含报价信息）；bumpView=1 时仅曝光 +1")
     @GetMapping("/trainers/{id}")
-    public ApiResponse<TrainerPublicResponse> getPublicProfile(@PathVariable Integer id) {
+    public ApiResponse<?> getPublicProfile(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Boolean bumpView) {
+        if (Boolean.TRUE.equals(bumpView)) {
+            trainerService.incrementViewCount(id);
+            return ApiResponse.ok(null);
+        }
         return ApiResponse.ok(trainerService.getPublicProfile(id));
+    }
+
+    @Public
+    @Operation(summary = "专家列表点击曝光 +1（兼容旧客户端）")
+    @PostMapping("/trainers/{id}/view")
+    public ApiResponse<Void> incrementViewCount(@PathVariable Integer id) {
+        trainerService.incrementViewCount(id);
+        return ApiResponse.ok(null);
     }
 
     @Public

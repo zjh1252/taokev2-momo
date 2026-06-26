@@ -1,12 +1,15 @@
 # ============================================================
 # 开发环境配置 — 中间件连接、密钥、日志级别等
 # ============================================================
+server:
+  port: 8080
+
 # Nacos 配置中心
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/taokev2?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
+    url: jdbc:mysql://10.0.14.20:3306/v3test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
     username: root
-    password: '123456'
+    password: 'root'
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 5
@@ -17,17 +20,17 @@ spring:
 
   data:
     redis:
-      host: localhost
+      host: 10.0.14.20
       port: 6379
       database: 0
       timeout: 3000ms
 
   rabbitmq:
-    host: localhost
+    host: 10.0.14.20
     port: 5672
     username: guest
     password: guest
-    virtual-host: /taokev2-dev
+    virtual-host: /taokev2-test
 
   jpa:
     show-sql: true
@@ -39,8 +42,13 @@ spring:
       max-request-size: 500MB
 
 taoke:
+  # 本地开发：mock 短信 + 关闭滑块，与前端 NEXT_PUBLIC_MOCK_SMS=true 对齐
+  sms:
+    provider: mock
+  captcha:
+    enabled: false
   elasticsearch:
-    uris: http://localhost:9200
+    uris: http://10.0.14.20:9200
     username: app_search
     password: taokev2search
     index-name: taokev2app
@@ -51,11 +59,16 @@ taoke:
     secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
   storage:
     provider: local
+    # 相对路径在 dev 下由 StorageDirectoryResolver 自动定位 monorepo 内 frontend/public
     base-dir: ../../frontend/public
     public-domain:
   cors:
-    allowed-origins: '*'
-    allow-credentials: false
+    allowed-origins:
+      - http://localhost:3000
+      - http://127.0.0.1:3000
+      - http://localhost:3001
+      - http://127.0.0.1:3001
+    allow-credentials: true
   # AI 能力（开发环境默认禁用，将 enabled 改为 true 并填入真实 base-url + api-key 后启用）
   ai:
     enabled: true
@@ -68,7 +81,15 @@ taoke:
   sms:
     provider: mock
 
+# 爬虫服务（开发环境）
+# crawler-service 在 Docker 内运行时，回调须用 host.docker.internal 访问宿主机 Java（18080）
+# 若改为本机直接 uvicorn 启动爬虫，可改回 http://localhost:18080/internal/crawl/callback
+crawler:
+  base-url: http://localhost:8100
+  callback-url: http://host.docker.internal:8080/internal/crawl/callback
+  callback-token: local-crawler-token
+
 logging:
   level:
-    com.taoke: debug
-    org.springframework.security: debug
+    com.taoke: info
+    org.springframework.security: info

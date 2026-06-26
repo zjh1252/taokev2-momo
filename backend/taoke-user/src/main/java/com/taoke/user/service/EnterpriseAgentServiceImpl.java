@@ -43,6 +43,7 @@ public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
     private final EnterpriseAgentRepository enterpriseAgentRepository;
     private final EnterpriseAgentMapper enterpriseAgentMapper;
     private final RoleApplyService roleApplyService;
+    private final RoleApplicationChangeLogService changeLogService;
 
     @Override
     public EnterpriseAgentResponse getByUserId(Integer userId) {
@@ -63,8 +64,18 @@ public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
             throw new BusinessException(ErrorCode.PARAM_INVALID,
                     "请先勾选并同意《淘课网注册专家经纪公司合作协议》");
         }
-        roleApplyService.apply(userId, BusinessRole.Code.ENTERPRISE_AGENT);
+        // 在写数据前先获取旧快照（用于资料重审变更记录）
+        EnterpriseAgent oldSnapshot = enterpriseAgentRepository.findByUserId(userId).orElse(null);
+        boolean isReapply = roleApplyService.apply(userId, BusinessRole.Code.ENTERPRISE_AGENT);
         saveOrUpdateExtension(userId, request);
+        if (isReapply && oldSnapshot != null && changeLogService != null) {
+            EnterpriseAgent newSnapshot = enterpriseAgentRepository.findByUserId(userId).orElse(null);
+            if (newSnapshot != null) {
+                String batch = RoleApplicationChangeLogService.batchKey(userId, BusinessRole.Code.ENTERPRISE_AGENT);
+                changeLogService.recordChanges(userId, BusinessRole.Code.ENTERPRISE_AGENT, batch,
+                        toFieldMap(oldSnapshot), toFieldMap(newSnapshot), EA_FIELD_LABELS);
+            }
+        }
     }
 
     @Override
@@ -149,7 +160,10 @@ public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
         });
 
         if (request.getCompanyName() != null) ent.setCompanyName(request.getCompanyName());
-        if (request.getLicenseNo() != null) ent.setLicenseNo(request.getLicenseNo());
+        if (request.getLicenseNo() != null) {
+            InstitutionServiceImpl.validateLicenseNo(request.getLicenseNo());
+            ent.setLicenseNo(request.getLicenseNo());
+        }
         if (request.getLegalPerson() != null) ent.setLegalPerson(request.getLegalPerson());
         if (request.getIndustry() != null) ent.setIndustry(request.getIndustry());
         if (request.getCompanySize() != null) ent.setCompanySize(request.getCompanySize());
@@ -175,5 +189,40 @@ public class EnterpriseAgentServiceImpl implements EnterpriseAgentService {
         }
 
         return enterpriseAgentRepository.save(ent);
+    }
+
+    // ---- 变更日志辅助 ----
+
+    static final Map<String, String> EA_FIELD_LABELS = Map.<String, String>ofEntries(
+            Map.entry("companyName", "公司名称"),
+            Map.entry("licenseNo", "营业执照号"),
+            Map.entry("legalPerson", "法定代表人"),
+            Map.entry("industry", "所属行业"),
+            Map.entry("companySize", "公司规模"),
+            Map.entry("bio", "公司简介"),
+            Map.entry("contactName", "联系人姓名"),
+            Map.entry("contactPhone", "联系电话"),
+            Map.entry("address", "公司地址"),
+            Map.entry("qualificationDocUrl", "营业执照")
+    );
+
+    private static Map<String, String> toFieldMap(EnterpriseAgent e) {
+        if (e == null) return Map.of();
+        Map<String, String> m = new HashMap<>();
+        putIf(m, "companyName", e.getCompanyName());
+        putIf(m, "licenseNo", e.getLicenseNo());
+        putIf(m, "legalPerson", e.getLegalPerson());
+        putIf(m, "industry", e.getIndustry());
+        putIf(m, "companySize", e.getCompanySize());
+        putIf(m, "bio", e.getBio());
+        putIf(m, "contactName", e.getContactName());
+        putIf(m, "contactPhone", e.getContactPhone());
+        putIf(m, "address", e.getAddress());
+        putIf(m, "qualificationDocUrl", e.getQualificationDocUrl());
+        return m;
+    }
+
+    private static void putIf(Map<String, String> m, String key, Object val) {
+        if (val != null) m.put(key, String.valueOf(val));
     }
 }

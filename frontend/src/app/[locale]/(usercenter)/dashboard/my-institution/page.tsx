@@ -3,12 +3,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { Link } from '@/i18n/navigation';
+import { ROUTES } from '@/config/routes';
 import {
   Building2,
   CheckCircle2,
   XCircle,
   AlertCircle,
   Loader2,
+  Plus,
 } from 'lucide-react';
 import {
   listMyInstitutions,
@@ -144,6 +147,24 @@ export default function MyInstitutionPage() {
               </span>
             )}
           </div>
+          {/* 已绑定一个机构时置灰不可点击（员工与机构为一对一隶属） */}
+          {active.length > 0 || pending.length > 0 ? (
+            <span
+              className="inline-flex items-center gap-1.5 bg-slate-100 text-gray-400 text-sm px-4 py-2 rounded-lg cursor-not-allowed"
+              title="您已绑定机构，如需更换请先离开当前机构"
+            >
+              <Plus className="size-4" />
+              绑定机构
+            </span>
+          ) : (
+            <Link
+              href={`${ROUTES.UC_APPLY}/INSTITUTION_EMPLOYEE`}
+              className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="size-4" />
+              绑定机构
+            </Link>
+          )}
         </div>
         <div className="p-6">
           {loading ? (

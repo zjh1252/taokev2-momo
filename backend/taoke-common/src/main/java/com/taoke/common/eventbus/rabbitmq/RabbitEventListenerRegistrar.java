@@ -5,7 +5,8 @@ import com.taoke.common.eventbus.DomainEvent;
 import com.taoke.common.eventbus.DomainEventListener;
 import com.taoke.common.eventbus.EventBusProperties;
 import com.taoke.common.eventbus.TopicResolver;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -40,11 +41,12 @@ import java.util.Map;
  * @author Fangxinxin
  * @date 2026-03-19
  */
-@Slf4j
 @Component
 @ConditionalOnClass(RabbitTemplate.class)
 @ConditionalOnProperty(name = "taoke.event.enabled", havingValue = "true")
 public class RabbitEventListenerRegistrar implements BeanPostProcessor, SmartInitializingSingleton, ApplicationContextAware {
+
+    private static final Logger log = LoggerFactory.getLogger(RabbitEventListenerRegistrar.class);
 
     private ApplicationContext applicationContext;
     private final List<ListenerMeta> listenerMetas = new ArrayList<>();

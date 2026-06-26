@@ -22,4 +22,13 @@ public class AdminUserQuery {
 
     /** 按用户状态过滤（0=冻结, 1=正常） */
     private Integer status;
+
+    /** 按业务角色编码过滤（如 TRAINER / BUYER） */
+    private String role;
+
+    /** 注册来源 */
+    private Integer regOrigin;
+
+    /** 实名认证状态：2=已通过 等 */
+    private Integer realNameCertStatus;
 }

@@ -1,8 +1,20 @@
 'use client';
 
-import Image from 'next/image';
 import { Minus, Plus, Trash2 } from 'lucide-react';
+import { SafeImage } from '@/components/safe-image';
+import { DEFAULT_VIDEO_COVER } from '@/lib/media';
 import type { CartItem } from '../api/types';
+
+/** 表头与商品行共用列宽，保证对齐 */
+export const CART_TABLE_GRID =
+  'grid grid-cols-[auto_minmax(0,1fr)_5rem_6.5rem_5.5rem_auto] items-center gap-4 px-4';
+
+/** 封面占位宽度，与商品行封面 w-20 + gap-3 对齐 */
+export const CART_TITLE_OFFSET = 'w-20 shrink-0';
+
+export function cartLineTotal(item: CartItem): number {
+  return item.subtotal ?? item.price * item.quantity;
+}
 
 interface CartItemCardProps {
   item: CartItem;
@@ -22,7 +34,7 @@ export function CartItemCard({
   const priceChanged = item.currentPrice !== item.price;
 
   return (
-    <div className="flex items-center gap-4 p-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+    <div className={`${CART_TABLE_GRID} py-4 bg-white hover:bg-slate-50/50 transition-colors`}>
       {/* 选择框 */}
       <input
         type="checkbox"
@@ -31,35 +43,29 @@ export function CartItemCard({
         className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary cursor-pointer"
       />
 
-      {/* 商品图片 */}
-      <div className="w-20 h-14 rounded overflow-hidden bg-slate-100 flex-shrink-0">
-        {item.productCover ? (
-          <Image
-            src={item.productCover}
+      {/* 商品信息（含封面） */}
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`${CART_TITLE_OFFSET} relative h-14 rounded overflow-hidden bg-slate-100`}>
+          <SafeImage
+            src={item.productCover || undefined}
             alt={item.productTitle}
-            width={80}
-            height={56}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            fallback={DEFAULT_VIDEO_COVER}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
-            暂无图片
-          </div>
-        )}
-      </div>
-
-      {/* 商品信息 */}
-      <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-medium text-slate-800 truncate">
-          {item.productTitle}
-        </h4>
-        <span className="inline-block mt-1 px-1.5 py-0.5 bg-slate-100 text-slate-500 text-xs rounded">
-          {item.productTypeLabel}
-        </span>
+        </div>
+        <div className="min-w-0">
+          <h4 className="text-sm font-medium text-slate-800 truncate">
+            {item.productTitle}
+          </h4>
+          <span className="inline-block mt-1 px-1.5 py-0.5 bg-slate-100 text-slate-500 text-xs rounded">
+            {item.productTypeLabel}
+          </span>
+        </div>
       </div>
 
       {/* 单价 */}
-      <div className="text-right min-w-[80px]">
+      <div className="text-right">
         <div className="text-sm font-medium text-slate-800">
           ¥{item.price.toFixed(2)}
         </div>
@@ -71,7 +77,7 @@ export function CartItemCard({
       </div>
 
       {/* 数量控制 */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-center gap-1">
         <button
           type="button"
           onClick={() =>
@@ -92,21 +98,23 @@ export function CartItemCard({
         </button>
       </div>
 
-      {/* 小计 */}
-      <div className="text-right min-w-[90px]">
+      {/* 总价 = 单价 × 购买数量 */}
+      <div className="text-right">
         <div className="text-sm font-bold text-primary">
-          ¥{(item.price * item.quantity).toFixed(2)}
+          ¥{cartLineTotal(item).toFixed(2)}
         </div>
       </div>
 
       {/* 删除 */}
-      <button
-        type="button"
-        onClick={() => onRemove(item.id)}
-        className="text-slate-400 hover:text-red-500 transition-colors p-1"
-      >
-        <Trash2 className="size-4" />
-      </button>
+      <div className="flex justify-center">
+        <button
+          type="button"
+          onClick={() => onRemove(item.id)}
+          className="text-slate-400 hover:text-red-500 transition-colors p-1"
+        >
+          <Trash2 className="size-4" />
+        </button>
+      </div>
     </div>
   );
 }

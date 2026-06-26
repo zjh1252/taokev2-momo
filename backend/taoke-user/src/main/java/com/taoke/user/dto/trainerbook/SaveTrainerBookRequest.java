@@ -19,6 +19,9 @@ public class SaveTrainerBookRequest {
     @Size(max = 200, message = "书名长度不超过 200 字符")
     private String title;
 
+    @Size(max = 200, message = "作者名长度不超过 200 字符")
+    private String authorName;
+
     @Size(max = 500, message = "封面图 URL 长度不超过 500 字符")
     private String coverUrl;
 

@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import SingleImageUploader from '@/features/role-apply/components/SingleImageUploader';
+import { resolveImageSrc } from '@/lib/media';
 import type { TrainerBookFormItem } from '../api/types';
 
 interface TrainerBooksEditorProps {
@@ -22,6 +24,7 @@ interface TrainerBooksEditorProps {
 
 const EMPTY_BOOK: TrainerBookFormItem = {
   title: '',
+  authorName: '',
   coverUrl: '',
   publisher: '',
   publishDate: '',
@@ -65,6 +68,7 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
     if (!draft.title?.trim()) return;
     const item: TrainerBookFormItem = {
       title: draft.title.trim(),
+      authorName: draft.authorName?.trim() || '',
       coverUrl: draft.coverUrl?.trim() || '',
       publisher: draft.publisher?.trim() || '',
       publishDate: draft.publishDate || '',
@@ -108,7 +112,7 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
                   {book.coverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={book.coverUrl}
+                      src={resolveImageSrc(book.coverUrl, '')}
                       alt={book.title}
                       className="size-full object-cover"
                     />
@@ -121,6 +125,7 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
                     {book.title}
                   </div>
                   <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-gray-500">
+                    {book.authorName && <span>{book.authorName}</span>}
                     {book.publisher && <span>{book.publisher}</span>}
                     {book.publishDate && <span>{book.publishDate}</span>}
                   </div>
@@ -177,6 +182,15 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
                 placeholder="请输入书名"
               />
             </div>
+            <div className="space-y-1">
+              <Label htmlFor="book-author">作者</Label>
+              <Input
+                id="book-author"
+                value={draft.authorName || ''}
+                onChange={(e) => setDraft({ ...draft, authorName: e.target.value })}
+                placeholder="请输入作者姓名"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="book-publisher">出版社</Label>
@@ -197,12 +211,11 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
               </div>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="book-cover">封面图 URL</Label>
-              <Input
-                id="book-cover"
+              <Label>封面图</Label>
+              <SingleImageUploader
+                label="著作封面"
                 value={draft.coverUrl || ''}
-                onChange={(e) => setDraft({ ...draft, coverUrl: e.target.value })}
-                placeholder="https://..."
+                onChange={(url) => setDraft({ ...draft, coverUrl: url })}
               />
             </div>
             <div className="space-y-1">

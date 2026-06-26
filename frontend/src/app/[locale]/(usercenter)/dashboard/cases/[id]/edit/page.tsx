@@ -6,7 +6,6 @@ import { ROUTES } from '@/config/routes';
 import {
   getMyCaseDetail,
   updateCase,
-  updateCaseDraft,
   addCaseFile,
   deleteCaseFile,
 } from '@/features/trainer-case/api/service';
@@ -23,7 +22,6 @@ import RegionCascader, { type RegionValue } from '@/components/region-cascader';
 import { toast } from 'sonner';
 import { OwnedTrainerBanner } from '@/features/binding/components/owned-trainer-banner';
 import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
-import { ContentPublisherGuard } from '@/features/binding/components/ContentPublisherGuard';
 
 export default function EditCasePage({
   params: paramsPromise,
@@ -51,7 +49,6 @@ export default function EditCasePage({
     townId: undefined,
     trainingAddress: '',
     trainingDate: '',
-    trainingEndDate: '',
     description: '',
     coverImage: '',
   });
@@ -71,7 +68,6 @@ export default function EditCasePage({
           enterpriseName: detail.enterpriseName,
           industry: detail.industry || '',
           trainingTopic: detail.trainingTopic || '',
-          keyword: detail.keyword || '',
           trainingEffect: detail.trainingEffect || '',
           traineeCount: detail.traineeCount ?? undefined,
           provinceId: detail.provinceId ?? undefined,
@@ -80,7 +76,6 @@ export default function EditCasePage({
           townId: detail.townId ?? undefined,
           trainingAddress: detail.trainingAddress || '',
           trainingDate: detail.trainingDate || '',
-          trainingEndDate: detail.trainingEndDate || '',
           description: detail.description || '',
           coverImage: detail.coverImage || '',
         });
@@ -168,10 +163,6 @@ export default function EditCasePage({
   );
 
   const handleSubmit = async () => {
-    if (form.trainingDate && form.trainingEndDate && form.trainingEndDate < form.trainingDate) {
-      toast.error('培训结束日期不能早于开始日期');
-      return;
-    }
     // 表单验证
     const validation = validateForm(form as SaveTrainerCaseRequest, CASE_RULES);
     if (!validation.valid) {
@@ -184,28 +175,6 @@ export default function EditCasePage({
     try {
       await updateCase(caseId, form as SaveTrainerCaseRequest);
       toast.success('案例已更新');
-      router.push(ROUTES.UC_CASES_MANAGE);
-    } catch {
-      // 平台层已统一处理错误提示
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  /** 保存草稿：仅要求填写案例标题，其余字段可不完整 */
-  const handleSaveDraft = async () => {
-    if (!form.caseTitle?.trim()) {
-      toast.error('请至少填写案例标题再保存草稿');
-      return;
-    }
-    if (form.trainingDate && form.trainingEndDate && form.trainingEndDate < form.trainingDate) {
-      toast.error('培训结束日期不能早于开始日期');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await updateCaseDraft(caseId, form as SaveTrainerCaseRequest);
-      toast.success('草稿已保存');
       router.push(ROUTES.UC_CASES_MANAGE);
     } catch {
       // 平台层已统一处理错误提示
@@ -234,19 +203,19 @@ export default function EditCasePage({
       </div>
 
       <div className="px-6 py-6 max-w-2xl space-y-5">
-        <ContentPublisherGuard resourceLabel="案例">
         <BoundPublisherGuard>
         <OwnedTrainerBanner trainerUserId={trainerUserId} trainerNameHint={trainerName} />
-        <FormField label="案例标题" required>
+        <FormField label="标题" required>
           <input
             type="text"
             value={form.caseTitle}
             onChange={(e) => updateField('caseTitle', e.target.value)}
+            placeholder="请输入标题"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </FormField>
 
-        <FormField label="客户企业名称" required>
+        <FormField label="企业名称" required>
           <input
             type="text"
             value={form.enterpriseName}
@@ -273,17 +242,6 @@ export default function EditCasePage({
             />
           </FormField>
         </div>
-
-        <FormField label="关键字">
-          <input
-            type="text"
-            value={form.keyword || ''}
-            onChange={(e) => updateField('keyword', e.target.value)}
-            maxLength={200}
-            placeholder="多个关键字用逗号分隔，如：领导力,团队管理,沟通"
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
-        </FormField>
 
         <FormField label="培训地点" required>
           <RegionCascader
@@ -319,23 +277,13 @@ export default function EditCasePage({
         </FormField>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="培训日期" required>
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={form.trainingDate || ''}
-                onChange={(e) => updateField('trainingDate', e.target.value)}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              />
-              <span className="text-gray-400">-</span>
-              <input
-                type="date"
-                value={form.trainingEndDate || ''}
-                min={form.trainingDate || undefined}
-                onChange={(e) => updateField('trainingEndDate', e.target.value)}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              />
-            </div>
+          <FormField label="培训日期">
+            <input
+              type="date"
+              value={form.trainingDate || ''}
+              onChange={(e) => updateField('trainingDate', e.target.value)}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
           </FormField>
           <FormField label="受训人数">
             <input
@@ -364,7 +312,7 @@ export default function EditCasePage({
           />
         </FormField>
 
-        <FormField label="案例描述" required>
+        <FormField label="描述">
           <textarea
             value={form.description || ''}
             onChange={(e) => updateField('description', e.target.value)}
@@ -373,7 +321,7 @@ export default function EditCasePage({
           />
         </FormField>
 
-        <FormField label="封面图" required>
+        <FormField label="封面图">
           <div className="flex items-center gap-4">
             {form.coverImage ? (
               <div className="relative w-[160px] h-[100px] rounded-lg overflow-hidden border border-slate-200">
@@ -426,14 +374,6 @@ export default function EditCasePage({
           >
             {submitting ? '提交中...' : '保存修改'}
           </button>
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            disabled={submitting}
-            className="border border-primary text-primary text-sm px-6 py-2.5 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
-          >
-            保存草稿
-          </button>
           <Link
             href={ROUTES.UC_CASES_MANAGE}
             className="border border-slate-200 text-gray-600 text-sm px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-colors inline-flex items-center"
@@ -442,7 +382,6 @@ export default function EditCasePage({
           </Link>
         </div>
         </BoundPublisherGuard>
-        </ContentPublisherGuard>
       </div>
     </section>
   );

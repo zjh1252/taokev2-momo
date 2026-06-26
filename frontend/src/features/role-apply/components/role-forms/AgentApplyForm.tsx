@@ -15,6 +15,7 @@ import { Link } from '@/i18n/navigation';
 import ServiceCitiesEditor from '../ServiceCitiesEditor';
 import AgreementCheckbox from '../AgreementCheckbox';
 import { useProfilePrefill } from '../../hooks/useProfilePrefill';
+import { useRealNameLock } from '@/features/user-center/hooks/useRealNameLock';
 import { getMyAgentProfileAsForm } from '../../api/service';
 
 interface AgentApplyFormProps {
@@ -33,6 +34,7 @@ interface AgentApplyFormProps {
  */
 export function AgentApplyForm({ data, onChange }: AgentApplyFormProps) {
   const { user } = useAuth();
+  const { locked: realNameLocked, realName: certRealName } = useRealNameLock();
   const update = (patch: Partial<AgentFormData>) => onChange({ ...data, ...patch });
 
   // 已生效（status=1）的经纪人用户进入「修改资料」流程时自动回填档案
@@ -52,6 +54,12 @@ export function AgentApplyForm({ data, onChange }: AgentApplyFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.phone]);
 
+  useEffect(() => {
+    if (realNameLocked && certRealName && !data.realName) {
+      onChange({ ...data, realName: certRealName });
+    }
+  }, [realNameLocked, certRealName]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="space-y-6">
       <fieldset>
@@ -66,8 +74,12 @@ export function AgentApplyForm({ data, onChange }: AgentApplyFormProps) {
               onChange={(e) => update({ realName: e.target.value })}
               placeholder="请输入您的真实姓名"
               maxLength={64}
-              className="form-input"
+              readOnly={realNameLocked}
+              className={`form-input ${realNameLocked ? 'bg-slate-50 text-gray-500' : ''}`}
             />
+            {realNameLocked && (
+              <div className="text-xs text-gray-400 mt-1">已通过实名认证，不可修改</div>
+            )}
           </FormField>
 
           <FormField label="联系电话" required>

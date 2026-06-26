@@ -5,6 +5,8 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.service.CategoryService;
+import com.taoke.common.service.OpsMaterialResolver;
+import com.taoke.course.api.InteractionQueryService;
 import com.taoke.course.api.VideoService;
 import com.taoke.course.dto.video.*;
 import com.taoke.course.entity.video.Video;
@@ -21,8 +23,10 @@ import com.taoke.course.repository.video.VideoSeriesRepository;
 import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
+import com.taoke.user.api.UserService;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.Trainer;
+import com.taoke.user.entity.User;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -54,18 +58,27 @@ public class VideoServiceImpl implements VideoService {
     private final CategoryService categoryService;
     private final TrainerService trainerService;
     private final InstitutionService institutionService;
+    private final UserService userService;
     private final BindingAuthority bindingAuthority;
+    private final InteractionQueryService interactionQueryService;
+    private final VideoPackageService videoPackageService;
+    private final OpsMaterialResolver opsMaterialResolver;
 
     // ==================== C 端发布者操作 ====================
 
     @Transactional
     @Override
     public VideoDetailVO create(Integer publisherId, String publisherType, SaveVideoRequest request) {
+        boolean draft = Boolean.TRUE.equals(request.getDraft());
+        if (!draft) {
+            validateForSubmit(request);
+        }
         Video video = new Video();
         applyRequest(video, request);
         video.setPublisherId(publisherId);
         video.setPublisherType(publisherType);
-        video.setStatus(VideoStatus.PENDING.getValue());
+        // draft=true 时存为草稿，可在「管理录播课-草稿」中继续编辑；否则创建即进入待审核
+        video.setStatus(draft ? VideoStatus.DRAFT.getValue() : VideoStatus.PENDING.getValue());
 
         if (BusinessRole.Code.TRAINER.equals(publisherType)) {
             bindTrainerId(video, publisherId);
@@ -73,9 +86,10 @@ public class VideoServiceImpl implements VideoService {
 
         video = videoRepository.save(video);
 
-        // SINGLE 类型且有视频地址时，自动创建一个章节
+        // SINGLE 类型且有视频地址时，自动创建一个章节（已有章节则跳过，避免重复）
         if (video.getVideoType() == VideoType.SINGLE
-                && request.getVideoUrl() != null && !request.getVideoUrl().isBlank()) {
+                && request.getVideoUrl() != null && !request.getVideoUrl().isBlank()
+                && videoChapterRepository.countByVideoId(video.getId()) == 0) {
             VideoChapter chapter = new VideoChapter();
             chapter.setVideoId(video.getId());
             chapter.setSeriesId(0);
@@ -94,7 +108,21 @@ public class VideoServiceImpl implements VideoService {
     public VideoDetailVO update(Integer videoId, Integer publisherId, SaveVideoRequest request) {
         Video video = getOwnedVideo(videoId, publisherId);
         assertEditable(video);
+
+        boolean draft = Boolean.TRUE.equals(request.getDraft());
+        if (draft && video.getStatus() != VideoStatus.DRAFT.getValue()
+                && video.getStatus() != VideoStatus.REJECTED.getValue()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的录播课可保存为草稿");
+        }
+        if (!draft) {
+            validateForSubmit(request);
+        }
         applyRequest(video, request);
+        // draft=true 时保持草稿；否则编辑保存后进入待审核
+        video.setStatus(draft ? VideoStatus.DRAFT.getValue() : VideoStatus.PENDING.getValue());
+        if (!draft) {
+            video.setRejectReason(null);
+        }
         video = videoRepository.save(video);
         return assembleDetail(video);
     }
@@ -106,6 +134,10 @@ public class VideoServiceImpl implements VideoService {
         int status = video.getStatus();
         if (status != VideoStatus.DRAFT.getValue() && status != VideoStatus.REJECTED.getValue()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的录播课可提交审核");
+        }
+        // 草稿可能缺少必填内容，提交审核前做完整性校验
+        if (video.getIntro() == null || video.getIntro().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请先完善课程介绍后再提交审核");
         }
         video.setStatus(VideoStatus.PENDING.getValue());
         videoRepository.save(video);
@@ -230,11 +262,21 @@ public class VideoServiceImpl implements VideoService {
         return assembleDetail(video);
     }
 
+    @Transactional
+    @Override
+    public void incrementViewCount(Integer videoId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+        video.setViewCount((video.getViewCount() != null ? video.getViewCount() : 0) + 1);
+        videoRepository.save(video);
+    }
+
     @Override
     public PageResponse<VideoListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                                      String keyword, String sortBy,
                                                      Integer institutionId,
-                                                     int page, int size) {
+                                                     Integer isFeatured,
+                                                     int page, int size, Integer viewerUserId) {
         // 机构过滤：先反查机构 user_id，机构不存在直接返回空页
         final Integer institutionUserId;
         if (institutionId != null) {
@@ -278,6 +320,9 @@ public class VideoServiceImpl implements VideoService {
                 predicates.add(cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION));
                 predicates.add(cb.equal(root.get("publisherId"), institutionUserId));
             }
+            if (isFeatured != null && isFeatured == 1) {
+                predicates.add(cb.equal(root.get("isFeatured"), 1));
+            }
             return predicates.isEmpty()
                     ? cb.conjunction()
                     : cb.and(predicates.toArray(Predicate[]::new));
@@ -294,7 +339,22 @@ public class VideoServiceImpl implements VideoService {
         List<VideoListItemVO> items = videoPage.getContent().stream()
                 .map(this::toListItemVO)
                 .toList();
+        enrichPublisherNames(items);
+        enrichUnlockedStatus(items, viewerUserId);
         return PageResponse.of(items, videoPage.getTotalElements(), page, size);
+    }
+
+    @Override
+    public Map<Integer, Long> countPublicByCategoryL1() {
+        Map<Integer, Long> map = new HashMap<>();
+        for (Object[] row : videoRepository.countPublishedByCategoryL1()) {
+            if (row[0] == null) {
+                continue;
+            }
+            long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            map.put(((Number) row[0]).intValue(), count);
+        }
+        return map;
     }
 
     @Override
@@ -362,16 +422,102 @@ public class VideoServiceImpl implements VideoService {
         return PageResponse.of(items, videoPage.getTotalElements(), page, size);
     }
 
-    /** 根据机构 ID 反查 user_id；机构不存在返回 null。 */
+    /** 根据机构路径 ID（legacy roleid 或 institution id）反查 user_id；机构不存在返回 null。 */
     private Integer resolveInstitutionUserId(Integer institutionId) {
         if (institutionId == null) {
             return null;
         }
-        List<Institution> insts = institutionService.findByIds(List.of(institutionId));
-        return insts.isEmpty() ? null : insts.get(0).getUserId();
+        try {
+            Institution institution = institutionService.resolvePublicByPathId(institutionId);
+            return institution.getUserId();
+        } catch (BusinessException ex) {
+            return null;
+        }
     }
 
     // ==================== 后台管理 ====================
+
+    @Transactional
+    @Override
+    public VideoDetailVO adminCreate(AdminSaveVideoRequest request) {
+        validateForSubmit(request);
+
+        String publisherType = request.getPublisherSubject();
+        if (!BusinessRole.Code.TRAINER.equals(publisherType)
+                && !BusinessRole.Code.INSTITUTION.equals(publisherType)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "发布主体必须为 TRAINER 或 INSTITUTION");
+        }
+
+        Integer publisherUserId = request.getPublisherUserId();
+        if (publisherUserId == null || publisherUserId <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "发布者用户 ID 不能为空");
+        }
+        if (!userService.existsById(publisherUserId)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "发布者用户不存在");
+        }
+
+        Video video = new Video();
+        applyRequest(video, request);
+        video.setPublisherId(publisherUserId);
+        video.setPublisherType(publisherType);
+
+        if (request.getTrainerId() != null && request.getTrainerId() > 0) {
+            video.setTrainerId(request.getTrainerId());
+        } else if (BusinessRole.Code.TRAINER.equals(publisherType)) {
+            bindTrainerId(video, publisherUserId);
+        }
+
+        if (request.getCompanyPrice() != null) {
+            video.setCompanyPrice(request.getCompanyPrice());
+        }
+        if (request.getMaxPurchaseQty() != null) {
+            video.setMaxPurchaseQty(request.getMaxPurchaseQty());
+        }
+
+        boolean publishNow = "PUBLISHED".equalsIgnoreCase(request.getPublishMode());
+        video.setStatus(publishNow ? VideoStatus.PUBLISHED.getValue() : VideoStatus.PENDING.getValue());
+        if (publishNow) {
+            video.setPublishedAt(LocalDateTime.now());
+        }
+
+        video = videoRepository.save(video);
+
+        if (request.getChapters() != null && !request.getChapters().isEmpty()) {
+            for (int i = 0; i < request.getChapters().size(); i++) {
+                SaveVideoChapterRequest chapterReq = request.getChapters().get(i);
+                VideoChapter chapter = new VideoChapter();
+                chapter.setVideoId(video.getId());
+                applyChapterRequest(chapter, chapterReq);
+                if (chapter.getSortOrder() == null || chapter.getSortOrder() == 0) {
+                    chapter.setSortOrder(i + 1);
+                }
+                videoChapterRepository.save(chapter);
+            }
+            refreshVideoStats(video.getId());
+            video = videoRepository.findById(video.getId()).orElse(video);
+        } else if (request.getDurationMinutes() != null && request.getDurationMinutes() > 0) {
+            video.setDuration(request.getDurationMinutes() * 60);
+            videoRepository.save(video);
+        }
+
+        if (video.getVideoType() == VideoType.SINGLE
+                && request.getVideoUrl() != null && !request.getVideoUrl().isBlank()
+                && (request.getChapters() == null || request.getChapters().isEmpty())) {
+            VideoChapter chapter = new VideoChapter();
+            chapter.setVideoId(video.getId());
+            chapter.setSeriesId(0);
+            chapter.setTitle(video.getTitle() + " - 章节1");
+            chapter.setVideoUrl(request.getVideoUrl());
+            chapter.setSortOrder(1);
+            if (request.getDurationMinutes() != null && request.getDurationMinutes() > 0) {
+                chapter.setDuration(request.getDurationMinutes() * 60);
+            }
+            videoChapterRepository.save(chapter);
+            refreshVideoStats(video.getId());
+        }
+
+        return assembleDetail(videoRepository.findById(video.getId()).orElse(video));
+    }
 
     @Override
     public PageResponse<VideoListItemVO> listForAdmin(Integer status, String keyword, int page, int size) {
@@ -390,7 +536,9 @@ public class VideoServiceImpl implements VideoService {
             return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(Predicate[]::new));
         };
 
-        PageRequest pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "id"));
+        Sort sort = Sort.by(Sort.Direction.DESC, "teacherName")
+                .and(Sort.by(Sort.Direction.DESC, "id"));
+        PageRequest pageable = PageRequest.of(page - 1, size, sort);
         Page<Video> videoPage = videoRepository.findAll(spec, pageable);
 
         if (videoPage.isEmpty()) {
@@ -400,7 +548,28 @@ public class VideoServiceImpl implements VideoService {
         List<VideoListItemVO> items = videoPage.getContent().stream()
                 .map(this::toListItemVO)
                 .toList();
+        enrichPublisherNames(items);
         return PageResponse.of(items, videoPage.getTotalElements(), page, size);
+    }
+
+    @Override
+    public List<VideoListItemVO> listByPublisherForAdmin(Integer publisherUserId, int limit) {
+        if (publisherUserId == null || publisherUserId <= 0 || limit <= 0) {
+            return List.of();
+        }
+        int capped = Math.min(limit, 50);
+        Sort sort = Sort.by(Sort.Direction.DESC, "id");
+        Specification<Video> spec = (root, cq, cb) ->
+                cb.equal(root.get("publisherId"), publisherUserId);
+        Page<Video> page = videoRepository.findAll(spec, PageRequest.of(0, capped, sort));
+        if (page.isEmpty()) {
+            return List.of();
+        }
+        List<VideoListItemVO> items = page.getContent().stream()
+                .map(this::toListItemVO)
+                .toList();
+        enrichPublisherNames(items);
+        return items;
     }
 
     @Override
@@ -459,6 +628,77 @@ public class VideoServiceImpl implements VideoService {
         }
         video.setStatus(VideoStatus.PUBLISHED.getValue());
         video.setPublishedAt(LocalDateTime.now());
+        videoRepository.save(video);
+    }
+
+    @Override
+    public java.util.Map<Integer, Long> countByPublisherIds(java.util.Collection<Integer> publisherIds) {
+        if (publisherIds == null || publisherIds.isEmpty()) {
+            return java.util.Map.of();
+        }
+        java.util.Map<Integer, Long> map = new java.util.HashMap<>();
+        for (Object[] row : videoRepository.countGroupByPublisherIds(publisherIds)) {
+            map.put((Integer) row[0], (Long) row[1]);
+        }
+        return map;
+    }
+
+    @Transactional
+    @Override
+    public void feature(Integer videoId, String type) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+        if ("pin".equals(type)) {
+            // 列表置顶：取当前最大 sortOrder + 1，首次置顶为 99999
+            Integer maxSort = videoRepository.findMaxSortOrder().orElse(0);
+            video.setSortOrder(Math.max(maxSort + 1, 99999));
+            video.setIsFeatured(1);
+            video.setStickyPriority(2);
+        } else {
+            // 列表推荐
+            video.setIsFeatured(1);
+            video.setStickyPriority(1);
+        }
+        videoRepository.save(video);
+    }
+
+    @Transactional
+    @Override
+    public void unfeature(Integer videoId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+        video.setIsFeatured(0);
+        video.setSortOrder(0);
+        video.setStickyPriority(0);
+        videoRepository.save(video);
+    }
+
+    @Transactional
+    @Override
+    public void updateStickyPriority(Integer videoId, Integer stickyPriority) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "录播课不存在"));
+        if (stickyPriority == null || stickyPriority < 0 || stickyPriority > 2) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "置顶优先级必须在 0~2 之间");
+        }
+        if (video.getStatus() == null || VideoStatus.PUBLISHED.getValue() != video.getStatus()) {
+            throw new BusinessException(ErrorCode.COURSE_STATUS_INVALID, "仅已上架的录播课可设置置顶优先级");
+        }
+        video.setStickyPriority(stickyPriority);
+        // 同步更新 sortOrder 和 isFeatured，保持旧接口兼容
+        if (stickyPriority == 2) {
+            // 列表置顶
+            Integer maxSort = videoRepository.findMaxSortOrder().orElse(0);
+            video.setSortOrder(Math.max(maxSort + 1, 99999));
+            video.setIsFeatured(1);
+        } else if (stickyPriority == 1) {
+            // 列表推荐：不修改 sortOrder，保留自然排序
+            video.setIsFeatured(1);
+        } else {
+            // 不限：清除置顶和推荐标记
+            video.setSortOrder(0);
+            video.setIsFeatured(0);
+        }
         videoRepository.save(video);
     }
 
@@ -571,6 +811,10 @@ public class VideoServiceImpl implements VideoService {
         List<VideoChapterVO> result = new ArrayList<>();
         for (int i = 0; i < requests.size(); i++) {
             SaveVideoChapterRequest req = requests.get(i);
+            String videoUrl = req.getVideoUrl() != null ? req.getVideoUrl().trim() : "";
+            if (!videoUrl.isEmpty() && videoChapterRepository.existsByVideoIdAndVideoUrl(videoId, videoUrl)) {
+                continue;
+            }
             VideoChapter chapter = new VideoChapter();
             chapter.setVideoId(videoId);
             applyChapterRequest(chapter, req);
@@ -692,10 +936,22 @@ public class VideoServiceImpl implements VideoService {
         throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此录播课");
     }
 
+    /**
+     * 发布者编辑权限：除待审核外均可编辑；保存后由 update 统一回到待审核（草稿保存除外）。
+     */
     private void assertEditable(Video video) {
-        int status = video.getStatus();
-        if (status != VideoStatus.DRAFT.getValue() && status != VideoStatus.REJECTED.getValue()) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的录播课可编辑");
+        if (video.getStatus() == null) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "录播课状态异常，无法编辑");
+        }
+        if (video.getStatus() == VideoStatus.PENDING.getValue()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "待审核中的录播课不可编辑，请等待审核结果");
+        }
+    }
+
+    /** 提交审核时的内容完整性校验（草稿不做此校验，仅要求标题） */
+    private void validateForSubmit(SaveVideoRequest request) {
+        if (request.getIntro() == null || request.getIntro().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "课程介绍不能为空");
         }
     }
 
@@ -735,35 +991,115 @@ public class VideoServiceImpl implements VideoService {
             vo.setSubCategoryName(nameMap.get(video.getSubCategoryId()));
         }
 
-        // 讲师名称
+        // 讲师名称与头像（仅平台内专家可跳转主页）
         if (video.getTrainerId() != null && video.getTrainerId() > 0) {
             List<Trainer> trainers = trainerService.findByIds(Set.of(video.getTrainerId()));
             if (!trainers.isEmpty()) {
-                vo.setTrainerName(trainers.get(0).getName());
+                Trainer trainer = trainers.get(0);
+                vo.setTrainerName(trainer.getName());
+                vo.setTrainerAvatar(trainer.getAvatar());
+                vo.setTrainerId(trainer.getId());
+            } else {
+                vo.setTrainerId(0);
             }
         }
+
+        vo.setFavoriteCount(interactionQueryService.countFavorites("VIDEO", video.getId()));
+
+        vo.setHasSeriesPackage(videoPackageService.hasSeriesPackage(video.getId()));
+
+        vo.setCoverUrl(resolveVideoCoverUrl(video, vo.getCategoryName(), vo.getTrainerAvatar()));
 
         return vo;
     }
 
     private VideoListItemVO toListItemVO(Video video) {
         VideoListItemVO vo = videoMapper.toListItemVO(video);
+        String categoryName = null;
         if (video.getCategoryId() != null && video.getCategoryId() > 0) {
             Map<Integer, String> nameMap = categoryService.getNameMap(Set.of(video.getCategoryId()));
-            vo.setCategoryName(nameMap.get(video.getCategoryId()));
+            categoryName = nameMap.get(video.getCategoryId());
+            vo.setCategoryName(categoryName);
         }
+        vo.setCoverUrl(resolveVideoCoverUrl(video, categoryName, null));
         return vo;
+    }
+
+    private String resolveVideoCoverUrl(Video video, String categoryName, String trainerAvatar) {
+        if (video == null) {
+            return "";
+        }
+        int seed = video.getId() != null ? video.getId() : 0;
+        return opsMaterialResolver.resolveCourseCoverUrl(
+                video.getCoverUrl(), trainerAvatar, categoryName, "VIDEO", seed);
+    }
+
+    /** 批量填充发布者名称（从 sys_users 查 nickname → name → phone，兜底显示 UID） */
+    private void enrichPublisherNames(List<VideoListItemVO> items) {
+        if (items.isEmpty()) return;
+        List<Integer> userIds = items.stream()
+                .map(VideoListItemVO::getPublisherId)
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .toList();
+        if (userIds.isEmpty()) return;
+        Map<Integer, String> nameMap = userService.findAllByIds(userIds).stream()
+                .collect(Collectors.toMap(
+                        User::getId,
+                        u -> {
+                            if (u.getNickname() != null && !u.getNickname().isBlank()) return u.getNickname();
+                            if (u.getRealName() != null && !u.getRealName().isBlank()) return u.getRealName();
+                            if (u.getPhone() != null && !u.getPhone().isBlank()) return u.getPhone();
+                            return "UID:" + u.getId();
+                        }
+                ));
+        items.forEach(vo -> {
+            if (vo.getPublisherId() != null) {
+                vo.setPublisherName(nameMap.getOrDefault(vo.getPublisherId(), null));
+            }
+            // teacherName 兜底：对齐老网站逻辑，仅 TRAINER(groupid=9) 做 teacher → nickname → realname 兜底
+            // publisherName 为 "UID:xxx" 说明用户无昵称/姓名/手机号，不兜底（老网站此时显示"佚名"）
+            if ((vo.getTeacherName() == null || vo.getTeacherName().isBlank())
+                    && BusinessRole.Code.TRAINER.equals(vo.getPublisherType())) {
+                String fallback = vo.getPublisherName();
+                if (fallback != null && !fallback.isBlank() && !fallback.startsWith("UID:")) {
+                    vo.setTeacherName(fallback);
+                }
+            }
+        });
+    }
+
+    /** 批量标记当前用户已购买的录播课 */
+    private void enrichUnlockedStatus(List<VideoListItemVO> items, Integer viewerUserId) {
+        if (viewerUserId == null || items.isEmpty()) {
+            return;
+        }
+        List<Integer> videoIds = items.stream()
+                .map(VideoListItemVO::getId)
+                .filter(id -> id != null && id > 0)
+                .toList();
+        if (videoIds.isEmpty()) {
+            return;
+        }
+        var enrolledIds = videoEnrollmentRepository
+                .findByUserIdAndVideoIdIn(viewerUserId, videoIds)
+                .stream()
+                .filter(e -> e.getStatus() != null && e.getStatus() == 1)
+                .map(e -> e.getVideoId())
+                .collect(Collectors.toSet());
+        items.forEach(vo -> vo.setUnlocked(enrolledIds.contains(vo.getId())));
     }
 
     private Sort resolvePublicSort(String sortBy) {
         if (sortBy == null || sortBy.isBlank() || "default".equals(sortBy)) {
-            return Sort.by(Sort.Direction.DESC, "sortOrder")
+            return Sort.by(Sort.Direction.DESC, "stickyPriority")
+                    .and(Sort.by(Sort.Direction.DESC, "sortOrder"))
                     .and(Sort.by(Sort.Direction.DESC, "publishedAt"))
                     .and(Sort.by(Sort.Direction.DESC, "id"));
         }
         return switch (sortBy) {
             case "price" -> Sort.by(Sort.Direction.ASC, "price")
-                    .and(Sort.by(Sort.Direction.DESC, "id"));
+                    .and(Sort.by(Sort.Direction.ASC, "id"));
             case "score" -> Sort.by(Sort.Direction.DESC, "score")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             case "time" -> Sort.by(Sort.Direction.DESC, "publishedAt")
@@ -772,7 +1108,8 @@ public class VideoServiceImpl implements VideoService {
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             case "studentCount" -> Sort.by(Sort.Direction.DESC, "studentCount")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
-            default -> Sort.by(Sort.Direction.DESC, "sortOrder")
+            default -> Sort.by(Sort.Direction.DESC, "stickyPriority")
+                    .and(Sort.by(Sort.Direction.DESC, "sortOrder"))
                     .and(Sort.by(Sort.Direction.DESC, "publishedAt"))
                     .and(Sort.by(Sort.Direction.DESC, "id"));
         };

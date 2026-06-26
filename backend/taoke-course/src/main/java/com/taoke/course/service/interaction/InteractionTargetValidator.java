@@ -5,10 +5,14 @@ import com.taoke.common.exception.ErrorCode;
 import com.taoke.course.dto.interaction.FavoriteVO;
 import com.taoke.course.entity.Course;
 import com.taoke.course.enums.InteractionTargetType;
+import com.taoke.course.entity.video.Video;
 import com.taoke.course.repository.CourseRepository;
+import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.user.api.InstitutionService;
+import com.taoke.user.api.TrainerCaseService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.dto.trainer.TrainerResponse;
+import com.taoke.user.dto.trainercase.TrainerCaseResponse;
 import com.taoke.user.entity.Institution;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -27,8 +31,10 @@ import java.util.Optional;
 public class InteractionTargetValidator {
 
     private final CourseRepository courseRepository;
+    private final VideoRepository videoRepository;
     private final TrainerService trainerService;
     private final InstitutionService institutionService;
+    private final TrainerCaseService trainerCaseService;
 
     /**
      * 校验目标资源是否存在
@@ -37,6 +43,11 @@ public class InteractionTargetValidator {
         switch (targetType) {
             case COURSE -> {
                 if (!courseRepository.existsById(targetId)) {
+                    throw new BusinessException(ErrorCode.INTERACTION_TARGET_NOT_FOUND);
+                }
+            }
+            case VIDEO -> {
+                if (!videoRepository.existsById(targetId)) {
                     throw new BusinessException(ErrorCode.INTERACTION_TARGET_NOT_FOUND);
                 }
             }
@@ -54,7 +65,11 @@ public class InteractionTargetValidator {
                 }
             }
             case CASE -> {
-                // TODO: 待案例模块完善后补充校验逻辑
+                try {
+                    trainerCaseService.getApprovedCaseDetail(targetId);
+                } catch (Exception e) {
+                    throw new BusinessException(ErrorCode.INTERACTION_TARGET_NOT_FOUND);
+                }
             }
         }
     }
@@ -71,6 +86,20 @@ public class InteractionTargetValidator {
                     vo.setTitle(c.getTitle());
                     vo.setSubtitle(c.getType() != null ? c.getType().getLabel() : "");
                     vo.setCoverUrl(c.getCoverUrl());
+                    // 按课程类型区分公开课/内训课详情页
+                    vo.setLinkUrl(c.getType() != null && c.getType().isOpen()
+                            ? "/opencourses/" + targetId
+                            : "/innercourses/" + targetId);
+                }
+            }
+            case VIDEO -> {
+                Optional<Video> opt = videoRepository.findById(targetId);
+                if (opt.isPresent()) {
+                    Video v = opt.get();
+                    vo.setTitle(v.getTitle());
+                    vo.setSubtitle(v.getTeacherName() != null ? v.getTeacherName() : "录播课");
+                    vo.setCoverUrl(v.getCoverUrl());
+                    vo.setLinkUrl("/videos/" + targetId);
                 }
             }
             case TRAINER -> {
@@ -80,6 +109,8 @@ public class InteractionTargetValidator {
                         vo.setTitle(trainer.getName());
                         vo.setSubtitle(trainer.getTitle());
                         vo.setCoverUrl(trainer.getAvatar());
+                        // 专家详情页按 trainer 档案 ID 路由（收藏存的是 userId）
+                        vo.setLinkUrl("/trainers/" + trainer.getId());
                     }
                 } catch (Exception ignored) {
                 }
@@ -91,10 +122,20 @@ public class InteractionTargetValidator {
                     vo.setTitle(inst.getOrgName());
                     vo.setSubtitle(inst.getSpecialties());
                     vo.setCoverUrl(inst.getLogoUrl());
+                    vo.setLinkUrl("/institutions/" + targetId);
                 }
             }
             case CASE -> {
-                // TODO: 待案例模块完善后补充
+                try {
+                    TrainerCaseResponse c = trainerCaseService.getApprovedCaseDetail(targetId);
+                    if (c != null) {
+                        vo.setTitle(c.getCaseTitle());
+                        vo.setSubtitle(c.getTrainerName());
+                        vo.setCoverUrl(c.getCoverImage());
+                        vo.setLinkUrl("/cases/" + targetId);
+                    }
+                } catch (Exception ignored) {
+                }
             }
         }
     }

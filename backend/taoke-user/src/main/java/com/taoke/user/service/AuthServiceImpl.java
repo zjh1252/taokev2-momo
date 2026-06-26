@@ -7,6 +7,7 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.AuthService;
 import com.taoke.user.api.VerificationCodeService;
+import com.taoke.user.auth.LoginLockoutService;
 import com.taoke.user.dto.auth.*;
 import com.taoke.user.entity.User;
 import com.taoke.user.entity.UserRole;
@@ -54,6 +55,7 @@ public class AuthServiceImpl implements AuthService {
     private final EventPublisher eventPublisher;
     private final UcenterProperties ucenterProperties;
     private final UcenterClient ucenterClient;
+    private final LoginLockoutService loginLockoutService;
 
     @Value("${taoke.jwt.access-token-expire-ms:7200000}")
     private long accessTokenExpireMs;
@@ -63,6 +65,10 @@ public class AuthServiceImpl implements AuthService {
     public TokenResponse loginByPassword(LoginRequest request) {
         if (ucenterProperties.isEnabled()) {
             User local = userRepository.findByPhone(request.getPhone()).orElse(null);
+            // 本地管理账号（超管等）走本地 bcrypt，无需回填 UCenter，避免 uc_uid 脏写导致唯一键冲突
+            if (local != null && !isLocalManagedAccount(local)) {
+                backfillUcUidByPhone(local);
+            }
             // 平台/本地管理账号（有本地密码、未关联 UCenter，如超管）始终走本地校验，不经 UCenter
             if (isLocalManagedAccount(local)) {
                 return loginLocally(local, request.getPassword());
@@ -101,9 +107,8 @@ public class AuthServiceImpl implements AuthService {
                     // 老用户：懒补建并关联（provisionFromUcenter 内部会建角色并发事件，from_source=2）
                     user = provisionFromUcenter(found);
                 } else {
-                    // 新手机号：在 UCenter 注册（随机密码）并回填 uc_uid（from_source=1）
-                    user = registerSmsUserToUcenter(request.getPhone());
-                    isNewUser = true;
+                    user = registerOrProvisionSmsUser(request.getPhone());
+                    isNewUser = Integer.valueOf(1).equals(user.getUserSource());
                 }
             } else {
                 user = createLocalSmsUser(request.getPhone());
@@ -137,6 +142,29 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
+     * 验证码登录时本地无账号：优先 UCenter 注册；若手机号已被占用则反查并懒补建。
+     */
+    private User registerOrProvisionSmsUser(String phone) {
+        UcLoginResult found = ucenterClient.lookupByMobile(phone);
+        if (found.success()) {
+            return provisionFromUcenter(found);
+        }
+        try {
+            return registerSmsUserToUcenter(phone);
+        } catch (BusinessException e) {
+            if (e.getErrorCode() != ErrorCode.ACCOUNT_EXISTS) {
+                throw e;
+            }
+            UcLoginResult retry = ucenterClient.lookupByMobile(phone);
+            if (!retry.success()) {
+                log.warn("UCenter 手机号已占用但反查失败：phone={}", phone);
+                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "登录失败，请稍后重试");
+            }
+            return provisionFromUcenter(retry);
+        }
+    }
+
+    /**
      * 新手机号通过验证码注册到 UCenter（随机密码），回填 uc_uid，from_source=1。
      * 不在此处发用户注册事件，由调用方按 isNewUser 统一发布。
      */
@@ -159,18 +187,38 @@ public class AuthServiceImpl implements AuthService {
 
     /** 老的本地-only 用户登录时，尝试按手机号反查 UCenter 回填 uc_uid / username。 */
     private void backfillUcUidByPhone(User user) {
+        if (user.getUcUid() != null) {
+            return;
+        }
+        Integer prevUcUid = user.getUcUid();
+        String prevUsername = user.getUsername();
         try {
             UcLoginResult found = ucenterClient.lookupByMobile(user.getPhone());
-            if (found.success()) {
-                user.setUcUid(found.ucUid());
-                if ((user.getUsername() == null || user.getUsername().isBlank())
-                        && found.username() != null && !found.username().isBlank()) {
+            if (!found.success()) {
+                return;
+            }
+            User ucOwner = userRepository.findByUcUid(found.ucUid()).orElse(null);
+            if (ucOwner != null && !ucOwner.getId().equals(user.getId())) {
+                log.warn("UCenter uc_uid={} 已关联用户 id={}，跳过回填：phone={} userId={}",
+                        found.ucUid(), ucOwner.getId(), user.getPhone(), user.getId());
+                return;
+            }
+            user.setUcUid(found.ucUid());
+            if ((user.getUsername() == null || user.getUsername().isBlank())
+                    && found.username() != null && !found.username().isBlank()) {
+                User nameOwner = userRepository.findByUsername(found.username()).orElse(null);
+                if (nameOwner != null && !nameOwner.getId().equals(user.getId())) {
+                    log.warn("UCenter username={} 已关联用户 id={}，跳过回填用户名：phone={} userId={}",
+                            found.username(), nameOwner.getId(), user.getPhone(), user.getId());
+                } else {
                     user.setUsername(found.username());
                 }
-                userRepository.save(user);
             }
+            userRepository.save(user);
         } catch (Exception e) {
             log.warn("按手机号反查 UCenter 回填失败：phone={}", user.getPhone(), e);
+            user.setUcUid(prevUcUid);
+            user.setUsername(prevUsername);
         }
     }
 
@@ -182,6 +230,23 @@ public class AuthServiceImpl implements AuthService {
         }
 
         verificationCodeService.verifyCode(request.getPhone(), request.getCode(), "REGISTER");
+
+        // 本地已删号但 UCenter 仍保留手机号：懒补建本地账号并重置密码，允许重新注册
+        if (ucenterProperties.isEnabled()) {
+            UcLoginResult found = ucenterClient.lookupByMobile(request.getPhone());
+            if (found.success()) {
+                User user = provisionFromUcenter(found);
+                if (user.getUsername() != null && !user.getUsername().isBlank()) {
+                    int rc = ucenterClient.editPassword(user.getUsername(), "", request.getPassword(), true);
+                    if (rc <= 0) {
+                        log.warn("UCenter 重置密码失败：username={} rc={}", user.getUsername(), rc);
+                    }
+                }
+                TokenResponse tokenResponse = generateTokens(user);
+                tokenResponse.setNewUser(true);
+                return tokenResponse;
+            }
+        }
 
         User user = new User();
         user.setPhone(request.getPhone());
@@ -234,6 +299,12 @@ public class AuthServiceImpl implements AuthService {
     public TokenResponse loginByUsername(UsernameLoginRequest request) {
         if (ucenterProperties.isEnabled()) {
             User local = userRepository.findByUsername(request.getUsername()).orElse(null);
+            if (local == null && request.getUsername().matches("^1\\d{10}$")) {
+                local = userRepository.findByPhone(request.getUsername()).orElse(null);
+            }
+            if (local != null && !isLocalManagedAccount(local)) {
+                backfillUcUidByPhone(local);
+            }
             // 平台/本地管理账号始终走本地校验
             if (isLocalManagedAccount(local)) {
                 return loginLocally(local, request.getPassword());
@@ -297,37 +368,123 @@ public class AuthServiceImpl implements AuthService {
     public void resetPassword(ResetPasswordRequest request) {
         verificationCodeService.verifyCode(request.getPhone(), request.getCode(), "RESET_PASSWORD");
 
-        User user = userRepository.findByPhone(request.getPhone())
-                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
+        User user = resolveUserByPhone(request.getPhone());
+        if (user == null) {
+            if (ucenterProperties.isEnabled()) {
+                UcLoginResult found = ucenterClient.lookupByMobile(request.getPhone());
+                if (found.success() && found.username() != null && !found.username().isBlank()) {
+                    resetUcenterPassword(found.username(), request.getNewPassword());
+                    clearLoginLockoutByAccount(request.getPhone(), found.username());
+                    return;
+                }
+            }
+            throw new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND);
+        }
 
         checkAccountStatus(user);
 
-        // UCenter 关联用户：改密同步到 UCenter（忽略旧密码），本地不存储密码
-        if (ucenterProperties.isEnabled() && user.getUcUid() != null) {
-            if (user.getUsername() == null || user.getUsername().isBlank()) {
-                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "账号信息不完整，无法重置密码");
+        // UCenter 用户：改密同步到 UCenter（忽略旧密码），本地不存储密码
+        if (ucenterProperties.isEnabled()) {
+            String username = resolveUcenterUsername(user);
+            if (username != null) {
+                resetUcenterPassword(username, request.getNewPassword());
+                clearLoginLockout(user);
+                return;
             }
-            int rc = ucenterClient.editPassword(user.getUsername(), "", request.getNewPassword(), true);
-            if (rc < 0) {
-                log.warn("UCenter 重置密码失败：username={} rc={}", user.getUsername(), rc);
-                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE);
-            }
-            return;
         }
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+        clearLoginLockout(user);
+    }
+
+    private void resetUcenterPassword(String username, String newPassword) {
+        int rc = ucenterClient.editPassword(username, "", newPassword, true);
+        if (rc < 0) {
+            log.warn("UCenter 重置密码失败：username={} rc={}", username, rc);
+            throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE);
+        }
+    }
+
+    private void clearLoginLockoutByAccount(String phone, String username) {
+        if (phone != null && !phone.isBlank()) {
+            loginLockoutService.clear(phone);
+        }
+        if (username != null && !username.isBlank()) {
+            loginLockoutService.clear(username);
+        }
+    }
+
+    private void clearLoginLockout(User user) {
+        loginLockoutService.clear(user.getPhone());
+        if (user.getUsername() != null && !user.getUsername().isBlank()) {
+            loginLockoutService.clear(user.getUsername());
+        }
     }
 
     /**
-     * 是否为本地管理账号：有本地密码且未关联 UCenter（如超管/平台账号、UCenter 接入前的本地账号）。
-     * 这类账号即使开启 UCenter 也走本地校验，避免被丢给 UCenter 而无法登录。
+     * 按手机号解析本地用户；UCenter 开启时若本地不存在则尝试反查并懒补建。
+     */
+    private User resolveUserByPhone(String phone) {
+        User user = userRepository.findByPhone(phone).orElse(null);
+        if (user != null) {
+            backfillUcUidByPhone(user);
+            return user;
+        }
+        if (!ucenterProperties.isEnabled()) {
+            return null;
+        }
+        UcLoginResult found = ucenterClient.lookupByMobile(phone);
+        if (!found.success()) {
+            return null;
+        }
+        return provisionFromUcenter(found);
+    }
+
+    /**
+     * 解析 UCenter 用户名；本地缺失时按手机号反查并回填。
+     */
+    private String resolveUcenterUsername(User user) {
+        if (user.getUsername() != null && !user.getUsername().isBlank()) {
+            return user.getUsername();
+        }
+        if (!ucenterProperties.isEnabled() || user.getPhone() == null || user.getPhone().isBlank()) {
+            return null;
+        }
+        UcLoginResult found = ucenterClient.lookupByMobile(user.getPhone());
+        if (!found.success() || found.username() == null || found.username().isBlank()) {
+            return null;
+        }
+        user.setUcUid(found.ucUid());
+        user.setUsername(found.username());
+        userRepository.save(user);
+        return found.username();
+    }
+
+    /**
+     * 是否为本地管理账号：有本地密码且（未关联 UCenter，或为平台运营角色）。
+     * 超管等运营账号即使已回填 uc_uid，后台仍走本地 bcrypt，避免 UCenter 密码不一致无法登录。
      */
     private boolean isLocalManagedAccount(User user) {
-        return user != null
-                && user.getUcUid() == null
-                && user.getPasswordHash() != null
-                && !user.getPasswordHash().isEmpty();
+        if (user == null || user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
+            return false;
+        }
+        if (user.getUcUid() == null) {
+            return true;
+        }
+        return hasPlatformOperatorRole(user.getId());
+    }
+
+    private boolean hasPlatformOperatorRole(Integer userId) {
+        return userRoleRepository.findByUserIdAndStatus(userId, 1).stream()
+                .map(UserRole::getRole)
+                .anyMatch(AuthServiceImpl::isPlatformOperatorRole);
+    }
+
+    private static boolean isPlatformOperatorRole(String role) {
+        return BusinessRole.Code.SUPER_ADMIN.equals(role)
+                || BusinessRole.Code.PLATFORM_AUDITOR.equals(role)
+                || BusinessRole.Code.PLATFORM_CS.equals(role);
     }
 
     /** 本地 bcrypt 密码校验并签发令牌。 */
@@ -387,7 +544,13 @@ public class AuthServiceImpl implements AuthService {
             existing = userRepository.findByEmail(email).orElse(null);
         }
         if (existing != null) {
-            existing.setUcUid(result.ucUid());
+            User ucOwner = userRepository.findByUcUid(result.ucUid()).orElse(null);
+            if (ucOwner != null && !ucOwner.getId().equals(existing.getId())) {
+                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "账号关联冲突，请联系客服处理");
+            }
+            if (existing.getUcUid() == null) {
+                existing.setUcUid(result.ucUid());
+            }
             return userRepository.save(existing);
         }
 

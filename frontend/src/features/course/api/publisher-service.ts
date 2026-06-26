@@ -29,6 +29,8 @@ export interface MyCourseListParams {
   size?: number;
   /** 代管模式：指定专家 user_id 时，列出该专家旗下课程 */
   trainerUserId?: number;
+  /** 经纪人代经纪公司：指定经纪公司 user_id 时，列出该经纪公司发布的课程 */
+  enterpriseAgentUserId?: number;
 }
 
 /** 我的课程列表 */
@@ -41,6 +43,9 @@ export async function getMyCourses(
   if (params.page) query.set('page', String(params.page));
   if (params.size) query.set('size', String(params.size));
   if (params.trainerUserId) query.set('trainerUserId', String(params.trainerUserId));
+  if (params.enterpriseAgentUserId) {
+    query.set('enterpriseAgentUserId', String(params.enterpriseAgentUserId));
+  }
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<CourseListItem>>>(
     `/courses/me${qs ? `?${qs}` : ''}`,
@@ -57,13 +62,22 @@ export async function getMyCourseDetail(id: number): Promise<CourseDetail> {
   return res.data;
 }
 
-/** 创建课程（草稿）；trainerUserId 提供时以专家身份发布 */
+/**
+ * 创建课程。
+ *
+ * <p>trainerUserId 提供时以专家身份代发；enterpriseAgentUserId 提供时经纪人代经纪公司发布；
+ * data.draft=true 时存为草稿，否则创建即提交审核。</p>
+ */
 export async function createCourse(
   data: SaveCourseRequest,
   trainerUserId?: number,
+  enterpriseAgentUserId?: number,
 ): Promise<CourseDetail> {
-  const url = trainerUserId ? `/courses?trainerUserId=${trainerUserId}` : '/courses';
-  const res = await apiPost<ApiResponse<CourseDetail>>(url, data, {
+  const query = new URLSearchParams();
+  if (trainerUserId) query.set('trainerUserId', String(trainerUserId));
+  else if (enterpriseAgentUserId) query.set('enterpriseAgentUserId', String(enterpriseAgentUserId));
+  const qs = query.toString();
+  const res = await apiPost<ApiResponse<CourseDetail>>(`/courses${qs ? `?${qs}` : ''}`, data, {
     headers: authHeaders(),
   });
   return res.data;

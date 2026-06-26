@@ -1,5 +1,6 @@
 package com.taoke.common.storage.provider;
 
+import com.taoke.common.storage.StorageDirectoryResolver;
 import com.taoke.common.storage.StorageException;
 import com.taoke.common.storage.StorageProperties;
 import com.taoke.common.storage.StorageService;
@@ -27,7 +28,7 @@ public class LocalStorageService implements StorageService {
     private final String publicDomain;
 
     public LocalStorageService(StorageProperties properties) {
-        this.baseDir = Path.of(properties.getBaseDir()).toAbsolutePath().normalize();
+        this.baseDir = StorageDirectoryResolver.resolve(properties.getBaseDir());
         this.publicDomain = trimTrailingSlash(properties.getPublicDomain());
         try {
             Files.createDirectories(this.baseDir);

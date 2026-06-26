@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { AdminTrainer } from '../../api/types';
@@ -7,6 +8,9 @@ import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import Image from 'next/image';
 import { RecommendSwitch } from './recommend-switch';
+import { FrontendLink } from '@/components/admin/frontend-link';
+import { getTrainerPublicUrl } from '@/lib/frontend-links';
+import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 
 function statusVariant(status: number) {
   switch (status) {
@@ -39,7 +43,7 @@ export const columns: ColumnDef<AdminTrainer>[] = [
       <div className='flex items-center gap-3'>
         {row.original.avatar ? (
           <Image
-            src={row.original.avatar}
+            src={resolveAssetUrl(row.original.avatar)}
             alt={row.original.name || ''}
             width={32}
             height={32}
@@ -51,7 +55,18 @@ export const columns: ColumnDef<AdminTrainer>[] = [
           </div>
         )}
         <div className='flex flex-col'>
-          <span className='font-medium'>{row.original.name || '-'}</span>
+          <Link
+            href={`/dashboard/trainers/${row.original.id}?from=list`}
+            className='font-medium text-primary hover:underline'
+          >
+            {row.original.name || '-'}
+          </Link>
+          <FrontendLink
+            href={getTrainerPublicUrl(row.original.id)}
+            className='text-xs text-muted-foreground'
+          >
+            前台
+          </FrontendLink>
           {row.original.title && (
             <span className='text-muted-foreground text-xs'>
               {row.original.title}
@@ -66,6 +81,8 @@ export const columns: ColumnDef<AdminTrainer>[] = [
       variant: 'text' as const,
       icon: Icons.text
     },
+    size: 320,
+    minSize: 260,
     enableColumnFilter: true
   },
   {

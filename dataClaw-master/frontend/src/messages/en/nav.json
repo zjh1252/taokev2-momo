@@ -1,0 +1,34 @@
+{
+  "home": "Home",
+  "trainers": "Trainers",
+  "publicCourses": "Open Courses",
+  "internalCourses": "In-House Training",
+  "onlineCourses": "Online Courses",
+  "institutions": "Institutions",
+  "associations": "Training Associations",
+  "courses": "Courses",
+  "instructors": "Instructors",
+  "articles": "Articles",
+  "cases": "Cases",
+  "login": "Login",
+  "register": "Register",
+  "loginRegister": "Login / Register",
+  "userCenter": "User Center",
+  "myCourses": "My Courses",
+  "dashboard": "Dashboard",
+  "myPage": "My Page",
+  "logout": "Logout",
+  "search": {
+    "placeholder": "Search...",
+    "category": "Trainers",
+    "categoryTrainer": "Trainers",
+    "categoryOpenCourse": "Open Courses",
+    "categoryInnerCourse": "In-House Training"
+  },
+  "product": {
+    "label": "TrainPro",
+    "enterprise": "Enterprise Training",
+    "learning": "Learning Management",
+    "reports": "Analytics"
+  }
+}

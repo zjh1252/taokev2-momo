@@ -30,7 +30,10 @@ build/
 !**/src/test/**/build/
 
 ### VS Code ###
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/jdt.prefs
 tmp
 /docs/mine
 .cursor/debug*
@@ -44,3 +47,22 @@ AGENTS.md
 
 ### 数据迁移工具（本地脚本与产出，不入库） ###
 data-trans/
+
+### 本地工具脚本（不入库） ###
+scripts/vision.py
+
+### Python 爬虫服务 ###
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+crawler-service/.venv/
+crawler-service/venv/
+
+### 本地工具脚本（不入库） ###
+scripts/vision.py
+
+### 爬虫服务 ###
+data-crawler/
+
+### 文档相关 ###
+testdoc/

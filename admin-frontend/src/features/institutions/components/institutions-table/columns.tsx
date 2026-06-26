@@ -4,6 +4,8 @@ import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-h
 import type { AdminInstitution } from '../../api/types';
 import { INSTITUTION_STATUS_MAP, INSTITUTION_STATUS_OPTIONS } from '../../api/types';
 import { Column, ColumnDef } from '@tanstack/react-table';
+import { FrontendLink } from '@/components/admin/frontend-link';
+import { getInstitutionPublicUrl } from '@/lib/frontend-links';
 import { Icons } from '@/components/icons';
 import { CellAction } from './cell-action';
 
@@ -34,7 +36,9 @@ export const columns: ColumnDef<AdminInstitution>[] = [
     ),
     cell: ({ row }) => (
       <div className='flex flex-col'>
-        <span className='font-medium'>{row.original.orgName || '-'}</span>
+        <FrontendLink href={getInstitutionPublicUrl(row.original.id)} className='font-medium'>
+          {row.original.orgName || '-'}
+        </FrontendLink>
         {row.original.contactPhone && (
           <span className='text-muted-foreground text-xs'>
             {row.original.contactPhone}

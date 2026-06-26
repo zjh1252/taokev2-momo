@@ -1,0 +1,53 @@
+import { getTranslations } from 'next-intl/server';
+import { notFound } from 'next/navigation';
+import { getCourseDetail } from '@/features/course/api/service';
+import { CourseHero } from '@/features/course/components/detail/CourseHero';
+import { CourseSidebar } from '@/features/course/components/detail/CourseSidebar';
+import { CourseDetailTabs } from '@/features/course/components/detail/CourseDetailTabs';
+
+interface Props {
+  params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: Props) {
+  const { id } = await params;
+  try {
+    const course = await getCourseDetail(Number(id));
+    return {
+      title: `${course.title} - 公开课详情 - 淘课网`,
+      description: course.audience || course.title,
+    };
+  } catch {
+    return { title: '公开课详情 - 淘课网' };
+  }
+}
+
+/**
+ * 公开课详情页 — SSR，主数据从 GET /courses/{id} 获取
+ */
+export default async function OpenCourseDetailPage({ params }: Props) {
+  const { id } = await params;
+  const courseId = Number(id);
+
+  if (isNaN(courseId)) {
+    notFound();
+  }
+
+  let course;
+  try {
+    course = await getCourseDetail(courseId);
+  } catch {
+    notFound();
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-6">
+      <CourseHero course={course} />
+
+      <section className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+        <CourseDetailTabs course={course} />
+        <CourseSidebar course={course} />
+      </section>
+    </div>
+  );
+}

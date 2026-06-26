@@ -125,3 +125,31 @@
 .video-js .vjs-play-progress {
   background-color: #fff;
 }
+
+/* ── 播放页深色皮肤：进度条强调色 ── */
+.video-play-skin.video-js .vjs-play-progress,
+.video-play-skin .video-js .vjs-play-progress {
+  background-color: var(--color-primary, #e11d48);
+}
+
+.video-play-skin.video-js .vjs-volume-level,
+.video-play-skin .video-js .vjs-volume-level {
+  background-color: var(--color-primary, #e11d48);
+}
+
+.video-play-skin.video-js .vjs-control-bar,
+.video-play-skin .video-js .vjs-control-bar {
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  height: 3.2em;
+}
+
+.video-play-skin.video-js .vjs-big-play-button,
+.video-play-skin .video-js .vjs-big-play-button {
+  background-color: rgba(225, 29, 72, 0.85);
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+.video-play-skin.video-js:hover .vjs-big-play-button,
+.video-play-skin .video-js:hover .vjs-big-play-button {
+  background-color: rgba(225, 29, 72, 0.95);
+}

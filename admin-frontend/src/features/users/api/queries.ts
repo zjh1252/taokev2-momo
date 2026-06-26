@@ -1,8 +1,8 @@
 import { queryOptions } from '@tanstack/react-query';
-import { getUsers } from './service';
-import type { User, UserFilters } from './types';
+import { getUserDetail, getUsers } from './service';
+import type { User, UserDetail, UserFilters } from './types';
 
-export type { User };
+export type { User, UserDetail };
 
 export const userKeys = {
   all: ['users'] as const,
@@ -14,4 +14,10 @@ export const usersQueryOptions = (filters: UserFilters) =>
   queryOptions({
     queryKey: userKeys.list(filters),
     queryFn: () => getUsers(filters)
+  });
+
+export const userDetailQueryOptions = (id: number) =>
+  queryOptions({
+    queryKey: userKeys.detail(id),
+    queryFn: () => getUserDetail(id)
   });

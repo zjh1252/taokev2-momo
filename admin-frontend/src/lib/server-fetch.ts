@@ -51,10 +51,31 @@ export async function serverFetchWithStatus<T>(
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const res = await fetch(`${BACKEND_URL}${endpoint}`, {
-    ...options,
-    headers
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000); // 30 秒超时
+
+  let res: Response;
+  try {
+    res = await fetch(`${BACKEND_URL}${endpoint}`, {
+      ...options,
+      headers,
+      signal: controller.signal
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return {
+        status: 504,
+        body: {
+          code: -1,
+          message: `后端请求超时（>${BACKEND_URL}），请确认 Java 服务已启动并完成编译`,
+          data: undefined as unknown as T
+        }
+      };
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   // 业务异常也带 JSON body，统一用 .json()；解析失败时降级为通用错误体
   let body: ApiResponseBody<T>;

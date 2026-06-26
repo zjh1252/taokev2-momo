@@ -15,6 +15,9 @@ public class InstitutionListItemResponse {
 
     private Integer id;
 
+    /** 老站 tk_member.roleid，URL 段 /company/{legacyRoleId}.htm */
+    private Integer legacyRoleId;
+
     private String orgName;
 
     /** 擅长领域，逗号分隔 */

@@ -12,11 +12,16 @@ import com.taoke.user.dto.institution.InstitutionRequest;
 import com.taoke.user.dto.institution.InstitutionResponse;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.api.InstitutionService;
+import com.taoke.user.api.TrainerCaseService;
+import com.taoke.user.api.TrainerHighlightService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+import java.util.List;
 
 /**
  * 机构接口 — 公开列表/详情 + INSTITUTION 角色扩展信息自服务。
@@ -30,6 +35,8 @@ import org.springframework.web.bind.annotation.*;
 public class InstitutionController {
 
     private final InstitutionService institutionService;
+    private final TrainerHighlightService trainerHighlightService;
+    private final TrainerCaseService trainerCaseService;
 
     // ==================== 公开接口 ====================
 
@@ -43,7 +50,7 @@ public class InstitutionController {
     }
 
     @Public
-    @Operation(summary = "机构公开列表（分页 + 多筛选）")
+    @Operation(summary = "机构公开列表（分页 + 搜索）")
     @GetMapping("/institutions")
     public ApiResponse<PageResponse<InstitutionListItemResponse>> list(
             @RequestParam(defaultValue = "1") int page,
@@ -51,51 +58,67 @@ public class InstitutionController {
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "default") String sort,
             @RequestParam(required = false) Boolean association,
-            @RequestParam(required = false) String specialty,
-            @RequestParam(required = false) String industry,
-            @RequestParam(required = false) Integer provinceId,
-            @RequestParam(required = false) Integer cityId,
-            @RequestParam(required = false) java.math.BigDecimal minScore) {
-        return ApiResponse.ok(institutionService.listPublic(page, size, keyword, sort, association,
-                specialty, industry, provinceId, cityId, minScore));
+            @RequestParam(required = false) Integer expertiseCategoryId,
+            @RequestParam(required = false) Integer cityId) {
+        return ApiResponse.ok(institutionService.listPublic(
+                page, size, keyword, sort, association, expertiseCategoryId, cityId));
     }
 
     @Public
-    @Operation(summary = "机构筛选项聚合（擅长领域/擅长行业 计数）")
-    @GetMapping("/institutions/facets")
-    public ApiResponse<com.taoke.user.dto.institution.InstitutionFacetsResponse> facets() {
-        return ApiResponse.ok(institutionService.listFacets());
+    @Operation(summary = "机构擅长领域一级分类批量计数（侧栏分类导航）")
+    @GetMapping("/institutions/expertise-category-counts")
+    public ApiResponse<Map<Integer, Long>> expertiseCategoryCounts(
+            @RequestParam(required = false) Boolean association) {
+        return ApiResponse.ok(institutionService.countPublicByExpertiseL1(association));
     }
 
     @Public
-    @Operation(summary = "高分培训机构")
-    @GetMapping("/institutions/top-rated")
-    public ApiResponse<java.util.List<InstitutionListItemResponse>> topRated(
+    @Operation(summary = "机构频道侧栏推荐（高分/周活跃/新入驻）")
+    @GetMapping("/institutions/recommendations")
+    public ApiResponse<List<InstitutionListItemResponse>> listRecommendations(
+            @RequestParam String type,
+            @RequestParam(required = false) Boolean association,
             @RequestParam(defaultValue = "5") int limit) {
-        return ApiResponse.ok(institutionService.listTopRated(limit));
+        return ApiResponse.ok(institutionService.listRecommended(type, association, limit));
     }
 
     @Public
-    @Operation(summary = "最新加入培训机构")
-    @GetMapping("/institutions/newest")
-    public ApiResponse<java.util.List<InstitutionListItemResponse>> newest(
-            @RequestParam(defaultValue = "5") int limit) {
-        return ApiResponse.ok(institutionService.listNewest(limit));
-    }
-
-    @Public
-    @Operation(summary = "金牌推荐培训机构")
-    @GetMapping("/institutions/recommended")
-    public ApiResponse<java.util.List<InstitutionListItemResponse>> recommended(
-            @RequestParam(defaultValue = "4") int limit) {
-        return ApiResponse.ok(institutionService.listRecommended(limit));
-    }
-
-    @Public
-    @Operation(summary = "机构公开详情页")
+    @Operation(summary = "机构公开详情页；bumpView=1 时仅人气 +1")
     @GetMapping("/institutions/{id}")
-    public ApiResponse<InstitutionPublicResponse> getPublicProfile(@PathVariable Integer id) {
+    public ApiResponse<?> getPublicProfile(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Boolean bumpView) {
+        if (Boolean.TRUE.equals(bumpView)) {
+            institutionService.incrementViewCount(id);
+            return ApiResponse.ok(null);
+        }
         return ApiResponse.ok(institutionService.getPublicProfile(id));
+    }
+
+    @Public
+    @Operation(summary = "机构列表点击人气 +1（兼容旧客户端）")
+    @PostMapping("/institutions/{id}/view")
+    public ApiResponse<Void> incrementViewCount(@PathVariable Integer id) {
+        institutionService.incrementViewCount(id);
+        return ApiResponse.ok(null);
+    }
+
+    @Public
+    @Operation(summary = "机构详情页：精彩瞬间（机构主体 + 挂靠专家）")
+    @GetMapping("/institutions/{id}/highlights")
+    public ApiResponse<List<com.taoke.user.dto.trainerhighlight.TrainerHighlightResponse>> listHighlights(
+            @PathVariable Integer id,
+            @RequestParam(defaultValue = "12") int limit) {
+        return ApiResponse.ok(trainerHighlightService.listApprovedHighlightsForInstitution(id, limit));
+    }
+
+    @Public
+    @Operation(summary = "机构详情页：挂靠专家授课案例")
+    @GetMapping("/institutions/{id}/cases")
+    public ApiResponse<List<com.taoke.user.dto.trainercase.TrainerCaseResponse>> listCases(
+            @PathVariable Integer id,
+            @RequestParam(defaultValue = "12") int limit) {
+        return ApiResponse.ok(trainerCaseService.listApprovedCasesForInstitution(id, limit));
     }
 
     // ==================== 自服务接口 ====================

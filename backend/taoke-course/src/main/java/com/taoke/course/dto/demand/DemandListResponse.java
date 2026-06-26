@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 public class DemandListResponse {
 
     private Integer id;
+    private String demandNo;
     private String demandType;
     private String demandTypeLabel;
     private String title;
@@ -38,6 +39,7 @@ public class DemandListResponse {
     public static DemandListResponse from(Demand d) {
         DemandListResponse r = new DemandListResponse();
         r.setId(d.getId());
+        r.setDemandNo(d.getDemandNo());
         r.setDemandType(d.getDemandType());
         try {
             r.setDemandTypeLabel(DemandType.valueOf(d.getDemandType()).getLabel());

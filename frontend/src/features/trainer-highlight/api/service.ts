@@ -10,8 +10,14 @@ import type {
 } from './types';
 
 /**
- * 专家精彩瞬间 API — 自服务接口（需登录）
+ * 专家精彩瞬间 API
  */
+
+/** C 端：某专家已通过的精彩瞬间 */
+export async function getTrainerHighlights(trainerId: number): Promise<TrainerHighlight[]> {
+  const res = await apiGet<ApiResponse<TrainerHighlight[]>>(`/trainers/${trainerId}/highlights`);
+  return res.data ?? [];
+}
 
 function authHeaders() {
   const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);

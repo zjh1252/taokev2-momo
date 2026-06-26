@@ -1,41 +1,160 @@
 'use client';
 
-import { useState } from 'react';
-import Image, { type ImageProps } from 'next/image';
-import { resolveImageSrc, DEFAULT_TRAINER_AVATAR } from '@/lib/media';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import {
+  resolveImageSrc,
+  resolveApiImageSrc,
+  EMPTY_IMAGE_SRC,
+  isPlaceholderLegacyAvatar,
+  isUnreliableLegacyImageHost,
+} from '@/lib/media';
 
-type SafeImageProps = Omit<ImageProps, 'src' | 'onError'> & {
+type SafeImageProps = {
   src?: string | null;
+  alt?: string;
   fallback?: string;
+  fill?: boolean;
+  priority?: boolean;
+  /** 接口已解析的 URL（含素材库默认），不再二次剔除占位图 */
+  apiResolved?: boolean;
+  className?: string;
+  style?: CSSProperties;
+  width?: number | string;
+  height?: number | string;
+  loading?: 'eager' | 'lazy' | 'auto';
+  sizes?: string;
+  crossOrigin?: '' | 'anonymous' | 'use-credentials';
+  draggable?: boolean;
 };
 
-/**
- * 带加载失败回退的 Image — 用于专家头像等可能 404 的远程/旧库路径
- */
-function isRemoteSrc(url: string): boolean {
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 500;
+
+function needsNoReferrer(url: string): boolean {
   return url.startsWith('http://') || url.startsWith('https://');
 }
 
+/** 旧站 middle 头像常见 jpg/png 互斥，失败时尝试另一扩展名 */
+function alternateMiddleAvatarUrl(url: string): string | null {
+  const m = url.match(/^(.*\/attachments\/user\/middle\/\d+\/\d+)\.(jpe?g|png)$/i);
+  if (!m) return null;
+  const base = m[1];
+  const ext = m[2].toLowerCase();
+  return ext === 'png' ? `${base}.jpg` : `${base}.png`;
+}
+
+/**
+ * 带加载失败回退的图片（原生 img，受控 src）。
+ * 自定义 props 显式声明，避免 reactCompiler 优化后透传到 DOM。
+ */
 export function SafeImage({
   src,
-  fallback = DEFAULT_TRAINER_AVATAR,
+  fallback = EMPTY_IMAGE_SRC,
   alt,
-  ...props
+  priority,
+  loading,
+  fill,
+  width,
+  height,
+  className,
+  style,
+  apiResolved = false,
+  sizes,
+  crossOrigin,
+  draggable,
 }: SafeImageProps) {
-  const [imgSrc, setImgSrc] = useState(() => resolveImageSrc(src, fallback));
-  // 旧站 www.taoke.com 头像：浏览器直连可用，但走 _next/image 优化会 400，需 unoptimized
-  const unoptimized = isRemoteSrc(imgSrc);
+  'use no memo';
+
+  const resolved = useMemo(() => {
+    if (apiResolved) {
+      return resolveApiImageSrc(src, fallback);
+    }
+    const cleaned = isPlaceholderLegacyAvatar(src) ? null : src;
+    return resolveImageSrc(cleaned, fallback);
+  }, [src, fallback, apiResolved]);
+  const [displaySrc, setDisplaySrc] = useState(resolved);
+  const retryCountRef = useRef(0);
+  const onFallbackRef = useRef(false);
+  const triedAltExtRef = useRef(false);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setDisplaySrc(resolved);
+    retryCountRef.current = 0;
+    onFallbackRef.current = false;
+    triedAltExtRef.current = false;
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+  }, [resolved]);
+
+  useEffect(
+    () => () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    },
+    [],
+  );
+
+  const handleError = () => {
+    if (onFallbackRef.current) return;
+    if (!fallback) {
+      onFallbackRef.current = true;
+      setDisplaySrc('');
+      return;
+    }
+    if (displaySrc === fallback) return;
+
+    if (!triedAltExtRef.current) {
+      const altUrl = alternateMiddleAvatarUrl(displaySrc);
+      if (altUrl && altUrl !== displaySrc) {
+        triedAltExtRef.current = true;
+        setDisplaySrc(altUrl);
+        return;
+      }
+    }
+
+    // 91pxb 等源站大面积失效，跳过重试直接降级占位图
+    if (isUnreliableLegacyImageHost(displaySrc) || isUnreliableLegacyImageHost(resolved)) {
+      onFallbackRef.current = true;
+      setDisplaySrc(fallback);
+      return;
+    }
+
+    if (retryCountRef.current < MAX_RETRIES) {
+      retryCountRef.current += 1;
+      retryTimerRef.current = setTimeout(() => {
+        const sep = resolved.includes('?') ? '&' : '?';
+        setDisplaySrc(`${resolved}${sep}_retry=${retryCountRef.current}`);
+      }, RETRY_DELAY_MS * retryCountRef.current);
+      return;
+    }
+
+    onFallbackRef.current = true;
+    setDisplaySrc(fallback);
+  };
+
+  const imgStyle: CSSProperties | undefined = fill
+    ? { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', ...style }
+    : style;
+
+  if (!displaySrc) {
+    return null;
+  }
 
   return (
-    <Image
-      {...props}
-      src={imgSrc}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={displaySrc}
       alt={alt ?? ''}
-      unoptimized={unoptimized}
-      referrerPolicy={unoptimized ? 'no-referrer' : undefined}
-      onError={() => {
-        if (imgSrc !== fallback) setImgSrc(fallback);
-      }}
+      width={fill ? undefined : width}
+      height={fill ? undefined : height}
+      loading={priority ? 'eager' : loading === 'eager' ? 'eager' : 'lazy'}
+      decoding="async"
+      sizes={sizes}
+      crossOrigin={crossOrigin}
+      draggable={draggable}
+      referrerPolicy={needsNoReferrer(displaySrc) ? 'no-referrer' : undefined}
+      className={className}
+      style={imgStyle}
+      onError={handleError}
     />
   );
 }

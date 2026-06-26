@@ -22,11 +22,11 @@ public interface TrainerCaseService {
     /** 获取案例详情（含文件） */
     TrainerCaseResponse getMyCaseDetail(Integer userId, Integer caseId);
 
-    /** 新增案例（draft=true 保存为草稿，不进入审核队列） */
-    TrainerCaseResponse createCase(Integer userId, SaveTrainerCaseRequest request, boolean draft);
+    /** 新增案例 */
+    TrainerCaseResponse createCase(Integer userId, SaveTrainerCaseRequest request);
 
-    /** 编辑案例（draft=true 保存为草稿，不进入审核队列） */
-    TrainerCaseResponse updateCase(Integer userId, Integer caseId, SaveTrainerCaseRequest request, boolean draft);
+    /** 编辑案例 */
+    TrainerCaseResponse updateCase(Integer userId, Integer caseId, SaveTrainerCaseRequest request);
 
     /** 删除案例 */
     void deleteCase(Integer userId, Integer caseId);
@@ -42,7 +42,7 @@ public interface TrainerCaseService {
     /** 获取某专家已审核通过的案例列表（公开） */
     List<TrainerCaseResponse> listApprovedCases(Integer trainerId);
 
-    /** 获取单个已审核通过的案例详情（公开，含已通过文件与专家信息） */
+    /** 获取已审核通过的案例详情（公开） */
     TrainerCaseResponse getApprovedCaseDetail(Integer caseId);
 
     /**
@@ -50,6 +50,9 @@ public interface TrainerCaseService {
      * <p>按 sort_order DESC、id DESC 取前 limit 条，附带 trainerName/trainerAvatar 便于前端跳转。</p>
      */
     List<TrainerCaseRecentResponse> listRecentApproved(int limit);
+
+    /** 机构详情页：挂靠专家已通过授课案例 */
+    List<TrainerCaseResponse> listApprovedCasesForInstitution(Integer institutionId, int limit);
 
     // ==================== 后台管理 ====================
 
@@ -64,4 +67,7 @@ public interface TrainerCaseService {
 
     /** 后台审核驳回 */
     void reject(Integer caseId, Integer reviewerUserId, String reason);
+
+    /** 批量统计专家案例数 */
+    java.util.Map<Integer, Long> countByTrainerIds(java.util.Collection<Integer> trainerIds);
 }

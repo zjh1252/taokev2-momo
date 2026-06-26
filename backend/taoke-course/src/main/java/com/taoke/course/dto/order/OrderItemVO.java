@@ -38,4 +38,7 @@ public class OrderItemVO {
 
     /** 小计 */
     private BigDecimal subtotal;
+
+    /** 录播课总集数（仅 productType=VIDEO_COURSE 时回填，单门课一般为 1，系列课为多集） */
+    private Integer totalEpisodes;
 }

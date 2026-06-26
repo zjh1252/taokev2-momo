@@ -4,6 +4,7 @@
  * 1. 自动注入 Authorization: Bearer ${token}
  * 2. 解包后端 ApiResponse<T>（{ code, message, data }），code===0 返回 data，否则 toast 并 reject
  * 3. HTTP 401 / code===10001 自动清登录态并跳转登录页
+ * 4. HTTP 4xx/5xx 仍尝试解析 ApiResponse，避免只显示「HTTP 400」
  */
 
 import config from '@/configs';
@@ -45,6 +46,49 @@ function handleUnauthorized() {
   }, 600);
 }
 
+function rejectBusinessError(body, silent) {
+  const code = body.code;
+  const message = body.message || '操作失败';
+
+  if (code === 10001 || code === 401) {
+    handleUnauthorized();
+  } else if (!silent) {
+    uni.showToast({ title: message, icon: 'none' });
+  }
+
+  const err = new Error(message);
+  err.code = code;
+  err.payload = body;
+  return err;
+}
+
+function handleResponseBody(body, status, { silent, raw, resolve, reject }) {
+  if (raw) {
+    resolve(body);
+    return true;
+  }
+
+  if (!body || typeof body !== 'object' || !('code' in body)) {
+    return false;
+  }
+
+  if (body.code === 0) {
+    if (status >= 200 && status < 300) {
+      resolve(body.data);
+      return true;
+    }
+    const err = rejectBusinessError(
+      { ...body, message: body.message || `请求失败（${status}）` },
+      silent,
+    );
+    reject(err);
+    return true;
+  }
+
+  reject(rejectBusinessError(body, silent));
+  return true;
+}
+
 /**
  * 核心请求方法
  * @param {Object} options
@@ -68,7 +112,6 @@ export function request(options) {
     raw = false,
   } = options;
 
-  // 拼接查询参数
   let finalUrl = url.startsWith('http') ? url : baseURL + url;
   if (params && typeof params === 'object') {
     const qs = Object.keys(params)
@@ -78,7 +121,6 @@ export function request(options) {
     if (qs) finalUrl += (finalUrl.includes('?') ? '&' : '?') + qs;
   }
 
-  // 注入 token
   const token = getToken();
   const finalHeader = { 'Content-Type': 'application/json', ...header };
   if (token) finalHeader.Authorization = `Bearer ${token}`;
@@ -92,11 +134,18 @@ export function request(options) {
       timeout: TIMEOUT,
       success: (res) => {
         const status = res.statusCode;
+        const body = res.data;
+
+        if (handleResponseBody(body, status, { silent, raw, resolve, reject })) {
+          return;
+        }
+
         if (status === 401 || status === 403) {
           handleUnauthorized();
           reject(new Error('未登录或登录已过期'));
           return;
         }
+
         if (status < 200 || status >= 300) {
           if (!silent) {
             uni.showToast({ title: `请求失败（${status}）`, icon: 'none' });
@@ -105,32 +154,7 @@ export function request(options) {
           return;
         }
 
-        const body = res.data;
-        if (raw) {
-          resolve(body);
-          return;
-        }
-
-        // 解包 ApiResponse
-        if (body && typeof body === 'object' && 'code' in body) {
-          if (body.code === 0) {
-            resolve(body.data);
-          } else {
-            // 401 业务码（按需扩展）
-            if (body.code === 10001 || body.code === 401) {
-              handleUnauthorized();
-            } else if (!silent) {
-              uni.showToast({ title: body.message || '操作失败', icon: 'none' });
-            }
-            const err = new Error(body.message || 'BusinessError');
-            err.code = body.code;
-            err.payload = body;
-            reject(err);
-          }
-        } else {
-          // 非标准响应直接返回
-          resolve(body);
-        }
+        resolve(body);
       },
       fail: (err) => {
         if (!silent) {
@@ -142,7 +166,6 @@ export function request(options) {
   });
 }
 
-// 便捷方法
 export const http = {
   get: (url, params, options = {}) => request({ url, method: 'GET', params, ...options }),
   post: (url, data, options = {}) => request({ url, method: 'POST', data, ...options }),

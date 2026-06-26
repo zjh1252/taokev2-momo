@@ -1,4 +1,5 @@
 import { apiGet } from '@/lib/http/client';
+import { fetchCategoryCountMap } from '@/lib/category-counts';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import type {
@@ -19,8 +20,8 @@ function authHeaders(): Record<string, string> {
  * 获取当前登录机构本人信息（需 INSTITUTION 角色）
  * <p>用于顶栏「个人主页」解析公开详情路径 {@code /institutions/{id}}。</p>
  */
-export async function getMyInstitutionProfile(): Promise<{ id: number }> {
-  const res = await apiGet<ApiResponse<{ id: number }>>('/institutions/me', {
+export async function getMyInstitutionProfile(): Promise<{ id: number; legacyRoleId?: number }> {
+  const res = await apiGet<ApiResponse<{ id: number; legacyRoleId?: number }>>('/institutions/me', {
     headers: authHeaders(),
     silent: true,
   });
@@ -36,18 +37,14 @@ export interface InstitutionListParams {
   keyword?: string;
   sort?: string;
   association?: boolean;
-  /** 擅长领域（机构类别） */
-  specialty?: string;
-  /** 擅长行业 */
-  industry?: string;
-  provinceId?: number;
+  /** 擅长领域一级分类 ID */
+  expertiseCategoryId?: number;
+  /** 机构所在城市 ID */
   cityId?: number;
-  /** 最低星级评分 */
-  minScore?: number;
 }
 
 /**
- * 获取机构公开列表（分页 + 多筛选）
+ * 获取机构公开列表（分页 + 搜索）
  */
 export async function getInstitutionList(
   params: InstitutionListParams = {},
@@ -58,11 +55,12 @@ export async function getInstitutionList(
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sort) query.set('sort', params.sort);
   if (params.association != null) query.set('association', String(params.association));
-  if (params.specialty) query.set('specialty', params.specialty);
-  if (params.industry) query.set('industry', params.industry);
-  if (params.provinceId) query.set('provinceId', String(params.provinceId));
-  if (params.cityId) query.set('cityId', String(params.cityId));
-  if (params.minScore != null) query.set('minScore', String(params.minScore));
+  if (params.expertiseCategoryId) {
+    query.set('expertiseCategoryId', String(params.expertiseCategoryId));
+  }
+  if (params.cityId) {
+    query.set('cityId', String(params.cityId));
+  }
 
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<InstitutionListItem>>>(
@@ -71,55 +69,16 @@ export async function getInstitutionList(
   return res.data;
 }
 
-/** 机构筛选项聚合（擅长领域/擅长行业 计数） */
-export interface InstitutionCategoryCount {
-  name: string;
-  count: number;
-}
-export interface InstitutionFacets {
-  specialties: InstitutionCategoryCount[];
-  industries: InstitutionCategoryCount[];
-}
-
-/** 获取机构筛选项聚合（领域/行业 token 计数） */
-export async function getInstitutionFacets(): Promise<InstitutionFacets> {
-  const res = await apiGet<ApiResponse<InstitutionFacets>>('/institutions/facets');
-  return res.data;
-}
-
-/** 高分培训机构 */
-export async function getTopRatedInstitutions(limit = 5): Promise<InstitutionListItem[]> {
-  const res = await apiGet<ApiResponse<InstitutionListItem[]>>(`/institutions/top-rated?limit=${limit}`);
-  return res.data || [];
-}
-
-/** 最新加入培训机构 */
-export async function getNewestInstitutions(limit = 5): Promise<InstitutionListItem[]> {
-  const res = await apiGet<ApiResponse<InstitutionListItem[]>>(`/institutions/newest?limit=${limit}`);
-  return res.data || [];
-}
-
-/** 金牌推荐培训机构 */
-export async function getRecommendedInstitutions(limit = 4): Promise<InstitutionListItem[]> {
-  const res = await apiGet<ApiResponse<InstitutionListItem[]>>(`/institutions/recommended?limit=${limit}`);
-  return res.data || [];
-}
-
-/** 本周活跃培训机构（最近 7 天有发课） */
-export async function getWeeklyActiveInstitutions(limit = 5): Promise<InstitutionListItem[]> {
-  const res = await apiGet<ApiResponse<InstitutionListItem[]>>(`/institutions/weekly-active?limit=${limit}`);
-  return res.data || [];
-}
-
-/** 省份列表（用于机构搜索面板） */
-export interface RegionItem {
-  id: number;
-  code: string;
-  name: string;
-}
-export async function getProvinces(): Promise<RegionItem[]> {
-  const res = await apiGet<ApiResponse<RegionItem[]>>('/regions/children');
-  return res.data || [];
+/** 机构擅长领域一级分类批量计数（侧栏分类导航） */
+export async function getInstitutionExpertiseCategoryCounts(
+  association?: boolean,
+): Promise<Record<number, number>> {
+  const query = new URLSearchParams();
+  if (association != null) {
+    query.set('association', String(association));
+  }
+  const qs = query.toString();
+  return fetchCategoryCountMap(`/institutions/expertise-category-counts${qs ? `?${qs}` : ''}`);
 }
 
 /**
@@ -192,5 +151,34 @@ export async function getInstitutionSidebarVideos(
  */
 export async function getHotOpenCourses(): Promise<CourseListItem[]> {
   const res = await apiGet<ApiResponse<CourseListItem[]>>('/opencourses/hot');
+  return res.data;
+}
+
+export type InstitutionRecommendationType = 'high_score' | 'weekly_active' | 'newly_joined';
+
+export async function getInstitutionRecommendations(
+  type: InstitutionRecommendationType,
+  association?: boolean,
+  limit = 5,
+): Promise<InstitutionListItem[]> {
+  const query = new URLSearchParams({ type, limit: String(limit) });
+  if (association != null) query.set('association', String(association));
+  const res = await apiGet<ApiResponse<InstitutionListItem[]>>(
+    `/institutions/recommendations?${query}`,
+  );
+  return res.data;
+}
+
+export async function getInstitutionHighlights(institutionId: number, limit = 12) {
+  const res = await apiGet<ApiResponse<import('@/features/trainer-highlight/api/types').TrainerHighlight[]>>(
+    `/institutions/${institutionId}/highlights?limit=${limit}`,
+  );
+  return res.data;
+}
+
+export async function getInstitutionCases(institutionId: number, limit = 12) {
+  const res = await apiGet<ApiResponse<import('@/features/trainer-case/api/types').TrainerCase[]>>(
+    `/institutions/${institutionId}/cases?limit=${limit}`,
+  );
   return res.data;
 }

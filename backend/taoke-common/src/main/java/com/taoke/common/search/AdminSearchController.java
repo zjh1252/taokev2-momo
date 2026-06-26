@@ -47,6 +47,13 @@ public class AdminSearchController {
         return ApiResponse.ok(created);
     }
 
+    @Operation(summary = "更新索引 mapping（用于加新字段）")
+    @PutMapping("/admin/search/indices/{indexName}/mapping")
+    public ApiResponse<Boolean> putMapping(
+            @Parameter(description = "索引名称") @PathVariable String indexName) {
+        return ApiResponse.ok(searchIndexService.putMapping(indexName));
+    }
+
     @Operation(summary = "删除索引（禁止删除默认索引）")
     @DeleteMapping("/admin/search/indices/{indexName}")
     public ApiResponse<Void> deleteIndex(

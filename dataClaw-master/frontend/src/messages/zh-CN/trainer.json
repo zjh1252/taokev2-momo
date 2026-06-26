@@ -1,0 +1,56 @@
+{
+  "page": {
+    "listTitle": "培训专家",
+    "listDesc": "发现全国优秀培训专家，助力企业人才发展",
+    "detailTitle": "专家详情"
+  },
+  "filters": {
+    "expertise": "擅长领域",
+    "industry": "擅长行业",
+    "city": "常驻省市",
+    "sort": "排序",
+    "all": "不限",
+    "sortDefault": "综合排序",
+    "sortScore": "好评率"
+  },
+  "tabs": {
+    "home": "主页",
+    "courses": "主讲课程",
+    "cases": "授课案例",
+    "clips": "录播课",
+    "comments": "学员评价",
+    "books": "著作"
+  },
+  "sections": {
+    "qualifications": "资质背景",
+    "experience": "实战经历",
+    "career": "职业经历",
+    "teachingStyle": "授课风格",
+    "bio": "个人简介",
+    "certificates": "证书",
+    "cases": "授课案例",
+    "relatedTrainers": "相关讲师",
+    "topics": "擅长专题",
+    "basicInfo": "讲师基础信息",
+    "aiMatch": "AI 智能匹配"
+  },
+  "actions": {
+    "message": "给专家留言",
+    "favorite": "收藏讲师",
+    "compare": "加入对比",
+    "viewDetail": "查看详情",
+    "tryAi": "立即体验"
+  },
+  "stats": {
+    "consultations": "累计咨询",
+    "views": "累计曝光",
+    "reviews": "条评价",
+    "totalExperts": "位专家",
+    "noResults": "暂无符合条件的专家"
+  },
+  "badge": {
+    "trusted": "信得过",
+    "signed": "签约",
+    "copyright": "版权课"
+  }
+}

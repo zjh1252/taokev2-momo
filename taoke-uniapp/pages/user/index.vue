@@ -1,526 +1,1962 @@
 <!--
-  我的（tab 4）—— 我的淘课网首页
-  - 顶部红色品牌区 + 头像/昵称/角色徽标
-  - 数据卡（学习 / 收藏 / 消息）
-  - 菜单组 1：常用（我的收藏 / 消息中心 / 我的学习占位 / 我的订单占位）
-  - 菜单组 2：账号（基础信息 / 修改密码 / 账号绑定占位 / 修改身份占位）
-  - 退出登录（带二次确认）
-  未登录时整屏显示登录引导
+
+  我的（tab 4）—— 对齐 PC 端「我的淘课网」/dashboard
+
+  - 欢迎区 + 角色/学号
+
+  - 数据卡（在学 / 收藏 / 消息）
+
+  - 继续学习 + 快捷入口
+
+  - 最近学习列表
+
+  - 常用 / 账号菜单
+
 -->
+
 <template>
+
   <view class="page">
+
     <TkNavBar title="我的" :title-color="'#fff'" :icon-color="'#fff'" transparent />
 
+
+
     <scroll-view scroll-y class="page__scroll">
-      <!-- 顶部红色 Hero（沉浸式：红色一直延伸到屏幕顶部，TkNavBar 透明浮在上面） -->
+
       <view class="hero" :style="{ paddingTop: (navBarH + 12) + 'px' }">
-        <!-- 已登录：头像 + 昵称 + 角色 -->
+
         <view v-if="userStore.isLoggedIn" class="hero__user">
+
           <TkAvatar
+
             :src="userStore.avatar"
+
             :nickname="userStore.nickname"
+
             :size="160"
+
             bordered
+
             @tap="goProfile"
+
           />
+
           <view class="hero__user-meta">
+
+            <text class="hero__welcome">欢迎来到用户中心</text>
+
             <text class="hero__user-name">{{ userStore.nickname || '用户' }}</text>
+
             <view v-if="roleLabels.length" class="hero__roles">
+
               <text v-for="r in roleLabels" :key="r" class="hero__role">{{ r }}</text>
+
             </view>
-            <text v-else class="hero__user-id">学号 {{ userIdLabel }}</text>
+
+            <text class="hero__user-id">学号 {{ userIdLabel }}</text>
+
           </view>
+
         </view>
 
-        <!-- 未登录：CTA -->
+
+
         <view v-else class="hero__guest">
+
           <view class="hero__guest-avatar">
+
             <TkIcon name="person" :size="80" color="#fff" />
+
           </view>
+
           <view class="hero__guest-meta">
+
             <text class="hero__guest-title">未登录</text>
+
             <text class="hero__guest-sub">登录后查看个人信息与学习记录</text>
+
           </view>
+
           <view class="hero__guest-btn" @tap="goLogin">
+
             <text class="hero__guest-btn-txt">登录 / 注册</text>
+
           </view>
+
         </view>
+
       </view>
 
+
+
       <view class="page__inner">
+
         <!-- 数据卡 -->
+
         <view class="stats">
+
           <view class="stats__item" @tap="goLearning">
+
             <text class="stats__num">{{ stats.learning }}</text>
+
             <text class="stats__label">在学课程</text>
+
           </view>
+
           <view class="stats__divider" />
+
           <view class="stats__item" @tap="goFavorites">
+
             <text class="stats__num">{{ stats.favorites }}</text>
+
             <text class="stats__label">我的收藏</text>
+
           </view>
+
           <view class="stats__divider" />
+
           <view class="stats__item" @tap="goMessages">
+
             <view class="stats__num-wrap">
+
               <text class="stats__num">{{ stats.messages }}</text>
+
               <view v-if="stats.unread > 0" class="stats__dot" />
+
             </view>
+
             <text class="stats__label">消息中心</text>
+
           </view>
+
         </view>
+
+
+
+        <!-- 继续学习（对齐 PC dashboard 模块 2 左半） -->
+
+        <view v-if="userStore.isLoggedIn" class="panel">
+
+          <view class="panel__head">
+
+            <view class="panel__bar" />
+
+            <text class="panel__title">在淘课，你可以</text>
+
+          </view>
+
+          <view class="panel__body">
+
+            <view class="learn-block">
+
+              <view class="learn-block__label">
+
+                <TkIcon name="course" :size="28" color="#E62117" />
+
+                <text class="learn-block__label-txt">继续学习</text>
+
+              </view>
+
+              <TkLoading v-if="continueLoading" />
+
+              <view v-else-if="continueLearning" class="continue-card" @tap="onContinueTap">
+
+                <text class="continue-card__title">《{{ continueLearning.title }}》</text>
+
+                <view class="continue-card__bar">
+
+                  <view
+
+                    class="continue-card__progress"
+
+                    :style="{ width: (continueLearning.progress || 0) + '%' }"
+
+                  />
+
+                </view>
+
+                <view class="continue-card__foot">
+
+                  <text class="continue-card__meta">
+
+                    已学习 {{ continueLearning.progress || 0 }}%
+
+                    <text v-if="continueLearning.lastChapterTitle">
+
+                      （{{ continueLearning.lastChapterTitle }}）
+
+                    </text>
+
+                  </text>
+
+                  <text class="continue-card__action">继续播放</text>
+
+                </view>
+
+              </view>
+
+              <view v-else class="continue-empty">
+
+                <text class="continue-empty__txt">暂无学习中的课程</text>
+
+                <text class="continue-empty__link" @tap="goCourseTab">去发现公开课 →</text>
+
+              </view>
+
+            </view>
+
+
+
+            <view class="quick-links">
+
+              <view class="quick-links__row">
+
+                <text class="quick-links__label">找好资源</text>
+
+                <view class="quick-links__btns">
+
+                  <view class="quick-links__btn" @tap="goExpertTab">
+
+                    <text class="quick-links__btn-txt">找专家</text>
+
+                  </view>
+
+                  <view class="quick-links__btn" @tap="goCourseTab">
+
+                    <text class="quick-links__btn-txt">看公开课</text>
+
+                  </view>
+
+                </view>
+
+              </view>
+
+            </view>
+
+          </view>
+
+        </view>
+
+
+
+        <!-- 最近学习 -->
+
+        <view v-if="userStore.isLoggedIn" class="panel">
+
+          <view class="panel__head">
+
+            <view class="panel__bar" />
+
+            <text class="panel__title">最近学习</text>
+
+          </view>
+
+          <view class="panel__body">
+
+            <TkLoading v-if="recentLoading" />
+
+            <view v-else-if="recentVideos.length" class="recent-scroll-wrap">
+
+              <scroll-view scroll-x class="recent-scroll" show-scrollbar="false">
+
+                <view class="recent-scroll__inner">
+
+                  <view
+
+                    v-for="v in recentVideos"
+
+                    :key="v.videoId"
+
+                    class="recent-card"
+
+                    @tap="onRecentTap(v)"
+
+                  >
+
+                    <image
+
+                      class="recent-card__cover"
+
+                      :src="toAssetUrl(v.coverUrl)"
+
+                      mode="aspectFill"
+
+                    />
+
+                    <text class="recent-card__title">{{ v.title }}</text>
+
+                    <text class="recent-card__meta">已学 {{ v.progress || 0 }}%</text>
+
+                  </view>
+
+                </view>
+
+              </scroll-view>
+
+            </view>
+
+            <view v-else class="continue-empty">
+
+              <text class="continue-empty__txt">还没有学习记录</text>
+
+              <text class="continue-empty__link" @tap="goCourseTab">去发现课程 →</text>
+
+            </view>
+
+          </view>
+
+        </view>
+
+
 
         <!-- 菜单组：常用 -->
+
         <view class="menu">
+
           <view class="menu__title">
+
             <text class="menu__title-txt">常用</text>
+
           </view>
+
           <view class="menu__list">
+
             <view class="menu__row" @tap="goFavorites">
+
               <view class="menu__row-l">
+
                 <view class="menu__icon menu__icon--red">
+
                   <TkIcon name="heart" :size="32" color="#E62117" />
+
                 </view>
+
                 <text class="menu__row-txt">我的收藏</text>
+
               </view>
+
               <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
             </view>
+
             <view class="menu__row" @tap="goMessages">
+
               <view class="menu__row-l">
+
                 <view class="menu__icon menu__icon--blue">
+
                   <TkIcon name="campaign" :size="32" color="#2563EB" />
+
                 </view>
+
                 <text class="menu__row-txt">消息中心</text>
+
               </view>
+
               <view class="menu__row-r">
+
                 <view v-if="stats.unread > 0" class="menu__badge">
+
                   <text class="menu__badge-txt">{{ stats.unread > 99 ? '99+' : stats.unread }}</text>
+
                 </view>
+
                 <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
               </view>
+
             </view>
+
             <view class="menu__row" @tap="goLearning">
+
               <view class="menu__row-l">
+
                 <view class="menu__icon menu__icon--orange">
+
                   <TkIcon name="course" :size="32" color="#F59E0B" />
+
                 </view>
+
                 <text class="menu__row-txt">我的学习</text>
+
               </view>
+
               <view class="menu__row-r">
-                <text class="menu__row-tip">即将上线</text>
+
+                <text v-if="stats.learning > 0" class="menu__row-count">{{ stats.learning }}</text>
+
                 <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
               </view>
+
             </view>
-            <view class="menu__row menu__row--last" @tap="goOrders">
+
+            <view class="menu__row" @tap="goOrders">
+
               <view class="menu__row-l">
+
                 <view class="menu__icon menu__icon--green">
+
                   <TkIcon name="cart" :size="32" color="#16A34A" />
+
                 </view>
+
                 <text class="menu__row-txt">我的订单</text>
+
               </view>
+
               <view class="menu__row-r">
-                <text class="menu__row-tip">即将上线</text>
+
                 <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
               </view>
+
             </view>
+
+            <view class="menu__row" @tap="goDemands">
+
+              <view class="menu__row-l">
+
+                <view class="menu__icon menu__icon--gray">
+
+                  <TkIcon name="list" :size="32" color="#666" />
+
+                </view>
+
+                <text class="menu__row-txt">我的需求</text>
+
+              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
+            </view>
+
+            <view class="menu__row menu__row--last" @tap="goReviews">
+
+              <view class="menu__row-l">
+
+                <view class="menu__icon menu__icon--gray">
+
+                  <TkIcon name="chat" :size="32" color="#666" />
+
+                </view>
+
+                <text class="menu__row-txt">我的点评</text>
+
+              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
+            </view>
+
           </view>
+
         </view>
+
+
 
         <!-- 菜单组：账号 -->
+
         <view class="menu">
+
           <view class="menu__title">
+
             <text class="menu__title-txt">账号</text>
+
           </view>
+
           <view class="menu__list">
+
             <view class="menu__row" @tap="goProfile">
+
               <view class="menu__row-l">
+
                 <view class="menu__icon menu__icon--gray">
+
                   <TkIcon name="person" :size="32" color="#666" />
+
                 </view>
+
                 <text class="menu__row-txt">基础信息</text>
+
               </view>
+
               <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
             </view>
-            <view class="menu__row" @tap="goPassword">
+
+            <view v-if="showMoreInfo" class="menu__row" @tap="goMoreInfo">
+
               <view class="menu__row-l">
+
                 <view class="menu__icon menu__icon--gray">
-                  <TkIcon name="lock" :size="32" color="#666" />
+
+                  <TkIcon name="gear" :size="32" color="#666" />
+
                 </view>
-                <text class="menu__row-txt">修改密码</text>
+
+                <text class="menu__row-txt">更多信息</text>
+
               </view>
+
               <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
             </view>
-            <view class="menu__row" @tap="goBind">
+
+            <view v-if="showTrainerCerts" class="menu__row" @tap="goCertRealName">
+
               <view class="menu__row-l">
-                <view class="menu__icon menu__icon--gray">
-                  <TkIcon name="phone" :size="32" color="#666" />
+
+                <view class="menu__icon menu__icon--red">
+
+                  <TkIcon name="person" :size="32" color="#E62117" />
+
                 </view>
-                <text class="menu__row-txt">账号绑定</text>
+
+                <text class="menu__row-txt">实名认证</text>
+
               </view>
-              <view class="menu__row-r">
-                <text class="menu__row-tip">即将上线</text>
-                <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
-              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
             </view>
-            <view class="menu__row menu__row--last" @tap="goSwitchRole">
+
+            <view v-if="showTrainerCerts" class="menu__row" @tap="goCertProfessional">
+
               <view class="menu__row-l">
-                <view class="menu__icon menu__icon--gray">
-                  <TkIcon name="vip" :size="32" color="#666" />
+
+                <view class="menu__icon menu__icon--red">
+
+                  <TkIcon name="vip" :size="32" color="#E62117" />
+
                 </view>
+
+                <text class="menu__row-txt">专业认证</text>
+
+              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
+            </view>
+
+            <view v-if="showTrainerCerts" class="menu__row" @tap="goCertEducation">
+
+              <view class="menu__row-l">
+
+                <view class="menu__icon menu__icon--red">
+
+                  <TkIcon name="course" :size="32" color="#E62117" />
+
+                </view>
+
+                <text class="menu__row-txt">学历认证</text>
+
+              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
+            </view>
+
+            <view v-if="showTrainerCerts" class="menu__row" @tap="goCertWork">
+
+              <view class="menu__row-l">
+
+                <view class="menu__icon menu__icon--red">
+
+                  <TkIcon name="list" :size="32" color="#E62117" />
+
+                </view>
+
+                <text class="menu__row-txt">工作认证</text>
+
+              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
+            </view>
+
+            <view class="menu__row" @tap="goSwitchRole">
+
+              <view class="menu__row-l">
+
+                <view class="menu__icon menu__icon--red">
+
+                  <TkIcon name="vip" :size="32" color="#E62117" />
+
+                </view>
+
                 <text class="menu__row-txt">修改身份</text>
+
               </view>
-              <view class="menu__row-r">
-                <text class="menu__row-tip">即将上线</text>
-                <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
-              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
             </view>
+
+            <view class="menu__row" @tap="goAccountBind">
+
+              <view class="menu__row-l">
+
+                <view class="menu__icon menu__icon--gray">
+
+                  <TkIcon name="phone" :size="32" color="#666" />
+
+                </view>
+
+                <text class="menu__row-txt">账号绑定</text>
+
+              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
+            </view>
+
+            <view class="menu__row" @tap="goPassword">
+
+              <view class="menu__row-l">
+
+                <view class="menu__icon menu__icon--gray">
+
+                  <TkIcon name="lock" :size="32" color="#666" />
+
+                </view>
+
+                <text class="menu__row-txt">修改密码</text>
+
+              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
+            </view>
+
+            <view v-if="showWithdrawRole" class="menu__row" @tap="goWithdrawRole">
+
+              <view class="menu__row-l">
+
+                <view class="menu__icon menu__icon--gray">
+
+                  <TkIcon name="close" :size="32" color="#666" />
+
+                </view>
+
+                <text class="menu__row-txt">注销身份</text>
+
+              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
+            </view>
+
+            <view class="menu__row menu__row--last" @tap="goDeleteAccount">
+
+              <view class="menu__row-l">
+
+                <view class="menu__icon menu__icon--gray">
+
+                  <TkIcon name="close" :size="32" color="#666" />
+
+                </view>
+
+                <text class="menu__row-txt">注销账号</text>
+
+              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
+            </view>
+
           </view>
+
         </view>
 
-        <!-- 退出登录 -->
+
+
         <view v-if="userStore.isLoggedIn" class="logout-row" @tap="confirmLogout">
+
           <text class="logout-row__txt">退出登录</text>
+
         </view>
+
+
 
         <text class="footer-tip">淘课网 · 让学习更简单</text>
 
         <view style="height: 40rpx;" />
+
       </view>
+
     </scroll-view>
+
   </view>
+
 </template>
 
+
+
 <script setup>
+
 import { ref, computed } from 'vue';
+
 import { onShow } from '@dcloudio/uni-app';
+
 import { useUserStore } from '@/stores/user';
+
 import * as notificationApi from '@/api/notification';
+
 import * as interactionApi from '@/api/interaction';
+
+import * as learningApi from '@/api/learning';
+
 import { roleLabels as toRoleLabels } from '@/constants/role';
 
-const sysInfo = uni.getSystemInfoSync();
-const navBarH = (sysInfo.statusBarHeight || 20) + 44;
+import { toAssetUrl } from '@/utils/asset';
+
+import { getNavBarHeight } from '@/utils/system';
+
+
+
+const navBarH = getNavBarHeight();
+
 const userStore = useUserStore();
+
+
 
 const stats = ref({ learning: 0, favorites: 0, messages: 0, unread: 0 });
 
-// 后端业务角色 code → 中文（11 种全量映射统一在 @/constants/role）
+const continueLearning = ref(null);
+
+const continueLoading = ref(false);
+
+const recentVideos = ref([]);
+
+const recentLoading = ref(false);
+
+
+
 const roleLabels = computed(() => toRoleLabels(userStore.roleCodes).slice(0, 4));
 
-const userIdLabel = computed(() => {
-  const id = userStore.profile?.id;
-  return id ? `C${String(id).padStart(5, '0')}` : '——';
+const showMoreInfo = computed(() => {
+  const role = userStore.activeRole || 'BUYER';
+  return role === 'BUYER' || userStore.roleCodes.includes('BUYER');
 });
+
+const showTrainerCerts = computed(() => {
+  const role = userStore.activeRole || 'BUYER';
+  return role === 'TRAINER' && userStore.roleCodes.includes('TRAINER');
+});
+
+const showWithdrawRole = computed(() => {
+  const role = userStore.activeRole || 'BUYER';
+  const withdrawRoles = [
+    'ENTERPRISE_BUYER', 'TRAINER', 'AGENT', 'ASSISTANT',
+    'ENTERPRISE_AGENT', 'INSTITUTION', 'INSTITUTION_EMPLOYEE',
+  ];
+  if (!withdrawRoles.includes(role)) return false;
+  return (userStore.profile?.roles || []).some(
+    (r) => r?.status === 1 && r.role !== 'BUYER',
+  );
+});
+
+const userIdLabel = computed(() => {
+
+  const id = userStore.profile?.id;
+
+  return id ? `C${String(id).padStart(5, '0')}` : '——';
+
+});
+
+
 
 onShow(async () => {
+
   if (!userStore.isLoggedIn) return;
-  // 拉新版资料（保证 onShow 时数据是最新的，比如刚改完头像/昵称回来）
+
   userStore.fetchProfile();
-  refreshStats();
+
+  await refreshAll();
+
 });
 
-async function refreshStats() {
-  // 三个轻量请求并发拉，失败容忍
-  const tasks = [
-    notificationApi.getUnreadCount().catch(() => 0),
-    interactionApi.listFavorites({ page: 0, size: 1 }).catch(() => null),
-  ];
-  const [unread, favPage] = await Promise.all(tasks);
-  stats.value = {
-    learning: 0,
-    favorites: favPage?.total ?? favPage?.totalElements ?? 0,
-    messages: unread || 0,
-    unread: unread || 0,
-  };
+
+
+async function refreshAll() {
+
+  await Promise.all([refreshStats(), loadContinueLearning(), loadRecentVideos()]);
+
 }
 
-function goLogin()    { uni.navigateTo({ url: '/pages/auth/login' }); }
-function goProfile()  { ensureLogged(() => uni.navigateTo({ url: '/pages/user/profile' })); }
+
+
+async function refreshStats() {
+
+  const tasks = [
+
+    notificationApi.getUnreadCount().catch(() => 0),
+
+    interactionApi.listFavorites({ page: 0, size: 1 }).catch(() => null),
+
+  ];
+
+
+
+  if (userStore.isLoggedIn) {
+
+    tasks.push(
+
+      learningApi.getMyVideoLearnings(1, 1).catch(() => ({ total: 0 })),
+
+      learningApi.getMyCourseEnrollments(1, 1).catch(() => ({ total: 0 })),
+
+    );
+
+  }
+
+
+
+  const results = await Promise.all(tasks);
+
+  const unread = results[0];
+
+  const favPage = results[1];
+
+  let learningTotal = 0;
+
+  if (userStore.isLoggedIn && results.length >= 4) {
+
+    const videoPage = results[2];
+
+    const enrollPage = results[3];
+
+    learningTotal =
+
+      (videoPage?.total ?? videoPage?.totalElements ?? 0) +
+
+      (enrollPage?.total ?? enrollPage?.totalElements ?? 0);
+
+  }
+
+
+
+  stats.value = {
+
+    learning: learningTotal,
+
+    favorites: favPage?.total ?? favPage?.totalElements ?? 0,
+
+    messages: unread || 0,
+
+    unread: unread || 0,
+
+  };
+
+}
+
+
+
+async function loadContinueLearning() {
+
+  if (!userStore.isLoggedIn) return;
+
+  continueLoading.value = true;
+
+  try {
+
+    continueLearning.value = await learningApi.getContinueLearning();
+
+  } catch (_) {
+
+    continueLearning.value = null;
+
+  } finally {
+
+    continueLoading.value = false;
+
+  }
+
+}
+
+
+
+async function loadRecentVideos() {
+
+  if (!userStore.isLoggedIn) return;
+
+  recentLoading.value = true;
+
+  try {
+
+    const page = await learningApi.getMyVideoLearnings(1, 3);
+
+    recentVideos.value = page?.list || page?.records || page?.content || [];
+
+  } catch (_) {
+
+    recentVideos.value = [];
+
+  } finally {
+
+    recentLoading.value = false;
+
+  }
+
+}
+
+
+
+function goLogin() { uni.navigateTo({ url: '/pages/auth/login' }); }
+
+function goProfile() { ensureLogged(() => uni.navigateTo({ url: '/pages/user/profile' })); }
+
 function goPassword() { ensureLogged(() => uni.navigateTo({ url: '/pages/user/password' })); }
-function goFavorites(){ ensureLogged(() => uni.navigateTo({ url: '/pages/favorite/list' })); }
+
+function goFavorites() { ensureLogged(() => uni.navigateTo({ url: '/pages/favorite/list' })); }
+
 function goMessages() { ensureLogged(() => uni.navigateTo({ url: '/pages/message/list' })); }
-function goLearning() { uni.showToast({ title: '我的学习页建设中', icon: 'none' }); }
-function goOrders()   { uni.showToast({ title: '我的订单页建设中', icon: 'none' }); }
-function goBind()     { uni.showToast({ title: '账号绑定页建设中', icon: 'none' }); }
-function goSwitchRole(){ uni.showToast({ title: '修改身份页建设中', icon: 'none' }); }
+
+function goExpertTab() { uni.switchTab({ url: '/pages/expert/list' }); }
+
+function goCourseTab() { uni.switchTab({ url: '/pages/course/list' }); }
+
+
+
+function goLearning() {
+
+  if (!userStore.isLoggedIn) {
+
+    goLogin();
+
+    return;
+
+  }
+
+  uni.navigateTo({ url: '/pages/learning/list' });
+
+}
+
+
+
+function goOrders() {
+
+  if (!userStore.isLoggedIn) {
+
+    goLogin();
+
+    return;
+
+  }
+
+  uni.navigateTo({ url: '/pages/order/list' });
+
+}
+
+function goDemands() {
+  ensureLogged(() => uni.navigateTo({ url: '/pages/demand/list' }));
+}
+
+function goReviews() {
+  ensureLogged(() => uni.navigateTo({ url: '/pages/review/list' }));
+}
+
+function goMoreInfo() {
+  ensureLogged(() => uni.navigateTo({ url: '/pages/user/more-info' }));
+}
+
+function goSwitchRole() {
+  ensureLogged(() => uni.navigateTo({ url: '/pages/user/switch' }));
+}
+
+function goAccountBind() {
+  ensureLogged(() => uni.navigateTo({ url: '/pages/user/bind' }));
+}
+
+function goDeleteAccount() {
+  ensureLogged(() => uni.navigateTo({ url: '/pages/user/delete-account' }));
+}
+
+function goWithdrawRole() {
+  ensureLogged(() => uni.navigateTo({ url: '/pages/user/withdraw-role' }));
+}
+
+function goCertRealName() {
+  ensureLogged(() => uni.navigateTo({ url: '/pages/user/cert/real-name' }));
+}
+
+function goCertProfessional() {
+  ensureLogged(() => uni.navigateTo({ url: '/pages/user/cert/professional' }));
+}
+
+function goCertEducation() {
+  ensureLogged(() => uni.navigateTo({ url: '/pages/user/cert/education' }));
+}
+
+function goCertWork() {
+  ensureLogged(() => uni.navigateTo({ url: '/pages/user/cert/work' }));
+}
+
+
+
+function onContinueTap() {
+
+  if (!continueLearning.value?.videoId) return;
+
+  uni.navigateTo({ url: `/pages/video/play?id=${continueLearning.value.videoId}` });
+
+}
+
+
+
+function onRecentTap(v) {
+
+  if (!v?.videoId) return;
+
+  uni.navigateTo({ url: `/pages/video/play?id=${v.videoId}` });
+
+}
+
+
 
 function ensureLogged(action) {
+
   if (!userStore.isLoggedIn) {
+
     uni.showToast({ title: '请先登录', icon: 'none' });
+
     setTimeout(() => uni.navigateTo({ url: '/pages/auth/login' }), 600);
+
     return;
+
   }
+
   action();
+
 }
+
+
 
 function confirmLogout() {
+
   uni.showModal({
+
     title: '退出登录',
+
     content: '确定要退出当前账号吗？',
+
     confirmText: '退出',
+
     confirmColor: '#E62117',
+
     success: (res) => {
+
       if (res.confirm) {
+
         userStore.logout({ redirectToLogin: false });
+
         uni.showToast({ title: '已退出', icon: 'none' });
+
         stats.value = { learning: 0, favorites: 0, messages: 0, unread: 0 };
+
+        continueLearning.value = null;
+
+        recentVideos.value = [];
+
       }
+
     },
+
   });
+
 }
+
 </script>
 
+
+
 <style lang="scss" scoped>
+
 .page {
+
   height: 100vh;
+
   background: $tk-bg-page;
-}
-.page__scroll {
-  height: 100vh;
-  box-sizing: border-box;
-}
-.page__inner {
-  padding: 0 $tk-sp-3 $tk-sp-6;
-  display: flex;
-  flex-direction: column;
-  gap: $tk-sp-3;
+
 }
 
-// Hero
+.page__scroll {
+
+  height: 100vh;
+
+  box-sizing: border-box;
+
+}
+
+.page__inner {
+
+  padding: 0 $tk-sp-3 $tk-sp-6;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: $tk-sp-3;
+
+}
+
+
+
 .hero {
+
   position: relative;
+
   z-index: 0;
+
   background: linear-gradient(135deg, $tk-primary 0%, #FF6B35 100%);
-  padding: 0 $tk-sp-4 100rpx; // padding-top 由 inline style 控制（navBarH + 12px）
+
+  padding: 0 $tk-sp-4 100rpx;
+
+
 
   &__user {
+
     display: flex;
+
     align-items: center;
+
     gap: $tk-sp-3;
+
     padding: $tk-sp-3 0;
+
   }
+
   &__user-meta {
+
     flex: 1;
+
     min-width: 0;
+
     display: flex;
+
     flex-direction: column;
-    gap: 8rpx;
+
+    gap: 6rpx;
+
   }
-  &__user-name {
-    color: #fff;
-    font-size: $tk-fs-2xl;
-    font-weight: 800;
-    @include tk-ellipsis-1;
-  }
-  &__user-id {
+
+  &__welcome {
+
     color: rgba(255, 255, 255, 0.85);
-    font-size: $tk-fs-sm;
-  }
-  &__roles {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8rpx;
-  }
-  &__role {
-    padding: 4rpx 12rpx;
-    background: rgba(255, 255, 255, 0.20);
-    color: #fff;
+
     font-size: $tk-fs-xs;
-    border-radius: $tk-radius-xs;
+
   }
+
+  &__user-name {
+
+    color: #fff;
+
+    font-size: $tk-fs-2xl;
+
+    font-weight: 800;
+
+    @include tk-ellipsis-1;
+
+  }
+
+  &__user-id {
+
+    color: rgba(255, 255, 255, 0.85);
+
+    font-size: $tk-fs-sm;
+
+  }
+
+  &__roles {
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 8rpx;
+
+  }
+
+  &__role {
+
+    padding: 4rpx 12rpx;
+
+    background: rgba(255, 255, 255, 0.20);
+
+    color: #fff;
+
+    font-size: $tk-fs-xs;
+
+    border-radius: $tk-radius-xs;
+
+  }
+
+
 
   &__guest {
+
     display: flex;
+
     align-items: center;
+
     gap: $tk-sp-3;
+
     padding: $tk-sp-3 0;
+
   }
+
   &__guest-avatar {
+
     width: 144rpx;
+
     height: 144rpx;
+
     border-radius: 50%;
+
     background: rgba(255, 255, 255, 0.20);
+
     display: flex;
+
     align-items: center;
+
     justify-content: center;
+
   }
+
   &__guest-meta {
+
     flex: 1;
+
     min-width: 0;
+
     display: flex;
+
     flex-direction: column;
+
     gap: 8rpx;
+
   }
+
   &__guest-title {
+
     color: #fff;
+
     font-size: $tk-fs-xl;
+
     font-weight: 700;
+
   }
+
   &__guest-sub {
+
     color: rgba(255, 255, 255, 0.85);
+
     font-size: $tk-fs-sm;
+
   }
+
   &__guest-btn {
+
     flex-shrink: 0;
+
     padding: 14rpx 32rpx;
+
     background: #fff;
+
     border-radius: $tk-radius-full;
+
   }
+
   &__guest-btn-txt {
+
     color: $tk-primary;
+
     font-size: $tk-fs-sm;
+
     font-weight: 700;
+
   }
+
 }
 
-// 数据卡 —— 与 hero 重叠 1/3（白卡叠红底）
+
+
 .stats {
+
   position: relative;
-  z-index: 1; // 保险：确保整张白卡（含 box-shadow）绘制在 hero 红色之上
+
+  z-index: 1;
+
   margin-top: -60rpx;
+
   background: $tk-bg-card;
+
   border-radius: $tk-radius-lg;
+
   padding: $tk-sp-4 0;
+
   display: flex;
+
   align-items: center;
+
   box-shadow: $tk-shadow-card-md;
 
+
+
   &__item {
+
     flex: 1;
+
     display: flex;
+
     flex-direction: column;
+
     align-items: center;
+
     gap: 6rpx;
+
   }
+
   &__num-wrap {
+
     position: relative;
+
     display: inline-flex;
+
     align-items: center;
+
   }
+
   &__dot {
+
     position: absolute;
+
     top: -2rpx;
+
     right: -10rpx;
+
     width: 14rpx;
+
     height: 14rpx;
+
     border-radius: 50%;
+
     background: $tk-primary;
+
   }
+
   &__num {
+
     font-size: 40rpx;
+
     font-weight: 800;
+
     color: $tk-text-1;
+
   }
+
   &__label {
+
     font-size: $tk-fs-xs;
+
     color: $tk-text-3;
+
   }
+
   &__divider {
+
     width: 2rpx;
+
     height: 56rpx;
+
     background: $tk-divider-light;
+
   }
+
 }
 
-// 菜单
-.menu {
-  display: flex;
-  flex-direction: column;
-  gap: $tk-sp-2;
 
-  &__title-txt {
-    font-size: $tk-fs-sm;
-    color: $tk-text-3;
-    padding: 0 $tk-sp-2;
-  }
-  &__list {
-    background: $tk-bg-card;
-    border-radius: $tk-radius-lg;
-    box-shadow: $tk-shadow-card;
-    overflow: hidden;
-  }
-  &__row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: $tk-sp-3 $tk-sp-3;
-    border-bottom: 2rpx solid $tk-divider-light;
 
-    &--last {
-      border-bottom: none;
-    }
-  }
-  &__row-l {
-    display: flex;
-    align-items: center;
-    gap: $tk-sp-3;
-  }
-  &__row-r {
-    display: flex;
-    align-items: center;
-    gap: 8rpx;
-  }
-  &__icon {
-    width: 56rpx;
-    height: 56rpx;
-    border-radius: $tk-radius-sm;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.panel {
 
-    &--red    { background: rgba(230, 33, 23, 0.10); }
-    &--blue   { background: rgba(37, 99, 235, 0.10); }
-    &--orange { background: rgba(245, 158, 11, 0.10); }
-    &--green  { background: rgba(22, 163, 74, 0.10); }
-    &--gray   { background: $tk-bg-page; }
-  }
-  &__row-txt {
-    font-size: $tk-fs-md;
-    color: $tk-text-1;
-    font-weight: 500;
-  }
-  &__row-tip {
-    font-size: $tk-fs-xs;
-    color: $tk-text-4;
-  }
-  &__badge {
-    min-width: 32rpx;
-    height: 32rpx;
-    border-radius: 16rpx;
-    background: $tk-primary;
-    padding: 0 10rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  &__badge-txt {
-    color: #fff;
-    font-size: 20rpx;
-    font-weight: 700;
-  }
-}
-
-// 退出
-.logout-row {
-  margin-top: $tk-sp-3;
   background: $tk-bg-card;
+
   border-radius: $tk-radius-lg;
-  padding: $tk-sp-3 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+
   box-shadow: $tk-shadow-card;
 
-  &__txt {
-    font-size: $tk-fs-md;
-    font-weight: 600;
-    color: $tk-primary;
+  overflow: hidden;
+
+
+
+  &__head {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: $tk-sp-2;
+
+    padding: $tk-sp-3 $tk-sp-3;
+
+    border-bottom: 2rpx solid $tk-divider-light;
+
+    background: rgba(247, 249, 252, 0.6);
+
   }
+
+  &__bar {
+
+    width: 6rpx;
+
+    height: 28rpx;
+
+    background: $tk-primary;
+
+    border-radius: $tk-radius-full;
+
+  }
+
+  &__title {
+
+    font-size: $tk-fs-md;
+
+    font-weight: 700;
+
+    color: $tk-text-1;
+
+  }
+
+  &__body {
+
+    padding: $tk-sp-3;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: $tk-sp-3;
+
+  }
+
 }
 
-.footer-tip {
-  margin-top: $tk-sp-2;
-  text-align: center;
-  font-size: $tk-fs-xs;
-  color: $tk-text-4;
+
+
+.learn-block {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: $tk-sp-2;
+
+
+
+  &__label {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8rpx;
+
+  }
+
+  &__label-txt {
+
+    font-size: $tk-fs-sm;
+
+    font-weight: 700;
+
+    color: $tk-primary;
+
+  }
+
 }
+
+
+
+.continue-card {
+
+  padding: $tk-sp-3;
+
+  background: rgba(230, 33, 23, 0.05);
+
+  border: 2rpx solid rgba(230, 33, 23, 0.12);
+
+  border-radius: $tk-radius-md;
+
+
+
+  &__title {
+
+    font-size: $tk-fs-md;
+
+    font-weight: 600;
+
+    color: $tk-text-1;
+
+    @include tk-ellipsis-1;
+
+    margin-bottom: $tk-sp-2;
+
+  }
+
+  &__bar {
+
+    height: 8rpx;
+
+    background: $tk-divider-light;
+
+    border-radius: $tk-radius-full;
+
+    overflow: hidden;
+
+  }
+
+  &__progress {
+
+    height: 100%;
+
+    background: $tk-primary;
+
+    border-radius: $tk-radius-full;
+
+  }
+
+  &__foot {
+
+    margin-top: $tk-sp-2;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    gap: $tk-sp-2;
+
+  }
+
+  &__meta {
+
+    flex: 1;
+
+    font-size: $tk-fs-xs;
+
+    color: $tk-text-3;
+
+    @include tk-ellipsis-1;
+
+  }
+
+  &__action {
+
+    flex-shrink: 0;
+
+    font-size: $tk-fs-xs;
+
+    color: $tk-primary;
+
+    font-weight: 600;
+
+    padding: 8rpx 16rpx;
+
+    border: 2rpx solid $tk-primary;
+
+    border-radius: $tk-radius-full;
+
+  }
+
+}
+
+
+
+.continue-empty {
+
+  padding: $tk-sp-4;
+
+  border: 2rpx dashed $tk-divider-light;
+
+  border-radius: $tk-radius-md;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 8rpx;
+
+
+
+  &__txt {
+
+    font-size: $tk-fs-sm;
+
+    color: $tk-text-3;
+
+  }
+
+  &__link {
+
+    font-size: $tk-fs-xs;
+
+    color: $tk-primary;
+
+  }
+
+}
+
+
+
+.quick-links {
+
+  &__row {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: $tk-sp-3;
+
+  }
+
+  &__label {
+
+    width: 120rpx;
+
+    flex-shrink: 0;
+
+    font-size: $tk-fs-sm;
+
+    color: $tk-text-3;
+
+    text-align: right;
+
+  }
+
+  &__btns {
+
+    flex: 1;
+
+    display: flex;
+
+    gap: $tk-sp-2;
+
+  }
+
+  &__btn {
+
+    flex: 1;
+
+    padding: 16rpx 0;
+
+    border: 2rpx solid $tk-divider-light;
+
+    border-radius: $tk-radius-md;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+  }
+
+  &__btn-txt {
+
+    font-size: $tk-fs-sm;
+
+    color: $tk-text-2;
+
+  }
+
+}
+
+
+
+.recent-scroll {
+
+  width: 100%;
+
+  white-space: nowrap;
+
+
+
+  &__inner {
+
+    display: inline-flex;
+
+    gap: $tk-sp-3;
+
+  }
+
+}
+
+
+
+.recent-card {
+
+  width: 280rpx;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8rpx;
+
+
+
+  &__cover {
+
+    width: 280rpx;
+
+    height: 168rpx;
+
+    border-radius: $tk-radius-md;
+
+    background: $tk-divider-light;
+
+  }
+
+  &__title {
+
+    font-size: $tk-fs-sm;
+
+    font-weight: 600;
+
+    color: $tk-text-1;
+
+    @include tk-ellipsis(2);
+
+    white-space: normal;
+
+  }
+
+  &__meta {
+
+    font-size: $tk-fs-xs;
+
+    color: $tk-text-4;
+
+  }
+
+}
+
+
+
+.menu {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: $tk-sp-2;
+
+
+
+  &__title-txt {
+
+    font-size: $tk-fs-sm;
+
+    color: $tk-text-3;
+
+    padding: 0 $tk-sp-2;
+
+  }
+
+  &__list {
+
+    background: $tk-bg-card;
+
+    border-radius: $tk-radius-lg;
+
+    box-shadow: $tk-shadow-card;
+
+    overflow: hidden;
+
+  }
+
+  &__row {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: $tk-sp-3 $tk-sp-3;
+
+    border-bottom: 2rpx solid $tk-divider-light;
+
+
+
+    &--last { border-bottom: none; }
+
+  }
+
+  &__row-l {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: $tk-sp-3;
+
+  }
+
+  &__row-r {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8rpx;
+
+  }
+
+  &__icon {
+
+    width: 56rpx;
+
+    height: 56rpx;
+
+    border-radius: $tk-radius-sm;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+
+
+    &--red    { background: rgba(230, 33, 23, 0.10); }
+
+    &--blue   { background: rgba(37, 99, 235, 0.10); }
+
+    &--orange { background: rgba(245, 158, 11, 0.10); }
+
+    &--green  { background: rgba(22, 163, 74, 0.10); }
+
+    &--gray   { background: $tk-bg-page; }
+
+  }
+
+  &__row-txt {
+
+    font-size: $tk-fs-md;
+
+    color: $tk-text-1;
+
+    font-weight: 500;
+
+  }
+
+  &__row-tip {
+
+    font-size: $tk-fs-xs;
+
+    color: $tk-text-4;
+
+  }
+
+  &__row-count {
+
+    font-size: $tk-fs-xs;
+
+    color: $tk-primary;
+
+    font-weight: 600;
+
+  }
+
+  &__badge {
+
+    min-width: 32rpx;
+
+    height: 32rpx;
+
+    border-radius: 16rpx;
+
+    background: $tk-primary;
+
+    padding: 0 10rpx;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+  }
+
+  &__badge-txt {
+
+    color: #fff;
+
+    font-size: 20rpx;
+
+    font-weight: 700;
+
+  }
+
+}
+
+
+
+.logout-row {
+
+  margin-top: $tk-sp-3;
+
+  background: $tk-bg-card;
+
+  border-radius: $tk-radius-lg;
+
+  padding: $tk-sp-3 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  box-shadow: $tk-shadow-card;
+
+
+
+  &__txt {
+
+    font-size: $tk-fs-md;
+
+    font-weight: 600;
+
+    color: $tk-primary;
+
+  }
+
+}
+
+
+
+.footer-tip {
+
+  margin-top: $tk-sp-2;
+
+  text-align: center;
+
+  font-size: $tk-fs-xs;
+
+  color: $tk-text-4;
+
+}
+
 </style>
+

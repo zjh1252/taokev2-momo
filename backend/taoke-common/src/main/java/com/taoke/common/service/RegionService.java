@@ -56,4 +56,9 @@ public interface RegionService {
      * @return id → name 映射，不存在的 ID 不包含在内
      */
     Map<Integer, String> getNamesByIds(Collection<Integer> ids);
+
+    /**
+     * 老站 tk_areas.areaid / 6 位行政区划码 → 地区名称（如 310000 → 上海市）。
+     */
+    String getNameByLegacyRegionId(Integer legacyRegionId);
 }

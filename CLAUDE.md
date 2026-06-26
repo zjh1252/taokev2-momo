@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 运营方 | `PLATFORM_AUDITOR` / `PLATFORM_CS` / `SUPER_ADMIN` | 审核员/客服/超管 |
 
 ### 供给侧绑定关系
-
+Markdown Preview Enhanced
 角色间通过绑定表关联（状态：PENDING/ACTIVE/REJECTED/UNBOUND），绑定需专家确认：
 - 经纪人 ↔ 专家（多对多）、经纪公司 ↔ 专家（多对多，直管）、机构 ↔ 专家（多对多，挂靠）
 - 专家 ↔ 助理（一对一）、经纪公司 → 经纪人（一对多，隶属）、机构 → 机构员工（一对多，隶属）
@@ -73,6 +73,8 @@ taoke-admin 是薄编排层：禁止注入 Repository，禁止构造跨模块 En
 - Python 环境: `conda activate common-ai`
 - 全新项目，无需兼容旧版本，无需 `@Deprecated`
 - **优先复用**：开发前先搜索仓库已有工具类/组件，严禁重复编写
+- **老站数据迁移脚本一律放 `data-trans/`**（`scripts/`、`output/`、`docs/`），Flyway 只做 schema/种子；详见 `docs/guides/data-trans-migration.md`
+- **Flyway 启动失败（checksum 不匹配等）**：编写/复用 `data-trans/scripts/_fix_flyway_*.py` 后 Agent **直接执行 repair**，无需再向用户确认；详见 `docs/guides/flyway-operations.md`
 - 任务完成且用户确认后，记录工作内容到 `/docs/process/works.md`
 
 ## 仓库结构

@@ -9,11 +9,21 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get('search') ?? '';
   const status = searchParams.get('status') ?? '';
   const type = searchParams.get('type') ?? '';
+  const trainerId = searchParams.get('trainerId') ?? '';
+  const trainerName = searchParams.get('trainerName') ?? '';
+  const publisherType = searchParams.get('publisherType') ?? '';
+  const publisherId = searchParams.get('publisherId') ?? '';
+  const publisherName = searchParams.get('publisherName') ?? '';
 
   const params = new URLSearchParams({ page, size });
   if (search) params.set('keyword', search);
   if (status) params.set('status', status);
   if (type) params.set('type', type);
+  if (trainerId) params.set('trainerId', trainerId);
+  if (trainerName) params.set('trainerName', trainerName);
+  if (publisherType) params.set('publisherType', publisherType);
+  if (publisherId) params.set('publisherId', publisherId);
+  if (publisherName) params.set('publisherName', publisherName);
 
   const result = await serverFetch<unknown>(
     `/admin/courses?${params.toString()}`

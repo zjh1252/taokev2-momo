@@ -210,6 +210,9 @@ public class RoleCertificationServiceImpl implements RoleCertificationService {
         inst.setBankBranch(request.getBankBranch());
         inst.setLicenseDocUrl(request.getLicenseDocUrl());
         if (request.getLicenseNo() != null && !request.getLicenseNo().isBlank()) {
+            if (!request.getLicenseNo().matches("\\d{15}|[A-Z\\d]{18}")) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, "营业执照号需为15位纯数字或18位大写统一社会信用代码");
+            }
             inst.setLicenseNo(request.getLicenseNo());
         }
         inst.setCompanyInfoStatus(1);

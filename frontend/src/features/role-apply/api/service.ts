@@ -35,7 +35,51 @@ export function applyEnterpriseBuyer(data: EnterpriseBuyerFormData) {
 
 /** 专家申请 */
 export function applyTrainer(data: TrainerFormData) {
-  return apiPost('/trainers/apply', data, { headers: authHeaders() });
+  const payload = buildTrainerApplyPayload(data);
+  return apiPost('/trainers/apply', payload, { headers: authHeaders() });
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** 提交前清洗：避免空字符串日期/数字导致后端 JSON 反序列化 500 */
+function buildTrainerApplyPayload(data: TrainerFormData): TrainerFormData {
+  const books = (data.books ?? [])
+    .filter((b) => b?.title?.trim())
+    .map((b) => {
+      const item: TrainerBookFormItem = { title: b.title.trim() };
+      if (b.authorName?.trim()) item.authorName = b.authorName.trim();
+      if (b.coverUrl?.trim()) item.coverUrl = b.coverUrl.trim();
+      if (b.publisher?.trim()) item.publisher = b.publisher.trim();
+      if (b.publishDate?.trim()) item.publishDate = b.publishDate.trim();
+      if (b.description?.trim()) item.description = b.description.trim();
+      if (b.buyUrl?.trim()) item.buyUrl = b.buyUrl.trim();
+      return item;
+    });
+
+  return {
+    ...data,
+    provinceId: toNumberOrNull(data.provinceId),
+    cityId: toNumberOrNull(data.cityId),
+    districtId: toNumberOrNull(data.districtId),
+    townId: toNumberOrNull(data.townId),
+    experienceYears: toNumberOrNull(data.experienceYears),
+    teachingYears: toNumberOrNull(data.teachingYears),
+    quoteMin: toNumberOrNull(data.quoteMin),
+    quoteMax: toNumberOrNull(data.quoteMax),
+    taokePrice: toNumberOrNull(data.taokePrice),
+    taokeCommission: toNumberOrNull(data.taokeCommission),
+    industryCategoryIds: (data.industryCategoryIds ?? [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id)),
+    expertiseCategoryIds: (data.expertiseCategoryIds ?? [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id)),
+    books,
+  };
 }
 
 /** 专家经纪人申请 */
@@ -133,6 +177,7 @@ interface TrainerFullProfile {
   provinceId?: number;
   cityId?: number;
   districtId?: number;
+  townId?: number;
   address?: string;
   bio?: string;
   oneLineIntro?: string;
@@ -202,6 +247,7 @@ export async function getMyTrainerProfileAsForm(): Promise<Partial<TrainerFormDa
       provinceId: t.provinceId ?? null,
       cityId: t.cityId ?? null,
       districtId: t.districtId ?? null,
+      townId: t.townId ?? null,
       address: t.address ?? '',
       bio: t.bio ?? '',
       oneLineIntro: t.oneLineIntro ?? '',

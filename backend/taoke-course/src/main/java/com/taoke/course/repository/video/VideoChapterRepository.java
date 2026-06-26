@@ -24,4 +24,7 @@ public interface VideoChapterRepository extends JpaRepository<VideoChapter, Inte
     void deleteByVideoId(Integer videoId);
 
     void deleteBySeriesId(Integer seriesId);
+
+    /** 同一录播课下是否已有相同视频地址的章节（批量创建去重） */
+    boolean existsByVideoIdAndVideoUrl(Integer videoId, String videoUrl);
 }

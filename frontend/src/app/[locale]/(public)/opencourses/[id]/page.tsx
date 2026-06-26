@@ -1,9 +1,10 @@
-import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { openCourseDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 import { setRequestLocale } from 'next-intl/server';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getCourseDetail } from '@/features/course/api/service';
 import { CourseHero } from '@/features/course/components/detail/CourseHero';
+import { ExpiredCourseBanner } from '@/features/course/components/detail/ExpiredCourseBanner';
 import { CourseSidebar } from '@/features/course/components/detail/CourseSidebar';
 import { CourseDetailTabs } from '@/features/course/components/detail/CourseDetailTabs';
 
@@ -17,12 +18,9 @@ export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   try {
     const course = await getCourseDetail(Number(id));
-    return {
-      title: `${course.title} - 公开课详情 - 淘课网`,
-      description: course.audience || course.title,
-    };
+    return openCourseDetailMetadata(course);
   } catch {
-    return { title: '公开课详情 - 淘课网' };
+    return fallbackDetailMetadata('公开课详情');
   }
 }
 
@@ -54,6 +52,8 @@ export default async function OpenCourseDetailPage({ params }: Props) {
           { label: course.title || '公开课详情' },
         ]}
       />
+
+      <ExpiredCourseBanner show={Boolean(course.isOverdue)} />
 
       <CourseHero course={course} />
 

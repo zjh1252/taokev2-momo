@@ -17,7 +17,8 @@ import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
 import type { CourseDetail } from '../../api/types';
 import { useCart } from '@/features/cart/hooks/useCart';
-import { createOrder } from '@/features/order/api/service';
+import { createOrder, getPendingOrderByProduct } from '@/features/order/api/service';
+import { PendingOrderReminderDialog } from '@/features/order/components/PendingOrderReminderDialog';
 import {
   addFavorite,
   removeFavorite,
@@ -33,7 +34,8 @@ interface CourseSidebarProps {
 export function CourseSidebar({ course }: CourseSidebarProps) {
   const t = useTranslations('course.detail');
   const isOpen = course.type === 'OPEN_OFFLINE' || course.type === 'OPEN_ONLINE';
-  const isPurchasable = isOpen && course.price > 0 && course.isFree !== 1;
+  const isOverdue = Boolean(course.isOverdue);
+  const isPurchasable = isOpen && course.price > 0 && course.isFree !== 1 && !isOverdue;
   const { addItem } = useCart();
   const router = useRouter();
   const { requireAuth } = useAuthGuard();
@@ -42,6 +44,16 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
   const [favLoading, setFavLoading] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [consultOpen, setConsultOpen] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<Awaited<ReturnType<typeof getPendingOrderByProduct>>>(null);
+  const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
+
+  const primaryPlan = course.plans?.[0];
+  const planLocation = primaryPlan
+    ? [primaryPlan.cityName, primaryPlan.provinceName, primaryPlan.address]
+        .filter(Boolean)
+        .join(' ')
+    : undefined;
+  const planStartDate = primaryPlan?.startTime?.slice(0, 10);
 
   useEffect(() => {
     getInteractionState('COURSE', course.id)
@@ -68,14 +80,35 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
     }
   }, [favorited, course.id]);
 
+  const submitOrder = async () => {
+    const order = await createOrder({
+      directItem: { productType: 'OPEN_COURSE', productId: course.id },
+    });
+    router.push(`/checkout?orderNo=${order.orderNo}`);
+  };
+
   const handleBuyNow = async () => {
     if (!isPurchasable) return;
     setBuyLoading(true);
     try {
-      const order = await createOrder({
-        directItem: { productType: 'OPEN_COURSE', productId: course.id },
-      });
-      router.push(`/checkout?orderNo=${order.orderNo}`);
+      const existing = await getPendingOrderByProduct('OPEN_COURSE', course.id);
+      if (existing) {
+        setPendingOrder(existing);
+        setPendingDialogOpen(true);
+        return;
+      }
+      await submitOrder();
+    } catch {
+      // 错误已弹出
+    } finally {
+      setBuyLoading(false);
+    }
+  };
+
+  const handleContinueBuy = async () => {
+    setBuyLoading(true);
+    try {
+      await submitOrder();
     } catch {
       // 错误已弹出
     } finally {
@@ -128,7 +161,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
       )}
 
       {/* 非付费课程 — 内训课显示报名按钮，免费公开课显示预约按钮 */}
-      {!isPurchasable && (
+      {!isPurchasable && !isOverdue && (
         <button
           onClick={() => requireAuth(() => {
             if (!isOpen) {
@@ -146,6 +179,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
       )}
 
       {/* 立即咨询 */}
+      {!isOverdue && (
       <button
         type="button"
         onClick={() => setConsultOpen(true)}
@@ -154,6 +188,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         <MessageCircle className="size-4" />
         {t('consult')}
       </button>
+      )}
 
       {/* 收藏按钮 */}
       <button
@@ -193,11 +228,21 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         onOpenChange={setReviewOpen}
         scope="COURSE"
         courseId={course.id}
-        prefillTitle={course.title}
+        prefillExpertName={course.trainerName}
+        prefillCourseTitle={course.title}
+        prefillTrainingLocation={planLocation}
+        prefillTrainingDate={planStartDate}
         onSuccess={() => toast.success('评价已提交，审核通过后将公开展示')}
       />
 
       <CustomerServiceChatDialog open={consultOpen} onOpenChange={setConsultOpen} />
+
+      <PendingOrderReminderDialog
+        open={pendingDialogOpen}
+        order={pendingOrder}
+        onOpenChange={setPendingDialogOpen}
+        onContinue={handleContinueBuy}
+      />
     </div>
   );
 }

@@ -9,11 +9,13 @@ import com.taoke.course.api.DemandService;
 import com.taoke.course.dto.demand.*;
 import com.taoke.course.entity.demand.Demand;
 import com.taoke.course.entity.demand.DemandFollowUp;
+import com.taoke.course.entity.interaction.TrainerLeadMessage;
 import com.taoke.course.enums.DemandStatus;
 import com.taoke.course.enums.DemandType;
 import com.taoke.course.enums.FollowUpAction;
 import com.taoke.course.repository.demand.DemandFollowUpRepository;
 import com.taoke.course.repository.demand.DemandRepository;
+import com.taoke.course.repository.interaction.TrainerLeadMessageRepository;
 import com.taoke.user.api.EnterpriseBuyerService;
 import com.taoke.user.dto.enterprisebuyer.EnterpriseBuyerResponse;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class DemandServiceImpl implements DemandService {
 
     private final DemandRepository demandRepository;
     private final DemandFollowUpRepository followUpRepository;
+    private final TrainerLeadMessageRepository trainerLeadMessageRepository;
     private final EnterpriseBuyerService enterpriseBuyerService;
     private final EventPublisher eventPublisher;
 
@@ -46,6 +49,46 @@ public class DemandServiceImpl implements DemandService {
     @Override
     @Transactional
     public DemandDetailResponse create(Integer userId, CreateDemandRequest req) {
+        return doCreate(userId, req, "提交需求");
+    }
+
+    @Override
+    @Transactional
+    public DemandDetailResponse createPublic(CreateDemandRequest req) {
+        return doCreate(null, req, "游客提交需求");
+    }
+
+    @Override
+    @Transactional
+    public DemandDetailResponse createFromTrainerMessage(Integer messageId, Integer operatorId) {
+        TrainerLeadMessage message = trainerLeadMessageRepository.findById(messageId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "留言不存在"));
+        if (message.getStatus() != null && message.getStatus() >= 1) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "该留言已转为需求或已分配");
+        }
+
+        CreateDemandRequest req = new CreateDemandRequest();
+        req.setDemandType(DemandType.TRAINING.name());
+        req.setTitle(message.getTrainingTopic());
+        req.setTrainingTopic(message.getTrainingTopic());
+        req.setDescription(buildMessageDescription(message));
+        req.setContactName(message.getContactName());
+        req.setContactPhone(message.getContactMobile());
+        req.setProvinceId(message.getProvinceId());
+        req.setCityId(message.getCityId());
+        req.setDistrictId(message.getDistrictId());
+
+        DemandDetailResponse detail = doCreate(message.getUserId(), req, "由专家留言 #" + messageId + " 转为需求");
+        createFollowUp(detail.getId(), operatorId, FollowUpAction.ASSIGN_CS,
+                "由留言 #" + messageId + " 转为培训需求", null, DemandStatus.SUBMITTED.getValue());
+
+        message.setStatus(1);
+        trainerLeadMessageRepository.save(message);
+        log.info("管理员 {} 将留言 {} 转为需求 {}", operatorId, messageId, detail.getId());
+        return detail;
+    }
+
+    private DemandDetailResponse doCreate(Integer userId, CreateDemandRequest req, String followUpNote) {
         // 校验需求类型
         DemandType demandType;
         try {
@@ -54,15 +97,17 @@ public class DemandServiceImpl implements DemandService {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "无效的需求类型: " + req.getDemandType());
         }
 
-        // 查询企业采购方信息（如已有则关联）
+        // 查询企业采购方信息（登录用户且已有企业档案时关联）
         Integer enterpriseId = null;
-        try {
-            EnterpriseBuyerResponse buyer = enterpriseBuyerService.getByUserId(userId);
-            if (buyer != null) {
-                enterpriseId = buyer.getId();
+        if (userId != null) {
+            try {
+                EnterpriseBuyerResponse buyer = enterpriseBuyerService.getByUserId(userId);
+                if (buyer != null) {
+                    enterpriseId = buyer.getId();
+                }
+            } catch (Exception ignored) {
+                // 非企业采购者，enterpriseId 为空
             }
-        } catch (Exception ignored) {
-            // 非企业采购者，enterpriseId 为空
         }
 
         // 创建需求实体
@@ -88,14 +133,35 @@ public class DemandServiceImpl implements DemandService {
         demand.setCityId(req.getCityId());
         demand.setDistrictId(req.getDistrictId());
         demand.setStatus(DemandStatus.SUBMITTED.getValue());
+        // demand_no 列 NOT NULL：先占位 flush 拿 id，再回填正式单号
+        demand.setDemandNo("XQ-TMP-" + System.nanoTime());
+        demandRepository.saveAndFlush(demand);
+        demand.setDemandNo(String.format("XQ%08d", demand.getId()));
         demandRepository.save(demand);
 
         // 写入初始跟进记录
         createFollowUp(demand.getId(), userId, FollowUpAction.STATUS_CHANGE,
-                "提交需求", null, DemandStatus.SUBMITTED.getValue());
+                followUpNote, null, DemandStatus.SUBMITTED.getValue());
 
-        log.info("用户 {} 提交了{}需求, demandId={}", userId, demandType.getLabel(), demand.getId());
+        log.info("需求已提交, demandId={}, demandNo={}, userId={}", demand.getId(), demand.getDemandNo(), userId);
         return buildDetail(demand);
+    }
+
+    private String buildMessageDescription(TrainerLeadMessage message) {
+        StringBuilder sb = new StringBuilder();
+        if (message.getTrainingGoal() != null && !message.getTrainingGoal().isBlank()) {
+            sb.append("培训目标：").append(message.getTrainingGoal()).append('\n');
+        }
+        if (message.getCompanyName() != null && !message.getCompanyName().isBlank()) {
+            sb.append("公司：").append(message.getCompanyName()).append('\n');
+        }
+        if (message.getTrainingDays() != null && !message.getTrainingDays().isBlank()) {
+            sb.append("培训天数：").append(message.getTrainingDays()).append('\n');
+        }
+        if (message.getRemark() != null && !message.getRemark().isBlank()) {
+            sb.append("备注：").append(message.getRemark());
+        }
+        return sb.toString().trim();
     }
 
     @Override
@@ -108,7 +174,7 @@ public class DemandServiceImpl implements DemandService {
     @Override
     public DemandDetailResponse getDetail(Integer demandId, Integer userId) {
         Demand demand = findDemandOrThrow(demandId);
-        if (!demand.getUserId().equals(userId)) {
+        if (demand.getUserId() == null || !demand.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.DEMAND_NO_PERMISSION);
         }
         return buildDetail(demand);
@@ -118,7 +184,7 @@ public class DemandServiceImpl implements DemandService {
     @Transactional
     public void cancel(Integer demandId, Integer userId) {
         Demand demand = findDemandOrThrow(demandId);
-        if (!demand.getUserId().equals(userId)) {
+        if (demand.getUserId() == null || !demand.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.DEMAND_NO_PERMISSION);
         }
         DemandStatus currentStatus = DemandStatus.of(demand.getStatus());
@@ -147,6 +213,11 @@ public class DemandServiceImpl implements DemandService {
         String dt = (demandType != null && !demandType.isBlank()) ? demandType : null;
         Page<Demand> result = demandRepository.adminSearch(status, dt, kw, PageRequest.of(page - 1, size));
         return PageResponse.of(result, DemandListResponse::from);
+    }
+
+    @Override
+    public long countByStatus(Integer status) {
+        return demandRepository.countByStatus(status);
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.ApiResponse;
 import com.taoke.common.security.Public;
+import com.taoke.user.auth.LoginLockoutService;
 import com.taoke.user.captcha.CaptchaProperties;
 import com.taoke.user.captcha.CaptchaTokenStore;
 import com.taoke.user.captcha.LoginFailCounter;
@@ -36,20 +37,23 @@ public class AuthController {
     private final SmsProvider smsProvider;
     private final CaptchaTokenStore captchaTokenStore;
     private final LoginFailCounter loginFailCounter;
+    private final LoginLockoutService loginLockoutService;
     private final CaptchaProperties captchaProperties;
 
     /**
-     * 手机号 + 密码登录（后台管理登录走此接口）。后台登录始终要求滑块验证。
+     * 手机号 + 密码登录（后台管理登录走此接口）。后台登录始终要求滑块验证，不启用连续密码错误锁定。
      */
     @Public
     @Operation(summary = "手机号 + 密码登录（后台，始终需滑块）")
     @PostMapping("/auth/login")
-    public ApiResponse<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ApiResponse<TokenResponse> login(@Valid @RequestBody LoginRequest request,
+                                            HttpServletRequest httpRequest) {
         // 后台登录：始终强制滑块验证
         if (captchaProperties.isEnabled() && !captchaTokenStore.consume(request.getCaptchaToken())) {
             throw new BusinessException(ErrorCode.CAPTCHA_REQUIRED);
         }
-        return ApiResponse.ok(authService.loginByPassword(request));
+        String ip = getClientIp(httpRequest);
+        return executePasswordLogin(request.getPhone(), ip, false, false, () -> authService.loginByPassword(request));
     }
 
     @Public
@@ -67,7 +71,7 @@ public class AuthController {
     }
 
     /**
-     * 账号 + 密码登录（C 端）。密码错误 1 次后要求滑块验证；登录成功清零失败计数。
+     * 账号 + 密码登录（C 端）。密码错误 1 次后要求滑块验证；连续 5 次密码错误锁定 30 分钟。
      */
     @Public
     @Operation(summary = "账号 + 密码登录（C 端，错 1 次后需滑块）")
@@ -85,19 +89,7 @@ public class AuthController {
             throw new BusinessException(ErrorCode.CAPTCHA_REQUIRED);
         }
 
-        try {
-            TokenResponse token = authService.loginByUsername(request);
-            if (captchaOn) {
-                loginFailCounter.reset(account, ip);
-            }
-            return ApiResponse.ok(token);
-        } catch (BusinessException e) {
-            // 密码错误累加失败次数，前端据 CAPTCHA_REQUIRED / 本次失败后展示滑块
-            if (captchaOn && e.getErrorCode() == ErrorCode.PASSWORD_INCORRECT) {
-                loginFailCounter.increment(account, ip);
-            }
-            throw e;
-        }
+        return executePasswordLogin(account, ip, captchaOn, true, () -> authService.loginByUsername(request));
     }
 
     @Public
@@ -140,6 +132,44 @@ public class AuthController {
     public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ApiResponse.ok(null);
+    }
+
+    /**
+     * 密码登录统一包装：可选锁定校验、失败计数、成功清零。
+     *
+     * @param lockoutOn 是否启用连续密码错误锁定（后台登录关闭，C 端开启）
+     */
+    private ApiResponse<TokenResponse> executePasswordLogin(
+            String account,
+            String ip,
+            boolean captchaOn,
+            boolean lockoutOn,
+            java.util.function.Supplier<TokenResponse> loginAction) {
+        if (lockoutOn) {
+            loginLockoutService.checkNotLocked(account);
+        }
+        try {
+            TokenResponse token = loginAction.get();
+            if (lockoutOn) {
+                loginLockoutService.clear(account);
+            }
+            if (captchaOn) {
+                loginFailCounter.reset(account, ip);
+            }
+            return ApiResponse.ok(token);
+        } catch (BusinessException e) {
+            if (lockoutOn && e.getErrorCode() == ErrorCode.PASSWORD_INCORRECT) {
+                try {
+                    loginLockoutService.recordPasswordFailure(account);
+                } catch (BusinessException lockEx) {
+                    throw lockEx;
+                }
+            }
+            if (captchaOn && e.getErrorCode() == ErrorCode.PASSWORD_INCORRECT) {
+                loginFailCounter.increment(account, ip);
+            }
+            throw e;
+        }
     }
 
     private String getClientIp(HttpServletRequest request) {

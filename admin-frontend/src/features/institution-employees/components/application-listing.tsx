@@ -5,7 +5,7 @@ import { instEmployeeKeys } from '../api/queries';
 import { getInstEmployeeApplicationsFromServer } from '../api/server-service';
 import { EmployeeApplicationsTable } from './applications-table';
 
-export default function EmployeeApplicationListingPage() {
+export default async function EmployeeApplicationListingPage() {
   const page = searchParamsCache.get('page');
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
@@ -18,10 +18,14 @@ export default function EmployeeApplicationListingPage() {
 
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery({
-    queryKey: instEmployeeKeys.applications(filters),
-    queryFn: () => getInstEmployeeApplicationsFromServer(filters)
-  });
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: instEmployeeKeys.applications(filters),
+      queryFn: () => getInstEmployeeApplicationsFromServer(filters)
+    });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

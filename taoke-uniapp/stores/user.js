@@ -12,14 +12,17 @@ import { defineStore } from 'pinia';
 import { getToken, setToken, clearToken } from '@/utils/request';
 import * as authApi from '@/api/auth';
 import * as userApi from '@/api/user';
+import { roleLabel } from '@/constants/role';
 
 const PROFILE_KEY = 'tk_profile';
+const ACTIVE_ROLE_KEY = 'tk_active_role';
 
 export const useUserStore = defineStore('user', {
   state: () => ({
     token: '',
     profile: null,
     businessRoles: [],
+    activeRole: 'BUYER',
     initialized: false,
   }),
 
@@ -30,6 +33,7 @@ export const useUserStore = defineStore('user', {
     avatar: (state) => state.profile?.avatarUrl || state.profile?.avatar || '',
     /** 业务角色码列表（来自 profile.roles[].role） */
     roleCodes: (state) => (state.profile?.roles || []).map((r) => r?.role).filter(Boolean),
+    activeRoleLabel: (state) => roleLabel(state.activeRole) || '个人学员',
   },
 
   actions: {
@@ -41,15 +45,35 @@ export const useUserStore = defineStore('user', {
       try {
         const cached = uni.getStorageSync(PROFILE_KEY);
         if (cached) this.profile = cached;
+        const savedRole = uni.getStorageSync(ACTIVE_ROLE_KEY);
+        if (savedRole) this.activeRole = savedRole;
       } catch (_) { /* ignore */ }
+      this.syncActiveRole();
       this.initialized = true;
+    },
+
+    setActiveRole(role) {
+      this.activeRole = role || 'BUYER';
+      try { uni.setStorageSync(ACTIVE_ROLE_KEY, this.activeRole); } catch (_) {}
+    },
+
+    /** 校验 storage 中的 activeRole 是否仍有效 */
+    syncActiveRole() {
+      const roles = this.profile?.roles || [];
+      const activeCodes = new Set(
+        roles.filter((r) => r?.status === 1).map((r) => r.role),
+      );
+      activeCodes.add('BUYER');
+      if (!activeCodes.has(this.activeRole)) {
+        this.setActiveRole('BUYER');
+      }
     },
 
     /**
      * 账号 + 密码登录（推荐，与 frontend 对齐）
      */
-    async loginByUsername({ username, password }) {
-      const data = await authApi.loginByUsername({ username, password });
+    async loginByUsername({ username, password, captchaToken }) {
+      const data = await authApi.loginByUsername({ username, password, captchaToken });
       this.applyToken(data);
       await this.fetchProfile();
       return data;
@@ -100,6 +124,7 @@ export const useUserStore = defineStore('user', {
         const data = await userApi.getMyProfile();
         this.profile = data;
         uni.setStorageSync(PROFILE_KEY, data);
+        this.syncActiveRole();
         return data;
       } catch (e) {
         // 拉取失败可能是 token 已失效，由 request 拦截器处理跳转
@@ -127,8 +152,10 @@ export const useUserStore = defineStore('user', {
       this.token = '';
       this.profile = null;
       this.businessRoles = [];
+      this.activeRole = 'BUYER';
       clearToken();
       uni.removeStorageSync(PROFILE_KEY);
+      uni.removeStorageSync(ACTIVE_ROLE_KEY);
       if (redirectToLogin) {
         uni.reLaunch({ url: '/pages/auth/login' });
       }

@@ -37,6 +37,8 @@ public class VideoDetailVO {
     private String teacherName;
     private Integer trainerId;
     private String trainerName;
+    /** 专家头像（仅 trainerId 有效时有值） */
+    private String trainerAvatar;
 
     private BigDecimal price;
     private BigDecimal originalPrice;
@@ -60,6 +62,8 @@ public class VideoDetailVO {
     private Integer enrollmentCount;
     private Integer studentCount;
     private BigDecimal score;
+    /** 收藏人数 */
+    private Long favoriteCount;
 
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;
@@ -70,4 +74,7 @@ public class VideoDetailVO {
 
     /** 不属于任何系列的独立章节 */
     private List<VideoChapterVO> standaloneChapters;
+
+    /** 是否属于视频包系列（展示「系列介绍」Tab） */
+    private Boolean hasSeriesPackage;
 }

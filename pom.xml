@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.taoke</groupId>
+        <artifactId>taoke-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>backend/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>taokev2-mono</artifactId>
+    <packaging>pom</packaging>
+    <name>taokev2-mono</name>
+    <description>Monorepo 聚合 POM，仅供 IDE / Maven 识别多模块结构</description>
+
+    <modules>
+        <module>backend/taoke-common</module>
+        <module>backend/taoke-user</module>
+        <module>backend/taoke-course</module>
+        <module>backend/taoke-admin</module>
+        <module>backend/taoke-app</module>
+    </modules>
+</project>

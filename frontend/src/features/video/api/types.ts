@@ -79,6 +79,8 @@ export interface VideoListItem {
   keywords: string;
   publishedAt: string;
   createdAt: string;
+  /** 当前用户是否已购买解锁 */
+  unlocked?: boolean;
 }
 
 /** 录播课章节 */
@@ -132,6 +134,8 @@ export interface VideoDetail {
   teacherName: string;
   trainerId: number;
   trainerName: string;
+  /** 专家头像（trainerId > 0 时有值） */
+  trainerAvatar?: string;
   price: number;
   originalPrice: number;
   isFree: number;
@@ -151,11 +155,61 @@ export interface VideoDetail {
   enrollmentCount: number;
   studentCount: number;
   score: number;
+  favoriteCount: number;
   publishedAt: string;
   createdAt: string;
   updatedAt: string;
   seriesList: VideoSeries[];
   standaloneChapters: VideoChapter[];
+  /** 是否展示「系列介绍」Tab（属于视频包且包内有多门课） */
+  hasSeriesPackage?: boolean;
+}
+
+/** 录播课评论 */
+export interface VideoComment {
+  id: number;
+  videoId: number;
+  userName: string;
+  content: string;
+  rating: number;
+  createdAt: string;
+}
+
+export interface SubmitVideoCommentPayload {
+  rating: number;
+  content: string;
+}
+
+/** 系列介绍 — 视频包内单条录播课 */
+export interface VideoSeriesItem {
+  id: number;
+  title: string;
+  coverUrl: string;
+  price: number;
+  teacherName: string;
+  studentCount: number;
+}
+
+/** 系列介绍 — 视频包及包内录播课 */
+export interface VideoSeriesPackage {
+  packageName: string;
+  videos: VideoSeriesItem[];
+}
+
+/** 录播课购买选项 */
+export interface VideoPurchaseOptions {
+  hasSeriesOption: boolean;
+  singlePrice: number;
+  singleCompanyPrice: number;
+  singleMaxQuantity: number;
+  singleQuantityUnlimited?: boolean;
+  seriesProductId?: number;
+  seriesPackageName?: string;
+  seriesVideoCount?: number;
+  seriesPrice?: number;
+  seriesCompanyPrice?: number;
+  seriesMaxQuantity?: number;
+  seriesQuantityUnlimited?: boolean;
 }
 
 /** 录播课访问权限信息 */
@@ -164,6 +218,14 @@ export interface VideoAccessInfo {
   enrolled: boolean;
   isFree: boolean;
   isOwner: boolean;
+}
+
+/** 第三方章节播放签发结果 */
+export interface VideoChapterPlaybackUrl {
+  embedUrl: string;
+  provider: 'eceibs' | 'kuaike' | 'kuanxue' | 'scho' | string;
+  /** embed=iframe；direct=Video.js 直链 */
+  playbackMode?: 'embed' | 'direct';
 }
 
 /** 章节学习进度 */
@@ -188,6 +250,8 @@ export interface VideoProgressInfo {
 /** 创建/编辑录播课请求体 */
 export interface SaveVideoRequest {
   title: string;
+  /** true=保存草稿（仅校验标题），false/不传=提交审核 */
+  draft?: boolean;
   videoType?: VideoType;
   categoryId?: number;
   subCategoryId?: number;

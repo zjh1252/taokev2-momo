@@ -1,15 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
+import { SafeImage } from '@/components/safe-image';
 import { ChevronRight, Play, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import type { InstitutionDetail } from '../../types';
 import {
   getInstitutionCourses,
   getInstitutionVideos,
+  getInstitutionCases,
+  getInstitutionHighlights,
 } from '../../api/service';
+import type { TrainerCase } from '@/features/trainer-case/api/types';
+import type { TrainerHighlight } from '@/features/trainer-highlight/api/types';
 import { getPublicReviews } from '@/features/interaction/api/service';
 import type { ReviewItem } from '@/features/interaction/api/types';
 import ReviewDialog from '@/features/interaction/components/ReviewDialog';
@@ -17,6 +21,7 @@ import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
 import { LegacyRichText } from '@/components/legacy-rich-text';
+import { institutionSectionH3 } from '@/lib/seo/headings';
 
 interface InstitutionDetailTabsProps {
   institution: InstitutionDetail;
@@ -92,7 +97,7 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center justify-between border-l-4 border-primary pl-3 py-2 bg-slate-50 rounded-r mb-4">
-      <span className="font-bold text-slate-800 text-sm">{title}</span>
+      <h3 className="font-bold text-slate-800 text-sm">{title}</h3>
       {moreHref && (
         <Link
           href={moreHref}
@@ -109,6 +114,8 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
   const [openCourses, setOpenCourses] = useState<CourseListItem[]>([]);
   const [innerCourses, setInnerCourses] = useState<CourseListItem[]>([]);
   const [videos, setVideos] = useState<VideoListItem[]>([]);
+  const [cases, setCases] = useState<TrainerCase[]>([]);
+  const [highlights, setHighlights] = useState<TrainerHighlight[]>([]);
 
   useEffect(() => {
     getInstitutionCourses(institution.id, 'OPEN', 1, PREVIEW_COURSE_LIMIT)
@@ -120,55 +127,136 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
     getInstitutionVideos(institution.id, 1, PREVIEW_VIDEO_LIMIT)
       .then((res) => setVideos(res.list))
       .catch(() => setVideos([]));
+    getInstitutionCases(institution.id, PREVIEW_COURSE_LIMIT)
+      .then(setCases)
+      .catch(() => setCases([]));
+    getInstitutionHighlights(institution.id, PREVIEW_COURSE_LIMIT)
+      .then(setHighlights)
+      .catch(() => setHighlights([]));
   }, [institution.id]);
+
+  const orgName = institution.orgName;
 
   return (
     <div className="space-y-8">
       {/* 简介 */}
       {institution.bio && institution.bio.trim() && (
         <section>
-          <SectionHeader title="简介" />
+          <h2 className="text-lg font-bold text-slate-900 mb-4">机构介绍</h2>
+          <SectionHeader title={institutionSectionH3(orgName, '简介')} />
           <LegacyRichText content={institution.bio} className="text-sm" />
         </section>
       )}
 
-      {/* 公开课 */}
-      {openCourses.length > 0 && (
-        <section>
-          <SectionHeader
-            title="公开课"
-            moreHref={`/opencourses?institutionId=${institution.id}`}
-          />
-          <OpenCourseTable courses={openCourses} />
+      {(openCourses.length > 0 || innerCourses.length > 0 || videos.length > 0) && (
+        <section className="space-y-6">
+          <h2 className="text-lg font-bold text-slate-900">主营课程</h2>
+
+          {/* 公开课 */}
+          {openCourses.length > 0 && (
+            <div>
+              <SectionHeader
+                title={institutionSectionH3(orgName, '公开课')}
+                moreHref={`/opencourse?institutionId=${institution.id}`}
+              />
+              <OpenCourseTable courses={openCourses} />
+            </div>
+          )}
+
+          {/* 内训课 */}
+          {innerCourses.length > 0 && (
+            <div>
+              <SectionHeader
+                title={institutionSectionH3(orgName, '内训课')}
+                moreHref={`/inhousecourse?institutionId=${institution.id}`}
+              />
+              <InnerCourseTable courses={innerCourses} />
+            </div>
+          )}
+
+          {/* 视频 */}
+          {videos.length > 0 && (
+            <div>
+              <SectionHeader
+                title={institutionSectionH3(orgName, '视频课程')}
+                moreHref={`/videos?institutionId=${institution.id}`}
+              />
+              <VideoGrid videos={videos} />
+            </div>
+          )}
         </section>
       )}
 
-      {/* 内训课 */}
-      {innerCourses.length > 0 && (
+      {cases.length > 0 && (
         <section>
-          <SectionHeader
-            title="内训课"
-            moreHref={`/innercourses?institutionId=${institution.id}`}
-          />
-          <InnerCourseTable courses={innerCourses} />
+          <SectionHeader title={institutionSectionH3(orgName, '授课案例')} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {cases.map((item) => (
+              <Link
+                key={item.id}
+                href={`/case/${item.id}.htm`}
+                className="group border border-slate-100 rounded-lg overflow-hidden hover:border-primary/30 hover:shadow-sm transition-all"
+              >
+                {item.coverImage ? (
+                  <div className="relative h-32 w-full">
+                    <SafeImage
+                      src={item.coverImage}
+                      alt={item.caseTitle}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : null}
+                <div className="p-3">
+                  <p className="text-sm font-medium text-slate-800 group-hover:text-primary line-clamp-2">
+                    {item.caseTitle}
+                  </p>
+                  {item.trainerName ? (
+                    <p className="text-xs text-slate-400 mt-1">讲师：{item.trainerName}</p>
+                  ) : null}
+                </div>
+              </Link>
+            ))}
+          </div>
         </section>
       )}
 
-      {/* 视频 */}
-      {videos.length > 0 && (
+      {highlights.length > 0 && (
         <section>
-          <SectionHeader
-            title="视频"
-            moreHref={`/videos?institutionId=${institution.id}`}
-          />
-          <VideoGrid videos={videos} />
+          <SectionHeader title={institutionSectionH3(orgName, '精彩瞬间')} />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {highlights.map((item) => {
+              const cover = item.coverImage
+                || item.files.find((f) => f.fileType === 1)?.thumbnailUrl
+                || item.files.find((f) => f.fileType === 1)?.fileUrl;
+              return (
+                <div
+                  key={item.id}
+                  className="relative aspect-[4/3] rounded-lg overflow-hidden border border-slate-100 bg-slate-50"
+                >
+                  {cover ? (
+                    <SafeImage src={cover} alt={item.title || '精彩瞬间'} fill className="object-cover" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-xs text-slate-400">
+                      {item.title || '精彩瞬间'}
+                    </div>
+                  )}
+                  {item.title ? (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                      <p className="text-xs text-white line-clamp-2">{item.title}</p>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         </section>
       )}
 
       {/* 部分客户 */}
       {institution.clientCases && institution.clientCases.trim() && (
         <section>
-          <SectionHeader title="部分客户" />
+          <SectionHeader title={institutionSectionH3(orgName, '部分客户')} />
           <LegacyRichText content={institution.clientCases} className="text-sm" />
         </section>
       )}
@@ -186,6 +274,8 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
         openCourses.length === 0 &&
         innerCourses.length === 0 &&
         videos.length === 0 &&
+        cases.length === 0 &&
+        highlights.length === 0 &&
         !institution.clientCases &&
         !institution.successCases && (
           <p className="text-sm text-slate-400 text-center py-12">该机构暂未填写介绍内容</p>
@@ -226,7 +316,7 @@ function OpenCourseTable({ courses }: { courses: CourseListItem[] }) {
             <tr key={c.id} className="border-t border-slate-100 hover:bg-slate-50">
               <td className="px-4 py-3 text-slate-800">
                 <Link
-                  href={`/opencourses/${c.id}`}
+                  href={`/opencourse/${c.id}.htm`}
                   className="font-medium hover:text-primary line-clamp-1"
                 >
                   {c.title}
@@ -239,7 +329,7 @@ function OpenCourseTable({ courses }: { courses: CourseListItem[] }) {
               <td className="px-4 py-3 text-slate-600">{c.nextPlanCity || '—'}</td>
               <td className="px-4 py-3 text-right">
                 <Link
-                  href={`/opencourses/${c.id}`}
+                  href={`/opencourse/${c.id}.htm`}
                   className="text-primary hover:underline text-xs"
                 >
                   查看详情
@@ -270,7 +360,7 @@ function InnerCourseTable({ courses }: { courses: CourseListItem[] }) {
             <tr key={c.id} className="border-t border-slate-100 hover:bg-slate-50">
               <td className="px-4 py-3 text-slate-800">
                 <Link
-                  href={`/innercourses/${c.id}`}
+                  href={`/inhousecourse/${c.id}.htm`}
                   className="font-medium hover:text-primary line-clamp-1"
                 >
                   {c.title}
@@ -282,7 +372,7 @@ function InnerCourseTable({ courses }: { courses: CourseListItem[] }) {
               </td>
               <td className="px-4 py-3 text-right">
                 <Link
-                  href={`/innercourses/${c.id}`}
+                  href={`/inhousecourse/${c.id}.htm`}
                   className="text-primary hover:underline text-xs"
                 >
                   查看详情
@@ -302,12 +392,12 @@ function VideoGrid({ videos }: { videos: VideoListItem[] }) {
       {videos.map((v) => (
         <Link
           key={v.id}
-          href={`/videos/${v.id}`}
+          href={`/vedio/${v.id}.htm`}
           className="group rounded-lg overflow-hidden border border-slate-200 hover:shadow-sm transition-shadow"
         >
           <div className="aspect-video relative overflow-hidden bg-slate-100">
             {v.coverUrl ? (
-              <Image
+              <SafeImage
                 src={v.coverUrl}
                 alt={v.title}
                 width={320}

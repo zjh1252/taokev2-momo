@@ -164,6 +164,10 @@ export default function DemandDetailPage(props: PageProps) {
           </div>
           <div className='grid grid-cols-2 gap-4 text-sm'>
             <div>
+              <span className='text-muted-foreground'>需求单号：</span>
+              <span className='font-mono'>{detail.demandNo}</span>
+            </div>
+            <div>
               <span className='text-muted-foreground'>需求 ID：</span>
               <span>{detail.id}</span>
             </div>
@@ -213,7 +217,7 @@ export default function DemandDetailPage(props: PageProps) {
             )}
             <div>
               <span className='text-muted-foreground'>用户 ID：</span>
-              <span>{detail.userId}</span>
+              <span>{detail.userId ?? '游客'}</span>
             </div>
             <div>
               <span className='text-muted-foreground'>提交时间：</span>

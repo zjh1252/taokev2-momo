@@ -4,15 +4,24 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import RichTextEditor from '@/components/rich-text-editor';
 import { getVideoCategoryTree } from '@/features/video/api/service';
-import { uploadImage, uploadVideoFile } from '@/features/video/api/publisher-service';
+import {
+  deleteVideoChapter,
+  uploadImage,
+  uploadVideoFile,
+  validateVideoFile,
+  VIDEO_UPLOAD_HINT,
+} from '@/features/video/api/publisher-service';
 import { extractVideoFirstFrame } from '@/features/video/lib/extract-first-frame';
+import { MaterialPickerButton } from '@/features/ops-material/components/MaterialPickerButton';
 import type {
   VideoType,
   CategoryTreeNode,
   SaveVideoRequest,
   VideoDetail,
+  VideoChapter,
 } from '@/features/video/api/types';
-import { ImagePlus, X, ChevronDown, Film, CheckCircle, Loader2, Trash2, Info } from 'lucide-react';
+import { VideoStatus } from '@/features/video/api/types';
+import { ImagePlus, X, ChevronDown, Film, CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -28,11 +37,38 @@ export interface UploadedVideoItem {
   url: string;
 }
 
+type SeriesVideoItem = {
+  fileName: string;
+  url: string;
+  uploading: boolean;
+  progress: number;
+  /** 已有章节 ID，编辑模式下删除时需调用后端 */
+  existingChapterId?: number;
+};
+
 const VIDEO_TYPES: { value: VideoType; label: string }[] = [
   { value: 'SERIES', label: '多节视频' },
   { value: 'SINGLE', label: '单个视频' },
   { value: 'EXTERNAL', label: '外部网页视频' },
 ];
+
+function collectExistingChapters(detail: VideoDetail): VideoChapter[] {
+  if (detail.standaloneChapters?.length) {
+    return detail.standaloneChapters;
+  }
+  return detail.seriesList?.flatMap((s) => s.chapters ?? []) ?? [];
+}
+
+function buildInitialSeriesVideos(detail?: VideoDetail): SeriesVideoItem[] {
+  if (!detail || detail.videoType !== 'SERIES') return [];
+  return collectExistingChapters(detail).map((ch) => ({
+    fileName: ch.title,
+    url: ch.videoUrl,
+    uploading: false,
+    progress: 100,
+    existingChapterId: ch.id,
+  }));
+}
 
 /**
  * 录播课创建/编辑表单
@@ -51,34 +87,6 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   const [isFree, setIsFree] = useState(initialData?.isFree || 0);
   const [keywords, setKeywords] = useState(initialData?.keywords || '');
 
-  // 视频时长（分钟）—— 存储到后端时换算为秒（duration 列）
-  const [durationMinutes, setDurationMinutes] = useState<number>(
-    initialData?.duration ? Math.round(initialData.duration / 60) : 0,
-  );
-
-  // ===== 封顶价设置 =====
-  const deriveCapSel = (n?: number): string => {
-    if (!n || n <= 0) return '0';
-    if (n === 20 || n === 40 || n === 100) return String(n);
-    return 'custom';
-  };
-  const [capCountSel, setCapCountSel] = useState<string>(deriveCapSel(initialData?.capCount));
-  const [customCapCount, setCustomCapCount] = useState<number>(
-    deriveCapSel(initialData?.capCount) === 'custom' ? (initialData?.capCount ?? 0) : 0,
-  );
-  // 封顶价：是否「不设置」(置灰清空)；以及手动值与是否被手动改过
-  const [capPriceUnset, setCapPriceUnset] = useState<boolean>(initialData ? initialData.capPrice == null : true);
-  const [capPrice, setCapPrice] = useState<number>(initialData?.capPrice ?? 0);
-  const [capPriceManual, setCapPriceManual] = useState<boolean>(initialData?.capPrice != null);
-  const [capInfoOpen, setCapInfoOpen] = useState(false);
-
-  const capCount = capCountSel === 'custom' ? (customCapCount || 0) : Number(capCountSel);
-  // 默认封顶价 = 单价 × 封顶人数；用户未手动改过时显示该默认值
-  const autoCapPrice = price > 0 && capCount > 0 ? Number((price * capCount).toFixed(2)) : 0;
-  const effectiveCapPrice = capPriceManual ? capPrice : autoCapPrice;
-  // 「不限」或「不设置」时封顶价不适用
-  const capDisabled = capCount <= 0 || capPriceUnset;
-
   const [categories, setCategories] = useState<CategoryTreeNode[]>([]);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [catDropdownOpen, setCatDropdownOpen] = useState(false);
@@ -94,11 +102,16 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   // SINGLE 类型：单个视频
   const [uploadingSingleVideo, setUploadingSingleVideo] = useState(false);
   const [singleVideoFileName, setSingleVideoFileName] = useState('');
+  const [singleVideoProgress, setSingleVideoProgress] = useState(0);
 
   // SERIES 类型：多个视频
-  const [seriesVideos, setSeriesVideos] = useState<
-    { fileName: string; url: string; uploading: boolean }[]
-  >([]);
+  const [seriesVideos, setSeriesVideos] = useState<SeriesVideoItem[]>(
+    () => buildInitialSeriesVideos(initialData),
+  );
+
+  const canSaveDraft = !initialData
+    || initialData.status === VideoStatus.DRAFT
+    || initialData.status === VideoStatus.REJECTED;
 
   useEffect(() => {
     getVideoCategoryTree().then(setCategories).catch(() => {});
@@ -146,15 +159,23 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   const handleUploadSingleVideo = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // 上传前先做大小/格式校验，避免传到一半才失败
+    const invalid = validateVideoFile(file);
+    if (invalid) {
+      toast.error(invalid);
+      e.target.value = '';
+      return;
+    }
     setUploadingSingleVideo(true);
     setSingleVideoFileName(file.name);
+    setSingleVideoProgress(0);
     // 同时启动首帧抽取（与视频上传并行，互不阻塞）
     void autoGenerateCoverFromVideo(file);
     try {
-      const url = await uploadVideoFile(file);
+      const url = await uploadVideoFile(file, setSingleVideoProgress);
       setVideoUrl(url);
-    } catch {
-      toast.error('视频上传失败，请检查文件格式和大小（最大500MB）');
+    } catch (err) {
+      toast.error((err as Error)?.message || '视频上传失败，请检查文件格式和大小');
     } finally {
       setUploadingSingleVideo(false);
     }
@@ -164,74 +185,101 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    // 上传前先批量校验大小/格式，不合格的整批拦截并提示
+    const fileList = Array.from(files);
+    for (const file of fileList) {
+      const invalid = validateVideoFile(file);
+      if (invalid) {
+        toast.error(invalid);
+        e.target.value = '';
+        return;
+      }
+    }
+
     const startIndex = seriesVideos.length;
-    const newItems = Array.from(files).map((f) => ({
+    const newItems = fileList.map((f) => ({
       fileName: f.name,
       url: '',
       uploading: true,
+      progress: 0,
     }));
     setSeriesVideos((prev) => [...prev, ...newItems]);
 
     // 当列表为空时，把第一个视频文件作为封面自动抽帧候选
-    if (startIndex === 0 && files[0]) {
-      void autoGenerateCoverFromVideo(files[0]);
+    if (startIndex === 0 && fileList[0]) {
+      void autoGenerateCoverFromVideo(fileList[0]);
     }
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
       const itemIndex = startIndex + i;
       try {
-        const url = await uploadVideoFile(file);
+        const url = await uploadVideoFile(file, (percent) => {
+          setSeriesVideos((prev) =>
+            prev.map((item, idx) =>
+              idx === itemIndex ? { ...item, progress: percent } : item,
+            ),
+          );
+        });
         setSeriesVideos((prev) =>
           prev.map((item, idx) =>
-            idx === itemIndex ? { ...item, url, uploading: false } : item,
+            idx === itemIndex ? { ...item, url, uploading: false, progress: 100 } : item,
           ),
         );
-      } catch {
+      } catch (err) {
         setSeriesVideos((prev) =>
           prev.map((item, idx) =>
             idx === itemIndex ? { ...item, uploading: false } : item,
           ),
         );
-        toast.error(`视频 "${file.name}" 上传失败`);
+        toast.error((err as Error)?.message || `视频 "${file.name}" 上传失败`);
       }
     }
     // 清空 input
     e.target.value = '';
   }, [seriesVideos.length, autoGenerateCoverFromVideo]);
 
-  const removeSeriesVideo = (idx: number) => {
+  const removeSeriesVideo = async (idx: number) => {
+    const item = seriesVideos[idx];
+    if (item?.existingChapterId && initialData?.id) {
+      try {
+        await deleteVideoChapter(initialData.id, item.existingChapterId);
+      } catch {
+        toast.error('删除章节失败');
+        return;
+      }
+    }
     setSeriesVideos((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /**
+   * 组装并提交表单。
+   *
+   * @param draft true=保存草稿（仅校验标题），false=提交发布（完整校验）
+   */
+  const submitForm = async (draft: boolean) => {
     if (!title.trim()) {
       toast.warning('请输入视频标题');
       return;
     }
-    if (!intro.trim()) {
-      toast.warning('请填写视频介绍');
-      return;
+    if (!draft) {
+      if (!categoryId) {
+        toast.warning('请选择所属分类');
+        return;
+      }
+      if (!intro.trim()) {
+        toast.warning('请填写视频介绍');
+        return;
+      }
+      if (isFree === 0 && (!price || price <= 0)) {
+        toast.warning('请填写课程价格，或勾选"免费"');
+        return;
+      }
     }
-    if (!durationMinutes || durationMinutes <= 0) {
-      toast.warning('请填写视频时长（分钟）');
-      return;
-    }
-    if (isFree === 0 && (!price || price <= 0)) {
-      toast.warning('请填写单价，或勾选"免费"');
-      return;
-    }
-
-    // 封顶价：免费 / 不限人数 / 不设置 → 不传；否则取有效值
-    const resolvedCapCount = isFree === 1 ? 0 : capCount;
-    const resolvedCapPrice =
-      isFree === 1 || capPriceUnset || resolvedCapCount <= 0 || !effectiveCapPrice
-        ? undefined
-        : effectiveCapPrice;
 
     const data: SaveVideoRequest = {
       title: title.trim(),
+      draft,
       videoType,
       categoryId: categoryId || undefined,
       subCategoryId: subCategoryId || undefined,
@@ -242,18 +290,22 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       teacherName: teacherName || undefined,
       price: isFree === 1 ? 0 : price,
       isFree,
-      capCount: resolvedCapCount,
-      capPrice: resolvedCapPrice,
-      duration: durationMinutes * 60,
       keywords: keywords || undefined,
     };
 
-    // SERIES 类型时，将已上传的视频列表传给父组件，由父组件调用批量创建章节
+    // SERIES 类型时，将新上传的视频列表传给父组件，由父组件调用批量创建章节
     const uploadedVideos = videoType === 'SERIES'
-      ? seriesVideos.filter((v) => v.url && !v.uploading).map((v) => ({ fileName: v.fileName, url: v.url }))
+      ? seriesVideos
+        .filter((v) => v.url && !v.uploading && !v.existingChapterId)
+        .map((v) => ({ fileName: v.fileName, url: v.url }))
       : undefined;
 
     await onSubmit(data, uploadedVideos);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitForm(false);
   };
 
   const selectedCatName = categories.find((c) => c.id === categoryId)?.name;
@@ -300,13 +352,6 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
           </button>
           {catDropdownOpen && (
             <div className="absolute z-50 top-full left-0 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              <button
-                type="button"
-                onClick={() => { setCategoryId(0); setCatDropdownOpen(false); }}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
-              >
-                不选择
-              </button>
               {categories.map((cat) => (
                 <button
                   key={cat.id}
@@ -382,13 +427,21 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
                 {uploadingSingleVideo ? (
                   <>
                     <Loader2 className="size-8 text-primary animate-spin" />
-                    <span className="text-sm text-primary">正在上传 {singleVideoFileName}...</span>
+                    <span className="text-sm text-primary">
+                      正在上传 {singleVideoFileName}... {singleVideoProgress}%
+                    </span>
+                    <div className="w-full max-w-xs h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all"
+                        style={{ width: `${singleVideoProgress}%` }}
+                      />
+                    </div>
                   </>
                 ) : (
                   <>
                     <Film className="size-8 text-slate-400" />
                     <span className="text-sm text-slate-500">点击选择视频文件</span>
-                    <span className="text-xs text-slate-400">支持 mp4、avi、mov 等，最大 500MB</span>
+                    <span className="text-xs text-slate-400">{VIDEO_UPLOAD_HINT}</span>
                   </>
                 )}
               </label>
@@ -426,10 +479,20 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-700 truncate">
                         章节{idx + 1}：{item.fileName}
+                        {item.uploading && (
+                          <span className="ml-2 text-xs text-primary">{item.progress}%</span>
+                        )}
                       </p>
-                      {item.url && (
+                      {item.uploading ? (
+                        <div className="mt-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all"
+                            style={{ width: `${item.progress}%` }}
+                          />
+                        </div>
+                      ) : item.url ? (
                         <p className="text-xs text-slate-400 truncate">{item.url}</p>
-                      )}
+                      ) : null}
                     </div>
                     {!item.uploading && (
                       <button
@@ -468,7 +531,7 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
                   <Film className="size-8 text-slate-400" />
                   <span className="text-sm text-slate-500">点击选择多个视频文件</span>
                   <span className="text-xs text-slate-400">
-                    每个视频自动生成一个章节，支持 mp4、avi、mov 等，最大 500MB/个
+                    每个视频自动生成一个章节；{VIDEO_UPLOAD_HINT}
                   </span>
                 </>
               )}
@@ -531,6 +594,17 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
           <p className="text-xs text-slate-400 mt-1">
             建议尺寸：400 x 300 ；上传视频后将自动取首帧作为封面，您也可手动上传替换。
           </p>
+          <div className="mt-2">
+            <MaterialPickerButton
+              materialType="COVER"
+              category={selectedCatName}
+              scene="VIDEO"
+              onSelect={(url) => {
+                setCoverUrl(url);
+                setCoverManual(true);
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -559,159 +633,34 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
         </div>
       </div>
 
-      {/* 视频时长 */}
-      <div className="flex items-start gap-4">
-        <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">
-          视频时长 <span className="text-red-500">*</span>
-        </label>
-        <div className="flex-1 flex items-center gap-2">
-          <input
-            type="number"
-            value={durationMinutes || ''}
-            onChange={(e) => setDurationMinutes(Math.max(0, Math.floor(Number(e.target.value))))}
-            min={0}
-            step={1}
-            placeholder="请输入视频总时长"
-            className="w-32 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
-          <span className="text-sm text-slate-500">分钟</span>
-        </div>
-      </div>
-
       {/* 视频价格 */}
       <div className="flex items-start gap-4">
         <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">
           视频价格 <span className="text-red-500">*</span>
         </label>
-        <div className="flex-1 space-y-3">
-          {/* 免费（单选，选中后下方置灰） */}
-          <label className="flex items-center gap-1.5 text-sm cursor-pointer w-fit">
+        <div className="flex-1 flex items-center gap-3">
+          <label className="flex items-center gap-1.5 text-sm cursor-pointer">
             <input
-              type="radio"
+              type="checkbox"
               checked={isFree === 1}
-              onClick={() => setIsFree(isFree === 1 ? 0 : 1)}
-              onChange={() => {}}
+              onChange={(e) => setIsFree(e.target.checked ? 1 : 0)}
               className="accent-primary"
             />
             免费
           </label>
-
-          <div
-            className={cn(
-              'space-y-3 transition-opacity',
-              isFree === 1 && 'opacity-50 pointer-events-none select-none',
-            )}
-          >
-            {/* 单价 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 w-20 shrink-0">单价</span>
+          {isFree === 0 && (
+            <>
               <input
                 type="number"
-                value={price || ''}
-                onChange={(e) => setPrice(Math.max(0, Number(e.target.value)))}
+                value={price}
+                onChange={(e) => setPrice(Number(e.target.value))}
                 min={0}
                 step={0.01}
-                disabled={isFree === 1}
                 className="w-32 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
               <span className="text-sm text-slate-500">元/人/年</span>
-            </div>
-
-            {/* 封顶价设置 */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm text-gray-600">封顶价设置</span>
-              <span className="relative inline-flex">
-                <button
-                  type="button"
-                  onClick={() => setCapInfoOpen((v) => !v)}
-                  onMouseEnter={() => setCapInfoOpen(true)}
-                  onMouseLeave={() => setCapInfoOpen(false)}
-                  className="text-slate-400 hover:text-primary"
-                  aria-label="封顶价说明"
-                >
-                  <Info className="size-4" />
-                </button>
-                {capInfoOpen && (
-                  <span className="absolute left-6 top-1/2 -translate-y-1/2 z-50 w-72 rounded-lg bg-slate-800 text-white text-xs leading-relaxed px-3 py-2 shadow-lg">
-                    封顶价是为批量采购设置的优惠价格，计算规则为单价×封顶人数。批量采购时，总价不超过「封顶价」；批量采购人数超过封顶人数后，也不再额外收费。
-                  </span>
-                )}
-              </span>
-            </div>
-
-            {/* 封顶人数 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 w-20 shrink-0 pl-4">封顶人数</span>
-              <select
-                value={capCountSel}
-                onChange={(e) => {
-                  setCapCountSel(e.target.value);
-                  setCapPriceManual(false);
-                  // 选「不限」→ 封顶价不适用并置灰；选具体人数 → 默认启用并显示单价×人数
-                  setCapPriceUnset(e.target.value === '0');
-                }}
-                disabled={isFree === 1}
-                className="w-40 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
-              >
-                <option value="0">不限</option>
-                <option value="20">20人封顶</option>
-                <option value="40">40人封顶</option>
-                <option value="100">100人封顶</option>
-                <option value="custom">自定义</option>
-              </select>
-              {capCountSel === 'custom' && (
-                <>
-                  <input
-                    type="number"
-                    value={customCapCount || ''}
-                    onChange={(e) => {
-                      setCustomCapCount(Math.max(0, Math.floor(Number(e.target.value))));
-                      setCapPriceManual(false);
-                    }}
-                    min={1}
-                    step={1}
-                    placeholder="人数"
-                    disabled={isFree === 1}
-                    className="w-24 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  />
-                  <span className="text-sm text-slate-500">人</span>
-                </>
-              )}
-            </div>
-
-            {/* 封顶价 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 w-20 shrink-0 pl-4">封顶价</span>
-              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
-                <input
-                  type="radio"
-                  checked={capPriceUnset}
-                  onClick={() => setCapPriceUnset((v) => !v)}
-                  onChange={() => {}}
-                  disabled={isFree === 1 || capCount <= 0}
-                  className="accent-primary"
-                />
-                不设置
-              </label>
-              <input
-                type="number"
-                value={capDisabled ? '' : effectiveCapPrice || ''}
-                onChange={(e) => {
-                  setCapPrice(Math.max(0, Number(e.target.value)));
-                  setCapPriceManual(true);
-                }}
-                min={0}
-                step={0.01}
-                disabled={isFree === 1 || capDisabled}
-                placeholder={capCount > 0 ? '默认单价×封顶人数' : '请先选择封顶人数'}
-                className={cn(
-                  'w-44 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary',
-                  capDisabled && 'bg-slate-100 text-slate-400',
-                )}
-              />
-              <span className="text-sm text-slate-500">元</span>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -733,12 +682,22 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
 
       {/* 提交按钮 */}
       <div className="flex items-center gap-4 pt-4 pl-28">
+        {canSaveDraft ? (
+          <button
+            type="button"
+            onClick={() => submitForm(true)}
+            disabled={submitting || isAnySeriesUploading}
+            className="border border-primary/40 text-primary font-medium px-8 py-2.5 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
+          >
+            保存草稿
+          </button>
+        ) : null}
         <button
           type="submit"
           disabled={submitting || isAnySeriesUploading}
           className="bg-primary text-white font-medium px-8 py-2.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
-          {submitting ? '保存中...' : '保存'}
+          {submitting ? '保存中...' : initialData ? '保存并提交审核' : '提交发布'}
         </button>
       </div>
     </form>

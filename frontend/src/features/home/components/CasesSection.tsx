@@ -1,9 +1,8 @@
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
+import { SafeImage } from '@/components/safe-image';
 import { SectionHeader } from './SectionHeader';
 import type { CaseStudy } from '../types';
-
 interface CasesSectionProps {
   cases: CaseStudy[];
 }
@@ -18,7 +17,7 @@ export function CasesSection({ cases }: CasesSectionProps) {
     <section>
       <SectionHeader
         title={t('cases.sectionTitle')}
-        viewMoreHref="/trainers"
+        viewMoreHref="/trainer"
         viewMoreText={t('experts.viewMore')}
       />
 
@@ -36,18 +35,18 @@ function CaseCard({ caseStudy }: { caseStudy: CaseStudy }) {
 
   return (
     <Link
-      href={`/cases/${caseStudy.id}`}
+      href={`/case/${caseStudy.id}.htm`}
       className="bg-white rounded-lg overflow-hidden border border-slate-100 hover:border-primary transition-colors shadow-sm group flex flex-col h-full"
     >
       {/* 封面图 */}
       <div className="h-40 overflow-hidden relative">
-        <Image
+        <SafeImage
           src={caseStudy.image}
           alt={caseStudy.title}
           fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+        />        <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
       </div>
 
       {/* 内容 */}
@@ -62,9 +61,9 @@ function CaseCard({ caseStudy }: { caseStudy: CaseStudy }) {
           {caseStudy.description}
         </p>
 
-        {/* 底部标签 + 按钮 */}
-        <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-          <div className="flex gap-2">
+        {/* 底部标签 + 案例时间 + 按钮 */}
+        <div className="mt-auto pt-4 border-t border-slate-100">
+          <div className="flex flex-wrap gap-2 mb-3">
             {caseStudy.tags.map((tag) => (
               <span
                 key={tag}
@@ -74,9 +73,18 @@ function CaseCard({ caseStudy }: { caseStudy: CaseStudy }) {
               </span>
             ))}
           </div>
-          <span className="bg-primary text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-primary/90 transition-colors">
-            {t('cases.readMore')}
-          </span>
+          <div className="flex items-center justify-between gap-3">
+            {caseStudy.caseDate ? (
+              <span className="text-xs text-slate-400">
+                {t('cases.caseDate', { date: caseStudy.caseDate })}
+              </span>
+            ) : (
+              <span />
+            )}
+            <span className="bg-primary text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-primary/90 transition-colors shrink-0">
+              {t('cases.readMore')}
+            </span>
+          </div>
         </div>
       </div>
     </Link>

@@ -6,6 +6,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import Image from 'next/image';
 import { CellAction } from './cell-action';
+import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 
 function statusVariant(status: number) {
   switch (status) {
@@ -23,8 +24,14 @@ function statusVariant(status: number) {
 export const columns: ColumnDef<AdminInstitutionApplication>[] = [
   {
     accessorKey: 'id',
-    header: 'ID',
+    header: '申请ID',
     enableSorting: false
+  },
+  {
+    accessorKey: 'institutionId',
+    header: '机构ID',
+    enableSorting: false,
+    cell: ({ cell }) => cell.getValue<number | null>() ?? '-'
   },
   {
     id: 'applicant',
@@ -33,7 +40,7 @@ export const columns: ColumnDef<AdminInstitutionApplication>[] = [
       <div className='flex items-center gap-3'>
         {row.original.logoUrl ? (
           <Image
-            src={row.original.logoUrl}
+            src={resolveAssetUrl(row.original.logoUrl)}
             alt={row.original.orgName || ''}
             width={32}
             height={32}
@@ -72,7 +79,10 @@ export const columns: ColumnDef<AdminInstitutionApplication>[] = [
     accessorKey: 'status',
     header: '状态',
     enableColumnFilter: true,
-    cell: ({ cell }) => {
+    cell: ({ cell, row }) => {
+      if (row.original.reapplying) {
+        return <Badge variant='secondary'>重提申请</Badge>;
+      }
       const status = cell.getValue<number>();
       return (
         <Badge variant={statusVariant(status)}>
@@ -99,10 +109,11 @@ export const columns: ColumnDef<AdminInstitutionApplication>[] = [
     }
   },
   {
-    accessorKey: 'createdAt',
-    header: '申请时间',
-    cell: ({ cell }) => {
-      const val = cell.getValue<string>();
+    id: 'submittedAt',
+    header: '提交时间',
+    cell: ({ row }) => {
+      // 二次申请后 updatedAt 为最近提交时间，优先展示
+      const val = row.original.updatedAt || row.original.createdAt;
       if (!val) return '-';
       return new Date(val).toLocaleString('zh-CN', {
         year: 'numeric',

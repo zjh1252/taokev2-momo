@@ -1,0 +1,20 @@
+{
+  "title": "Shopping Cart",
+  "empty": "Your cart is empty",
+  "emptyHint": "Browse our courses to get started",
+  "selectAll": "Select All",
+  "clearAll": "Clear Cart",
+  "selected": "{count} items selected",
+  "total": "Total",
+  "checkout": "Checkout",
+  "addSuccess": "Added to cart",
+  "removeSuccess": "Removed from cart",
+  "clearSuccess": "Cart cleared",
+  "selectRequired": "Please select items to checkout",
+  "addToCart": "Add to Cart",
+  "buyNow": "Buy Now",
+  "processing": "Processing...",
+  "freeHint": "This is a free course, no purchase needed",
+  "priceChanged": "Current price",
+  "noImage": "No image"
+}

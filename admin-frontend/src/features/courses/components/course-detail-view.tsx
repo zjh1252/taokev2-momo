@@ -49,7 +49,9 @@ export function CourseDetailView({ detail }: { detail: AdminCourseDetail }) {
             {detail.isFeatured === 1 && <Badge>主打</Badge>}
             {detail.isFree === 1 && <Badge variant='outline'>免费</Badge>}
             <Badge variant={statusVariant(detail.status)}>
-              {COURSE_STATUS_MAP[detail.status] ?? detail.statusLabel ?? '未知'}
+              {detail.status === 2 && detail.isOverdue
+                ? `${COURSE_STATUS_MAP[detail.status] ?? detail.statusLabel ?? '未知'} · 已过期`
+                : (COURSE_STATUS_MAP[detail.status] ?? detail.statusLabel ?? '未知')}
             </Badge>
           </div>
         </div>
@@ -122,6 +124,22 @@ export function CourseDetailView({ detail }: { detail: AdminCourseDetail }) {
               <span className='text-muted-foreground'>授课专家：</span>
               <span>{detail.trainerName ?? '-'}</span>
             </div>
+            {detail.type === 'OPEN_OFFLINE' && (
+              <>
+                <div>
+                  <span className='text-muted-foreground'>公开课结束日期：</span>
+                  <span>
+                    {detail.courseOpenEndDate
+                      ? new Date(detail.courseOpenEndDate).toLocaleDateString('zh-CN')
+                      : '-'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-muted-foreground'>到期自动隐藏：</span>
+                  <span>{detail.isExpireHide === 1 ? '开启' : '关闭'}</span>
+                </div>
+              </>
+            )}
             <div>
               <span className='text-muted-foreground'>浏览量：</span>
               <span>{detail.viewCount?.toLocaleString() ?? 0}</span>

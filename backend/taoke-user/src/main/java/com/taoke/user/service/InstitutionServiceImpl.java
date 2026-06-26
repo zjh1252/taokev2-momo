@@ -4,9 +4,11 @@ import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
+import com.taoke.common.service.CategoryService;
+import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.common.service.RegionService;
+import com.taoke.common.util.LegacyAvatarUrls;
 import com.taoke.user.api.RoleApplyService;
-import com.taoke.user.dto.institution.InstitutionFacetsResponse;
 import com.taoke.user.dto.institution.InstitutionListItemResponse;
 import com.taoke.user.dto.institution.InstitutionPublicResponse;
 import com.taoke.user.dto.institution.InstitutionRequest;
@@ -15,6 +17,7 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.mapper.InstitutionMapper;
 import com.taoke.user.repository.InstitutionRepository;
+import com.taoke.user.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -50,6 +54,10 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     private final InstitutionMapper institutionMapper;
     private final RoleApplyService roleApplyService;
     private final RegionService regionService;
+    private final CategoryService categoryService;
+    private final OpsMaterialResolver opsMaterialResolver;
+    private final UserRepository userRepository;
+    private final RoleApplicationChangeLogService changeLogService;
 
     @Override
     public InstitutionResponse getByUserId(Integer userId) {
@@ -70,8 +78,18 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             throw new BusinessException(ErrorCode.PARAM_INVALID,
                     "请先勾选并同意《淘课网注册培训机构合作协议》");
         }
-        roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION);
+        // 在写数据前先获取旧快照（用于资料重审变更记录）
+        Institution oldSnapshot = institutionRepository.findByUserId(userId).orElse(null);
+        boolean isReapply = roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION);
         saveOrUpdateExtension(userId, request);
+        if (isReapply && oldSnapshot != null && changeLogService != null) {
+            Institution newSnapshot = institutionRepository.findByUserId(userId).orElse(null);
+            if (newSnapshot != null) {
+                String batch = RoleApplicationChangeLogService.batchKey(userId, BusinessRole.Code.INSTITUTION);
+                changeLogService.recordChanges(userId, BusinessRole.Code.INSTITUTION, batch,
+                        toFieldMap(oldSnapshot), toFieldMap(newSnapshot), INSTITUTION_FIELD_LABELS);
+            }
+        }
     }
 
     @Override
@@ -82,30 +100,29 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     @Override
     public PageResponse<InstitutionListItemResponse> listPublic(int page, int size,
                                                                  String keyword, String sort,
-                                                                 Boolean association, String specialty,
-                                                                 String industry, Integer provinceId,
-                                                                 Integer cityId, java.math.BigDecimal minScore) {
-        Sort jpaSort = "popularity".equals(sort)
-                ? Sort.by(Sort.Direction.DESC, "viewCount").and(Sort.by(Sort.Direction.DESC, "id"))
-                : Sort.by(Sort.Direction.DESC, "sortOrder")
-                      .and(Sort.by(Sort.Direction.DESC, "viewCount"))
-                      .and(Sort.by(Sort.Direction.DESC, "id"));
+                                                                 Boolean association,
+                                                                 Integer expertiseCategoryId,
+                                                                 Integer cityId) {
+        Sort jpaSort = switch (sort != null ? sort : "") {
+            case "popularity" -> Sort.by(Sort.Direction.DESC, "viewCount")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "newly_joined" -> Sort.by(Sort.Direction.DESC, "createdAt")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            default -> Sort.by(Sort.Direction.DESC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.DESC, "viewCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        };
 
         PageRequest pageable = PageRequest.of(page - 1, size, jpaSort);
 
-        Specification<Institution> spec = buildListSpec(keyword, association, specialty, industry,
-                provinceId, cityId, minScore);
+        Specification<Institution> spec = buildListSpec(keyword, association, expertiseCategoryId, cityId);
         Page<Institution> result = institutionRepository.findAll(spec, pageable);
 
         if (result.isEmpty()) {
             return PageResponse.of(List.of(), 0, page, size);
         }
 
-        return PageResponse.of(toListItems(result.getContent()), result.getTotalElements(), page, size);
-    }
-
-    /** 机构实体 → 列表项（填充省市名称 + 兜底 logo），保持入参顺序。 */
-    private List<InstitutionListItemResponse> toListItems(List<Institution> institutions) {
+        List<Institution> institutions = result.getContent();
         Set<Integer> regionIds = new HashSet<>();
         for (Institution inst : institutions) {
             if (inst.getProvinceId() != null && inst.getProvinceId() > 0) {
@@ -122,124 +139,71 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         List<InstitutionListItemResponse> items = institutions.stream()
                 .map(inst -> {
                     InstitutionListItemResponse item = institutionMapper.toListItemResponse(inst);
-                    item.setProvinceName(regionNameMap.get(inst.getProvinceId()));
-                    item.setCityName(regionNameMap.get(inst.getCityId()));
+                    item.setProvinceName(resolveRegionDisplayName(inst.getProvinceId(), regionNameMap));
+                    item.setCityName(resolveRegionDisplayName(inst.getCityId(), regionNameMap));
                     return item;
                 })
-                .collect(Collectors.toCollection(ArrayList::new));
-        fillMissingLogos(items);
+                .toList();
+        fillMissingLogos(institutions, items);
+        resolveCategoryDisplayNames(items);
+
+        return PageResponse.of(items, result.getTotalElements(), page, size);
+    }
+
+    @Override
+    public Map<Integer, Long> countPublicByExpertiseL1(Boolean association) {
+        return toCountMap(institutionRepository.countPublicByExpertiseL1(association));
+    }
+
+    @Override
+    public List<InstitutionListItemResponse> listRecommended(String type, Boolean association, int limit) {
+        int n = limit > 0 ? Math.min(limit, 20) : 5;
+        Sort sort = switch (type != null ? type : "") {
+            case "high_score" -> Sort.by(Sort.Direction.DESC, "score")
+                    .and(Sort.by(Sort.Direction.DESC, "viewCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "weekly_active" -> Sort.by(Sort.Direction.DESC, "updatedAt")
+                    .and(Sort.by(Sort.Direction.DESC, "viewCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "newly_joined" -> Sort.by(Sort.Direction.DESC, "createdAt")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            default -> Sort.by(Sort.Direction.DESC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        };
+        Specification<Institution> spec = buildListSpec(null, association, null, null);
+        Page<Institution> page = institutionRepository.findAll(spec, PageRequest.of(0, n, sort));
+        if (page.isEmpty()) {
+            return List.of();
+        }
+        List<Institution> institutions = page.getContent();
+        Set<Integer> regionIds = new HashSet<>();
+        for (Institution inst : institutions) {
+            if (inst.getProvinceId() != null && inst.getProvinceId() > 0) {
+                regionIds.add(inst.getProvinceId());
+            }
+            if (inst.getCityId() != null && inst.getCityId() > 0) {
+                regionIds.add(inst.getCityId());
+            }
+        }
+        Map<Integer, String> regionNameMap = regionIds.isEmpty()
+                ? Map.of()
+                : regionService.getNamesByIds(regionIds);
+        List<InstitutionListItemResponse> items = institutions.stream()
+                .map(inst -> {
+                    InstitutionListItemResponse item = institutionMapper.toListItemResponse(inst);
+                    item.setProvinceName(resolveRegionDisplayName(inst.getProvinceId(), regionNameMap));
+                    item.setCityName(resolveRegionDisplayName(inst.getCityId(), regionNameMap));
+                    return item;
+                })
+                .toList();
+        fillMissingLogos(institutions, items);
+        resolveCategoryDisplayNames(items);
         return items;
     }
 
     @Override
-    public InstitutionFacetsResponse listFacets() {
-        List<Institution> institutions = institutionRepository.findAll(publicBaseSpec());
-        Map<String, Long> specialtyCounts = new java.util.LinkedHashMap<>();
-        Map<String, Long> industryCounts = new java.util.LinkedHashMap<>();
-        for (Institution inst : institutions) {
-            tally(specialtyCounts, inst.getSpecialties());
-            tally(industryCounts, inst.getIndustries());
-        }
-        InstitutionFacetsResponse resp = new InstitutionFacetsResponse();
-        resp.setSpecialties(toSortedCounts(specialtyCounts));
-        resp.setIndustries(toSortedCounts(industryCounts));
-        return resp;
-    }
-
-    /** 拆分逗号/顿号分隔的领域/行业文本并累计计数 */
-    private void tally(Map<String, Long> counts, String raw) {
-        if (raw == null || raw.isBlank()) {
-            return;
-        }
-        for (String token : raw.split("[,，、]")) {
-            String name = token.trim();
-            if (!name.isEmpty()) {
-                counts.merge(name, 1L, Long::sum);
-            }
-        }
-    }
-
-    private List<InstitutionFacetsResponse.CategoryCount> toSortedCounts(Map<String, Long> counts) {
-        return counts.entrySet().stream()
-                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
-                .map(e -> new InstitutionFacetsResponse.CategoryCount(e.getKey(), e.getValue()))
-                .toList();
-    }
-
-    @Override
-    public List<InstitutionListItemResponse> listTopRated(int limit) {
-        int n = limit > 0 ? limit : 5;
-        Sort sort = Sort.by(Sort.Direction.DESC, "score")
-                .and(Sort.by(Sort.Direction.DESC, "viewCount"))
-                .and(Sort.by(Sort.Direction.DESC, "id"));
-        return toListItems(institutionRepository.findAll(publicBaseSpec(), PageRequest.of(0, n, sort)).getContent());
-    }
-
-    @Override
-    public List<InstitutionListItemResponse> listNewest(int limit) {
-        int n = limit > 0 ? limit : 5;
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
-        return toListItems(institutionRepository.findAll(publicBaseSpec(), PageRequest.of(0, n, sort)).getContent());
-    }
-
-    @Override
-    public List<InstitutionListItemResponse> listRecommended(int limit) {
-        int n = limit > 0 ? limit : 4;
-        Sort sort = Sort.by(Sort.Direction.DESC, "sortOrder")
-                .and(Sort.by(Sort.Direction.DESC, "score"))
-                .and(Sort.by(Sort.Direction.DESC, "viewCount"))
-                .and(Sort.by(Sort.Direction.DESC, "id"));
-
-        // 1) 优先取已标记金牌推荐的机构
-        Specification<Institution> recSpec = publicBaseSpec().and(
-                (root, q, cb) -> cb.equal(root.get("isRecommended"), 1));
-        List<Institution> picked = new ArrayList<>(
-                institutionRepository.findAll(recSpec, PageRequest.of(0, n, sort)).getContent());
-
-        // 2) 不足 n 个时，用其它公开机构按 sortOrder/score 补齐（去重）
-        if (picked.size() < n) {
-            Set<Integer> pickedIds = picked.stream().map(Institution::getId).collect(Collectors.toSet());
-            List<Institution> fillers = institutionRepository
-                    .findAll(publicBaseSpec(), PageRequest.of(0, n * 2, sort)).getContent();
-            for (Institution f : fillers) {
-                if (picked.size() >= n) {
-                    break;
-                }
-                if (pickedIds.add(f.getId())) {
-                    picked.add(f);
-                }
-            }
-        }
-        return toListItems(picked);
-    }
-
-    @Override
-    public List<InstitutionListItemResponse> listByUserIds(List<Integer> userIds) {
-        if (userIds == null || userIds.isEmpty()) {
-            return List.of();
-        }
-        List<Institution> found = institutionRepository.findByUserIdIn(userIds).stream()
-                .filter(i -> i.getStatus() != null && i.getStatus() == 1
-                        && Boolean.TRUE.equals(i.getPublicListEligible()))
-                .toList();
-        Map<Integer, Institution> byUserId = found.stream()
-                .collect(Collectors.toMap(Institution::getUserId, i -> i, (a, b) -> a));
-        List<Institution> ordered = userIds.stream()
-                .map(byUserId::get)
-                .filter(java.util.Objects::nonNull)
-                .toList();
-        return toListItems(ordered);
-    }
-
-    @Override
     public InstitutionPublicResponse getPublicProfile(Integer id) {
-        Institution institution = institutionRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
-
-        if (institution.getStatus() != 1) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "机构不存在");
-        }
-
+        Institution institution = resolvePublicByPathId(id);
         InstitutionPublicResponse resp = institutionMapper.toPublicResponse(institution);
 
         // 联系方式仅在公开时返回
@@ -258,33 +222,217 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         }
         if (!regionIds.isEmpty()) {
             Map<Integer, String> nameMap = regionService.getNamesByIds(regionIds);
-            resp.setProvinceName(nameMap.get(institution.getProvinceId()));
-            resp.setCityName(nameMap.get(institution.getCityId()));
+            resp.setProvinceName(resolveRegionDisplayName(institution.getProvinceId(), nameMap));
+            resp.setCityName(resolveRegionDisplayName(institution.getCityId(), nameMap));
         }
 
         if (isBlankLogo(resp.getLogoUrl())) {
             resp.setLogoUrl(lookupLogoByOrgName(resp.getOrgName()));
         }
+        resp.setLogoUrl(resolveInstitutionDisplayLogo(institution, resp.getLogoUrl()));
+
+        Map<Integer, String> categoryNameMap = loadCategoryNameMap(resp.getSpecialties(), resp.getIndustries());
+        resp.setSpecialties(resolveCategoryLabelString(resp.getSpecialties(), categoryNameMap));
+        resp.setIndustries(resolveCategoryLabelString(resp.getIndustries(), categoryNameMap));
 
         return resp;
     }
 
-    /** partner 迁移行 logo 常为空，从同名 organ 行补 Logo（列表批量） */
-    private void fillMissingLogos(List<InstitutionListItemResponse> items) {
+    @Transactional
+    @Override
+    public void incrementViewCount(Integer institutionId) {
+        Institution institution = institutionRepository.findById(institutionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
+        if (institution.getStatus() == null || institution.getStatus() != 1
+                || !Boolean.TRUE.equals(institution.getPublicListEligible())) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "机构不存在");
+        }
+        institution.setViewCount((institution.getViewCount() != null ? institution.getViewCount() : 0) + 1);
+        institutionRepository.save(institution);
+    }
+
+    @Override
+    public Institution resolvePublicByPathId(Integer pathId) {
+        if (pathId == null || pathId <= 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "机构不存在");
+        }
+
+        // 老站 URL：/company/{roleid}.htm
+        Optional<Institution> byLegacyRole = institutionRepository
+                .findFirstByLegacyRoleIdAndStatusAndPublicListEligibleTrue(pathId, 1, true);
+        if (byLegacyRole.isPresent()) {
+            return byLegacyRole.get();
+        }
+
+        Optional<Institution> byId = institutionRepository.findById(pathId);
+        if (byId.isEmpty()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "机构不存在");
+        }
+
+        Institution institution = byId.get();
+        if (institution.getStatus() != 1) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "机构不存在");
+        }
+
+        if (Boolean.TRUE.equals(institution.getPublicListEligible())) {
+            return institution;
+        }
+
+        return findCanonicalPublicByOrgName(institution.getOrgName())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
+    }
+
+    /** 同名机构保留 id=user_id 优先、view_count 更高者 */
+    private Optional<Institution> findCanonicalPublicByOrgName(String orgName) {
+        if (orgName == null || orgName.isBlank()) {
+            return Optional.empty();
+        }
+        Specification<Institution> spec = (root, query, cb) -> cb.and(
+                cb.equal(root.get("status"), 1),
+                cb.equal(root.get("publicListEligible"), true),
+                cb.equal(root.get("orgName"), orgName.trim())
+        );
+        List<Institution> candidates = institutionRepository.findAll(spec);
+        if (candidates.isEmpty()) {
+            return Optional.empty();
+        }
+        Institution best = candidates.get(0);
+        for (Institution candidate : candidates) {
+            if (isPreferredCanonical(candidate, best)) {
+                best = candidate;
+            }
+        }
+        return Optional.of(best);
+    }
+
+    private static boolean isPreferredCanonical(Institution candidate, Institution current) {
+        int candidateRank = canonicalRank(candidate);
+        int currentRank = canonicalRank(current);
+        if (candidateRank != currentRank) {
+            return candidateRank < currentRank;
+        }
+        int viewCmp = Integer.compare(
+                candidate.getViewCount() != null ? candidate.getViewCount() : 0,
+                current.getViewCount() != null ? current.getViewCount() : 0);
+        if (viewCmp != 0) {
+            return viewCmp > 0;
+        }
+        return candidate.getId() > current.getId();
+    }
+
+    private static int canonicalRank(Institution institution) {
+        if (institution.getId() != null && institution.getId().equals(institution.getUserId())) {
+            return 0;
+        }
+        return 1;
+    }
+
+    private String resolveRegionDisplayName(Integer regionId, Map<Integer, String> regionNameMap) {
+        if (regionId == null || regionId <= 0) {
+            return null;
+        }
+        String name = regionNameMap.get(regionId);
+        if (name != null && !name.isBlank()) {
+            return name;
+        }
+        String legacy = regionService.getNameByLegacyRegionId(regionId);
+        return legacy.isBlank() ? null : legacy;
+    }
+
+    /** 列表项批量将 specialties / industries 中的分类 ID 解析为展示名称 */
+    private void resolveCategoryDisplayNames(List<InstitutionListItemResponse> items) {
+        if (items.isEmpty()) {
+            return;
+        }
+        Set<Integer> categoryIds = new HashSet<>();
+        for (InstitutionListItemResponse item : items) {
+            collectCategoryIds(item.getSpecialties(), categoryIds);
+            collectCategoryIds(item.getIndustries(), categoryIds);
+        }
+        Map<Integer, String> nameMap = categoryIds.isEmpty()
+                ? Map.of()
+                : categoryService.getNameMap(categoryIds);
+        for (InstitutionListItemResponse item : items) {
+            item.setSpecialties(resolveCategoryLabelString(item.getSpecialties(), nameMap));
+            item.setIndustries(resolveCategoryLabelString(item.getIndustries(), nameMap));
+        }
+    }
+
+    private Map<Integer, String> loadCategoryNameMap(String... rawValues) {
+        Set<Integer> categoryIds = new HashSet<>();
+        for (String raw : rawValues) {
+            collectCategoryIds(raw, categoryIds);
+        }
+        return categoryIds.isEmpty() ? Map.of() : categoryService.getNameMap(categoryIds);
+    }
+
+    private static void collectCategoryIds(String raw, Set<Integer> ids) {
+        if (raw == null || raw.isBlank()) {
+            return;
+        }
+        for (String part : raw.split(",")) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            try {
+                ids.add(Integer.parseInt(trimmed));
+            } catch (NumberFormatException ignored) {
+                // 已是展示文本或非 ID 格式，跳过
+            }
+        }
+    }
+
+    /** 将逗号分隔的分类 ID 串转为中文名称串；非数字片段原样保留 */
+    private static String resolveCategoryLabelString(String raw, Map<Integer, String> nameMap) {
+        if (raw == null || raw.isBlank()) {
+            return raw;
+        }
+        List<String> labels = new ArrayList<>();
+        for (String part : raw.split(",")) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            try {
+                int id = Integer.parseInt(trimmed);
+                String name = nameMap.get(id);
+                labels.add(name != null ? name : trimmed);
+            } catch (NumberFormatException e) {
+                labels.add(trimmed);
+            }
+        }
+        return labels.isEmpty() ? raw : String.join("，", labels);
+    }
+
+    private static Map<Integer, Long> toCountMap(List<Object[]> rows) {
+        Map<Integer, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            if (row[0] == null) {
+                continue;
+            }
+            long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            map.put(((Number) row[0]).intValue(), count);
+        }
+        return map;
+    }
+
+    /** partner 迁移行 logo 常为空，从同名 organ 行补 Logo，老站机构再回退默认头像素材池 */
+    private void fillMissingLogos(List<Institution> institutions, List<InstitutionListItemResponse> items) {
         List<String> names = items.stream()
                 .filter(item -> isBlankLogo(item.getLogoUrl()))
                 .map(InstitutionListItemResponse::getOrgName)
                 .filter(name -> name != null && !name.isBlank())
                 .distinct()
                 .toList();
-        if (names.isEmpty()) {
-            return;
-        }
-        Map<String, String> logoByOrgName = loadLogoByOrgNames(names);
-        for (InstitutionListItemResponse item : items) {
+        Map<String, String> logoByOrgName = names.isEmpty() ? Map.of() : loadLogoByOrgNames(names);
+        for (int i = 0; i < items.size(); i++) {
+            InstitutionListItemResponse item = items.get(i);
             if (isBlankLogo(item.getLogoUrl())) {
                 item.setLogoUrl(logoByOrgName.get(item.getOrgName()));
             }
+            Institution institution = institutions.get(i);
+            item.setLogoUrl(resolveInstitutionDisplayLogo(institution, item.getLogoUrl()));
         }
     }
 
@@ -314,29 +462,41 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         return logoUrl == null || logoUrl.isBlank() || isPlaceholderLogo(logoUrl);
     }
 
-    /** 旧站默认占位图（middle/00/1.jpg），非机构真实 Logo */
     private static boolean isPlaceholderLogo(String logoUrl) {
-        if (logoUrl == null || logoUrl.isBlank()) {
+        return LegacyAvatarUrls.isPlaceholder(logoUrl);
+    }
+
+    /** 老站迁移机构才使用默认头像素材；新注册机构仅保留 Logo 上传 */
+    private boolean allowDefaultInstitutionAvatar(Institution institution) {
+        if (institution == null) {
             return false;
         }
-        String normalized = logoUrl.trim().replace('\\', '/');
-        return normalized.contains("/middle/00/1.")
-                || normalized.endsWith("/middle/00/1");
+        if (institution.getLegacyRoleId() != null && institution.getLegacyRoleId() > 0) {
+            return true;
+        }
+        if (institution.getUserId() == null) {
+            return false;
+        }
+        return userRepository.findById(institution.getUserId())
+                .map(u -> Integer.valueOf(2).equals(u.getUserSource()))
+                .orElse(false);
+    }
+
+    private String resolveInstitutionDisplayLogo(Institution institution, String logoUrl) {
+        if (LegacyAvatarUrls.isUsable(logoUrl)) {
+            return LegacyAvatarUrls.normalize(logoUrl);
+        }
+        if (!allowDefaultInstitutionAvatar(institution)) {
+            return logoUrl != null ? logoUrl : "";
+        }
+        int seed = institution.getId() != null ? institution.getId() : 0;
+        return opsMaterialResolver.resolveAvatarUrl(logoUrl, "INSTITUTION", true, seed);
     }
 
     /** 构建公开列表查询的动态条件（仅状态=1 的已发布机构） */
-    /** 公开列表基础条件：已通过、可公开、非迁移占位名。 */
-    private Specification<Institution> publicBaseSpec() {
-        return (root, query, cb) -> cb.and(
-                cb.equal(root.get("status"), 1),
-                cb.equal(root.get("publicListEligible"), true),
-                cb.notLike(root.get("orgName"), "未命名机构#%")
-        );
-    }
-
-    private Specification<Institution> buildListSpec(String keyword, Boolean association, String specialty,
-                                                     String industry, Integer provinceId, Integer cityId,
-                                                     java.math.BigDecimal minScore) {
+    private Specification<Institution> buildListSpec(String keyword, Boolean association,
+                                                   Integer expertiseCategoryId,
+                                                   Integer cityId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), 1));
@@ -344,24 +504,22 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             // 迁移占位名，公开列表不展示
             predicates.add(cb.notLike(root.get("orgName"), "未命名机构#%"));
 
+            if (cityId != null && cityId > 0) {
+                predicates.add(cb.equal(root.get("cityId"), cityId));
+            }
+
             if (association != null) {
                 predicates.add(cb.equal(root.get("association"), association));
             }
 
-            if (specialty != null && !specialty.isBlank()) {
-                predicates.add(cb.like(root.get("specialties"), "%" + specialty.trim() + "%"));
-            }
-            if (industry != null && !industry.isBlank()) {
-                predicates.add(cb.like(root.get("industries"), "%" + industry.trim() + "%"));
-            }
-            if (provinceId != null && provinceId > 0) {
-                predicates.add(cb.equal(root.get("provinceId"), provinceId));
-            }
-            if (cityId != null && cityId > 0) {
-                predicates.add(cb.equal(root.get("cityId"), cityId));
-            }
-            if (minScore != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("score"), minScore));
+            if (expertiseCategoryId != null && expertiseCategoryId > 0) {
+                String idStr = expertiseCategoryId.toString();
+                predicates.add(cb.or(
+                        cb.equal(root.get("specialties"), idStr),
+                        cb.like(root.get("specialties"), idStr + ",%"),
+                        cb.like(root.get("specialties"), "%," + idStr + ",%"),
+                        cb.like(root.get("specialties"), "%," + idStr)
+                ));
             }
 
             if (keyword != null && !keyword.isBlank()) {
@@ -402,6 +560,15 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         Institution inst = institutionRepository.findById(institutionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
         inst.setAssociation(association);
+        institutionRepository.save(inst);
+    }
+
+    @Override
+    @Transactional
+    public void setRecommended(Integer institutionId, Integer value) {
+        Institution inst = institutionRepository.findById(institutionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
+        inst.setIsRecommended(value != null && value == 1 ? 1 : 0);
         institutionRepository.save(inst);
     }
 
@@ -493,10 +660,12 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         if (request.getOrgName() != null) ent.setOrgName(request.getOrgName());
         if (request.getOrgType() != null) ent.setOrgType(request.getOrgType());
         if (request.getLegalRepresentative() != null) ent.setLegalRepresentative(request.getLegalRepresentative());
-        if (request.getLicenseNo() != null) ent.setLicenseNo(request.getLicenseNo());
+        if (request.getLicenseNo() != null) {
+            validateLicenseNo(request.getLicenseNo());
+            ent.setLicenseNo(request.getLicenseNo());
+        }
         if (request.getEstablishedAt() != null) ent.setEstablishedAt(request.getEstablishedAt());
         if (request.getLogoUrl() != null) ent.setLogoUrl(request.getLogoUrl());
-        if (request.getLicenseDocUrl() != null) ent.setLicenseDocUrl(request.getLicenseDocUrl());
         if (request.getBio() != null) ent.setBio(request.getBio());
         if (request.getIndustryCategoryIds() != null) {
             ent.setIndustries(serializeCategoryIds(request.getIndustryCategoryIds()));
@@ -541,5 +710,62 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                 .filter(java.util.Objects::nonNull)
                 .map(String::valueOf)
                 .collect(Collectors.joining(","));
+    }
+
+    /** 营业执照号校验：15位纯数字 或 18位大写字母/数字 */
+    static void validateLicenseNo(String licenseNo) {
+        if (licenseNo == null || licenseNo.isBlank()) return;
+        if (!licenseNo.trim().matches("\\d{15}|[A-Z\\d]{18}")) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "营业执照号需为15位纯数字或18位大写统一社会信用代码");
+        }
+    }
+
+    // ---- 变更日志辅助 ----
+
+    /** 机构字段 → 中文标签映射 */
+    static final Map<String, String> INSTITUTION_FIELD_LABELS = Map.<String, String>ofEntries(
+            Map.entry("orgName", "机构名称"),
+            Map.entry("orgType", "机构类型"),
+            Map.entry("legalRepresentative", "法人代表"),
+            Map.entry("licenseNo", "营业执照号"),
+            Map.entry("establishedAt", "成立时间"),
+            Map.entry("logoUrl", "机构Logo"),
+            Map.entry("bio", "机构简介"),
+            Map.entry("industries", "擅长行业"),
+            Map.entry("specialties", "擅长领域"),
+            Map.entry("hasVenue", "是否有场地"),
+            Map.entry("hasExperts", "是否有专家"),
+            Map.entry("contactName", "联系人姓名"),
+            Map.entry("contactPhone", "联系电话"),
+            Map.entry("showContact", "公开联系方式"),
+            Map.entry("address", "详细地址"),
+            Map.entry("clientCases", "我的客户")
+    );
+
+    /** 将 Institution entity 的关键字段转为 Map（仅记录有值字段，用于 diff） */
+    private static Map<String, String> toFieldMap(Institution e) {
+        if (e == null) return Map.of();
+        Map<String, String> m = new HashMap<>();
+        putIf(m, "orgName", e.getOrgName());
+        putIf(m, "orgType", e.getOrgType());
+        putIf(m, "legalRepresentative", e.getLegalRepresentative());
+        putIf(m, "licenseNo", e.getLicenseNo());
+        putIf(m, "establishedAt", e.getEstablishedAt());
+        putIf(m, "logoUrl", e.getLogoUrl());
+        putIf(m, "bio", e.getBio());
+        putIf(m, "industries", e.getIndustries());
+        putIf(m, "specialties", e.getSpecialties());
+        putIf(m, "hasVenue", e.getHasVenue());
+        putIf(m, "hasExperts", e.getHasExperts());
+        putIf(m, "contactName", e.getContactName());
+        putIf(m, "contactPhone", e.getContactPhone());
+        putIf(m, "showContact", e.getShowContact());
+        putIf(m, "address", e.getAddress());
+        putIf(m, "clientCases", e.getClientCases());
+        return m;
+    }
+
+    private static void putIf(Map<String, String> m, String key, Object val) {
+        if (val != null) m.put(key, String.valueOf(val));
     }
 }

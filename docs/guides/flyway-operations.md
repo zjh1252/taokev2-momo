@@ -188,7 +188,10 @@ Either revert the changes to the migration, or run repair to update the schema h
 |---|---|
 | `data-trans/scripts/_fix_flyway_v67_checksum.py` | V67 checksum → `-524896563` |
 | `data-trans/scripts/_fix_flyway_v68_checksum.py` | V68 checksum → `-100945177` |
+| `data-trans/scripts/_fix_flyway_v111_v112_checksum.py` | V111 → `58602019`、V112 → `138274204` |
 | `data-trans/scripts/_fix_flyway_v66.py` | 删除 V66 **失败**记录（`success=0`），非 checksum |
+
+> **Agent 约定**：出现 checksum 不匹配且已有/可编写 `_fix_flyway_*.py` 时，**直接执行脚本 repair**，无需额外向用户确认；执行后提示重启 `taoke-app`。
 
 > **教训**：迁移脚本一旦在某环境 Flyway 执行成功，**不要再改该文件**；应追加 V69 等新版本。DevTools 热重启会重新跑 Flyway validate，checksum 不一致会导致 8080 起不来，前端表现为「网络连接失败」。
 
@@ -212,6 +215,8 @@ C 端 `apiClient` 在无法连接后端（`localhost:8080`）时会 toast：
 
 ## 6. 与 data-trans 迁移的边界
 
+> **硬性规则：老站数据迁移脚本全部放在 `data-trans/` 下**（`scripts/`、`output/`、`docs/`），不得散落在 `backend/` 或其它目录。完整规范见 [data-trans-migration.md](./data-trans-migration.md)。
+
 | 方式 | 目录/入口 | 用途 |
 |---|---|---|
 | **Flyway** | `backend/taoke-app/.../db/migration/` | 新系统 schema 演进、种子基线、可重复的环境增量 |
@@ -221,12 +226,23 @@ C 端 `apiClient` 在无法连接后端（`localhost:8080`）时会 toast：
 
 - `data-trans` 文档中「地区表保留 Flyway 数据」指：`common_regions` 等已由 **V6/V9** 等 Flyway 脚本写入，老站迁移脚本**跳过**覆盖。
 - 业务排查文档见 `data-trans/docs/guides/数据迁移操作手册.md`；**Flyway 运维**以本文档为准。
+- Flyway 与 data-trans 逻辑重叠时（如 V66 与 `_purge_obvious_test_courses.py`），**两边同步维护**。
 
 ---
 
 ## 7. 操作记录（changelog）
 
 > 后续凡涉及 Flyway 脚本的增删改、生产/测试库 repair、与手工 SQL 的联动，在此追加一条。
+
+### 2026-06-23 — V111/V112 checksum repair
+
+**背景**：V111（公开课到期隐藏）、V112（`is_expire_hide` 列类型修正）在 `v3test` 已成功执行后，本地迁移文件再次编辑，Flyway validate 报 checksum 不匹配，后端无法启动。
+
+**操作**：
+
+1. 新增 `data-trans/scripts/_fix_flyway_v111_v112_checksum.py`。
+2. 在 `v3test` 执行 repair：V111 `2145619465` → `58602019`，V112 `245971258` → `138274204`（均为 `success=1`）。
+3. 重启 `taoke-app` 验证 Flyway 通过。
 
 ### 2026-05-23 — V66 清理测试课程 + 启动失败修复
 
@@ -450,6 +466,25 @@ python data-trans/scripts/run_video_cover_normalize.py
 
 ---
 
+### 2026-06-12 — 录播课后台 data-trans 迁移脚本（非 Flyway）
+
+**背景**：录播课管理后台（供应商/订单/评论）需老站数据；V96/V97 仅做 schema，不承载批量迁库。
+
+**data-trans 脚本**（执行顺序见 `data-trans/docs/guides/录播课迁移操作手册.md`）：
+
+1. `_audit_video_migration_gaps.py` — 缺口审计
+2. `run_video_package_migrate.py` — `video_package_*`
+3. `run_video_supplier_migrate.py` — `video_suppliers*`
+4. `run_video_order_migrate.py` — `orders` / `video_enrollments`（默认 `status=3`）
+5. `run_video_comment_migrate.py` — `video_comments`
+6. `_audit_video_migration_verify.py` — 验收
+
+**相关 Flyway**：V86–V87（视频包）、V96–V97（供应商/评论审核/发票列）。
+
+**说明**：历史发票不迁移；迁移订单 `remark` 含 `[legacy-import]` 便于回滚（`_rollback_video_migration.py`）。
+
+---
+
 ## 8. 快速命令参考
 
 ### 8.1 Python 辅助脚本（dev 库 v3test，`10.0.14.20`）
@@ -469,6 +504,13 @@ python data-trans/scripts/_fix_flyway_v68_checksum.py   # → -100945177
 python data-trans/scripts/run_video_cover_normalize.py      # V67 逻辑预览/统计
 python data-trans/scripts/run_trainer_fields_backfill.py    # V68 分类表 INSERT
 python data-trans/scripts/_backfill_trainer_title.py        # title 扩展回填
+
+# 录播课老站迁库（见 §7 2026-06-12）
+python data-trans/scripts/_audit_video_migration_gaps.py
+python data-trans/scripts/run_video_package_migrate.py --dry-run
+python data-trans/scripts/run_video_supplier_migrate.py --dry-run
+python data-trans/scripts/run_video_order_migrate.py --dry-run
+python data-trans/scripts/run_video_comment_migrate.py --dry-run
 ```
 
 ### 8.2 验证后端已恢复

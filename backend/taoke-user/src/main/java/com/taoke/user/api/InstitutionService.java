@@ -1,7 +1,6 @@
 package com.taoke.user.api;
 
 import com.taoke.common.response.PageResponse;
-import com.taoke.user.dto.institution.InstitutionFacetsResponse;
 import com.taoke.user.dto.institution.InstitutionListItemResponse;
 import com.taoke.user.dto.institution.InstitutionPublicResponse;
 import com.taoke.user.dto.institution.InstitutionRequest;
@@ -61,31 +60,15 @@ public interface InstitutionService {
      * @param page        页码（从 1 开始）
      * @param size        每页条数
      * @param keyword     搜索关键词（匹配名称、擅长领域、擅长行业）
-     * @param sort        排序方式：default / popularity
-     * @param association 可选筛选：是否培训协会（null=不过滤）
+     * @param sort        排序方式：default / popularity / newly_joined
+     * @param association           可选筛选：是否培训协会（null=不过滤）
+     * @param expertiseCategoryId   擅长领域一级分类 ID（匹配 specialties 逗号串）
+     * @param cityId                城市 ID（可选，匹配机构所在城市）
      * @return 分页结果
      */
     PageResponse<InstitutionListItemResponse> listPublic(int page, int size, String keyword, String sort,
-                                                         Boolean association, String specialty, String industry,
-                                                         Integer provinceId, Integer cityId,
-                                                         java.math.BigDecimal minScore);
-
-    /**
-     * 机构列表页筛选项聚合（擅长领域 / 擅长行业 去重计数）。
-     */
-    InstitutionFacetsResponse listFacets();
-
-    /** 高分机构（按评分倒序，公开可见）。 */
-    List<InstitutionListItemResponse> listTopRated(int limit);
-
-    /** 最新加入机构（按创建时间倒序）。 */
-    List<InstitutionListItemResponse> listNewest(int limit);
-
-    /** 金牌推荐机构（isRecommended=1）。 */
-    List<InstitutionListItemResponse> listRecommended(int limit);
-
-    /** 按机构 userId 批量返回机构卡片（保持入参顺序，仅公开可见）。 */
-    List<InstitutionListItemResponse> listByUserIds(List<Integer> userIds);
+                                                       Boolean association, Integer expertiseCategoryId,
+                                                       Integer cityId);
 
     /**
      * 获取机构公开详情。
@@ -94,6 +77,36 @@ public interface InstitutionService {
      * @return 机构公开详情
      */
     InstitutionPublicResponse getPublicProfile(Integer id);
+
+    /**
+     * 列表页点击人气 +1（仅公开展示机构）
+     */
+    void incrementViewCount(Integer institutionId);
+
+    /**
+     * 解析公开机构主体：支持老站 {@code /company/{roleid}.htm} 与迁移重复行 canonical 归并。
+     *
+     * @param pathId URL 中的数字段（user_institutions.id 或 legacy_role_id）
+     * @return 公开展示的 canonical 机构实体
+     */
+    Institution resolvePublicByPathId(Integer pathId);
+
+    /**
+     * 公开机构按擅长领域一级分类批量计数（侧栏/底部分类导航）。
+     *
+     * @param association null=全部，true/false=是否培训协会
+     * @return key=分类 ID，value=机构数
+     */
+    Map<Integer, Long> countPublicByExpertiseL1(Boolean association);
+
+    /**
+     * 机构频道侧栏推荐位
+     *
+     * @param type        high_score / weekly_active / newly_joined
+     * @param association 是否培训协会筛选
+     * @param limit       条数上限
+     */
+    List<InstitutionListItemResponse> listRecommended(String type, Boolean association, int limit);
 
     // ==================== 后台管理查询 ====================
 
@@ -106,6 +119,11 @@ public interface InstitutionService {
      * 设置/取消培训协会标识
      */
     void setAssociation(Integer institutionId, boolean association);
+
+    /**
+     * 切换机构推荐位（仅修改 is_recommended，幂等）
+     */
+    void setRecommended(Integer institutionId, Integer value);
 
     /**
      * 根据 userId 列表批量查询机构档案

@@ -84,8 +84,9 @@ import * as interactionApi from '@/api/interaction';
 import { useUserStore } from '@/stores/user';
 import { toAssetUrl } from '@/utils/asset';
 
-const sysInfo = uni.getSystemInfoSync();
-const navBarH = (sysInfo.statusBarHeight || 20) + 44;
+import { getNavBarHeight } from '@/utils/system';
+
+const navBarH = getNavBarHeight();
 
 const TABS = [
   { key: 'COURSE',      label: '课程' },

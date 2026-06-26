@@ -14,6 +14,8 @@ export interface OrderItemVO {
   price: number;
   quantity: number;
   subtotal: number;
+  /** 录播课总集数（仅 VIDEO_COURSE 回填，单门课一般为 1，系列课为多集） */
+  totalEpisodes?: number;
 }
 
 /** 订单 */
@@ -55,6 +57,7 @@ export type CreateOrderRequest =
 export interface PayRequest {
   orderNo: string;
   method?: string;
+  clientType?: string;
 }
 
 /** 支付结果 */
@@ -66,6 +69,47 @@ export interface PayResultVO {
   status: number;
   statusLabel: string;
   paidAt: string | null;
+  payUrl?: string | null;
+  qrCodeUrl?: string | null;
+  payParams?: Record<string, string> | null;
+}
+
+/** 发票类型：SPECIAL=全电发票-增值税专用发票 NORMAL=全电发票-普通发票 */
+export type InvoiceType = 'SPECIAL' | 'NORMAL';
+
+/** 抬头类型：PERSONAL=个人 COMPANY=企业 */
+export type InvoiceTitleType = 'PERSONAL' | 'COMPANY';
+
+/** 提交发票申请 */
+export interface CreateInvoiceRequest {
+  invoiceType: InvoiceType;
+  titleType: InvoiceTitleType;
+  title: string;
+  taxNo?: string;
+  bankName?: string;
+  bankAccount?: string;
+  companyAddress?: string;
+  companyPhone?: string;
+  email: string;
+}
+
+/** 发票申请记录 */
+export interface InvoiceRequestVO {
+  id: number;
+  orderNo: string;
+  invoiceType: InvoiceType;
+  titleType: InvoiceTitleType;
+  amount: number;
+  title: string;
+  taxNo: string;
+  bankName: string;
+  bankAccount: string;
+  companyAddress: string;
+  companyPhone: string;
+  email: string;
+  /** 状态：0=待开票 1=已开票 2=已驳回 */
+  status: number;
+  createdAt: string;
 }
 
 /** 通用 API 响应 */

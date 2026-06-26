@@ -78,6 +78,9 @@ const NAME_MAP = {
   download:    'download',
   image:       'image',
   camera:      'camera',
+  check:       'checkmarkempty',
+  clock:       'reload',
+  file:        'paperclip',
   videocam:    'videocam',
 };
 

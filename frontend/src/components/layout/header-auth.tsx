@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
+import { resolveImageSrc } from '@/lib/media';
 import { useAuth } from '@/lib/auth/auth-context';
 
 /** 当前激活角色 code → 中文展示名（顶部昵称后缀使用） */
@@ -34,6 +36,7 @@ const ROLE_LABELS: Record<string, string> = {
 export function UserAuthArea() {
   const t = useTranslations('nav');
   const { user, loading, logout, publicHomeHref, activeRole } = useAuth();
+  const [avatarBroken, setAvatarBroken] = useState(false);
   const roleSuffix = activeRole && ROLE_LABELS[activeRole] ? `（${ROLE_LABELS[activeRole]}）` : '';
 
   if (loading) {
@@ -61,17 +64,20 @@ export function UserAuthArea() {
   }
 
   const initials = getInitials(user.nickname);
+  const showAvatar = user.avatarUrl && !avatarBroken;
 
   return (
     <div className="flex items-center gap-3">
       {/* 头像 */}
-      {user.avatarUrl ? (
+      {showAvatar ? (
         <Image
-          src={user.avatarUrl}
+          src={resolveImageSrc(user.avatarUrl)}
           alt={user.nickname}
           width={22}
           height={22}
+          unoptimized
           className="size-[22px] rounded-full object-cover"
+          onError={() => setAvatarBroken(true)}
         />
       ) : (
         <div className="size-[22px] rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0">

@@ -1,11 +1,14 @@
 package com.taoke.course.service;
 
 import com.taoke.common.dto.CategoryTreeVO;
+import com.taoke.common.entity.Category;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.common.repository.CategoryRepository;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.service.CategoryService;
+import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.common.service.RegionService;
 import com.taoke.course.api.CourseService;
 import com.taoke.course.dto.course.*;
@@ -17,6 +20,7 @@ import com.taoke.course.mapper.CourseMapper;
 import com.taoke.course.repository.CoursePlanRepository;
 import com.taoke.course.repository.CourseRepository;
 import com.taoke.course.support.LegacyTaokeCourseReader;
+import com.taoke.course.support.OpenCourseExpireSupport;
 import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
@@ -29,6 +33,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -53,27 +59,33 @@ public class CourseServiceImpl implements CourseService {
     private final CoursePlanRepository coursePlanRepository;
     private final CourseMapper courseMapper;
     private final CategoryService categoryService;
+    private final CategoryRepository categoryRepository;
     private final TrainerService trainerService;
     private final InstitutionService institutionService;
     private final RegionService regionService;
     private final LegacyTaokeCourseReader legacyTaokeCourseReader;
     private final BindingAuthority bindingAuthority;
+    private final OpsMaterialResolver opsMaterialResolver;
 
     // ==================== C 端发布者操作 ====================
 
     @Transactional
     @Override
     public CourseDetailVO create(Integer publisherId, String publisherType, SaveCourseRequest request) {
+        boolean draft = Boolean.TRUE.equals(request.getDraft());
         CourseType type = resolveCourseType(request);
         validatePublisherType(publisherType, type);
-        validatePlans(type, request.getPlans());
+        if (!draft) {
+            validateForSubmit(request);
+            validatePlans(type, request.getPlans());
+        }
 
         Course course = new Course();
         applyRequest(course, request, type);
         course.setPublisherId(publisherId);
         course.setPublisherType(publisherType);
-        // 创建即提交审核：发布者点击「提交审核」后课程直接进入待审核状态
-        course.setStatus(CourseStatus.PENDING.getValue());
+        // draft=true 时存为草稿，可在「管理课程-草稿」中继续编辑；否则创建即进入待审核
+        course.setStatus(draft ? CourseStatus.DRAFT.getValue() : CourseStatus.PENDING.getValue());
 
         // 专家发布时自动绑定 trainerId
         if (BusinessRole.Code.TRAINER.equals(publisherType)) {
@@ -82,6 +94,7 @@ public class CourseServiceImpl implements CourseService {
 
         course = courseRepository.save(course);
         savePlans(course.getId(), type, request.getPlans());
+        syncOpenEndDateFromPlans(course.getId(), type);
 
         return assembleDetail(course);
     }
@@ -92,18 +105,28 @@ public class CourseServiceImpl implements CourseService {
         Course course = getOwnedCourse(courseId, publisherId);
         assertEditable(course);
 
+        boolean draft = Boolean.TRUE.equals(request.getDraft());
+        if (draft && course.getStatus() != CourseStatus.DRAFT.getValue()
+                && course.getStatus() != CourseStatus.REJECTED.getValue()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的课程可保存为草稿");
+        }
+
         CourseType type = resolveCourseType(request);
         validatePublisherType(course.getPublisherType(), type);
-        validatePlans(type, request.getPlans());
+        if (!draft) {
+            validateForSubmit(request);
+            validatePlans(type, request.getPlans());
+        }
 
         applyRequest(course, request, type);
-        // 编辑后统一回到待审核：保存即提交，无论原状态是 DRAFT / PENDING / REJECTED 还是 PUBLISHED / UNPUBLISHED
-        course.setStatus(CourseStatus.PENDING.getValue());
+        // draft=true 时保持草稿；否则编辑后统一回到待审核（保存即提交）
+        course.setStatus(draft ? CourseStatus.DRAFT.getValue() : CourseStatus.PENDING.getValue());
         course = courseRepository.save(course);
 
         // 整体替换开课计划
         coursePlanRepository.deleteByCourseId(courseId);
         savePlans(courseId, type, request.getPlans());
+        syncOpenEndDateFromPlans(courseId, type);
 
         return assembleDetail(course);
     }
@@ -115,6 +138,14 @@ public class CourseServiceImpl implements CourseService {
         int status = course.getStatus();
         if (status != CourseStatus.DRAFT.getValue() && status != CourseStatus.REJECTED.getValue()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的课程可提交审核");
+        }
+        // 草稿可能缺少必填内容，提交审核前做完整性校验
+        if (isBlankHtml(course.getIntro())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请先完善课程介绍后再提交审核");
+        }
+        if (course.getType() != null && course.getType().isOpen()
+                && coursePlanRepository.findByCourseIdOrderBySortOrder(courseId).isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "公开课必须添加至少一条开课计划后才能提交审核");
         }
         course.setStatus(CourseStatus.PENDING.getValue());
         courseRepository.save(course);
@@ -223,6 +254,18 @@ public class CourseServiceImpl implements CourseService {
         return assembleDetail(course);
     }
 
+    @Transactional
+    @Override
+    public void incrementViewCount(Integer courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "课程不存在"));
+        if (course.getStatus() != CourseStatus.PUBLISHED.getValue()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "课程不存在");
+        }
+        course.setViewCount((course.getViewCount() != null ? course.getViewCount() : 0) + 1);
+        courseRepository.save(course);
+    }
+
     @Override
     public PageResponse<CourseListItemVO> listPublic(PublicCourseQuery query) {
         final int page = Math.max(1, query.getPage());
@@ -300,6 +343,7 @@ public class CourseServiceImpl implements CourseService {
         Specification<Course> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()));
+            predicates.add(OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now()));
 
             if (!expandedCategoryIds.isEmpty()) {
                 predicates.add(cb.or(
@@ -363,8 +407,30 @@ public class CourseServiceImpl implements CourseService {
             return PageResponse.of(List.of(), 0, page, size);
         }
 
-        List<CourseListItemVO> items = assembleListItems(coursePage.getContent());
+        List<CourseListItemVO> items = assembleListItems(
+                coursePage.getContent(),
+                hasProvince ? query.getProvinceIds() : null,
+                hasCity ? query.getCityIds() : null);
         return PageResponse.of(items, coursePage.getTotalElements(), page, size);
+    }
+
+    @Override
+    public Map<Integer, Long> countPublicByCategoryL1(boolean isOpen, List<Integer> cityIds) {
+        List<Object[]> rows;
+        if (isOpen && cityIds != null && !cityIds.isEmpty()) {
+            rows = courseRepository.countPublishedOpenByCategoryL1AndCityIds(cityIds);
+        } else {
+            rows = courseRepository.countPublishedByCategoryL1(isOpen ? 1 : 0);
+        }
+        Map<Integer, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            if (row[0] == null) {
+                continue;
+            }
+            long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            map.put(((Number) row[0]).intValue(), count);
+        }
+        return map;
     }
 
     /**
@@ -450,7 +516,15 @@ public class CourseServiceImpl implements CourseService {
      * @param courses 课程实体列表
      * @return 列表项 VO 集合，顺序与入参一致
      */
+    @Override
     public List<CourseListItemVO> assembleListItems(List<Course> courses) {
+        return assembleListItems(courses, null, null);
+    }
+
+    @Override
+    public List<CourseListItemVO> assembleListItems(List<Course> courses,
+                                                    List<Integer> displayPlanProvinceIds,
+                                                    List<Integer> displayPlanCityIds) {
         if (courses == null || courses.isEmpty()) {
             return List.of();
         }
@@ -474,26 +548,16 @@ public class CourseServiceImpl implements CourseService {
                 : trainerService.findByIds(trainerIds).stream()
                     .collect(Collectors.toMap(Trainer::getId, t -> t));
 
-        // 批量专家驻地（省/市名称）
+        // 批量专家驻地（省/市名称）— 汇总所有可能关联到的专家后再统一查地名
         Set<Integer> trainerRegionIds = new HashSet<>();
-        for (Trainer trainer : trainerMap.values()) {
-            if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) {
-                trainerRegionIds.add(trainer.getProvinceId());
-            }
-            if (trainer.getCityId() != null && trainer.getCityId() > 0) {
-                trainerRegionIds.add(trainer.getCityId());
-            }
-        }
-        Map<Integer, String> trainerRegionNameMap = trainerRegionIds.isEmpty()
-                ? Map.of()
-                : regionService.getNamesByIds(trainerRegionIds);
 
         // 批量最近一场公开课计划（仅公开课需要）
         List<Integer> openCourseIds = courses.stream()
                 .filter(c -> c.getType() != null && c.getType().isOpen())
                 .map(Course::getId)
                 .toList();
-        Map<Integer, CoursePlan> nearestPlanMap = pickDisplayPlansForOpenCourses(openCourseIds);
+        Map<Integer, CoursePlan> nearestPlanMap = pickDisplayPlansForOpenCourses(
+                openCourseIds, displayPlanProvinceIds, displayPlanCityIds);
 
         // 批量省/市名称
         Set<Integer> regionIds = new HashSet<>();
@@ -511,18 +575,67 @@ public class CourseServiceImpl implements CourseService {
 
         List<Integer> courseIds = courses.stream().map(Course::getId).toList();
         Map<Integer, String> legacyLecturerMap = legacyTaokeCourseReader.findLecturerDisplayNames(courseIds);
+        Map<Integer, Integer> legacyLecturerUserIds = legacyTaokeCourseReader.findLecturerUserIds(courseIds);
+        Map<Integer, String> legacyKeywordsMap = legacyTaokeCourseReader.findKeywordsByCourseIds(courseIds);
         Map<Integer, String> legacyCategoryMap = legacyTaokeCourseReader.findCourseCategoryNames(courseIds);
+        Map<Integer, Integer> legacyOrganizerUserIds = legacyTaokeCourseReader.findOrganizerUserIds(courseIds);
+        Map<Integer, String> legacyOrganizerFromLecturer = legacyTaokeCourseReader.findOrganizerNamesFromLecturer(courseIds);
 
-        List<Integer> institutionPublisherUserIds = courses.stream()
-                .filter(c -> BusinessRole.Code.INSTITUTION.equals(c.getPublisherType()))
-                .filter(c -> c.getPublisherId() != null && c.getPublisherId() > 0)
-                .map(Course::getPublisherId)
-                .distinct()
-                .toList();
-        Map<Integer, Institution> institutionByUserId = institutionPublisherUserIds.isEmpty()
+        // trainer_id 缺失或无效时，按老库 lecturerid → user_trainers 补全主讲专家档案
+        Set<Integer> legacyTrainerUserIds = new HashSet<>();
+        for (Course course : courses) {
+            if (resolveLinkedTrainer(course, trainerMap, Map.of(), Map.of()) != null) {
+                continue;
+            }
+            Integer legacyUserId = legacyLecturerUserIds.get(course.getId());
+            if (legacyUserId != null && legacyUserId > 0) {
+                legacyTrainerUserIds.add(legacyUserId);
+            }
+        }
+        Map<Integer, Trainer> trainerByUserId = legacyTrainerUserIds.isEmpty()
                 ? Map.of()
-                : institutionService.findByUserIds(institutionPublisherUserIds).stream()
+                : trainerService.findByUserIds(legacyTrainerUserIds.stream().toList()).stream()
+                    .collect(Collectors.toMap(Trainer::getUserId, t -> t, (a, b) -> a));
+
+        Set<String> lecturerNamesForLookup = new HashSet<>();
+        for (Course course : courses) {
+            if (resolveLinkedTrainer(course, trainerMap, trainerByUserId, legacyLecturerUserIds) != null) {
+                continue;
+            }
+            String legacyLecturer = legacyLecturerMap.get(course.getId());
+            if (legacyLecturer != null && !legacyLecturer.isBlank()) {
+                lecturerNamesForLookup.add(legacyLecturer.trim());
+                String normalized = normalizeTrainerLookupName(legacyLecturer);
+                if (!normalized.isBlank()) {
+                    lecturerNamesForLookup.add(normalized);
+                }
+            }
+        }
+        Map<String, Trainer> trainerByName = buildTrainerByNameMap(lecturerNamesForLookup);
+
+        collectTrainerRegionIds(trainerMap.values(), trainerRegionIds);
+        collectTrainerRegionIds(trainerByUserId.values(), trainerRegionIds);
+        collectTrainerRegionIds(trainerByName.values(), trainerRegionIds);
+        final Map<Integer, String> trainerRegionNameMap = trainerRegionIds.isEmpty()
+                ? Map.of()
+                : regionService.getNamesByIds(trainerRegionIds);
+
+        Set<Integer> institutionLookupUserIds = new HashSet<>();
+        courses.stream()
+                .filter(c -> BusinessRole.Code.INSTITUTION.equals(c.getPublisherType()))
+                .map(Course::getPublisherId)
+                .filter(id -> id != null && id > 0)
+                .forEach(institutionLookupUserIds::add);
+        legacyOrganizerUserIds.values().stream()
+                .filter(id -> id != null && id > 0)
+                .forEach(institutionLookupUserIds::add);
+        Map<Integer, Institution> institutionByUserId = institutionLookupUserIds.isEmpty()
+                ? Map.of()
+                : institutionService.findByUserIds(institutionLookupUserIds.stream().toList()).stream()
                     .collect(Collectors.toMap(Institution::getUserId, i -> i, (a, b) -> a));
+        Map<Integer, String> legacyMemberNameMap = legacyOrganizerUserIds.isEmpty()
+                ? Map.of()
+                : legacyTaokeCourseReader.findMemberDisplayNames(legacyOrganizerUserIds.values());
 
         return courses.stream().map(c -> {
             CourseListItemVO vo = courseMapper.toListItemVO(c);
@@ -531,22 +644,28 @@ public class CourseServiceImpl implements CourseService {
             if (c.getCategoryId() != null && c.getCategoryId() > 0) {
                 vo.setCategoryName(catNameMap.get(c.getCategoryId()));
             }
-            if (c.getTrainerId() != null && c.getTrainerId() > 0) {
-                Trainer trainer = trainerMap.get(c.getTrainerId());
-                if (trainer != null) {
-                    vo.setTrainerName(trainer.getName());
-                    if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) {
-                        vo.setTrainerProvinceName(trainerRegionNameMap.get(trainer.getProvinceId()));
-                    }
-                    if (trainer.getCityId() != null && trainer.getCityId() > 0) {
-                        vo.setTrainerCityName(trainerRegionNameMap.get(trainer.getCityId()));
-                    }
-                    vo.setCoverUrl(resolveCoverUrl(c.getCoverUrl(), trainer.getAvatar()));
-                } else {
-                    vo.setCoverUrl(resolveCoverUrl(c.getCoverUrl(), null));
+            if (vo.getCategoryName() == null || vo.getCategoryName().isBlank()) {
+                String legacyCat = legacyCategoryMap.get(c.getId());
+                if (legacyCat != null && !legacyCat.isBlank()) {
+                    vo.setCategoryName(legacyCat);
                 }
+            }
+            Trainer trainer = resolveLinkedTrainer(c, trainerMap, trainerByUserId, legacyLecturerUserIds);
+            if (trainer == null) {
+                String legacyLecturer = legacyLecturerMap.get(c.getId());
+                if (legacyLecturer != null && !legacyLecturer.isBlank()) {
+                    trainer = trainerByName.get(legacyLecturer.trim());
+                    if (trainer == null) {
+                        trainer = trainerByName.get(normalizeTrainerLookupName(legacyLecturer));
+                    }
+                }
+            }
+            final String categoryNameForCover = vo.getCategoryName();
+            if (trainer != null) {
+                applyTrainerToListItem(vo, trainer, trainerRegionNameMap);
+                vo.setCoverUrl(resolveCoverUrl(c, trainer.getAvatar(), categoryNameForCover));
             } else {
-                vo.setCoverUrl(resolveCoverUrl(c.getCoverUrl(), null));
+                vo.setCoverUrl(resolveCoverUrl(c, null, categoryNameForCover));
                 String legacyLecturer = legacyLecturerMap.get(c.getId());
                 if (legacyLecturer != null && !legacyLecturer.isBlank()) {
                     vo.setTrainerName(legacyLecturer);
@@ -557,33 +676,164 @@ public class CourseServiceImpl implements CourseService {
                     }
                 }
             }
+            if (vo.getKeywords() == null || vo.getKeywords().isBlank()) {
+                String legacyKeywords = legacyKeywordsMap.get(c.getId());
+                if (legacyKeywords != null && !legacyKeywords.isBlank()) {
+                    vo.setKeywords(legacyKeywords);
+                }
+            }
             CoursePlan nearest = nearestPlanMap.get(c.getId());
             if (nearest != null) {
                 vo.setNextPlanStartDate(nearest.getStartTime());
                 vo.setNextPlanCity(formatPlanLocation(nearest, regionNameMap));
             }
-            if (vo.getCategoryName() == null || vo.getCategoryName().isBlank()) {
-                String legacyCat = legacyCategoryMap.get(c.getId());
-                if (legacyCat != null && !legacyCat.isBlank()) {
-                    vo.setCategoryName(legacyCat);
-                }
+            String organizerName = resolveOrganizerName(
+                    c, institutionByUserId, legacyOrganizerUserIds, legacyOrganizerFromLecturer, legacyMemberNameMap);
+            if (organizerName != null) {
+                vo.setPublisherName(organizerName);
             }
+            vo.setDurationDays(normalizeDisplayDurationDays(c.getDurationDays(), c.getTotalHours()));
+            vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(c));
             return vo;
         }).toList();
     }
 
+    /** 解析列表项关联的专家：courses.trainer_id 优先，其次老库 lecturerid。 */
+    private Trainer resolveLinkedTrainer(Course course,
+                                         Map<Integer, Trainer> trainerMap,
+                                         Map<Integer, Trainer> trainerByUserId,
+                                         Map<Integer, Integer> legacyLecturerUserIds) {
+        if (course == null) {
+            return null;
+        }
+        Integer trainerId = course.getTrainerId();
+        if (trainerId != null && trainerId > 0) {
+            Trainer trainer = trainerMap.get(trainerId);
+            if (trainer != null) {
+                return trainer;
+            }
+        }
+        Integer legacyUserId = legacyLecturerUserIds.get(course.getId());
+        if (legacyUserId != null && legacyUserId > 0) {
+            return trainerByUserId.get(legacyUserId);
+        }
+        return null;
+    }
+
+    private void applyTrainerToListItem(CourseListItemVO vo,
+                                        Trainer trainer,
+                                        Map<Integer, String> trainerRegionNameMap) {
+        if (vo == null || trainer == null) {
+            return;
+        }
+        vo.setTrainerId(trainer.getId());
+        vo.setTrainerName(trainer.getName());
+        if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) {
+            vo.setTrainerProvinceName(trainerRegionNameMap.get(trainer.getProvinceId()));
+        }
+        if (trainer.getCityId() != null && trainer.getCityId() > 0) {
+            vo.setTrainerCityName(trainerRegionNameMap.get(trainer.getCityId()));
+        }
+    }
+
+    private void collectTrainerRegionIds(Collection<Trainer> trainers, Set<Integer> regionIds) {
+        if (trainers == null || regionIds == null) {
+            return;
+        }
+        for (Trainer trainer : trainers) {
+            if (trainer == null) {
+                continue;
+            }
+            if (trainer.getProvinceId() != null && trainer.getProvinceId() > 0) {
+                regionIds.add(trainer.getProvinceId());
+            }
+            if (trainer.getCityId() != null && trainer.getCityId() > 0) {
+                regionIds.add(trainer.getCityId());
+            }
+        }
+    }
+
+    /** 同名专家取评分更高者，供迁移课程按主讲人姓名补常驻地。 */
+    private Map<String, Trainer> buildTrainerByNameMap(Collection<String> names) {
+        if (names == null || names.isEmpty()) {
+            return Map.of();
+        }
+        List<Trainer> trainers = trainerService.findPublishedByNames(names.stream().toList());
+        Map<String, Trainer> result = new HashMap<>();
+        for (Trainer trainer : trainers) {
+            if (trainer.getName() == null || trainer.getName().isBlank()) {
+                continue;
+            }
+            String key = trainer.getName().trim();
+            Trainer existing = result.get(key);
+            if (existing == null || compareTrainerScore(trainer, existing) > 0) {
+                result.put(key, trainer);
+            }
+            String normalized = normalizeTrainerLookupName(key);
+            if (!normalized.isBlank() && !normalized.equals(key)) {
+                existing = result.get(normalized);
+                if (existing == null || compareTrainerScore(trainer, existing) > 0) {
+                    result.put(normalized, trainer);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static int compareTrainerScore(Trainer left, Trainer right) {
+        BigDecimal leftScore = left.getScore() != null ? left.getScore() : BigDecimal.ZERO;
+        BigDecimal rightScore = right.getScore() != null ? right.getScore() : BigDecimal.ZERO;
+        return leftScore.compareTo(rightScore);
+    }
+
+    /** 迁移主讲人展示名归一化：去掉常见「老师/讲师」后缀便于匹配 user_trainers.name。 */
+    private static String normalizeTrainerLookupName(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String name = raw.trim();
+        for (String suffix : List.of("老师", "讲师", "教授", "导师")) {
+            if (name.endsWith(suffix) && name.length() > suffix.length()) {
+                return name.substring(0, name.length() - suffix.length()).trim();
+            }
+        }
+        return name;
+    }
+
     /**
-     * 公开课列表展示用计划：优先最近一场未开课（start &gt;= now），否则取最近一场历史排期（迁移数据多为过去时间）。
+     * 列表展示用课程天数：迁移库可能把学时等脏值写入 duration_days，此处做展示归一化。
      */
-    private Map<Integer, CoursePlan> pickDisplayPlansForOpenCourses(List<Integer> openCourseIds) {
+    private Integer normalizeDisplayDurationDays(Integer durationDays, BigDecimal totalHours) {
+        if (durationDays != null && durationDays > 0 && durationDays <= 60) {
+            return durationDays;
+        }
+        if (totalHours != null && totalHours.compareTo(BigDecimal.ZERO) > 0
+                && totalHours.compareTo(new BigDecimal("480")) <= 0) {
+            return Math.max(1, totalHours.divide(new BigDecimal("8"), 0, RoundingMode.HALF_UP).intValue());
+        }
+        return durationDays != null && durationDays > 0 ? 0 : durationDays;
+    }
+
+    /**
+     * 公开课列表展示用计划：优先最近一场未开课（start &gt;= now），否则取最近一场历史排期。
+     * <p>传入省/市筛选时，仅在该范围内挑选展示场次，避免「筛北京却展示上海最近一场」。</p>
+     */
+    private Map<Integer, CoursePlan> pickDisplayPlansForOpenCourses(List<Integer> openCourseIds,
+                                                                    List<Integer> provinceIds,
+                                                                    List<Integer> cityIds) {
         if (openCourseIds == null || openCourseIds.isEmpty()) {
             return Map.of();
         }
+        boolean restrictLocation = (provinceIds != null && !provinceIds.isEmpty())
+                || (cityIds != null && !cityIds.isEmpty());
         LocalDateTime now = LocalDateTime.now();
         List<CoursePlan> plans = coursePlanRepository.findByCourseIdInOrderByStartTimeAsc(openCourseIds);
         Map<Integer, CoursePlan> futurePick = new HashMap<>();
         Map<Integer, CoursePlan> latestPick = new HashMap<>();
         for (CoursePlan p : plans) {
+            if (restrictLocation && !planMatchesLocationFilter(p, provinceIds, cityIds)) {
+                continue;
+            }
             latestPick.put(p.getCourseId(), p);
             if (!p.getStartTime().isBefore(now)) {
                 futurePick.putIfAbsent(p.getCourseId(), p);
@@ -600,6 +850,25 @@ public class CourseServiceImpl implements CourseService {
             }
         }
         return result;
+    }
+
+    private static boolean planMatchesLocationFilter(CoursePlan plan,
+                                                     List<Integer> provinceIds,
+                                                     List<Integer> cityIds) {
+        if (plan == null) {
+            return false;
+        }
+        if (provinceIds != null && !provinceIds.isEmpty()) {
+            if (plan.getProvinceId() == null || !provinceIds.contains(plan.getProvinceId())) {
+                return false;
+            }
+        }
+        if (cityIds != null && !cityIds.isEmpty()) {
+            if (plan.getCityId() == null || !cityIds.contains(plan.getCityId())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String formatPlanLocation(CoursePlan plan, Map<Integer, String> regionNameMap) {
@@ -697,17 +966,20 @@ public class CourseServiceImpl implements CourseService {
         if (institutionId == null) {
             return PageResponse.of(List.of(), 0, page, size);
         }
-        List<Institution> insts = institutionService.findByIds(List.of(institutionId));
-        if (insts.isEmpty()) {
+        Institution institution;
+        try {
+            institution = institutionService.resolvePublicByPathId(institutionId);
+        } catch (BusinessException ex) {
             return PageResponse.of(List.of(), 0, page, size);
         }
-        Integer institutionUserId = insts.get(0).getUserId();
+        Integer institutionUserId = institution.getUserId();
 
         Specification<Course> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()));
             predicates.add(cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION));
             predicates.add(cb.equal(root.get("publisherId"), institutionUserId));
+            predicates.add(OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now()));
 
             if ("OPEN".equalsIgnoreCase(type)) {
                 predicates.add(root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE));
@@ -734,17 +1006,20 @@ public class CourseServiceImpl implements CourseService {
         if (institutionId == null) {
             return List.of();
         }
-        List<Institution> insts = institutionService.findByIds(List.of(institutionId));
-        if (insts.isEmpty()) {
+        Institution institution;
+        try {
+            institution = institutionService.resolvePublicByPathId(institutionId);
+        } catch (BusinessException ex) {
             return List.of();
         }
-        Integer institutionUserId = insts.get(0).getUserId();
+        Integer institutionUserId = institution.getUserId();
 
         Specification<Course> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()),
                 cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION),
                 cb.equal(root.get("publisherId"), institutionUserId),
-                root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE)
+                root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now())
         );
         // 排序：last_enrolled_at DESC（NULL 在最后），view_count DESC，id DESC
         Sort sort = Sort.by(Sort.Direction.DESC, "lastEnrolledAt")
@@ -758,7 +1033,8 @@ public class CourseServiceImpl implements CourseService {
     public List<CourseListItemVO> listHotOpenCourses() {
         Specification<Course> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()),
-                root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE)
+                root.get("type").in(CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now())
         );
         Sort sort = Sort.by(Sort.Direction.DESC, "lastEnrolledAt")
                 .and(Sort.by(Sort.Direction.DESC, "createdAt"))
@@ -780,9 +1056,11 @@ public class CourseServiceImpl implements CourseService {
         if (trainerId == null || trainerId <= 0) {
             return PageResponse.of(List.of(), 0, page, size);
         }
+        // 直接按 trainer_id 过滤，不做同名合并——不同专家即使同名，课程也不应混在一起
         Specification<Course> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("trainerId"), trainerId),
-                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue())
+                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now())
         );
         Sort sort = Sort.by(Sort.Direction.DESC, "publishedAt")
                 .and(Sort.by(Sort.Direction.DESC, "id"));
@@ -802,7 +1080,8 @@ public class CourseServiceImpl implements CourseService {
         }
         Specification<Course> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("trainerId"), trainerId),
-                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue())
+                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now())
         );
         PageRequest pageable = PageRequest.of(0, 3,
                 Sort.by(Sort.Direction.DESC, "viewCount").and(Sort.by(Sort.Direction.DESC, "id")));
@@ -815,7 +1094,15 @@ public class CourseServiceImpl implements CourseService {
                     RecommendedCourseVO vo = new RecommendedCourseVO();
                     vo.setId(course.getId());
                     vo.setTitle(course.getTitle());
-                    vo.setCoverUrl(resolveCoverUrl(course.getCoverUrl(), trainerAvatar));
+                    String categoryName = null;
+                    if (course.getCategoryId() != null && course.getCategoryId() > 0) {
+                        categoryName = categoryService.getNameMap(Set.of(course.getCategoryId()))
+                                .get(course.getCategoryId());
+                    }
+                    if (categoryName == null || categoryName.isBlank()) {
+                        categoryName = resolveLegacyCategoryNameForCourse(course.getId()).orElse(null);
+                    }
+                    vo.setCoverUrl(resolveCoverUrl(course, trainerAvatar, categoryName));
                     vo.setViewCount(course.getViewCount());
                     vo.setType(course.getType() != null ? course.getType().name() : null);
                     return vo;
@@ -826,7 +1113,11 @@ public class CourseServiceImpl implements CourseService {
     // ==================== 后台管理 ====================
 
     @Override
-    public Page<Course> searchForAdmin(String keyword, Integer status, String type, Pageable pageable) {
+    public Page<Course> searchForAdmin(String keyword, Integer status, String type,
+                                       Integer trainerId, java.util.Collection<Integer> trainerIds,
+                                       String publisherType, Integer publisherId,
+                                       java.util.Collection<Integer> publisherUserIds,
+                                       Pageable pageable) {
         Specification<Course> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (status != null) {
@@ -834,6 +1125,20 @@ public class CourseServiceImpl implements CourseService {
             }
             if (type != null && !type.isBlank()) {
                 predicates.add(cb.equal(root.get("type"), CourseType.valueOf(type)));
+            }
+            if (trainerIds != null && !trainerIds.isEmpty()) {
+                predicates.add(root.get("trainerId").in(trainerIds));
+            } else if (trainerId != null && trainerId > 0) {
+                predicates.add(cb.equal(root.get("trainerId"), trainerId));
+            }
+            if (publisherType != null && !publisherType.isBlank()) {
+                predicates.add(cb.equal(root.get("publisherType"), publisherType.trim()));
+            }
+            if (publisherId != null && publisherId > 0) {
+                predicates.add(cb.equal(root.get("publisherId"), publisherId));
+            }
+            if (publisherUserIds != null && !publisherUserIds.isEmpty()) {
+                predicates.add(root.get("publisherId").in(publisherUserIds));
             }
             if (keyword != null && !keyword.isBlank()) {
                 String like = "%" + keyword.trim() + "%";
@@ -845,6 +1150,18 @@ public class CourseServiceImpl implements CourseService {
             return cb.and(predicates.toArray(Predicate[]::new));
         };
         return courseRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public java.util.Map<Integer, Long> countByPublisherIds(java.util.Collection<Integer> publisherIds) {
+        if (publisherIds == null || publisherIds.isEmpty()) {
+            return java.util.Map.of();
+        }
+        java.util.Map<Integer, Long> map = new java.util.HashMap<>();
+        for (Object[] row : courseRepository.countGroupByPublisherIds(publisherIds)) {
+            map.put((Integer) row[0], (Long) row[1]);
+        }
+        return map;
     }
 
     @Override
@@ -866,6 +1183,7 @@ public class CourseServiceImpl implements CourseService {
         course.setPublishedAt(LocalDateTime.now());
         course.setRejectReason("");
         courseRepository.save(course);
+        syncOpenEndDateFromPlans(courseId, course.getType());
     }
 
     @Transactional
@@ -939,6 +1257,39 @@ public class CourseServiceImpl implements CourseService {
         }
     }
 
+    /** 提交审核时的内容完整性校验（草稿不做此校验，仅要求标题） */
+    private void validateForSubmit(SaveCourseRequest request) {
+        if (isBlankHtml(request.getIntro())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请填写课程介绍");
+        }
+        if (request.getCategoryId() == null || request.getCategoryId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请选择课程分类");
+        }
+        if (request.getCoverUrl() == null || request.getCoverUrl().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传课程封面");
+        }
+        if (request.getDurationDays() == null || request.getDurationDays() < 1) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "课程天数至少 1 天");
+        }
+        if (request.getTotalHours() == null || request.getTotalHours().compareTo(BigDecimal.ONE) < 0) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "课程总时长至少 1 小时");
+        }
+    }
+
+    /** 富文本去标签后是否为空（含仅 &nbsp; / 空段落 / 零宽字符） */
+    private static boolean isBlankHtml(String html) {
+        if (html == null || html.isBlank()) {
+            return true;
+        }
+        String text = html.replaceAll("<[^>]*>", "")
+                .replace("&nbsp;", " ")
+                .replace('\u00A0', ' ')
+                .replace("\u200B", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+        return text.isEmpty();
+    }
+
     /** 公开课必须有计划，且按类型校验必填字段 */
     private void validatePlans(CourseType type, List<CoursePlanDTO> plans) {
         if (!type.isOpen()) {
@@ -947,7 +1298,18 @@ public class CourseServiceImpl implements CourseService {
         if (plans == null || plans.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "公开课必须添加至少一条开课计划");
         }
-        for (CoursePlanDTO plan : plans) {
+        for (int i = 0; i < plans.size(); i++) {
+            CoursePlanDTO plan = plans.get(i);
+            String label = "开课计划 " + (i + 1);
+            if (plan.getStartTime() == null) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, label + "：请填写开始时间");
+            }
+            if (plan.getEndTime() == null) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, label + "：请填写结束时间");
+            }
+            if (!plan.getEndTime().isAfter(plan.getStartTime())) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, label + "：结束时间必须晚于开始时间");
+            }
             if (type == CourseType.OPEN_OFFLINE) {
                 if (plan.getProvinceId() == null || plan.getProvinceId() == 0) {
                     throw new BusinessException(ErrorCode.PARAM_INVALID, "线下公开课的开课计划必须选择省份");
@@ -1044,6 +1406,11 @@ public class CourseServiceImpl implements CourseService {
             bindingAuthority.requireCanManageTrainer(operatorUserId, course.getPublisherId());
             return course;
         }
+        if (BusinessRole.Code.ENTERPRISE_AGENT.equals(course.getPublisherType())) {
+            // 经纪人可管理隶属经纪公司发布的课程
+            bindingAuthority.requireAgentBelongsToEnterprise(operatorUserId, course.getPublisherId());
+            return course;
+        }
         throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此课程");
     }
 
@@ -1090,19 +1457,87 @@ public class CourseServiceImpl implements CourseService {
             resolveLegacyCategoryNameForCourse(course.getId()).ifPresent(vo::setCategoryName);
         }
 
-        // 讲师名称 + 封面回退（无 cover_url 时用讲师头像）
+        // 讲师名称 + 封面回退（无 cover_url 时用讲师头像 / 默认封面池）
         if (course.getTrainerId() != null && course.getTrainerId() > 0) {
             List<Trainer> trainers = trainerService.findByIds(Set.of(course.getTrainerId()));
             if (!trainers.isEmpty()) {
                 Trainer trainer = trainers.get(0);
                 vo.setTrainerName(trainer.getName());
-                vo.setCoverUrl(resolveCoverUrl(vo.getCoverUrl(), trainer.getAvatar()));
+                vo.setCoverUrl(resolveCoverUrl(course, trainer.getAvatar(), vo.getCategoryName()));
+            } else {
+                vo.setCoverUrl(resolveCoverUrl(course, null, vo.getCategoryName()));
             }
         } else {
             resolveLegacyLecturerName(course.getId()).ifPresent(vo::setTrainerName);
+            vo.setCoverUrl(resolveCoverUrl(course, null, vo.getCategoryName()));
         }
 
+        Map<Integer, Integer> legacyOrganizerUserIds = legacyTaokeCourseReader.findOrganizerUserIds(List.of(course.getId()));
+        Map<Integer, String> legacyOrganizerFromLecturer =
+                legacyTaokeCourseReader.findOrganizerNamesFromLecturer(List.of(course.getId()));
+        Set<Integer> institutionLookupUserIds = new HashSet<>();
+        if (BusinessRole.Code.INSTITUTION.equals(course.getPublisherType())
+                && course.getPublisherId() != null && course.getPublisherId() > 0) {
+            institutionLookupUserIds.add(course.getPublisherId());
+        }
+        Integer legacyOrganUserId = legacyOrganizerUserIds.get(course.getId());
+        if (legacyOrganUserId != null && legacyOrganUserId > 0) {
+            institutionLookupUserIds.add(legacyOrganUserId);
+        }
+        Map<Integer, Institution> institutionByUserId = institutionLookupUserIds.isEmpty()
+                ? Map.of()
+                : institutionService.findByUserIds(institutionLookupUserIds.stream().toList()).stream()
+                    .collect(Collectors.toMap(Institution::getUserId, i -> i, (a, b) -> a));
+        Map<Integer, String> legacyMemberNameMap = legacyOrganUserId != null && legacyOrganUserId > 0
+                ? legacyTaokeCourseReader.findMemberDisplayNames(List.of(legacyOrganUserId))
+                : Map.of();
+        String organizerName = resolveOrganizerName(
+                course, institutionByUserId, legacyOrganizerUserIds, legacyOrganizerFromLecturer, legacyMemberNameMap);
+        if (organizerName != null) {
+            vo.setPublisherName(organizerName);
+        }
+
+        vo.setCourseOpenEndDate(course.getCourseOpenEndDate());
+        vo.setIsExpireHide(course.getIsExpireHide());
+        vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(course));
+
         return vo;
+    }
+
+    /**
+     * 解析公开课「开课单位」：机构发布者 &gt; 老库 organid 对应机构 &gt; lecturer 竖线后机构名 &gt; tk_member 公司名。
+     */
+    private String resolveOrganizerName(Course course,
+                                        Map<Integer, Institution> institutionByUserId,
+                                        Map<Integer, Integer> legacyOrganizerUserIds,
+                                        Map<Integer, String> legacyOrganizerFromLecturer,
+                                        Map<Integer, String> legacyMemberNameMap) {
+        if (course == null) {
+            return null;
+        }
+        if (BusinessRole.Code.INSTITUTION.equals(course.getPublisherType())
+                && course.getPublisherId() != null && course.getPublisherId() > 0) {
+            Institution inst = institutionByUserId.get(course.getPublisherId());
+            if (inst != null && inst.getOrgName() != null && !inst.getOrgName().isBlank()) {
+                return inst.getOrgName().trim();
+            }
+        }
+        Integer organUserId = legacyOrganizerUserIds.get(course.getId());
+        if (organUserId != null && organUserId > 0) {
+            Institution inst = institutionByUserId.get(organUserId);
+            if (inst != null && inst.getOrgName() != null && !inst.getOrgName().isBlank()) {
+                return inst.getOrgName().trim();
+            }
+            String memberName = legacyMemberNameMap.get(organUserId);
+            if (memberName != null && !memberName.isBlank()) {
+                return memberName.trim();
+            }
+        }
+        String fromLecturer = legacyOrganizerFromLecturer.get(course.getId());
+        if (fromLecturer != null && !fromLecturer.isBlank()) {
+            return fromLecturer.trim();
+        }
+        return null;
     }
 
     /** 机构发布等 trainer_id=0 时，从老库 lecturer 补展示名 */
@@ -1161,28 +1596,40 @@ public class CourseServiceImpl implements CourseService {
             if (!trainers.isEmpty()) {
                 Trainer trainer = trainers.get(0);
                 vo.setTrainerName(trainer.getName());
-                vo.setCoverUrl(resolveCoverUrl(course.getCoverUrl(), trainer.getAvatar()));
+                vo.setCoverUrl(resolveCoverUrl(course, trainer.getAvatar(), vo.getCategoryName()));
             } else {
-                vo.setCoverUrl(resolveCoverUrl(course.getCoverUrl(), null));
+                vo.setCoverUrl(resolveCoverUrl(course, null, vo.getCategoryName()));
             }
         } else {
-            vo.setCoverUrl(resolveCoverUrl(course.getCoverUrl(), null));
+            vo.setCoverUrl(resolveCoverUrl(course, null, vo.getCategoryName()));
         }
+
+        vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(course));
 
         return vo;
     }
 
     /**
-     * 解析列表/详情展示用封面：优先课程 cover_url，为空时回退讲师头像。
+     * 解析列表/详情展示用封面：自定义封面 &gt; 讲师头像 &gt; 默认封面素材池。
      */
-    private String resolveCoverUrl(String coverUrl, String trainerAvatar) {
-        if (coverUrl != null && !coverUrl.isBlank()) {
-            return coverUrl.trim();
+    private String resolveCoverUrl(Course course, String trainerAvatar, String categoryName) {
+        if (course == null) {
+            return "";
         }
-        if (trainerAvatar != null && !trainerAvatar.isBlank()) {
-            return trainerAvatar.trim();
+        String scene = resolveCoverMaterialScene(course.getType());
+        int seed = course.getId() != null ? course.getId() : 0;
+        return opsMaterialResolver.resolveCourseCoverUrl(
+                course.getCoverUrl(), trainerAvatar, categoryName, scene, seed);
+    }
+
+    private static String resolveCoverMaterialScene(CourseType type) {
+        if (type == CourseType.INTERNAL) {
+            return "INTERNAL";
         }
-        return "";
+        if (type != null && type.isOpen()) {
+            return "OPEN";
+        }
+        return "GENERAL";
     }
 
     @Override
@@ -1208,5 +1655,111 @@ public class CourseServiceImpl implements CourseService {
             return cb.and(predicates.toArray(Predicate[]::new));
         };
         return coursePlanRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public List<CourseListItemVO> listRelatedForVideo(Integer categoryId, Integer subCategoryId, int limit) {
+        Set<Integer> categoryIds = resolveRelatedCourseCategoryIds(categoryId, subCategoryId);
+        if (categoryIds.isEmpty()) {
+            return List.of();
+        }
+
+        int fetchLimit = limit <= 0 ? 6 : Math.min(limit, 20);
+        Set<Integer> enrollingCourseIds = findCourseIdsByPlanFilter(
+                null, null, null, null, "ENROLLING");
+
+        Specification<Course> categorySpec = (root, cq, cb) -> cb.and(
+                cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()),
+                root.get("type").in(CourseType.INTERNAL, CourseType.OPEN_OFFLINE, CourseType.OPEN_ONLINE),
+                cb.or(
+                        root.get("categoryId").in(categoryIds),
+                        root.get("subCategoryId").in(categoryIds)
+                ),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now())
+        );
+
+        Sort hotSort = Sort.by(Sort.Direction.DESC, "viewCount")
+                .and(Sort.by(Sort.Direction.DESC, "lastEnrolledAt"))
+                .and(Sort.by(Sort.Direction.DESC, "id"));
+
+        List<Course> picked = new ArrayList<>();
+        if (!enrollingCourseIds.isEmpty()) {
+            Specification<Course> enrollingSpec = categorySpec.and(
+                    (root, cq, cb) -> root.get("id").in(enrollingCourseIds));
+            picked.addAll(courseRepository.findAll(enrollingSpec, PageRequest.of(0, fetchLimit, hotSort)).getContent());
+        }
+        if (picked.size() < fetchLimit) {
+            Set<Integer> exclude = picked.stream().map(Course::getId).collect(Collectors.toSet());
+            Specification<Course> restSpec = categorySpec;
+            if (!exclude.isEmpty()) {
+                restSpec = restSpec.and((root, cq, cb) -> cb.not(root.get("id").in(exclude)));
+            }
+            picked.addAll(courseRepository.findAll(
+                    restSpec, PageRequest.of(0, fetchLimit - picked.size(), hotSort)).getContent());
+        }
+        return assembleListItems(picked);
+    }
+
+    /**
+     * 录播课分类（VIDEO_COURSE）与面授课分类（COURSE_CATEGORY）分属不同 ID 空间，按名称对齐。
+     */
+    private Set<Integer> resolveRelatedCourseCategoryIds(Integer videoCategoryId, Integer videoSubCategoryId) {
+        Set<Integer> videoCategoryIds = new HashSet<>();
+        if (videoCategoryId != null && videoCategoryId > 0) {
+            videoCategoryIds.add(videoCategoryId);
+        }
+        if (videoSubCategoryId != null && videoSubCategoryId > 0) {
+            videoCategoryIds.add(videoSubCategoryId);
+        }
+        if (videoCategoryIds.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<String> targetNames = categoryService.getNameMap(videoCategoryIds).values().stream()
+                .map(name -> name == null ? "" : name.trim())
+                .filter(name -> !name.isEmpty())
+                .collect(Collectors.toSet());
+        if (targetNames.isEmpty()) {
+            return Set.of();
+        }
+
+        return categoryRepository.findByTypeOrderBySortOrder("COURSE_CATEGORY").stream()
+                .filter(category -> category.getName() != null
+                        && targetNames.contains(category.getName().trim()))
+                .map(Category::getId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    /** 保存/更新开课计划后，同步线下公开课结束日期 */
+    private void syncOpenEndDateFromPlans(Integer courseId, CourseType type) {
+        if (type != CourseType.OPEN_OFFLINE) {
+            return;
+        }
+        Course course = courseRepository.findById(courseId).orElse(null);
+        if (course == null) {
+            return;
+        }
+        List<CoursePlan> plans = coursePlanRepository.findByCourseIdOrderBySortOrder(courseId);
+        course.setCourseOpenEndDate(OpenCourseExpireSupport.resolveOpenEndDate(plans));
+        if (course.getIsExpireHide() == null) {
+            course.setIsExpireHide(1);
+        }
+        courseRepository.save(course);
+    }
+
+    @Transactional
+    @Override
+    public void batchUpdateExpireHide(List<Integer> courseIds, Integer isExpireHide) {
+        if (courseIds == null || courseIds.isEmpty()) {
+            return;
+        }
+        if (isExpireHide == null || (isExpireHide != 0 && isExpireHide != 1)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "到期自动隐藏仅支持 0 或 1");
+        }
+        List<Course> courses = courseRepository.findAllById(courseIds);
+        for (Course course : courses) {
+            course.setIsExpireHide(isExpireHide);
+        }
+        courseRepository.saveAll(courses);
     }
 }

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90" fill="none">
+  <defs>
+    <linearGradient id="beijing-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF4E6"/>
+      <stop offset="100%" stop-color="#FFFBF5"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="90" fill="url(#beijing-sky)"/>
+  <ellipse cx="58" cy="78" rx="38" ry="5" fill="#E8D5C4" opacity="0.7"/>
+  <ellipse cx="58" cy="62" rx="22" ry="6" fill="#B45309"/>
+  <path d="M36 62 Q58 48 80 62" fill="#D97706"/>
+  <rect x="52" y="38" width="12" height="24" fill="#92400E"/>
+  <path d="M32 38 Q58 18 84 38" fill="#EA580C"/>
+  <path d="M38 30 Q58 14 78 30" fill="#F97316"/>
+  <circle cx="58" cy="22" r="6" fill="#FB923C"/>
+</svg>

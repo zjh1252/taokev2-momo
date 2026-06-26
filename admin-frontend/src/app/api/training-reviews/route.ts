@@ -8,10 +8,14 @@ export async function GET(request: NextRequest) {
   const size = searchParams.get('limit') ?? '20';
   const status = searchParams.get('status') ?? '';
   const reviewScope = searchParams.get('reviewScope') ?? '';
+  const reviewerKeyword = searchParams.get('reviewerKeyword') ?? '';
+  const reviewedBy = searchParams.get('reviewedBy') ?? '';
 
   const params = new URLSearchParams({ page, size });
   if (status) params.set('status', status);
   if (reviewScope) params.set('reviewScope', reviewScope);
+  if (reviewerKeyword) params.set('reviewerKeyword', reviewerKeyword);
+  if (reviewedBy) params.set('reviewedBy', reviewedBy);
 
   try {
     const result = await serverFetch<unknown>(

@@ -9,9 +9,12 @@ unpackage/
 dist/
 
 # ===== 依赖 =====
-# 二期切 CLI 后会出现
 node_modules/
 .pnpm-store/
+
+# ===== 环境变量本地覆盖 =====
+.env.local
+.env.*.local
 
 # ===== IDE / 编辑器 =====
 .hbuilderx/

@@ -1,28 +1,23 @@
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
+import { getMessages, setRequestLocale } from 'next-intl/server';
+import { siteConfig } from '@/config/site';
 import { hasLocale } from 'next-intl';
 import { notFound } from 'next/navigation';
-import { Geist, Geist_Mono } from 'next/font/google';
 import { routing } from '@/i18n/routing';
 import { Providers } from './providers';
 import '@/styles/globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
-
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'common' });
+export async function generateMetadata() {
   return {
-    title: t('site.title'),
-    description: t('site.description'),
+    title: siteConfig.title,
+    description: siteConfig.description,
+    keywords: siteConfig.keywords,
+    // 浏览器侧边栏/标签页 favicon 使用淘课 logo
+    icons: {
+      icon: '/statics/images/taoke-new-logo.jpg',
+      shortcut: '/statics/images/taoke-new-logo.jpg',
+      apple: '/statics/images/taoke-new-logo.jpg',
+    },
   };
 }
 
@@ -44,9 +39,9 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang={locale} className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans">
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>
       </body>

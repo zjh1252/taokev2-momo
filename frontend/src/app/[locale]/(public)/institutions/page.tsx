@@ -1,54 +1,81 @@
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { InstitutionListSection } from '@/features/institution/components/list/InstitutionListSection';
-import {
-  getInstitutionList,
-  getInstitutionFacets,
-  getProvinces,
-  getRecommendedInstitutions,
-  getTopRatedInstitutions,
-  getWeeklyActiveInstitutions,
-  getNewestInstitutions,
-} from '@/features/institution/api/service';
+import { getInstitutionList } from '@/features/institution/api/service';
+import { loadGoldInstitutions } from '@/features/recommendation/api/loaders';
+import { getCachedTrainerExpertiseTree } from '@/lib/cached-categories';
+import { buildInstitutionCategoryLinks } from '@/lib/institution-category-nav';
+import { institutionListMetadata, institutionListH1 } from '@/lib/seo';
+import { firstStringValue, normalizeNumberIds } from '@/lib/search-params';
 
-export const dynamic = 'force-dynamic';
-
-export async function generateMetadata() {
-  return {
-    title: '培训机构 - 淘课网',
-    description: '发现全国优秀培训机构，按擅长领域、行业筛选，查看评分与评价。',
-  };
+interface Props {
+  searchParams: Promise<{
+    expertiseCategoryId?: string;
+    categoryName?: string;
+  }>;
 }
 
-const EMPTY_PAGE = { list: [], total: 0, page: 1, size: 15, totalPages: 0 };
-const EMPTY_FACETS = { specialties: [], industries: [] };
+export async function generateMetadata({ searchParams }: Props) {
+  const sp = await searchParams;
+  return institutionListMetadata({
+    category: firstStringValue(sp.categoryName),
+  });
+}
 
 /**
- * 机构列表页 — SSR 首屏数据 + 客户端筛选交互
+ * 机构列表页 — SSR 首屏数据 + 左侧分类 + 客户端筛选交互
  */
-export default async function InstitutionsPage() {
-  const [initialData, facets, provinces, recommended, topRated, weeklyActive, newest] = await Promise.all([
-    getInstitutionList({ page: 1, size: 15 }).catch(() => EMPTY_PAGE),
-    getInstitutionFacets().catch(() => EMPTY_FACETS),
-    getProvinces().catch(() => []),
-    getRecommendedInstitutions(4).catch(() => []),
-    getTopRatedInstitutions(5).catch(() => []),
-    getWeeklyActiveInstitutions(5).catch(() => []),
-    getNewestInstitutions(5).catch(() => []),
+export default async function InstitutionsPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const expertiseCategoryId = normalizeNumberIds(
+    sp.expertiseCategoryId ? [sp.expertiseCategoryId] : undefined,
+  )[0];
+
+  const [initialData, goldPool, expertiseTree] = await Promise.all([
+    getInstitutionList({
+      page: 1,
+      size: 15,
+      expertiseCategoryId,
+    }).catch(() => ({
+      list: [],
+      total: 0,
+      page: 1,
+      size: 15,
+      totalPages: 0,
+    })),
+    getInstitutionList({ page: 1, size: 50 }).catch(() => ({
+      list: [],
+      total: 0,
+      page: 1,
+      size: 50,
+      totalPages: 0,
+    })),
+    getCachedTrainerExpertiseTree(),
   ]);
+
+  const initialGoldRecommends = await loadGoldInstitutions(goldPool.list, 4);
+
+  const categoryItems = buildInstitutionCategoryLinks(expertiseTree, '/company');
+
+  const listH1 = institutionListH1({
+    category: firstStringValue(sp.categoryName),
+  });
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
-      {/* 面包屑导航 — 公共组件 */}
       <PageBreadcrumb items={[{ label: '培训机构' }]} />
+      <h1 className="text-2xl font-bold text-slate-900">{listH1}</h1>
 
       <InstitutionListSection
         initialData={initialData}
-        facets={facets}
-        provinces={provinces}
-        recommended={recommended}
-        topRated={topRated}
-        weeklyActive={weeklyActive}
-        newest={newest}
+        initialGoldRecommends={initialGoldRecommends}
+        categoryItems={categoryItems}
+        initialExpertiseCategoryId={expertiseCategoryId}
+        categoryTitle="培训机构类别"
+        bottomCategoryNav={{
+          title: '培训机构类别',
+          countUnit: '家',
+          items: categoryItems,
+        }}
       />
     </main>
   );

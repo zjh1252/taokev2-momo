@@ -106,8 +106,62 @@ public class RegionServiceImpl implements RegionService {
                 idNameCache.put(r.getId(), r.getName());
                 result.put(r.getId(), r.getName());
             }
+            for (Integer id : missIds) {
+                if (!result.containsKey(id)) {
+                    String legacyName = resolveLegacyRegionName(id);
+                    if (!legacyName.isEmpty()) {
+                        idNameCache.put(id, legacyName);
+                        result.put(id, legacyName);
+                    }
+                }
+            }
         }
         return result;
+    }
+
+    @Override
+    public String getNameByLegacyRegionId(Integer legacyRegionId) {
+        if (legacyRegionId == null || legacyRegionId <= 0) {
+            return "";
+        }
+        String cached = idNameCache.get(legacyRegionId);
+        if (cached != null) {
+            return cached;
+        }
+        String fromId = regionRepository.findById(legacyRegionId).map(Region::getName).orElse("");
+        if (!fromId.isEmpty()) {
+            idNameCache.put(legacyRegionId, fromId);
+            return fromId;
+        }
+        return resolveLegacyRegionName(legacyRegionId);
+    }
+
+    /**
+     * 迁移机构常存 6 位 legacy 码（如 310000），common_regions 使用 12 位 code。
+     */
+    private String resolveLegacyRegionName(Integer legacyId) {
+        if (legacyId == null || legacyId <= 0) {
+            return "";
+        }
+        String code12 = toLegacyRegionCode12(legacyId);
+        if (code12 == null) {
+            return "";
+        }
+        String name = regionRepository.findByCode(code12).map(Region::getName).orElse("");
+        if (!name.isEmpty()) {
+            idNameCache.put(legacyId, name);
+        }
+        return name;
+    }
+
+    private static String toLegacyRegionCode12(Integer legacyId) {
+        if (legacyId >= 1_000_000) {
+            return String.format("%012d", legacyId);
+        }
+        if (legacyId >= 100_000) {
+            return legacyId + "000000";
+        }
+        return null;
     }
 
     // ==================== 内部方法 ====================

@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth/auth-context';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import { updateProfile } from '@/features/user-center/api/service';
+import { useRealNameLock } from '@/features/user-center/hooks/useRealNameLock';
+import { MaterialPickerButton } from '@/features/ops-material/components/MaterialPickerButton';
+import { resolveImageSrc } from '@/lib/media';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
@@ -30,6 +33,7 @@ async function uploadAvatar(file: File): Promise<string> {
 
 export default function AccountBasePage() {
   const { user, refreshUser } = useAuth();
+  const { locked: realNameLocked, realName: certRealName } = useRealNameLock();
 
   const [nickname, setNickname] = useState(user?.nickname || '');
   const [realName, setRealName] = useState(user?.realName || '');
@@ -39,6 +43,12 @@ export default function AccountBasePage() {
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (realNameLocked && certRealName) {
+      setRealName(certRealName);
+    }
+  }, [realNameLocked, certRealName]);
 
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -90,7 +100,7 @@ export default function AccountBasePage() {
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={avatarUrl}
+                  src={resolveImageSrc(avatarUrl, '')}
                   alt="头像"
                   className="w-full h-full object-cover"
                 />
@@ -114,6 +124,12 @@ export default function AccountBasePage() {
             </button>
           </div>
           <p className="text-xs text-slate-500 mt-2">点击更换头像</p>
+          <MaterialPickerButton
+            materialType="AVATAR"
+            scene="TRAINER"
+            className="mt-2"
+            onSelect={(url) => setAvatarUrl(url)}
+          />
           <input
             ref={avatarInputRef}
             type="file"
@@ -137,11 +153,15 @@ export default function AccountBasePage() {
         <label className="text-sm block">
           <span className="block text-gray-600 mb-1">真实姓名</span>
           <input
-            className="w-full border border-slate-300 rounded px-3 py-2"
+            className={`w-full border border-slate-300 rounded px-3 py-2 ${realNameLocked ? 'bg-slate-50 text-gray-500' : ''}`}
             value={realName}
             onChange={(e) => setRealName(e.target.value)}
             placeholder="请输入真实姓名"
+            readOnly={realNameLocked}
           />
+          {realNameLocked && (
+            <span className="text-xs text-gray-400 mt-1 block">已通过实名认证，不可修改</span>
+          )}
         </label>
         <label className="text-sm md:col-span-2 block">
           <span className="block text-gray-600 mb-1">手机号</span>

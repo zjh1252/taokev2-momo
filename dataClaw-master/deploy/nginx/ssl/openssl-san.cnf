@@ -1,0 +1,12 @@
+# 仅用于 x509 -extfile -extensions v3_req（SAN 等扩展）
+# CSR 请用 openssl-req.cnf，见 gen-selfsigned.sh
+
+[v3_req]
+subjectAltName = @alt_names
+basicConstraints = CA:FALSE
+keyUsage         = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+
+[alt_names]
+DNS.1 = v2.taoke.com
+DNS.2 = adminv2.taoke.com

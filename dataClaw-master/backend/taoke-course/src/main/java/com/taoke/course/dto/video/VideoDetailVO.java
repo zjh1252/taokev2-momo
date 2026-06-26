@@ -1,0 +1,69 @@
+package com.taoke.course.dto.video;
+
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * 录播课详情（含系列、章节、分类名、发布者信息）
+ *
+ * @author Fangxinxin
+ * @date 2026-04-07 14:00
+ */
+@Data
+public class VideoDetailVO {
+
+    private Integer id;
+    private String title;
+    private String videoType;
+    private String videoTypeLabel;
+
+    private Integer publisherId;
+    private String publisherType;
+    private String publisherName;
+
+    private Integer categoryId;
+    private String categoryName;
+    private Integer subCategoryId;
+    private String subCategoryName;
+
+    private String coverUrl;
+    private String intro;
+    private String videoUrl;
+    private String externalUrl;
+
+    private String teacherName;
+    private Integer trainerId;
+    private String trainerName;
+
+    private BigDecimal price;
+    private BigDecimal originalPrice;
+    private Integer isFree;
+    private String keywords;
+
+    private Integer duration;
+    private Integer totalEpisodes;
+
+    private Integer isFeatured;
+    private Integer status;
+    private String statusLabel;
+    private String rejectReason;
+
+    private Integer sortOrder;
+    private Integer viewCount;
+    private Integer enrollmentCount;
+    private Integer studentCount;
+    private BigDecimal score;
+
+    private LocalDateTime publishedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    /** 系列列表（含各系列下的章节） */
+    private List<VideoSeriesVO> seriesList;
+
+    /** 不属于任何系列的独立章节 */
+    private List<VideoChapterVO> standaloneChapters;
+}

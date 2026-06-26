@@ -4,9 +4,11 @@ import com.taoke.user.entity.TrainerCase;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -41,4 +43,15 @@ public interface TrainerCaseRepository extends JpaRepository<TrainerCase, Intege
      */
     @Query("SELECT c FROM TrainerCase c WHERE c.status = 1 ORDER BY c.id DESC")
     List<TrainerCase> findRecentApproved(Pageable pageable);
+
+    /** C 端案例详情访问 +1（原子更新，避免并发覆盖） */
+    @Modifying
+    @Query("UPDATE TrainerCase c SET c.viewCount = COALESCE(c.viewCount, 0) + 1 WHERE c.id = :id")
+    void incrementViewCount(@Param("id") Integer id);
+
+    @Query("SELECT c FROM TrainerCase c WHERE c.status = 1 AND c.trainerId IN :trainerIds ORDER BY c.sortOrder DESC, c.id DESC")
+    List<TrainerCase> findApprovedByTrainerIds(@Param("trainerIds") List<Integer> trainerIds, Pageable pageable);
+
+    @Query("SELECT c.trainerId, COUNT(c) FROM TrainerCase c WHERE c.trainerId IN :ids GROUP BY c.trainerId")
+    List<Object[]> countGroupByTrainerIds(@Param("ids") Collection<Integer> ids);
 }

@@ -9,12 +9,20 @@ import { CoursePlanTable } from './CoursePlanTable';
 import { getPublicReviews } from '@/features/interaction/api/service';
 import type { ReviewItem } from '@/features/interaction/api/types';
 import { ReviewPhotoList } from '@/features/interaction/components/ReviewPhotoList';
+import { courseSectionH3 } from '@/lib/seo/headings';
 
 interface CourseDetailTabsProps {
   course: CourseDetail;
+  /** 开课计划详情页：排除当前计划并切换表格标题 */
+  activePlanCode?: string;
+  planTableTitle?: string;
 }
 
-export function CourseDetailTabs({ course }: CourseDetailTabsProps) {
+export function CourseDetailTabs({
+  course,
+  activePlanCode,
+  planTableTitle,
+}: CourseDetailTabsProps) {
   const t = useTranslations('course.detail');
   const isOpen = course.type === 'OPEN_OFFLINE' || course.type === 'OPEN_ONLINE';
 
@@ -58,14 +66,22 @@ export function CourseDetailTabs({ course }: CourseDetailTabsProps) {
           <div className="space-y-8">
             {/* 公开课：开课计划表格 */}
             {isOpen && course.plans && course.plans.length > 0 && (
-              <CoursePlanTable plans={course.plans} courseId={course.id} />
+              <CoursePlanTable
+                plans={course.plans}
+                courseId={course.id}
+                activePlanCode={activePlanCode}
+                title={planTableTitle}
+                upcomingOnly={!planTableTitle}
+                courseOverdue={Boolean(course.isOverdue)}
+              />
             )}
 
             {/* 培训受众 */}
             {course.audience && (
               <section>
+                <h2 className="text-xl font-bold text-slate-900 mb-4">{t('trainingTarget')}</h2>
                 <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                  {t('trainingTarget')}
+                  {courseSectionH3(course.title, '目标受众')}
                 </h3>
                 <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
                   {course.audience}
@@ -73,11 +89,12 @@ export function CourseDetailTabs({ course }: CourseDetailTabsProps) {
               </section>
             )}
 
-            {/* 课程亮点 */}
+            {/* 课程收益 */}
             {course.highlights && (
               <section>
+                <h2 className="text-xl font-bold text-slate-900 mb-4">{t('courseHighlights')}</h2>
                 <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                  {t('courseHighlights')}
+                  {courseSectionH3(course.title, '课程收益')}
                 </h3>
                 <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap"
                   dangerouslySetInnerHTML={{ __html: course.highlights }}
@@ -88,8 +105,9 @@ export function CourseDetailTabs({ course }: CourseDetailTabsProps) {
             {/* 课程介绍（富文本） */}
             {course.intro && (
               <section>
+                <h2 className="text-xl font-bold text-slate-900 mb-4">{t('tabIntro')}</h2>
                 <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                  {t('tabIntro')}
+                  {courseSectionH3(course.title, '课程背景')}
                 </h3>
                 <div
                   className="prose prose-slate max-w-none text-sm"
@@ -102,7 +120,7 @@ export function CourseDetailTabs({ course }: CourseDetailTabsProps) {
             {course.syllabus && (
               <section>
                 <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                  {t('courseSyllabus')}
+                  {courseSectionH3(course.title, '课程大纲')}
                 </h3>
                 <div
                   className="prose prose-slate max-w-none text-sm"
@@ -121,7 +139,7 @@ export function CourseDetailTabs({ course }: CourseDetailTabsProps) {
                   <p className="font-bold text-slate-900">{course.trainerName}</p>
                   {/* TODO: trainerId 回填后可链接到讲师主页 */}
                   {course.trainerId > 0 && (
-                    <a href={`/trainers/${course.trainerId}`} className="text-sm text-primary hover:underline mt-1 inline-block">
+                    <a href={`/trainer/${course.trainerId}.htm`} className="text-sm text-primary hover:underline mt-1 inline-block">
                       {t('viewTrainerPage')} →
                     </a>
                   )}

@@ -20,12 +20,12 @@ public class ReviewModerationServiceImpl implements ReviewModerationService {
 
     @Override
     public void approveReview(int reviewId, int operatorUserId) {
-        reviewService.approveReview(reviewId);
+        reviewService.approveReview(reviewId, operatorUserId);
     }
 
     @Override
     public void rejectReview(int reviewId, int operatorUserId, String reason) {
-        reviewService.rejectReview(reviewId, reason);
+        reviewService.rejectReview(reviewId, reason, operatorUserId);
     }
 
     @Override

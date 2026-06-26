@@ -4,6 +4,8 @@ export interface RoleInfo {
   role: string;
   /** 状态：1=生效, 2=待审核, 3=审核驳回, 4=已禁用 */
   status: number;
+  /** 是否「已生效身份资料重审中」（status=1 且重新提交了角色资料，原身份仍可用） */
+  reapplying?: boolean;
   approvedAt: string | null;
 }
 

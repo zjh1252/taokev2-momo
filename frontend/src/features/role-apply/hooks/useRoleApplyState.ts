@@ -66,11 +66,23 @@ export function useRoleApplyState() {
     [state, persist],
   );
 
-  const setFormData = useCallback(
-    (data: Record<string, unknown>) => {
-      persist({ ...state, formData: data });
+  /** 进入「修改资料」流程：保留已有 formData，避免覆盖 useProfilePrefill 回填内容 */
+  const enterEditProfile = useCallback(
+    (role: ApplyableRole) => {
+      persist({ ...state, selectedRole: role });
     },
     [state, persist],
+  );
+
+  const setFormData = useCallback(
+    (data: Record<string, unknown>) => {
+      setStateInner((prev) => {
+        const next = { ...prev, formData: data };
+        storage.set(storageKey(uid), next);
+        return next;
+      });
+    },
+    [uid],
   );
 
   const clearState = useCallback(() => {
@@ -90,6 +102,7 @@ export function useRoleApplyState() {
   return {
     state,
     setSelectedRole,
+    enterEditProfile,
     setFormData,
     clearState,
     dismiss,
@@ -109,9 +122,11 @@ function defaultFormData(role: ApplyableRole): Record<string, unknown> {
         gender: 0,
         phone: '',
         email: '',
+        idCardNo: '',
         provinceId: null,
         cityId: null,
         districtId: null,
+        townId: null,
         address: '',
         oneLineIntro: '',
         bio: '',

@@ -5,7 +5,6 @@ import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import {
   createHighlight,
-  createHighlightDraft,
   addHighlightFile,
 } from '@/features/trainer-highlight/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
@@ -60,21 +59,6 @@ export default function CreateHighlightPage() {
     setFiles((prev) => prev.filter((_, i) => i !== _index));
   }, []);
 
-  /** 创建后逐个上传文件到子表 */
-  const uploadFiles = async (highlightId: number) => {
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      await addHighlightFile(highlightId, {
-        fileType: f.fileType,
-        fileUrl: f.fileUrl,
-        thumbnailUrl: f.thumbnailUrl || '',
-        title: f.title || '',
-        fileSize: f.fileSize,
-        sortOrder: i,
-      }, trainerUserId);
-    }
-  };
-
   const handleSubmit = async () => {
     if (!valid) {
       toast.error('请先在顶部选择要代发精彩瞬间的专家');
@@ -83,30 +67,21 @@ export default function CreateHighlightPage() {
     setSubmitting(true);
     try {
       const highlight = await createHighlight(form, trainerUserId);
-      await uploadFiles(highlight.id);
-      toast.success('精彩瞬间已创建');
-      router.push(
-        trainerUserId
-          ? `${ROUTES.UC_HIGHLIGHTS_MANAGE}?trainerUserId=${trainerUserId}`
-          : ROUTES.UC_HIGHLIGHTS_MANAGE,
-      );
-    } catch {
-      // 平台层已统一处理错误提示
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
-  const handleSaveDraft = async () => {
-    if (!valid) {
-      toast.error('请先在顶部选择要代发精彩瞬间的专家');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const highlight = await createHighlightDraft(form, trainerUserId);
-      await uploadFiles(highlight.id);
-      toast.success('草稿已保存');
+      // 逐个上传文件到子表
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        await addHighlightFile(highlight.id, {
+          fileType: f.fileType,
+          fileUrl: f.fileUrl,
+          thumbnailUrl: f.thumbnailUrl || '',
+          title: f.title || '',
+          fileSize: f.fileSize,
+          sortOrder: i,
+        }, trainerUserId);
+      }
+
+      toast.success('精彩瞬间已创建');
       router.push(
         trainerUserId
           ? `${ROUTES.UC_HIGHLIGHTS_MANAGE}?trainerUserId=${trainerUserId}`
@@ -132,6 +107,26 @@ export default function CreateHighlightPage() {
         {banner}
 
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-6 max-w-2xl space-y-5">
+        <FormField label="标题">
+          <input
+            type="text"
+            value={form.title || ''}
+            onChange={(e) => updateField('title', e.target.value)}
+            placeholder="请输入标题"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          />
+        </FormField>
+
+        <FormField label="描述">
+          <textarea
+            value={form.description || ''}
+            onChange={(e) => updateField('description', e.target.value)}
+            rows={3}
+            placeholder="请输入描述"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+          />
+        </FormField>
+
         <FormField label="封面图">
           {form.coverImage ? (
             <div className="relative w-[240px] h-[180px] rounded-lg overflow-hidden border border-slate-200">
@@ -182,14 +177,6 @@ export default function CreateHighlightPage() {
             className="bg-primary text-white text-sm px-6 py-2.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {submitting ? '提交中...' : '提交发布'}
-          </button>
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            disabled={submitting}
-            className="border border-primary text-primary text-sm px-6 py-2.5 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
-          >
-            保存草稿
           </button>
           <Link
             href={ROUTES.UC_HIGHLIGHTS_MANAGE}

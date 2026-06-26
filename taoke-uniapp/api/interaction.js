@@ -18,8 +18,8 @@ export const removeFavorite = (params) =>
 export const listFavorites = (params) =>
   http.get('/interaction/favorites', params);
 
-export const checkFavorite = (params) =>
-  http.get('/interaction/favorites/check', params);
+export const checkFavorite = (params, options = {}) =>
+  http.get('/interaction/favorites/check', params, options);
 
 /** 点赞 */
 export const addLike = (data) => http.post('/interaction/likes', data);

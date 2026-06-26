@@ -5,32 +5,40 @@
  * 数据库中保存的 URL 一般为相对路径（例如 {@code /uploads/images/xxx.png}），
  * 由 C 端站点（默认 {@code http://localhost:3000}）直接对外提供访问。</p>
  *
- * <p>后台站点（默认 {@code http://localhost:3001}）自身没有这些文件，
- * 因此对相对路径的图片/附件 URL 需要补成绝对地址，指向 C 端站点。</p>
- *
- * <p>每个环境必须通过 {@code NEXT_PUBLIC_FRONTEND_BASE_URL} 显式配置 C 端域名
- *（dev 例如 {@code http://localhost:3000}，生产例如 {@code https://www.taoke.com}）。
- * 未配置时不会编造默认值，相对路径会原样返回，浏览器请求会落到当前后台域名上。</p>
+ * <p>老站迁移数据常见 {@code /attachments/}、{@code /u/} 等路径，需指向旧站域名。</p>
  *
  * @author Fangxinxin
  * @date 2026-04-16 23:30
  */
 
 /** C 端前台站点 BaseURL — 用于解析后端返回的相对资源路径 */
-const FRONTEND_BASE_URL = (process.env.NEXT_PUBLIC_FRONTEND_BASE_URL ?? '').replace(
-  /\/+$/,
-  '',
-);
+const FRONTEND_BASE_URL = (
+  process.env.NEXT_PUBLIC_FRONTEND_BASE_URL ??
+  (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '')
+).replace(/\/+$/, '');
+
+/** 老站静态资源域名（资质证明等 attachments 路径） */
+const LEGACY_ASSET_BASE = (
+  process.env.NEXT_PUBLIC_LEGACY_ASSET_BASE_URL ?? 'https://www.taoke.com'
+).replace(/\/+$/, '');
+
+function joinBase(base: string, path: string): string {
+  return `${base.replace(/\/+$/, '')}/${path.replace(/^\.\//, '').replace(/^\//, '')}`;
+}
+
+/** 老站 attachments / u 路径 → 绝对 URL */
+function resolveLegacyAssetPath(path: string): string | null {
+  if (path.startsWith('/attachments/') || path.startsWith('/u/')) {
+    return joinBase(LEGACY_ASSET_BASE, path);
+  }
+  if (path.startsWith('attachments/') || path.startsWith('u/')) {
+    return joinBase(LEGACY_ASSET_BASE, path);
+  }
+  return null;
+}
 
 /**
  * 把后端返回的资源 URL 解析为可在浏览器中直接访问的绝对地址。
- *
- * <ul>
- *   <li>空值 → 原样返回</li>
- *   <li>已是 {@code http(s)://} 或 {@code data:} / {@code blob:} → 原样返回</li>
- *   <li>{@code //example.com/x} → 加上当前协议</li>
- *   <li>其他（一般为 {@code /uploads/...}） → 拼上 C 端 BaseURL</li>
- * </ul>
  */
 export function resolveAssetUrl(
   url: string | null | undefined,
@@ -41,7 +49,32 @@ export function resolveAssetUrl(
   if (/^(https?:|data:|blob:)/i.test(trimmed)) return trimmed;
   if (trimmed.startsWith('//')) return `https:${trimmed}`;
   const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  // 未配置 NEXT_PUBLIC_FRONTEND_BASE_URL 时，原样返回相对路径（避免拼出错误的绝对地址）
+
+  const legacy = resolveLegacyAssetPath(path.startsWith('/') ? path : trimmed);
+  if (legacy) return legacy;
+
   if (!FRONTEND_BASE_URL) return path;
   return `${FRONTEND_BASE_URL}${path}`;
+}
+
+/** 是否像可展示的图片资源 URL（过滤纯数字等脏数据） */
+export function isLikelyImageAssetUrl(url: string | null | undefined): boolean {
+  if (!url?.trim()) return false;
+  const trimmed = url.trim();
+  if (/^(https?:|data:|blob:)/i.test(trimmed)) {
+    return (
+      /\/uploads\//i.test(trimmed)
+      || /\/statics\//i.test(trimmed)
+      || /\/attachments\//i.test(trimmed)
+      || /\.(png|jpe?g|gif|webp|bmp|svg)(\?|#|$)/i.test(trimmed)
+    );
+  }
+  return (
+    trimmed.startsWith('/uploads/')
+    || trimmed.startsWith('uploads/')
+    || trimmed.startsWith('/statics/')
+    || trimmed.startsWith('statics/')
+    || /\/attachments\//i.test(trimmed)
+    || /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(trimmed)
+  );
 }

@@ -2,7 +2,27 @@
   "permissions": {
     "allow": [
       "Bash(java -version)",
-      "Bash(javac -version)"
+      "Bash(javac -version)",
+      "Bash(taskkill //PID 28056 //F)",
+      "Bash(./mvnw compile *)",
+      "Bash(mvn --version)",
+      "Bash(/e/JAVA/apache-maven-3.9.14-bin/apache-maven-3.9.14/bin/mvn --version)",
+      "Bash(/e/JAVA/apache-maven-3.9.14-bin/apache-maven-3.9.14/bin/mvn compile *)",
+      "Bash(/e/JAVA/apache-maven-3.9.14-bin/apache-maven-3.9.14/bin/mvn spring-boot:run -pl taoke-app -DskipTests)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080)",
+      "Bash(curl -s http://localhost:8080/search?keyword=%E6%80%BB%E7%BB%8F%E7%90%86\\\\&docType=trainer\\\\&page=1\\\\&size=3)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'Search total: {d.get\\(\\\\\"data\\\\\",{}\\).get\\(\\\\\"total\\\\\",0\\)}'\\)\")",
+      "Bash(curl -s 'http://localhost:8080/search?keyword=%E6%80%BB%E7%BB%8F%E7%90%86&docType=trainer&page=1&size=3')",
+      "Bash(curl -s http://localhost:8080/trainers/601101)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'code={d[\\\\\"code\\\\\"]}'\\)\")",
+      "Bash(taskkill //PID 23528 //F)",
+      "Bash(taskkill //PID 20328 //F)",
+      "Bash(python -c ' *)",
+      "Bash(curl -s 'http://localhost:8080/trainers/33074/courses?page=1&size=20')",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'total={d.get\\(\\\\\"data\\\\\",{}\\).get\\(\\\\\"total\\\\\",0\\)}'\\)\")",
+      "Bash(curl -s -o /dev/null -w \"Backend\\(8080\\): %{http_code}\\\\n\" http://localhost:8080)",
+      "Bash(curl -s -o /dev/null -w \"Admin\\(3001\\): %{http_code}\\\\n\" http://localhost:3001/login)",
+      "Bash(curl -s -o /dev/null -w \"Frontend\\(3000\\): %{http_code}\\\\n\" http://localhost:3000)"
     ]
   }
 }

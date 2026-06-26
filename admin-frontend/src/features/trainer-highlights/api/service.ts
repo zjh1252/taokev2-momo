@@ -13,6 +13,7 @@ export function buildHighlightParams(
   if (filters.limit) params.set('limit', String(filters.limit));
   if (filters.trainerId) params.set('trainerId', String(filters.trainerId));
   if (filters.status) params.set('status', filters.status);
+  if (filters.keyword) params.set('keyword', filters.keyword);
   return params;
 }
 

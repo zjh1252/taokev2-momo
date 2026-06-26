@@ -6,8 +6,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -27,16 +27,20 @@ import java.util.*;
  * @author Fangxinxin
  * @date 2026-03-31 11:00
  */
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private static final String AUTH_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtUtils jwtUtils;
     private final SecurityUserService securityUserService;
+
+    public JwtAuthenticationFilter(JwtUtils jwtUtils, SecurityUserService securityUserService) {
+        this.jwtUtils = jwtUtils;
+        this.securityUserService = securityUserService;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,

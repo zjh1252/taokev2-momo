@@ -1,8 +1,6 @@
 package com.taoke.course.dto.course;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -20,6 +18,9 @@ public class SaveCourseRequest {
     @NotBlank(message = "课程标题不能为空")
     private String title;
 
+    /** 是否保存为草稿：true=存草稿（仅校验标题），false/null=提交审核 */
+    private Boolean draft;
+
     /** hasPlan=1 时必须传 OPEN_OFFLINE 或 OPEN_ONLINE，否则可不传（默认 INTERNAL） */
     private String type;
 
@@ -32,12 +33,10 @@ public class SaveCourseRequest {
     /** 课程封面 URL */
     private String coverUrl;
 
-    /** 课程介绍（富文本 HTML） */
-    @NotBlank(message = "课程介绍不能为空")
+    /** 课程介绍（富文本 HTML）；提交审核时必填，存草稿时可空（服务层校验） */
     private String intro;
 
-    /** 课程简介（短文本，选填；前端已下线该字段） */
-    @Size(max = 500, message = "课程简介不能超过500字")
+    /** 课程简介（短文本，可选；发布表单已移除该输入，仅保留兼容字段） */
     private String summary;
 
     /** 课程大纲（富文本 HTML） */
@@ -80,8 +79,7 @@ public class SaveCourseRequest {
     private Integer hasPlan;
 
     /**
-     * 公开课开课计划列表，hasPlan=1 时必填
+     * 公开课开课计划列表，hasPlan=1 且提交审核时在服务层校验
      */
-    @Valid
     private List<CoursePlanDTO> plans;
 }

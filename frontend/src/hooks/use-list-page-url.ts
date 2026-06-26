@@ -2,17 +2,8 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { usePathname, useRouter } from '@/i18n/navigation';
-
-/** 从 URL 查询参数解析列表页码（默认 1） */
-export function parseListPageFromSearchParams(
-  searchParams: Pick<URLSearchParams, 'get'>,
-): number {
-  const raw = searchParams.get('page');
-  if (!raw) return 1;
-  const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n >= 1 ? n : 1;
-}
+import { getBrowserPathname, replaceBrowserUrl, setPageParam } from '@/lib/sync-list-filter-url';
+import { parseListPageFromSearchParams } from '@/lib/list-page';
 
 type UseListPageUrlSyncOptions = {
   currentPage: number;
@@ -25,8 +16,6 @@ type UseListPageUrlSyncOptions = {
  */
 export function useListPageUrlSync({ currentPage, onPageFromUrl }: UseListPageUrlSyncOptions) {
   const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const router = useRouter();
   const pageFromUrl = parseListPageFromSearchParams(searchParams);
   const skipNextSyncRef = useRef(false);
   const onPageFromUrlRef = useRef(onPageFromUrl);
@@ -35,15 +24,10 @@ export function useListPageUrlSync({ currentPage, onPageFromUrl }: UseListPageUr
   const writePageToUrl = useCallback(
     (page: number) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (page <= 1) {
-        params.delete('page');
-      } else {
-        params.set('page', String(page));
-      }
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      setPageParam(params, page);
+      replaceBrowserUrl(getBrowserPathname(), params);
     },
-    [searchParams, pathname, router],
+    [searchParams],
   );
 
   /** 用户主动翻页：写 URL，并跳过一次由 URL 触发的重复拉数 */

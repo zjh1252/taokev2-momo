@@ -20,7 +20,7 @@ function HighlightText({ html }: { html: string }) {
 export function CourseResultCard({ item }: CourseResultCardProps) {
   const hl = item._highlight;
   const isOpen = item.type === 'OPEN_OFFLINE' || item.type === 'OPEN_ONLINE';
-  const detailPath = isOpen ? `/opencourses/${item.id}` : `/innercourses/${item.id}`;
+  const detailPath = isOpen ? `/opencourse/${item.id}.htm` : `/inhousecourse/${item.id}.htm`;
 
   return (
     <Link

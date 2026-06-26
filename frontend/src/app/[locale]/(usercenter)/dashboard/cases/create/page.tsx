@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
-import { createCase, createCaseDraft, addCaseFile } from '@/features/trainer-case/api/service';
+import { createCase, addCaseFile } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
 import { validateForm, getFirstError, type FormValidationRules } from '@/lib/validation';
@@ -16,7 +16,6 @@ import RegionCascader, { type RegionValue } from '@/components/region-cascader';
 import { toast } from 'sonner';
 import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
 import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
-import { ContentPublisherGuard } from '@/features/binding/components/ContentPublisherGuard';
 
 export default function CreateCasePage() {
   const router = useRouter();
@@ -38,7 +37,6 @@ export default function CreateCasePage() {
     townId: undefined,
     trainingAddress: '',
     trainingDate: '',
-    trainingEndDate: '',
     description: '',
     coverImage: '',
   });
@@ -72,29 +70,9 @@ export default function CreateCasePage() {
     setFiles((prev) => prev.filter((_, i) => i !== _index));
   }, []);
 
-  /** 创建后逐个上传附件到子表 */
-  const uploadFiles = async (caseId: number) => {
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      await addCaseFile(caseId, {
-        fileType: f.fileType,
-        fileUrl: f.fileUrl,
-        thumbnailUrl: f.thumbnailUrl || '',
-        title: f.title || '',
-        fileSize: f.fileSize,
-        sortOrder: i,
-      }, trainerUserId);
-    }
-  };
-
   const handleSubmit = async () => {
     if (!valid) {
       toast.error('请先在顶部选择要代发案例的专家');
-      return;
-    }
-    // 起止日期顺序校验
-    if (form.trainingDate && form.trainingEndDate && form.trainingEndDate < form.trainingDate) {
-      toast.error('培训结束日期不能早于开始日期');
       return;
     }
     const validation = validateForm(form as SaveTrainerCaseRequest, CASE_RULES);
@@ -107,39 +85,21 @@ export default function CreateCasePage() {
     setSubmitting(true);
     try {
       const created = await createCase(form as SaveTrainerCaseRequest, trainerUserId);
-      await uploadFiles(created.id);
-      toast.success('案例已创建');
-      router.push(
-        trainerUserId
-          ? `${ROUTES.UC_CASES_MANAGE}?trainerUserId=${trainerUserId}`
-          : ROUTES.UC_CASES_MANAGE,
-      );
-    } catch {
-      // 平台层已统一处理错误提示
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
-  /** 保存草稿：仅要求填写案例标题，其余字段可不完整 */
-  const handleSaveDraft = async () => {
-    if (!valid) {
-      toast.error('请先在顶部选择要代发案例的专家');
-      return;
-    }
-    if (!form.caseTitle?.trim()) {
-      toast.error('请至少填写案例标题再保存草稿');
-      return;
-    }
-    if (form.trainingDate && form.trainingEndDate && form.trainingEndDate < form.trainingDate) {
-      toast.error('培训结束日期不能早于开始日期');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const created = await createCaseDraft(form as SaveTrainerCaseRequest, trainerUserId);
-      await uploadFiles(created.id);
-      toast.success('草稿已保存');
+      // 逐个上传附件到子表
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        await addCaseFile(created.id, {
+          fileType: f.fileType,
+          fileUrl: f.fileUrl,
+          thumbnailUrl: f.thumbnailUrl || '',
+          title: f.title || '',
+          fileSize: f.fileSize,
+          sortOrder: i,
+        }, trainerUserId);
+      }
+
+      toast.success('案例已创建');
       router.push(
         trainerUserId
           ? `${ROUTES.UC_CASES_MANAGE}?trainerUserId=${trainerUserId}`
@@ -161,27 +121,26 @@ export default function CreateCasePage() {
         <h2 className="text-lg font-bold text-gray-800">发布案例</h2>
       </div>
 
-      <ContentPublisherGuard resourceLabel="案例">
       <BoundPublisherGuard>
         {banner}
 
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-6 max-w-2xl space-y-5">
-        <FormField label="案例标题" required>
+        <FormField label="标题" required>
           <input
             type="text"
             value={form.caseTitle}
             onChange={(e) => updateField('caseTitle', e.target.value)}
-            placeholder="请输入案例标题"
+            placeholder="请输入标题"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </FormField>
 
-        <FormField label="客户企业名称" required>
+        <FormField label="企业名称" required>
           <input
             type="text"
             value={form.enterpriseName}
             onChange={(e) => updateField('enterpriseName', e.target.value)}
-            placeholder="请输入客户企业名称"
+            placeholder="请输入企业名称"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </FormField>
@@ -206,17 +165,6 @@ export default function CreateCasePage() {
             />
           </FormField>
         </div>
-
-        <FormField label="关键字">
-          <input
-            type="text"
-            value={form.keyword || ''}
-            onChange={(e) => updateField('keyword', e.target.value)}
-            maxLength={200}
-            placeholder="多个关键字用逗号分隔，如：领导力,团队管理,沟通"
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
-        </FormField>
 
         <FormField label="培训地点" required>
           <RegionCascader
@@ -252,23 +200,13 @@ export default function CreateCasePage() {
         </FormField>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="培训日期" required>
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={form.trainingDate || ''}
-                onChange={(e) => updateField('trainingDate', e.target.value)}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              />
-              <span className="text-gray-400">-</span>
-              <input
-                type="date"
-                value={form.trainingEndDate || ''}
-                min={form.trainingDate || undefined}
-                onChange={(e) => updateField('trainingEndDate', e.target.value)}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              />
-            </div>
+          <FormField label="培训日期">
+            <input
+              type="date"
+              value={form.trainingDate || ''}
+              onChange={(e) => updateField('trainingDate', e.target.value)}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
           </FormField>
           <FormField label="受训人数">
             <input
@@ -299,17 +237,17 @@ export default function CreateCasePage() {
           />
         </FormField>
 
-        <FormField label="案例描述" required>
+        <FormField label="描述">
           <textarea
             value={form.description || ''}
             onChange={(e) => updateField('description', e.target.value)}
             rows={4}
-            placeholder="请详细描述案例内容"
+            placeholder="请输入描述"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
           />
         </FormField>
 
-        <FormField label="封面图" required>
+        <FormField label="封面图">
           <div className="flex items-center gap-4">
             {form.coverImage ? (
               <div className="relative w-[160px] h-[100px] rounded-lg overflow-hidden border border-slate-200">
@@ -362,14 +300,6 @@ export default function CreateCasePage() {
           >
             {submitting ? '提交中...' : '提交案例'}
           </button>
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            disabled={submitting}
-            className="border border-primary text-primary text-sm px-6 py-2.5 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
-          >
-            保存草稿
-          </button>
           <Link
             href={ROUTES.UC_CASES_MANAGE}
             className="border border-slate-200 text-gray-600 text-sm px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-colors inline-flex items-center"
@@ -379,7 +309,6 @@ export default function CreateCasePage() {
         </div>
         </div>
       </BoundPublisherGuard>
-      </ContentPublisherGuard>
     </section>
   );
 }
@@ -405,7 +334,7 @@ export const traineeCountValidator = (v: unknown): string | undefined => {
 
 export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
   caseTitle: { required: true, requiredMessage: '请输入案例标题' },
-  enterpriseName: { required: true, requiredMessage: '请输入客户企业名称' },
+  enterpriseName: { required: true, requiredMessage: '请输入企业名称' },
   provinceId: {
     required: true,
     requiredMessage: '请选择培训地点（省份）',
@@ -420,22 +349,6 @@ export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
     required: true,
     requiredMessage: '请选择培训地点（区/县）',
     validator: positiveIdValidator('请选择培训地点（区/县）'),
-  },
-  trainingDate: {
-    required: true,
-    requiredMessage: '请选择培训日期（开始日）',
-  },
-  trainingEndDate: {
-    required: true,
-    requiredMessage: '请选择培训日期（结束日）',
-  },
-  description: {
-    required: true,
-    requiredMessage: '请填写案例描述',
-  },
-  coverImage: {
-    required: true,
-    requiredMessage: '请上传封面图',
   },
   traineeCount: {
     validator: traineeCountValidator,

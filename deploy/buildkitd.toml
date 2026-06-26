@@ -1,0 +1,4 @@
+# buildx 推送私有 HTTP 仓库时使用（与 deploy/build.sh 配套）
+[registry."10.0.14.20:5000"]
+  http = true
+  insecure = true

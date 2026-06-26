@@ -53,6 +53,16 @@ public class UserRoleServiceImpl implements UserRoleService {
     }
 
     @Override
+    public Page<UserRole> findApplications(String role, Integer status, Pageable pageable) {
+        return userRoleRepository.findApplications(role, status, pageable);
+    }
+
+    @Override
+    public long countPendingApplications(String role) {
+        return userRoleRepository.countPendingApplications(role);
+    }
+
+    @Override
     public List<Integer> getUserIdsByRoleAndStatus(String roleCode, Integer status) {
         return userRoleRepository
                 .findByRoleAndStatus(roleCode, status, Pageable.unpaged())

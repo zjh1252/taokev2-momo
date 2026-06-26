@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
+import { SafeImage } from '@/components/safe-image';
 import { SectionHeader } from './SectionHeader';
 import type { InternalCourse } from '../types';
 
@@ -18,7 +18,7 @@ export function CoursesSection({ courses }: CoursesSectionProps) {
     <section>
       <SectionHeader
         title={t('courses.sectionTitle')}
-        viewMoreHref="/innercourses"
+        viewMoreHref="/inhousecourse"
         viewMoreText={t('experts.viewMore')}
       />
 
@@ -34,22 +34,20 @@ export function CoursesSection({ courses }: CoursesSectionProps) {
 function CourseCard({ course }: { course: InternalCourse }) {
   return (
     <Link
-      href={`/innercourses/${course.id}`}
+      href={`/inhousecourse/${course.id}.htm`}
       className="bg-white rounded-lg overflow-hidden flex group border border-slate-100 hover:border-primary transition-all shadow-sm h-40"
     >
-      {/* 左侧封面 */}
-      <div className="w-1/3 overflow-hidden">
-        <Image
-          src={course.image}
+      <div className="w-1/3 overflow-hidden relative shrink-0 bg-slate-100">
+        <SafeImage
+          src={course.coverUrl}
           alt={course.title}
-          width={240}
-          height={160}
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          fill
+          apiResolved
+          className="object-cover transition-transform group-hover:scale-105"
         />
       </div>
 
-      {/* 右侧内容 */}
-      <div className="p-5 flex flex-col flex-1">
+      <div className="p-5 flex flex-col flex-1 min-w-0">
         <h4 className="font-bold text-base mb-2 line-clamp-2 text-slate-800 group-hover:text-primary transition-colors">
           {course.title}
         </h4>

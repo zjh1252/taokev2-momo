@@ -20,6 +20,9 @@ import { CategoryMultiSelect } from '../CategoryMultiSelect';
 import { TrainerBooksEditor } from '../TrainerBooksEditor';
 import { getMyTrainerProfileAsForm, type ResumeParseResult } from '../../api/service';
 import { useProfilePrefill } from '../../hooks/useProfilePrefill';
+import { useRealNameLock } from '@/features/user-center/hooks/useRealNameLock';
+import { resolveImageSrc } from '@/lib/media';
+import { MaterialPickerButton } from '@/features/ops-material/components/MaterialPickerButton';
 
 const GENDER_OPTIONS = [
   { value: 1, label: '男' },
@@ -61,15 +64,33 @@ async function uploadAvatar(file: File): Promise<string> {
  */
 export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
   const { user } = useAuth();
+  const { locked: realNameLocked, realName: certRealName, idCardNo: certIdCardNo } = useRealNameLock();
   const update = (patch: Partial<TrainerFormData>) => onChange({ ...data, ...patch });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
 
   useEffect(() => {
     if (!data.phone && user?.phone) {
       onChange({ ...data, phone: user.phone });
     }
   }, [user?.phone]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!realNameLocked) return;
+    const patch: Partial<TrainerFormData> = {};
+    if (certRealName && !data.name) patch.name = certRealName;
+    if (certIdCardNo && !data.idCardNo) patch.idCardNo = certIdCardNo;
+    if (Object.keys(patch).length > 0) onChange({ ...data, ...patch });
+  }, [realNameLocked, certRealName, certIdCardNo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 已生效（status=1）的专家用户进入「修改资料」流程时自动回填档案
   useProfilePrefill<TrainerFormData>({
@@ -117,12 +138,19 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (avatarPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+    const blobUrl = URL.createObjectURL(file);
+    setAvatarPreview(blobUrl);
     setUploadingAvatar(true);
     try {
       const url = await uploadAvatar(file);
       update({ avatar: url });
       toast.success('头像上传成功');
     } catch {
+      setAvatarPreview(null);
+      URL.revokeObjectURL(blobUrl);
       toast.error('头像上传失败，请重试');
     } finally {
       setUploadingAvatar(false);
@@ -134,6 +162,9 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
   const honorFiles: TrainerHonorFileItem[] = data.honorFiles || [];
   const expertiseIds: number[] = data.expertiseCategoryIds || [];
   const industryIds: number[] = data.industryCategoryIds || [];
+
+  const avatarSrc =
+    avatarPreview || (data.avatar ? resolveImageSrc(data.avatar, '') : '');
 
   return (
     <div className="space-y-8">
@@ -152,10 +183,10 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
               <div className="flex flex-col items-center">
                 <div className="relative group">
                   <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
-                    {data.avatar ? (
+                    {avatarSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={data.avatar}
+                        src={avatarSrc}
                         alt="头像"
                         className="w-full h-full object-cover"
                       />
@@ -179,6 +210,18 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
                   </button>
                 </div>
                 <p className="text-xs text-slate-500 mt-2">点击更换</p>
+                <MaterialPickerButton
+                  materialType="AVATAR"
+                  scene="TRAINER"
+                  className="mt-2"
+                  onSelect={(url) => {
+                    if (avatarPreview?.startsWith('blob:')) {
+                      URL.revokeObjectURL(avatarPreview);
+                    }
+                    setAvatarPreview(null);
+                    update({ avatar: url });
+                  }}
+                />
                 <input
                   ref={avatarInputRef}
                   type="file"
@@ -198,8 +241,12 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
                 value={data.name || ''}
                 onChange={(e) => update({ name: e.target.value })}
                 placeholder="请输入真实姓名"
-                className="form-input"
+                readOnly={realNameLocked}
+                className={`form-input ${realNameLocked ? 'bg-slate-50 text-gray-500' : ''}`}
               />
+              {realNameLocked && (
+                <div className="text-xs text-gray-400 mt-1">已通过实名认证，不可修改</div>
+              )}
             </FormField>
             <FormField label="授课姓名" required>
               <input
@@ -262,12 +309,13 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
                   onChange={(e) => update({ idCardNo: e.target.value.trim() })}
                   placeholder="18 位身份证号"
                   maxLength={18}
-                  className="form-input"
+                  readOnly={realNameLocked}
+                  className={`form-input ${realNameLocked ? 'bg-slate-50 text-gray-500' : ''}`}
                   inputMode="text"
                   autoComplete="off"
                 />
                 <div className="text-xs text-gray-400 mt-1">
-                  用于实名认证，提交后将妥善保密
+                  {realNameLocked ? '已通过实名认证，不可修改' : '用于实名认证，提交后将妥善保密'}
                 </div>
               </FormField>
             </div>

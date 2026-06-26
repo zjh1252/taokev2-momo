@@ -1,0 +1,49 @@
+{
+  "dashboard": {
+    "title": "Dashboard"
+  },
+  "profile": {
+    "title": "Profile"
+  },
+  "center": {
+    "breadcrumb": "My TaoKe",
+    "welcome": "Welcome to User Center, {name}",
+    "headerWelcome": "Hi, {name}",
+    "studentId": "Student ID",
+    "messages": "Messages",
+    "sidebar": {
+      "home": "Home",
+      "messages": "Messages",
+      "learning": "My Learning",
+      "orders": "My Orders",
+      "demands": "My Demands",
+      "favorites": "My Favorites",
+      "reviews": "My Reviews",
+      "alliance": "TaoKe Alliance",
+      "allianceAmbassador": "Ambassador",
+      "alliancePartner": "Training Partner",
+      "alliance721": "721 Instructor",
+      "account": "My Account",
+      "accountInfo": "Identity Info",
+      "accountBase": "Account Info",
+      "accountVerify": "Verification",
+      "accountBind": "Account Binding",
+      "accountSwitch": "Switch Role"
+    },
+    "quickActions": {
+      "title": "On TaoKe, you can:",
+      "continueLearning": "Continue Learning",
+      "continuePlay": "Continue",
+      "progress": "Learned {percent}% (Lesson {section})",
+      "findResources": "Find Resources",
+      "aiSelect": "AI Course Picker",
+      "hotCourses": "Hot Courses",
+      "useTools": "Use Tools",
+      "trainingTool": "Training Tool",
+      "goalTracker": "Goal Tracker"
+    },
+    "recentLearning": "Recent Learning",
+    "recommendations": "Recommendations",
+    "discoverMore": "Discover more courses"
+  }
+}

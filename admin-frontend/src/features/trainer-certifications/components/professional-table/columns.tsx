@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import type { ColumnDef } from '@tanstack/react-table';
 import { CERT_STATUS_MAP, CERT_STATUS_OPTIONS, type AdminProfessionalCert } from '../../api/types';
 import { CertFileGallery } from '../cert-file-link';
+import { CertUserLink } from '../cert-user-link';
 import { AuditCellAction } from '../audit-cell-action';
 import { approveProfessional, rejectProfessional } from '../../api/service';
 
@@ -27,14 +28,13 @@ export const columns: ColumnDef<AdminProfessionalCert>[] = [
   },
   {
     id: 'user',
-    header: '用户',
+    header: '用户名',
     cell: ({ row }) => (
-      <div className='flex flex-col'>
-        <span className='font-medium'>{row.original.realName || row.original.nickname || '-'}</span>
-        {row.original.phone && (
-          <span className='text-muted-foreground text-xs'>{row.original.phone}</span>
-        )}
-      </div>
+      <CertUserLink
+        userId={row.original.userId}
+        label={row.original.nickname || row.original.realName || '-'}
+        phone={row.original.phone}
+      />
     )
   },
   {

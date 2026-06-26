@@ -6,6 +6,9 @@ import http from '@/utils/request';
  */
 export const listCourses = (query) => http.get('/courses', query);
 
+/** 公开课列表（固定 isOpen=true，与 PC /opencourse 对齐） */
+export const listOpenCourses = (query) => http.get('/courses', { isOpen: true, ...query });
+
 /** 课程详情 */
 export const getCourseDetail = (id) => http.get(`/courses/${id}`);
 

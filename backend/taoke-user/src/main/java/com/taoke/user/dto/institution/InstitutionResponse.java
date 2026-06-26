@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 public class InstitutionResponse {
 
     private Integer id;
+    /** 老站 tk_member.roleid */
+    private Integer legacyRoleId;
     private String orgName;
     private Integer orgType;
     private String legalRepresentative;

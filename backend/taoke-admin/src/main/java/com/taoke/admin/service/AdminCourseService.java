@@ -12,8 +12,13 @@ import com.taoke.course.entity.Course;
 import com.taoke.course.entity.CoursePlan;
 import com.taoke.course.enums.CourseStatus;
 import com.taoke.course.enums.CourseType;
+import com.taoke.course.support.OpenCourseExpireSupport;
+import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
+import com.taoke.user.api.UserService;
+import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.Trainer;
+import com.taoke.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -38,7 +43,9 @@ public class AdminCourseService {
 
     private final CourseService courseService;
     private final TrainerService trainerService;
+    private final InstitutionService institutionService;
     private final CategoryService categoryService;
+    private final UserService userService;
 
     /**
      * 分页查询课程列表
@@ -49,8 +56,15 @@ public class AdminCourseService {
                 Sort.by(Sort.Direction.DESC, "id")
         );
 
+        java.util.Collection<Integer> publisherUserIds = resolvePublisherUserIds(query.getPublisherName());
+        java.util.Collection<Integer> filterTrainerIds = resolveTrainerIds(query.getTrainerName());
+        Integer trainerId = filterTrainerIds != null ? null : query.getTrainerId();
+
         Page<Course> page = courseService.searchForAdmin(
-                query.getKeyword(), query.getStatus(), query.getType(), pageable);
+                query.getKeyword(), query.getStatus(), query.getType(),
+                trainerId, filterTrainerIds, query.getPublisherType(), query.getPublisherId(),
+                publisherUserIds,
+                pageable);
         List<Course> courses = page.getContent();
 
         if (courses.isEmpty()) {
@@ -67,17 +81,27 @@ public class AdminCourseService {
                 : categoryService.getNameMap(categoryIds);
 
         // 批量获取讲师名称
-        Set<Integer> trainerIds = courses.stream()
+        Set<Integer> courseTrainerIds = courses.stream()
                 .map(Course::getTrainerId)
                 .filter(id -> id != null && id > 0)
                 .collect(Collectors.toSet());
-        Map<Integer, Trainer> trainerMap = trainerIds.isEmpty()
+        Map<Integer, Trainer> trainerMap = courseTrainerIds.isEmpty()
                 ? Map.of()
-                : trainerService.findByIds(trainerIds).stream()
+                : trainerService.findByIds(courseTrainerIds).stream()
                         .collect(Collectors.toMap(Trainer::getId, Function.identity()));
+
+        Set<Integer> publisherUserIdSet = courses.stream()
+                .map(Course::getPublisherId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+        Map<Integer, User> publisherUserMap = publisherUserIdSet.isEmpty()
+                ? Map.of()
+                : userService.findAllByIds(new ArrayList<>(publisherUserIdSet)).stream()
+                        .collect(Collectors.toMap(User::getId, Function.identity()));
 
         List<AdminCourseVO> voList = courses.stream().map(course -> {
             AdminCourseVO vo = new AdminCourseVO();
+            Trainer trainer = trainerMap.get(course.getTrainerId());
             vo.setId(course.getId());
             vo.setTitle(course.getTitle());
             vo.setType(course.getType().name());
@@ -85,6 +109,10 @@ public class AdminCourseService {
             vo.setCoverUrl(course.getCoverUrl());
             vo.setPublisherId(course.getPublisherId());
             vo.setPublisherType(course.getPublisherType());
+            vo.setPublisherDisplayName(formatPublisherDisplay(
+                    course.getPublisherType(),
+                    publisherUserMap.get(course.getPublisherId()),
+                    trainer != null ? trainer.getName() : null));
             vo.setCategoryId(course.getCategoryId());
             vo.setCategoryName(categoryNameMap.get(course.getCategoryId()));
             vo.setDurationDays(course.getDurationDays());
@@ -97,8 +125,10 @@ public class AdminCourseService {
             vo.setEnrollmentCount(course.getEnrollmentCount());
             vo.setPublishedAt(course.getPublishedAt());
             vo.setCreatedAt(course.getCreatedAt());
+            vo.setCourseOpenEndDate(course.getCourseOpenEndDate());
+            vo.setIsExpireHide(course.getIsExpireHide());
+            vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(course));
 
-            Trainer trainer = trainerMap.get(course.getTrainerId());
             if (trainer != null) {
                 vo.setTrainerName(trainer.getName());
             }
@@ -107,6 +137,82 @@ public class AdminCourseService {
         }).toList();
 
         return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), voList);
+    }
+
+    /**
+     * 按专家姓名解析 trainer_id 列表
+     */
+    private java.util.Collection<Integer> resolveTrainerIds(String trainerName) {
+        if (trainerName == null || trainerName.isBlank()) {
+            return null;
+        }
+        Page<Trainer> trainers = trainerService.searchForAdmin(trainerName.trim(), null,
+                PageRequest.of(0, 50));
+        List<Integer> ids = trainers.getContent().stream()
+                .map(Trainer::getId)
+                .filter(id -> id != null && id > 0)
+                .toList();
+        return ids.isEmpty() ? List.of(-1) : ids;
+    }
+
+    /**
+     * 按专家/机构名称解析 publisher userId 列表
+     */
+    private java.util.Collection<Integer> resolvePublisherUserIds(String publisherName) {
+        if (publisherName == null || publisherName.isBlank()) {
+            return null;
+        }
+        String kw = publisherName.trim();
+        java.util.Set<Integer> ids = new java.util.HashSet<>();
+        Page<Trainer> trainers = trainerService.searchForAdmin(kw, null,
+                PageRequest.of(0, 50));
+        trainers.getContent().stream()
+                .map(Trainer::getUserId)
+                .filter(id -> id != null && id > 0)
+                .forEach(ids::add);
+        Page<Institution> insts = institutionService.searchForAdmin(kw, null,
+                PageRequest.of(0, 50));
+        insts.getContent().stream()
+                .map(Institution::getUserId)
+                .filter(id -> id != null && id > 0)
+                .forEach(ids::add);
+        if (ids.isEmpty()) {
+            return java.util.List.of(-1);
+        }
+        return ids;
+    }
+
+    private static String formatPublisherDisplay(String publisherType, User user, String trainerName) {
+        String roleLabel = publisherRoleLabel(publisherType);
+        String name = null;
+        if (trainerName != null && !trainerName.isBlank()) {
+            name = trainerName.trim();
+        }
+        if (name == null && user != null) {
+            name = user.getRealName();
+            if (name == null || name.isBlank()) {
+                name = user.getNickname();
+            }
+        }
+        if (name == null || name.isBlank()) {
+            return roleLabel;
+        }
+        return roleLabel + "：" + name;
+    }
+
+    private static String publisherRoleLabel(String publisherType) {
+        if (publisherType == null || publisherType.isBlank()) {
+            return "-";
+        }
+        return switch (publisherType) {
+            case "TRAINER" -> "专家";
+            case "ASSISTANT" -> "专家助理";
+            case "AGENT" -> "专家经纪人";
+            case "ENTERPRISE_AGENT" -> "专家经纪公司";
+            case "INSTITUTION" -> "机构";
+            case "INSTITUTION_EMPLOYEE" -> "机构员工";
+            default -> publisherType;
+        };
     }
 
     /**
@@ -142,6 +248,13 @@ public class AdminCourseService {
      */
     public void toggleFeatured(Integer courseId) {
         courseService.toggleFeatured(courseId);
+    }
+
+    /**
+     * 批量更新「到期自动隐藏」开关
+     */
+    public void batchUpdateExpireHide(java.util.List<Integer> ids, Integer isExpireHide) {
+        courseService.batchUpdateExpireHide(ids, isExpireHide);
     }
 
     /**

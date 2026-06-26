@@ -28,7 +28,7 @@ export function sendCode(
     sendType: 'SMS',
     captchaToken,
   };
-  return apiPost<ApiResult>('/auth/send-code', payload, { silent: opts?.silent });
+  return apiPost<ApiResult>('/auth/send-code', payload, { silent: opts?.silent, skipAuth: true });
 }
 
 /**
@@ -36,7 +36,7 @@ export function sendCode(
  * POST /auth/register
  */
 export function register(payload: RegisterPayload) {
-  return apiPost<ApiResult<TokenResponse>>('/auth/register', payload);
+  return apiPost<ApiResult<TokenResponse>>('/auth/register', payload, { skipAuth: true });
 }
 
 /**
@@ -45,7 +45,7 @@ export function register(payload: RegisterPayload) {
  */
 export function smsLogin(phone: string, code: string) {
   const payload: SmsLoginPayload = { phone, code };
-  return apiPost<ApiResult<TokenResponse>>('/auth/login/sms', payload);
+  return apiPost<ApiResult<TokenResponse>>('/auth/login/sms', payload, { skipAuth: true });
 }
 
 /**
@@ -56,6 +56,7 @@ export function getMockCode(phone: string) {
   // 仅 dev 便捷自动填充；非 mock 模式（如真实 pxb 短信）下该接口会失败，静默处理不弹 toast
   return apiGet<ApiResult<string>>(`/auth/mock/code?phone=${encodeURIComponent(phone)}`, {
     silent: true,
+    skipAuth: true,
   });
 }
 
@@ -64,7 +65,7 @@ export function getMockCode(phone: string) {
  * POST /auth/login/username
  */
 export function usernameLogin(payload: UsernameLoginPayload, opts?: { silent?: boolean }) {
-  return apiPost<ApiResult<TokenResponse>>('/auth/login/username', payload, { silent: opts?.silent });
+  return apiPost<ApiResult<TokenResponse>>('/auth/login/username', payload, { silent: opts?.silent, skipAuth: true });
 }
 
 /**
@@ -72,7 +73,7 @@ export function usernameLogin(payload: UsernameLoginPayload, opts?: { silent?: b
  * POST /auth/register/username
  */
 export function usernameRegister(payload: UsernameRegisterPayload) {
-  return apiPost<ApiResult<TokenResponse>>('/auth/register/username', payload);
+  return apiPost<ApiResult<TokenResponse>>('/auth/register/username', payload, { skipAuth: true });
 }
 
 /**
@@ -83,4 +84,12 @@ export function checkUsernameAvailable(username: string) {
   return apiGet<ApiResult<boolean>>(
     `/auth/username/available?username=${encodeURIComponent(username)}`,
   );
+}
+
+/**
+ * 忘记密码 — 手机号 + 短信验证码重置密码
+ * POST /auth/reset-password
+ */
+export function resetPassword(phone: string, code: string, newPassword: string) {
+  return apiPost<ApiResult>('/auth/reset-password', { phone, code, newPassword }, { skipAuth: true });
 }

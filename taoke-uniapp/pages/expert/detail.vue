@@ -154,15 +154,26 @@
           </view>
         </TkSection>
 
-        <!-- 授课案例 -->
+        <!-- 授课案例（有数据才显示，对齐 PC 专家主页预览） -->
         <TkSection v-if="cases.length" title="授课案例">
-          <view class="case-list">
-            <view v-for="cs in cases" :key="cs.id" class="case-card" @tap="onCaseTap(cs)">
-              <image v-if="cs.coverImage" class="case-card__img" :src="toAssetUrl(cs.coverImage)" mode="aspectFill" />
-              <view class="case-card__body">
-                <text class="case-card__title">{{ cs.caseTitle }}</text>
-                <text v-if="cs.enterpriseName || cs.industry" class="case-card__meta">{{ cs.enterpriseName }}<text v-if="cs.enterpriseName && cs.industry"> · </text>{{ cs.industry }}</text>
+          <view class="case-grid">
+            <view
+              v-for="cs in cases.slice(0, 3)"
+              :key="cs.id"
+              class="case-preview"
+              @tap="onCaseTap(cs)"
+            >
+              <view class="case-preview__cover">
+                <image
+                  v-if="cs.coverImage"
+                  class="case-preview__img"
+                  :src="toAssetUrl(cs.coverImage)"
+                  mode="aspectFill"
+                />
+                <view v-else class="case-preview__ph">暂无封面</view>
               </view>
+              <text class="case-preview__title">{{ cs.caseTitle }}</text>
+              <text v-if="caseDesc(cs)" class="case-preview__desc">{{ caseDesc(cs) }}</text>
             </view>
           </view>
         </TkSection>
@@ -194,6 +205,7 @@ import { onLoad } from '@dcloudio/uni-app';
 import * as expertApi from '@/api/expert';
 import * as interactionApi from '@/api/interaction';
 import { MOCK_TRAINER_DETAIL, MOCK_COURSES } from '@/utils/mock';
+import { normalizeCase } from '@/utils/normalize';
 import { toAssetUrl } from '@/utils/asset';
 
 const heroH = 360;
@@ -232,10 +244,12 @@ function normalizeCourse(v) {
   };
 }
 
+const SILENT = { silent: true };
+
 async function loadDetail() {
   loading.value = true;
   try {
-    const data = await expertApi.getTrainerDetail(id.value);
+    const data = await expertApi.getTrainerDetail(id.value, SILENT);
     trainer.value = data || MOCK_TRAINER_DETAIL;
   } catch (_) {
     trainer.value = MOCK_TRAINER_DETAIL;
@@ -244,7 +258,7 @@ async function loadDetail() {
   }
 
   expertApi
-    .listTrainerCourses(id.value, { page: 1, size: 5 })
+    .listTrainerCourses(id.value, { page: 1, size: 5 }, SILENT)
     .then((page) => {
       const records = (page && (page.records || page.content || page.list)) || [];
       courses.value = records.map(normalizeCourse);
@@ -254,9 +268,9 @@ async function loadDetail() {
     });
 
   expertApi
-    .listTrainerCases(id.value)
+    .listTrainerCases(id.value, SILENT)
     .then((data) => {
-      cases.value = Array.isArray(data) ? data.slice(0, 4) : [];
+      cases.value = Array.isArray(data) ? data.map(normalizeCase).filter(Boolean) : [];
     })
     .catch(() => {
       cases.value = [];
@@ -265,7 +279,7 @@ async function loadDetail() {
   // 收藏态
   if (trainer.value && trainer.value.userId) {
     interactionApi
-      .checkFavorite({ targetType: 'TRAINER', targetId: trainer.value.userId })
+      .checkFavorite({ targetType: 'TRAINER', targetId: trainer.value.userId }, SILENT)
       .then((r) => {
         favorited.value = !!r;
       })
@@ -311,7 +325,13 @@ async function onFavorite() {
 }
 
 function onCaseTap(_cs) {
-  uni.showToast({ title: '案例详情建设中', icon: 'none' });
+  uni.showToast({ title: '案例详情请在 PC 端查看', icon: 'none' });
+}
+
+function caseDesc(cs) {
+  const d = cs?.description || '';
+  if (!d || typeof d !== 'string') return '';
+  return d.replace(/<[^>]+>/g, '').trim();
 }
 
 onLoad((opt) => {
@@ -574,44 +594,55 @@ onLoad((opt) => {
   gap: $tk-sp-2;
 }
 
-.case-list {
+.case-grid {
   display: flex;
   flex-direction: column;
   gap: $tk-sp-2;
 }
 
-.case-card {
-  display: flex;
-  gap: $tk-sp-2;
-  align-items: center;
-  padding: $tk-sp-2;
-  background: $tk-bg-page;
+.case-preview {
   border-radius: $tk-radius-md;
+  overflow: hidden;
+  border: 2rpx solid $tk-border;
+  background: $tk-bg-card;
+
+  &__cover {
+    width: 100%;
+    height: 280rpx;
+    background: #f1f5f9;
+    overflow: hidden;
+  }
 
   &__img {
-    width: 144rpx;
-    height: 96rpx;
-    flex-shrink: 0;
-    border-radius: $tk-radius-sm;
-    background: $tk-divider-light;
+    width: 100%;
+    height: 100%;
   }
-  &__body {
-    flex: 1;
-    min-width: 0;
+
+  &__ph {
+    width: 100%;
+    height: 100%;
     display: flex;
-    flex-direction: column;
-    gap: 6rpx;
-  }
-  &__title {
-    font-size: $tk-fs-md;
-    color: $tk-text-1;
-    font-weight: 600;
-    @include tk-ellipsis-1;
-  }
-  &__meta {
-    font-size: $tk-fs-xs;
+    align-items: center;
+    justify-content: center;
+    font-size: $tk-fs-sm;
     color: $tk-text-4;
-    @include tk-ellipsis-1;
+  }
+
+  &__title {
+    display: block;
+    padding: $tk-sp-2 $tk-sp-3 0;
+    font-size: $tk-fs-md;
+    font-weight: 600;
+    color: $tk-text-1;
+    @include tk-ellipsis(2);
+  }
+
+  &__desc {
+    display: block;
+    padding: 8rpx $tk-sp-3 $tk-sp-3;
+    font-size: $tk-fs-sm;
+    color: $tk-text-3;
+    @include tk-ellipsis(2);
   }
 }
 

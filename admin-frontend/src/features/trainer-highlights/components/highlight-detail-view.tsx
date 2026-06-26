@@ -70,11 +70,14 @@ export function HighlightDetailView({
               <span>{detail.id}</span>
             </div>
             <div>
-              <span className='text-muted-foreground'>所属专家：</span>
+              <span className='text-muted-foreground'>所属主体：</span>
               <span>
-                {detail.trainerName ?? '-'}
-                {detail.trainerId ? ` (#${detail.trainerId})` : ''}
+                {detail.ownerSubjectName ?? detail.trainerName ?? '-'}
               </span>
+            </div>
+            <div>
+              <span className='text-muted-foreground'>用户：</span>
+              <span>{detail.submitterUsername ?? '-'}</span>
             </div>
             <div>
               <span className='text-muted-foreground'>文件数：</span>

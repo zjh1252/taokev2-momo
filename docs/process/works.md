@@ -517,3 +517,38 @@
 - 文档：`data-trans/docs/problem/机构31513-CareerPower-原因与修复.md`；审计脚本 `_audit_institution_31513.py`
 - v3test：id=31513 已为 `status=2`、`public_list_eligible=0`，机构列表应不再出现；直接访问详情 URL 仍可能打开（需后续 API 按 status 拦截时可另做）
 
+---
+
+2026-06-11 11:30
+**录播课播放迁移与第三方签发**
+
+- 数据修复（v3test）：SWF→embed/置空、老库回填、第三方 canonical URL；约 5200+ 章节更新
+- 后端签发：`LegacyThirdPartyPlaybackSigner`（eceibs/kuaike）、`KuanxuePlaybackSigner`、`SchoPlaybackSigner`；路由 `GET /videos/{id}/chapters/{chapterId}/playback-url`（`VideoPlaybackController` + `VideoChapterPlaybackService`）
+- 配置：`taoke.legacy-video.{eceibs,kuaike,kuanxue,scho}`（`application.yaml`）
+- 修复：`ErrorCode.BAD_REQUEST` → `PARAM_INVALID`；eceibs/kuaike 查询参数含中文昵称时 `UriComponentsBuilder.build(true)` 抛 500 → `appendQuery.encode(UTF_8)`
+- 前端：`playback-mode.ts`（SWF→embed、识别需签发 URL）；`VideoEmbedPlayer` 调 playback-url；`video-playback-context` 空 URL 仅封面、无 toast；PXB 本地反代 `frontend/src/app/pxb-videos/[...path]/route.ts`
+- 抽测：`data-trans/scripts/run_playback_api_test.py`（dev JWT，userId=1）；资源可达性 smoke test
+- playback-url API：**2/2 通过** — eceibs 试看 `7449/2447`、思酷免费课 `15832/39652`
+- v3test 章节 URL 分布（33697 章）：直链/CDN ~68.6%、embed ~11.8%、思酷租赁 ~4.3%、空 URL ~2.4%（797）、SWF ~0.9%（292）、eceibs 签发 ~0.2%（58）
+- **可播性结论**：有地址且有权看的章节链路已通；约 **97%** 数据层可解析播放；**~3.3%** 仅封面或无法播放（空 URL 对齐老站 UX、SWF 无法 inline、56.com 等死链、第三方 iframe 环境/内容过期、付费章未购 403）
+- 浏览器抽测样例：`/videos/7449`（eceibs 试看）、`/videos/15832`（思酷）、`/videos/6579`（PXB 直链）、`/videos/6736`（优酷 embed）
+
+---
+
+2026-06-17 18:00
+**专家默认头像走素材库 + 首页客服与城市频道**
+
+**专家列表/详情默认头像**
+
+- 问题：无真实头像的专家出现空白、旧站「暂无照片」占位图或淘课 Logo，未回退到后台「头像素材库 → 专家头像 → 默认」
+- 根因：`LegacyAvatarUrls.isUsable()` 过宽，占位 URL / 无路径脏数据被当作有效头像，`pickFirstUsable()` 提前返回，未走 `OpsMaterialResolver.resolveAvatarUrl()`
+- 后端：`LegacyAvatarUrls` 扩展 `isPlaceholder()`（logo、expert-main、nophoto 等）；新增 `isUsableAvatar()`；`OpsMaterialResolver.resolveAvatarUrl()` 改用 `isUsableAvatar`；`TrainerServiceImpl` / `TrainerDocumentProvider` 统一经 `resolveAvatarUrl(raw, "TRAINER", …)` 解析
+- 前端：`media.ts` 的 `isPlaceholderLegacyAvatar()` 与后端占位规则对齐
+- 需手动重启后端后生效
+
+**首页 AI 智能客服与城市频道**
+
+- 首页「智能客服」入口（红色平台优势 Banner、右侧悬浮「在线客服」）改为唤起 `CustomerServiceChatDialog`，嵌入 `https://tk-service.taoke.com/chat-box?collection=tkw`（替换原 `/support`、`/ai-chat` 无效跳转）
+- 移除首页底部暗色 `AiEngagementBanner`（「有任何培训疑问？随时咨询 AI 智能客服」卡片）
+- 城市频道卡片全宽展示；展示城市数 9 → 18；网格 3/4/6 列响应式布局
+

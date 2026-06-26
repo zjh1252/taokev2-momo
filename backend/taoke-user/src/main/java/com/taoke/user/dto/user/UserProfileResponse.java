@@ -43,6 +43,8 @@ public class UserProfileResponse {
     public static class RoleInfo {
         private String role;
         private Integer status;
+        /** 是否「已生效身份资料重审中」（status=1 且重新提交了角色资料） */
+        private Boolean reapplying;
         private LocalDateTime approvedAt;
     }
 }

@@ -104,9 +104,12 @@ export default function DemandDetailPage() {
 
       {/* 基本信息 */}
       <div className="p-6 border-b border-slate-100">
-        <h3 className="font-bold text-lg text-gray-800 mb-4">
+        <h3 className="font-bold text-lg text-gray-800 mb-1">
           {detail.title || detail.trainingTopic || '培训需求'}
         </h3>
+        {detail.demandNo && (
+          <p className="text-sm text-gray-400 font-mono mb-4">单号：{detail.demandNo}</p>
+        )}
         <div className="grid grid-cols-2 gap-4 text-sm">
           {detail.trainingTopic && (
             <div>

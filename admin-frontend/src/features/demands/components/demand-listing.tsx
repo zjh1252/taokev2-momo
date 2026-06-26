@@ -5,7 +5,7 @@ import { demandKeys } from '../api/queries';
 import { getDemandsFromServer } from '../api/server-service';
 import { DemandsTable } from './demands-table';
 
-export default function DemandListingPage() {
+export default async function DemandListingPage() {
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('name');
   const pageLimit = searchParamsCache.get('perPage');
@@ -18,10 +18,14 @@ export default function DemandListingPage() {
 
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery({
-    queryKey: demandKeys.list(filters),
-    queryFn: () => getDemandsFromServer(filters)
-  });
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: demandKeys.list(filters),
+      queryFn: () => getDemandsFromServer(filters)
+    });
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

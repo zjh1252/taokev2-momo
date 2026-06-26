@@ -21,6 +21,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,6 +70,29 @@ public class SearchIndexService {
     }
 
     /**
+     * 更新已有索引的 mapping（添加新字段，不影响已有字段）。
+     */
+    public boolean putMapping(String indexName) {
+        try {
+            if (!indexExists(indexName)) {
+                log.info("索引不存在，跳过 mapping 更新: {}", indexName);
+                return false;
+            }
+            // 将 TypeMapping 序列化为 JSON 再通过 withJson 发送
+            String mappingJson = objectMapper.writeValueAsString(buildMapping());
+            log.debug("putMapping json: {}", mappingJson);
+            esClient.indices().putMapping(pm -> pm
+                    .index(indexName)
+                    .withJson(new java.io.StringReader(mappingJson))
+            );
+            log.info("更新索引 mapping: {}", indexName);
+            return true;
+        } catch (IOException e) {
+            throw new SearchException(ErrorCode.SEARCH_INDEX_ERROR, "更新索引 mapping 失败: " + indexName, e);
+        }
+    }
+
+    /**
      * 删除索引（禁止删除默认索引）
      *
      * @param indexName 索引名称
@@ -103,7 +127,11 @@ public class SearchIndexService {
         try {
             GetIndexResponse response = esClient.indices().get(g -> g.index("taokev2*"));
             return response.result().keySet();
-        } catch (IOException e) {
+        } catch (Exception e) {
+            // 无匹配索引时 ES 会返回 index_not_found_exception，也有 IOException
+            if (isIndexNotFound(e)) {
+                return Set.of();
+            }
             throw new SearchException(ErrorCode.SEARCH_INDEX_ERROR, "列出索引失败", e);
         }
     }
@@ -230,7 +258,9 @@ public class SearchIndexService {
                             .fields("title^3", "name^3", "keywords^2",
                                     "intro", "bio", "highlights",
                                     "audience", "goodAt", "expertiseTags",
-                                    "trainerName", "categoryName")
+                                    "trainerName", "categoryName",
+                                    "expertiseCategoryNames", "industryCategoryNames",
+                                    "provinceName", "cityName")
                     ));
                 }
 
@@ -239,6 +269,21 @@ public class SearchIndexService {
                     boolQuery.filter(f -> f.term(t -> t
                             .field("docType")
                             .value(request.getDocType())
+                    ));
+                }
+
+                // 课程搜索：排除到期且开启自动隐藏的线下公开课（按查询日实时判断）
+                if ("course".equalsIgnoreCase(request.getDocType())) {
+                    String today = LocalDate.now().toString();
+                    boolQuery.filter(f -> f.bool(b -> b
+                            .should(sh -> sh.bool(inner -> inner.mustNot(mn -> mn.term(t -> t
+                                    .field("type")
+                                    .value("OPEN_OFFLINE")))))
+                            .should(sh -> sh.term(t -> t.field("isExpireHide").value(0)))
+                            .should(sh -> sh.bool(inner -> inner.mustNot(mn -> mn.exists(e -> e
+                                    .field("courseOpenEndDate")))))
+                            .should(sh -> sh.range(r -> r.date(d -> d.field("courseOpenEndDate").gte(today))))
+                            .minimumShouldMatch("1")
                     ));
                 }
 
@@ -336,6 +381,8 @@ public class SearchIndexService {
                             .fields("bio", hf -> hf.numberOfFragments(1).fragmentSize(150))
                             .fields("keywords", hf -> hf.numberOfFragments(1).fragmentSize(100))
                             .fields("expertiseTags", hf -> hf.numberOfFragments(1).fragmentSize(100))
+                            .fields("expertiseCategoryNames", hf -> hf.numberOfFragments(1).fragmentSize(100))
+                            .fields("industryCategoryNames", hf -> hf.numberOfFragments(1).fragmentSize(100))
                             .fields("categoryName", hf -> hf.numberOfFragments(1).fragmentSize(80))
                             .fields("trainerName", hf -> hf.numberOfFragments(1).fragmentSize(80))
                     );
@@ -429,12 +476,18 @@ public class SearchIndexService {
                 .properties("trainerName", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
                 .properties("categoryName", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
                 .properties("subCategoryName", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("expertiseCategoryNames", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("industryCategoryNames", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("provinceName", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
+                .properties("cityName", p -> p.text(t -> t.analyzer(ANALYZER_INDEX).searchAnalyzer(ANALYZER_SEARCH)))
                 // 课程过滤字段
                 .properties("type", p -> p.keyword(k -> k))
                 .properties("categoryId", p -> p.integer(i -> i))
                 .properties("subCategoryId", p -> p.integer(i -> i))
                 .properties("price", p -> p.scaledFloat(sf -> sf.scalingFactor(100.0)))
                 .properties("durationDays", p -> p.integer(i -> i))
+                .properties("courseOpenEndDate", p -> p.date(d -> d.format("yyyy-MM-dd||strict_date_optional_time||epoch_millis")))
+                .properties("isExpireHide", p -> p.integer(i -> i))
                 // 专家过滤字段
                 .properties("provinceId", p -> p.integer(i -> i))
                 .properties("cityId", p -> p.integer(i -> i))

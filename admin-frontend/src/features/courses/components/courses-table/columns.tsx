@@ -1,6 +1,10 @@
 'use client';
-import Link from 'next/link';
+import { FrontendLink } from '@/components/admin/frontend-link';
 import { Badge } from '@/components/ui/badge';
+import { getCoursePublicUrl } from '@/lib/frontend-links';
+import Link from 'next/link';
+import Image from 'next/image';
+import { resolveAssetUrl, isLikelyImageAssetUrl } from '@/lib/resolve-asset-url';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { AdminCourse } from '../../api/types';
 import {
@@ -33,22 +37,52 @@ export const columns: ColumnDef<AdminCourse>[] = [
     enableSorting: false
   },
   {
+    id: 'cover',
+    header: '封面',
+    cell: ({ row }) => {
+      const raw = row.original.coverUrl;
+      if (!isLikelyImageAssetUrl(raw)) {
+        return <span className='text-muted-foreground text-xs'>-</span>;
+      }
+      const cover = resolveAssetUrl(raw);
+      return (
+        <div className='relative h-10 w-16 overflow-hidden rounded bg-muted'>
+          <Image
+            src={cover}
+            alt={row.original.title}
+            fill
+            className='object-cover'
+            sizes='64px'
+            unoptimized
+          />
+        </div>
+      );
+    }
+  },
+  {
     id: 'name',
     accessorKey: 'title',
     header: ({ column }: { column: Column<AdminCourse, unknown> }) => (
       <DataTableColumnHeader column={column} title='课程名称' />
     ),
     cell: ({ row }) => (
-      <div className='flex flex-col'>
-        <Link
-          href={`/dashboard/courses/${row.original.id}`}
-          className='font-medium text-primary hover:underline line-clamp-1'
-        >
-          {row.original.title}
-        </Link>
+      <div className='flex flex-col max-w-[220px]'>
+        <div className='flex items-center gap-2'>
+          <Link
+            href={`/dashboard/courses/${row.original.id}`}
+            className='font-medium text-primary hover:underline line-clamp-1'
+          >
+            {row.original.title}
+          </Link>
+          <FrontendLink
+            href={getCoursePublicUrl(row.original.id, row.original.type)}
+            className='text-xs'
+          >
+            前台
+          </FrontendLink>
+        </div>
         <span className='text-muted-foreground text-xs'>
           {row.original.typeLabel}
-          {row.original.trainerName && ` · ${row.original.trainerName}`}
         </span>
       </div>
     ),
@@ -58,6 +92,7 @@ export const columns: ColumnDef<AdminCourse>[] = [
       variant: 'text' as const,
       icon: Icons.text
     },
+    size: 220,
     enableColumnFilter: true
   },
   {
@@ -70,6 +105,38 @@ export const columns: ColumnDef<AdminCourse>[] = [
       label: '课程类型',
       variant: 'select' as const,
       options: COURSE_TYPE_OPTIONS
+    }
+  },
+  {
+    id: 'trainerName',
+    accessorKey: 'trainerName',
+    header: '所属专家',
+    cell: ({ row }) => row.original.trainerName || '-',
+    enableColumnFilter: true,
+    meta: {
+      label: '专家姓名',
+      placeholder: '按专家姓名搜索...',
+      variant: 'text' as const,
+      icon: Icons.user
+    }
+  },
+  {
+    id: 'publisherType',
+    accessorKey: 'publisherDisplayName',
+    header: '发布方',
+    cell: ({ row }) => row.original.publisherDisplayName || row.original.publisherType || '-',
+    enableColumnFilter: true,
+    meta: {
+      label: '发布方类型',
+      variant: 'select' as const,
+      options: [
+        { value: 'TRAINER', label: '专家' },
+        { value: 'ASSISTANT', label: '专家助理' },
+        { value: 'AGENT', label: '专家经纪人' },
+        { value: 'ENTERPRISE_AGENT', label: '专家经纪公司' },
+        { value: 'INSTITUTION', label: '机构' },
+        { value: 'INSTITUTION_EMPLOYEE', label: '机构员工' }
+      ]
     }
   },
   {
@@ -91,11 +158,18 @@ export const columns: ColumnDef<AdminCourse>[] = [
     accessorKey: 'status',
     header: '状态',
     enableColumnFilter: true,
-    cell: ({ cell }) => {
-      const status = cell.getValue<number>();
+    cell: ({ row }) => {
+      const status = row.original.status;
+      const isOverdue = row.original.isOverdue;
+      const label =
+        status === 2 && isOverdue
+          ? `${COURSE_STATUS_MAP[status] ?? '未知'} · 已过期`
+          : (COURSE_STATUS_MAP[status] ?? '未知');
       return (
         <Badge variant={statusVariant(status)}>
-          {COURSE_STATUS_MAP[status] ?? '未知'}
+          <span className={status === 2 && isOverdue ? 'text-muted-foreground' : undefined}>
+            {label}
+          </span>
         </Badge>
       );
     },

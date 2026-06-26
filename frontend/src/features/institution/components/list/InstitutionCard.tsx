@@ -3,6 +3,9 @@
 import { Link } from '@/i18n/navigation';
 import { Flame, Star, MessageSquare } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
+import { useBumpedViewCount } from '@/hooks/use-bumped-view-count';
+import { getInstitutionLogoFallback } from '../../utils/logo';
+import { institutionPublicHref } from '../../utils/public-path';
 import { legacyRichTextToPlain } from '@/lib/legacy-rich-text';
 import type { InstitutionListItem } from '../../types';
 
@@ -11,24 +14,30 @@ interface InstitutionCardProps {
   basePath?: string;
 }
 
-export function InstitutionCard({ institution, basePath = '/institutions' }: InstitutionCardProps) {
-  const fallbackLogo = `https://ui-avatars.com/api/?name=${encodeURIComponent(institution.orgName.slice(0, 2))}&background=E0F2FE&color=0369A1&size=120&font-size=0.35`;
+export function InstitutionCard({ institution, basePath = '/company' }: InstitutionCardProps) {
+  const { viewCount, onCardClick } = useBumpedViewCount(
+    institution.viewCount,
+    'institution',
+    institution.id,
+  );
   const location = [institution.provinceName, institution.cityName].filter(Boolean).join(' ');
 
   return (
     <Link
-      href={`${basePath}/${institution.id}`}
+      href={institutionPublicHref(institution, basePath)}
+      onClick={onCardClick}
       className="p-6 border-b border-slate-100 hover:bg-slate-50/50 transition-colors flex flex-col md:flex-row gap-6 group"
     >
       {/* Logo */}
       <div className="w-[120px] h-[120px] shrink-0 bg-white border border-slate-100 rounded-lg shadow-sm flex items-center justify-center p-2 group-hover:border-primary/30 transition-colors">
         <SafeImage
           src={institution.logoUrl}
-          fallback={fallbackLogo}
           alt={institution.orgName}
           width={112}
           height={112}
           className="max-w-full max-h-full object-contain"
+          loading="eager"
+          fallback={getInstitutionLogoFallback(institution.orgName)}
         />
       </div>
 
@@ -53,12 +62,10 @@ export function InstitutionCard({ institution, basePath = '/institutions' }: Ins
 
         {/* 详情区 */}
         <div className="flex flex-col gap-1.5 text-[13px] text-slate-600 mb-4 bg-slate-50 p-3 rounded">
-          {location && (
-            <div className="flex items-start">
-              <span className="text-slate-400 shrink-0 w-[70px]">常住地：</span>
-              <span className="text-slate-700">{location}</span>
-            </div>
-          )}
+          <div className="flex items-start">
+            <span className="text-slate-400 shrink-0 w-[70px]">所在地：</span>
+            <span className="text-slate-700">{location || '—'}</span>
+          </div>
           {institution.specialties && (
             <div className="flex items-start">
               <span className="text-slate-400 shrink-0 w-[70px]">擅长领域：</span>
@@ -91,7 +98,7 @@ export function InstitutionCard({ institution, basePath = '/institutions' }: Ins
           </div>
           <div className="flex items-center gap-1">
             <Flame className="size-3.5 text-orange-400" />
-            人气：<span className="text-primary font-bold">{institution.viewCount}</span>
+            人气：<span className="text-primary font-bold">{viewCount}</span>
           </div>
           {institution.score > 0 && (
             <div className="flex items-center gap-1">

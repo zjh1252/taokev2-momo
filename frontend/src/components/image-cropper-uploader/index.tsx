@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { uploadImage } from '@/features/course/api/publisher-service';
+import { resolveImageSrc } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
 /**
@@ -192,7 +193,7 @@ export function ImageCropperUploader({
           {value ? (
             <>
               <Image
-                src={value}
+                src={resolveImageSrc(value, '')}
                 alt={label || '已上传'}
                 fill
                 sizes="200px"

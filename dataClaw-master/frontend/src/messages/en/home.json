@@ -1,0 +1,67 @@
+{
+  "hero": {
+    "tagline": "TaoKe Annual Feature 2024",
+    "title": "Unlock New Growth\nfor Your Enterprise",
+    "description": "Connecting you with 5,000+ top business school experts worldwide to craft your customized growth path.",
+    "cta": "Get Started",
+    "ctaSecondary": "View Feature",
+    "allCategories": "All Categories"
+  },
+  "aiMatch": {
+    "title": "AI Smart Training Resource Matching",
+    "description": "Big data engine with real-time filtering — instantly match the best trainers and courses for you",
+    "ctaPublish": "Post Requirements",
+    "ctaService": "Smart Support, AI Training Resource Matching"
+  },
+  "experts": {
+    "sectionTitle": "Recommended Experts",
+    "viewMore": "View More"
+  },
+  "cases": {
+    "sectionTitle": "Expert Cases",
+    "readMore": "Read Full Case",
+    "serviceInstructor": "Instructor: {name}"
+  },
+  "courses": {
+    "sectionTitle": "Popular In-House Training"
+  },
+  "publicCourses": {
+    "sectionTitle": "Offline Open Courses",
+    "viewMore": "View More",
+    "loadMore": "Load More Courses",
+    "consult": "Consult",
+    "viewDetail": "View Details",
+    "labels": {
+      "organizer": "Organizer",
+      "instructor": "Instructor",
+      "city": "City",
+      "startDate": "Start Date",
+      "duration": "Duration"
+    },
+    "durationDays": "{count} days"
+  },
+  "aiEngagement": {
+    "badge": "AI Smart Customer Service v2.0",
+    "title": "Any training questions? Ask AI Customer Service anytime",
+    "description": "24/7 online support for course consulting, expert recommendations, needs analysis and after-sales support — instant response to every question.",
+    "cta": "Chat with AI Customer Service"
+  },
+  "footer": {
+    "companyIntro": "TaoKe partners with tens of thousands of excellent trainers and training institutions nationwide, providing targeted, interactive management training services to enterprises, including training needs diagnosis, course procurement, and training materials download.",
+    "aboutUs": "About Us",
+    "aboutCompany": "About TaoKe",
+    "joinUs": "Careers",
+    "contactUs": "Contact Us",
+    "business": "Business Services",
+    "instructorJoin": "Become an Instructor",
+    "institutionJoin": "Partner with Us",
+    "partners": "Business Cooperation",
+    "helpCenter": "Help Center",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "faq": "FAQ",
+    "copyright": "Copyright(C) 2006-2024 TAOKE.com All Rights Reserved.",
+    "icp": "ICP License No. 05034964",
+    "license": "Value-added Telecom Business License"
+  }
+}

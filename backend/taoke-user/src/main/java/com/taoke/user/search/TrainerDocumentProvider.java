@@ -1,13 +1,18 @@
 package com.taoke.user.search;
 
+import com.taoke.common.entity.Category;
 import com.taoke.common.entity.Region;
+import com.taoke.common.repository.CategoryRepository;
 import com.taoke.common.repository.RegionRepository;
 import com.taoke.common.search.BaseDocument;
 import com.taoke.common.search.DocumentSyncProvider;
+import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.TrainerExpertiseCategory;
+import com.taoke.user.entity.TrainerIndustryCategory;
 import com.taoke.user.entity.User;
 import com.taoke.user.repository.TrainerExpertiseCategoryRepository;
+import com.taoke.user.repository.TrainerIndustryCategoryRepository;
 import com.taoke.user.repository.TrainerRepository;
 import com.taoke.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +22,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -38,7 +42,10 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
     private final TrainerRepository trainerRepository;
     private final RegionRepository regionRepository;
     private final TrainerExpertiseCategoryRepository expertiseCategoryRepository;
+    private final TrainerIndustryCategoryRepository industryCategoryRepository;
+    private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final OpsMaterialResolver opsMaterialResolver;
 
     @Override
     public String getDocType() {
@@ -91,40 +98,68 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
                 regionIds.add(t.getCityId());
             }
         });
-        Map<Integer, String> regionNameMap = Collections.emptyMap();
+        Map<Integer, String> regionNameMap = new HashMap<>();
         if (!regionIds.isEmpty()) {
-            regionNameMap = regionRepository.findAllById(regionIds).stream()
-                    .collect(Collectors.toMap(Region::getId, Region::getName, (a, b) -> a));
+            regionRepository.findAllById(regionIds)
+                    .forEach(r -> regionNameMap.put(r.getId(), r.getName()));
         }
 
         // 批量查关联的擅长领域分类 ID
-        Map<Integer, List<Integer>> expertiseMap = expertiseCategoryRepository
-                .findByTrainerIdInOrderBySortOrder(trainerIds).stream()
+        List<TrainerExpertiseCategory> allExpCategories = expertiseCategoryRepository
+                .findByTrainerIdInOrderBySortOrder(trainerIds);
+        Map<Integer, List<Integer>> expertiseIdMap = allExpCategories.stream()
                 .collect(Collectors.groupingBy(
                         TrainerExpertiseCategory::getTrainerId,
                         Collectors.mapping(TrainerExpertiseCategory::getCategoryId, Collectors.toList())
                 ));
 
-        // 头像统一取 sys_users.avatar_url（trainer.avatar 已弃用）
+        // 批量查关联的擅长行业分类 ID
+        List<TrainerIndustryCategory> allIndCategories = industryCategoryRepository
+                .findByTrainerIdInOrderBySortOrder(trainerIds);
+        Map<Integer, List<Integer>> industryIdMap = allIndCategories.stream()
+                .collect(Collectors.groupingBy(
+                        TrainerIndustryCategory::getTrainerId,
+                        Collectors.mapping(TrainerIndustryCategory::getCategoryId, Collectors.toList())
+                ));
+
+        // 批量查全部分类名称
+        Set<Integer> allCatIds = new HashSet<>();
+        allExpCategories.forEach(ec -> allCatIds.add(ec.getCategoryId()));
+        allIndCategories.forEach(ic -> allCatIds.add(ic.getCategoryId()));
+        final Map<Integer, String> catNameMap = new HashMap<>();
+        if (!allCatIds.isEmpty()) {
+            categoryRepository.findByIdIn(allCatIds)
+                    .forEach(c -> catNameMap.put(c.getId(), c.getName()));
+        }
+
         Set<Integer> userIds = trainers.stream()
                 .map(Trainer::getUserId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        Map<Integer, String> avatarByUserId = userIds.isEmpty()
-                ? Map.of()
-                : userRepository.findAllById(userIds).stream()
-                        .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
-                        .collect(Collectors.toMap(User::getId, User::getAvatarUrl));
+        Map<Integer, String> userAvatarMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            userRepository.findAllById(userIds).stream()
+                    .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
+                    .forEach(u -> userAvatarMap.put(u.getId(), u.getAvatarUrl()));
+        }
 
         Map<Integer, String> finalRegionNameMap = regionNameMap;
+        Map<Integer, String> finalCatNameMap = catNameMap;
+        Map<Integer, String> finalUserAvatarMap = userAvatarMap;
         return trainers.stream()
-                .map(t -> toDocument(t, finalRegionNameMap, expertiseMap.getOrDefault(t.getId(), List.of()),
-                        t.getUserId() != null ? avatarByUserId.get(t.getUserId()) : null))
+                .map(t -> toDocument(t, finalRegionNameMap,
+                        expertiseIdMap.getOrDefault(t.getId(), List.of()),
+                        industryIdMap.getOrDefault(t.getId(), List.of()),
+                        finalCatNameMap,
+                        finalUserAvatarMap))
                 .toList();
     }
 
     private TrainerDocument toDocument(Trainer trainer, Map<Integer, String> regionNameMap,
-                                       List<Integer> expertiseCategoryIds, String userAvatar) {
+                                        List<Integer> expertiseCategoryIds,
+                                        List<Integer> industryCategoryIds,
+                                        Map<Integer, String> catNameMap,
+                                        Map<Integer, String> userAvatarMap) {
         TrainerDocument doc = new TrainerDocument();
         doc.setDocType(DOC_TYPE);
         doc.setId(trainer.getId());
@@ -132,7 +167,10 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         doc.setUpdatedAt(trainer.getUpdatedAt());
 
         doc.setName(trainer.getName());
-        doc.setAvatar(userAvatar != null && !userAvatar.isBlank() ? userAvatar : trainer.getAvatar());
+        String userAvatar = trainer.getUserId() != null ? userAvatarMap.get(trainer.getUserId()) : null;
+        String raw = firstNonBlankAvatar(userAvatar, trainer.getAvatar());
+        int seed = trainer.getId() != null ? trainer.getId() : 0;
+        doc.setAvatar(opsMaterialResolver.resolveAvatarUrl(raw, "TRAINER", true, seed));
         doc.setTitle(trainer.getTitle());
         doc.setBio(stripHtml(trainer.getBio()));
         doc.setIntro(stripHtml(trainer.getIntro()));
@@ -163,6 +201,16 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         }
 
         doc.setExpertiseCategoryIds(expertiseCategoryIds);
+        doc.setExpertiseCategoryNames(expertiseCategoryIds.stream()
+                .map(catNameMap::get)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+        doc.setIndustryCategoryNames(industryCategoryIds.stream()
+                .map(catNameMap::get)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
 
         doc.buildDocId();
         return doc;
@@ -173,5 +221,17 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
             return null;
         }
         return html.replaceAll("<[^>]*>", "").replaceAll("&[a-zA-Z]+;", " ").trim();
+    }
+
+    private static String firstNonBlankAvatar(String... candidates) {
+        if (candidates == null) {
+            return null;
+        }
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate.trim();
+            }
+        }
+        return null;
     }
 }

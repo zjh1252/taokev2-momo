@@ -2,6 +2,12 @@ import { toast } from 'sonner';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 
+/** 从 localStorage 读取 accessToken，供请求自动附带 Authorization */
+function getStoredAccessToken(): string | null {
+  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
+  return tokenData?.accessToken ?? null;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 /**
@@ -21,9 +27,24 @@ export class ApiException extends Error {
   }
 }
 
-/** 扩展选项：silent 为 true 时不弹 toast，由调用方自行处理 */
+/** 扩展选项：silent 为 true 时不弹 toast；skipAuth 为 true 时不附带 Authorization */
 export interface ApiRequestOptions extends RequestInit {
   silent?: boolean;
+  skipAuth?: boolean;
+}
+
+/**
+ * 将后端/第三方英文错误文案转为用户可读中文
+ */
+function normalizeErrorMessage(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes('access token') || lower.includes('access_token')) {
+    return '登录状态已失效，请重新登录';
+  }
+  if (lower.includes('sms') && lower.includes('fail')) {
+    return '短信发送失败，请稍后重试';
+  }
+  return message;
 }
 
 const STATUS_MESSAGE_MAP: Record<number, string> = {
@@ -42,7 +63,7 @@ async function extractError(response: Response, status: number): Promise<{ code?
     const body = await response.json();
     return {
       code: body?.code != null ? String(body.code) : undefined,
-      message: body?.message || STATUS_MESSAGE_MAP[status] || `请求失败 (${status})`,
+      message: normalizeErrorMessage(body?.message || STATUS_MESSAGE_MAP[status] || `请求失败 (${status})`),
     };
   } catch {
     // 响应体不是合法 JSON，使用状态码映射
@@ -61,8 +82,17 @@ export async function apiClient<T>(
   endpoint: string,
   init?: ApiRequestOptions,
 ): Promise<T> {
-  const { silent, ...fetchInit } = init || {};
+  const { silent, skipAuth, ...fetchInit } = init || {};
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+
+  const token = skipAuth ? null : getStoredAccessToken();
+  const mergedHeaders = new Headers(fetchInit.headers ?? {});
+  if (!mergedHeaders.has('Content-Type')) {
+    mergedHeaders.set('Content-Type', 'application/json');
+  }
+  if (token && !mergedHeaders.has('Authorization')) {
+    mergedHeaders.set('Authorization', `Bearer ${token}`);
+  }
 
   let response: Response;
   try {
@@ -70,10 +100,7 @@ export async function apiClient<T>(
       ...fetchInit,
       // SSR 详情页需实时数据，避免 Next 默认缓存导致后端恢复后仍 404
       cache: fetchInit.cache ?? 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-        ...fetchInit.headers,
-      },
+      headers: mergedHeaders,
     });
   } catch {
     if (!silent && typeof window !== 'undefined') {

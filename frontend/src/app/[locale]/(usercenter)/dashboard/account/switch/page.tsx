@@ -72,13 +72,18 @@ const applyableRoleCodes = new Set([
 export default function AccountSwitchPage() {
   const { user, activeRole, setActiveRole } = useAuth();
   const router = useRouter();
-  const { setSelectedRole } = useRoleApplyState();
+  const { setSelectedRole, enterEditProfile } = useRoleApplyState();
   const [switchDialogOpen, setSwitchDialogOpen] = useState(false);
 
   const roleStatusMap = new Map(
     user?.roles?.map((r) => [r.role, r.status]) || [],
   );
   roleStatusMap.set('BUYER', 1);
+
+  // 已生效身份「资料重审中」标记（重审期间原身份继续可用）
+  const reapplyingRoles = new Set(
+    (user?.roles || []).filter((r) => r.status === 1 && r.reapplying).map((r) => r.role),
+  );
 
   // 可切换的身份：BUYER + 已生效（status=1）的非默认角色
   const switchableRoles = [
@@ -98,7 +103,7 @@ export default function AccountSwitchPage() {
   };
 
   const handleEditProfile = (roleCode: string) => {
-    setSelectedRole(roleCode as ApplyableRole);
+    enterEditProfile(roleCode as ApplyableRole);
     router.push(`${ROUTES.UC_APPLY}/${roleCode}`);
   };
 
@@ -141,8 +146,12 @@ export default function AccountSwitchPage() {
             const isActive = status === 1;
             const isPending = status === 2;
             const isRejected = status === 3;
+            const isReapplying = reapplyingRoles.has(role.code);
             const isCurrent = activeRole === role.code;
-            const canEditProfile = isActive && role.code !== 'BUYER' && applyableRoleCodes.has(role.code);
+            const canEditProfile =
+              isActive && role.code !== 'BUYER' && applyableRoleCodes.has(role.code);
+            const editProfileLabel = isReapplying ? '修改已提交资料' : '修改角色资料';
+            const canContinueApply = isPending && applyableRoleCodes.has(role.code);
             const Icon = role.icon;
 
             return (
@@ -205,13 +214,29 @@ export default function AccountSwitchPage() {
                         className="inline-flex items-center gap-1 text-gray-500 hover:text-primary font-medium cursor-pointer"
                       >
                         <Pencil className="size-3" />
-                        修改角色资料
+                        {editProfileLabel}
+                      </button>
+                    )}
+                    {canContinueApply && (
+                      <button
+                        type="button"
+                        onClick={() => handleApply(role.code)}
+                        className="inline-flex items-center gap-1 text-amber-700 hover:text-primary font-medium cursor-pointer"
+                      >
+                        <Pencil className="size-3" />
+                        继续完善资料
                       </button>
                     )}
                     {isPending && (
                       <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
                         <span className="size-1.5 rounded-full bg-amber-500" />
                         审核中
+                      </span>
+                    )}
+                    {isReapplying && (
+                      <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
+                        <span className="size-1.5 rounded-full bg-amber-500" />
+                        资料审核中（原身份可用）
                       </span>
                     )}
                     {isRejected && (

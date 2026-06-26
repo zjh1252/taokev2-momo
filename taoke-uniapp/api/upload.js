@@ -61,3 +61,19 @@ export const uploadAvatar = (filePath) => uploadFile('/uploads/avatars', filePat
 
 /** 上传通用图片 → POST /uploads/images */
 export const uploadImage = (filePath) => uploadFile('/uploads/images', filePath);
+
+/** 上传通用文件（PDF/Word 等）→ POST /uploads/files */
+export const uploadDoc = (filePath) => uploadFile('/uploads/files', filePath);
+
+/**
+ * 认证证明文件上传：图片走 /uploads/images，其它走 /uploads/files
+ * @param {string} filePath uni 本地临时路径
+ * @returns {Promise<string>} 后端返回的文件 URL
+ */
+export async function uploadCertFile(filePath) {
+  const lower = (filePath || '').toLowerCase();
+  const isImage = /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/.test(lower)
+    || lower.includes('tmp') && !/\.(pdf|doc|docx)(\?.*)?$/.test(lower);
+  const data = isImage ? await uploadImage(filePath) : await uploadDoc(filePath);
+  return data?.url || data;
+}

@@ -24,6 +24,10 @@ public class Institution extends BaseEntity {
     @Column(name = "user_id", nullable = false, unique = true)
     private Integer userId;
 
+    /** 老站 tk_member.roleid，对应 URL /company/{roleid}.htm */
+    @Column(name = "legacy_role_id", nullable = false)
+    private Integer legacyRoleId = 0;
+
     /** 机构名称 */
     @Column(name = "org_name", length = 128)
     private String orgName;

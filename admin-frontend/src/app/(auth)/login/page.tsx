@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { loginMutation } from '@/features/auth/api/mutations';
+import { ApiError } from '@/lib/api-client';
 import { useAuthOwl } from '../auth-owl-context';
 
 export default function LoginPage() {
@@ -26,8 +27,12 @@ export default function LoginPage() {
       toast.success('登录成功');
       router.replace('/dashboard');
     },
-    onError: () => {
-      toast.error('网络错误，请稍后重试');
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message || '登录失败');
+        return;
+      }
+      toast.error(error instanceof Error ? error.message : '网络错误，请稍后重试');
     }
   });
 

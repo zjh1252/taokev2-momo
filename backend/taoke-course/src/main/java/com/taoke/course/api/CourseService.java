@@ -79,6 +79,11 @@ public interface CourseService {
     CourseDetailVO getPublicDetail(Integer courseId);
 
     /**
+     * 列表页点击看过/人气 +1（仅已上架课程）
+     */
+    void incrementViewCount(Integer courseId);
+
+    /**
      * 公开课程列表（仅已上架）。
      *
      * <p>支持如下过滤维度（详见 {@link PublicCourseQuery}）：</p>
@@ -91,6 +96,15 @@ public interface CourseService {
      * </ul>
      */
     PageResponse<CourseListItemVO> listPublic(PublicCourseQuery query);
+
+    /**
+     * 已上架课程按一级分类批量计数（频道底部分类导航，单次查询替代 N 次 listPublic）。
+     *
+     * @param isOpen   true=公开课，false=内训课
+     * @param cityIds  可选；传入时仅统计在这些城市有开课计划的公开课
+     * @return key=一级分类 ID，value=课程数
+     */
+    java.util.Map<Integer, Long> countPublicByCategoryL1(boolean isOpen, List<Integer> cityIds);
 
     /**
      * 专家详情页推荐课程
@@ -139,7 +153,16 @@ public interface CourseService {
     /**
      * 后台分页搜索课程
      */
-    Page<Course> searchForAdmin(String keyword, Integer status, String type, Pageable pageable);
+    Page<Course> searchForAdmin(String keyword, Integer status, String type,
+                               Integer trainerId, java.util.Collection<Integer> trainerIds,
+                               String publisherType, Integer publisherId,
+                               java.util.Collection<Integer> publisherUserIds,
+                               Pageable pageable);
+
+    /**
+     * 批量统计发布者课程数
+     */
+    java.util.Map<Integer, Long> countByPublisherIds(java.util.Collection<Integer> publisherIds);
 
     /**
      * 后台课程详情
@@ -180,4 +203,30 @@ public interface CourseService {
      * 根据 ID 集合批量获取课程
      */
     List<Course> findByIds(Set<Integer> ids);
+
+    /**
+     * 批量组装课程列表项（含分类名、排期、发布者等展示字段）
+     */
+    List<CourseListItemVO> assembleListItems(List<Course> courses);
+
+    /**
+     * 批量组装课程列表项；{@code displayPlanProvinceIds}/{@code displayPlanCityIds} 非空时，
+     * 公开课展示排期优先取命中筛选条件的场次（避免筛北京却展示上海最近一场）。
+     */
+    List<CourseListItemVO> assembleListItems(List<Course> courses,
+                                             List<Integer> displayPlanProvinceIds,
+                                             List<Integer> displayPlanCityIds);
+
+    /**
+     * 录播课详情页相关面授课：同分类公开课+内训课，优先仍可报名且热度高
+     */
+    List<CourseListItemVO> listRelatedForVideo(Integer categoryId, Integer subCategoryId, int limit);
+
+    /**
+     * 批量更新「到期自动隐藏」开关（后台运营）
+     *
+     * @param courseIds    课程 ID 列表
+     * @param isExpireHide 1=开启 0=关闭
+     */
+    void batchUpdateExpireHide(List<Integer> courseIds, Integer isExpireHide);
 }

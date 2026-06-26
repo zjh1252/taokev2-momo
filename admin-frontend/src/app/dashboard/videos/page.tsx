@@ -4,7 +4,7 @@ import { searchParamsCache } from '@/lib/searchparams';
 import type { SearchParams } from 'nuqs/server';
 
 export const metadata = {
-  title: '录播课管理'
+  title: '视频列表'
 };
 
 type PageProps = {
@@ -18,8 +18,8 @@ export default async function VideosPage(props: PageProps) {
   return (
     <PageContainer
       scrollable={false}
-      pageTitle='录播课管理'
-      pageDescription='查看和管理平台所有录播课，审核录播课上架'
+      pageTitle='视频列表'
+      pageDescription='查看和管理平台所有录播课，支持审核、上架、推荐与置顶'
     >
       <VideoListingPage />
     </PageContainer>

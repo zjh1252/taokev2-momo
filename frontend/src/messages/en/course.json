@@ -28,8 +28,11 @@
     "rating": "Rating",
     "publisher": "Publisher",
     "location": "Location",
+    "planLocation": "Location",
+    "planTime": "Class Time",
     "consult": "Consult Now",
     "reserve": "Reserve Now",
+    "expiredBanner": "This offline open course has ended. Historical materials are available for viewing only.",
     "enroll": "Enroll Now",
     "favorite": "Add to Favorites",
     "share": "Share",
@@ -52,6 +55,7 @@
   },
   "plan": {
     "title": "Upcoming Class Schedule",
+    "otherPlans": "Other Schedules for This Course",
     "courseId": "Course ID",
     "location": "Location",
     "classType": "Class Type",
@@ -62,6 +66,7 @@
     "enroll": "Enroll Now",
     "consulting": "Consult",
     "enrolling": "Enrolling",
+    "ended": "Enrollment closed",
     "confirmed": "Confirmed",
     "cancelled": "Cancelled"
   },

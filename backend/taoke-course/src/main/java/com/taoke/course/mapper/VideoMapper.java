@@ -85,8 +85,12 @@ public class VideoMapper {
         vo.setEnrollmentCount(video.getEnrollmentCount());
         vo.setStudentCount(video.getStudentCount());
         vo.setScore(video.getScore());
+        vo.setPublisherId(video.getPublisherId());
         vo.setPublisherType(video.getPublisherType());
         vo.setKeywords(video.getKeywords());
+        vo.setIsFeatured(video.getIsFeatured());
+        vo.setSortOrder(video.getSortOrder());
+        vo.setStickyPriority(video.getStickyPriority());
         vo.setPublishedAt(video.getPublishedAt());
         vo.setCreatedAt(video.getCreatedAt());
         return vo;

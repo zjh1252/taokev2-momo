@@ -5,23 +5,25 @@ import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
 import { useDataTable } from '@/hooks/use-data-table';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
-import { applicationsQueryOptions } from '../../api/queries';
+import { trainerApplicationsQueryOptions } from '../../api/queries';
 import { columns } from './columns';
 
 export function ApplicationsTable() {
   const [params] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
-    status: parseAsString
+    status: parseAsString,
+    search: parseAsString
   });
 
   const filters = {
     page: params.page,
     limit: params.perPage,
-    ...(params.status && { status: params.status })
+    ...(params.status && { status: params.status }),
+    ...(params.search && { search: params.search })
   };
 
-  const { data: resp } = useSuspenseQuery(applicationsQueryOptions(filters));
+  const { data: resp } = useSuspenseQuery(trainerApplicationsQueryOptions(filters));
 
   const list = resp.data?.list ?? [];
   const total = resp.data?.total ?? 0;

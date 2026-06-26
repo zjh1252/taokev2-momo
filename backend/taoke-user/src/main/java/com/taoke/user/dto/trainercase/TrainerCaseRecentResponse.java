@@ -30,4 +30,6 @@ public class TrainerCaseRecentResponse {
     private String coverImage;
     private String industry;
     private String description;
+    /** 培训日期，首页「专家案例」展示案例时间 */
+    private java.time.LocalDate trainingDate;
 }

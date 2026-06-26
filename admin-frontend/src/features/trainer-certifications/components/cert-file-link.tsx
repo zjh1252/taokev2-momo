@@ -17,7 +17,10 @@ export function CertFileLink({
 }) {
   const resolved = resolveAssetUrl(url);
   if (!resolved) return <span className='text-muted-foreground'>-</span>;
-  const isImage = /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(resolved);
+  const isLegacyAttachment = /\/attachments\//i.test(resolved) || /\/u\//i.test(resolved);
+  const isImage =
+    /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(resolved) ||
+    (isLegacyAttachment && !/\.pdf(\?|$)/i.test(resolved));
   if (isImage) {
     return (
       <a href={resolved} target='_blank' rel='noopener noreferrer'>

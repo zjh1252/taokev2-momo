@@ -6,6 +6,7 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.course.dto.pay.PayRequest;
 import com.taoke.course.dto.pay.PayResultVO;
+import com.taoke.course.dto.pay.PaymentPrepayResult;
 import com.taoke.course.entity.Course;
 import com.taoke.course.entity.order.CourseEnrollment;
 import com.taoke.course.entity.order.Order;
@@ -13,9 +14,12 @@ import com.taoke.course.entity.order.OrderItem;
 import com.taoke.course.entity.pay.Payment;
 import com.taoke.course.entity.video.Video;
 import com.taoke.course.entity.video.VideoEnrollment;
+import com.taoke.course.entity.video.VideoPackageGroup;
+import com.taoke.course.entity.video.VideoPackageRelation;
 import com.taoke.course.entity.video.VideoStudent;
 import com.taoke.course.repository.video.VideoStudentRepository;
 import com.taoke.course.enums.OrderStatus;
+import com.taoke.course.enums.PaymentClientType;
 import com.taoke.course.enums.PaymentMethod;
 import com.taoke.course.enums.PaymentStatus;
 import com.taoke.course.enums.ProductType;
@@ -23,8 +27,12 @@ import com.taoke.course.repository.CourseRepository;
 import com.taoke.course.repository.order.CourseEnrollmentRepository;
 import com.taoke.course.repository.pay.PaymentRepository;
 import com.taoke.course.repository.video.VideoEnrollmentRepository;
+import com.taoke.course.repository.video.VideoPackageGroupRepository;
+import com.taoke.course.repository.video.VideoPackageRelationRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.service.order.OrderServiceImpl;
+import com.taoke.course.service.pay.channel.PaymentChannel;
+import com.taoke.course.service.pay.channel.PaymentChannelRegistry;
 import com.taoke.user.api.UserService;
 import com.taoke.user.dto.user.UserProfileResponse;
 import lombok.RequiredArgsConstructor;
@@ -40,8 +48,7 @@ import java.util.Random;
 /**
  * 支付业务实现
  * <p>
- * 第一期仅实现模拟支付：发起后立即标记为成功，并完成后续报名流程。
- * 后续对接支付宝/微信时，在此扩展异步回调逻辑。
+ * MOCK 用于开发联调；ALIPAY / WECHAT 走第三方预下单 + 异步回调完成订单。
  * </p>
  *
  * @author Fangxinxin
@@ -56,11 +63,14 @@ public class PayServiceImpl {
     private final OrderServiceImpl orderService;
     private final CourseRepository courseRepository;
     private final VideoRepository videoRepository;
+    private final VideoPackageGroupRepository packageGroupRepository;
+    private final VideoPackageRelationRepository packageRelationRepository;
     private final CourseEnrollmentRepository courseEnrollmentRepository;
     private final VideoEnrollmentRepository videoEnrollmentRepository;
     private final VideoStudentRepository videoStudentRepository;
     private final EventPublisher eventPublisher;
     private final UserService userService;
+    private final PaymentChannelRegistry paymentChannelRegistry;
 
     private static final DateTimeFormatter PAY_NO_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final Random RANDOM = new Random();
@@ -86,6 +96,7 @@ public class PayServiceImpl {
         }
 
         PaymentMethod method = PaymentMethod.valueOf(request.getMethod());
+        PaymentClientType clientType = PaymentClientType.from(request.getClientType());
 
         Payment payment = new Payment();
         payment.setPaymentNo(generatePaymentNo());
@@ -104,13 +115,17 @@ public class PayServiceImpl {
 
             // 完成支付后续流程
             onPaymentSuccess(order, payment);
-        } else {
-            // TODO: 接入真实支付渠道（支付宝、微信），异步等待回调
-            payment.setStatus(PaymentStatus.PENDING.getValue());
-            paymentRepository.save(payment);
+            return buildPayResultVO(payment, null);
         }
 
-        return buildPayResultVO(payment);
+        PaymentChannel channel = paymentChannelRegistry.require(method);
+        payment.setStatus(PaymentStatus.PENDING.getValue());
+        paymentRepository.save(payment);
+
+        String subject = buildPaySubject(order);
+        PaymentPrepayResult prepayResult = channel.prepay(
+                payment, order, subject, clientType, request.getOpenId());
+        return buildPayResultVO(payment, prepayResult);
     }
 
     /**
@@ -119,7 +134,7 @@ public class PayServiceImpl {
     public PayResultVO getPaymentStatus(String paymentNo) {
         Payment payment = paymentRepository.findByPaymentNo(paymentNo)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-        return buildPayResultVO(payment);
+        return buildPayResultVO(payment, null);
     }
 
     /**
@@ -166,50 +181,90 @@ public class PayServiceImpl {
             });
 
         } else if (item.getProductType() == ProductType.VIDEO_COURSE) {
-            if (videoEnrollmentRepository.existsByVideoIdAndUserIdAndStatus(
-                    item.getProductId(), userId, 1)) {
+            createVideoEnrollment(userId, orderId, item.getProductId(), item);
+        } else if (item.getProductType() == ProductType.VIDEO_PACKAGE) {
+            VideoPackageGroup group = packageGroupRepository.findById(item.getProductId())
+                    .orElse(null);
+            if (group == null) {
                 return;
             }
-            VideoEnrollment enrollment = new VideoEnrollment();
-            enrollment.setVideoId(item.getProductId());
-            enrollment.setUserId(userId);
-            enrollment.setOrderId(orderId);
-            enrollment.setPricePaid(item.getSubtotal());
-            enrollment.setEnrolledAt(LocalDateTime.now());
-            // 录播课有效期默认一年
-            enrollment.setExpiredAt(LocalDateTime.now().plusYears(1));
-            enrollment.setStatus(1);
-            videoEnrollmentRepository.save(enrollment);
-
-            // 同步创建学员记录（便于后续跟踪学习进度）
-            if (!videoStudentRepository.existsByVideoIdAndUserId(item.getProductId(), userId)) {
-                VideoStudent student = new VideoStudent();
-                student.setVideoId(item.getProductId());
-                student.setUserId(userId);
-                student.setEnrollmentId(enrollment.getId());
-                videoStudentRepository.save(student);
+            List<VideoPackageRelation> relations = packageRelationRepository
+                    .findByPackageIdAndTopicIdAndParentIdOrderBySortOrderAscVideoIdAsc(
+                            group.getPackageId(), group.getTopicId(), group.getParentId());
+            for (VideoPackageRelation relation : relations) {
+                createVideoEnrollment(userId, orderId, relation.getVideoId(), item);
             }
-
-            videoRepository.findById(item.getProductId()).ifPresent(video -> {
-                video.setEnrollmentCount(video.getEnrollmentCount() + item.getQuantity());
-                videoRepository.save(video);
-
-                // 发布购买事件，通知课程作者
-                try {
-                    UserProfileResponse buyer = userService.getProfile(userId);
-                    String buyerName = buyer.getNickname() != null ? buyer.getNickname() : "用户" + userId;
-                    eventPublisher.publish(new VideoPurchasedEvent(
-                            video.getId(), video.getTitle(), video.getPublisherId(),
-                            userId, buyerName, item.getSubtotal()
-                    ));
-                } catch (Exception e) {
-                    log.warn("发布录播课购买事件失败: videoId={}, userId={}", video.getId(), userId, e);
-                }
-            });
         }
     }
 
-    private PayResultVO buildPayResultVO(Payment payment) {
+    private void createVideoEnrollment(Integer userId, Integer orderId, Integer videoId, OrderItem item) {
+        var existing = videoEnrollmentRepository.findByVideoIdAndUserId(videoId, userId);
+        if (existing.isPresent() && existing.get().getStatus() != null && existing.get().getStatus() == 1) {
+            VideoEnrollment e = existing.get();
+            // 已有有效报名且已过期 → 本次支付视为续费，重新计一年有效期；未过期则不重复处理
+            if (e.getExpiredAt() != null && e.getExpiredAt().isBefore(LocalDateTime.now())) {
+                e.setOrderId(orderId);
+                e.setPricePaid(item.getSubtotal());
+                e.setEnrolledAt(LocalDateTime.now());
+                e.setExpiredAt(LocalDateTime.now().plusYears(1));
+                videoEnrollmentRepository.save(e);
+            }
+            return;
+        }
+        VideoEnrollment enrollment = new VideoEnrollment();
+        enrollment.setVideoId(videoId);
+        enrollment.setUserId(userId);
+        enrollment.setOrderId(orderId);
+        enrollment.setPricePaid(item.getSubtotal());
+        enrollment.setEnrolledAt(LocalDateTime.now());
+        // 录播课有效期默认一年
+        enrollment.setExpiredAt(LocalDateTime.now().plusYears(1));
+        enrollment.setStatus(1);
+        videoEnrollmentRepository.save(enrollment);
+
+        // 同步创建学员记录（便于后续跟踪学习进度）
+        if (!videoStudentRepository.existsByVideoIdAndUserId(videoId, userId)) {
+            VideoStudent student = new VideoStudent();
+            student.setVideoId(videoId);
+            student.setUserId(userId);
+            student.setEnrollmentId(enrollment.getId());
+            videoStudentRepository.save(student);
+        }
+
+        videoRepository.findById(videoId).ifPresent(video -> {
+            video.setEnrollmentCount(video.getEnrollmentCount() + item.getQuantity());
+            videoRepository.save(video);
+
+            // 发布购买事件，通知课程作者
+            try {
+                UserProfileResponse buyer = userService.getProfile(userId);
+                String buyerName = buyer.getNickname() != null ? buyer.getNickname() : "用户" + userId;
+                eventPublisher.publish(new VideoPurchasedEvent(
+                        video.getId(), video.getTitle(), video.getPublisherId(),
+                        userId, buyerName, item.getSubtotal()
+                ));
+            } catch (Exception e) {
+                log.warn("发布录播课购买事件失败: videoId={}, userId={}", video.getId(), userId, e);
+            }
+        });
+    }
+
+    private String buildPaySubject(Order order) {
+        List<OrderItem> items = orderService.findItemsByOrderId(order.getId());
+        if (items.isEmpty()) {
+            return "淘课网订单-" + order.getOrderNo();
+        }
+        String title = items.get(0).getProductTitle();
+        if (title == null || title.isBlank()) {
+            return "淘课网订单-" + order.getOrderNo();
+        }
+        if (items.size() > 1) {
+            return title + " 等" + items.size() + "件商品";
+        }
+        return title;
+    }
+
+    private PayResultVO buildPayResultVO(Payment payment, PaymentPrepayResult prepayResult) {
         PayResultVO vo = new PayResultVO();
         vo.setPaymentNo(payment.getPaymentNo());
         vo.setOrderNo(payment.getOrderNo());
@@ -218,6 +273,11 @@ public class PayServiceImpl {
         vo.setStatus(payment.getStatus());
         vo.setStatusLabel(PaymentStatus.of(payment.getStatus()).getLabel());
         vo.setPaidAt(payment.getPaidAt());
+        if (prepayResult != null) {
+            vo.setPayUrl(prepayResult.getPayUrl());
+            vo.setQrCodeUrl(prepayResult.getQrCodeUrl());
+            vo.setPayParams(prepayResult.getPayParams());
+        }
         return vo;
     }
 

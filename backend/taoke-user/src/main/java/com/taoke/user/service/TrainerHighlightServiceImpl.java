@@ -7,9 +7,12 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.TrainerHighlightService;
 import com.taoke.user.dto.trainerhighlight.*;
+import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.TrainerHighlight;
 import com.taoke.user.entity.TrainerHighlightFile;
 import com.taoke.user.entity.Trainer;
+import com.taoke.user.repository.InstitutionRepository;
+import com.taoke.user.repository.InstitutionTrainerBindingRepository;
 import com.taoke.user.repository.TrainerHighlightFileRepository;
 import com.taoke.user.repository.TrainerHighlightRepository;
 import com.taoke.user.repository.TrainerRepository;
@@ -24,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -36,27 +40,30 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TrainerHighlightServiceImpl implements TrainerHighlightService {
 
+    private static final int BINDING_ACTIVE = 1;
+
     private final TrainerHighlightRepository highlightRepository;
     private final TrainerHighlightFileRepository highlightFileRepository;
     private final TrainerRepository trainerRepository;
+    private final InstitutionRepository institutionRepository;
+    private final InstitutionTrainerBindingRepository institutionTrainerBindingRepository;
     private final EventPublisher eventPublisher;
 
-    /** 审核状态：0=待审核, 1=通过, 2=驳回, 3=草稿 */
-    private static final int STATUS_PENDING = 0;
-    private static final int STATUS_DRAFT = 3;
+    /** 发布主体：专家或机构（二选一） */
+    private record PublisherScope(Integer trainerId, Integer institutionId, Integer ownerUserId, String ownerName) {}
 
     // ==================== 专家自服务 ====================
 
     @Override
     public List<TrainerHighlightResponse> listMyHighlights(Integer userId) {
-        Trainer trainer = requireTrainer(userId);
-        List<TrainerHighlight> highlights = highlightRepository
-                .findByTrainerIdOrderBySortOrderAsc(trainer.getId());
+        PublisherScope scope = resolvePublisherScope(userId);
+        List<TrainerHighlight> highlights = scope.trainerId() != null
+                ? highlightRepository.findByTrainerIdOrderBySortOrderAsc(scope.trainerId())
+                : highlightRepository.findByInstitutionIdOrderBySortOrderAsc(scope.institutionId());
         List<TrainerHighlightResponse> list = toResponsesWithFiles(highlights);
-        // 填充归属专家信息，便于编辑页只读横幅展示
         for (TrainerHighlightResponse r : list) {
-            r.setTrainerUserId(trainer.getUserId());
-            r.setTrainerName(trainer.getName());
+            r.setTrainerUserId(scope.ownerUserId());
+            r.setTrainerName(scope.ownerName());
         }
         return list;
     }
@@ -64,11 +71,15 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     @Transactional
     public TrainerHighlightResponse createHighlight(Integer userId,
-                                                    SaveTrainerHighlightRequest request, boolean draft) {
-        Trainer trainer = requireTrainer(userId);
+                                                    SaveTrainerHighlightRequest request) {
+        PublisherScope scope = resolvePublisherScope(userId);
 
         TrainerHighlight h = new TrainerHighlight();
-        h.setTrainerId(trainer.getId());
+        if (scope.trainerId() != null) {
+            h.setTrainerId(scope.trainerId());
+        } else {
+            h.setInstitutionId(scope.institutionId());
+        }
         h.setTitle(request.getTitle());
         h.setDescription(request.getDescription());
         h.setCoverImage(request.getCoverImage() != null ? request.getCoverImage() : "");
@@ -78,8 +89,7 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         h.setDuration(0);
         h.setFileSize(0L);
         h.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
-        // draft=true 存为草稿(3)，否则进入待审核(0)
-        h.setStatus(draft ? STATUS_DRAFT : STATUS_PENDING);
+        h.setStatus(0);
         h.setViewCount(0);
         highlightRepository.save(h);
 
@@ -91,21 +101,19 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     @Transactional
     public TrainerHighlightResponse updateHighlight(Integer userId, Integer highlightId,
-                                                    SaveTrainerHighlightRequest request, boolean draft) {
-        Trainer trainer = requireTrainer(userId);
+                                                    SaveTrainerHighlightRequest request) {
+        PublisherScope scope = resolvePublisherScope(userId);
         TrainerHighlight h = highlightRepository.findById(highlightId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "精彩瞬间不存在"));
-        if (!h.getTrainerId().equals(trainer.getId())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作他人精彩瞬间");
-        }
+        requireOwnsHighlight(scope, h);
 
         if (request.getTitle() != null) h.setTitle(request.getTitle());
         if (request.getDescription() != null) h.setDescription(request.getDescription());
         if (request.getCoverImage() != null) h.setCoverImage(request.getCoverImage());
         if (request.getSortOrder() != null) h.setSortOrder(request.getSortOrder());
 
-        // 草稿保存维持草稿态；正式提交（或编辑已审核内容）重新进入待审核
-        h.setStatus(draft ? STATUS_DRAFT : STATUS_PENDING);
+        // 修改后重新进入待审核
+        h.setStatus(0);
         h.setRejectReason(null);
         highlightRepository.save(h);
 
@@ -115,12 +123,10 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     @Transactional
     public void deleteHighlight(Integer userId, Integer highlightId) {
-        Trainer trainer = requireTrainer(userId);
+        PublisherScope scope = resolvePublisherScope(userId);
         TrainerHighlight h = highlightRepository.findById(highlightId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "精彩瞬间不存在"));
-        if (!h.getTrainerId().equals(trainer.getId())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作他人精彩瞬间");
-        }
+        requireOwnsHighlight(scope, h);
         highlightFileRepository.deleteByHighlightId(highlightId);
         highlightRepository.delete(h);
     }
@@ -128,12 +134,17 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     @Transactional
     public void batchSort(Integer userId, List<Integer> ids) {
-        Trainer trainer = requireTrainer(userId);
+        PublisherScope scope = resolvePublisherScope(userId);
         for (int i = 0; i < ids.size(); i++) {
             TrainerHighlight h = highlightRepository.findById(ids.get(i)).orElse(null);
-            if (h != null && h.getTrainerId().equals(trainer.getId())) {
-                h.setSortOrder(i);
-                highlightRepository.save(h);
+            if (h != null) {
+                try {
+                    requireOwnsHighlight(scope, h);
+                    h.setSortOrder(i);
+                    highlightRepository.save(h);
+                } catch (BusinessException ignored) {
+                    // 跳过无权项
+                }
             }
         }
     }
@@ -142,16 +153,14 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Transactional
     public TrainerHighlightFileResponse addHighlightFile(Integer userId, Integer highlightId,
                                                          SaveTrainerHighlightFileRequest request) {
-        Trainer trainer = requireTrainer(userId);
+        PublisherScope scope = resolvePublisherScope(userId);
         TrainerHighlight h = highlightRepository.findById(highlightId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "精彩瞬间不存在"));
-        if (!h.getTrainerId().equals(trainer.getId())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作他人精彩瞬间");
-        }
+        requireOwnsHighlight(scope, h);
 
         TrainerHighlightFile file = new TrainerHighlightFile();
         file.setHighlightId(highlightId);
-        file.setTrainerId(trainer.getId());
+        file.setTrainerId(scope.trainerId() != null ? scope.trainerId() : 0);
         file.setFileType(request.getFileType());
         file.setTitle(request.getTitle() != null ? request.getTitle() : "");
         file.setFileUrl(request.getFileUrl());
@@ -169,12 +178,10 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     @Override
     @Transactional
     public void deleteHighlightFile(Integer userId, Integer highlightId, Integer fileId) {
-        Trainer trainer = requireTrainer(userId);
+        PublisherScope scope = resolvePublisherScope(userId);
         TrainerHighlight h = highlightRepository.findById(highlightId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "精彩瞬间不存在"));
-        if (!h.getTrainerId().equals(trainer.getId())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作他人精彩瞬间");
-        }
+        requireOwnsHighlight(scope, h);
 
         TrainerHighlightFile file = highlightFileRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "文件不存在"));
@@ -193,6 +200,17 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         return toResponsesWithFiles(highlights);
     }
 
+    @Override
+    public List<TrainerHighlightResponse> listApprovedHighlightsForInstitution(Integer institutionId, int limit) {
+        institutionRepository.findById(institutionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
+        List<Integer> trainerIds = resolveInstitutionTrainerIds(institutionId);
+        int n = limit > 0 ? Math.min(limit, 50) : 12;
+        List<TrainerHighlight> highlights = highlightRepository.findApprovedForInstitution(
+                institutionId, trainerIds, PageRequest.of(0, n));
+        return toResponsesWithFiles(highlights);
+    }
+
     // ==================== 后台管理 ====================
 
     @Override
@@ -203,16 +221,28 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
     }
 
     @Override
-    public Page<TrainerHighlight> adminSearch(Integer trainerId, Integer status, int page, int size) {
+    public Page<TrainerHighlight> adminSearch(Integer trainerId, Integer status, String keyword,
+                                              int page, int size) {
         Specification<TrainerHighlight> spec = Specification.where(null);
         if (trainerId != null) {
             spec = spec.and((root, q, cb) -> cb.equal(root.get("trainerId"), trainerId));
         }
         if (status != null) {
             spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
-        } else {
-            // 未指定状态时排除草稿(3)，草稿不进入后台审核列表
-            spec = spec.and((root, q, cb) -> cb.notEqual(root.get("status"), STATUS_DRAFT));
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            String kw = keyword.trim().toLowerCase();
+            String like = "%" + kw + "%";
+            List<Integer> trainerIdsByName = trainerRepository.findAll(
+                    (root, q, cb) -> cb.like(cb.lower(root.get("name")), like)
+            ).stream().map(Trainer::getId).distinct().toList();
+            spec = spec.and((root, q, cb) -> {
+                var titleMatch = cb.like(cb.lower(root.get("title")), like);
+                if (trainerIdsByName.isEmpty()) {
+                    return titleMatch;
+                }
+                return cb.or(titleMatch, root.get("trainerId").in(trainerIdsByName));
+            });
         }
         return highlightRepository.findAll(spec,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")));
@@ -227,7 +257,7 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         h.setReviewedAt(LocalDateTime.now());
         highlightRepository.save(h);
 
-        Trainer trainer = trainerRepository.findById(h.getTrainerId()).orElse(null);
+        Trainer trainer = h.getTrainerId() != null ? trainerRepository.findById(h.getTrainerId()).orElse(null) : null;
         if (trainer != null) {
             eventPublisher.publish(new TrainerHighlightApprovedEvent(
                     highlightId, h.getTitle(), trainer.getUserId()));
@@ -244,7 +274,7 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         h.setReviewedAt(LocalDateTime.now());
         highlightRepository.save(h);
 
-        Trainer trainer = trainerRepository.findById(h.getTrainerId()).orElse(null);
+        Trainer trainer = h.getTrainerId() != null ? trainerRepository.findById(h.getTrainerId()).orElse(null) : null;
         if (trainer != null) {
             eventPublisher.publish(new TrainerHighlightRejectedEvent(
                     highlightId, h.getTitle(), trainer.getUserId(), reason));
@@ -253,9 +283,38 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
 
     // ==================== 内部方法 ====================
 
-    private Trainer requireTrainer(Integer userId) {
-        return trainerRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN, "当前用户不是专家"));
+    private PublisherScope resolvePublisherScope(Integer userId) {
+        Trainer trainer = trainerRepository.findByUserId(userId).orElse(null);
+        if (trainer != null) {
+            return new PublisherScope(trainer.getId(), null, trainer.getUserId(), trainer.getName());
+        }
+        Institution institution = institutionRepository.findByUserId(userId).orElse(null);
+        if (institution != null) {
+            return new PublisherScope(null, institution.getId(), institution.getUserId(), institution.getOrgName());
+        }
+        throw new BusinessException(ErrorCode.FORBIDDEN, "当前用户不是专家或机构");
+    }
+
+    private void requireOwnsHighlight(PublisherScope scope, TrainerHighlight h) {
+        if (scope.trainerId() != null) {
+            if (!Objects.equals(h.getTrainerId(), scope.trainerId())) {
+                throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作他人精彩瞬间");
+            }
+            return;
+        }
+        if (!Objects.equals(h.getInstitutionId(), scope.institutionId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作他人精彩瞬间");
+        }
+    }
+
+    private List<Integer> resolveInstitutionTrainerIds(Integer institutionId) {
+        List<Integer> trainerIds = institutionTrainerBindingRepository
+                .findByOrgIdAndStatus(institutionId, BINDING_ACTIVE).stream()
+                .map(b -> trainerRepository.findByUserId(b.getTrainerUserId()).map(Trainer::getId).orElse(null))
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        return trainerIds.isEmpty() ? List.of(-1) : trainerIds;
     }
 
     private TrainerHighlightResponse toResponseWithFiles(TrainerHighlight h) {

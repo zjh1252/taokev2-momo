@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,8 +15,9 @@ import {
 import { Icons } from '@/components/icons';
 import { toast } from 'sonner';
 import * as z from 'zod';
+import { createUser } from '../api/service';
+import { userKeys } from '../api/queries';
 
-// TODO: 对接后端创建用户接口后启用
 const userFormSchema = z.object({
   phone: z.string().min(11, '请输入正确的手机号'),
   nickname: z.string().min(1, '请输入昵称'),
@@ -30,6 +32,19 @@ interface UserFormSheetProps {
 }
 
 export function UserFormSheet({ open, onOpenChange }: UserFormSheetProps) {
+  const queryClient = useQueryClient();
+
+  const createMutation = useMutation({
+    mutationFn: createUser,
+    onSuccess: () => {
+      toast.success('用户创建成功');
+      void queryClient.invalidateQueries({ queryKey: userKeys.all });
+      onOpenChange(false);
+      form.reset();
+    },
+    onError: (err: Error) => toast.error(err.message || '创建失败')
+  });
+
   const form = useAppForm({
     defaultValues: {
       phone: '',
@@ -40,9 +55,11 @@ export function UserFormSheet({ open, onOpenChange }: UserFormSheetProps) {
       onSubmit: userFormSchema
     },
     onSubmit: async ({ value }) => {
-      // TODO: 对接后端创建用户接口
-      console.log('create user payload:', value);
-      toast.info('创建用户功能暂未开放');
+      await createMutation.mutateAsync({
+        phone: value.phone,
+        nickname: value.nickname,
+        realName: value.realName || undefined
+      });
     }
   });
 
@@ -94,7 +111,11 @@ export function UserFormSheet({ open, onOpenChange }: UserFormSheetProps) {
           >
             取消
           </Button>
-          <Button type='submit' form='user-form-sheet'>
+          <Button
+            type='submit'
+            form='user-form-sheet'
+            isLoading={createMutation.isPending}
+          >
             <Icons.check /> 创建用户
           </Button>
         </SheetFooter>

@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { ShoppingCart, Trash2 } from 'lucide-react';
 import { useCart } from '@/features/cart/hooks/useCart';
-import { CartItemCard } from '@/features/cart/components/CartItemCard';
+import { CartItemCard, CART_TABLE_GRID, CART_TITLE_OFFSET, cartLineTotal } from '@/features/cart/components/CartItemCard';
 import { createOrder } from '@/features/order/api/service';
 import { useRouter } from '@/i18n/navigation';
 import { toast } from 'sonner';
@@ -52,11 +52,7 @@ export default function CartPage() {
   );
 
   const totalAmount = useMemo(
-    () =>
-      selectedItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0,
-      ),
+    () => selectedItems.reduce((sum, item) => sum + cartLineTotal(item), 0),
     [selectedItems],
   );
 
@@ -97,17 +93,7 @@ export default function CartPage() {
         </div>
       ) : (
         <>
-          {/* 顶部操作栏 */}
-          <div className="flex items-center justify-between mb-4 px-4 py-3 bg-slate-50 rounded-lg">
-            <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600">
-              <input
-                type="checkbox"
-                checked={selectedIds.size === items.length && items.length > 0}
-                onChange={toggleSelectAll}
-                className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary"
-              />
-              全选
-            </label>
+          <div className="flex justify-end mb-2">
             <button
               type="button"
               onClick={clearAll}
@@ -118,18 +104,43 @@ export default function CartPage() {
             </button>
           </div>
 
-          {/* 商品列表 */}
-          <div className="space-y-3">
-            {items.map((item) => (
-              <CartItemCard
-                key={item.id}
-                item={item}
-                selected={selectedIds.has(item.id)}
-                onToggleSelect={toggleSelect}
-                onUpdateQuantity={updateQuantity}
-                onRemove={removeItem}
-              />
-            ))}
+          <div className="rounded-lg border border-slate-200 overflow-hidden">
+            {/* 表头 */}
+            <div
+              className={`${CART_TABLE_GRID} py-3 bg-slate-50 border-b border-slate-200 text-sm text-slate-500`}
+            >
+              <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === items.length && items.length > 0}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary"
+                />
+                全选
+              </label>
+              <div className="flex items-center gap-3 min-w-0">
+                <span className={CART_TITLE_OFFSET} aria-hidden />
+                <span>标题</span>
+              </div>
+              <span className="text-right">价格</span>
+              <span className="text-center">购买数量</span>
+              <span className="text-right">总价</span>
+              <span className="text-center">操作</span>
+            </div>
+
+            {/* 商品列表 */}
+            <div className="divide-y divide-slate-200">
+              {items.map((item) => (
+                <CartItemCard
+                  key={item.id}
+                  item={item}
+                  selected={selectedIds.has(item.id)}
+                  onToggleSelect={toggleSelect}
+                  onUpdateQuantity={updateQuantity}
+                  onRemove={removeItem}
+                />
+              ))}
+            </div>
           </div>
 
           {/* 底部结算栏 */}

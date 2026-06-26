@@ -30,6 +30,12 @@ public interface TrainingReviewRepository extends JpaRepository<TrainingReview, 
     /** 待审核列表 */
     Page<TrainingReview> findByStatusOrderByCreatedAtDesc(Integer status, Pageable pageable);
 
+    /** 按案例查已通过的评价 */
+    Page<TrainingReview> findByCaseIdAndStatusOrderByCreatedAtDesc(Integer caseId, Integer status, Pageable pageable);
+
+    /** 统计某案例已通过评价数 */
+    long countByCaseIdAndStatus(Integer caseId, Integer status);
+
     /** 统计某课程已通过评价数 */
     long countByCourseIdAndStatus(Integer courseId, Integer status);
 

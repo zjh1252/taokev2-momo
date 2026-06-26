@@ -35,6 +35,18 @@ public class AdminUserController {
         return ApiResponse.ok(adminUserService.listUsers(query));
     }
 
+    @Operation(summary = "用户详情")
+    @GetMapping("/{id}")
+    public ApiResponse<AdminUserDetailVO> detail(@PathVariable Integer id) {
+        return ApiResponse.ok(adminUserService.getUserDetail(id));
+    }
+
+    @Operation(summary = "运营创建用户")
+    @PostMapping
+    public ApiResponse<AdminUserVO> create(@Valid @RequestBody AdminCreateUserRequest request) {
+        return ApiResponse.ok(adminUserService.createUser(request));
+    }
+
     @Operation(summary = "变更用户状态（冻结/解冻）")
     @PutMapping("/{id}/status")
     public ApiResponse<Void> updateStatus(@PathVariable Integer id,

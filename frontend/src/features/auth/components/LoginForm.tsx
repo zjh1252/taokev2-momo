@@ -312,9 +312,17 @@ export function LoginForm() {
 
           {/* 密码 */}
           <div className="space-y-2">
-            <label className="block text-xs font-semibold text-muted-foreground tracking-widest uppercase">
-              {t('passwordLabel')}
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-muted-foreground tracking-widest uppercase">
+                {t('passwordLabel')}
+              </label>
+              <Link
+                href={ROUTES.FORGOT_PASSWORD}
+                className="text-xs text-primary hover:underline"
+              >
+                {t('forgotPassword')}
+              </Link>
+            </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-4">
                 <Lock className="size-4 text-muted-foreground/60" />

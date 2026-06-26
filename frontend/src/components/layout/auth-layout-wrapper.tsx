@@ -68,6 +68,7 @@ export function AuthLayoutWrapper({ children }: { children: React.ReactNode }) {
               src="/statics/images/auth-bg.jpg"
               alt=""
               fill
+              sizes="(max-width: 768px) 0px, 432px"
               className="object-cover"
               priority
             />

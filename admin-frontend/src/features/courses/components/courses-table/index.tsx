@@ -14,7 +14,9 @@ export function CoursesTable() {
     perPage: parseAsInteger.withDefault(10),
     name: parseAsString,
     status: parseAsString,
-    type: parseAsString
+    type: parseAsString,
+    trainerName: parseAsString,
+    publisherType: parseAsString
   });
 
   const filters = {
@@ -22,7 +24,9 @@ export function CoursesTable() {
     limit: params.perPage,
     ...(params.name && { search: params.name }),
     ...(params.status && { status: params.status }),
-    ...(params.type && { type: params.type })
+    ...(params.type && { type: params.type }),
+    ...(params.trainerName && { trainerName: params.trainerName }),
+    ...(params.publisherType && { publisherType: params.publisherType })
   };
 
   const { data: resp } = useSuspenseQuery(coursesQueryOptions(filters));

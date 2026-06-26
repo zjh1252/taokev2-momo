@@ -109,10 +109,8 @@ export function DataTableSliderFilter<TData>({ column, title }: DataTableSliderF
   );
 
   const onReset = React.useCallback(
-    (event: React.MouseEvent) => {
-      if (event.target instanceof HTMLDivElement) {
-        event.stopPropagation();
-      }
+    (event?: React.MouseEvent) => {
+      event?.stopPropagation();
       column.setFilterValue(undefined);
     },
     [column]
@@ -123,14 +121,18 @@ export function DataTableSliderFilter<TData>({ column, title }: DataTableSliderF
       <PopoverTrigger asChild>
         <Button variant='outline' size='sm' className='border-dashed'>
           {columnFilterValue ? (
-            <button
-              type='button'
+            <span
+              role='button'
+              tabIndex={0}
               aria-label={`清除${title}筛选`}
-              className='focus-visible:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-1 focus-visible:outline-none'
+              className='focus-visible:ring-ring inline-flex rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-1 focus-visible:outline-none'
               onClick={onReset}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') onReset();
+              }}
             >
               <Icons.xCircle />
-            </button>
+            </span>
           ) : (
             <Icons.plusCircle />
           )}

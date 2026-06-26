@@ -104,6 +104,7 @@ export interface TrainerHonorFileItem {
 /** 申请表单内嵌的著作条目（与后端 SaveTrainerBookRequest 对齐） */
 export interface TrainerBookFormItem {
   title: string;
+  authorName?: string;
   coverUrl?: string;
   publisher?: string;
   publishDate?: string;
@@ -127,6 +128,7 @@ export interface TrainerFormData {
   provinceId: number | null;
   cityId: number | null;
   districtId: number | null;
+  townId: number | null;
   address: string;
   /** 一句话介绍（80 字内） */
   oneLineIntro: string;

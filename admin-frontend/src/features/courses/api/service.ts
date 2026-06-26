@@ -14,6 +14,11 @@ export function buildCourseParams(filters: CourseFilters): URLSearchParams {
   if (filters.search) params.set('search', filters.search);
   if (filters.status) params.set('status', filters.status);
   if (filters.type) params.set('type', filters.type);
+  if (filters.trainerId) params.set('trainerId', filters.trainerId);
+  if (filters.trainerName) params.set('trainerName', filters.trainerName);
+  if (filters.publisherType) params.set('publisherType', filters.publisherType);
+  if (filters.publisherId) params.set('publisherId', filters.publisherId);
+  if (filters.publisherName) params.set('publisherName', filters.publisherName);
   return params;
 }
 
@@ -76,5 +81,13 @@ export async function toggleFeatured(courseId: number) {
   return apiClient<{ code: number; message: string }>(
     `/courses/${courseId}/feature`,
     { method: 'PUT' }
+  );
+}
+
+/** 批量更新到期自动隐藏 */
+export async function batchUpdateExpireHide(ids: number[], isExpireHide: 0 | 1) {
+  return apiClient<{ code: number; message: string }>(
+    '/courses/expire-hide',
+    { method: 'PUT', body: JSON.stringify({ ids, isExpireHide }) }
   );
 }

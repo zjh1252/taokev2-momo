@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -92,6 +93,7 @@ public class InstitutionCompanyInfoRequest {
     private String licenseDocUrl;
 
     /** 营业执照号（沿用 license_no 列） */
+    @Pattern(regexp = "^\\d{15}$|^[A-Z\\d]{18}$", message = "营业执照号需为15位纯数字或18位大写统一社会信用代码")
     @Size(max = 64, message = "营业执照号不超过64个字符")
     private String licenseNo;
 }

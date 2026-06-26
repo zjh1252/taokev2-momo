@@ -4,7 +4,7 @@ import { searchParamsCache } from '@/lib/searchparams';
 import { productsQueryOptions } from '../api/queries';
 import { ProductTable } from './product-tables';
 
-export default function ProductListingPage() {
+export default async function ProductListingPage() {
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('name');
   const pageLimit = searchParamsCache.get('perPage');
@@ -21,7 +21,11 @@ export default function ProductListingPage() {
 
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery(productsQueryOptions(filters));
+  try {
+    await queryClient.prefetchQuery(productsQueryOptions(filters));
+  } catch {
+    // 后端未启动、未登录或网络失败时跳过 SSR 数据，由客户端 useSuspenseQuery 重试
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

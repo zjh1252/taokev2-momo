@@ -1,47 +1,57 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
-import { Play, Star } from 'lucide-react';
+import { Play, Star, StarHalf } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { LegacyRichText } from '@/components/legacy-rich-text';
 import { SafeImage } from '@/components/safe-image';
-import { DEFAULT_COURSE_COVER } from '@/lib/media';
+import { resolveImageSrc } from '@/lib/media';
 import type { TrainerDetail, TrainerBook } from '../../types';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
 import type { TrainerCase } from '@/features/trainer-case/api/types';
-import type { TrainerHighlight } from '@/features/trainer-highlight/api/types';
 import { getPublicReviews } from '@/features/interaction/api/service';
 import type { ReviewItem } from '@/features/interaction/api/types';
 import ReviewDialog from '@/features/interaction/components/ReviewDialog';
 import { ReviewPhotoList } from '@/features/interaction/components/ReviewPhotoList';
 import { getCourseDetailPath, isOpenCourseType } from '@/features/course/utils/routes';
+import { getTrainerDisplayName } from '../../utils/displayName';
+import { getTrainerDetailTabHref, type TrainerTabId } from '../../utils/routes';
+import { getTrainerCourses, getTrainerVideos } from '../../api/service';
+import { getTrainerHighlights } from '@/features/trainer-highlight/api/service';
+import type { TrainerHighlight } from '@/features/trainer-highlight/api/types';
 import { decodeHtmlEntities } from '@/lib/html-entities';
+import { legacyRichTextToPlain } from '@/lib/legacy-rich-text';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
+import { trainerSectionH3 } from '@/lib/seo/headings';
 
 interface TrainerDetailContentProps {
+  activeTab: TrainerTabId;
   trainer: TrainerDetail;
   courses: CourseListItem[];
+  /** 主讲课程总数（API total，可能与 courses.length 不同） */
+  coursesTotal: number;
   cases: TrainerCase[];
-  highlights: TrainerHighlight[];
+  highlights?: TrainerHighlight[];
   videos: VideoListItem[];
+  videosTotal: number;
   books: TrainerBook[];
 }
 
 interface TabConfig {
-  id: string;
+  id: TrainerTabId;
   label: string;
-  countKey?: 'courses' | 'cases' | 'videos' | 'reviews' | 'books';
+  countKey?: 'courses' | 'cases' | 'highlights' | 'videos' | 'reviews' | 'books';
 }
 
 const TABS: TabConfig[] = [
   { id: 'home', label: '主页' },
   { id: 'courses', label: '主讲课程', countKey: 'courses' },
   { id: 'cases', label: '授课案例', countKey: 'cases' },
+  { id: 'highlights', label: '精彩瞬间', countKey: 'highlights' },
   { id: 'videos', label: '录播课', countKey: 'videos' },
   { id: 'comments', label: '学员评价', countKey: 'reviews' },
   { id: 'books', label: '著作', countKey: 'books' },
@@ -51,42 +61,32 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-4">
       <div className="w-1 h-5 bg-primary rounded-full" />
-      <h2 className="text-[22px] font-bold">{children}</h2>
+      <h3 className="text-[22px] font-bold">{children}</h3>
     </div>
   );
 }
 
 export function TrainerDetailContent({
+  activeTab,
   trainer,
   courses,
+  coursesTotal,
   cases,
-  highlights,
+  highlights = [],
   videos,
+  videosTotal,
   books,
 }: TrainerDetailContentProps) {
-  // 通过 ?tab=cases 等 query 直接深链激活某个 tab，便于其他页面跳过来落到对应 tab
-  const searchParams = useSearchParams();
-  const initialTab = (() => {
-    const t = searchParams?.get('tab');
-    return t && TABS.some((x) => x.id === t) ? t : 'home';
-  })();
-  const [activeTab, setActiveTab] = useState<string>(initialTab);
-
-  useEffect(() => {
-    const t = searchParams?.get('tab');
-    if (t && TABS.some((x) => x.id === t)) {
-      setActiveTab(t);
-    }
-  }, [searchParams]);
-
   // 学员评价角标：以专家累计已通过评论数为准（后端在评价审核通过时同步 +1）
   const counts = {
-    courses: courses.length,
+    courses: coursesTotal,
     cases: cases.length,
-    videos: videos.length,
+    highlights: highlights.length,
+    videos: videosTotal,
     reviews: trainer.commentCount ?? 0,
     books: books.length,
   };
+  const displayName = getTrainerDisplayName(trainer);
 
   return (
     <>
@@ -95,13 +95,13 @@ export function TrainerDetailContent({
         <div className="flex items-center gap-8 overflow-x-auto text-[15px]">
           {TABS.map((tab) => {
             const count = tab.countKey ? counts[tab.countKey] : 0;
+            const isActive = activeTab === tab.id;
             return (
-              <button
+              <Link
                 key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
+                href={getTrainerDetailTabHref(trainer.id, tab.id)}
                 className={`py-4 whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1.5 ${
-                  activeTab === tab.id
+                  isActive
                     ? 'text-primary border-b-2 border-primary font-bold'
                     : 'text-slate-600 hover:text-primary'
                 }`}
@@ -110,14 +110,14 @@ export function TrainerDetailContent({
                 {tab.countKey && count > 0 && (
                   <span className={cn(
                     'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold',
-                    activeTab === tab.id
+                    isActive
                       ? 'bg-primary text-white'
                       : 'bg-slate-200 text-slate-600'
                   )}>
                     {count}
                   </span>
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -126,15 +126,24 @@ export function TrainerDetailContent({
       {/* Tab 内容区 */}
       <div className="min-h-[800px]">
         {activeTab === 'home' && (
-          <HomeView trainer={trainer} courses={courses} cases={cases} highlights={highlights} />
+          <HomeView trainer={trainer} courses={courses} coursesTotal={coursesTotal} cases={cases} />
         )}
-        {activeTab === 'courses' && <CoursesView courses={courses} />}
+        {activeTab === 'courses' && (
+          <CoursesView trainerId={trainer.id} initialCourses={courses} total={coursesTotal} />
+        )}
         {activeTab === 'cases' && <CasesView cases={cases} />}
-        {activeTab === 'videos' && <VideosView videos={videos} />}
+        {activeTab === 'highlights' && (
+          <HighlightsView trainerId={trainer.id} initialHighlights={highlights} />
+        )}
+        {activeTab === 'videos' && (
+          <VideosView trainerId={trainer.id} initialVideos={videos} total={videosTotal} />
+        )}
         {activeTab === 'comments' && (
           <ReviewsView
             trainerUserId={trainer.userId}
-            trainerName={trainer.name}
+            trainerName={displayName}
+            trainerScore={trainer.score}
+            reviewTotal={trainer.commentCount ?? 0}
             courses={courses}
             videos={videos}
           />
@@ -150,21 +159,21 @@ export function TrainerDetailContent({
 function HomeView({
   trainer,
   courses,
+  coursesTotal,
   cases,
-  highlights,
 }: {
   trainer: TrainerDetail;
   courses: CourseListItem[];
+  coursesTotal: number;
   cases: TrainerCase[];
-  highlights: TrainerHighlight[];
 }) {
   const introText = trainer.intro?.trim() || '';
   const bioText = trainer.bio?.trim() || '';
   const showIntro =
     introText.length > 0 && introText !== bioText;
   const showBio = bioText.length > 0;
-  const showOneLine = Boolean(trainer.oneLineIntro?.trim());
   const showGoodAt = Boolean(trainer.goodAt?.trim());
+  const displayName = getTrainerDisplayName(trainer);
 
   const hasProfileBlock =
     trainer.educations.length > 0
@@ -174,12 +183,10 @@ function HomeView({
     || Boolean(trainer.teachingStyle?.trim())
     || showIntro
     || showBio
-    || showOneLine
     || showGoodAt
     || trainer.honors.length > 0
     || cases.length > 0
-    || courses.length > 0
-    || highlights.length > 0;
+    || coursesTotal > 0;
 
   return (
     <div className="space-y-6">
@@ -192,18 +199,10 @@ function HomeView({
         </div>
       )}
 
-      {/* 一句话简介 */}
-      {showOneLine && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>一句话简介</SectionTitle>
-          <p className="text-[15px] leading-7 text-slate-600">{trainer.oneLineIntro}</p>
-        </div>
-      )}
-
       {/* 专家简介（intro 与 bio 分开展示，避免重复） */}
       {showIntro && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>专家简介</SectionTitle>
+          <SectionTitle>{trainerSectionH3(displayName, '专家简介')}</SectionTitle>
           <LegacyRichText content={trainer.intro!} />
         </div>
       )}
@@ -211,7 +210,7 @@ function HomeView({
       {/* 擅长课题 */}
       {showGoodAt && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>擅长课题</SectionTitle>
+          <SectionTitle>{trainerSectionH3(displayName, '擅长课题')}</SectionTitle>
           <LegacyRichText content={trainer.goodAt!} />
         </div>
       )}
@@ -219,7 +218,7 @@ function HomeView({
       {/* 资质背景 */}
       {trainer.educations.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>资质背景</SectionTitle>
+          <SectionTitle>{trainerSectionH3(displayName, '专家资质')}</SectionTitle>
           <ul className="space-y-2 text-[15px] leading-7 text-slate-600 list-disc pl-5 marker:text-slate-400">
             {trainer.educations.map((edu) => (
               <li key={edu.id || edu.schoolName}>
@@ -243,7 +242,7 @@ function HomeView({
       {/* 部分客户 */}
       {trainer.partialClients && trainer.partialClients.trim() && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>部分客户</SectionTitle>
+          <SectionTitle>{trainerSectionH3(displayName, '部分客户')}</SectionTitle>
           <LegacyRichText content={trainer.partialClients} />
         </div>
       )}
@@ -369,32 +368,33 @@ function HomeView({
               );
             })}
           </div>
-          {courses.length > 3 && (
+          {coursesTotal > 3 && (
             <p className="text-sm text-slate-400 mt-4 text-center">
-              共 {courses.length} 门课程，请切换「主讲课程」查看全部
+              共 {coursesTotal} 门课程，请切换「主讲课程」查看全部
             </p>
           )}
         </div>
       )}
 
-      {/* 成功案例 — 图片 + 标题 + 描述，可点击进入案例详情 */}
+      {/* 授课案例 预览（与「授课案例」tab 数据源一致，仅取前 3 条） */}
       {cases.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <SectionTitle>成功案例</SectionTitle>
+            <SectionTitle>授课案例</SectionTitle>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {cases.slice(0, 6).map((c) => (
+            {cases.slice(0, 3).map((c) => {
+              const caseDesc = c.description ? legacyRichTextToPlain(c.description) : '';
+              return (
               <Link
                 key={c.id}
-                href={`/trainers/${trainer.id}/cases/${c.id}`}
-                className="rounded-lg border border-slate-200 overflow-hidden group hover:shadow-md transition block"
+                href={`/case/${c.id}.htm`}
+                className="rounded-lg border border-slate-200 overflow-hidden group hover:shadow-sm transition block"
               >
                 <div className="aspect-[16/10] overflow-hidden bg-slate-100">
                   {c.coverImage ? (
                     <SafeImage
                       src={c.coverImage}
-                      fallback={DEFAULT_COURSE_COVER}
                       alt={c.caseTitle}
                       width={640}
                       height={400}
@@ -407,49 +407,13 @@ function HomeView({
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-semibold text-[15px] line-clamp-2 group-hover:text-primary transition-colors">
-                    {c.caseTitle}
-                  </h3>
-                  {c.description && (
-                    <p className="text-sm text-slate-500 mt-2 line-clamp-2">{c.description}</p>
+                  <h3 className="font-semibold text-[15px] line-clamp-2">{c.caseTitle}</h3>
+                  {caseDesc && (
+                    <p className="text-sm text-slate-500 mt-2 line-clamp-2">{caseDesc}</p>
                   )}
                 </div>
               </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 精彩瞬间 — 图片横向滚动展示 */}
-      {highlights.length > 0 && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
-          <SectionTitle>精彩瞬间</SectionTitle>
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
-            {highlights.map((h) => {
-              const cover = h.coverImage || h.files?.[0]?.thumbnailUrl || h.files?.[0]?.fileUrl || '';
-              return (
-                <div
-                  key={h.id}
-                  className="shrink-0 w-[260px] rounded-lg overflow-hidden border border-slate-200 bg-slate-100"
-                >
-                  <div className="aspect-[16/10] overflow-hidden">
-                    {cover ? (
-                      <SafeImage
-                        src={cover}
-                        fallback={DEFAULT_COURSE_COVER}
-                        alt={h.title || '精彩瞬间'}
-                        width={520}
-                        height={325}
-                        className="w-full h-full object-cover hover:scale-[1.02] transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-                        暂无图片
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
+            );
             })}
           </div>
         </div>
@@ -461,67 +425,121 @@ function HomeView({
 
 // ==================== 主讲课程视图 ====================
 
-function CoursesView({ courses }: { courses: CourseListItem[] }) {
+const TRAINER_TAB_PAGE_SIZE = 20;
+
+function CoursesView({
+  trainerId,
+  initialCourses,
+  total,
+}: {
+  trainerId: number;
+  initialCourses: CourseListItem[];
+  total: number;
+}) {
+  const [courses, setCourses] = useState(initialCourses);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const hasMore = courses.length < total;
+
+  useEffect(() => {
+    setCourses(initialCourses);
+    setPage(1);
+  }, [trainerId, initialCourses]);
+
+  const loadMore = async () => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      const nextPage = page + 1;
+      const res = await getTrainerCourses(trainerId, nextPage, TRAINER_TAB_PAGE_SIZE);
+      setCourses((prev) => {
+        const seen = new Set(prev.map((c) => c.id));
+        const merged = [...prev];
+        for (const item of res.list) {
+          if (!seen.has(item.id)) merged.push(item);
+        }
+        return merged;
+      });
+      setPage(nextPage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
-        <h2 className="text-[20px] font-bold text-slate-900">
+        <h3 className="text-[20px] font-bold text-slate-900">
           全部主讲课程{' '}
-          <span className="text-slate-500 font-normal text-[15px] ml-2">共 {courses.length} 门</span>
-        </h2>
+          <span className="text-slate-500 font-normal text-[15px] ml-2">共 {total} 门</span>
+        </h3>
       </div>
 
-      {courses.length === 0 ? (
+      {total === 0 ? (
         <p className="text-sm text-slate-400 py-12 text-center">暂无主讲课程</p>
       ) : (
-        <div className="space-y-4">
-          {courses.map((course) => {
-            const isOpen = isOpenCourseType(course.type);
-            const detailPath = getCourseDetailPath(course.id, course.type);
-            return (
-              <div
-                key={course.id}
-                className="p-5 rounded-lg border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-sm transition"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span
-                      className={`px-2 py-0.5 text-[12px] rounded-sm font-medium ${
-                        isOpen
-                          ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
-                          : 'bg-primary/10 text-primary border border-primary/20'
-                      }`}
-                    >
-                      {course.typeLabel || (isOpen ? '公开课' : '内训课')}
-                    </span>
+        <>
+          <div className="space-y-4">
+            {courses.map((course) => {
+              const isOpen = isOpenCourseType(course.type);
+              const detailPath = getCourseDetailPath(course.id, course.type);
+              return (
+                <div
+                  key={course.id}
+                  className="p-5 rounded-lg border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-sm transition"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span
+                        className={`px-2 py-0.5 text-[12px] rounded-sm font-medium ${
+                          isOpen
+                            ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
+                            : 'bg-primary/10 text-primary border border-primary/20'
+                        }`}
+                      >
+                        {course.typeLabel || (isOpen ? '公开课' : '内训课')}
+                      </span>
+                      <Link
+                        href={detailPath}
+                        className="font-bold text-[18px] text-slate-900 hover:text-primary transition-colors line-clamp-1"
+                      >
+                        {decodeHtmlEntities(course.title)}
+                      </Link>
+                    </div>
+                    <p className="text-sm text-slate-500 mb-2">
+                      {course.categoryName ? `分类：${course.categoryName}` : ''}
+                      {course.durationDays ? ` ｜ 课时：${course.durationDays} 天` : ''}
+                      {course.totalHours ? ` 共 ${course.totalHours} 小时` : ''}
+                    </p>
+                    {course.keywords && (
+                      <p className="text-[13px] text-slate-500 line-clamp-2">{course.keywords}</p>
+                    )}
+                  </div>
+                  <div className="shrink-0">
                     <Link
                       href={detailPath}
-                      className="font-bold text-[18px] text-slate-900 hover:text-primary transition-colors line-clamp-1"
+                      className="px-6 py-2.5 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary font-medium w-full md:w-auto transition-colors inline-block text-center"
                     >
-                      {decodeHtmlEntities(course.title)}
+                      查看详情
                     </Link>
                   </div>
-                  <p className="text-sm text-slate-500 mb-2">
-                    {course.categoryName ? `分类：${course.categoryName}` : ''}
-                    {course.durationDays ? ` ｜ 课时：${course.durationDays} 天` : ''}
-                    {course.totalHours ? ` 共 ${course.totalHours} 小时` : ''}
-                  </p>
-                  {course.keywords && (
-                    <p className="text-[13px] text-slate-500 line-clamp-2">{course.keywords}</p>
-                  )}
                 </div>
-                <div className="shrink-0">
-                  <Link
-                    href={detailPath}
-                    className="px-6 py-2.5 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary font-medium w-full md:w-auto transition-colors inline-block text-center"
-                  >
-                    查看详情
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          {hasMore && (
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loading}
+                className="px-6 py-2.5 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary text-sm transition-colors disabled:opacity-50"
+              >
+                {loading ? '加载中…' : `加载更多（已显示 ${courses.length}/${total}）`}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -543,9 +561,9 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
-        <h2 className="text-[20px] font-bold text-slate-900">
+        <h3 className="text-[20px] font-bold text-slate-900">
           授课案例 <span className="text-primary mx-1">{cases.length}</span> 个
-        </h2>
+        </h3>
       </div>
 
       {cases.length === 0 ? (
@@ -557,17 +575,16 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
               key={industry}
               className="flex flex-col md:flex-row gap-6 pb-6 border-b border-slate-200 border-dashed last:border-b-0"
             >
-              <div className="w-full md:w-[120px] shrink-0 font-medium text-slate-900 flex items-center md:justify-center">
+              <div className="w-full md:w-[120px] shrink-0 font-medium text-slate-900 flex items-center justify-center md:self-center text-center">
                 {industry}
               </div>
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                 {items.map((c) => (
-                  <div key={c.id} className="group cursor-pointer">
+                  <Link key={c.id} href={`/case/${c.id}.htm`} className="group cursor-pointer block">
                     <div className="aspect-video overflow-hidden rounded border border-slate-200 mb-2 relative bg-slate-100">
                       {c.coverImage ? (
                         <SafeImage
                           src={c.coverImage}
-                          fallback={DEFAULT_COURSE_COVER}
                           alt={c.caseTitle}
                           width={300}
                           height={200}
@@ -582,7 +599,7 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
                     <h3 className="text-[13px] text-slate-900 group-hover:text-primary transition-colors line-clamp-2 text-center">
                       {c.caseTitle}
                     </h3>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -593,61 +610,195 @@ function CasesView({ cases }: { cases: TrainerCase[] }) {
   );
 }
 
-// ==================== 录播课视图 ====================
+// ==================== 精彩瞬间视图 ====================
 
-function VideosView({ videos }: { videos: VideoListItem[] }) {
+function HighlightsView({
+  trainerId,
+  initialHighlights,
+}: {
+  trainerId: number;
+  initialHighlights: TrainerHighlight[];
+}) {
+  const [items, setItems] = useState(initialHighlights);
+  const [loading, setLoading] = useState(initialHighlights.length === 0);
+
+  useEffect(() => {
+    if (initialHighlights.length > 0) {
+      setItems(initialHighlights);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    getTrainerHighlights(trainerId)
+      .then((list) => {
+        if (!cancelled) setItems(list);
+      })
+      .catch(() => {
+        if (!cancelled) setItems([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [trainerId, initialHighlights]);
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
-        <h2 className="text-[20px] font-bold text-slate-900">
-          全部录播课{' '}
-          <span className="text-slate-500 font-normal text-[15px] ml-2">共 {videos.length} 门</span>
-        </h2>
+        <h3 className="text-[20px] font-bold text-slate-900">
+          精彩瞬间 <span className="text-primary mx-1">{items.length}</span> 个
+        </h3>
       </div>
 
-      {videos.length === 0 ? (
+      {loading ? (
+        <p className="text-sm text-slate-400 py-12 text-center">加载中...</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-slate-400 py-12 text-center">暂无精彩瞬间</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {items.map((item) => {
+            const cover = item.coverImage || item.files?.[0]?.thumbnailUrl || item.files?.[0]?.fileUrl;
+            return (
+              <div
+                key={item.id}
+                className="group rounded-lg border border-slate-200 overflow-hidden bg-slate-50"
+              >
+                <div className="aspect-video relative bg-slate-100">
+                  {cover ? (
+                    <SafeImage
+                      src={cover}
+                      alt={item.title || '精彩瞬间'}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+                      暂无封面
+                    </div>
+                  )}
+                </div>
+                {item.title ? (
+                  <p className="px-3 py-2 text-sm text-slate-800 line-clamp-2">{item.title}</p>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== 录播课视图 ====================
+
+function VideosView({
+  trainerId,
+  initialVideos,
+  total,
+}: {
+  trainerId: number;
+  initialVideos: VideoListItem[];
+  total: number;
+}) {
+  const [videos, setVideos] = useState(initialVideos);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const hasMore = videos.length < total;
+
+  useEffect(() => {
+    setVideos(initialVideos);
+    setPage(1);
+  }, [trainerId, initialVideos]);
+
+  const loadMore = async () => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      const nextPage = page + 1;
+      const res = await getTrainerVideos(trainerId, nextPage, TRAINER_TAB_PAGE_SIZE);
+      setVideos((prev) => {
+        const seen = new Set(prev.map((v) => v.id));
+        const merged = [...prev];
+        for (const item of res.list) {
+          if (!seen.has(item.id)) merged.push(item);
+        }
+        return merged;
+      });
+      setPage(nextPage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-6">
+      <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
+        <h3 className="text-[20px] font-bold text-slate-900">
+          全部录播课{' '}
+          <span className="text-slate-500 font-normal text-[15px] ml-2">共 {total} 门</span>
+        </h3>
+      </div>
+
+      {total === 0 ? (
         <p className="text-sm text-slate-400 py-12 text-center">暂无录播课</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-          {videos.map((video) => (
-            <Link
-              key={video.id}
-              href={`/videos/${video.id}`}
-              className="rounded-lg overflow-hidden border border-slate-200 group cursor-pointer hover:shadow-sm transition block"
-            >
-              <div className="aspect-video relative overflow-hidden bg-slate-100">
-                {video.coverUrl ? (
-                  <Image
-                    src={video.coverUrl}
-                    alt={video.title}
-                    width={520}
-                    height={293}
-                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-                    暂无封面
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                <span className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-white/90 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition shadow-sm">
-                  <Play className="size-5 fill-current" />
-                </span>
-              </div>
-              <div className="p-3">
-                <h3 className="text-[14px] font-medium text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
-                  {video.title}
-                </h3>
-                <p className="text-[12px] text-slate-500 mt-1 flex justify-between">
-                  <span>{video.totalEpisodes ? `${video.totalEpisodes} 节` : video.videoTypeLabel}</span>
-                  <span className="text-primary font-bold">
-                    {video.isFree === 1 ? '免费' : `¥${Number(video.price).toFixed(2)}`}
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+            {videos.map((video) => (
+              <Link
+                key={video.id}
+                href={`/vedio/${video.id}.htm`}
+                className="rounded-lg overflow-hidden border border-slate-200 group cursor-pointer hover:shadow-sm transition block"
+              >
+                <div className="aspect-video relative overflow-hidden bg-slate-100">
+                  {video.coverUrl ? (
+                    <Image
+                      src={video.coverUrl}
+                      alt={video.title}
+                      width={520}
+                      height={293}
+                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                      暂无封面
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                  <span className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-white/90 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition shadow-sm">
+                    <Play className="size-5 fill-current" />
                   </span>
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
+                </div>
+                <div className="p-3">
+                  <h3 className="text-[14px] font-medium text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
+                    {video.title}
+                  </h3>
+                  <p className="text-[12px] text-slate-500 mt-1 flex justify-between">
+                    <span>{video.totalEpisodes ? `${video.totalEpisodes} 节` : video.videoTypeLabel}</span>
+                    <span className="text-primary font-bold">
+                      {video.isFree === 1 ? '免费' : `¥${Number(video.price).toFixed(2)}`}
+                    </span>
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+          {hasMore && (
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loading}
+                className="px-6 py-2.5 rounded-md border border-slate-200 text-slate-600 hover:text-primary hover:border-primary text-sm transition-colors disabled:opacity-50"
+              >
+                {loading ? '加载中…' : `加载更多（已显示 ${videos.length}/${total}）`}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -655,14 +806,57 @@ function VideosView({ videos }: { videos: VideoListItem[] }) {
 
 // ==================== 学员评价视图 ====================
 
+function ReviewScoreSummary({
+  score,
+  total,
+  action,
+}: {
+  score: number;
+  total: number;
+  action?: React.ReactNode;
+}) {
+  const numericScore = Number(score) || 0;
+  const displayScore = numericScore > 0 ? numericScore.toFixed(1) : '0.0';
+  const fullStars = Math.floor(numericScore);
+  const hasHalf = numericScore - fullStars >= 0.25 && numericScore < 5;
+  const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+
+  return (
+    <article className="border border-slate-200 rounded-lg p-4 flex items-center justify-between gap-4">
+      <div>
+        <div className="text-sm font-medium text-slate-900 mb-2">综合评分</div>
+        <div className="flex items-baseline gap-0.5 mb-2">
+          <span className="text-[40px] leading-none font-extrabold text-slate-900">{displayScore}</span>
+          <span className="text-base text-slate-400">/ 5.0</span>
+        </div>
+        <div className="flex text-yellow-400 mb-2">
+          {Array.from({ length: fullStars }).map((_, i) => (
+            <Star key={`full-${i}`} className="size-5 fill-current" />
+          ))}
+          {hasHalf ? <StarHalf className="size-5 fill-current" /> : null}
+          {Array.from({ length: emptyStars }).map((_, i) => (
+            <Star key={`empty-${i}`} className="size-5 text-slate-200" />
+          ))}
+        </div>
+        <p className="text-sm text-slate-500">共{total}条真实评价</p>
+      </div>
+      {action}
+    </article>
+  );
+}
+
 function ReviewsView({
   trainerUserId,
   trainerName,
+  trainerScore,
+  reviewTotal,
   courses,
   videos,
 }: {
   trainerUserId: number;
   trainerName: string;
+  trainerScore: number;
+  reviewTotal: number;
   courses: CourseListItem[];
   videos: VideoListItem[];
 }) {
@@ -708,68 +902,65 @@ function ReviewsView({
       .catch(() => setLoaded(true));
   }, [trainerUserId]);
 
-  const avgScore = reviews.length
-    ? (reviews.reduce((sum, r) => sum + Number(r.avgScore), 0) / reviews.length).toFixed(1)
-    : '0.0';
+  const summaryScore =
+    trainerScore > 0
+      ? trainerScore
+      : reviews.length
+        ? reviews.reduce((sum, r) => sum + Number(r.avgScore), 0) / reviews.length
+        : 0;
+  const summaryTotal = reviewTotal > 0 ? reviewTotal : reviews.length;
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
-        <h2 className="text-[20px] font-bold text-slate-900">
-          学员评价 <span className="text-primary mx-1">{reviews.length}</span> 个
-        </h2>
-        <button
-          type="button"
-          onClick={handleOpenReview}
-          className="px-4 py-2 rounded-md bg-primary text-white text-sm cursor-pointer hover:bg-primary/90 transition-colors"
-        >
-          我要评价
-        </button>
-      </div>
-
-      {/* 评分统计 */}
-      <div className="grid md:grid-cols-[220px_1fr] gap-6 mb-8">
-        <div className="rounded-lg border border-slate-200 p-4 bg-slate-50">
-          <div className="text-3xl font-extrabold text-primary">{avgScore}</div>
-          <div className="text-sm text-slate-500 mt-1">综合评分</div>
-        </div>
-        <div className="space-y-3">
-          {reviews.length === 0 && loaded && (
-            <p className="text-sm text-slate-400 py-8 text-center">暂无评价数据</p>
-          )}
-          {reviews.map((review) => (
-            <article key={review.id} className="border border-slate-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">
-                    {review.anonymous ? '匿名用户' : (review.submitterName || '学员')}
-                  </span>
-                </div>
-                <div className="text-xs text-slate-500">
-                  {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
-                </div>
+      <div className="space-y-3">
+        <ReviewScoreSummary
+          score={summaryScore}
+          total={summaryTotal}
+          action={
+            <button
+              type="button"
+              onClick={handleOpenReview}
+              className="shrink-0 px-4 py-2 rounded-md bg-primary text-white text-sm cursor-pointer hover:bg-primary/90 transition-colors"
+            >
+              我要评价
+            </button>
+          }
+        />
+        {reviews.length === 0 && loaded && (
+          <p className="text-sm text-slate-400 py-8 text-center">暂无评价数据</p>
+        )}
+        {reviews.map((review) => (
+          <article key={review.id} className="border border-slate-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">
+                  {review.anonymous ? '匿名用户' : (review.submitterName || '学员')}
+                </span>
               </div>
-              <div className="flex items-center gap-2 mt-2">
-                <div className="flex text-[#FFD700]">
-                  {Array.from({ length: Math.floor(Number(review.avgScore)) }).map((_, i) => (
-                    <Star key={i} className="size-4 fill-current" />
-                  ))}
-                </div>
-                <span className="text-[#FFD700] font-bold text-[14px]">{review.avgScore}</span>
-                {review.courseTitle && (
-                  <span className="text-[14px] text-primary">{review.courseTitle}</span>
-                )}
+              <div className="text-xs text-slate-500">
+                {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
               </div>
-              <div className="flex gap-4 mt-2 text-xs text-slate-400">
-                <span>内容 {review.ratingContent}分</span>
-                <span>水平 {review.ratingTeaching}分</span>
-                <span>服务 {review.ratingService}分</span>
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex text-[#FFD700]">
+                {Array.from({ length: Math.floor(Number(review.avgScore)) }).map((_, i) => (
+                  <Star key={i} className="size-4 fill-current" />
+                ))}
               </div>
-              <p className="text-sm text-slate-600 mt-2">{review.commentText}</p>
-              <ReviewPhotoList urls={review.photoUrls} />
-            </article>
-          ))}
-        </div>
+              <span className="text-[#FFD700] font-bold text-[14px]">{review.avgScore}</span>
+              {review.courseTitle && (
+                <span className="text-[14px] text-primary">{review.courseTitle}</span>
+              )}
+            </div>
+            <div className="flex gap-4 mt-2 text-xs text-slate-400">
+              <span>内容 {review.ratingContent}分</span>
+              <span>水平 {review.ratingTeaching}分</span>
+              <span>服务 {review.ratingService}分</span>
+            </div>
+            <p className="text-sm text-slate-600 mt-2">{review.commentText}</p>
+            <ReviewPhotoList urls={review.photoUrls} />
+          </article>
+        ))}
       </div>
 
       <ReviewDialog
@@ -806,10 +997,10 @@ function BooksView({ books }: { books: TrainerBook[] }) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
-        <h2 className="text-[20px] font-bold text-slate-900">
+        <h3 className="text-[20px] font-bold text-slate-900">
           全部著作{' '}
           <span className="text-slate-500 font-normal text-[15px] ml-2">共 {books.length} 本</span>
-        </h2>
+        </h3>
       </div>
 
       {books.length === 0 ? (
@@ -823,7 +1014,6 @@ function BooksView({ books }: { books: TrainerBook[] }) {
                   {book.coverUrl ? (
                     <SafeImage
                       src={book.coverUrl}
-                      fallback={DEFAULT_COURSE_COVER}
                       alt={book.title}
                       width={280}
                       height={373}

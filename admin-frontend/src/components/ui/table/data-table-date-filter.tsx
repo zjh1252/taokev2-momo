@@ -95,8 +95,8 @@ export function DataTableDateFilter<TData>({
   );
 
   const onReset = React.useCallback(
-    (event: React.MouseEvent) => {
-      event.stopPropagation();
+    (event?: React.MouseEvent) => {
+      event?.stopPropagation();
       column.setFilterValue(undefined);
     },
     [column]
@@ -165,14 +165,18 @@ export function DataTableDateFilter<TData>({
       <PopoverTrigger asChild>
         <Button variant='outline' size='sm' className='border-dashed'>
           {hasValue ? (
-            <button
-              type='button'
+            <span
+              role='button'
+              tabIndex={0}
               aria-label={`清除${title}筛选`}
               onClick={onReset}
-              className='focus-visible:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-1 focus-visible:outline-none'
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') onReset();
+              }}
+              className='focus-visible:ring-ring inline-flex rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-1 focus-visible:outline-none'
             >
               <Icons.xCircle />
-            </button>
+            </span>
           ) : (
             <Icons.calendar />
           )}
