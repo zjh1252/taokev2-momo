@@ -569,6 +569,10 @@ public class CourseServiceImpl implements CourseService {
                 : trainerService.findByIds(trainerIds).stream()
                     .collect(Collectors.toMap(Trainer::getId, t -> t));
 
+        Map<Integer, String> trainerAvatarMap = trainerMap.isEmpty()
+                ? Map.of()
+                : trainerService.resolveDisplayAvatars(trainerMap.keySet());
+
         // 批量专家驻地（省/市名称）— 汇总所有可能关联到的专家后再统一查地名
         Set<Integer> trainerRegionIds = new HashSet<>();
 
@@ -684,7 +688,7 @@ public class CourseServiceImpl implements CourseService {
             final String categoryNameForCover = vo.getCategoryName();
             if (trainer != null) {
                 applyTrainerToListItem(vo, trainer, trainerRegionNameMap);
-                vo.setCoverUrl(resolveCoverUrl(c, trainer.getAvatar(), categoryNameForCover));
+                vo.setCoverUrl(resolveCoverUrl(c, trainerAvatarMap.getOrDefault(trainer.getId(), trainer.getAvatar()), categoryNameForCover));
             } else {
                 vo.setCoverUrl(resolveCoverUrl(c, null, categoryNameForCover));
                 String legacyLecturer = legacyLecturerMap.get(c.getId());
@@ -1560,7 +1564,8 @@ public class CourseServiceImpl implements CourseService {
             if (!trainers.isEmpty()) {
                 Trainer trainer = trainers.get(0);
                 vo.setTrainerName(trainer.getName());
-                vo.setCoverUrl(resolveCoverUrl(course, trainer.getAvatar(), vo.getCategoryName()));
+                Map<Integer, String> avatarMap = trainerService.resolveDisplayAvatars(Set.of(trainer.getId()));
+                vo.setCoverUrl(resolveCoverUrl(course, avatarMap.getOrDefault(trainer.getId(), trainer.getAvatar()), vo.getCategoryName()));
             } else {
                 vo.setCoverUrl(resolveCoverUrl(course, null, vo.getCategoryName()));
             }
@@ -1693,7 +1698,8 @@ public class CourseServiceImpl implements CourseService {
             if (!trainers.isEmpty()) {
                 Trainer trainer = trainers.get(0);
                 vo.setTrainerName(trainer.getName());
-                vo.setCoverUrl(resolveCoverUrl(course, trainer.getAvatar(), vo.getCategoryName()));
+                Map<Integer, String> avatarMap = trainerService.resolveDisplayAvatars(Set.of(trainer.getId()));
+                vo.setCoverUrl(resolveCoverUrl(course, avatarMap.getOrDefault(trainer.getId(), trainer.getAvatar()), vo.getCategoryName()));
             } else {
                 vo.setCoverUrl(resolveCoverUrl(course, null, vo.getCategoryName()));
             }

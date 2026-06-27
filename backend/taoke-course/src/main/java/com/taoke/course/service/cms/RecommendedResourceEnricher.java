@@ -43,10 +43,18 @@ public class RecommendedResourceEnricher {
         Map<Integer, Course> courseMap = loadCourses(rows, slot.getResourceType());
         Map<Integer, Institution> institutionMap = loadInstitutions(rows, slot.getResourceType());
         Map<Integer, TrainerCaseResponse> caseMap = loadCases(rows, slot.getResourceType());
+        Map<Integer, String> trainerAvatarMap = loadTrainerDisplayAvatars(trainerMap);
 
         return rows.stream()
-                .map(row -> toAdminItemVO(row, trainerMap, courseMap, institutionMap, caseMap))
+                .map(row -> toAdminItemVO(row, trainerMap, courseMap, institutionMap, caseMap, trainerAvatarMap))
                 .toList();
+    }
+
+    private Map<Integer, String> loadTrainerDisplayAvatars(Map<Integer, Trainer> trainerMap) {
+        if (trainerMap.isEmpty()) {
+            return Map.of();
+        }
+        return trainerService.resolveDisplayAvatars(trainerMap.keySet());
     }
 
     private Map<Integer, Trainer> loadTrainers(List<RecommendedResource> rows, String expectedType) {
@@ -96,7 +104,8 @@ public class RecommendedResourceEnricher {
             Map<Integer, Trainer> trainerMap,
             Map<Integer, Course> courseMap,
             Map<Integer, Institution> institutionMap,
-            Map<Integer, TrainerCaseResponse> caseMap) {
+            Map<Integer, TrainerCaseResponse> caseMap,
+            Map<Integer, String> trainerAvatarMap) {
 
         RecommendedResourceItemVO vo = new RecommendedResourceItemVO();
         vo.setId(row.getId());
@@ -116,7 +125,7 @@ public class RecommendedResourceEnricher {
         vo.setCreatedAt(row.getCreatedAt());
 
         switch (row.getResourceType()) {
-            case "TRAINER" -> applyTrainerMeta(vo, trainerMap.get(row.getResourceId()));
+            case "TRAINER" -> applyTrainerMeta(vo, trainerMap.get(row.getResourceId()), trainerAvatarMap);
             case "COURSE" -> applyCourseMeta(vo, courseMap.get(row.getResourceId()));
             case "INSTITUTION" -> applyInstitutionMeta(vo, institutionMap.get(row.getResourceId()));
             case "CASE" -> applyCaseMeta(vo, caseMap.get(row.getResourceId()));
@@ -125,13 +134,15 @@ public class RecommendedResourceEnricher {
         return vo;
     }
 
-    void applyTrainerMeta(RecommendedResourceItemVO vo, Trainer trainer) {
+    void applyTrainerMeta(RecommendedResourceItemVO vo, Trainer trainer,
+                          Map<Integer, String> trainerAvatarMap) {
         if (trainer == null) {
             return;
         }
         vo.setResourceName(trainer.getTeachingName() != null && !trainer.getTeachingName().isBlank()
                 ? trainer.getTeachingName() : trainer.getName());
-        vo.setResourceCoverUrl(trainer.getAvatar());
+        String resolvedAvatar = trainerAvatarMap.getOrDefault(trainer.getId(), trainer.getAvatar());
+        vo.setResourceCoverUrl(resolvedAvatar);
         vo.setResourceDescription(trainer.getOneLineIntro());
         vo.setResourceMeta(trainer.getExpertiseTags());
         vo.setResourceStatus(trainer.getStatus());

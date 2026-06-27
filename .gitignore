@@ -58,11 +58,8 @@ scripts/vision.py
 crawler-service/.venv/
 crawler-service/venv/
 
-### 本地工具脚本（不入库） ###
-scripts/vision.py
-
 ### 爬虫服务 ###
-data-crawler/
+dataClaw-master/
 
 ### 文档相关 ###
 testdoc/
