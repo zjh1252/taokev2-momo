@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   UserPlus, Plus, Search, X, Loader2, AlertCircle, Users,
-  CheckCircle2, XCircle,
+  CheckCircle2, XCircle, Link2,
 } from 'lucide-react';
 import {
   listEnterpriseAgentMembers,
@@ -21,6 +21,7 @@ import {
 import type { LookupUserResult } from '@/features/binding/api/service';
 import { RejectReasonDialog } from '@/features/binding/components/reject-reason-dialog';
 import { getDisplayStatusLabel } from '@/features/binding/lib/status-label';
+import { EmployeeUcBindDialog } from '@/features/uc-integration/components/EmployeeUcBindDialog';
 import { useAuth } from '@/lib/auth/auth-context';
 
 /**
@@ -76,6 +77,7 @@ export default function MyAgentsTeamPage() {
   const [adding, setAdding] = useState(false);
   const [actingId, setActingId] = useState<number | null>(null);
   const [rejectingItem, setRejectingItem] = useState<BindingItem | null>(null);
+  const [ucBindingItem, setUcBindingItem] = useState<BindingItem | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -203,6 +205,7 @@ export default function MyAgentsTeamPage() {
                 onApprove={handleApprove}
                 onReject={handleReject}
                 onUnbind={handleUnbind}
+                onUcManage={setUcBindingItem}
               />
             ))}
           </div>
@@ -214,6 +217,20 @@ export default function MyAgentsTeamPage() {
           onClose={() => setAdding(false)}
           onAdded={() => {
             setAdding(false);
+            fetchData();
+          }}
+        />
+      )}
+
+      {ucBindingItem && (
+        <EmployeeUcBindDialog
+          orgType="ENTERPRISE_AGENT"
+          bindingId={ucBindingItem.id}
+          employeeName={ucBindingItem.counterpartNickname || `经纪人#${ucBindingItem.counterpartUserId}`}
+          ucMember={ucBindingItem.ucMember}
+          onClose={() => setUcBindingItem(null)}
+          onDone={() => {
+            setUcBindingItem(null);
             fetchData();
           }}
         />
@@ -243,12 +260,14 @@ function AgentCard({
   onApprove,
   onReject,
   onUnbind,
+  onUcManage,
 }: {
   item: BindingItem;
   acting: boolean;
   onApprove: (i: BindingItem) => void;
   onReject: (i: BindingItem) => void;
   onUnbind: (i: BindingItem) => void;
+  onUcManage: (i: BindingItem) => void;
 }) {
   const status = item.status;
   // 待我审核 = PENDING 且不是我发起
@@ -293,6 +312,18 @@ function AgentCard({
               <span className="line-clamp-2">拒绝理由：{item.rejectReason}</span>
             </div>
           )}
+          {status === BINDING_STATUS.ACTIVE && (
+            <div className="text-xs mt-1">
+              {item.ucMember ? (
+                <span className="text-green-600">
+                  UC 已绑定 · {item.ucMember.identityValue}
+                  {item.ucMember.pStuId ? ` (#${item.ucMember.pStuId})` : ''}
+                </span>
+              ) : (
+                <span className="text-gray-400">未绑定 UC 成员</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2 justify-end">
@@ -328,6 +359,17 @@ function AgentCard({
           >
             <X className="size-3.5" />
             {status === BINDING_STATUS.PENDING ? '撤回邀请' : '解除绑定'}
+          </button>
+        )}
+        {status === BINDING_STATUS.ACTIVE && (
+          <button
+            type="button"
+            disabled={acting}
+            onClick={() => onUcManage(item)}
+            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 hover:border-primary/30 hover:text-primary disabled:opacity-50 transition-colors"
+          >
+            <Link2 className="size-3.5" />
+            {item.ucMember ? 'UC 重新绑定' : '绑定 UC'}
           </button>
         )}
       </div>

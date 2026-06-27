@@ -552,3 +552,45 @@
 - 移除首页底部暗色 `AiEngagementBanner`（「有任何培训疑问？随时咨询 AI 智能客服」卡片）
 - 城市频道卡片全宽展示；展示城市数 9 → 18；网格 3/4/6 列响应式布局
 
+---
+
+## 2026-06-26 UC 组织成员对接 — 产品决策确认
+
+**集成方式（已修正）**：淘课 v2 主动调 UC OpenAPI（`/app/AppToken/Get` + `ACCESS-TOKEN` + `AUTH`），复用培训宝模式；不在 uc_src 新增 syncUser 风格验签接口。
+
+**已确认的产品规则：**
+
+1. **身份标识 UI**：跟随 UC 租户 `unique_value` 动态展示（字段类型与 placeholder 随组织变化；淘课侧维护 fieldCode→中文标签映射，与 UC `unique_value` 枚举 1~4 对齐：姓名/工号/手机/邮箱）。
+2. **Lookup 消歧**（同一 `unique_value` 命中多人）：
+   - 优先取已开通移动学习账号（`elearning=1`）的成员；业务上仅一人开通。
+   - 若均未开通，取创建时间最早（`createtime` 最小）的成员。
+   - 未命中：提示未找到，允许纯淘课侧绑定（不阻断）。
+   - **技术注记**：UC 现有 `GetStuIdByIdNo` 用 `getSingleStudent`→`current($res)` 无消歧，需在 UC 侧增强该接口或在淘课调用前走 list+排序逻辑。
+3. **详情字段**：不设白名单；用户同意后原样展示/存储 `userList` 返回的全量字段（JSON）。
+4. **企业买家员工**：
+   - 记录淘课组织 ↔ UC 组织映射 + 成员 `p_stu_id` 关系。
+   - **不与**机构员工、经纪经纪人共用「同类仅 1 条 ACTIVE 隶属」限制；同一用户可同时关联多家企业买家组织。
+   - 机构（`INSTITUTION_EMPLOYEE`）、经纪公司（`AGENT`）仍保持现有单 ACTIVE 组织约束。
+
+**待实现（淘课 v2 侧重）**：`user_uc_org_links`、`user_uc_member_links`；`UcOpenApiClient`（复用 `PxbGatewaySmsProvider` Token 逻辑）；组织设置「关联培训宝组织」；绑员工流程（lookup → 确认 → 拉详情）。
+
+---
+
+## 2026-06-26 UC 组织成员对接 — 代码实现
+
+**后端（taokev2）**
+- Flyway `V118__uc_org_member_links.sql`：`user_uc_org_links`、`user_uc_member_links`
+- `UcOpenApiClient` + `taoke.uc.open-api` 配置（AppToken，凭据与 sms.pxb 共用）
+- `UcIntegrationService` / `UcIntegrationController`：三类组织 `/me/uc-link`、`/uc-members/lookup`、`/sync-profile`
+- `InitiateBindingRequest.ucMemberLinkId` + `BindingServiceImpl` 绑定成功后回填 UC 关联
+- 企业买家成员 attach 接口（无单组织 ACTIVE 限制）
+
+**UC（uc_src）**
+- 新增 `/app/Company/GetUniqueValue` — 返回租户 unique_value 与 field_code
+- 增强 `GetStuIdByIdNo` — 多人消歧（elearning 优先，否则 createtime 最早）
+
+**前端（C 端）**
+- `features/uc-integration/`：API + `UcOrgLinkPanel`
+- 「我的员工」：UC 组织关联 + 添加员工对话框 UC lookup/详情同步
+- 「我的经纪人」：UC 组织关联面板
+

@@ -51,10 +51,21 @@ export interface BindingItem {
   ifInitiator?: boolean;
   createdAt?: string;
   confirmedAt?: string;
+  /** UC 成员关联摘要 */
+  ucMember?: UcMemberBrief;
+}
+
+export interface UcMemberBrief {
+  memberLinkId?: number;
+  pStuId?: number;
+  identityValue?: string;
+  profileSynced?: boolean;
 }
 
 export interface InitiateBindingPayload {
   bindingType: BindingType;
   targetUserId: number;
   note?: string;
+  /** UC 成员 lookup 记录 ID（可选） */
+  ucMemberLinkId?: number;
 }
