@@ -1,6 +1,10 @@
 package com.taoke.course.service.pxb;
 
 import com.taoke.course.api.PxbLegacyOrderService;
+import com.taoke.course.dto.pxb.PxbLegacyOrderPage;
+import com.taoke.course.dto.pxb.PxbLegacyOrderRow;
+import com.taoke.course.dto.pxb.PxbLegacyOrderSupplierRow;
+import com.taoke.course.dto.pxb.PxbLegacyOrderVideoLineRow;
 import com.taoke.course.entity.order.Order;
 import com.taoke.course.entity.order.OrderItem;
 import com.taoke.course.entity.video.Video;
@@ -17,7 +21,11 @@ import com.taoke.course.repository.video.VideoPackageGroupRepository;
 import com.taoke.course.repository.video.VideoPackageRelationRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.repository.video.VideoStudentRepository;
+import com.taoke.user.api.InstitutionService;
+import com.taoke.user.api.TrainerService;
 import com.taoke.user.api.UserService;
+import com.taoke.user.entity.Institution;
+import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.User;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +43,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +60,8 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
     private final VideoEnrollmentRepository videoEnrollmentRepository;
     private final VideoStudentRepository videoStudentRepository;
     private final UserService userService;
+    private final InstitutionService institutionService;
+    private final TrainerService trainerService;
 
     @Override
     @Transactional
@@ -127,10 +139,10 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
     }
 
     @Override
-    public Map<String, Object> listOrders(List<Integer> userIds,
-                                          Map<String, String> filter,
-                                          int page,
-                                          int pageSize) {
+    public PxbLegacyOrderPage listOrders(List<Integer> userIds,
+                                         Map<String, String> filter,
+                                         int page,
+                                         int pageSize) {
         Specification<Order> spec = buildOrderSpec(userIds, filter);
         int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(pageSize, 1), 100);
@@ -139,15 +151,24 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
                 PageRequest.of(safePage - 1, safeSize, Sort.by(Sort.Direction.DESC, "id"))
         );
 
-        List<Map<String, Object>> ordersList = new ArrayList<>();
-        for (Order order : pageResult.getContent()) {
-            ordersList.add(toLegacyOrderRow(order));
+        List<Order> orders = pageResult.getContent();
+        if (orders.isEmpty()) {
+            return PxbLegacyOrderPage.builder()
+                    .total(pageResult.getTotalElements())
+                    .orders(List.of())
+                    .build();
         }
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("total", pageResult.getTotalElements());
-        result.put("orders_list", ordersList);
-        return result;
+        OrderBatchContext context = buildBatchContext(orders);
+        List<PxbLegacyOrderRow> rows = new ArrayList<>();
+        for (Order order : orders) {
+            rows.add(toLegacyOrderRow(order, context));
+        }
+
+        return PxbLegacyOrderPage.builder()
+                .total(pageResult.getTotalElements())
+                .orders(rows)
+                .build();
     }
 
     @Override
@@ -187,21 +208,9 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
             return List.of();
         }
         Order order = orderOpt.get();
-        LinkedHashSet<Integer> videoIds = new LinkedHashSet<>();
-        for (OrderItem item : orderItemRepository.findByOrderId(order.getId())) {
-            if (item.getProductType() == ProductType.VIDEO_COURSE) {
-                videoIds.add(item.getProductId());
-            } else if (item.getProductType() == ProductType.VIDEO_PACKAGE) {
-                groupRepository.findById(item.getProductId()).ifPresent(group ->
-                        videoIds.addAll(collectVideoIds(group.getPackageId(), Set.of())));
-            }
-        }
-        for (VideoEnrollment enrollment : videoEnrollmentRepository.findByOrderId(order.getId())) {
-            if (Objects.equals(enrollment.getStatus(), 1)) {
-                videoIds.add(enrollment.getVideoId());
-            }
-        }
-        return List.copyOf(videoIds);
+        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+        List<VideoEnrollment> enrollments = videoEnrollmentRepository.findByOrderId(order.getId());
+        return collectVideoIds(items, enrollments, Set.of());
     }
 
     private boolean addPackageToOrder(Order order,
@@ -405,34 +414,316 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
         }
     }
 
-    private Map<String, Object> toLegacyOrderRow(Order order) {
-        User user = userService.findAllByIds(List.of(order.getUserId())).stream().findFirst().orElse(null);
-        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
-        List<Integer> videoIds = items.stream()
-                .filter(i -> i.getProductType() == ProductType.VIDEO_COURSE)
-                .map(OrderItem::getProductId)
-                .toList();
+    private OrderBatchContext buildBatchContext(List<Order> orders) {
+        List<Integer> orderIds = orders.stream().map(Order::getId).toList();
+        List<Integer> buyerIds = orders.stream().map(Order::getUserId).distinct().toList();
 
-        Map<String, Object> row = new LinkedHashMap<>();
-        row.put("id", order.getId());
-        row.put("order_code", order.getOrderNo());
-        row.put("uid", order.getUserId());
-        row.put("total", order.getPayAmount().setScale(2, RoundingMode.HALF_UP).toPlainString());
-        row.put("status", order.getLegacyStatus() != null ? order.getLegacyStatus() : mapNewStatusToLegacy(order));
-        row.put("starttime", toEpochSeconds(order.getValidFrom()));
-        row.put("endtime", toEpochSeconds(order.getValidUntil()));
-        row.put("pxb_root_id", order.getPxbRootId());
-        row.put("concurrency", order.getConcurrency());
-        row.put("order_subject", order.getOrderSubject());
-        row.put("pxb_kefu", order.getPxbKefu());
-        row.put("pxb_remarks", order.getPxbRemarks());
-        row.put("username", user != null ? user.getUsername() : "");
-        row.put("realname", user != null ? user.getRealName() : "");
-        row.put("cdbid", user != null ? user.getUcUid() : 0);
-        row.put("video_id_list", videoIds);
-        row.put("is_include_paper", 0);
-        row.put("pay_status", legacyPayStatusLabel(order));
-        return row;
+        Map<Integer, List<OrderItem>> itemsByOrderId = orderItemRepository.findByOrderIdIn(orderIds).stream()
+                .collect(Collectors.groupingBy(OrderItem::getOrderId));
+        Map<Integer, List<VideoEnrollment>> enrollmentsByOrderId =
+                videoEnrollmentRepository.findByOrderIdIn(orderIds).stream()
+                        .collect(Collectors.groupingBy(VideoEnrollment::getOrderId));
+
+        Set<Integer> groupIds = new HashSet<>();
+        Set<Integer> videoIds = new HashSet<>();
+        for (List<OrderItem> items : itemsByOrderId.values()) {
+            for (OrderItem item : items) {
+                if (item.getProductType() == ProductType.VIDEO_COURSE) {
+                    videoIds.add(item.getProductId());
+                } else if (item.getProductType() == ProductType.VIDEO_PACKAGE) {
+                    groupIds.add(item.getProductId());
+                }
+            }
+        }
+        for (List<VideoEnrollment> enrollments : enrollmentsByOrderId.values()) {
+            for (VideoEnrollment enrollment : enrollments) {
+                if (Objects.equals(enrollment.getStatus(), 1)) {
+                    videoIds.add(enrollment.getVideoId());
+                }
+            }
+        }
+
+        Map<Integer, VideoPackageGroup> groupsById = groupIds.isEmpty()
+                ? Map.of()
+                : groupRepository.findAllById(groupIds).stream()
+                .collect(Collectors.toMap(VideoPackageGroup::getId, Function.identity()));
+
+        Map<Integer, List<Integer>> packageVideoIds = new HashMap<>();
+        for (VideoPackageGroup group : groupsById.values()) {
+            packageVideoIds.put(group.getPackageId(), collectVideoIds(group.getPackageId(), Set.of()));
+            videoIds.addAll(packageVideoIds.get(group.getPackageId()));
+        }
+
+        Map<Integer, Video> videosById = videoIds.isEmpty()
+                ? Map.of()
+                : videoRepository.findAllById(videoIds).stream()
+                .collect(Collectors.toMap(Video::getId, Function.identity()));
+
+        Set<Integer> publisherIds = videosById.values().stream()
+                .map(Video::getPublisherId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+
+        List<Integer> allUserIds = new ArrayList<>(buyerIds);
+        allUserIds.addAll(publisherIds);
+        Map<Integer, User> usersById = userService.findAllByIds(allUserIds.stream().distinct().toList()).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        Map<Integer, Institution> institutionsByUserId = institutionService
+                .findByUserIds(new ArrayList<>(publisherIds)).stream()
+                .collect(Collectors.toMap(Institution::getUserId, Function.identity(), (a, b) -> a));
+
+        Map<Integer, Trainer> trainersByUserId = trainerService
+                .findByUserIds(new ArrayList<>(publisherIds)).stream()
+                .collect(Collectors.toMap(Trainer::getUserId, Function.identity(), (a, b) -> a));
+
+        return new OrderBatchContext(
+                usersById,
+                itemsByOrderId,
+                enrollmentsByOrderId,
+                videosById,
+                groupsById,
+                packageVideoIds,
+                institutionsByUserId,
+                trainersByUserId
+        );
+    }
+
+    private PxbLegacyOrderRow toLegacyOrderRow(Order order, OrderBatchContext context) {
+        User user = context.usersById().get(order.getUserId());
+        List<OrderItem> items = context.itemsByOrderId().getOrDefault(order.getId(), List.of());
+        List<VideoEnrollment> enrollments = context.enrollmentsByOrderId()
+                .getOrDefault(order.getId(), List.of());
+
+        List<Integer> videoIdList = collectVideoIds(items, enrollments, Set.of(), context);
+        boolean hasPackage = items.stream().anyMatch(i -> i.getProductType() == ProductType.VIDEO_PACKAGE);
+        int orderBuyway = hasPackage ? 1 : 2;
+        int legacyStatus = order.getLegacyStatus() != null
+                ? order.getLegacyStatus() : mapNewStatusToLegacy(order);
+
+        LocalDateTime start = order.getValidFrom();
+        if (start == null) {
+            start = order.getPaidAt() != null ? order.getPaidAt() : order.getCreatedAt();
+        }
+
+        List<PxbLegacyOrderVideoLineRow> relationLines = buildRelationLines(items, context);
+        Map<Integer, PxbLegacyOrderSupplierRow> videoRelation = buildVideoRelation(relationLines, context);
+
+        return PxbLegacyOrderRow.builder()
+                .id(order.getId())
+                .orderSubject(order.getOrderSubject())
+                .orderCode(order.getOrderNo())
+                .uid(order.getUserId())
+                .videoNum(videoIdList.size())
+                .paymode(0)
+                .total(order.getPayAmount())
+                .useTaobi(0)
+                .status(legacyStatus)
+                .buyway(orderBuyway)
+                .concurrency(order.getConcurrency())
+                .discount("1.0")
+                .originalPrice(order.getTotalAmount())
+                .pxbSync(0)
+                .disable(0)
+                .createtime(toEpochSeconds(order.getCreatedAt()))
+                .updatetime(toEpochSeconds(order.getUpdatedAt()))
+                .starttime(toEpochSeconds(start))
+                .endtime(toEpochSeconds(order.getValidUntil()))
+                .pxbType(0)
+                .remarks(order.getRemark())
+                .pxbKefu(order.getPxbKefu())
+                .pxbRemarks(order.getPxbRemarks())
+                .isCostco(0)
+                .cosPrice(0)
+                .rootCompanyId(0)
+                .isCompany(0)
+                .appId("")
+                .targetType(0)
+                .expiredStatus(0)
+                .pxbRootId(order.getPxbRootId())
+                .username(user != null ? user.getUsername() : "")
+                .realname(user != null ? user.getRealName() : "")
+                .cdbid(user != null && user.getUcUid() != null ? user.getUcUid() : 0)
+                .isIncludePaper(0)
+                .videoIdList(videoIdList)
+                .videoRelation(videoRelation)
+                .build();
+    }
+
+    private List<PxbLegacyOrderVideoLineRow> buildRelationLines(List<OrderItem> items, OrderBatchContext context) {
+        List<PxbLegacyOrderVideoLineRow> lines = new ArrayList<>();
+        for (OrderItem item : items) {
+            if (item.getProductType() == ProductType.VIDEO_PACKAGE) {
+                lines.addAll(buildPackageRelationLines(item, context));
+            } else if (item.getProductType() == ProductType.VIDEO_COURSE) {
+                lines.add(buildCourseRelationLine(item, context));
+            }
+        }
+        if (lines.isEmpty()) {
+            return lines;
+        }
+        Map<Integer, PxbLegacyOrderVideoLineRow> deduped = new LinkedHashMap<>();
+        for (PxbLegacyOrderVideoLineRow line : lines) {
+            deduped.putIfAbsent(line.getVideoId(), line);
+        }
+        return List.copyOf(deduped.values());
+    }
+
+    private List<PxbLegacyOrderVideoLineRow> buildPackageRelationLines(OrderItem item, OrderBatchContext context) {
+        VideoPackageGroup group = context.groupsById().get(item.getProductId());
+        if (group == null) {
+            return List.of();
+        }
+        List<Integer> packageVideos = context.packageVideoIds()
+                .getOrDefault(group.getPackageId(), List.of());
+        Integer representativeVideoId = packageVideos.isEmpty() ? null : packageVideos.get(0);
+        Video video = representativeVideoId != null
+                ? context.videosById().get(representativeVideoId) : null;
+        int supplierId = video != null && video.getPublisherId() != null ? video.getPublisherId() : 0;
+        String subtitle = buildVideoSubtitle(video, packageVideos.size());
+        return List.of(PxbLegacyOrderVideoLineRow.builder()
+                .videoId(representativeVideoId != null ? representativeVideoId : item.getProductId())
+                .videoTitle(StringUtils.hasText(item.getProductTitle())
+                        ? item.getProductTitle()
+                        : (group.getName() != null ? group.getName() : ""))
+                .videoSubtitle(subtitle)
+                .buyway(1)
+                .fullcut(0)
+                .supplierId(supplierId)
+                .videoPrice(item.getSubtotal())
+                .build());
+    }
+
+    private PxbLegacyOrderVideoLineRow buildCourseRelationLine(OrderItem item, OrderBatchContext context) {
+        Video video = context.videosById().get(item.getProductId());
+        int supplierId = video != null && video.getPublisherId() != null ? video.getPublisherId() : 0;
+        String title = StringUtils.hasText(item.getProductTitle())
+                ? item.getProductTitle()
+                : (video != null ? video.getTitle() : "");
+        return PxbLegacyOrderVideoLineRow.builder()
+                .videoId(item.getProductId())
+                .videoTitle(title)
+                .videoSubtitle(buildVideoSubtitle(video, 1))
+                .buyway(2)
+                .fullcut(0)
+                .supplierId(supplierId)
+                .videoPrice(item.getSubtotal())
+                .build();
+    }
+
+    private Map<Integer, PxbLegacyOrderSupplierRow> buildVideoRelation(
+            List<PxbLegacyOrderVideoLineRow> lines,
+            OrderBatchContext context) {
+        if (lines.isEmpty()) {
+            return Map.of();
+        }
+        Map<Integer, PxbLegacyOrderSupplierRow> relation = new LinkedHashMap<>();
+        for (PxbLegacyOrderVideoLineRow line : lines) {
+            int supplierId = line.getSupplierId() != null ? line.getSupplierId() : 0;
+            PxbLegacyOrderSupplierRow supplier = relation.computeIfAbsent(supplierId, id -> {
+                SupplierProfile profile = resolveSupplierProfile(id, context);
+                return PxbLegacyOrderSupplierRow.builder()
+                        .supplierId(id)
+                        .total(BigDecimal.ZERO)
+                        .discount("1.0")
+                        .originalPrice(BigDecimal.ZERO)
+                        .uid(profile.uid())
+                        .username(profile.username())
+                        .groupid(profile.groupid())
+                        .company(profile.company())
+                        .data(new LinkedHashMap<>())
+                        .build();
+            });
+            supplier.getData().putIfAbsent(line.getVideoId(), line);
+            supplier.setTotal(supplier.getTotal().add(
+                    line.getVideoPrice() != null ? line.getVideoPrice() : BigDecimal.ZERO));
+            BigDecimal original = line.getVideoPrice() != null ? line.getVideoPrice() : BigDecimal.ZERO;
+            supplier.setOriginalPrice(supplier.getOriginalPrice().add(original));
+        }
+        return relation;
+    }
+
+    private SupplierProfile resolveSupplierProfile(int supplierId, OrderBatchContext context) {
+        if (supplierId <= 0) {
+            return new SupplierProfile(0, "", 0, "");
+        }
+        User publisher = context.usersById().get(supplierId);
+        Institution institution = context.institutionsByUserId().get(supplierId);
+        Trainer trainer = context.trainersByUserId().get(supplierId);
+        String username = publisher != null && publisher.getUsername() != null ? publisher.getUsername() : "";
+        String company = "";
+        int groupid = 0;
+        if (institution != null) {
+            company = institution.getOrgName() != null ? institution.getOrgName() : "";
+            groupid = 3;
+        } else if (trainer != null) {
+            company = trainer.getTeachingName() != null ? trainer.getTeachingName()
+                    : (trainer.getName() != null ? trainer.getName() : "");
+        }
+        return new SupplierProfile(supplierId, username, groupid, company);
+    }
+
+    private static String buildVideoSubtitle(Video video, int packageVideoCount) {
+        if (packageVideoCount > 1) {
+            return "共" + packageVideoCount + "门";
+        }
+        if (video != null && StringUtils.hasText(video.getTeacherName())) {
+            return video.getTeacherName();
+        }
+        if (video != null && video.getTotalEpisodes() != null && video.getTotalEpisodes() > 0) {
+            return "共" + video.getTotalEpisodes() + "小节";
+        }
+        return "";
+    }
+
+    private List<Integer> collectVideoIds(List<OrderItem> items,
+                                          List<VideoEnrollment> enrollments,
+                                          Set<Integer> ignoreTopicIds) {
+        return collectVideoIds(items, enrollments, ignoreTopicIds, null);
+    }
+
+    private List<Integer> collectVideoIds(List<OrderItem> items,
+                                          List<VideoEnrollment> enrollments,
+                                          Set<Integer> ignoreTopicIds,
+                                          OrderBatchContext context) {
+        LinkedHashSet<Integer> videoIds = new LinkedHashSet<>();
+        for (OrderItem item : items) {
+            if (item.getProductType() == ProductType.VIDEO_COURSE) {
+                videoIds.add(item.getProductId());
+            } else if (item.getProductType() == ProductType.VIDEO_PACKAGE) {
+                if (context != null) {
+                    VideoPackageGroup group = context.groupsById().get(item.getProductId());
+                    if (group != null) {
+                        videoIds.addAll(context.packageVideoIds()
+                                .getOrDefault(group.getPackageId(), List.of()));
+                    }
+                } else {
+                    groupRepository.findById(item.getProductId()).ifPresent(group ->
+                            videoIds.addAll(collectVideoIds(group.getPackageId(), ignoreTopicIds)));
+                }
+            }
+        }
+        for (VideoEnrollment enrollment : enrollments) {
+            if (Objects.equals(enrollment.getStatus(), 1)) {
+                videoIds.add(enrollment.getVideoId());
+            }
+        }
+        return List.copyOf(videoIds);
+    }
+
+    private record OrderBatchContext(
+            Map<Integer, User> usersById,
+            Map<Integer, List<OrderItem>> itemsByOrderId,
+            Map<Integer, List<VideoEnrollment>> enrollmentsByOrderId,
+            Map<Integer, Video> videosById,
+            Map<Integer, VideoPackageGroup> groupsById,
+            Map<Integer, List<Integer>> packageVideoIds,
+            Map<Integer, Institution> institutionsByUserId,
+            Map<Integer, Trainer> trainersByUserId
+    ) {
+    }
+
+    private record SupplierProfile(int uid, String username, int groupid, String company) {
     }
 
     private static int mapNewStatusToLegacy(Order order) {
@@ -449,17 +740,6 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
             return 4;
         }
         return order.getStatus();
-    }
-
-    private static String legacyPayStatusLabel(Order order) {
-        int legacy = order.getLegacyStatus() != null ? order.getLegacyStatus() : mapNewStatusToLegacy(order);
-        return switch (legacy) {
-            case 3 -> "已支付";
-            case 4 -> "已取消";
-            case 2 -> "支付待确认";
-            case -1 -> "已过期";
-            default -> "待支付";
-        };
     }
 
     private static long toEpochSeconds(LocalDateTime time) {
