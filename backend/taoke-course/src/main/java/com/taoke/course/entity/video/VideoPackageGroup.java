@@ -49,13 +49,13 @@ public class VideoPackageGroup extends BaseEntity {
     @Column(name = "video_count", nullable = false)
     private Integer videoCount = 0;
 
-    @Column(name = "type", nullable = false, columnDefinition = "TINYINT")
+    @Column(name = "type", nullable = false)
     private Integer type = 0;
 
-    @Column(name = "serial_index", nullable = false, columnDefinition = "TINYINT")
+    @Column(name = "serial_index", nullable = false)
     private Integer serialIndex = 0;
 
-    @Column(name = "item_index", nullable = false, columnDefinition = "TINYINT")
+    @Column(name = "item_index", nullable = false)
     private Integer itemIndex = 0;
 
     @Column(name = "package_code", nullable = false, length = 50)
@@ -66,6 +66,10 @@ public class VideoPackageGroup extends BaseEntity {
 
     @Column(name = "cover", length = 255)
     private String cover;
+
+    /** 专题头是否启用（老站 tk_video_topic.is_open）；系列课行忽略 */
+    @Column(name = "is_open", nullable = false)
+    private Integer isOpen = 1;
 
     /** 是否为专题头行（非系列课节点） */
     public boolean isTopicHeader() {

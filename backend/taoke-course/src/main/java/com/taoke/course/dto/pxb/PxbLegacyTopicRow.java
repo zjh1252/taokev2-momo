@@ -26,6 +26,8 @@ public class PxbLegacyTopicRow {
     private String packageCode;
     private String descr;
     private String cover;
+    private Long createtime;
+    private Long updatetime;
     /** 购买状态：0 未购 / 1 已购 / -1 过期 */
     private Integer buyStatus;
 }

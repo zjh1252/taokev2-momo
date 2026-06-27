@@ -8,11 +8,13 @@ import com.taoke.course.dto.pxb.PxbLegacyVideoRow;
 import com.taoke.course.entity.order.Order;
 import com.taoke.course.entity.order.OrderItem;
 import com.taoke.course.entity.video.VideoPackageGroup;
+import com.taoke.course.entity.video.VideoPackageLabel;
 import com.taoke.course.enums.OrderStatus;
 import com.taoke.course.enums.ProductType;
 import com.taoke.course.repository.order.OrderItemRepository;
 import com.taoke.course.repository.order.OrderRepository;
 import com.taoke.course.repository.video.VideoPackageGroupRepository;
+import com.taoke.course.repository.video.VideoPackageLabelRepository;
 import com.taoke.course.repository.video.VideoPackageRelationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 public class PxbLegacyPackageQueryServiceImpl implements PxbLegacyPackageQueryService {
 
     private final VideoPackageGroupRepository groupRepository;
+    private final VideoPackageLabelRepository labelRepository;
     private final VideoPackageRelationRepository relationRepository;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
@@ -34,7 +37,7 @@ public class PxbLegacyPackageQueryServiceImpl implements PxbLegacyPackageQuerySe
 
     @Override
     public List<PxbLegacyTopicRow> listCourseTopics(boolean orderBySupplier) {
-        Map<Integer, String> topicNames = groupRepository.findAllTopicHeaders().stream()
+        Map<Integer, String> topicNames = groupRepository.findOpenTopicHeaders().stream()
                 .collect(Collectors.toMap(
                         VideoPackageGroup::getPackageId,
                         VideoPackageGroup::getName,
@@ -42,11 +45,22 @@ public class PxbLegacyPackageQueryServiceImpl implements PxbLegacyPackageQuerySe
                         LinkedHashMap::new));
 
         List<VideoPackageGroup> series = orderBySupplier
-                ? groupRepository.findAllSeriesOrderBySupplier()
-                : groupRepository.findAllSeriesOrderByDefault();
+                ? groupRepository.findOpenSeriesOrderBySupplier()
+                : groupRepository.findOpenSeriesOrderByDefault();
+
+        Set<Integer> labelIds = series.stream()
+                .map(VideoPackageGroup::getTopicId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+
+        Map<Integer, String> labelNames = labelRepository.findAllById(labelIds).stream()
+                .collect(Collectors.toMap(VideoPackageLabel::getId, VideoPackageLabel::getName, (a, b) -> a));
 
         return series.stream()
-                .map(g -> toTopicRow(g, topicNames.getOrDefault(g.getPackageId(), "")))
+                .map(g -> toTopicRow(
+                        g,
+                        topicNames.getOrDefault(g.getPackageId(), ""),
+                        labelNames.getOrDefault(g.getTopicId(), g.getName())))
                 .toList();
     }
 
@@ -72,9 +86,9 @@ public class PxbLegacyPackageQueryServiceImpl implements PxbLegacyPackageQuerySe
         }
 
         for (Map.Entry<Integer, Integer> entry : packageBuyStatus.entrySet()) {
-            Integer packageId = entry.getKey();
+            Integer legacyItemId = entry.getKey();
             Integer status = entry.getValue();
-            PxbLegacyTopicRow row = byId.get(packageId);
+            PxbLegacyTopicRow row = byId.get(legacyItemId);
             if (row == null) {
                 continue;
             }
@@ -89,7 +103,7 @@ public class PxbLegacyPackageQueryServiceImpl implements PxbLegacyPackageQuerySe
                 row.setBuyStatus(status);
             }
         }
-        return new ArrayList<>(byId.values());
+        return topics;
     }
 
     @Override
@@ -174,17 +188,32 @@ public class PxbLegacyPackageQueryServiceImpl implements PxbLegacyPackageQuerySe
                 if (item.getProductType() != ProductType.VIDEO_PACKAGE) {
                     continue;
                 }
-                groupRepository.findById(item.getProductId()).ifPresent(group -> {
-                    Integer legacyId = group.getTopicId() != null && group.getTopicId() > 0
-                            ? group.getTopicId()
-                            : group.getParentId();
-                    if (legacyId != null && legacyId > 0) {
-                        result.put(legacyId, buyStatus);
-                    }
-                });
+                resolveLegacyPackageItemId(item.getProductId()).ifPresent(legacyId ->
+                        result.put(legacyId, buyStatus));
             }
         }
         return result;
+    }
+
+    /** 订单 productId 可能为 groups.id 或 legacy topic_item.id，统一解析为 topic_item.id */
+    private Optional<Integer> resolveLegacyPackageItemId(Integer productId) {
+        if (productId == null || productId <= 0) {
+            return Optional.empty();
+        }
+        Optional<VideoPackageGroup> byPk = groupRepository.findById(productId);
+        if (byPk.isPresent()) {
+            VideoPackageGroup group = byPk.get();
+            if (group.getTopicId() != null && group.getTopicId() > 0) {
+                return Optional.of(group.getTopicId());
+            }
+            if (group.getParentId() != null && group.getParentId() > 0) {
+                return Optional.of(group.getParentId());
+            }
+            return Optional.empty();
+        }
+        return groupRepository.findFirstByTopicId(productId)
+                .map(VideoPackageGroup::getTopicId)
+                .or(() -> Optional.of(productId));
     }
 
     private static int resolveLegacyOrderStatus(Order order, LocalDateTime now) {
@@ -205,22 +234,24 @@ public class PxbLegacyPackageQueryServiceImpl implements PxbLegacyPackageQuerySe
         return root == 0 || root.equals(pxbRootId);
     }
 
-    private PxbLegacyTopicRow toTopicRow(VideoPackageGroup group, String topicName) {
+    private PxbLegacyTopicRow toTopicRow(VideoPackageGroup group, String topicName, String itemName) {
         return PxbLegacyTopicRow.builder()
                 .id(group.getTopicId())
                 .topicId(group.getPackageId())
-                .itemName(group.getName())
-                .itemIndex(group.getItemIndex())
-                .itemParent(group.getParentId())
-                .type(group.getType())
-                .serialIndex(group.getSerialIndex())
+                .itemName(itemName != null ? itemName : "")
+                .itemIndex(group.getItemIndex() != null ? group.getItemIndex() : 0)
+                .itemParent(group.getParentId() != null ? group.getParentId() : 0)
+                .type(group.getType() != null ? group.getType() : 0)
+                .serialIndex(group.getSerialIndex() != null ? group.getSerialIndex() : 0)
                 .price(toLegacyPrice(group.getPrice()))
                 .companyPrice(group.getCompanyPrice() != null ? group.getCompanyPrice() : BigDecimal.ZERO)
                 .disabled(0)
-                .topicName(topicName)
+                .topicName(topicName != null ? topicName : "")
                 .packageCode(group.getPackageCode() != null ? group.getPackageCode() : "")
-                .descr(group.getDescr())
-                .cover(group.getCover())
+                .descr(group.getDescr() != null ? group.getDescr() : "")
+                .cover(group.getCover() != null ? group.getCover() : "")
+                .createtime(PxbLegacyVideoQueryServiceImpl.toEpochSeconds(group.getCreatedAt()))
+                .updatetime(PxbLegacyVideoQueryServiceImpl.toEpochSeconds(group.getUpdatedAt()))
                 .buyStatus(0)
                 .build();
     }

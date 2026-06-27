@@ -9,7 +9,7 @@
 --
 -- 前置条件：
 --   1. 同一 MySQL 实例可访问 taoke 库与本库（如 v3test）
---   2. 已执行 Flyway V86/V87/V130（groups 含 type/serial_index/item_index/cover/descr 等列）
+--   2. 已执行 Flyway V86/V87/V130/V131（groups 含 is_open 及 PXB 展示列）
 --   3. videos 表已迁入（relations 仅导入已存在视频）
 --
 -- 用法（在服务器 mysql 客户端）：
@@ -38,7 +38,7 @@ SET @legacy_schema = 'taoke';
 INSERT INTO video_package_groups (
     package_id, topic_id, parent_id, name,
     price, company_price, max_purchase_qty, video_count,
-    type, serial_index, item_index, package_code, descr, cover,
+    type, serial_index, item_index, package_code, descr, cover, is_open,
     created_at, updated_at
 )
 SELECT
@@ -56,12 +56,14 @@ SELECT
     '',
     NULL,
     NULL,
+    IFNULL(t.is_open, 1),
     IF(t.createtime > 0, FROM_UNIXTIME(t.createtime), NOW()),
     IF(t.updatetime > 0, FROM_UNIXTIME(t.updatetime), NOW())
 FROM taoke.tk_video_topic t
 WHERE t.disabled = 0
 ON DUPLICATE KEY UPDATE
     name       = VALUES(name),
+    is_open    = VALUES(is_open),
     updated_at = VALUES(updated_at);
 
 -- ---------------------------------------------------------------------------
@@ -175,27 +177,3 @@ INNER JOIN (
 SET g.video_count = x.cnt,
     g.updated_at  = NOW()
 WHERE g.topic_id = 0 AND g.parent_id = 0;
-
--- ---------------------------------------------------------------------------
--- 验收查询（执行后人工核对）
--- ---------------------------------------------------------------------------
-SELECT 'topics_legacy' AS metric, COUNT(*) AS cnt
-FROM taoke.tk_video_topic WHERE disabled = 0
-UNION ALL
-SELECT 'topic_headers_new', COUNT(*)
-FROM video_package_groups WHERE topic_id = 0 AND parent_id = 0
-UNION ALL
-SELECT 'items_legacy', COUNT(*)
-FROM taoke.tk_video_topic_item WHERE disabled = 0
-UNION ALL
-SELECT 'series_groups_new', COUNT(*)
-FROM video_package_groups WHERE topic_id > 0
-UNION ALL
-SELECT 'labels_new', COUNT(*)
-FROM video_package_labels
-UNION ALL
-SELECT 'relations_legacy', COUNT(*)
-FROM taoke.tk_video_package_relation
-UNION ALL
-SELECT 'relations_new', COUNT(*)
-FROM video_package_relations;

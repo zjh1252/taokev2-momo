@@ -6,6 +6,8 @@ import com.taoke.course.dto.pxb.PxbLegacyVideoRow;
 import com.taoke.course.service.pxb.PxbLegacyVideoQueryServiceImpl;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,17 +45,29 @@ public class LegacyPackageAdapter {
         map.put("item_name", topic.getItemName());
         map.put("item_index", topic.getItemIndex());
         map.put("item_parent", topic.getItemParent());
+        map.put("disabled", topic.getDisabled());
+        map.put("package", topic.getPackageCode());
+        map.put("price", topic.getPrice());
+        map.put("company_price", formatCompanyPrice(topic.getCompanyPrice()));
+        map.put("descr", topic.getDescr() != null ? topic.getDescr() : "");
+        map.put("uid", 0);
+        map.put("catalogId", "");
+        map.put("taokeId", "");
         map.put("type", topic.getType());
         map.put("serial_index", topic.getSerialIndex());
-        map.put("price", topic.getPrice());
-        map.put("company_price", topic.getCompanyPrice());
-        map.put("disabled", topic.getDisabled());
+        map.put("cover", topic.getCover() != null ? topic.getCover() : "");
+        map.put("createtime", topic.getCreatetime() != null ? topic.getCreatetime() : 0L);
+        map.put("updatetime", topic.getUpdatetime() != null ? topic.getUpdatetime() : 0L);
+        map.put("cos_price", 0);
+        map.put("cos_company_price", 0);
         map.put("topic_name", topic.getTopicName());
-        map.put("package", topic.getPackageCode());
-        map.put("descr", topic.getDescr());
-        map.put("cover", topic.getCover());
         map.put("buystatus", topic.getBuyStatus() != null ? topic.getBuyStatus() : 0);
         return map;
+    }
+
+    private static String formatCompanyPrice(BigDecimal price) {
+        BigDecimal value = price != null ? price : BigDecimal.ZERO;
+        return value.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
     private Map<String, Object> toTopicCourseMap(PxbLegacyVideoRow row, PxbLegacyPurchaseInfo purchase) {
