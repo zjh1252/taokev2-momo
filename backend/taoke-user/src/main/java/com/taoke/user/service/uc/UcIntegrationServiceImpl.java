@@ -161,7 +161,7 @@ public class UcIntegrationServiceImpl implements UcIntegrationService {
         try {
             memberLink.setProfileJson(objectMapper.writeValueAsString(profile));
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "详情序列化失败");
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "详情序列化失败");
         }
         memberLink.setSyncStatus(UcMemberSyncStatus.PROFILE_SYNCED.getCode());
         memberLinkRepository.save(memberLink);
@@ -460,7 +460,7 @@ public class UcIntegrationServiceImpl implements UcIntegrationService {
 
     private void ensureOpenApiEnabled() {
         if (!ucOpenApiClient.isEnabled()) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "UC OpenAPI 未启用或未配置凭据");
+            throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "UC OpenAPI 未启用或未配置凭据");
         }
     }
 

@@ -69,7 +69,7 @@ public class UcOpenApiClient {
 
     private JsonNode doPost(String path, ObjectNode body, Integer ucPRootId) {
         if (!isEnabled()) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "UC OpenAPI 未配置");
+            throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "UC OpenAPI 未配置");
         }
         for (int attempt = 0; attempt < 2; attempt++) {
             String token = getToken();
@@ -89,7 +89,7 @@ public class UcOpenApiClient {
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
                 if (response.statusCode() != 200) {
                     log.warn("[UC-API] HTTP 失败 path={} status={} body={}", path, response.statusCode(), response.body());
-                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "UC 接口调用失败");
+                    throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "UC 接口调用失败");
                 }
                 JsonNode json = objectMapper.readTree(response.body());
                 int err = json.path("err").asInt(0);
@@ -105,17 +105,17 @@ public class UcOpenApiClient {
                             json.path("message").asText(null),
                             json.path("data").asText(null));
                     log.warn("[UC-API] 业务失败 path={} err={} msg={}", path, err, msg);
-                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, msg != null ? msg : "UC 接口返回错误");
+                    throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, msg != null ? msg : "UC 接口返回错误");
                 }
                 return json.path("data");
             } catch (BusinessException e) {
                 throw e;
             } catch (Exception e) {
                 log.error("[UC-API] 调用异常 path={}", path, e);
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "UC 接口调用异常");
+                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "UC 接口调用异常");
             }
         }
-        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "UC 接口调用失败");
+        throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "UC 接口调用失败");
     }
 
     public ObjectNode emptyBody() {
@@ -139,15 +139,15 @@ public class UcOpenApiClient {
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (response.statusCode() != 200) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "UC Token 获取失败");
+                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "UC Token 获取失败");
             }
             JsonNode json = objectMapper.readTree(response.body());
             if (json.path("err").asInt(-1) != 0) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "UC Token 获取失败");
+                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "UC Token 获取失败");
             }
             String token = json.path("data").asText("");
             if (token.isBlank()) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "UC Token 为空");
+                throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "UC Token 为空");
             }
             redisTemplate.opsForValue().set(TOKEN_REDIS_KEY, token, properties.getTokenTtlSeconds(), TimeUnit.SECONDS);
             return token;
@@ -155,7 +155,7 @@ public class UcOpenApiClient {
             throw e;
         } catch (Exception e) {
             log.error("[UC-API] 取 token 异常", e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "UC Token 获取异常");
+            throw new BusinessException(ErrorCode.UCENTER_UNAVAILABLE, "UC Token 获取异常");
         }
     }
 
