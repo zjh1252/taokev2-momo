@@ -15,6 +15,8 @@ export type TrainerCase = {
   enterpriseName: string;
   industry: string | null;
   trainingTopic: string | null;
+  /** 关键字（逗号分隔） */
+  keyword?: string | null;
   trainingEffect: string | null;
   traineeCount: number | null;
   /** 培训地点 - 省 ID */
@@ -27,7 +29,13 @@ export type TrainerCase = {
   townId: number | null;
   /** 培训地点 - 详细地址 */
   trainingAddress: string | null;
+  /** 培训地点 - 省/市/区名称（公开详情接口填充） */
+  provinceName?: string | null;
+  cityName?: string | null;
+  districtName?: string | null;
   trainingDate: string | null;
+  /** 培训结束日期 */
+  trainingEndDate?: string | null;
   description: string | null;
   coverImage: string | null;
   /** 案例详情页访问次数 */
@@ -84,11 +92,13 @@ export type SaveTrainerCaseRequest = {
 export const CaseStatus = {
   PENDING: 0,
   APPROVED: 1,
-  REJECTED: 2
+  REJECTED: 2,
+  DRAFT: 3,
 } as const;
 
 export const CaseStatusLabelMap: Record<number, string> = {
   [CaseStatus.PENDING]: '待审核',
   [CaseStatus.APPROVED]: '已通过',
-  [CaseStatus.REJECTED]: '已驳回'
+  [CaseStatus.REJECTED]: '已驳回',
+  [CaseStatus.DRAFT]: '草稿',
 };
