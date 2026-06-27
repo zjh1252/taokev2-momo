@@ -1,6 +1,7 @@
 package com.taoke.legacy.handler.searchcourse;
 
 import com.taoke.course.api.PxbLegacyOrderService;
+import com.taoke.legacy.adapter.LegacyOrderAdapter;
 import com.taoke.legacy.service.LegacyParamResolver;
 import com.taoke.user.api.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +22,7 @@ public class GetOrdersOptHandler implements SearchCourseOptHandler {
     private final LegacyParamResolver params;
     private final UserService userService;
     private final PxbLegacyOrderService legacyOrderService;
+    private final LegacyOrderAdapter legacyOrderAdapter;
 
     @Override
     public String opt() {
@@ -36,7 +38,8 @@ public class GetOrdersOptHandler implements SearchCourseOptHandler {
         }
         int page = params.getInt(request, "page", 1);
         int pageSize = params.getInt(request, "pagesize", 15);
-        return legacyOrderService.listOrders(userIds, filter, page, pageSize);
+        return legacyOrderAdapter.toListResponse(
+                legacyOrderService.listOrders(userIds, filter, page, pageSize));
     }
 
     private List<Integer> resolveUserIds(String uidsRaw) {

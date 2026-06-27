@@ -1,5 +1,7 @@
 package com.taoke.course.api;
 
+import com.taoke.course.dto.pxb.PxbLegacyOrderPage;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,10 +27,10 @@ public interface PxbLegacyOrderService {
                                              List<Integer> ignorePackageIds,
                                              String appId);
 
-    Map<String, Object> listOrders(List<Integer> userIds,
-                                   Map<String, String> filter,
-                                   int page,
-                                   int pageSize);
+    PxbLegacyOrderPage listOrders(List<Integer> userIds,
+                                  Map<String, String> filter,
+                                  int page,
+                                  int pageSize);
 
     Map<String, Object> restoreByOrderCode(String orderCode, int isIncludePaper);
 
