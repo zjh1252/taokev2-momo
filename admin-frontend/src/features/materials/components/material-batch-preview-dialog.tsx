@@ -105,6 +105,15 @@ export function MaterialBatchPreviewDialog({
     );
   };
 
+  const handleBatchDelete = () => {
+    if (selectedIds.length === 0) {
+      toast.error('请先勾选素材');
+      return;
+    }
+    onItemsChange(items.filter((item) => !selectedIds.includes(item.tempId)));
+    setSelectedIds([]);
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (items.length === 0) {
@@ -173,6 +182,7 @@ export function MaterialBatchPreviewDialog({
             onBatchDisable={() =>
               updateSelectedItems((item) => ({ ...item, enabled: false }))
             }
+            onBatchDelete={handleBatchDelete}
           />
 
           <div className='min-h-0 flex-1 overflow-y-auto rounded-md border p-3'>

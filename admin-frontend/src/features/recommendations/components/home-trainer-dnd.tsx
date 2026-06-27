@@ -30,7 +30,7 @@ export type ManagedDragPayload = {
 
 export type SlotDropPayload = {
   type: 'slot';
-  managedIndex: number;
+  managedIndex: number | null;
 };
 
 export function candidateDragId(resourceId: number) {
