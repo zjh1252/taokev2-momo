@@ -1,4 +1,4 @@
-﻿package com.taoke.course.support;
+package com.taoke.course.support;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
