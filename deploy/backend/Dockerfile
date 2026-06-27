@@ -4,8 +4,11 @@
 # 运行阶段使用 JRE 21 精简镜像
 # ============================================================
 
+ARG TEMURIN_JDK=eclipse-temurin:21-jdk
+ARG TEMURIN_JRE=eclipse-temurin:21-jre
+
 # ---------- 阶段1：Maven 构建 ----------
-FROM eclipse-temurin:21-jdk AS builder
+FROM --platform=$BUILDPLATFORM ${TEMURIN_JDK} AS builder
 
 WORKDIR /build
 
@@ -28,7 +31,8 @@ RUN --mount=type=cache,target=/root/.m2 \
     mv taoke-app/target/taoke-app-*.jar app.jar
 
 # ---------- 阶段2：运行镜像 ----------
-FROM eclipse-temurin:21-jre
+ARG TEMURIN_JRE=eclipse-temurin:21-jre
+FROM --platform=$TARGETPLATFORM ${TEMURIN_JRE}
 
 LABEL maintainer="Fangxinxin"
 LABEL description="淘课网 v2 后端服务"

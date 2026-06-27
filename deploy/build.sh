@@ -54,6 +54,9 @@ hub_image() {
 NODE_SLIM_IMAGE="$(hub_image 'node:22-slim')"
 NODE_ALPINE_IMAGE="$(hub_image 'node:22-alpine')"
 BUN_IMAGE="$(hub_image 'oven/bun:1-alpine')"
+TEMURIN_JDK_IMAGE="$(hub_image 'eclipse-temurin:21-jdk')"
+TEMURIN_JRE_IMAGE="$(hub_image 'eclipse-temurin:21-jre')"
+PYTHON_IMAGE="$(hub_image 'python:3.12-slim')"
 
 # 目标 → dockerfile|上下文（不用 declare -A，兼容 macOS 自带 Bash 3.2）
 get_image_spec() {
@@ -129,7 +132,11 @@ build_and_push() {
   echo "镜像标签: ${full_tag}"
   echo "         ${latest_tag}"
   if [ -n "$DOCKER_HUB_MIRROR" ]; then
-    echo "Hub 加速: ${DOCKER_HUB_MIRROR} → ${NODE_SLIM_IMAGE}"
+    case "$name" in
+      backend) echo "Hub 加速: ${TEMURIN_JDK_IMAGE}" ;;
+      crawler) echo "Hub 加速: ${PYTHON_IMAGE}" ;;
+      *)       echo "Hub 加速: ${NODE_SLIM_IMAGE}" ;;
+    esac
   fi
 
   docker buildx build \
@@ -139,6 +146,9 @@ build_and_push() {
     --build-arg NODE_SLIM="${NODE_SLIM_IMAGE}" \
     --build-arg NODE_ALPINE="${NODE_ALPINE_IMAGE}" \
     --build-arg BUN_IMAGE="${BUN_IMAGE}" \
+    --build-arg TEMURIN_JDK="${TEMURIN_JDK_IMAGE}" \
+    --build-arg TEMURIN_JRE="${TEMURIN_JRE_IMAGE}" \
+    --build-arg PYTHON_IMAGE="${PYTHON_IMAGE}" \
     -t "${full_tag}" \
     -t "${latest_tag}" \
     --push \
