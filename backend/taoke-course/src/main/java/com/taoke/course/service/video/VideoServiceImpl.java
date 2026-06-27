@@ -997,7 +997,8 @@ public class VideoServiceImpl implements VideoService {
             if (!trainers.isEmpty()) {
                 Trainer trainer = trainers.get(0);
                 vo.setTrainerName(trainer.getName());
-                vo.setTrainerAvatar(trainer.getAvatar());
+                Map<Integer, String> avatarMap = trainerService.resolveDisplayAvatars(Set.of(trainer.getId()));
+                vo.setTrainerAvatar(avatarMap.getOrDefault(trainer.getId(), trainer.getAvatar()));
                 vo.setTrainerId(trainer.getId());
             } else {
                 vo.setTrainerId(0);

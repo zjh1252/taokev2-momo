@@ -1,6 +1,5 @@
 import { cookies } from 'next/headers';
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
+import { getBackendUrl } from '@/lib/backend-url';
 
 /**
  * 是否使用 Secure Cookie（仅 HTTPS 环境设为 true）。
@@ -55,8 +54,9 @@ export async function serverFetchWithStatus<T>(
   const timeoutId = setTimeout(() => controller.abort(), 30_000); // 30 秒超时
 
   let res: Response;
+  const backendUrl = getBackendUrl();
   try {
-    res = await fetch(`${BACKEND_URL}${endpoint}`, {
+    res = await fetch(`${backendUrl}${endpoint}`, {
       ...options,
       headers,
       signal: controller.signal
@@ -67,12 +67,25 @@ export async function serverFetchWithStatus<T>(
         status: 504,
         body: {
           code: -1,
-          message: `后端请求超时（>${BACKEND_URL}），请确认 Java 服务已启动并完成编译`,
+          message: `后端请求超时（>${backendUrl}），请确认 Java 服务已启动并完成编译`,
           data: undefined as unknown as T
         }
       };
     }
-    throw err;
+    const hint =
+      err instanceof Error && 'cause' in err && err.cause instanceof Error
+        ? err.cause.message
+        : err instanceof Error
+          ? err.message
+          : '网络错误';
+    return {
+      status: 502,
+      body: {
+        code: -1,
+        message: `无法连接后端 ${backendUrl}（${hint}）`,
+        data: undefined as unknown as T
+      }
+    };
   } finally {
     clearTimeout(timeoutId);
   }

@@ -4,6 +4,7 @@ import com.taoke.course.entity.video.VideoChapter;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 录播课章节持久化
@@ -24,6 +25,8 @@ public interface VideoChapterRepository extends JpaRepository<VideoChapter, Inte
     void deleteByVideoId(Integer videoId);
 
     void deleteBySeriesId(Integer seriesId);
+
+    Optional<VideoChapter> findFirstByVideoIdAndPxbSupplierId(Integer videoId, Integer pxbSupplierId);
 
     /** 同一录播课下是否已有相同视频地址的章节（批量创建去重） */
     boolean existsByVideoIdAndVideoUrl(Integer videoId, String videoUrl);

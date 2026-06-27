@@ -10,6 +10,7 @@ import com.taoke.common.service.CategoryService;
 import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.common.service.RegionService;
 import com.taoke.user.api.RoleApplyService;
+import com.taoke.user.api.TrainerListItemEnricher;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.dto.trainer.*;
 import com.taoke.user.dto.user.RoleApplicationStatusResponse;
@@ -68,6 +69,7 @@ public class TrainerServiceImpl implements TrainerService {
     private final UserRepository userRepository;
     private final OpsMaterialResolver opsMaterialResolver;
     private final RoleApplicationChangeLogService changeLogService;
+    private final Optional<TrainerListItemEnricher> trainerListItemEnricher;
 
     @Override
     public TrainerResponse getByUserId(Integer userId) {
@@ -91,6 +93,11 @@ public class TrainerServiceImpl implements TrainerService {
         Sort jpaSort = switch (sort != null ? sort : "") {
             case "score" -> Sort.by(Sort.Direction.DESC, "score")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "score_asc" -> Sort.by(Sort.Direction.ASC, "score")
+                    .and(Sort.by(Sort.Direction.ASC, "id"));
+            case "default_asc" -> Sort.by(Sort.Direction.ASC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.ASC, "score"))
+                    .and(Sort.by(Sort.Direction.ASC, "id"));
             case "newly_joined" -> Sort.by(Sort.Direction.DESC, "createdAt")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             default -> Sort.by(Sort.Direction.DESC, "sortOrder")
@@ -179,6 +186,8 @@ public class TrainerServiceImpl implements TrainerService {
 
             return item;
         }).toList();
+
+        trainerListItemEnricher.ifPresent(enricher -> enricher.enrich(items));
 
         return PageResponse.of(items, trainerPage.getTotalElements(), page, size);
     }

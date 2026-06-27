@@ -10,10 +10,9 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * 录播课视频包名称 — 对应 video_package_labels 表（ID 来自老站 tk_video_topic_item）
- *
- * @author Fangxinxin
- * @date 2026-06-10 14:00
+ * 录播课系列课/专题节点名称索引 — 对应 video_package_labels（V86）。
+ * <p>仅保存 {@code tk_video_topic_item.id → item_name}，供 relations 快速解析展示名；
+ * 树形与 PXB 字段见 {@link VideoPackageGroup}。</p>
  */
 @Getter
 @Setter

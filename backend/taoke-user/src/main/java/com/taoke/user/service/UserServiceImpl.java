@@ -48,7 +48,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -347,6 +349,22 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> findAllByIds(List<Integer> ids) {
         return userRepository.findAllById(ids);
+    }
+
+    @Override
+    public Optional<Integer> findUserIdByUcUid(Integer ucUid) {
+        if (ucUid == null || ucUid <= 0) {
+            return Optional.empty();
+        }
+        return userRepository.findByUcUid(ucUid).map(User::getId);
+    }
+
+    @Override
+    public List<Integer> findUserIdsByUcUids(Collection<Integer> ucUids) {
+        if (ucUids == null || ucUids.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findByUcUidIn(ucUids).stream().map(User::getId).toList();
     }
 
     // ==================== 注销账号 / 注销身份 ====================

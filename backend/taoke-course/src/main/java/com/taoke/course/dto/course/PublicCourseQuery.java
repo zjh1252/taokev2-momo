@@ -106,6 +106,9 @@ public class PublicCourseQuery {
      */
     private String enrollStatus;
 
+    /** 最低课程评分（含），如 3 / 4 / 5 */
+    private Integer minScore;
+
     // ---- 分页 ----
 
     private int page = 1;

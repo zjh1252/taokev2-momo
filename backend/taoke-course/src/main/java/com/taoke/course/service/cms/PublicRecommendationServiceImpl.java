@@ -200,9 +200,11 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
                         item.getCoverUrl(),
                         item.getResourceCoverUrl());
                 vo.setAvatar(avatar);
-                if (vo.getCoverUrl() == null || vo.getCoverUrl().isBlank()) {
-                    vo.setCoverUrl(avatar);
-                }
+                // coverUrl 优先当前头像，管理员运营覆盖仅作为兜底（避免推荐位留存旧头像 URL）
+                vo.setCoverUrl(firstNonBlank(
+                        trainerAvatarById.get(item.getResourceId()),
+                        item.getCoverUrl(),
+                        item.getResourceCoverUrl()));
                 vo.setTrainerTitle(item.getTitle());
                 vo.setOneLineIntro(
                         item.getDescription() != null && !item.getDescription().isBlank()

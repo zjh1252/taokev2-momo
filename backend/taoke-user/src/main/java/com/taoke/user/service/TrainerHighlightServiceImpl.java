@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
 public class TrainerHighlightServiceImpl implements TrainerHighlightService {
 
     private static final int BINDING_ACTIVE = 1;
+    /** 草稿状态（不进入后台审核列表） */
+    private static final int STATUS_DRAFT = 3;
 
     private final TrainerHighlightRepository highlightRepository;
     private final TrainerHighlightFileRepository highlightFileRepository;
@@ -108,6 +110,10 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         TrainerHighlight h = highlightRepository.findById(highlightId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "精彩瞬间不存在"));
         requireOwnsHighlight(scope, h);
+
+        if (draft && h.getStatus() != STATUS_DRAFT && h.getStatus() != 2) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的精彩瞬间可保存为草稿");
+        }
 
         if (request.getTitle() != null) h.setTitle(request.getTitle());
         if (request.getDescription() != null) h.setDescription(request.getDescription());

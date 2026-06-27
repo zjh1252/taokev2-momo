@@ -14,6 +14,10 @@ echo ================================================
 
 echo [1/3] 启动 Backend...
 start "taoke-backend" cmd /k "chcp 65001 >nul && cd /d "%ROOT%backend" && mvn clean install -DskipTests && mvn spring-boot:run -pl taoke-app"
+rem 无法启动时，在本地 dev 库上执行 repair，把 flyway_schema_history 里的 checksum 更新为当前文件值（不重新执行 SQL）：
+rem cd backend/taoke-app
+rem mvn flyway:repair
+rem mvn flyway:migrate
 
 echo [2/3] 启动 Frontend (C 端, 端口 3000)...
 start "taoke-frontend" cmd /k "chcp 65001 >nul && cd /d "%ROOT%frontend" && pnpm dev -p 3000"

@@ -23,6 +23,9 @@ public class TokenResponse {
     private Boolean newUser;
 
     public TokenResponse(String accessToken, String refreshToken, long expiresIn) {
-        this(accessToken, refreshToken, expiresIn, null);
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.expiresIn = expiresIn;
+        this.newUser = null;
     }
 }

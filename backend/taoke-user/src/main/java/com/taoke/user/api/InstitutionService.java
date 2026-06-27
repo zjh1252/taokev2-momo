@@ -63,12 +63,15 @@ public interface InstitutionService {
      * @param sort        排序方式：default / popularity / newly_joined
      * @param association           可选筛选：是否培训协会（null=不过滤）
      * @param expertiseCategoryId   擅长领域一级分类 ID（匹配 specialties 逗号串）
+     * @param industryCategoryId    擅长行业一级分类 ID（匹配 industries 逗号串）
+     * @param provinceId            省份 ID（可选）
      * @param cityId                城市 ID（可选，匹配机构所在城市）
      * @return 分页结果
      */
     PageResponse<InstitutionListItemResponse> listPublic(int page, int size, String keyword, String sort,
                                                        Boolean association, Integer expertiseCategoryId,
-                                                       Integer cityId);
+                                                       Integer industryCategoryId,
+                                                       Integer provinceId, Integer cityId);
 
     /**
      * 获取机构公开详情。
@@ -131,6 +134,11 @@ public interface InstitutionService {
     List<Institution> findByUserIds(List<Integer> userIds);
 
     /**
+     * 按 userId 顺序返回公开展示的机构列表项（跳过不存在或未发布的机构）。
+     */
+    List<InstitutionListItemResponse> listByUserIds(List<Integer> userIds);
+
+    /**
      * 根据机构 ID 列表批量查询机构
      */
     List<Institution> findByIds(java.util.Collection<Integer> ids);
@@ -153,12 +161,4 @@ public interface InstitutionService {
      * @return 简化后的机构列表（id / userId / orgName / association / address）
      */
     List<Map<String, Object>> lookup(String keyword, int size);
-
-    /**
-     * 根据 userId 列表批量查询机构列表项（用于 C 端聚合接口）。
-     *
-     * @param userIds 用户 ID 列表
-     * @return 机构列表项（仅返回已发布的机构）
-     */
-    List<InstitutionListItemResponse> listByUserIds(List<Integer> userIds);
 }

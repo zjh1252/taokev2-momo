@@ -6,6 +6,12 @@ server:
 
 # Nacos 配置中心
 spring:
+  config:
+    import:
+      - optional:file:.env.local[.properties]
+      - optional:file:../.env.local[.properties]
+      - optional:file:backend/.env.local[.properties]
+
   datasource:
     url: jdbc:mysql://10.0.14.20:3306/v3test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
     username: root
@@ -78,8 +84,6 @@ taoke:
     temperature: 0.2
     timeout-ms: 1200000
     max-input-chars: 50000
-  sms:
-    provider: mock
 
 # 爬虫服务（开发环境）
 # crawler-service 在 Docker 内运行时，回调须用 host.docker.internal 访问宿主机 Java（18080）

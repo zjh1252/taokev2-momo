@@ -39,6 +39,8 @@ export interface CourseListParams {
   isFree?: number;
   /** 报名状态：ENROLLING / ENDED */
   enrollStatus?: string;
+  /** 最低评分（3/4/5，培训宝 embed 筛选用） */
+  minScore?: number;
   /** 内训课：主讲专家擅长行业 */
   trainerIndustryCategoryId?: number;
   /** 内训课：主讲专家省份 */
@@ -90,6 +92,7 @@ export async function getCourseList(
     query.set('isFree', String(params.isFree));
   }
   if (params.enrollStatus) query.set('enrollStatus', params.enrollStatus);
+  if (params.minScore != null) query.set('minScore', String(params.minScore));
   if (params.trainerIndustryCategoryId) {
     query.set('trainerIndustryCategoryId', String(params.trainerIndustryCategoryId));
   }
