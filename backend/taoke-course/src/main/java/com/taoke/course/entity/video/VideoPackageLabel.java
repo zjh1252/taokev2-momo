@@ -7,11 +7,12 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 录播课视频包/专题节点 — 对应 video_package_labels（老站 tk_video_topic_item）。
+ * 录播课系列课/专题节点名称索引 — 对应 video_package_labels（V86）。
+ * <p>仅保存 {@code tk_video_topic_item.id → item_name}，供 relations 快速解析展示名；
+ * 树形与 PXB 字段见 {@link VideoPackageGroup}。</p>
  */
 @Getter
 @Setter
@@ -22,44 +23,8 @@ public class VideoPackageLabel {
     @Id
     private Integer id;
 
-    @Column(name = "topic_id", nullable = false)
-    private Integer topicId = 0;
-
     @Column(name = "name", nullable = false, length = 150)
     private String name = "";
-
-    @Column(name = "item_parent", nullable = false)
-    private Integer itemParent = 0;
-
-    @Column(name = "item_index", nullable = false, columnDefinition = "TINYINT")
-    private Integer itemIndex = 0;
-
-    @Column(name = "type", nullable = false, columnDefinition = "TINYINT")
-    private Integer type = 0;
-
-    @Column(name = "serial_index", nullable = false, columnDefinition = "TINYINT")
-    private Integer serialIndex = 0;
-
-    @Column(name = "price", nullable = false)
-    private Integer price = 0;
-
-    @Column(name = "company_price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal companyPrice = BigDecimal.ZERO;
-
-    @Column(name = "disabled", nullable = false, columnDefinition = "TINYINT")
-    private Integer disabled = 0;
-
-    @Column(name = "topic_name", nullable = false, length = 100)
-    private String topicName = "";
-
-    @Column(name = "package_code", nullable = false, length = 50)
-    private String packageCode = "";
-
-    @Column(name = "descr", columnDefinition = "TEXT")
-    private String descr;
-
-    @Column(name = "cover", length = 255)
-    private String cover;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
