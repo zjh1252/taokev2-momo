@@ -172,6 +172,7 @@ public class ReviewServiceImpl {
         ReviewScope reviewScope = ReviewScope.valueOf(scope);
         return switch (reviewScope) {
             case COURSE -> reviewRepository.countByCourseIdAndStatus(targetId, approved);
+            case VIDEO -> reviewRepository.countByCourseIdAndStatus(targetId, approved);
             case TRAINER -> reviewRepository.countByTrainerUserIdAndStatus(targetId, approved);
             case INSTITUTION -> reviewRepository.countByInstitutionIdAndStatus(targetId, approved);
             case CASE -> reviewRepository.countByCaseIdAndStatus(targetId, approved);
@@ -263,7 +264,7 @@ public class ReviewServiceImpl {
     private Integer resolveTargetId(TrainingReview review) {
         if (review == null || review.getReviewScope() == null) return null;
         return switch (ReviewScope.valueOf(review.getReviewScope())) {
-            case COURSE -> review.getCourseId();
+            case COURSE, VIDEO -> review.getCourseId();
             case TRAINER -> review.getTrainerUserId();
             case INSTITUTION -> review.getInstitutionId();
             case CASE -> review.getCaseId();
@@ -278,7 +279,7 @@ public class ReviewServiceImpl {
     private String resolveTargetTitle(TrainingReview review) {
         if (review == null || review.getReviewScope() == null) return "";
         return switch (ReviewScope.valueOf(review.getReviewScope())) {
-            case COURSE -> review.getCourseTitle() != null ? review.getCourseTitle() : "";
+            case COURSE, VIDEO -> review.getCourseTitle() != null ? review.getCourseTitle() : "";
             case TRAINER -> review.getExpertName() != null ? review.getExpertName() : "";
             case INSTITUTION -> review.getClientCompany() != null ? review.getClientCompany() : "";
             case CASE -> review.getCourseTitle() != null ? review.getCourseTitle() : "";
@@ -303,8 +304,11 @@ public class ReviewServiceImpl {
                     institutionService.adjustCommentCount(review.getInstitutionId(), delta);
                 }
             }
-            case COURSE -> {
-                // courses 表暂未维护 comment_count，跳过
+            case COURSE, VIDEO -> {
+                // courses / videos 表暂未维护 comment_count，跳过
+            }
+            case CASE -> {
+                // 案例暂未维护 comment_count，跳过
             }
         }
     }
@@ -326,6 +330,7 @@ public class ReviewServiceImpl {
      */
     public Page<TrainingReview> adminListReviews(Integer status, String reviewScope,
                                                  String reviewerKeyword, Integer reviewedBy,
+                                                 List<Integer> reviewedByUserIds,
                                                  int page, int size) {
         int pageOneBased = page < 1 ? 1 : page;
 
@@ -348,6 +353,12 @@ public class ReviewServiceImpl {
             }
             if (reviewedBy != null) {
                 predicates.add(cb.equal(root.get("reviewedBy"), reviewedBy));
+            } else if (reviewedByUserIds != null) {
+                if (reviewedByUserIds.isEmpty()) {
+                    predicates.add(cb.disjunction());
+                } else {
+                    predicates.add(root.get("reviewedBy").in(reviewedByUserIds));
+                }
             }
             if (reviewerKeyword != null && !reviewerKeyword.isBlank()) {
                 String like = "%" + reviewerKeyword.trim() + "%";

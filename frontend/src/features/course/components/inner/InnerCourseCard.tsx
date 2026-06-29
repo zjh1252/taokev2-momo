@@ -64,17 +64,22 @@ export function InnerCourseCard({ course }: InnerCourseCardProps) {
               </span>
               <span className="flex items-center gap-1 text-slate-500">
                 课程评分：
+                <span className="text-primary font-semibold tabular-nums">
+                  {(course.score ?? 0).toFixed(1)}
+                </span>
                 <span className="flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`size-3.5 ${
-                        i < Math.round(course.score)
-                          ? 'fill-amber-400 text-amber-400'
-                          : 'fill-none text-slate-200'
-                      }`}
-                    />
-                  ))}
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const score = course.score ?? 0;
+                    const filled = i < Math.floor(score) || (i === Math.floor(score) && score - Math.floor(score) >= 0.5);
+                    return (
+                      <Star
+                        key={i}
+                        className={`size-3.5 ${
+                          filled ? 'fill-amber-400 text-amber-400' : 'fill-none text-slate-200'
+                        }`}
+                      />
+                    );
+                  })}
                 </span>
               </span>
             </div>

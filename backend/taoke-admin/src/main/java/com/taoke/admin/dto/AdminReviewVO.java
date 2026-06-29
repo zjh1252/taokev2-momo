@@ -50,6 +50,8 @@ public class AdminReviewVO {
 
     /** 审核操作人用户 ID */
     private Integer reviewedBy;
+    /** 审核人展示名（昵称 / 真名 / 手机号） */
+    private String reviewedByName;
     /** 驳回理由 */
     private String rejectReason;
     /** 提交人联系方式（管理端可见） */

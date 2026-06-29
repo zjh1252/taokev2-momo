@@ -14,8 +14,7 @@ import { bookKeys } from '@/features/books/api/queries';
 import type { AdminBook } from '@/features/books/api/types';
 import { BOOK_STATUS_MAP } from '@/features/books/api/types';
 import { getAdminUserDetailUrl } from '@/lib/frontend-links';
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -76,8 +75,8 @@ export default function BookDetailPage(props: PageProps) {
     >
       <div className='flex flex-col gap-6 lg:flex-row'>
         {detail.coverUrl ? (
-          <Image
-            src={resolveAssetUrl(detail.coverUrl)}
+          <AssetImage
+            src={detail.coverUrl}
             alt={detail.title}
             width={160}
             height={220}

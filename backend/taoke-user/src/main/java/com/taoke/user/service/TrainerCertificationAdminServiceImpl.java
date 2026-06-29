@@ -22,6 +22,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 专家资质认证 — 后台审核实现。
@@ -33,6 +39,8 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class TrainerCertificationAdminServiceImpl implements TrainerCertificationAdminService {
+
+    private static final int CERT_APPROVED = 2;
 
     private final TrainerRepository trainerRepository;
     private final TrainerEducationRepository educationRepository;
@@ -169,5 +177,34 @@ public class TrainerCertificationAdminServiceImpl implements TrainerCertificatio
                     Dimension.WORK, approved, trainer.getUserId(), entity.getId(),
                     entity.getCompanyName(), reason));
         }
+    }
+
+    @Override
+    public Map<Integer, List<String>> batchTrustedCertLabels(Collection<Trainer> trainers) {
+        if (trainers == null || trainers.isEmpty()) {
+            return Map.of();
+        }
+        List<Integer> trainerIds = trainers.stream().map(Trainer::getId).toList();
+        Set<Integer> eduApproved = educationRepository.findTrainerIdsWithApprovedEducation(trainerIds);
+        Set<Integer> workApproved = workExperienceRepository.findTrainerIdsWithApprovedWork(trainerIds);
+
+        Map<Integer, List<String>> result = new HashMap<>();
+        for (Trainer trainer : trainers) {
+            List<String> labels = new ArrayList<>();
+            if (Integer.valueOf(CERT_APPROVED).equals(trainer.getRealNameStatus())) {
+                labels.add("身份认证");
+            }
+            if (eduApproved.contains(trainer.getId())) {
+                labels.add("学历认证");
+            }
+            if (workApproved.contains(trainer.getId())) {
+                labels.add("工作认证");
+            }
+            if (Integer.valueOf(CERT_APPROVED).equals(trainer.getProfessionalStatus())) {
+                labels.add("专业认证");
+            }
+            result.put(trainer.getId(), labels);
+        }
+        return result;
     }
 }

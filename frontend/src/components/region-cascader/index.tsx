@@ -123,7 +123,7 @@ export default function RegionCascader({
     setSelectedTown(null);
     setDistricts([]);
     setTowns([]);
-    if (item && item.hasChildren && maxLevel >= 3) {
+    if (item && maxLevel >= 3) {
       const list = await fetchRegionChildren(item.code);
       setDistricts(list);
     }

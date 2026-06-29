@@ -9,6 +9,7 @@ import com.taoke.common.security.RequireRole;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.api.TrainerCaseService;
 import com.taoke.user.api.TrainerService;
+import com.taoke.user.dto.trainercase.SaveTrainerCaseRequest;
 import com.taoke.user.dto.trainercase.TrainerCaseResponse;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.TrainerCase;
@@ -68,6 +69,14 @@ public class AdminTrainerCaseController {
     @GetMapping("/admin/trainer-cases/{id}")
     public ApiResponse<TrainerCaseResponse> detail(@PathVariable Integer id) {
         return ApiResponse.ok(trainerCaseService.adminGetDetail(id));
+    }
+
+    @Operation(summary = "运营代发案例")
+    @PostMapping("/admin/trainer-cases")
+    public ApiResponse<TrainerCaseResponse> create(
+            @RequestParam Integer trainerUserId,
+            @Valid @RequestBody SaveTrainerCaseRequest request) {
+        return ApiResponse.ok(trainerCaseService.createCase(trainerUserId, request));
     }
 
     @Operation(summary = "审核通过")

@@ -106,12 +106,6 @@ export function CourseHero({ course }: CourseHeroProps) {
               <span className="text-slate-800 font-bold">{course.score || '0.0'}</span>
               <Star className="size-4 fill-yellow-400 text-yellow-400" />
             </div>
-            {isOpen && course.publisherName ? (
-              <div className="text-slate-500">
-                {t('publisher')}：
-                <span className="text-primary font-medium">{course.publisherName}</span>
-              </div>
-            ) : null}
             {isOpen && planStartDate ? (
               <div className="text-slate-500">
                 {t('planTime')}：

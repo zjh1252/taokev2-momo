@@ -41,4 +41,11 @@ public interface TrainerCertificationAdminService {
     Page<TrainerWorkExperience> pageWorkExperiences(Integer status, Pageable pageable);
 
     void auditWorkExperience(Integer recordId, boolean approved, String reason);
+
+    /**
+     * 批量计算专家「信得过」认证标签（已通过 status=2 的维度）。
+     * 返回 map：trainerId → 标签列表（空列表表示未认证）。
+     */
+    java.util.Map<Integer, java.util.List<String>> batchTrustedCertLabels(
+            java.util.Collection<Trainer> trainers);
 }

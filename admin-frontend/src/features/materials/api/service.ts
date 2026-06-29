@@ -79,11 +79,11 @@ export async function batchOperateMaterials(payload: BatchMaterialPayload) {
   return resp;
 }
 
-export async function uploadImageFile(file: File): Promise<string> {
+async function uploadFileToApi(path: string, file: File): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await fetch('/api/uploads/images', {
+  const res = await fetch(path, {
     method: 'POST',
     body: formData
   });
@@ -92,6 +92,16 @@ export async function uploadImageFile(file: File): Promise<string> {
     throw new Error(body.message || '上传失败');
   }
   return (body.data as { url: string }).url;
+}
+
+/** 通用图片上传（走 OSS / StorageService） */
+export async function uploadImageFile(file: File): Promise<string> {
+  return uploadFileToApi('/api/uploads/images', file);
+}
+
+/** 头像上传（走 OSS / StorageService） */
+export async function uploadAvatarFile(file: File): Promise<string> {
+  return uploadFileToApi('/api/uploads/avatars', file);
 }
 
 export async function uploadMaterials(

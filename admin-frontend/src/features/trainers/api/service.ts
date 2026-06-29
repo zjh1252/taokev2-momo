@@ -83,3 +83,43 @@ export async function updateTrainerDetail(
     { method: 'PUT', body: JSON.stringify(payload) }
   );
 }
+
+export type CreateTrainerApplicationPayload = {
+  userId?: number;
+  phone?: string;
+  nickname?: string;
+  autoApprove?: boolean;
+  profile: {
+    name: string;
+    teachingName: string;
+    avatar: string;
+    gender: number;
+    phone: string;
+    email: string;
+    idCardNo: string;
+    provinceId: number;
+    cityId: number;
+    districtId?: number;
+    townId?: number;
+    address?: string;
+    oneLineIntro: string;
+    bio: string;
+    industryCategoryIds: number[];
+    expertiseCategoryIds: number[];
+    taokePrice: number;
+    taokeCommission: number;
+    agreementSigned: boolean;
+    agreementVersion?: string;
+    title?: string;
+    background?: string;
+    partialClients?: string;
+  };
+};
+
+/** 运营代填专家入驻申请 */
+export async function createTrainerApplication(payload: CreateTrainerApplicationPayload) {
+  return apiClient<{ code: number; message: string; data: { trainerId?: number; userId: number } }>(
+    '/trainers/applications',
+    { method: 'POST', body: JSON.stringify(payload) }
+  );
+}

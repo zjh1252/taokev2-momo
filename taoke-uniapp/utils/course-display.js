@@ -12,15 +12,20 @@ export function normalizeCourseDurationDays(durationDays, totalHours) {
   return null;
 }
 
-export function formatPlanStartDate(value) {
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+/** 期次/开课时间 — YYYY-MM-DD HH:mm（阿拉伯数字，零填充） */
+export function formatPlanDateTime(value) {
   if (!value) return '-';
-  const d = new Date(value);
+  const d = new Date(String(value).replace(' ', 'T'));
   if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-  });
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+export function formatPlanStartDate(value) {
+  return formatPlanDateTime(value);
 }
 
 export function formatKeywords(keywords) {

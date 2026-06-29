@@ -41,5 +41,7 @@
 公众平台 → 开发管理 → 开发设置 → 服务器域名：
 
 - request：`https://v2.taoke.com`
-- downloadFile：`https://v2.taoke.com`
+- downloadFile：`https://v2.taoke.com`、`https://www.taoke.com`、`https://cdn5-pxb-videos.taoke.com`
 - uploadFile：`https://v2.taoke.com`（如有头像上传）
+
+> 迁移自老站的专家头像（`/attachments/`）、案例封面（`taoke/upload/`）分别走 `www.taoke.com` 与 PXB CDN，**downloadFile 白名单必须包含这两个域名**，否则图片会显示空白。

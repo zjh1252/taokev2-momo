@@ -45,6 +45,11 @@ public class VideoDetailVO {
     private Integer isFree;
     private String keywords;
 
+    /** 企业采购封顶价 */
+    private BigDecimal companyPrice;
+    /** 单次最多购买人数 */
+    private Integer maxPurchaseQty;
+
     private Integer duration;
     private Integer totalEpisodes;
 

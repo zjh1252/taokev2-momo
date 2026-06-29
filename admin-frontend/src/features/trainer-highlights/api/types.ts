@@ -79,3 +79,9 @@ export const MEDIA_TYPE_MAP: Record<number, string> = {
   1: '图片',
   2: '视频'
 };
+
+export type SaveTrainerHighlightPayload = {
+  title?: string;
+  description?: string;
+  coverImage?: string;
+};

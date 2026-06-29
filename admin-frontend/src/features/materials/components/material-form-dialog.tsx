@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -352,12 +352,11 @@ export function MaterialFormDialog({
                           : 'aspect-[5/3] rounded-md'
                       }`}
                     >
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={URL.createObjectURL(file)}
                         alt={file.name}
-                        fill
-                        className='object-cover'
-                        unoptimized
+                        className='absolute inset-0 h-full w-full object-cover'
                       />
                     </div>
                     <button
@@ -381,12 +380,16 @@ export function MaterialFormDialog({
                         : 'h-24 w-40 rounded-md'
                     }`}
                   >
-                    <Image
+                    <AssetImage
                       src={previewUrl}
                       alt='预览'
                       fill
+                      wrapperClassName={
+                        materialType === 'AVATAR'
+                          ? 'h-24 w-24 rounded-full'
+                          : 'h-24 w-40 rounded-md'
+                      }
                       className='object-cover'
-                      unoptimized
                     />
                   </div>
                 ) : (

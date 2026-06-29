@@ -30,6 +30,10 @@ spring:
 taoke:
   jwt:
     secret: ${JWT_SECRET:}
+  storage:
+    oss:
+      access-key-id: ${OSS_ACCESS_KEY_ID:}
+      access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
   # 其余 UCenter / 短信凭据继承自通用 application.yml（appid=2、UC_KEY、pxb 凭据）；
   # 生产仅覆盖 UCenter 地址为生产 uc_server
   ucenter:

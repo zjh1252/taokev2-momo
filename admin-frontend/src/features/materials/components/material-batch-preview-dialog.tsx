@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ContextMenu,
@@ -173,6 +173,10 @@ export function MaterialBatchPreviewDialog({
             onBatchDisable={() =>
               updateSelectedItems((item) => ({ ...item, enabled: false }))
             }
+            onBatchDelete={() => {
+              const selectedSet = new Set(selectedIds);
+              onItemsChange(items.filter((item) => !selectedSet.has(item.tempId)));
+            }}
           />
 
           <div className='min-h-0 flex-1 overflow-y-auto rounded-md border p-3'>
@@ -210,12 +214,16 @@ export function MaterialBatchPreviewDialog({
                                 : 'aspect-[5/3] w-full rounded-md'
                             }`}
                           >
-                            <Image
+                            <AssetImage
                               src={previewUrl}
                               alt={item.name}
                               fill
+                              wrapperClassName={
+                                materialType === 'AVATAR'
+                                  ? 'h-24 w-24 rounded-full'
+                                  : 'aspect-[5/3] w-full rounded-md'
+                              }
                               className='object-cover'
-                              unoptimized
                             />
                           </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, use } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import {
@@ -30,6 +31,9 @@ export default function EditCasePage({
 }) {
   const params = use(paramsPromise);
   const caseId = Number(params.id);
+  const searchParams = useSearchParams();
+  const trainerUserIdFromUrl = searchParams.get('trainerUserId');
+  const initialTrainerUserId = trainerUserIdFromUrl ? Number(trainerUserIdFromUrl) : undefined;
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -60,7 +64,7 @@ export default function EditCasePage({
   useEffect(() => {
     (async () => {
       try {
-        const detail = await getMyCaseDetail(caseId);
+        const detail = await getMyCaseDetail(caseId, initialTrainerUserId);
         setTrainerUserId(detail.trainerUserId);
         setTrainerName(detail.trainerName);
         setForm({
@@ -96,7 +100,7 @@ export default function EditCasePage({
         setLoading(false);
       }
     })();
-  }, [caseId]);
+  }, [caseId, initialTrainerUserId]);
 
   const updateField = <K extends keyof SaveTrainerCaseRequest>(
     key: K,
@@ -127,7 +131,7 @@ export default function EditCasePage({
           title: file.title || '',
           fileSize: file.fileSize,
           sortOrder: file.sortOrder,
-        });
+        }, trainerUserId);
         setFiles((prev) => [
           ...prev,
           {
@@ -151,7 +155,7 @@ export default function EditCasePage({
     async (index: number, file: UploadedFile) => {
       if (file.id) {
         try {
-          await deleteCaseFile(caseId, file.id);
+          await deleteCaseFile(caseId, file.id, trainerUserId);
         } catch {
           // 平台层已统一处理错误提示
           return;
@@ -173,7 +177,7 @@ export default function EditCasePage({
 
     setSubmitting(true);
     try {
-      await updateCase(caseId, form as SaveTrainerCaseRequest);
+      await updateCase(caseId, form as SaveTrainerCaseRequest, trainerUserId);
       toast.success('案例已更新');
       router.push(ROUTES.UC_CASES_MANAGE);
     } catch {

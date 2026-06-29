@@ -27,8 +27,9 @@ public class AliOssStorageService implements StorageService {
 
     public AliOssStorageService(StorageProperties properties) {
         StorageProperties.Oss oss = properties.getOss();
+        String endpoint = normalizeEndpoint(oss.getEndpoint());
         this.ossClient = new OSSClientBuilder().build(
-                oss.getEndpoint(), oss.getAccessKeyId(), oss.getAccessKeySecret());
+                endpoint, oss.getAccessKeyId(), oss.getAccessKeySecret());
         this.bucket = oss.getBucket();
         this.publicDomain = trimTrailingSlash(properties.getPublicDomain());
         log.info("阿里云 OSS 存储初始化完成，bucket: {}", bucket);
@@ -107,5 +108,23 @@ public class AliOssStorageService implements StorageService {
             return null;
         }
         return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
+    }
+
+    /** 兼容老站配置：支持 https://bucket.oss-cn-xxx.aliyuncs.com 或纯 endpoint */
+    private static String normalizeEndpoint(String endpoint) {
+        if (!StringUtils.hasText(endpoint)) {
+            return endpoint;
+        }
+        String normalized = endpoint.trim();
+        if (normalized.startsWith("https://")) {
+            normalized = normalized.substring(8);
+        } else if (normalized.startsWith("http://")) {
+            normalized = normalized.substring(7);
+        }
+        int ossIndex = normalized.indexOf(".oss-");
+        if (ossIndex > 0 && normalized.contains(".aliyuncs.com")) {
+            normalized = normalized.substring(ossIndex + 1);
+        }
+        return normalized;
     }
 }

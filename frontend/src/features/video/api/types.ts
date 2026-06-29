@@ -140,6 +140,8 @@ export interface VideoDetail {
   originalPrice: number;
   isFree: number;
   keywords: string;
+  companyPrice?: number;
+  maxPurchaseQty?: number;
   duration: number;
   totalEpisodes: number;
   isFeatured: number;
@@ -261,6 +263,8 @@ export interface SaveVideoRequest {
   originalPrice?: number;
   isFree?: number;
   keywords?: string;
+  companyPrice?: number;
+  maxPurchaseQty?: number;
 }
 
 /** 创建/编辑系列请求体 */

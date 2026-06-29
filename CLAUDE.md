@@ -74,6 +74,7 @@ taoke-admin 是薄编排层：禁止注入 Repository，禁止构造跨模块 En
 - 全新项目，无需兼容旧版本，无需 `@Deprecated`
 - **优先复用**：开发前先搜索仓库已有工具类/组件，严禁重复编写
 - **老站数据迁移脚本一律放 `data-trans/`**（`scripts/`、`output/`、`docs/`），Flyway 只做 schema/种子；详见 `docs/guides/data-trans-migration.md`
+- **新增/修改 Flyway 脚本后必做启动风险自检**：运行 `python data-trans/scripts/_validate_flyway_migration.py --version <N>`；检查项见 `docs/guides/flyway-operations.md` §4.4
 - **Flyway 启动失败（checksum 不匹配等）**：编写/复用 `data-trans/scripts/_fix_flyway_*.py` 后 Agent **直接执行 repair**，无需再向用户确认；详见 `docs/guides/flyway-operations.md`
 - 任务完成且用户确认后，记录工作内容到 `/docs/process/works.md`
 

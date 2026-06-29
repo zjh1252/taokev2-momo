@@ -42,6 +42,8 @@ public class VideoMapper {
         vo.setOriginalPrice(video.getOriginalPrice());
         vo.setIsFree(video.getIsFree());
         vo.setKeywords(video.getKeywords());
+        vo.setCompanyPrice(video.getCompanyPrice());
+        vo.setMaxPurchaseQty(video.getMaxPurchaseQty());
         vo.setDuration(video.getDuration());
         vo.setTotalEpisodes(video.getTotalEpisodes());
         vo.setIsFeatured(video.getIsFeatured());

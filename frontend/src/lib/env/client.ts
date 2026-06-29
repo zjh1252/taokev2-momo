@@ -6,5 +6,7 @@ export function getApiBaseUrl(): string {
 }
 
 export function getCdnBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_CDN_BASE_URL || getApiBaseUrl();
+  return (
+    process.env.NEXT_PUBLIC_CDN_BASE_URL || 'https://cdn5-pxb-videos.taoke.com'
+  );
 }

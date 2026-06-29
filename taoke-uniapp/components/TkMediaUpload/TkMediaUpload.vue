@@ -1,0 +1,163 @@
+<!-- 图片/视频上传（支持相机或相册，用于封面/案例/精彩瞬间） -->
+<template>
+  <view class="media">
+    <view v-if="displayUrl" class="preview" @tap="onPreview">
+      <image
+        v-if="isImage"
+        class="preview__img"
+        :src="displayUrl"
+        mode="aspectFill"
+      />
+      <view v-else class="preview__file">
+        <TkIcon name="videocam" :size="48" color="#666" />
+        <text class="preview__file-txt">已上传视频</text>
+      </view>
+      <view v-if="!disabled" class="preview__del" @tap.stop="onRemove">
+        <TkIcon name="close" :size="24" color="#fff" />
+      </view>
+    </view>
+    <view v-else-if="!disabled" class="picker" @tap="onPick">
+      <TkLoading v-if="uploading" />
+      <template v-else>
+        <TkIcon name="camera" :size="48" color="#999" />
+        <text class="picker__txt">{{ label || '上传图片' }}</text>
+        <text class="picker__sub">{{ cameraOnly ? '拍照上传' : '拍照或相册' }}</text>
+      </template>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { computed, ref } from 'vue';
+import { uploadImage } from '@/api/upload';
+import { toAssetUrl } from '@/utils/asset';
+
+const props = defineProps({
+  modelValue: { type: String, default: '' },
+  label: { type: String, default: '' },
+  disabled: { type: Boolean, default: false },
+  /** 仅相机（小程序认证场景） */
+  cameraOnly: { type: Boolean, default: false },
+  /** 允许选择视频 */
+  acceptVideo: { type: Boolean, default: false },
+});
+
+const emit = defineEmits(['update:modelValue']);
+
+const uploading = ref(false);
+
+const displayUrl = computed(() => (props.modelValue ? toAssetUrl(props.modelValue) : ''));
+
+const isImage = computed(() => {
+  const u = props.modelValue || '';
+  return !props.acceptVideo || /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(u);
+});
+
+function onRemove() {
+  emit('update:modelValue', '');
+}
+
+function onPreview() {
+  if (isImage.value && displayUrl.value) {
+    uni.previewImage({ urls: [displayUrl.value] });
+  }
+}
+
+function chooseImage() {
+  return new Promise((resolve, reject) => {
+    uni.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: props.cameraOnly ? ['camera'] : ['album', 'camera'],
+      success: (res) => resolve(res.tempFilePaths[0]),
+      fail: reject,
+    });
+  });
+}
+
+function chooseVideo() {
+  return new Promise((resolve, reject) => {
+    uni.chooseVideo({
+      sourceType: props.cameraOnly ? ['camera'] : ['album', 'camera'],
+      compressed: true,
+      maxDuration: 60,
+      success: (res) => resolve(res.tempFilePath),
+      fail: reject,
+    });
+  });
+}
+
+async function onPick() {
+  if (props.disabled || uploading.value) return;
+  try {
+    const path = props.acceptVideo ? await chooseVideo() : await chooseImage();
+    if (!path) return;
+    uploading.value = true;
+    const url = await uploadImage(path);
+    emit('update:modelValue', url);
+  } catch (e) {
+    if (e?.errMsg && !e.errMsg.includes('cancel')) {
+      uni.showToast({ title: '上传失败', icon: 'none' });
+    }
+  } finally {
+    uploading.value = false;
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.media { display: inline-block; }
+
+.picker {
+  width: 240rpx;
+  height: 240rpx;
+  border: 2rpx dashed $tk-divider-light;
+  border-radius: $tk-radius-md;
+  background: $tk-bg-page;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+
+  &__txt { font-size: $tk-fs-xs; color: $tk-text-2; }
+  &__sub { font-size: 20rpx; color: $tk-text-4; }
+}
+
+.preview {
+  position: relative;
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: $tk-radius-md;
+  overflow: hidden;
+  border: 2rpx solid $tk-divider-light;
+
+  &__img { width: 100%; height: 100%; }
+
+  &__file {
+    width: 100%;
+    height: 100%;
+    background: $tk-bg-page;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8rpx;
+  }
+
+  &__file-txt { font-size: $tk-fs-xs; color: $tk-text-3; }
+
+  &__del {
+    position: absolute;
+    top: 8rpx;
+    right: 8rpx;
+    width: 44rpx;
+    height: 44rpx;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>

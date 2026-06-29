@@ -21,7 +21,7 @@
       <template v-else>
         <TkIcon name="camera" :size="48" color="#999" />
         <text class="picker__txt">{{ label || '上传证明文件' }}</text>
-        <text class="picker__sub">支持图片或 PDF</text>
+        <text class="picker__sub">{{ cameraOnly ? '请使用相机拍摄' : '支持图片或 PDF' }}</text>
       </template>
     </view>
   </view>
@@ -36,6 +36,8 @@ const props = defineProps({
   modelValue: { type: String, default: '' },
   label: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
+  /** 小程序认证场景：仅允许拍照，禁止相册/聊天文件 */
+  cameraOnly: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -67,7 +69,7 @@ function chooseImage() {
     uni.chooseImage({
       count: 1,
       sizeType: ['compressed'],
-      sourceType: ['album', 'camera'],
+      sourceType: props.cameraOnly ? ['camera'] : ['album', 'camera'],
       success: (res) => resolve(res.tempFilePaths[0]),
       fail: reject,
     });
@@ -75,6 +77,9 @@ function chooseImage() {
 }
 
 function chooseFile() {
+  if (props.cameraOnly) {
+    return chooseImage();
+  }
   return new Promise((resolve, reject) => {
     // #ifdef MP-WEIXIN
     uni.chooseMessageFile({

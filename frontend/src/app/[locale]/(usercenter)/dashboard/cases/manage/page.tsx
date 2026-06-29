@@ -154,6 +154,7 @@ export default function ManageCasesPage() {
               <CaseCard
                 key={item.id}
                 item={item}
+                trainerUserId={trainerUserId}
                 onDelete={(id) => setDeleteId(id)}
               />
             ))}
@@ -190,9 +191,11 @@ export default function ManageCasesPage() {
 
 function CaseCard({
   item,
+  trainerUserId,
   onDelete,
 }: {
   item: TrainerCase;
+  trainerUserId?: number;
   onDelete: (id: number) => void;
 }) {
   const statusLabel = CaseStatusLabelMap[item.status] || '未知';
@@ -230,7 +233,9 @@ function CaseCard({
       <div className="flex flex-col gap-2 shrink-0 justify-center">
         {(isPending || isRejected) && (
           <Link
-            href={`/dashboard/cases/${item.id}/edit`}
+            href={trainerUserId
+              ? `/dashboard/cases/${item.id}/edit?trainerUserId=${trainerUserId}`
+              : `/dashboard/cases/${item.id}/edit`}
             className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
           >
             <Edit className="size-3.5" />

@@ -58,10 +58,12 @@ taoke:
   jwt:
     secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
   storage:
-    provider: local
-    # 相对路径在 dev 下由 StorageDirectoryResolver 自动定位 monorepo 内 frontend/public
-    base-dir: ../../frontend/public
-    public-domain:
+    # 开发环境默认走 OSS（与老站 peixunbao-videos 桶一致）；本地磁盘调试可设 STORAGE_PROVIDER=local
+    provider: ${STORAGE_PROVIDER:aliyun-oss}
+    oss:
+      # 凭据与老站 AliOssUploader / config.video.inc.php 一致，生产请改用环境变量注入
+      access-key-id: ${OSS_ACCESS_KEY_ID:trnzwn5eNnrr4gVM}
+      access-key-secret: ${OSS_ACCESS_KEY_SECRET:fR1lAIEH3kgoPmMlUeTAtVIEgO1r2b}
   cors:
     allowed-origins:
       - http://localhost:3000

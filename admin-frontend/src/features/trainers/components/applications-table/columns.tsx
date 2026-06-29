@@ -4,10 +4,9 @@ import type { AdminTrainerApplication } from '../../api/types';
 import { APPLICATION_STATUS_MAP, APPLICATION_STATUS_OPTIONS } from '../../api/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
-import Image from 'next/image';
 import Link from 'next/link';
+import { AssetImage } from '@/components/admin/asset-image';
 import { CellAction } from './cell-action';
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 import { getAdminUserDetailUrl } from '@/lib/frontend-links';
 
 function statusVariant(status: number) {
@@ -45,20 +44,18 @@ export const columns: ColumnDef<AdminTrainerApplication>[] = [
         : getAdminUserDetailUrl(row.original.userId);
       return (
         <div className='flex items-center gap-3'>
-          {row.original.trainerAvatar ? (
-            <Image
-              src={resolveAssetUrl(row.original.trainerAvatar)}
-              alt={name}
-              width={32}
-              height={32}
-              className='h-8 w-8 rounded-full object-cover'
-              unoptimized
-            />
-          ) : (
-            <div className='flex h-8 w-8 items-center justify-center rounded-full bg-muted'>
-              <Icons.user className='h-4 w-4 text-muted-foreground' />
-            </div>
-          )}
+          <AssetImage
+            src={row.original.trainerAvatar}
+            alt={name}
+            width={32}
+            height={32}
+            className='h-8 w-8 rounded-full object-cover'
+            fallback={
+              <div className='flex h-8 w-8 items-center justify-center rounded-full bg-muted'>
+                <Icons.user className='h-4 w-4 text-muted-foreground' />
+              </div>
+            }
+          />
           <div className='flex flex-col'>
             <Link href={href} className='font-medium text-primary hover:underline'>
               {name}

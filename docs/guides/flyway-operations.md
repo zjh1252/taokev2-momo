@@ -56,6 +56,7 @@ V{版本号}__{英文描述}.sql
 3. 每个脚本应**可重复执行或幂等**（推荐：`IF NOT EXISTS`、列存在性检查、临时表 + 条件 DELETE）。
 4. 注释语言：**中文**（与项目规范一致）。
 5. 新脚本只追加，**不要修改已上线/已执行的旧脚本**（checksum 变更会导致校验失败）。
+6. **Agent 交付前**必须按 [§4.4 Agent 交付自检清单](#44-agent-交付自检清单防后端启动失败) 执行，避免后端无法启动。
 
 ---
 
@@ -119,6 +120,30 @@ SELECT MAX(CAST(version AS UNSIGNED)) FROM flyway_schema_history WHERE success =
 
 - 示例：`V66__purge_obvious_test_courses.sql`（删除明显测试公开课/内训课）。
 - 注意：若同时存在 **Python 手工脚本** 与 **Flyway 脚本** 做同一件事，必须先统一 SQL 逻辑，避免「手工已执行 + Flyway 再次执行」或「Flyway 失败导致后端无法启动」。
+
+### 4.4 Agent 交付自检清单（防后端启动失败）
+
+**每次新增或修改** `db/migration/V*.sql` 后，Agent 在交付前必须完成以下检查（禁止仅「写完脚本」即结束）：
+
+| 检查项 | 说明 |
+|--------|------|
+| 版本号唯一 | 目录内无重复 `V{n}__`；新号大于当前库 `MAX(version)` |
+| 不改已执行脚本 | 已 `success=1` 的文件禁止改内容；应追加更高版本 |
+| 跨库 `taoke.*` | 引用老库时必须 `information_schema.SCHEMATA` / `TABLES` 防御，无 `taoke` 时跳过（纯新库/CI 可启动） |
+| 禁用 `DELIMITER` | 存储过程式脚本 Flyway 拆分易失败；用 `PREPARE` + `information_schema` 或改放 `data-trans/` |
+| 列/表存在 | DDL 用 `IF NOT EXISTS` / `information_schema.COLUMNS`（参考 V128） |
+| 幂等 DML | 大批量 UPDATE/DELETE 可重复执行或影响面可预期 |
+| 自动化验证 | 运行 `python data-trans/scripts/_validate_flyway_migration.py --version <N>` |
+| 历史冲突 | 库内 `flyway_schema_history` 同版本 `script` 名与仓库一致；孤儿版本用 `_fix_flyway_*.py` 清理，**勿删已入库脚本对应记录** |
+
+**典型启动失败信号**（日志 / 现象）：
+
+- `FlywayValidateException`：checksum 不匹配、失败迁移未 repair
+- `SQLException: Unknown database 'taoke'`：跨库脚本无防御
+- `success=0` 残留在 `flyway_schema_history`：后续启动被阻断
+- 8080 未监听 → 前端「网络连接失败」
+
+**Agent 约定**：验证脚本返回非 0 时，先修 SQL 再交付；checksum 问题按 §5.2 直接跑 `_fix_flyway_*.py` repair。
 
 ---
 
@@ -499,6 +524,10 @@ python data-trans/scripts/_repair_flyway_v73.py
 # Checksum repair（版本已 success=1 但本地 SQL 被改过）
 python data-trans/scripts/_fix_flyway_v67_checksum.py   # → -524896563
 python data-trans/scripts/_fix_flyway_v68_checksum.py   # → -100945177
+
+# 新增/修改迁移脚本后的启动风险自检（见 §4.4）
+python data-trans/scripts/_validate_flyway_migration.py --version 131
+python data-trans/scripts/_validate_flyway_migration.py   # 检查全部脚本
 
 # 与 Flyway 配套的老站数据补数（非 Flyway 历史表）
 python data-trans/scripts/run_video_cover_normalize.py      # V67 逻辑预览/统计

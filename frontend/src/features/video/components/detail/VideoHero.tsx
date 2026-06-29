@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Play, Clock, Users, Eye, Lock, List, Star } from 'lucide-react';
+import { Play, Clock, Users, Eye, Lock, List, Star, Heart } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { toast } from 'sonner';
@@ -252,18 +252,14 @@ export function VideoHero({ video }: VideoHeroProps) {
               type="button"
               onClick={() => requireAuth(toggleFavorite)}
               disabled={favLoading}
-              title={favorited ? '取消收藏' : '收藏'}
-              className={`ml-auto flex flex-col items-center gap-0.5 transition-colors disabled:opacity-50 ${
-                favorited ? 'text-sky-300' : 'text-sky-400 hover:text-sky-300'
+              className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors disabled:opacity-50 ${
+                favorited
+                  ? 'border-primary text-primary bg-primary/5'
+                  : 'border-white/30 text-white/90 hover:border-white/50 hover:text-white'
               }`}
             >
-              <Star
-                className={`size-7 ${favorited ? 'fill-current stroke-current' : 'fill-none stroke-current'}`}
-                strokeWidth={favorited ? 1 : 1.5}
-              />
-              <span className="text-xs leading-none text-white/70 tabular-nums">
-                {favoriteCount}
-              </span>
+              <Heart className={`size-4 ${favorited ? 'fill-current' : ''}`} />
+              {favorited ? '已收藏' : '加入收藏'}
             </button>
           </div>
         </div>

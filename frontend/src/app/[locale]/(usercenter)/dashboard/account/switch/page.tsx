@@ -97,8 +97,12 @@ export default function AccountSwitchPage() {
     setActiveRole(roleCode);
   };
 
-  const handleApply = (roleCode: string) => {
-    setSelectedRole(roleCode as ApplyableRole);
+  const handleApply = (roleCode: string, editExisting = false) => {
+    if (editExisting) {
+      enterEditProfile(roleCode as ApplyableRole);
+    } else {
+      setSelectedRole(roleCode as ApplyableRole);
+    }
     router.push(`${ROUTES.UC_APPLY}/${roleCode}`);
   };
 
@@ -161,9 +165,7 @@ export default function AccountSwitchPage() {
                   'border rounded-xl p-4 transition-all flex items-start gap-3',
                   isCurrent
                     ? 'border-primary/40 bg-red-50/60 ring-1 ring-primary/20'
-                    : isActive
-                      ? 'border-primary/30 bg-red-50/40'
-                      : isPending
+                    : isPending
                         ? 'border-amber-200 bg-amber-50/40'
                         : isRejected
                           ? 'border-red-200 bg-red-50/30'
@@ -220,7 +222,7 @@ export default function AccountSwitchPage() {
                     {canContinueApply && (
                       <button
                         type="button"
-                        onClick={() => handleApply(role.code)}
+                        onClick={() => handleApply(role.code, true)}
                         className="inline-flex items-center gap-1 text-amber-700 hover:text-primary font-medium cursor-pointer"
                       >
                         <Pencil className="size-3" />

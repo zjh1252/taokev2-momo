@@ -174,7 +174,7 @@ export function DroppablePreviewSlot({
   const { isOver, setNodeRef } = useDroppable({
     id: slotDropId(slotKey),
     disabled: !droppable || managedIndex == null,
-    data: { type: 'slot', managedIndex } satisfies SlotDropPayload
+    data: { type: 'slot', managedIndex: managedIndex as number } satisfies SlotDropPayload
   });
 
   return (

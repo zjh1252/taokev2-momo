@@ -1,7 +1,6 @@
 'use client';
 
 import { Icons } from '@/components/icons';
-import Image from 'next/image';
 import * as React from 'react';
 import Dropzone, { type DropzoneProps, type FileRejection } from 'react-dropzone';
 import { toast } from 'sonner';
@@ -257,7 +256,8 @@ function FileCard({ file, progress, onRemove }: FileCardProps) {
     <div className='relative flex items-center space-x-4'>
       <div className='flex flex-1 space-x-4'>
         {isFileWithPreview(file) ? (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={file.preview}
             alt={file.name}
             width={48}

@@ -877,6 +877,8 @@ public class VideoServiceImpl implements VideoService {
         if (req.getOriginalPrice() != null) video.setOriginalPrice(req.getOriginalPrice());
         if (req.getIsFree() != null) video.setIsFree(req.getIsFree());
         if (req.getKeywords() != null) video.setKeywords(req.getKeywords());
+        if (req.getCompanyPrice() != null) video.setCompanyPrice(req.getCompanyPrice());
+        if (req.getMaxPurchaseQty() != null) video.setMaxPurchaseQty(req.getMaxPurchaseQty());
     }
 
     private void applyChapterRequest(VideoChapter chapter, SaveVideoChapterRequest req) {

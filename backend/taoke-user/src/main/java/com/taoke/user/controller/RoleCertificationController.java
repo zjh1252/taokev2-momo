@@ -7,10 +7,13 @@ import com.taoke.common.security.SecurityUtils;
 import com.taoke.user.api.RoleCertificationService;
 import com.taoke.user.dto.role.cert.AgentWorkCertRequest;
 import com.taoke.user.dto.role.cert.AgentWorkCertVO;
+import com.taoke.user.dto.role.cert.BuyerWorkCertVO;
 import com.taoke.user.dto.role.cert.EnterpriseAgentCertRequest;
 import com.taoke.user.dto.role.cert.EnterpriseAgentCertVO;
 import com.taoke.user.dto.role.cert.InstitutionCompanyInfoRequest;
 import com.taoke.user.dto.role.cert.InstitutionCompanyInfoVO;
+import com.taoke.user.dto.trainer.cert.RealNameCertRequest;
+import com.taoke.user.dto.trainer.cert.RealNameCertResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -106,6 +109,55 @@ public class RoleCertificationController {
     @RequireRole(BusinessRole.Code.INSTITUTION)
     public ApiResponse<Void> submitInstitutionCompanyInfo(@Valid @RequestBody InstitutionCompanyInfoRequest request) {
         certificationService.submitInstitutionCompanyInfo(SecurityUtils.getRequiredUserId(), request);
+        return ApiResponse.ok(null);
+    }
+
+    // ==================== 企业采购方 — 实名认证 ====================
+
+    @Operation(summary = "查询本企业采购方实名认证状态")
+    @GetMapping("/enterprise-buyers/me/certification/real-name")
+    @RequireRole(BusinessRole.Code.ENTERPRISE_BUYER)
+    public ApiResponse<RealNameCertResponse> getBuyerRealName() {
+        return ApiResponse.ok(certificationService.getBuyerRealName(SecurityUtils.getRequiredUserId()));
+    }
+
+    @Operation(summary = "提交/重新提交企业采购方实名认证")
+    @PutMapping("/enterprise-buyers/me/certification/real-name")
+    @RequireRole(BusinessRole.Code.ENTERPRISE_BUYER)
+    public ApiResponse<Void> submitBuyerRealName(@Valid @RequestBody RealNameCertRequest request) {
+        certificationService.submitBuyerRealName(SecurityUtils.getRequiredUserId(), request);
+        return ApiResponse.ok(null);
+    }
+
+    // ==================== 企业采购方 — 工作认证 ====================
+
+    @Operation(summary = "查询本企业采购方工作认证记录列表")
+    @GetMapping("/enterprise-buyers/me/certification/work-experiences")
+    @RequireRole(BusinessRole.Code.ENTERPRISE_BUYER)
+    public ApiResponse<List<BuyerWorkCertVO>> listBuyerWorks() {
+        return ApiResponse.ok(certificationService.listBuyerWorkCerts(SecurityUtils.getRequiredUserId()));
+    }
+
+    @Operation(summary = "新增企业采购方工作认证记录")
+    @PostMapping("/enterprise-buyers/me/certification/work-experiences")
+    @RequireRole(BusinessRole.Code.ENTERPRISE_BUYER)
+    public ApiResponse<BuyerWorkCertVO> createBuyerWork(@Valid @RequestBody AgentWorkCertRequest request) {
+        return ApiResponse.ok(certificationService.createBuyerWorkCert(SecurityUtils.getRequiredUserId(), request));
+    }
+
+    @Operation(summary = "更新企业采购方工作认证记录（重置为待审核）")
+    @PutMapping("/enterprise-buyers/me/certification/work-experiences/{id}")
+    @RequireRole(BusinessRole.Code.ENTERPRISE_BUYER)
+    public ApiResponse<BuyerWorkCertVO> updateBuyerWork(@PathVariable Integer id,
+                                                        @Valid @RequestBody AgentWorkCertRequest request) {
+        return ApiResponse.ok(certificationService.updateBuyerWorkCert(SecurityUtils.getRequiredUserId(), id, request));
+    }
+
+    @Operation(summary = "删除企业采购方工作认证记录")
+    @DeleteMapping("/enterprise-buyers/me/certification/work-experiences/{id}")
+    @RequireRole(BusinessRole.Code.ENTERPRISE_BUYER)
+    public ApiResponse<Void> deleteBuyerWork(@PathVariable Integer id) {
+        certificationService.deleteBuyerWorkCert(SecurityUtils.getRequiredUserId(), id);
         return ApiResponse.ok(null);
     }
 }

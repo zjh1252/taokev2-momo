@@ -7,18 +7,27 @@ import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.RoleCertificationService;
 import com.taoke.user.dto.role.cert.AgentWorkCertRequest;
 import com.taoke.user.dto.role.cert.AgentWorkCertVO;
+import com.taoke.user.dto.role.cert.BuyerWorkCertVO;
 import com.taoke.user.dto.role.cert.EnterpriseAgentCertRequest;
 import com.taoke.user.dto.role.cert.EnterpriseAgentCertVO;
 import com.taoke.user.dto.role.cert.InstitutionCompanyInfoRequest;
 import com.taoke.user.dto.role.cert.InstitutionCompanyInfoVO;
+import com.taoke.user.dto.trainer.cert.RealNameCertRequest;
+import com.taoke.user.dto.trainer.cert.RealNameCertResponse;
 import com.taoke.user.entity.Agent;
 import com.taoke.user.entity.AgentWorkExperience;
 import com.taoke.user.entity.EnterpriseAgent;
+import com.taoke.user.entity.EnterpriseBuyer;
+import com.taoke.user.entity.EnterpriseBuyerWorkExperience;
 import com.taoke.user.entity.Institution;
+import com.taoke.user.entity.User;
 import com.taoke.user.repository.AgentRepository;
 import com.taoke.user.repository.AgentWorkExperienceRepository;
 import com.taoke.user.repository.EnterpriseAgentRepository;
+import com.taoke.user.repository.EnterpriseBuyerRepository;
+import com.taoke.user.repository.EnterpriseBuyerWorkExperienceRepository;
 import com.taoke.user.repository.InstitutionRepository;
+import com.taoke.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -44,7 +53,10 @@ public class RoleCertificationServiceImpl implements RoleCertificationService {
     private final AgentRepository agentRepository;
     private final AgentWorkExperienceRepository agentWorkRepository;
     private final EnterpriseAgentRepository enterpriseAgentRepository;
+    private final EnterpriseBuyerRepository enterpriseBuyerRepository;
+    private final EnterpriseBuyerWorkExperienceRepository buyerWorkRepository;
     private final InstitutionRepository institutionRepository;
+    private final UserRepository userRepository;
 
     // ==================== 经纪人 — 工作认证 ====================
 
@@ -221,6 +233,122 @@ public class RoleCertificationServiceImpl implements RoleCertificationService {
         institutionRepository.save(inst);
     }
 
+    // ==================== 企业采购方 — 实名认证 ====================
+
+    @Override
+    public RealNameCertResponse getBuyerRealName(Integer userId) {
+        EnterpriseBuyer buyer = requireEnterpriseBuyer(userId);
+        User user = requireUser(userId);
+
+        RealNameCertResponse resp = new RealNameCertResponse();
+        resp.setRealName(user.getRealName());
+        resp.setIdCardNo(buyer.getIdCardNo());
+        resp.setIdCardFront(buyer.getIdCardFront());
+        resp.setIdCardBack(buyer.getIdCardBack());
+        resp.setStatus(buyer.getRealNameStatus());
+        resp.setRejectReason(buyer.getRealNameRejectReason());
+        resp.setSubmittedAt(buyer.getRealNameSubmittedAt());
+        resp.setAuditedAt(buyer.getRealNameAuditedAt());
+        return resp;
+    }
+
+    @Transactional
+    @Override
+    public void submitBuyerRealName(Integer userId, RealNameCertRequest request) {
+        EnterpriseBuyer buyer = requireEnterpriseBuyer(userId);
+        User user = requireUser(userId);
+
+        user.setRealName(request.getRealName());
+        userRepository.save(user);
+
+        buyer.setContactName(request.getRealName());
+        buyer.setIdCardNo(request.getIdCardNo());
+        buyer.setIdCardFront(request.getIdCardFront());
+        buyer.setIdCardBack(request.getIdCardBack());
+        buyer.setRealNameStatus(1);
+        buyer.setRealNameRejectReason(null);
+        buyer.setRealNameSubmittedAt(LocalDateTime.now());
+        enterpriseBuyerRepository.save(buyer);
+    }
+
+    // ==================== 企业采购方 — 工作认证 ====================
+
+    @Override
+    public List<BuyerWorkCertVO> listBuyerWorkCerts(Integer userId) {
+        Integer buyerId = requireEnterpriseBuyer(userId).getId();
+        return buyerWorkRepository.findByBuyerIdOrderBySortOrder(buyerId).stream()
+                .map(this::toBuyerWorkVO)
+                .toList();
+    }
+
+    @Transactional
+    @Override
+    public BuyerWorkCertVO createBuyerWorkCert(Integer userId, AgentWorkCertRequest request) {
+        Integer buyerId = requireEnterpriseBuyer(userId).getId();
+        EnterpriseBuyerWorkExperience entity = new EnterpriseBuyerWorkExperience();
+        entity.setBuyerId(buyerId);
+        applyBuyerWork(entity, request);
+        entity.setStatus(1);
+        entity.setRejectReason(null);
+        entity.setSubmittedAt(LocalDateTime.now());
+        entity.setAuditedAt(null);
+        return toBuyerWorkVO(buyerWorkRepository.save(entity));
+    }
+
+    @Transactional
+    @Override
+    public BuyerWorkCertVO updateBuyerWorkCert(Integer userId, Integer id, AgentWorkCertRequest request) {
+        Integer buyerId = requireEnterpriseBuyer(userId).getId();
+        EnterpriseBuyerWorkExperience entity = buyerWorkRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "工作记录不存在"));
+        if (!entity.getBuyerId().equals(buyerId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作他人记录");
+        }
+        applyBuyerWork(entity, request);
+        entity.setStatus(1);
+        entity.setRejectReason(null);
+        entity.setSubmittedAt(LocalDateTime.now());
+        return toBuyerWorkVO(buyerWorkRepository.save(entity));
+    }
+
+    @Transactional
+    @Override
+    public void deleteBuyerWorkCert(Integer userId, Integer id) {
+        Integer buyerId = requireEnterpriseBuyer(userId).getId();
+        EnterpriseBuyerWorkExperience entity = buyerWorkRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "工作记录不存在"));
+        if (!entity.getBuyerId().equals(buyerId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权删除他人记录");
+        }
+        buyerWorkRepository.delete(entity);
+    }
+
+    private void applyBuyerWork(EnterpriseBuyerWorkExperience entity, AgentWorkCertRequest req) {
+        entity.setCompanyName(req.getCompanyName());
+        entity.setPosition(req.getPosition());
+        entity.setStartDate(req.getStartDate());
+        entity.setEndDate(req.getEndDate());
+        entity.setJobDescription(req.getJobDescription());
+        entity.setProofFile(req.getProofFile());
+    }
+
+    private BuyerWorkCertVO toBuyerWorkVO(EnterpriseBuyerWorkExperience e) {
+        BuyerWorkCertVO vo = new BuyerWorkCertVO();
+        vo.setId(e.getId());
+        vo.setCompanyName(e.getCompanyName());
+        vo.setPosition(e.getPosition());
+        vo.setStartDate(e.getStartDate());
+        vo.setEndDate(e.getEndDate());
+        vo.setJobDescription(e.getJobDescription());
+        vo.setProofFile(e.getProofFile());
+        vo.setStatus(e.getStatus());
+        vo.setRejectReason(e.getRejectReason());
+        vo.setSubmittedAt(e.getSubmittedAt() == null ? e.getCreatedAt() : e.getSubmittedAt());
+        vo.setAuditedAt(e.getAuditedAt());
+        vo.setSortOrder(e.getSortOrder());
+        return vo;
+    }
+
     // ==================== 工具方法 ====================
 
     private Agent requireAgent(Integer userId) {
@@ -231,6 +359,16 @@ public class RoleCertificationServiceImpl implements RoleCertificationService {
     private EnterpriseAgent requireEnterpriseAgent(Integer userId) {
         return enterpriseAgentRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "请先创建经纪公司档案"));
+    }
+
+    private EnterpriseBuyer requireEnterpriseBuyer(Integer userId) {
+        return enterpriseBuyerRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "请先完善企业采购方档案"));
+    }
+
+    private User requireUser(Integer userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "用户不存在"));
     }
 
     private Institution requireInstitution(Integer userId) {

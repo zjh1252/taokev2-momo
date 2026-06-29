@@ -22,9 +22,7 @@ import {
   Camera,
   Users,
   Building2,
-  MapPin,
   UserPlus,
-  BarChart3,
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -88,6 +86,9 @@ const NAV_ENTRIES: NavEntry[] = [
         label: '身份信息',
         children: [
           { label: '基础信息', href: ROUTES.UC_ACCOUNT_BASE },
+          // 企业采购方：实名认证 + 工作认证
+          { label: '实名认证', href: ROUTES.UC_ACCOUNT_BUYER_CERT_REAL_NAME, visibleForRoles: ['ENTERPRISE_BUYER'] },
+          { label: '工作认证', href: ROUTES.UC_ACCOUNT_BUYER_CERT_WORK, visibleForRoles: ['ENTERPRISE_BUYER'] },
           // 个人学员才有「更多信息」
           { label: '更多信息', href: ROUTES.UC_ACCOUNT_MORE, visibleForRoles: LEARNER_ROLES },
           // 专家：资质认证 4 项
@@ -130,18 +131,6 @@ const NAV_ENTRIES: NavEntry[] = [
     visibleForRoles: ['AGENT', 'ASSISTANT', 'INSTITUTION', 'ENTERPRISE_AGENT', 'INSTITUTION_EMPLOYEE'],
   },
 
-  // ── 我的业务（仅经纪人保留；经纪公司侧按测试反馈移除该占位分组） ──
-  {
-    kind: 'group', label: '我的业务', icon: <BarChart3 className="size-5" />,
-    visibleForRoles: ['AGENT'],
-    isPlaceholder: true,
-    children: [
-      { label: '接收订单', href: ROUTES.UC_MY_BUSINESS_ORDERS },
-      { label: '客户评价', href: ROUTES.UC_MY_BUSINESS_REVIEWS },
-      { label: '专家数据', href: ROUTES.UC_MY_BUSINESS_DATA },
-    ],
-  },
-
   // ── 我的机构（机构员工专属） ──
   {
     kind: 'item', label: '我的机构', href: ROUTES.UC_MY_INSTITUTION, icon: <Building2 className="size-5" />,
@@ -164,12 +153,6 @@ const NAV_ENTRIES: NavEntry[] = [
   {
     kind: 'item', label: '我的经纪人', href: ROUTES.UC_MY_AGENTS_TEAM, icon: <UserPlus className="size-5" />,
     visibleForRoles: ['ENTERPRISE_AGENT'],
-  },
-
-  // ── 我的场地（培训机构专属） ──
-  {
-    kind: 'item', label: '我的场地', href: ROUTES.UC_MY_VENUES, icon: <MapPin className="size-5" />,
-    visibleForRoles: ['INSTITUTION'],
   },
 
   // ── 内容管理类（TRAINER / AGENT / ASSISTANT / INSTITUTION / INSTITUTION_EMPLOYEE） ──

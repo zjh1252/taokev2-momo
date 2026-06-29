@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 后台专家列表视图对象。
@@ -38,6 +39,9 @@ public class AdminTrainerVO {
 
     /** 曝光量 */
     private Integer viewCount;
+
+    /** 「信得过」认证标签：未认证时前端展示「未认证」，否则展示已通过维度 */
+    private List<String> trustedLabels;
 
     /** 审核通过时间 */
     private LocalDateTime approvedAt;

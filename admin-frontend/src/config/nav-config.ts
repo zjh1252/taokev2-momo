@@ -24,7 +24,7 @@ export const navGroups: NavGroup[] = [
     label: '用户管理',
     items: [
       {
-        title: '平台所有用户管理',
+        title: '个人学员',
         url: '/dashboard/users',
         icon: 'teams',
         isActive: false,
@@ -63,6 +63,10 @@ export const navGroups: NavGroup[] = [
           {
             title: '采购方列表',
             url: '/dashboard/enterprise-buyers'
+          },
+          {
+            title: '资质认证',
+            url: '/dashboard/enterprise-buyers/certifications'
           }
         ]
       },
@@ -90,7 +94,7 @@ export const navGroups: NavGroup[] = [
           },
           {
             title: '资质认证',
-            url: '/dashboard/agents/certifications/work'
+            url: '/dashboard/agents/certifications'
           }
         ]
       },
@@ -166,10 +170,6 @@ export const navGroups: NavGroup[] = [
         isActive: false,
         items: [
           {
-            title: '添加课程',
-            url: '/dashboard/courses/new'
-          },
-          {
             title: '课程列表',
             url: '/dashboard/courses'
           },
@@ -185,10 +185,6 @@ export const navGroups: NavGroup[] = [
         icon: 'video',
         isActive: false,
         items: [
-          {
-            title: '添加视频',
-            url: '/dashboard/videos/new'
-          },
           {
             title: '视频列表',
             url: '/dashboard/videos'
@@ -240,10 +236,6 @@ export const navGroups: NavGroup[] = [
         icon: 'books',
         isActive: false,
         items: [
-          {
-            title: '添加著作',
-            url: '/dashboard/books/list/new'
-          },
           {
             title: '著作列表',
             url: '/dashboard/books/list'

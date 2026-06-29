@@ -1,6 +1,5 @@
 <!--
-  修改身份 — 对齐 PC /dashboard/account/switch
-  展示 8 种业务角色，支持切换当前身份、申请新角色（跳转 PC/H5）
+  修改身份 — 已拥有身份与可申请身份分区展示（PDF 3 要求）
 -->
 <template>
   <view class="page">
@@ -13,44 +12,30 @@
           <text class="current__value">{{ userStore.activeRoleLabel }}</text>
         </view>
 
-        <view class="cards">
-          <view v-for="role in ALL_ROLES" :key="role.code" class="card">
-            <view class="card__main">
-              <view class="card__icon">
-                <TkIcon :name="role.icon" :size="36" color="#E62117" />
-              </view>
-              <view class="card__meta">
-                <view class="card__title-row">
-                  <text class="card__title">{{ role.label }}</text>
-                  <text v-if="isCurrent(role.code)" class="card__tag card__tag--current">当前身份</text>
-                  <text v-else-if="roleStatus(role.code) === 2" class="card__tag card__tag--pending">审核中</text>
-                  <text v-else-if="roleStatus(role.code) === 3" class="card__tag card__tag--reject">已驳回</text>
-                </view>
-                <text class="card__desc">{{ role.description }}</text>
-              </view>
+        <view v-if="ownedRoles.length" class="section">
+          <text class="section__title">已拥有身份（{{ ownedRoles.length }}）</text>
+          <view class="cards">
+            <view v-for="role in ownedRoles" :key="role.code" class="card">
+              <RoleCard
+                :role="role"
+                :is-current="isCurrent(role.code)"
+                @switch="onSwitch(role.code)"
+                @edit="onEditProfile(role.code)"
+              />
             </view>
-            <view class="card__actions">
-              <view
-                v-if="canSwitch(role.code)"
-                class="card__btn card__btn--ghost"
-                @tap="onSwitch(role.code)"
-              >
-                <text class="card__btn-txt">点击切换</text>
-              </view>
-              <view
-                v-if="canApply(role.code)"
-                class="card__btn card__btn--primary"
-                @tap="onApply(role.code)"
-              >
-                <text class="card__btn-txt card__btn-txt--white">点击申请</text>
-              </view>
-              <view
-                v-if="canEditProfile(role.code)"
-                class="card__btn card__btn--ghost"
-                @tap="onEditProfile(role.code)"
-              >
-                <text class="card__btn-txt">修改角色资料</text>
-              </view>
+          </view>
+        </view>
+
+        <view v-if="otherRoles.length" class="section">
+          <text class="section__title">其他身份</text>
+          <view class="cards">
+            <view v-for="role in otherRoles" :key="role.code" class="card">
+              <RoleCard
+                :role="role"
+                :status="roleStatus(role.code)"
+                :can-apply="canApply(role.code)"
+                @apply="onApply(role.code)"
+              />
             </view>
           </view>
         </view>
@@ -67,10 +52,10 @@ import { onShow } from '@dcloudio/uni-app';
 import { useUserStore } from '@/stores/user';
 import config from '@/configs';
 import { getNavBarHeight } from '@/utils/system';
+import RoleCard from './switch-role-card.vue';
 
 const navBarH = getNavBarHeight();
 const userStore = useUserStore();
-
 const WEB_BASE = (config.assetBaseURL || 'https://v2.taoke.com').replace(/\/+$/, '');
 
 const ALL_ROLES = [
@@ -85,13 +70,8 @@ const ALL_ROLES = [
 ];
 
 const APPLYABLE = new Set([
-  'ENTERPRISE_BUYER',
-  'TRAINER',
-  'AGENT',
-  'ASSISTANT',
-  'ENTERPRISE_AGENT',
-  'INSTITUTION',
-  'INSTITUTION_EMPLOYEE',
+  'ENTERPRISE_BUYER', 'TRAINER', 'AGENT', 'ASSISTANT',
+  'ENTERPRISE_AGENT', 'INSTITUTION', 'INSTITUTION_EMPLOYEE',
 ]);
 
 const roleStatusMap = computed(() => {
@@ -102,6 +82,14 @@ const roleStatusMap = computed(() => {
   });
   return map;
 });
+
+const ownedRoles = computed(() =>
+  ALL_ROLES.filter((r) => roleStatus(r.code) === 1),
+);
+
+const otherRoles = computed(() =>
+  ALL_ROLES.filter((r) => roleStatus(r.code) !== 1),
+);
 
 onShow(() => {
   if (!userStore.isLoggedIn) {
@@ -115,24 +103,12 @@ function roleStatus(code) {
   return roleStatusMap.value.get(code);
 }
 
-function isActive(code) {
-  return roleStatus(code) === 1;
-}
-
 function isCurrent(code) {
   return userStore.activeRole === code;
 }
 
-function canSwitch(code) {
-  return isActive(code) && !isCurrent(code);
-}
-
 function canApply(code) {
-  return APPLYABLE.has(code) && !isActive(code) && roleStatus(code) !== 2;
-}
-
-function canEditProfile(code) {
-  return isActive(code) && code !== 'BUYER';
+  return APPLYABLE.has(code) && roleStatus(code) !== 2;
 }
 
 function onSwitch(code) {
@@ -208,100 +184,21 @@ function onEditProfile(code) {
   }
 }
 
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: $tk-sp-2;
+
+  &__title {
+    font-size: $tk-fs-sm;
+    color: $tk-text-3;
+    padding: 0 $tk-sp-1;
+  }
+}
+
 .cards {
   display: flex;
   flex-direction: column;
   gap: $tk-sp-3;
-}
-
-.card {
-  background: $tk-bg-card;
-  border-radius: $tk-radius-lg;
-  padding: $tk-sp-3;
-  box-shadow: $tk-shadow-card;
-  display: flex;
-  flex-direction: column;
-  gap: $tk-sp-3;
-
-  &__main {
-    display: flex;
-    gap: $tk-sp-3;
-    align-items: flex-start;
-  }
-  &__icon {
-    width: 72rpx;
-    height: 72rpx;
-    border-radius: $tk-radius-md;
-    background: $tk-primary-soft;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  &__meta {
-    flex: 1;
-    min-width: 0;
-  }
-  &__title-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8rpx;
-    margin-bottom: 6rpx;
-  }
-  &__title {
-    font-size: $tk-fs-md;
-    font-weight: 700;
-    color: $tk-text-1;
-  }
-  &__tag {
-    font-size: 20rpx;
-    padding: 2rpx 12rpx;
-    border-radius: $tk-radius-xs;
-
-    &--current {
-      background: $tk-primary-soft;
-      color: $tk-primary;
-    }
-    &--pending {
-      background: rgba(245, 158, 11, 0.15);
-      color: #D97706;
-    }
-    &--reject {
-      background: rgba(230, 33, 23, 0.10);
-      color: $tk-primary;
-    }
-  }
-  &__desc {
-    font-size: $tk-fs-xs;
-    color: $tk-text-3;
-    line-height: $tk-lh-normal;
-  }
-  &__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: $tk-sp-2;
-    justify-content: flex-end;
-  }
-  &__btn {
-    padding: 12rpx 28rpx;
-    border-radius: $tk-radius-full;
-
-    &--ghost {
-      border: 2rpx solid $tk-divider;
-    }
-    &--primary {
-      background: $tk-primary;
-    }
-  }
-  &__btn-txt {
-    font-size: $tk-fs-sm;
-    color: $tk-text-2;
-    font-weight: 600;
-
-    &--white {
-      color: #fff;
-    }
-  }
 }
 </style>

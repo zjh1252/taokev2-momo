@@ -63,9 +63,24 @@
       </view>
     </view>
 
-    <view v-else-if="order && order.status === 1" class="footer footer--single">
-      <view class="footer__btn footer__btn--primary" @tap="onDone">
-        <text class="footer__btn-txt footer__btn-txt--primary">查看订单</text>
+    <view v-else-if="order && order.status === 1" class="footer">
+      <view class="footer__btn footer__btn--ghost footer__btn--compact" @tap="onReview">
+        <text class="footer__btn-txt footer__btn-txt--ghost">评价</text>
+      </view>
+      <view class="footer__btn footer__btn--ghost footer__btn--compact" @tap="onConsult">
+        <text class="footer__btn-txt footer__btn-txt--ghost">咨询</text>
+      </view>
+      <view class="footer__btn footer__btn--primary" @tap="onInvoice">
+        <text class="footer__btn-txt footer__btn-txt--primary">申请发票</text>
+      </view>
+    </view>
+
+    <view v-else-if="order && order.status === 2" class="footer">
+      <view class="footer__btn footer__btn--ghost" @tap="onConsult">
+        <text class="footer__btn-txt footer__btn-txt--ghost">立即咨询</text>
+      </view>
+      <view class="footer__btn footer__btn--primary" @tap="onRepurchase">
+        <text class="footer__btn-txt footer__btn-txt--primary">重新购买</text>
       </view>
     </view>
 
@@ -109,6 +124,7 @@ import {
   getDefaultPaymentMethod,
   resolveWechatOpenId,
 } from '@/utils/payment';
+import { callServicePhone } from '@/utils/consult';
 
 const navBarH = getNavBarHeight();
 
@@ -236,6 +252,51 @@ function onCancel() {
       }
     },
   });
+}
+
+function onConsult() {
+  callServicePhone();
+}
+
+function onReview() {
+  const item = order.value?.items?.[0];
+  if (!item) {
+    uni.showToast({ title: '订单商品信息缺失', icon: 'none' });
+    return;
+  }
+  const title = encodeURIComponent(item.productTitle || '');
+  uni.navigateTo({
+    url: `/pages/review/submit?orderNo=${order.value.orderNo}&productType=${item.productType}&productId=${item.productId}&productTitle=${title}`,
+  });
+}
+
+function onInvoice() {
+  if (!order.value?.orderNo) return;
+  uni.navigateTo({ url: `/pages/order/invoice?orderNo=${order.value.orderNo}` });
+}
+
+async function onRepurchase() {
+  const item = order.value?.items?.[0];
+  if (!item?.productId) {
+    uni.showToast({ title: '无法重新购买', icon: 'none' });
+    return;
+  }
+  if (item.productType === 'OPEN_COURSE') {
+    uni.navigateTo({ url: `/pages/course/detail?id=${item.productId}` });
+    return;
+  }
+  try {
+    const created = await orderApi.createOrder({
+      directItem: {
+        productType: item.productType,
+        productId: item.productId,
+        quantity: 1,
+      },
+    });
+    uni.navigateTo({ url: `/pages/order/checkout?orderNo=${created.orderNo}` });
+  } catch (e) {
+    uni.showToast({ title: e?.message || '下单失败', icon: 'none' });
+  }
 }
 
 function onDone() {
@@ -399,6 +460,10 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+
+    &--compact {
+      flex: 0 0 160rpx;
+    }
 
     &--ghost {
       border: 2rpx solid $tk-divider;

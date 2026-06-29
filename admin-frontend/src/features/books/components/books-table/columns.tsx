@@ -10,8 +10,7 @@ import { approveBook, rejectBook } from '../../api/service';
 import { bookKeys } from '../../api/queries';
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
-import Image from 'next/image';
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
+import { AssetImage } from '@/components/admin/asset-image';
 import { getAdminUserDetailUrl } from '@/lib/frontend-links';
 
 function statusVariant(status: number) {
@@ -56,20 +55,20 @@ export const columns: ColumnDef<AdminBook>[] = [
   {
     id: 'cover',
     header: '封面',
-    cell: ({ row }) =>
-      row.original.coverUrl ? (
-        <Image
-          src={resolveAssetUrl(row.original.coverUrl)}
-          alt={row.original.title}
-          width={40}
-          height={56}
-          className='h-14 w-10 rounded object-cover'
-        />
-      ) : (
-        <div className='bg-muted flex h-14 w-10 items-center justify-center rounded'>
-          <Icons.books className='text-muted-foreground h-4 w-4' />
-        </div>
-      )
+    cell: ({ row }) => (
+      <AssetImage
+        src={row.original.coverUrl}
+        alt={row.original.title}
+        width={40}
+        height={56}
+        className='h-14 w-10 rounded object-cover'
+        fallback={
+          <div className='bg-muted flex h-14 w-10 items-center justify-center rounded'>
+            <Icons.books className='text-muted-foreground h-4 w-4' />
+          </div>
+        }
+      />
+    )
   },
   {
     accessorKey: 'title',

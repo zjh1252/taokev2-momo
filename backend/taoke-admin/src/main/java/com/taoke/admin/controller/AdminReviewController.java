@@ -26,6 +26,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -63,17 +64,30 @@ public class AdminReviewController {
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String reviewScope,
             @RequestParam(required = false) String reviewerKeyword,
-            @RequestParam(required = false) Integer reviewedBy,
+            @RequestParam(required = false) String reviewedBy,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
+        Integer reviewedById = null;
+        List<Integer> reviewedByUserIds = null;
+        if (reviewedBy != null && !reviewedBy.isBlank()) {
+            String keyword = reviewedBy.trim();
+            if (keyword.matches("\\d+")) {
+                reviewedById = Integer.parseInt(keyword);
+            } else {
+                Page<User> matched = userService.searchUsers(keyword, null, PageRequest.of(0, 100));
+                reviewedByUserIds = matched.getContent().stream().map(User::getId).toList();
+            }
+        }
         Page<TrainingReview> result = reviewService.adminListReviews(
-                status, reviewScope, reviewerKeyword, reviewedBy, page, size);
+                status, reviewScope, reviewerKeyword, reviewedById, reviewedByUserIds, page, size);
         List<TrainingReview> rows = result.getContent();
         Map<Integer, String> trainerNameByUserId = buildTrainerNameByUserId(rows);
         Map<Integer, String> institutionDisplayById = buildInstitutionDisplayById(rows);
         Map<Integer, String> courseTitleById = buildCourseTitleById(rows);
+        Map<Integer, String> reviewerNameByUserId = buildReviewerNameByUserId(rows);
         List<AdminReviewVO> list = rows.stream()
-                .map(r -> toAdminVo(r, trainerNameByUserId, institutionDisplayById, courseTitleById))
+                .map(r -> toAdminVo(r, trainerNameByUserId, institutionDisplayById, courseTitleById,
+                        reviewerNameByUserId))
                 .toList();
         return ApiResponse.ok(PageResponse.of(list, result.getTotalElements(), page, size));
     }
@@ -85,7 +99,9 @@ public class AdminReviewController {
         Map<Integer, String> trainerNameByUserId = buildTrainerNameByUserId(List.of(review));
         Map<Integer, String> institutionDisplayById = buildInstitutionDisplayById(List.of(review));
         Map<Integer, String> courseTitleById = buildCourseTitleById(List.of(review));
-        return ApiResponse.ok(toAdminVo(review, trainerNameByUserId, institutionDisplayById, courseTitleById));
+        Map<Integer, String> reviewerNameByUserId = buildReviewerNameByUserId(List.of(review));
+        return ApiResponse.ok(toAdminVo(review, trainerNameByUserId, institutionDisplayById, courseTitleById,
+                reviewerNameByUserId));
     }
 
     @Operation(summary = "审核通过")
@@ -108,6 +124,22 @@ public class AdminReviewController {
     public ApiResponse<Void> hide(@PathVariable Integer id) {
         reviewModerationService.hideReview(id, SecurityUtils.getCurrentUserId());
         return ApiResponse.ok();
+    }
+
+    private Map<Integer, String> buildReviewerNameByUserId(List<TrainingReview> rows) {
+        List<Integer> ids = rows.stream()
+                .map(TrainingReview::getReviewedBy)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return userService.findAllByIds(ids).stream()
+                .collect(Collectors.toMap(
+                        User::getId,
+                        AdminReviewController::userAccountLabel,
+                        (a, b) -> a));
     }
 
     private Map<Integer, String> buildTrainerNameByUserId(List<TrainingReview> rows) {
@@ -272,6 +304,21 @@ public class AdminReviewController {
                     }
                     yield "案例 #" + id;
                 }
+                case VIDEO -> {
+                    Integer id = r.getCourseId();
+                    if (id == null) {
+                        yield "-";
+                    }
+                    String t = nonBlank(r.getCourseTitle());
+                    if (!t.isEmpty()) {
+                        yield t;
+                    }
+                    t = nonBlank(courseTitleById.get(id));
+                    if (!t.isEmpty()) {
+                        yield t;
+                    }
+                    yield "录播课 #" + id;
+                }
             };
         } catch (IllegalArgumentException e) {
             return "-";
@@ -281,7 +328,8 @@ public class AdminReviewController {
     private AdminReviewVO toAdminVo(TrainingReview r,
                                     Map<Integer, String> trainerNameByUserId,
                                     Map<Integer, String> institutionDisplayById,
-                                    Map<Integer, String> courseTitleById) {
+                                    Map<Integer, String> courseTitleById,
+                                    Map<Integer, String> reviewerNameByUserId) {
         AdminReviewVO vo = new AdminReviewVO();
         vo.setId(r.getId());
         vo.setReviewScope(r.getReviewScope());
@@ -290,6 +338,10 @@ public class AdminReviewController {
         vo.setInstitutionId(r.getInstitutionId());
         vo.setCaseId(r.getCaseId());
         vo.setReviewedBy(r.getReviewedBy());
+        if (r.getReviewedBy() != null) {
+            String reviewerName = nonBlank(reviewerNameByUserId.get(r.getReviewedBy()));
+            vo.setReviewedByName(reviewerName.isEmpty() ? null : reviewerName);
+        }
         vo.setExpertName(r.getExpertName());
         vo.setTrainingDate(r.getTrainingDate());
         vo.setCourseDays(r.getCourseDays());

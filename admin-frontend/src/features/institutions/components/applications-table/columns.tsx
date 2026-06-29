@@ -4,9 +4,8 @@ import type { AdminInstitutionApplication } from '../../api/types';
 import { APPLICATION_STATUS_MAP, APPLICATION_STATUS_OPTIONS } from '../../api/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 import { CellAction } from './cell-action';
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 
 function statusVariant(status: number) {
   switch (status) {
@@ -38,19 +37,18 @@ export const columns: ColumnDef<AdminInstitutionApplication>[] = [
     header: '申请人',
     cell: ({ row }) => (
       <div className='flex items-center gap-3'>
-        {row.original.logoUrl ? (
-          <Image
-            src={resolveAssetUrl(row.original.logoUrl)}
-            alt={row.original.orgName || ''}
-            width={32}
-            height={32}
-            className='h-8 w-8 rounded object-cover'
-          />
-        ) : (
-          <div className='flex h-8 w-8 items-center justify-center rounded bg-muted'>
-            <Icons.building className='h-4 w-4 text-muted-foreground' />
-          </div>
-        )}
+        <AssetImage
+          src={row.original.logoUrl}
+          alt={row.original.orgName || ''}
+          width={32}
+          height={32}
+          className='h-8 w-8 rounded object-cover'
+          fallback={
+            <div className='flex h-8 w-8 items-center justify-center rounded bg-muted'>
+              <Icons.building className='h-4 w-4 text-muted-foreground' />
+            </div>
+          }
+        />
         <div className='flex flex-col'>
           <span className='font-medium'>
             {row.original.orgName || row.original.nickname || '-'}

@@ -1,10 +1,19 @@
 <!--
-  公开课列表卡片 — 对齐 PC OpenCourseCard（无封面大图，信息网格）
+  公开课列表卡片 — 对齐 PC OpenCourseCard（含封面）
 -->
 <template>
   <view class="open-card" @tap="onTap">
-    <view class="open-card__icon">
-      <TkIcon name="medal" :size="48" color="#ccc" />
+    <view class="open-card__cover">
+      <image
+        v-if="coverUrl"
+        class="open-card__cover-img"
+        :src="coverUrl"
+        mode="aspectFill"
+        @error="coverFailed = true"
+      />
+      <view v-else class="open-card__cover-ph">
+        <TkIcon name="medal" :size="48" color="#ccc" />
+      </view>
     </view>
 
     <view class="open-card__body">
@@ -17,14 +26,17 @@
           <text class="open-card__stat">看过：{{ course.viewCount || 0 }}</text>
           <view class="open-card__stars">
             <text class="open-card__stat">评分：</text>
-            <TkIcon
-              v-for="i in 5"
-              :key="i"
-              name="star"
-              :filled="i <= starCount"
-              :size="22"
-              :color="i <= starCount ? '#F59E0B' : '#E5E7EB'"
-            />
+            <template v-if="ratingDisplay.showStars">
+              <TkIcon
+                v-for="i in 5"
+                :key="i"
+                name="star"
+                :filled="i <= ratingDisplay.starCount"
+                :size="22"
+                :color="i <= ratingDisplay.starCount ? '#F59E0B' : '#E5E7EB'"
+              />
+            </template>
+            <text v-else class="open-card__stat open-card__stat--muted">{{ ratingDisplay.label }}</text>
           </view>
         </view>
       </view>
@@ -60,15 +72,27 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { formatKeywords } from '@/utils/course-display';
+import { formatCourseRating } from '@/utils/rating-display';
+import { toAssetUrl } from '@/utils/asset';
 
 const props = defineProps({
   course: { type: Object, required: true },
 });
 const emit = defineEmits(['tap']);
 
-const starCount = computed(() => Math.round(Number(props.course.score || 0)));
+const coverFailed = ref(false);
+
+watch(() => props.course.coverUrl, () => { coverFailed.value = false; });
+
+const coverUrl = computed(() => {
+  if (coverFailed.value) return '';
+  return toAssetUrl(props.course.coverUrl) || '';
+});
+
+const ratingDisplay = computed(() => formatCourseRating(props.course.score));
+
 const durationText = computed(() => {
   const d = props.course.durationDaysDisplay;
   return d != null ? `${d}天` : '-';
@@ -93,13 +117,24 @@ function onTap() {
   border: 2rpx solid rgba(0, 0, 0, 0.04);
   box-shadow: $tk-shadow-card;
 
-  &__icon {
-    width: 96rpx;
-    height: 96rpx;
+  &__cover {
+    width: 160rpx;
+    height: 120rpx;
     flex-shrink: 0;
     border-radius: $tk-radius-md;
+    overflow: hidden;
     background: #f8fafc;
     border: 2rpx solid #f1f5f9;
+  }
+
+  &__cover-img {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__cover-ph {
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -151,6 +186,10 @@ function onTap() {
   &__stat {
     font-size: $tk-fs-xs;
     color: $tk-text-4;
+
+    &--muted {
+      color: $tk-text-3;
+    }
   }
 
   &__stars {

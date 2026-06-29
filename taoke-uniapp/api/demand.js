@@ -6,5 +6,8 @@ export const listMyDemands = (params) => http.get('/demands/mine', params);
 /** 需求详情 GET /demands/{id} */
 export const getDemandDetail = (id) => http.get(`/demands/${id}`);
 
+/** 创建培训需求 POST /demands */
+export const createDemand = (data) => http.post('/demands', data);
+
 /** 取消需求 PUT /demands/{id}/cancel */
 export const cancelDemand = (id) => http.put(`/demands/${id}/cancel`);

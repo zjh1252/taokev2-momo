@@ -10,10 +10,14 @@ import com.taoke.user.api.RoleCertificationAdminService;
 import com.taoke.user.entity.Agent;
 import com.taoke.user.entity.AgentWorkExperience;
 import com.taoke.user.entity.EnterpriseAgent;
+import com.taoke.user.entity.EnterpriseBuyer;
+import com.taoke.user.entity.EnterpriseBuyerWorkExperience;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.repository.AgentRepository;
 import com.taoke.user.repository.AgentWorkExperienceRepository;
 import com.taoke.user.repository.EnterpriseAgentRepository;
+import com.taoke.user.repository.EnterpriseBuyerRepository;
+import com.taoke.user.repository.EnterpriseBuyerWorkExperienceRepository;
 import com.taoke.user.repository.InstitutionRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +44,8 @@ public class RoleCertificationAdminServiceImpl implements RoleCertificationAdmin
     private final AgentRepository agentRepository;
     private final AgentWorkExperienceRepository agentWorkRepository;
     private final EnterpriseAgentRepository enterpriseAgentRepository;
+    private final EnterpriseBuyerRepository enterpriseBuyerRepository;
+    private final EnterpriseBuyerWorkExperienceRepository buyerWorkRepository;
     private final InstitutionRepository institutionRepository;
     private final EventPublisher eventPublisher;
 
@@ -142,5 +148,60 @@ public class RoleCertificationAdminServiceImpl implements RoleCertificationAdmin
         eventPublisher.publish(new InstitutionCompanyInfoAuditedEvent(
                 approved, inst.getUserId(), inst.getId(),
                 inst.getOrgName(), reason));
+    }
+
+    // ==================== 企业采购方 — 实名认证 ====================
+
+    @Override
+    public Page<EnterpriseBuyer> pageBuyerRealName(Integer status, Pageable pageable) {
+        Specification<EnterpriseBuyer> spec = (root, cq, cb) -> {
+            Predicate notNull = cb.isNotNull(root.get("realNameStatus"));
+            if (status != null) {
+                return cb.and(notNull, cb.equal(root.get("realNameStatus"), status));
+            }
+            return notNull;
+        };
+        return enterpriseBuyerRepository.findAll(spec, pageable);
+    }
+
+    @Transactional
+    @Override
+    public void auditBuyerRealName(Integer buyerId, boolean approved, String reason) {
+        EnterpriseBuyer buyer = enterpriseBuyerRepository.findById(buyerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "企业采购方不存在"));
+        if (buyer.getRealNameStatus() == null) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "用户尚未提交实名认证");
+        }
+        if (!approved && (reason == null || reason.isBlank())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "驳回原因不能为空");
+        }
+        buyer.setRealNameStatus(approved ? 2 : 3);
+        buyer.setRealNameRejectReason(approved ? null : reason);
+        buyer.setRealNameAuditedAt(LocalDateTime.now());
+        enterpriseBuyerRepository.save(buyer);
+    }
+
+    // ==================== 企业采购方 — 工作认证 ====================
+
+    @Override
+    public Page<EnterpriseBuyerWorkExperience> pageBuyerWorkExperiences(Integer status, Pageable pageable) {
+        if (status != null) {
+            return buyerWorkRepository.findByStatus(status, pageable);
+        }
+        return buyerWorkRepository.findAll(pageable);
+    }
+
+    @Transactional
+    @Override
+    public void auditBuyerWorkExperience(Integer recordId, boolean approved, String reason) {
+        EnterpriseBuyerWorkExperience entity = buyerWorkRepository.findById(recordId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "工作记录不存在"));
+        if (!approved && (reason == null || reason.isBlank())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "驳回原因不能为空");
+        }
+        entity.setStatus(approved ? 2 : 3);
+        entity.setRejectReason(approved ? null : reason);
+        entity.setAuditedAt(LocalDateTime.now());
+        buyerWorkRepository.save(entity);
     }
 }

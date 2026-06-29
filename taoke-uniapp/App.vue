@@ -1,12 +1,13 @@
 <script setup>
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
+import config from '@/configs';
 import { useUserStore } from '@/stores/user';
 import { logDebug } from '@/utils/logger';
 
 onLaunch(() => {
   const userStore = useUserStore();
   userStore.bootstrap();
-  logDebug('[App] Launch');
+  logDebug('[App] Launch', config.envName, config.baseURL, config.assetBaseURL);
 });
 
 onShow(() => {

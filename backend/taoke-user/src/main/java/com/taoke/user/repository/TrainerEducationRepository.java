@@ -4,9 +4,12 @@ import com.taoke.user.entity.TrainerEducation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 专家教育经历持久化
@@ -26,4 +29,7 @@ public interface TrainerEducationRepository extends JpaRepository<TrainerEducati
     Page<TrainerEducation> findByStatus(Integer status, Pageable pageable);
 
     Page<TrainerEducation> findAll(Pageable pageable);
+
+    @Query("SELECT DISTINCT e.trainerId FROM TrainerEducation e WHERE e.trainerId IN :trainerIds AND e.status = 2")
+    Set<Integer> findTrainerIdsWithApprovedEducation(@Param("trainerIds") Collection<Integer> trainerIds);
 }

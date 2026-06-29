@@ -2,6 +2,8 @@ package com.taoke.admin.controller;
 
 import com.taoke.admin.dto.RejectApplicationRequest;
 import com.taoke.admin.dto.rolecert.AdminAgentWorkCertVO;
+import com.taoke.admin.dto.rolecert.AdminBuyerRealNameCertVO;
+import com.taoke.admin.dto.rolecert.AdminBuyerWorkCertVO;
 import com.taoke.admin.dto.rolecert.AdminEnterpriseAgentCertVO;
 import com.taoke.admin.dto.rolecert.AdminInstitutionCompanyInfoVO;
 import com.taoke.admin.dto.rolecert.AdminRoleCertQuery;
@@ -100,6 +102,52 @@ public class AdminRoleCertificationController {
     public ApiResponse<Void> rejectInstitution(@PathVariable Integer id,
                                                @Valid @RequestBody RejectApplicationRequest req) {
         service.auditInstitutionCompanyInfo(id, false, req.getReason());
+        return ApiResponse.ok(null);
+    }
+
+    // ==================== 企业采购方 — 实名认证 ====================
+
+    @Operation(summary = "分页查询企业采购方实名认证审核列表")
+    @GetMapping("/admin/enterprise-buyers/certifications/real-name")
+    public ApiResponse<PageResult<AdminBuyerRealNameCertVO>> listBuyerRealName(AdminRoleCertQuery query) {
+        return ApiResponse.ok(service.listBuyerRealName(query));
+    }
+
+    @Operation(summary = "通过企业采购方实名认证")
+    @PutMapping("/admin/enterprise-buyers/certifications/real-name/{id}/approve")
+    public ApiResponse<Void> approveBuyerRealName(@PathVariable Integer id) {
+        service.auditBuyerRealName(id, true, null);
+        return ApiResponse.ok(null);
+    }
+
+    @Operation(summary = "驳回企业采购方实名认证")
+    @PutMapping("/admin/enterprise-buyers/certifications/real-name/{id}/reject")
+    public ApiResponse<Void> rejectBuyerRealName(@PathVariable Integer id,
+                                                 @Valid @RequestBody RejectApplicationRequest req) {
+        service.auditBuyerRealName(id, false, req.getReason());
+        return ApiResponse.ok(null);
+    }
+
+    // ==================== 企业采购方 — 工作认证 ====================
+
+    @Operation(summary = "分页查询企业采购方工作认证审核列表")
+    @GetMapping("/admin/enterprise-buyers/certifications/work-experiences")
+    public ApiResponse<PageResult<AdminBuyerWorkCertVO>> listBuyerWork(AdminRoleCertQuery query) {
+        return ApiResponse.ok(service.listBuyerWorkExperiences(query));
+    }
+
+    @Operation(summary = "通过企业采购方工作认证")
+    @PutMapping("/admin/enterprise-buyers/certifications/work-experiences/{id}/approve")
+    public ApiResponse<Void> approveBuyerWork(@PathVariable Integer id) {
+        service.auditBuyerWorkExperience(id, true, null);
+        return ApiResponse.ok(null);
+    }
+
+    @Operation(summary = "驳回企业采购方工作认证")
+    @PutMapping("/admin/enterprise-buyers/certifications/work-experiences/{id}/reject")
+    public ApiResponse<Void> rejectBuyerWork(@PathVariable Integer id,
+                                             @Valid @RequestBody RejectApplicationRequest req) {
+        service.auditBuyerWorkExperience(id, false, req.getReason());
         return ApiResponse.ok(null);
     }
 }

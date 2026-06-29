@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
 import { institutionDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getInstitutionDetail } from '@/features/institution/api/service';
@@ -6,8 +7,10 @@ import { InstitutionHero } from '@/features/institution/components/detail/Instit
 import { InstitutionDetailTabs } from '@/features/institution/components/detail/InstitutionDetailTabs';
 import { InstitutionDetailSidebar } from '@/features/institution/components/detail/InstitutionDetailSidebar';
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }
 
 export async function generateMetadata({ params }: Props) {
@@ -24,7 +27,8 @@ export async function generateMetadata({ params }: Props) {
  * 机构详情页 — SSR，主数据从 GET /company/{id} 获取
  */
 export default async function InstitutionDetailPage({ params }: Props) {
-  const { id } = await params;
+  const { locale, id } = await params;
+  setRequestLocale(locale);
   const institutionId = Number(id);
 
   if (isNaN(institutionId)) {

@@ -184,7 +184,7 @@ export default function CreateCasePage() {
               }))
             }
             maxLevel={4}
-            requireDistrict
+            requireDistrict={false}
           />
         </FormField>
 
@@ -346,8 +346,6 @@ export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
     validator: positiveIdValidator('请选择培训地点（城市）'),
   },
   districtId: {
-    required: true,
-    requiredMessage: '请选择培训地点（区/县）',
     validator: positiveIdValidator('请选择培训地点（区/县）'),
   },
   traineeCount: {
