@@ -9,7 +9,8 @@ import {
   syncUcMemberProfile,
   unbindEmployeeUcMember,
 } from '../api/service';
-import type { UcIdentityField, UcMemberBrief, UcOrgType } from '../api/types';
+import type { UcIdentityField, UcOrgType } from '../api/types';
+import type { UcMemberBrief } from '@/features/binding/api/types';
 
 interface EmployeeUcBindDialogProps {
   orgType: UcOrgType;

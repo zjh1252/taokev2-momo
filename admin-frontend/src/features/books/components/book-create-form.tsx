@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Loader2, Upload } from 'lucide-react';
+import { Icons } from '@/components/icons';
 import { toast } from 'sonner';
 import * as z from 'zod';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
@@ -177,9 +177,9 @@ export function BookCreateForm() {
                     onClick={() => coverInputRef.current?.click()}
                   >
                     {coverUploading ? (
-                      <Loader2 className='mr-1 size-4 animate-spin' />
+                      <Icons.spinner className='mr-1 size-4 animate-spin' />
                     ) : (
-                      <Upload className='mr-1 size-4' />
+                      <Icons.upload className='mr-1 size-4' />
                     )}
                     上传封面
                   </Button>

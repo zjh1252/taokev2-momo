@@ -24,8 +24,8 @@ export async function generateMetadata({ params }: Props) {
 }
 
 /** 培训日期段展示：yyyy/mm/dd - yyyy/mm/dd */
-function formatDateRange(start: string | null, end: string | null): string {
-  const fmt = (d: string | null) => (d ? d.slice(0, 10).replace(/-/g, '/') : '');
+function formatDateRange(start: string | null, end?: string | null): string {
+  const fmt = (d?: string | null) => (d ? d.slice(0, 10).replace(/-/g, '/') : '');
   const s = fmt(start);
   const e = fmt(end);
   if (s && e) return `${s} - ${e}`;

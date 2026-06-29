@@ -12,7 +12,7 @@ import {
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
 import { validateForm, getFirstError } from '@/lib/validation';
-import { CASE_RULES, traineeCountValidator } from '../../create/page';
+import { CASE_RULES, traineeCountValidator } from '@/features/trainer-case/lib/case-form-rules';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';

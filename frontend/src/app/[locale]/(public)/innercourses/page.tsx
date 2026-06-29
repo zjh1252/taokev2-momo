@@ -8,10 +8,7 @@ import {
 import { getCourseList } from '@/features/course/api/service';
 import { getInstitutionDetail } from '@/features/institution/api/service';
 import { buildCourseCategoryNavItems } from '@/lib/channel-category-stats';
-import {
-  getCachedCourseCategoryTree,
-  getCachedTrainerIndustryTree,
-} from '@/lib/cached-categories';
+import { getCachedCourseCategoryTree } from '@/lib/cached-categories';
 import { isPxbEmbedOrigin } from '@/lib/pxb-embed';
 import { innerCourseListMetadata, innerCourseListH1 } from '@/lib/seo';
 import { firstStringValue, normalizeNumberIds } from '@/lib/search-params';
@@ -91,7 +88,7 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
     .then((tree) => buildCourseCategoryNavItems(tree, false, '/inhousecourse'))
     .catch(() => []);
 
-  const [initialData, categoryTree, industryTree, institution] = await Promise.all([
+  const [initialData, categoryTree, institution] = await Promise.all([
     getCourseList({
       page: 1,
       size: 15,
@@ -106,7 +103,6 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
       totalPages: 0,
     })),
     categoryTreePromise,
-    getCachedTrainerIndustryTree(),
     validInstitutionId
       ? getInstitutionDetail(validInstitutionId).catch(() => null)
       : Promise.resolve(null),
@@ -124,7 +120,6 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
       <InnerCourseListSection
         initialData={initialData}
         categoryTree={categoryTree}
-        industryTree={industryTree}
         initialInstitutionId={validInstitutionId}
         initialInstitutionName={institution?.orgName}
         initialCategoryId={initialCategoryId}

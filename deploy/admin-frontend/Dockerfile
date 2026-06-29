@@ -5,12 +5,17 @@
 #
 # 构建参数：
 #   BUILD_ENV — 环境名（test / prod 等），用于加载 .env.<env> 文件
+#
+# 跨架构：deps/builder 固定 BUILDPLATFORM，避免 QEMU 下 Next 构建崩溃。
 # ============================================================
 
 ARG BUILD_ENV=""
+ARG BUN_IMAGE=oven/bun:1-alpine
+ARG NODE_SLIM=node:22-slim
+ARG NODE_ALPINE=node:22-alpine
 
 # ---------- 阶段1：依赖安装 ----------
-FROM oven/bun:1-alpine AS deps
+FROM --platform=$BUILDPLATFORM ${BUN_IMAGE} AS deps
 
 WORKDIR /app
 COPY admin-frontend/package.json admin-frontend/bun.lock ./
@@ -19,7 +24,8 @@ RUN bun -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.j
 RUN bun install --frozen-lockfile
 
 # ---------- 阶段2：构建 ----------
-FROM node:22-slim AS builder
+ARG NODE_SLIM=node:22-slim
+FROM --platform=$BUILDPLATFORM ${NODE_SLIM} AS builder
 
 ARG BUILD_ENV
 
@@ -35,10 +41,11 @@ RUN if [ -n "$BUILD_ENV" ] && [ -f ".env.${BUILD_ENV}" ]; then \
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV BUILD_STANDALONE=true
-RUN npm run build
+RUN npx next build --webpack
 
 # ---------- 阶段3：运行镜像 ----------
-FROM node:22-alpine
+ARG NODE_ALPINE=node:22-alpine
+FROM --platform=$TARGETPLATFORM ${NODE_ALPINE}
 
 LABEL maintainer="Fangxinxin"
 LABEL description="淘课网 v2 管理后台前端"

@@ -49,6 +49,8 @@ export function HomeTrainerPreview({
   const mainSlot = previewSlots[0]!;
   const middleSlot = previewSlots[1]!;
   const sideSlots = [previewSlots[2]!, previewSlots[3]!];
+  const mainManagedItem = mainSlot.cell.kind === 'managed' ? mainSlot.cell.item : null;
+  const middleManagedItem = middleSlot.cell.kind === 'managed' ? middleSlot.cell.item : null;
 
   return (
     <div className='rounded-lg border p-4'>
@@ -84,9 +86,7 @@ export function HomeTrainerPreview({
                 : undefined
             }
             onRemove={
-              mainSlot.cell.kind === 'managed'
-                ? () => onRemove(mainSlot.cell.item.id)
-                : undefined
+              mainManagedItem ? () => onRemove(mainManagedItem.id) : undefined
             }
           />
         </PreviewSlotWrapper>
@@ -114,9 +114,7 @@ export function HomeTrainerPreview({
                 : undefined
             }
             onRemove={
-              middleSlot.cell.kind === 'managed'
-                ? () => onRemove(middleSlot.cell.item.id)
-                : undefined
+              middleManagedItem ? () => onRemove(middleManagedItem.id) : undefined
             }
           />
         </PreviewSlotWrapper>
@@ -127,23 +125,29 @@ export function HomeTrainerPreview({
               {slot.cell.kind === 'empty' ? (
                 <EmptySideSlot hint={sideEmptyHint(index, locks)} />
               ) : slot.cell.kind === 'managed' ? (
-                <SideCard
-                  expert={mapManagedToPreview(slot.cell.item, slot.cell.layout)}
-                  selected={isCellSelected(selection, slot.cell)}
-                  managedIndex={slot.managedIndex!}
-                  itemId={slot.cell.item.id}
-                  draggable
-                  onSelect={() => onSelect({ kind: 'managed', id: slot.cell.item.id })}
-                  onMoveUp={
-                    slot.managedIndex! > 0 ? () => onMove(slot.managedIndex!, -1) : undefined
-                  }
-                  onMoveDown={
-                    slot.managedIndex! < layout.managedItems.length - 1
-                      ? () => onMove(slot.managedIndex!, 1)
-                      : undefined
-                  }
-                  onRemove={() => onRemove(slot.cell.item.id)}
-                />
+                (() => {
+                  const managedCell = slot.cell;
+                  const managedItem = managedCell.item;
+                  return (
+                    <SideCard
+                      expert={mapManagedToPreview(managedItem, managedCell.layout)}
+                      selected={isCellSelected(selection, managedCell)}
+                      managedIndex={slot.managedIndex!}
+                      itemId={managedItem.id}
+                      draggable
+                      onSelect={() => onSelect({ kind: 'managed', id: managedItem.id })}
+                      onMoveUp={
+                        slot.managedIndex! > 0 ? () => onMove(slot.managedIndex!, -1) : undefined
+                      }
+                      onMoveDown={
+                        slot.managedIndex! < layout.managedItems.length - 1
+                          ? () => onMove(slot.managedIndex!, 1)
+                          : undefined
+                      }
+                      onRemove={() => onRemove(managedItem.id)}
+                    />
+                  );
+                })()
               ) : null}
             </PreviewSlotWrapper>
           ))}

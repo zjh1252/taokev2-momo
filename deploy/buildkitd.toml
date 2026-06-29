@@ -2,3 +2,7 @@
 [registry."10.0.14.20:5000"]
   http = true
   insecure = true
+
+# Docker Hub 加速（buildx docker-container 驱动不读 Docker Desktop 的 registry-mirrors）
+[registry."docker.io"]
+  mirrors = ["https://docker.m.daocloud.io"]

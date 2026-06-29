@@ -6,7 +6,8 @@ import { ROUTES } from '@/config/routes';
 import { createCase, addCaseFile } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
-import { validateForm, getFirstError, type FormValidationRules } from '@/lib/validation';
+import { validateForm, getFirstError } from '@/lib/validation';
+import { CASE_RULES, traineeCountValidator } from '@/features/trainer-case/lib/case-form-rules';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
@@ -312,45 +313,3 @@ export default function CreateCasePage() {
     </section>
   );
 }
-
-/**
- * 案例表单验证规则
- */
-const positiveIdValidator = (msg: string) => (v: unknown) => {
-  const n = typeof v === 'number' ? v : Number(v);
-  return Number.isFinite(n) && n > 0 ? undefined : msg;
-};
-
-/**
- * 受训人数校验：未填写时跳过；填写时必须是 >=1 的正整数。
- *
- * <p>导出供 edit 页等场景复用，便于失焦时统一提示。</p>
- */
-export const traineeCountValidator = (v: unknown): string | undefined => {
-  if (v === undefined || v === null || v === '') return undefined;
-  const n = Number(v);
-  return Number.isInteger(n) && n >= 1 ? undefined : '受训人数需为大于等于 1 的整数';
-};
-
-export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
-  caseTitle: { required: true, requiredMessage: '请输入案例标题' },
-  enterpriseName: { required: true, requiredMessage: '请输入企业名称' },
-  provinceId: {
-    required: true,
-    requiredMessage: '请选择培训地点（省份）',
-    validator: positiveIdValidator('请选择培训地点（省份）'),
-  },
-  cityId: {
-    required: true,
-    requiredMessage: '请选择培训地点（城市）',
-    validator: positiveIdValidator('请选择培训地点（城市）'),
-  },
-  districtId: {
-    required: true,
-    requiredMessage: '请选择培训地点（区/县）',
-    validator: positiveIdValidator('请选择培训地点（区/县）'),
-  },
-  traineeCount: {
-    validator: traineeCountValidator,
-  },
-};
