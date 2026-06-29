@@ -27,8 +27,8 @@ services:
       CRAWLER_CALLBACK_TOKEN: test-crawler-token
       CRAWLER_BASE_URL: http://crawler:8100
       CRAWLER_CALLBACK_URL: http://backend:8080/internal/crawl/callback
-      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID:-}
-      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET:-}
+      OSS_ACCESS_KEY_ID: trnzwn5eNnrr4gVM
+      OSS_ACCESS_KEY_SECRET: fR1lAIEH3kgoPmMlUeTAtVIEgO1r2b
       TZ: Asia/Shanghai
     command: ["--spring.config.additional-location=file:/app/config/"]
     restart: unless-stopped
