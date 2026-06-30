@@ -19,6 +19,10 @@ public class StorageConfig {
     @Bean
     public StorageService storageService(StorageProperties properties) {
         String provider = properties.getProvider();
+        if ("local".equals(provider)) {
+            org.slf4j.LoggerFactory.getLogger(StorageConfig.class)
+                    .warn("taoke.storage.provider=local：上传文件写入本地磁盘，生产环境请使用 aliyun-oss");
+        }
         return switch (provider) {
             case "local" -> new LocalStorageService(properties);
             case "aliyun-oss" -> new AliOssStorageService(properties);

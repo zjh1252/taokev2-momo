@@ -98,7 +98,7 @@ taoke:
     enabled: true
     exchange: taoke.events
   # 文件存储 — 图片/视频等均走 OSS（配置对齐老站 tkw/includes/config.video.inc.php）
-  storage:
+  storage: 
     provider: ${STORAGE_PROVIDER:aliyun-oss}
     base-dir: ${STORAGE_BASE_DIR:taoke/upload}
     public-domain: ${STORAGE_PUBLIC_DOMAIN:https://cdn5-pxb-videos.taoke.com}

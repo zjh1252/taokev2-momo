@@ -1,11 +1,13 @@
 package com.taoke.course.search;
 
+import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.common.entity.Category;
 import com.taoke.common.repository.CategoryRepository;
 import com.taoke.common.search.BaseDocument;
 import com.taoke.common.search.DocumentSyncProvider;
 import com.taoke.course.entity.Course;
 import com.taoke.course.enums.CourseStatus;
+import com.taoke.course.enums.CourseType;
 import com.taoke.course.repository.CourseRepository;
 import com.taoke.course.support.OpenCourseExpireSupport;
 import com.taoke.user.api.TrainerService;
@@ -36,6 +38,7 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
     private final CourseRepository courseRepository;
     private final CategoryRepository categoryRepository;
     private final TrainerService trainerService;
+    private final OpsMaterialResolver opsMaterialResolver;
 
     @Override
     public String getDocType() {
@@ -87,15 +90,18 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
             return List.of();
         }
 
-        // 批量查关联的讲师名称
+        // 批量查关联的讲师
         Set<Integer> trainerIds = courses.stream()
                 .map(Course::getTrainerId)
                 .filter(id -> id != null && id > 0)
                 .collect(Collectors.toSet());
         Map<Integer, String> trainerNameMap = new HashMap<>();
+        Map<Integer, String> trainerAvatarMap = new HashMap<>();
         if (!trainerIds.isEmpty()) {
-            trainerService.findByIds(trainerIds)
-                    .forEach(t -> trainerNameMap.put(t.getId(), t.getName()));
+            trainerService.findByIds(trainerIds).forEach(t -> {
+                trainerNameMap.put(t.getId(), t.getName());
+                trainerAvatarMap.put(t.getId(), t.getAvatar());
+            });
         }
 
         // 批量查关联的分类名称
@@ -116,14 +122,16 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
 
         // 构建文档
         Map<Integer, String> finalTrainerNameMap = trainerNameMap;
+        Map<Integer, String> finalTrainerAvatarMap = trainerAvatarMap;
         Map<Integer, String> finalCategoryNameMap = categoryNameMap;
         return courses.stream()
-                .map(c -> toDocument(c, finalTrainerNameMap, finalCategoryNameMap))
+                .map(c -> toDocument(c, finalTrainerNameMap, finalTrainerAvatarMap, finalCategoryNameMap))
                 .toList();
     }
 
     private CourseDocument toDocument(Course course,
                                      Map<Integer, String> trainerNameMap,
+                                     Map<Integer, String> trainerAvatarMap,
                                      Map<Integer, String> categoryNameMap) {
         CourseDocument doc = new CourseDocument();
         doc.setDocType(DOC_TYPE);
@@ -133,7 +141,13 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
 
         doc.setTitle(course.getTitle());
         doc.setType(course.getType() != null ? course.getType().name() : null);
-        doc.setCoverUrl(course.getCoverUrl());
+        String categoryName = course.getCategoryId() != null && course.getCategoryId() > 0
+                ? categoryNameMap.get(course.getCategoryId())
+                : null;
+        String trainerAvatar = course.getTrainerId() != null && course.getTrainerId() > 0
+                ? trainerAvatarMap.get(course.getTrainerId())
+                : null;
+        doc.setCoverUrl(resolveCoverUrl(course, trainerAvatar, categoryName));
         doc.setIntro(stripHtml(course.getIntro()));
         doc.setAudience(course.getAudience());
         doc.setHighlights(course.getHighlights());
@@ -169,6 +183,26 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
 
         doc.buildDocId();
         return doc;
+    }
+
+    private String resolveCoverUrl(Course course, String trainerAvatar, String categoryName) {
+        if (course == null) {
+            return "";
+        }
+        String scene = resolveCoverMaterialScene(course.getType());
+        int seed = course.getId() != null ? course.getId() : 0;
+        return opsMaterialResolver.resolveCourseCoverUrl(
+                course.getCoverUrl(), trainerAvatar, categoryName, scene, seed);
+    }
+
+    private static String resolveCoverMaterialScene(CourseType type) {
+        if (type == CourseType.INTERNAL) {
+            return "INTERNAL";
+        }
+        if (type != null && type.isOpen()) {
+            return "OPEN";
+        }
+        return "GENERAL";
     }
 
     /**

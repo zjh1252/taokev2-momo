@@ -2,9 +2,10 @@
  * 静态资源 URL 拼装工具
  *
  * 对齐 C 端 frontend/src/lib/media.ts 与后端 LegacyAvatarUrls：
- * - /uploads/、/statics/ → config.assetBaseURL（v2 本地上传）
- * - /attachments/、/u/、attachments/、u/ → 旧站 www.taoke.com
- * - taoke/upload/、taoke/covers/ → PXB 录播 CDN
+ * - taoke/upload/* → PXB OSS CDN（上传默认 aliyun-oss）
+ * - /statics/ → config.assetBaseURL（前端静态资源）
+ * - /attachments/、/u/ → 旧站 www.taoke.com
+ * - taoke/covers/ → PXB 录播 CDN
  */
 
 import config, { IS_DEV } from '@/configs';
@@ -28,6 +29,11 @@ const FSM_PREVIEW_BASE = (
 
 const FSM_STORAGE_KEY_RE = /^[0-9A-Fa-f]+-\d+$/;
 
+const PXB_CDN_HOSTS = new Set([
+  'cdn5-pxb-videos.taoke.com',
+  'cdn-pxb-videos.taoke.com',
+]);
+
 const HTTPS_HOSTS = new Set([
   'www.taoke.com',
   'taoke.com',
@@ -41,6 +47,15 @@ const HTTPS_HOSTS = new Set([
 
 function assetPrefix() {
   return (config.assetBaseURL || '').replace(/\/+$/, '');
+}
+
+function isPxbUploadPath(value) {
+  return value.startsWith('/taoke/upload/') || value.startsWith('taoke/upload/');
+}
+
+function resolvePxbUploadPath(value) {
+  const path = value.startsWith('/') ? value : `/${value}`;
+  return joinBase(PXB_VIDEO_CDN, path);
 }
 
 /** 旧站/本地默认占位图，非真实头像 */
@@ -74,11 +89,16 @@ function isDevLanAssetMode() {
   return IS_DEV && LAN_HOST_RE.test(assetPrefix());
 }
 
+function isPxbCdnHost(hostname) {
+  const lower = hostname.toLowerCase();
+  return PXB_CDN_HOSTS.has(lower) || lower.endsWith('.pxb-videos.taoke.com');
+}
+
 function normalizeHttpUrl(url) {
   if (!url || !/^http:\/\//i.test(url)) return url;
   try {
     const { hostname } = new URL(url);
-    if (HTTPS_HOSTS.has(hostname) || hostname.endsWith('.pxb-videos.taoke.com')) {
+    if (HTTPS_HOSTS.has(hostname) || isPxbCdnHost(hostname)) {
       return url.replace(/^http:\/\//i, 'https://');
     }
   } catch (_) { /* ignore */ }
@@ -91,9 +111,6 @@ function resolveLegacyVideoCoverPath(value) {
   }
   if (value.startsWith('taoke/covers/')) {
     return joinBase(PXB_VIDEO_CDN, value);
-  }
-  if (value.startsWith('taoke/upload/')) {
-    return `${FSM_PREVIEW_BASE}/fsm/${value}`;
   }
   return null;
 }
@@ -117,6 +134,12 @@ function resolveAssetPath(path) {
   if (/^https?:\/\//i.test(value)) {
     try {
       const parsed = new URL(value);
+      if (isPxbUploadPath(parsed.pathname)) {
+        return resolvePxbUploadPath(parsed.pathname);
+      }
+      if (parsed.pathname.startsWith('/uploads/taoke/upload/')) {
+        return resolvePxbUploadPath(parsed.pathname.slice('/uploads'.length));
+      }
       if (
         /^localhost|127\.0\.0\.1$/i.test(parsed.hostname)
         && parsed.pathname.startsWith('/uploads/')
@@ -131,6 +154,14 @@ function resolveAssetPath(path) {
     return normalizeHttpUrl(value);
   }
 
+  if (isPxbUploadPath(value)) {
+    return resolvePxbUploadPath(value);
+  }
+
+  if (value.startsWith('/uploads/taoke/upload/')) {
+    return resolvePxbUploadPath(value.slice('/uploads'.length));
+  }
+
   const legacyVideoCover = resolveLegacyVideoCoverPath(value);
   if (legacyVideoCover) return legacyVideoCover;
 
@@ -142,7 +173,12 @@ function resolveAssetPath(path) {
     return joinBase(LEGACY_ASSET_BASE, value);
   }
 
-  if (value.startsWith('/uploads/') || value.startsWith('/statics/')) {
+  if (value.startsWith('/statics/')) {
+    const prefix = assetPrefix();
+    return prefix ? prefix + value : value;
+  }
+
+  if (value.startsWith('/uploads/')) {
     const prefix = assetPrefix();
     return prefix ? prefix + value : value;
   }

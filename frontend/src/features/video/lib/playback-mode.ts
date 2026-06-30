@@ -149,10 +149,12 @@ export function resolveEmbedPlaybackUrl(url: string): string | null {
   const href = parsed.href;
 
   if (host.includes('youku.com')) {
+    const idFromEmbed = href.match(/\/embed\/([^/?#]+)/i)?.[1];
+    if (idFromEmbed) return `/legacy-video/youku/${encodeURIComponent(idFromEmbed)}`;
     const idFromPath = href.match(/\/id_([^./?#]+)/i)?.[1];
-    if (idFromPath) return `https://player.youku.com/embed/${idFromPath}`;
+    if (idFromPath) return `/legacy-video/youku/${encodeURIComponent(idFromPath)}`;
     const sid = href.match(/sid\/([^/?#]+)/i)?.[1];
-    if (sid) return `https://player.youku.com/embed/${sid}`;
+    if (sid) return `/legacy-video/youku/${encodeURIComponent(sid)}`;
   }
 
   if (host.includes('bilibili.com')) {
@@ -297,6 +299,7 @@ export function isSignedChapterPlayback(raw?: string | null): boolean {
   const rawValue = raw?.trim() ?? '';
   if (!rawValue) return false;
   return /^(eceibs|kuaike|kuanxue|scho):/i.test(rawValue)
+    || rawValue.includes('@@')
     || /^courseId=/i.test(rawValue)
     || /^\/lease\//i.test(rawValue);
 }

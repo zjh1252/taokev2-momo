@@ -1,7 +1,8 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
-import { BookOpen, Flame, Star } from 'lucide-react';
+import { CourseListCoverThumb } from '@/components/course-list-cover-thumb';
+import { Flame, Star } from 'lucide-react';
 import { useBumpedViewCount } from '@/hooks/use-bumped-view-count';
 import type { CourseListItem } from '../../api/types';
 import { decodeHtmlEntities } from '@/lib/html-entities';
@@ -43,9 +44,7 @@ export function OpenCourseCard({ course }: OpenCourseCardProps) {
       className="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group block"
     >
       <div className="flex flex-col md:flex-row gap-4">
-        <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-          <BookOpen className="size-6 text-slate-300" strokeWidth={1.5} />
-        </div>
+        <CourseListCoverThumb coverUrl={course.coverUrl} alt={course.title} />
 
         <div className="flex-1 min-w-0">
           <div className="flex flex-col md:flex-row md:items-start justify-between mb-2 gap-2">

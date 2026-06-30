@@ -3,7 +3,6 @@
 import { Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { SafeImage } from '@/components/safe-image';
-import { resolveImageSrc } from '@/lib/media';
 import type { CourseDetail } from '../../api/types';
 
 interface CourseHeroProps {
@@ -16,7 +15,7 @@ export function CourseHero({ course }: CourseHeroProps) {
   const totalHoursDisplay = course.totalHours
     ? Number(course.totalHours).toFixed(0)
     : null;
-  const coverSrc = resolveImageSrc(course.coverUrl);
+  const coverSrc = course.coverUrl;
 
   // 公开课：取主排期展示时间/地点
   const primaryPlan = isOpen ? course.plans?.[0] : null;
@@ -42,14 +41,13 @@ export function CourseHero({ course }: CourseHeroProps) {
     <div className="bg-white rounded-xl p-8 shadow-sm border border-slate-100">
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="w-full lg:w-[280px] h-[180px] rounded-lg overflow-hidden shrink-0 relative bg-slate-100">
-          {coverSrc ? (
-            <SafeImage
-              src={coverSrc}
-              alt={course.title}
-              fill
-              className="object-cover"
-            />
-          ) : null}
+          <SafeImage
+            src={coverSrc}
+            alt={course.title}
+            fill
+            apiResolved
+            className="object-cover"
+          />
         </div>
 
         <div className="flex-1 min-w-0">

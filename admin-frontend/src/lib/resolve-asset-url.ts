@@ -1,8 +1,9 @@
 /**
  * 后台静态资源 URL 解析工具。
  *
- * <p>上传文件由后端 {@code StorageService} 写入（local 或 aliyun-oss），
- * 返回 URL 可能是相对路径（{@code /uploads/...}）或 OSS/CDN 绝对地址。</p>
+ * <p>上传经 BFF {@code /api/uploads/*} 或 {@code /api/materials/upload} 转发至后端
+ * {@code FileUploadService}，默认写入阿里云 OSS（{@code taoke.storage.provider=aliyun-oss}），
+ * 返回 {@code https://cdn5-pxb-videos.taoke.com/taoke/upload/...}。</p>
  *
  * <p>老站迁移数据常见 {@code /attachments/}、{@code /u/} 等路径，需指向旧站域名。</p>
  *
@@ -24,17 +25,23 @@ const PXB_CDN_BASE = (
   process.env.NEXT_PUBLIC_PXB_VIDEO_CDN_URL ?? 'https://cdn5-pxb-videos.taoke.com'
 ).replace(/\/+$/, '');
 
-/** PXB 录播/上传 CDN — Referer=localhost 会被 ACL 拒绝（403） */
+/** PXB 录播 CDN — 录播视频 dev 反代用；图片直连 CDN（img 设 no-referrer） */
 const PXB_CDN_HOSTS = ['cdn5-pxb-videos.taoke.com', 'cdn-pxb-videos.taoke.com'];
 export const PXB_ASSET_PROXY_PREFIX = '/pxb-videos';
+
+function isPxbUploadPath(value: string): boolean {
+  return value.startsWith('/taoke/upload/') || value.startsWith('taoke/upload/');
+}
 
 function isPxbCdnHost(hostname: string): boolean {
   const lower = hostname.toLowerCase();
   return PXB_CDN_HOSTS.includes(lower) || lower.endsWith('.pxb-videos.taoke.com');
 }
 
-function shouldUsePxbAssetProxy(): boolean {
-  return process.env.NODE_ENV === 'development';
+/** OSS 对象路径 → PXB CDN 绝对 URL */
+function resolvePxbUploadPath(value: string): string {
+  const path = value.startsWith('/') ? value : `/${value}`;
+  return joinBase(PXB_CDN_BASE, path);
 }
 
 /** 外链图片须 no-referrer，否则 PXB CDN / 旧站可能 403 */
@@ -45,7 +52,12 @@ export function imageReferrerPolicy(
   return /^(https?:)/i.test(url.trim()) ? 'no-referrer' : undefined;
 }
 
-function applyPxbDevProxy(absoluteUrl: string): string {
+function shouldUsePxbAssetProxy(): boolean {
+  return process.env.NODE_ENV === 'development';
+}
+
+/** 录播视频等 dev 反代（图片请直连 CDN，见 {@link resolveAssetUrl}） */
+export function applyPxbDevProxy(absoluteUrl: string): string {
   if (!shouldUsePxbAssetProxy()) return absoluteUrl;
   try {
     const parsed = new URL(absoluteUrl);
@@ -101,19 +113,28 @@ export function resolveAssetUrl(
         /^localhost|127\.0\.0\.1$/i.test(parsed.hostname)
         && parsed.pathname.startsWith('/uploads/')
       ) {
+        if (parsed.pathname.startsWith('/uploads/taoke/upload/')) {
+          return resolvePxbUploadPath(parsed.pathname.slice('/uploads'.length));
+        }
         return parsed.pathname;
       }
-      // 历史错误：CDN 域名 + /uploads 路径（OSS 实际在 /taoke/upload）
-      if (
-        /cdn5-pxb-videos\.taoke\.com$/i.test(parsed.hostname)
-        && parsed.pathname.startsWith('/uploads/')
-      ) {
-        return parsed.pathname;
+      if (isPxbUploadPath(parsed.pathname)) {
+        return resolvePxbUploadPath(parsed.pathname);
       }
+      // 图片/OSS 资源直连 CDN（AssetImage 已设 no-referrer）
+      return trimmed;
     } catch {
       /* 保持原样 */
     }
-    return applyPxbDevProxy(trimmed);
+    return trimmed;
+  }
+
+  if (isPxbUploadPath(trimmed)) {
+    return resolvePxbUploadPath(trimmed);
+  }
+
+  if (trimmed.startsWith(`${PXB_ASSET_PROXY_PREFIX}/`)) {
+    return joinBase(PXB_CDN_BASE, trimmed.slice(PXB_ASSET_PROXY_PREFIX.length));
   }
 
   const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
@@ -121,15 +142,13 @@ export function resolveAssetUrl(
   const legacy = resolveLegacyAssetPath(path.startsWith('/') ? path : trimmed);
   if (legacy) return legacy;
 
-  if (path.startsWith('/uploads/')) {
-    // 本地上传目录：走后台同源 /uploads rewrite → 后端 StorageService
-    return path;
+  if (path.startsWith('/uploads/taoke/upload/')) {
+    return resolvePxbUploadPath(path.slice('/uploads'.length));
   }
 
-  if (path.startsWith('/taoke/upload/') || trimmed.startsWith('taoke/upload/')) {
-    return applyPxbDevProxy(
-      joinBase(PXB_CDN_BASE, path.startsWith('/') ? path : `/${trimmed}`)
-    );
+  if (path.startsWith('/uploads/')) {
+    // emergency local 模式遗留路径；新上传应已是 OSS CDN URL
+    return path;
   }
 
   if (path.startsWith('/statics/')) {

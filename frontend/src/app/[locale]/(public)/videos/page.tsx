@@ -67,7 +67,7 @@ export default async function VideosPage({ searchParams }: Props) {
         initialCategoryId={categoryId}
         initialCategoryName={categoryName}
         bottomCategoryNav={{
-          title: '视频分类',
+          title: '可播放视频分类',
           countUnit: '门',
           itemsPromise: categoryNavPromise,
         }}

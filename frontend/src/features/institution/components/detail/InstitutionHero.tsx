@@ -110,6 +110,7 @@ export function InstitutionHero({ institution }: InstitutionHeroProps) {
                 alt={institution.orgName}
                 width={160}
                 height={160}
+                apiResolved
                 className="max-w-full max-h-full object-contain"
               />
             </div>

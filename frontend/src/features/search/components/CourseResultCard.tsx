@@ -1,5 +1,6 @@
 'use client';
 
+import { CourseListCoverThumb } from '@/components/course-list-cover-thumb';
 import { Link } from '@/i18n/navigation';
 import { Flame, Star } from 'lucide-react';
 import type { SearchResultItem } from '../api/types';
@@ -27,7 +28,10 @@ export function CourseResultCard({ item }: CourseResultCardProps) {
       href={detailPath}
       className="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group block"
     >
-      <div className="min-w-0">
+      <div className="flex gap-4">
+        <CourseListCoverThumb coverUrl={item.coverUrl} alt={item.title || ''} />
+
+        <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between mb-2 gap-2">
           <h3 className="text-base font-bold text-slate-800 group-hover:text-primary transition-colors line-clamp-1">
             {hl?.title ? <HighlightText html={hl.title} /> : item.title}
@@ -98,6 +102,7 @@ export function CourseResultCard({ item }: CourseResultCardProps) {
             关键字：{hl?.keywords ? <HighlightText html={hl.keywords} /> : item.keywords}
           </div>
         )}
+        </div>
       </div>
     </Link>
   );

@@ -26,6 +26,7 @@ export function VideoCard({ video }: VideoCardProps) {
           src={video.coverUrl || undefined}
           alt={video.title}
           fill
+          apiResolved
           className="object-cover"
           fallback={getVideoCoverFallback()}
         />

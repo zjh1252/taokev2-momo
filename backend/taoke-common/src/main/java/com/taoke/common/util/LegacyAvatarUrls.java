@@ -85,6 +85,12 @@ public final class LegacyAvatarUrls {
             return value.replace("http://taoke.com/", "https://www.taoke.com/")
                     .replace("http://www.taoke.com/", "https://www.taoke.com/");
         }
+        if (value.startsWith("/taoke/upload/")) {
+            return "https://cdn5-pxb-videos.taoke.com" + value;
+        }
+        if (value.startsWith("taoke/upload/")) {
+            return "https://cdn5-pxb-videos.taoke.com/" + value;
+        }
         if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/uploads/")
                 || value.startsWith("/statics/")) {
             return value;

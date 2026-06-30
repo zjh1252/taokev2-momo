@@ -32,7 +32,15 @@ public class AliOssStorageService implements StorageService {
                 endpoint, oss.getAccessKeyId(), oss.getAccessKeySecret());
         this.bucket = oss.getBucket();
         this.publicDomain = trimTrailingSlash(properties.getPublicDomain());
-        log.info("阿里云 OSS 存储初始化完成，bucket: {}", bucket);
+        if (!StringUtils.hasText(this.publicDomain)) {
+            throw new IllegalStateException(
+                    "taoke.storage.public-domain 未配置：OSS 上传必须返回 CDN 绝对 URL");
+        }
+        if (!StringUtils.hasText(oss.getAccessKeyId()) || !StringUtils.hasText(oss.getAccessKeySecret())) {
+            throw new IllegalStateException(
+                    "OSS 凭据未配置：请设置 OSS_ACCESS_KEY_ID / OSS_ACCESS_KEY_SECRET");
+        }
+        log.info("阿里云 OSS 存储初始化完成，bucket: {}, cdn: {}", bucket, publicDomain);
     }
 
     @Override
@@ -45,7 +53,10 @@ public class AliOssStorageService implements StorageService {
                 metadata.setContentType(contentType);
             }
             ossClient.putObject(bucket, key, data, metadata);
-            log.debug("OSS 上传成功: {}", key);
+            if (!ossClient.doesObjectExist(bucket, key)) {
+                throw new StorageException("aliyun-oss", key, "OSS 上传后对象不存在，请检查 bucket 权限与 CDN 配置");
+            }
+            log.info("OSS 上传成功: bucket={}, key={}", bucket, key);
             return key;
         } catch (Exception e) {
             throw new StorageException("aliyun-oss", path, "OSS 上传失败", e);

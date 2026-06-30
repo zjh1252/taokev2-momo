@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class StorageProperties {
 
     /** 存储提供者：local / aliyun-oss */
-    private String provider = "local";
+    private String provider = "aliyun-oss";
 
     /** 物理根目录（local 模式为磁盘路径，OSS 模式为 key 前缀） */
     private String baseDir = "./storage";

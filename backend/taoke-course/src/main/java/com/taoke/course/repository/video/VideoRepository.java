@@ -27,6 +27,49 @@ public interface VideoRepository extends JpaRepository<Video, Integer>, JpaSpeci
                     OR v.sub_category_id = sc.id
                     OR v.sub_category_id = sc2.id
                 )
+                AND (
+                    LOWER(COALESCE(v.video_url, '')) LIKE '%.mp4%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE '%.m3u8%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE '%.webm%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE '%.mov%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE '%.m4v%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE '%.mpd%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE '%pxb-videos.taoke.com%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE '%sc.cdn.kuanxue.com%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE '%preview.kuanxue.com/fsm/%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE '/uploads/%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE 'eceibs:%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE 'kuaike:%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE 'kuanxue:%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE 'scho:%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE '%@@%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE 'courseid=%'
+                    OR LOWER(COALESCE(v.video_url, '')) LIKE '/lease/%'
+                    OR EXISTS (
+                        SELECT 1
+                        FROM video_chapters vc
+                        WHERE vc.video_id = v.id
+                          AND (
+                              LOWER(COALESCE(vc.video_url, '')) LIKE '%.mp4%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE '%.m3u8%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE '%.webm%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE '%.mov%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE '%.m4v%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE '%.mpd%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE '%pxb-videos.taoke.com%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE '%sc.cdn.kuanxue.com%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE '%preview.kuanxue.com/fsm/%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE '/uploads/%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE 'eceibs:%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE 'kuaike:%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE 'kuanxue:%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE 'scho:%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE '%@@%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE 'courseid=%'
+                              OR LOWER(COALESCE(vc.video_url, '')) LIKE '/lease/%'
+                          )
+                    )
+                )
             WHERE sc.type = 'VIDEO_COURSE'
               AND sc.level = 1
               AND sc.is_visible = 1

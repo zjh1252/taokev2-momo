@@ -58,7 +58,7 @@ taoke:
   jwt:
     secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
   storage:
-    # 开发环境默认走 OSS（与老站 peixunbao-videos 桶一致）；本地磁盘调试可设 STORAGE_PROVIDER=local
+    # 开发环境与生产一致，上传走阿里云 OSS（peixunbao-videos）；仅本地磁盘调试时设 STORAGE_PROVIDER=local
     provider: ${STORAGE_PROVIDER:aliyun-oss}
     oss:
       # 凭据与老站 AliOssUploader / config.video.inc.php 一致，生产请改用环境变量注入

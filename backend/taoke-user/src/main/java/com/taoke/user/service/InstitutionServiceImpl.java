@@ -466,28 +466,9 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         return LegacyAvatarUrls.isPlaceholder(logoUrl);
     }
 
-    /** 老站迁移机构才使用默认头像素材；新注册机构仅保留 Logo 上传 */
-    private boolean allowDefaultInstitutionAvatar(Institution institution) {
-        if (institution == null) {
-            return false;
-        }
-        if (institution.getLegacyRoleId() != null && institution.getLegacyRoleId() > 0) {
-            return true;
-        }
-        if (institution.getUserId() == null) {
-            return false;
-        }
-        return userRepository.findById(institution.getUserId())
-                .map(u -> Integer.valueOf(2).equals(u.getUserSource()))
-                .orElse(false);
-    }
-
     private String resolveInstitutionDisplayLogo(Institution institution, String logoUrl) {
         if (LegacyAvatarUrls.isUsable(logoUrl)) {
             return LegacyAvatarUrls.normalize(logoUrl);
-        }
-        if (!allowDefaultInstitutionAvatar(institution)) {
-            return logoUrl != null ? logoUrl : "";
         }
         int seed = institution.getId() != null ? institution.getId() : 0;
         return opsMaterialResolver.resolveAvatarUrl(logoUrl, "INSTITUTION", true, seed);

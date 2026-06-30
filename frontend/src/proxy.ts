@@ -130,6 +130,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next|api|uploads|pxb-videos|taoke-legacy|pxb-legacy|statics|tac|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|ico|webp|avif|css|js|woff|woff2|ttf|eot|json|xml|txt|map|mp4|m4v|webm)).*)',
+    '/((?!_next|api|uploads|pxb-videos|legacy-video|taoke-legacy|pxb-legacy|statics|tac|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|ico|webp|avif|css|js|woff|woff2|ttf|eot|json|xml|txt|map|mp4|m4v|webm)).*)',
   ],
 };
