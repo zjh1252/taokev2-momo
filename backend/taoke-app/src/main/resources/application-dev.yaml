@@ -48,6 +48,9 @@ spring:
       max-request-size: 500MB
 
 taoke:
+  legacy-api:
+    pxb-outbound:
+      base-url: ${PXB_SITE_URL:http://dev.91pxb.com}
   # 本地开发：mock 短信 + 关闭滑块，与前端 NEXT_PUBLIC_MOCK_SMS=true 对齐
   sms:
     provider: mock

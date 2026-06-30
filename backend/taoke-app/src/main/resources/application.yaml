@@ -100,8 +100,15 @@ taoke:
   legacy-api:
     enabled: true
     signature-keys:
-      pxb: fn234gyty4542
-      taoke: adfdsrve34243
+      pxb: ${LEGACY_SIGNATURE_KEY_PXB:fn234gyty4542}
+      taoke: ${LEGACY_SIGNATURE_KEY_TAOKE:adfdsrve34243}
+    pxb-outbound:
+      enabled: ${PXB_OUTBOUND_ENABLED:true}
+      base-url: ${PXB_SITE_URL:}
+      app-id: ${PXB_OUTBOUND_APP_ID:taoke}
+      api-path: /api/tt_course/add_tt_course.php
+      connect-timeout-ms: 10000
+      read-timeout-ms: 30000
     search-course-timestamp-skew-seconds: 7200
     default-timestamp-skew-seconds: 864000
   upload:

@@ -1,6 +1,10 @@
 package com.taoke.course.service.pxb;
 
+import com.taoke.course.api.PxbLegacyCourseSyncException;
+import com.taoke.course.api.PxbLegacyCourseSyncService;
 import com.taoke.course.api.PxbLegacyOrderService;
+import com.taoke.course.dto.pxb.PxbLegacyCourseSyncCommand;
+import com.taoke.course.dto.pxb.PxbLegacyCourseSyncResult;
 import com.taoke.course.dto.pxb.PxbLegacyOrderPage;
 import com.taoke.course.dto.pxb.PxbLegacyOrderRow;
 import com.taoke.course.dto.pxb.PxbLegacyOrderSupplierRow;
@@ -29,12 +33,14 @@ import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.User;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -46,6 +52,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
@@ -62,6 +69,7 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
     private final UserService userService;
     private final InstitutionService institutionService;
     private final TrainerService trainerService;
+    private final PxbLegacyCourseSyncService pxbCourseSyncService;
 
     @Override
     @Transactional
@@ -81,9 +89,13 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
                                                     String appId) {
         Map<String, Object> fail = new LinkedHashMap<>();
         fail.put("isok", false);
-        fail.put("msg", "订单所需信息不完整");
 
-        if (userId == null || userId <= 0 || packageIds == null || packageIds.isEmpty()) {
+        if (userId == null || userId <= 0) {
+            fail.put("msg", "用户未关联或 uid 无效");
+            return fail;
+        }
+        if (packageIds == null || packageIds.isEmpty()) {
+            fail.put("msg", "package_ids 参数缺失");
             return fail;
         }
 
@@ -121,8 +133,14 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
         }
 
         if (!anyVideo) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             fail.put("msg", "添加失败，没有找到与包匹配的视频 packageIds:" + packageIds);
             return fail;
+        }
+
+        Map<String, Object> syncFail = syncOrderToPxb(order, isIncludePaper, true, true);
+        if (syncFail != null) {
+            return syncFail;
         }
 
         Map<String, Object> msg = new LinkedHashMap<>();
@@ -193,9 +211,124 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
             return result;
         }
         fulfillOrderEnrollments(order);
+        PxbLegacyCourseSyncCommand syncCommand = buildSyncCommand(order, isIncludePaper, true, false);
+        PxbSyncOutcome outcome = executePxbSync(order, syncCommand);
+        if (outcome.fail() != null) {
+            result.put("isok", false);
+            result.put("msg", outcome.fail().get("msg"));
+            result.put("pxb_sync", outcome.pxbSync());
+            return result;
+        }
         result.put("isok", true);
         result.put("msg", "入库成功");
+        result.put("pxb_sync", outcome.pxbSync());
         return result;
+    }
+
+    private record PxbSyncOutcome(Map<String, Object> fail, Map<String, Object> pxbSync) {
+    }
+
+    /** 推送培训宝课程库；失败时回滚事务并返回 isok=false 结构 */
+    private Map<String, Object> syncOrderToPxb(Order order,
+                                             int isIncludePaper,
+                                             boolean includePackagesRelation,
+                                             boolean useOrderPxbRootId) {
+        PxbSyncOutcome outcome = executePxbSync(order,
+                buildSyncCommand(order, isIncludePaper, includePackagesRelation, useOrderPxbRootId));
+        return outcome.fail();
+    }
+
+    private PxbSyncOutcome executePxbSync(Order order, PxbLegacyCourseSyncCommand command) {
+        Map<String, Object> pxbSync = command.toDiagnosticPreview();
+        enrichPxbSyncDiagnostics(pxbSync, command);
+        try {
+            PxbLegacyCourseSyncResult syncResult = pxbCourseSyncService.syncVideosToPxb(command);
+            pxbSync.putAll(syncResult.toDiagnosticMap());
+            if (syncResult.isSkipped()) {
+                log.warn("PXB sync skipped order={} reason={}", order.getOrderNo(), syncResult.getSkipReason());
+            }
+            return new PxbSyncOutcome(null, pxbSync);
+        } catch (PxbLegacyCourseSyncException e) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            Map<String, Object> fail = new LinkedHashMap<>();
+            fail.put("isok", false);
+            fail.put("msg", e.getMessage());
+            return new PxbSyncOutcome(fail, pxbSync);
+        }
+    }
+
+    private PxbLegacyCourseSyncCommand buildSyncCommand(Order order,
+                                                        int isIncludePaper,
+                                                        boolean includePackagesRelation,
+                                                        boolean useOrderPxbRootId) {
+        User user = userService.findAllByIds(List.of(order.getUserId())).stream()
+                .findFirst()
+                .orElse(null);
+        int pxbUid = user != null && user.getUcUid() != null ? user.getUcUid() : 0;
+
+        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+        List<Integer> videoIds = new ArrayList<>();
+        Map<Integer, Integer> packagesRelation = new LinkedHashMap<>();
+
+        for (OrderItem item : items) {
+            if (item.getProductType() == ProductType.VIDEO_PACKAGE) {
+                groupRepository.findById(item.getProductId()).ifPresent(group -> {
+                    int packageKey = group.legacyNodeId();
+                    for (Integer videoId : resolvePackagePublishedVideoIds(group)) {
+                        if (!videoIds.contains(videoId)) {
+                            videoIds.add(videoId);
+                        }
+                        if (includePackagesRelation) {
+                            packagesRelation.put(videoId, packageKey);
+                        }
+                    }
+                });
+            } else if (item.getProductType() == ProductType.VIDEO_COURSE) {
+                videoIds.add(item.getProductId());
+            }
+        }
+
+        int resolvedPaper = resolveIsIncludePaper(isIncludePaper);
+        int pxbRootId = useOrderPxbRootId && order.getPxbRootId() != null ? order.getPxbRootId() : 0;
+
+        return PxbLegacyCourseSyncCommand.builder()
+                .pxbUid(pxbUid)
+                .videoIds(videoIds)
+                .packagesRelation(includePackagesRelation ? packagesRelation : Map.of())
+                .isIncludePaper(resolvedPaper)
+                .copyRootId(order.getCopyRootId() != null ? order.getCopyRootId() : 0)
+                .rootCompanyId(0)
+                .pxbRootId(pxbRootId)
+                .build();
+    }
+
+    private void enrichPxbSyncDiagnostics(Map<String, Object> pxbSync, PxbLegacyCourseSyncCommand command) {
+        if (command.getVideoIds() == null || command.getVideoIds().isEmpty()) {
+            return;
+        }
+        Map<Integer, Video> videosById = videoRepository.findAllById(command.getVideoIds()).stream()
+                .collect(Collectors.toMap(Video::getId, Function.identity(), (a, b) -> a));
+        Map<Integer, String> videoTitles = new LinkedHashMap<>();
+        for (Integer videoId : command.getVideoIds()) {
+            Video video = videosById.get(videoId);
+            videoTitles.put(videoId, video != null && video.getTitle() != null ? video.getTitle() : "");
+        }
+        pxbSync.put("video_titles", videoTitles);
+        if (command.getPackagesRelation() != null && !command.getPackagesRelation().isEmpty()) {
+            pxbSync.put("packages_relation", new LinkedHashMap<>(command.getPackagesRelation()));
+        }
+    }
+
+    private static int resolveIsIncludePaper(int isIncludePaper) {
+        return isIncludePaper >= 0 ? isIncludePaper : 0;
+    }
+
+    private List<Integer> resolvePackagePublishedVideoIds(VideoPackageGroup group) {
+        return PxbLegacyPackageVideoResolver.resolvePublishedVideoIds(
+                relationRepository,
+                group.getPackageId(),
+                group.getTopicId() != null ? group.getTopicId() : 0,
+                group.getParentId() != null ? group.getParentId() : 0);
     }
 
     @Override
@@ -218,7 +351,10 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
                                       Set<Integer> ignoreTopicIds,
                                       BigDecimal total,
                                       int isIncludePaper) {
-        Optional<VideoPackageGroup> groupOpt = groupRepository.findFirstByParentIdAndTopicId(packageId, 0);
+        Optional<VideoPackageGroup> groupOpt = groupRepository.findFirstByTopicId(packageId);
+        if (groupOpt.isEmpty()) {
+            groupOpt = groupRepository.findFirstByParentIdAndTopicId(packageId, 0);
+        }
         if (groupOpt.isEmpty()) {
             groupOpt = groupRepository.findByParentId(packageId).stream().findFirst();
         }
@@ -289,15 +425,13 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
                                                Integer parentId,
                                                LocalDateTime expiredAt,
                                                BigDecimal pricePaid) {
-        List<VideoPackageRelation> relations = relationRepository
-                .findByPackageIdAndTopicIdAndParentIdOrderBySortOrderAscVideoIdAsc(
-                        packageId, topicId != null ? topicId : 0, parentId != null ? parentId : 0);
-        if (relations.isEmpty()) {
-            relations = relationRepository.findByParentId(parentId != null ? parentId : packageId);
-        }
-        for (VideoPackageRelation relation : relations) {
-            createOrRenewEnrollment(order.getUserId(), order.getId(), relation.getVideoId(),
-                    pricePaid, expiredAt);
+        List<Integer> videoIds = PxbLegacyPackageVideoResolver.resolvePublishedVideoIds(
+                relationRepository,
+                packageId != null ? packageId : 0,
+                topicId != null ? topicId : 0,
+                parentId != null ? parentId : 0);
+        for (Integer videoId : videoIds) {
+            createOrRenewEnrollment(order.getUserId(), order.getId(), videoId, pricePaid, expiredAt);
         }
     }
 
@@ -450,8 +584,9 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
 
         Map<Integer, List<Integer>> packageVideoIds = new HashMap<>();
         for (VideoPackageGroup group : groupsById.values()) {
-            packageVideoIds.put(group.getPackageId(), collectVideoIds(group.getPackageId(), Set.of()));
-            videoIds.addAll(packageVideoIds.get(group.getPackageId()));
+            List<Integer> pkgVideos = resolvePackagePublishedVideoIds(group);
+            packageVideoIds.put(group.getPackageId(), pkgVideos);
+            videoIds.addAll(pkgVideos);
         }
 
         Map<Integer, Video> videosById = videoIds.isEmpty()
@@ -699,7 +834,7 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
                     }
                 } else {
                     groupRepository.findById(item.getProductId()).ifPresent(group ->
-                            videoIds.addAll(collectVideoIds(group.getPackageId(), ignoreTopicIds)));
+                            videoIds.addAll(resolvePackagePublishedVideoIds(group)));
                 }
             }
         }

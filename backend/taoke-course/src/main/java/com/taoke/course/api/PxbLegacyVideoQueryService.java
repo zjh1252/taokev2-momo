@@ -44,6 +44,11 @@ public interface PxbLegacyVideoQueryService {
                                                                     Collection<Integer> videoIds,
                                                                     Integer pxbRootId);
 
+    /**
+     * 批量查询录播课分集（对齐老站 coursesPrehandle 的 series 数组，types=1 可播放小节）。
+     */
+    Map<Integer, List<Map<String, Object>>> findLegacySeriesByVideoIds(Collection<Integer> videoIds);
+
     /** adsList：推荐录播课，以 id 为 key 的映射在 legacy 层组装 */
     List<PxbLegacyVideoRow> listVideoAds(int limit);
 

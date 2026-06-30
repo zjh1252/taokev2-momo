@@ -1,6 +1,6 @@
 package com.taoke.course.service.pxb;
 
-import com.taoke.course.api.PxbLegacyCourseSyncService;
+import com.taoke.course.api.PxbLegacyResourceTypeSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -11,7 +11,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-public class PxbLegacyCourseSyncServiceImpl implements PxbLegacyCourseSyncService {
+public class PxbLegacyResourceTypeSyncServiceImpl implements PxbLegacyResourceTypeSyncService {
 
     /** PXB resource_type → 老站 pxb_resoure 枚举（1 调研 / 2 考试 / 3 行动） */
     private static final Map<Integer, Integer> PXB_RESOURCE_TYPE_MAP = Map.of(
