@@ -44,8 +44,11 @@ public class PxbLegacyCourseSyncServiceImpl implements PxbLegacyCourseSyncServic
     @Override
     public PxbLegacyCourseSyncResult syncVideosToPxb(PxbLegacyCourseSyncCommand command) {
         LegacyApiProperties.PxbOutboundProperties outbound = properties.getPxbOutbound();
-        String appId = StringUtils.hasText(outbound.getAppId()) ? outbound.getAppId() : "taoke";
-        String url = StringUtils.hasText(outbound.getBaseUrl()) ? buildUrl(outbound) : null;
+        String appId = properties.resolveOutboundAppId(command.getAppid());
+        String url = properties.resolveOutboundUrl(appId);
+        if (!StringUtils.hasText(url)) {
+            url = null;
+        }
 
         PxbLegacyCourseSyncResult.PxbLegacyCourseSyncResultBuilder base = PxbLegacyCourseSyncResult.builder()
                 .appid(appId)
@@ -67,8 +70,9 @@ public class PxbLegacyCourseSyncServiceImpl implements PxbLegacyCourseSyncServic
         if (command.getVideoIds() == null || command.getVideoIds().isEmpty()) {
             throw new PxbLegacyCourseSyncException("订单无可用视频，无法入库培训宝课程库");
         }
-        if (!StringUtils.hasText(outbound.getBaseUrl())) {
-            throw new PxbLegacyCourseSyncException("未配置培训宝站点地址 taoke.legacy-api.pxb-outbound.base-url");
+        if (!StringUtils.hasText(url)) {
+            throw new PxbLegacyCourseSyncException(
+                    "未配置出库地址：接入商请配置 taoke.legacy-api.signature-urls，培训宝请配置 pxb-outbound.base-url");
         }
 
         long timestamp = System.currentTimeMillis() / 1000;
@@ -128,18 +132,6 @@ public class PxbLegacyCourseSyncServiceImpl implements PxbLegacyCourseSyncServic
                     url, appId, command.getPxbUid(), command.getVideoIds(), e);
             throw new PxbLegacyCourseSyncException("调用培训宝 saveCourses 失败: " + e.getMessage(), e);
         }
-    }
-
-    private static String buildUrl(LegacyApiProperties.PxbOutboundProperties outbound) {
-        String base = outbound.getBaseUrl().trim();
-        if (base.endsWith("/")) {
-            base = base.substring(0, base.length() - 1);
-        }
-        String path = outbound.getApiPath().trim();
-        if (!path.startsWith("/")) {
-            path = "/" + path;
-        }
-        return base + path;
     }
 
     private static String encodeForm(Map<String, String> form) {

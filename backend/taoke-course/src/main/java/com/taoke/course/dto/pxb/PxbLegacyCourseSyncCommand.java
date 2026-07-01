@@ -13,7 +13,9 @@ import java.util.Map;
 @Builder
 public class PxbLegacyCourseSyncCommand {
 
-    /** 培训宝 cdbid（UC uid），非本地 sys_users.id */
+    /** 出库签名 appid，默认 taoke；接入商为 wittrain 等 */
+    private String appid;
+    /** 培训宝 cdbid 或接入商 root_company_id，非本地 sys_users.id */
     private int pxbUid;
     /** 待入库视频 ID（包订单为每个系列 1 个代表 video_id） */
     private List<Integer> videoIds;
@@ -29,6 +31,9 @@ public class PxbLegacyCourseSyncCommand {
     /** restore 诊断：推送前参数预览 */
     public Map<String, Object> toDiagnosticPreview() {
         Map<String, Object> map = new LinkedHashMap<>();
+        if (appid != null && !appid.isBlank()) {
+            map.put("appid", appid);
+        }
         map.put("uid", pxbUid);
         map.put("video_ids", videoIds != null ? new ArrayList<>(videoIds) : List.of());
         map.put("pxb_root_id", pxbRootId);

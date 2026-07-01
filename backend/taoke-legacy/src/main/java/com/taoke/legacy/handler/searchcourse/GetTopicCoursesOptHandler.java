@@ -37,7 +37,7 @@ public class GetTopicCoursesOptHandler implements SearchCourseOptHandler {
         int start = params.getInt(request, "start", 0);
         int perpage = params.getInt(request, "perpage", 15);
 
-        int userId = userResolver.resolveUserId(pxbUid);
+        int userId = userResolver.resolveUserId(request, pxbUid);
         if (userId <= 0 || packageId <= 0) {
             return emptyResponse();
         }

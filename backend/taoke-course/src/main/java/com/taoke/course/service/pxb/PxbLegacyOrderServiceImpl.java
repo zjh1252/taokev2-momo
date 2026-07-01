@@ -26,6 +26,7 @@ import com.taoke.course.repository.video.VideoPackageRelationRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.repository.video.VideoStudentRepository;
 import com.taoke.user.api.InstitutionService;
+import com.taoke.user.api.MemberProviderService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.api.UserService;
 import com.taoke.user.entity.Institution;
@@ -67,6 +68,7 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
     private final VideoEnrollmentRepository videoEnrollmentRepository;
     private final VideoStudentRepository videoStudentRepository;
     private final UserService userService;
+    private final MemberProviderService memberProviderService;
     private final InstitutionService institutionService;
     private final TrainerService trainerService;
     private final PxbLegacyCourseSyncService pxbCourseSyncService;
@@ -264,7 +266,16 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
         User user = userService.findAllByIds(List.of(order.getUserId())).stream()
                 .findFirst()
                 .orElse(null);
+
+        String appid = "taoke";
         int pxbUid = user != null && user.getUcUid() != null ? user.getUcUid() : 0;
+        int rootCompanyId = 0;
+        var providerBinding = memberProviderService.findByTkwUserId(order.getUserId());
+        if (providerBinding.isPresent()) {
+            appid = providerBinding.get().tkwType();
+            pxbUid = providerBinding.get().rootCompanyId();
+            rootCompanyId = providerBinding.get().rootCompanyId();
+        }
 
         List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
         List<Integer> videoIds = new ArrayList<>();
@@ -292,12 +303,13 @@ public class PxbLegacyOrderServiceImpl implements PxbLegacyOrderService {
         int pxbRootId = useOrderPxbRootId && order.getPxbRootId() != null ? order.getPxbRootId() : 0;
 
         return PxbLegacyCourseSyncCommand.builder()
+                .appid(appid)
                 .pxbUid(pxbUid)
                 .videoIds(videoIds)
                 .packagesRelation(includePackagesRelation ? packagesRelation : Map.of())
                 .isIncludePaper(resolvedPaper)
                 .copyRootId(order.getCopyRootId() != null ? order.getCopyRootId() : 0)
-                .rootCompanyId(0)
+                .rootCompanyId(rootCompanyId)
                 .pxbRootId(pxbRootId)
                 .build();
     }

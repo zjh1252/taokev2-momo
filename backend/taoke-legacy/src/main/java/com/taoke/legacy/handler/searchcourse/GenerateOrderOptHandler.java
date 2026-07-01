@@ -34,7 +34,7 @@ public class GenerateOrderOptHandler implements SearchCourseOptHandler {
     public Map<String, Object> handle(HttpServletRequest request) {
         int pxbUid = params.getInt(request, "uid", 0);
         int pxbRootId = params.getInt(request, "pxb_root_id", 0);
-        int userId = userResolver.resolveUserId(pxbUid);
+        int userId = userResolver.resolveUserId(request, pxbUid);
         List<Integer> packageIds = params.getIntList(request, "package_ids");
 
         BigDecimal total = parseDecimal(params.getString(request, "total"));

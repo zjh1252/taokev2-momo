@@ -48,7 +48,8 @@ public class LegacyMobilePlayerService {
             return fail;
         }
 
-        int userId = userResolver.resolveUserId(cdbid);
+        int userId = userResolver.resolveUserId(
+                StringUtils.hasText(appId) ? appId : "taoke", cdbid);
         if (userId <= 0) {
             return fail;
         }

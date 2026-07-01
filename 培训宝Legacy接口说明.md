@@ -32,10 +32,20 @@ ksort(appid, opt, timetamp)
 | `signature` | Query | 32 位 MD5 |
 | 业务参数 | POST body | `application/x-www-form-urlencoded` |
 
-密钥（`application.yaml` → `taoke.legacy-api.signature-keys`）：
+密钥与出库地址（对齐老站 `common.signature.php`，配置在 `backend/.env.local` / 部署环境变量）：
 
-- `pxb`: `fn234gyty4542`
-- `taoke`: `adfdsrve34243`
+| 配置项 | 环境变量 | 说明 |
+|--------|----------|------|
+| `signature-keys.pxb` | `LEGACY_SIGNATURE_KEY_PXB` | 培训宝入站 appid |
+| `signature-keys.taoke` | `LEGACY_SIGNATURE_KEY_TAOKE` | 淘课出库默认 appid |
+| `signature-keys.shequ` | `LEGACY_SIGNATURE_KEY_SHEQU` | 社区等其它接入方 |
+| `signature-keys.wittrain` 等 | `LEGACY_SIGNATURE_KEY_WITTRAIN` 等 | i人事接入商 |
+| `signature-urls.wittrain` 等 | `LEGACY_SIGNATURE_URL_WITTRAIN` 等 | 接入商出库完整 URL |
+| `pxb-outbound.base-url` | `PXB_SITE_URL` | 培训宝默认出库根地址 |
+
+- 入站：`appid` 必须在 `signature-keys` 中有对应密钥，否则返回 `Access Denied`。
+- 出库：`MemberProvider` 用户走 `signature-urls[appid]`；普通培训宝用户走 `PXB_SITE_URL` + `/api/tt_course/add_tt_course.php`（https 自动降为 http，与老站一致）。
+- 用户映射：`signature-urls` 中的 appid 走 `member_provider` 表（接入商 `root_company_id`）；否则 `uid` = UCenter cdbid = `sys_users.uc_uid`。
 
 时间戳窗口：
 
