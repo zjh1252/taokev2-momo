@@ -1,6 +1,14 @@
 # 培训宝 Legacy 兼容接口说明
 
-本文档描述 **taokev2-mono** 中 `taoke-legacy` 模块已实现的培训宝（PXB）兼容接口。培训宝只需将 `tkw_site_host` / `mobile_website` 指向 v2 后端地址，URL 形态与老站一致。
+本文档描述 **taokev2-mono** 中 `taoke-legacy` 模块已实现的 Legacy 兼容接口，供 **培训宝（PXB）**、**i人事 / wittrain 等接入商** 调用。调用方只需将 `tkw_site_host` / `mobile_website` 指向 v2 后端地址，URL 形态与老站一致。
+
+**联调环境示例：**
+
+| 角色 | 地址 |
+|------|------|
+| 淘课 v2 | `http://local.taokenew.com:8080` |
+| 培训宝 | `http://local.91pxb.com`（本地） / `https://dev.91pxb.com`（dev） |
+| i人事 wittrain | 由 `LEGACY_SIGNATURE_URL_WITTRAIN` 配置 |
 
 ---
 
@@ -11,8 +19,9 @@
 | 默认服务根地址 | `http://127.0.0.1:8080`（或实际部署域名） |
 | 响应格式 | **直接 JSON 字符串**，不使用 v2 的 `ApiResponse` 包装 |
 | 鉴权失败 | 返回纯文本 `Access Denied`（HTTP 200） |
-| 用户映射 | POST 参数 `uid` = 培训宝 UCenter **cdbid** = `sys_users.uc_uid` |
-| 组织隔离 | `pxb_root_id` = 培训宝 `root_company_id`，`0` 表示不限 |
+| 用户映射（培训宝 `appid=pxb`） | POST 参数 `uid` = UCenter **cdbid** = `sys_users.uc_uid` |
+| 用户映射（接入商 `appid=wittrain` 等） | POST 参数 `uid` = 接入商 **root_company_id** → `member_provider` → `sys_users.id`（不存在时自动注册） |
+| 组织隔离 | `pxb_root_id` = 培训宝 / 接入商组织 `root_company_id`，`0` 表示不限 |
 
 ### 1.1 search_course.php 签名（Query 参数）
 
@@ -26,26 +35,31 @@ ksort(appid, opt, timetamp)
 
 | 参数 | 位置 | 说明 |
 |------|------|------|
-| `appid` | Query | 默认 `pxb` |
+| `appid` | Query | 培训宝入站常用 `pxb`；i人事等接入商为 `wittrain` / `qa_wittrain` / `ihr_wittrain` |
 | `opt` | Query | 业务操作名 |
 | `timetamp` | Query | Unix 秒级时间戳（注意拼写是 timetamp） |
 | `signature` | Query | 32 位 MD5 |
 | 业务参数 | POST body | `application/x-www-form-urlencoded` |
 
-密钥与出库地址（对齐老站 `common.signature.php`，配置在 `backend/.env.local` / 部署环境变量）：
+密钥与出库地址（对齐老站 `common.signature.php`，**密钥与 URL 写在 `backend/.env.local` 或部署环境变量**，`application.yaml` 仅做引用；模板见 `backend/.env.example`）：
 
 | 配置项 | 环境变量 | 说明 |
 |--------|----------|------|
 | `signature-keys.pxb` | `LEGACY_SIGNATURE_KEY_PXB` | 培训宝入站 appid |
-| `signature-keys.taoke` | `LEGACY_SIGNATURE_KEY_TAOKE` | 淘课出库默认 appid |
+| `signature-keys.taoke` | `LEGACY_SIGNATURE_KEY_TAOKE` | 淘课出库 PXB 默认签名 appid |
 | `signature-keys.shequ` | `LEGACY_SIGNATURE_KEY_SHEQU` | 社区等其它接入方 |
-| `signature-keys.wittrain` 等 | `LEGACY_SIGNATURE_KEY_WITTRAIN` 等 | i人事接入商 |
-| `signature-urls.wittrain` 等 | `LEGACY_SIGNATURE_URL_WITTRAIN` 等 | 接入商出库完整 URL |
+| `signature-keys.wittrain` | `LEGACY_SIGNATURE_KEY_WITTRAIN` | i人事接入商（测试/生产另有 `QA_WITTRAIN` / `IHR_WITTRAIN`） |
+| `signature-urls.wittrain` 等 | `LEGACY_SIGNATURE_URL_WITTRAIN` 等 | 接入商出库完整 URL（`add_tt_course.php`） |
 | `pxb-outbound.base-url` | `PXB_SITE_URL` | 培训宝默认出库根地址 |
+| `pxb-outbound.enabled` | `PXB_OUTBOUND_ENABLED` | 是否推送 saveCourses，默认 `true` |
+| `pxb-outbound.app-id` | `PXB_OUTBOUND_APP_ID` | 出库 PXB 时签名 appid，默认 `taoke` |
 
-- 入站：`appid` 必须在 `signature-keys` 中有对应密钥，否则返回 `Access Denied`。
-- 出库：`MemberProvider` 用户走 `signature-urls[appid]`；普通培训宝用户走 `PXB_SITE_URL` + `/api/tt_course/add_tt_course.php`（https 自动降为 http，与老站一致）。
-- 用户映射：`signature-urls` 中的 appid 走 `member_provider` 表（接入商 `root_company_id`）；否则 `uid` = UCenter cdbid = `sys_users.uc_uid`。
+**行为说明：**
+
+- **入站**：Query 中 `appid` 必须在 `signature-keys` 中有对应密钥，否则返回 `Access Denied`。
+- **出站 saveCourses**：见 **§1.4**；接入商 URL 原样使用（可 https），培训宝默认 URL 会将 https 降为 http（与老站 `pxbCurl` 一致）。
+- **用户映射**：在 `signature-urls` 中配置的 appid（如 `wittrain`）→ `member_provider` 表；否则 `uid` = UCenter cdbid = `sys_users.uc_uid`。
+- **数据库**：接入商映射依赖 Flyway `V132__create_member_provider.sql`（表 `member_provider`）。
 
 时间戳窗口：
 
@@ -99,6 +113,31 @@ GET Query 中含**未编码**的非 ASCII 字符（如 `trainer_name=刘纯`）�
 
 - 兜底仅表示「请求格式非法」，**无法**按中文关键词真正查库；培训宝侧仍应对参数做 **urlencode**，或使用 **POST body** 传中文。
 - 实现：`taoke-legacy` 模块 `LegacyApiErrorReportValve`（Tomcat `ErrorReportValve` 替换）。
+
+### 1.4 下单后出库 saveCourses（generateOrder / restoreByOrderCode）
+
+`generateOrder`、`restoreByOrderCode` 在本地落单并创建 enrollment 后，会调用出库接口（对齐老站 `pxb_tt_course.pxbCurl` → `add_tt_course.php?opt=saveCourses`）。
+
+| 场景 | 出库 URL | 签名 appid | POST `uid` |
+|------|----------|------------|------------|
+| 培训宝普通用户 | `{PXB_SITE_URL}/api/tt_course/add_tt_course.php` | `taoke`（`PXB_OUTBOUND_APP_ID`） | 用户 UCenter cdbid |
+| 接入商用户（`member_provider`） | `signature-urls[tkw_type]`，如 wittrain | 接入商 appid（如 `wittrain`） | 接入商 `root_company_id` |
+
+**POST 主要字段：**
+
+- `save_data`：逗号分隔 video_id；**套餐订单**为包内全部已发布 video（与老站 order_detail 一致）
+- `packages_relation[videoId]`：video → 老站 topic_item.id（package legacy node id）
+- `pxb_root_id`、`is_include_paper`、`copy_root_id` 等与老站一致
+
+**PXB / 接入商成功响应（JSON）：**
+
+```json
+{ "isok": true, "msg": "存入课程库成功" }
+```
+
+v2 同时识别 `isok` 与 `is_ok`。若出库失败，订单事务回滚，接口返回 `{ "isok": false, "msg": "..." }`。
+
+**关闭出库（仅本地落单）：** `PXB_OUTBOUND_ENABLED=false`
 
 ---
 
@@ -249,12 +288,12 @@ GET|POST {BASE}/api/search_course.php?opt=...&appid=pxb&timetamp=...&signature=.
 
 ---
 
-#### `getTopicCourses` — 包内课程分页
+#### `getTopicCourses` — 包内课程分页 ✅ 已验证（培训宝 package 780 等）
 
 | POST 参数 | 必填 | 说明 |
 |-----------|------|------|
 | `uid` | 是 | |
-| `package_id` | 是 | 包 ID |
+| `package_id` | 是 | 包 ID（`video_package_groups.legacy_node_id`） |
 | `second_id` | 否 | 子专题 ID，`0`=整包 |
 | `start` / `perpage` | 否 | 分页，默认 0 / 15 |
 | `pxb_root_id` | 否 | |
@@ -284,12 +323,12 @@ GET|POST {BASE}/api/search_course.php?opt=...&appid=pxb&timetamp=...&signature=.
 
 ### 2.3 订单
 
-#### `generateOrder` — 创建套餐订单
+#### `generateOrder` — 创建套餐订单 ✅ 已验证
 
 | POST 参数 | 必填 | 说明 |
 |-----------|------|------|
-| `uid` | 是 | |
-| `package_ids` / `package_ids[]` | 是 | 包 ID 列表 |
+| `uid` | 是 | 培训宝：cdbid；接入商（wittrain）：root_company_id |
+| `package_ids` / `package_ids[]` | 是 | 包 ID 列表（老站 topic_item.id / v2 `video_package_groups.legacy_node_id`） |
 | `total` | 否 | 订单金额 |
 | `pxb_kefu` / `pxb_remarks` / `order_subject` | 否 | 客服信息 |
 | `is_include_paper` | 否 | 是否含试卷 |
@@ -297,7 +336,9 @@ GET|POST {BASE}/api/search_course.php?opt=...&appid=pxb&timetamp=...&signature=.
 | `concurrency` | 否 | 同时观看人数，默认 1 |
 | `begintime` / `endtime` | 否 | Unix 秒，有效期 |
 | `ignore_package` / `ignore_package[]` | 否 | 排除的子系列 |
-| `pxb_root_id` | 否 | |
+| `pxb_root_id` | 否 | 组织隔离，写入 `orders.pxb_root_id` |
+
+**流程：** 解析用户 → 创建 `orders` / `order_items` / enrollment → 出库 saveCourses → 成功返回订单号。
 
 **成功响应：**
 
@@ -314,7 +355,25 @@ GET|POST {BASE}/api/search_course.php?opt=...&appid=pxb&timetamp=...&signature=.
 }
 ```
 
-**失败：** `{ "isok": false, "msg": "..." }`
+**失败：** `{ "isok": false, "msg": "..." }`（含出库失败时整单回滚）
+
+**已验证场景（2026-06 / 2026-07）：**
+
+| 调用方 | appid | 说明 |
+|--------|-------|------|
+| 培训宝 | `pxb` | 套餐下单（如 package 941），课程入库培训宝 tt_course |
+| i人事 | `wittrain` | 在线课程下单，课程入库 i人事侧课程库 |
+
+**请求示例（培训宝）：**
+
+```http
+POST /api/search_course.php?opt=generateOrder&appid=pxb&timetamp={ts}&signature={sig}
+Content-Type: application/x-www-form-urlencoded
+
+uid=16257&pxb_root_id=44&package_ids[0]=941&total=0&order_subject=...&is_include_paper=0&concurrency=1
+```
+
+**请求示例（i人事 wittrain）：** Query 中 `appid=wittrain`，`uid` 为接入商 root_company_id；出库走 `LEGACY_SIGNATURE_URL_WITTRAIN`。
 
 ---
 
@@ -322,11 +381,13 @@ GET|POST {BASE}/api/search_course.php?opt=...&appid=pxb&timetamp=...&signature=.
 
 | POST 参数 | 必填 | 说明 |
 |-----------|------|------|
-| `filter[uids]` | 否 | 培训宝 uid 逗号分隔，会转成内部 userId |
+| `filter[uids]` | 否 | 用户 ID 逗号分隔；培训宝为 cdbid，接入商为 root_company_id，经 MemberProvider / uc_uid 转内部 userId |
 | `filter[order_status]` | 否 | 订单状态 |
 | `filter[start_time_start]` 等 | 否 | 时间范围（Unix 秒） |
-| `filter[root_company_id]` | 否 | 组织过滤 |
-| `page` / `pagesize` | 否 | 默认 1 / 15 |
+| `filter[root_company_id]` | 否 | 组织过滤：`pxb_root_id IN (0, root_company_id)` |
+| `page` / `pagesize` | 否 | 默认 1 / 15，按 `orders.id DESC` |
+
+> **已知限制：** 标准 PXB 使用 `filter[uids]`、`filter[root_company_id]`（见 `getOredersByCondition`）。i人事部分请求使用 `uid[uids]`、`uid[root_company_id]` 嵌套格式，**v2 当前仅识别 `filter[...]`**，ihr 订单列表联调需待兼容或 ihr 侧改为标准参数。查最新订单请使用 **`page=1`**。
 
 **响应：**
 
@@ -357,6 +418,8 @@ GET|POST {BASE}/api/search_course.php?opt=...&appid=pxb&timetamp=...&signature=.
 |-----------|------|------|
 | `order_code` | 是 | 订单号 |
 | `is_include_paper` | 否 | 默认 -1（取订单原状态） |
+
+成功后同样会触发 saveCourses 出库（规则同 **§1.4**）。
 
 **响应：** `{ "isok": true, "msg": "入库成功" }`
 
@@ -703,9 +766,9 @@ GET|POST {BASE}/?c=taokeajax&a=getData&json={...}
 | `getCourseTopic` | GET/POST | `/api/search_course.php?opt=getCourseTopic&...` | 套餐树 |
 | `getTopicCourses` | GET/POST | `/api/search_course.php?opt=getTopicCourses&...` | 包内课程 |
 | `getTopicCourseIds` | GET/POST | `/api/search_course.php?opt=getTopicCourseIds&...` | 包内 ID |
-| `generateOrder` | GET/POST | `/api/search_course.php?opt=generateOrder&...` | 下单 |
-| `getOrders` | GET/POST | `/api/search_course.php?opt=getOrders&...` | 订单列表 |
-| `restoreByOrderCode` | GET/POST | `/api/search_course.php?opt=restoreByOrderCode&...` | 订单入库 |
+| `generateOrder` | GET/POST | `/api/search_course.php?opt=generateOrder&...` | 下单 + 出库 ✅ |
+| `getOrders` | GET/POST | `/api/search_course.php?opt=getOrders&...` | 订单列表（ihr 参数格式待兼容） |
+| `restoreByOrderCode` | GET/POST | `/api/search_course.php?opt=restoreByOrderCode&...` | 订单重入库 |
 | `getVideoIdsByOrderCode` | GET/POST | `/api/search_course.php?opt=getVideoIdsByOrderCode&...` | 订单视频 ID |
 | `trainer` | GET/POST | `/api/get.php?opt=trainer&...` | 按姓名搜讲师 |
 | `video_state` | GET/POST | `/api/get.php?opt=video_state&...` | 共享视频审核态 |
@@ -718,17 +781,43 @@ GET|POST {BASE}/?c=taokeajax&a=getData&json={...}
 
 ---
 
-## 七、尚未实现（老站有、v2 暂无）
+## 七、已验证场景与待办
 
-- **get.php / trainer.php 联调**：`tkvideo`、`video_state`、`related_tktrainer` 代码已实现，待在培训宝「视频共享 / 师资关联」场景实机验证
-- **search_course 全链路**：`getTopicCourses` + `generateOrder` 等用真实 `uid` / `package_id` 端到端验证
+### 7.1 已验证（可切 test / 生产前回归）
+
+| 场景 | appid | 关键 opt / 说明 |
+|------|-------|-----------------|
+| 培训宝套餐选课 / 包内课列表 | `pxb` | `getTopicCourses`（如 package 780） |
+| 培训宝套餐下单 + 入库 | `pxb` | `generateOrder` → saveCourses → 培训宝 tt_course |
+| 套餐多门课入库 | `pxb` | 包订单推送包内全部 video + `packages_relation` |
+| i人事在线课程下单 + 入库 | `wittrain` | `generateOrder` → `signature-urls` 出库 |
+| 师资库 | `pxb` | `trainer.php`：`get_trainer_list` / `get_trainer_detail` |
+| 讲师关联 | `pxb` | `get.php`：`related_tktrainer` |
+
+### 7.2 尚未实现或待验证
+
+- **getOrders（i人事参数格式）**：`uid[uids]` 嵌套参数兼容（见 **§2.3**）
+- **get.php**：`tkvideo`、`video_state` 在 PXB「视频共享 / 审核」场景实机验证
 - **P2 组织**：`syncOrgMember`、`bindOrgShop`
-- **播放补全**：第三方供应商 v_type 7–11 播放 URL 完整签发（宽学/快课/中欧等，目前多返回原始地址）
+- **播放补全**：第三方供应商 v_type 7–11 播放 URL 完整签发（宽学/快课/中欧等）
 - **移动站播放**：`/?c=taokevideo&a=player` 真机 / PXB APP 回归
+- **member_provider 历史数据**：生产切流前评估是否从老库 `tk_member_provider` 迁移
 
 ---
 
 ## 八、快速联调
+
+**环境准备：**
+
+```powershell
+# 复制并编辑 Legacy 相关环境变量
+cp backend/.env.example backend/.env.local
+# 必填：LEGACY_SIGNATURE_KEY_PXB / TAOKE、PXB_SITE_URL；接入商另配 WITTRAIN 密钥与 URL
+
+# 首次启动需执行 Flyway（含 member_provider 表 V132）
+cd backend/taoke-app
+mvn flyway:repair   # 仅 checksum 冲突时
+```
 
 ```powershell
 cd backend/scripts
@@ -741,8 +830,9 @@ python pxb-legacy-smoke.py suite --uid 你的uc_uid
 
 # search_course 单个 opt
 python pxb-legacy-smoke.py call --opt getCourseTopic --uid 123456
+python pxb-legacy-smoke.py call --opt getTopicCourses --uid 123456 --param package_id=941
 python pxb-legacy-smoke.py call --opt getCourseBuyStatus --uid 123456 --param courseids=1001,1002
-python pxb-legacy-smoke.py call --opt generateOrder --uid 123456 --param package_ids=801 --param total=100
+python pxb-legacy-smoke.py call --opt generateOrder --uid 123456 --param package_ids=941 --param total=0
 
 # get.php
 python pxb-legacy-smoke.py call-get --opt trainer --param trainer_name=刘 --param accurate=1
@@ -770,7 +860,9 @@ mvn flyway:repair
 
 **相关代码路径：**
 
-- 模块：`backend/taoke-legacy/`、`backend/taoke-course/`（PXB 视频/订单）、`backend/taoke-user/`（讲师查询）
+- 模块：`backend/taoke-legacy/`、`backend/taoke-course/`（PXB 视频/订单）、`backend/taoke-user/`（讲师 / MemberProvider）
 - 入口 Controller：`LegacySearchCourseController`、`LegacyGetController`、`LegacyTrainerController`、`LegacyMobileController`
-- 配置：`backend/taoke-app/src/main/resources/application.yaml` → `taoke.legacy-api`
-- DB 迁移：`V116__pxb_legacy_get_api.sql`（`pxb_supplier_id`、`pxb_trainer_related_logs` 等）
+- 配置：`backend/taoke-app/src/main/resources/application.yaml` → `taoke.legacy-api`；密钥见 `backend/.env.example`
+- 出库实现：`PxbLegacyCourseSyncServiceImpl`（saveCourses）
+- 用户映射：`PxbUserResolver`、`MemberProviderServiceImpl`
+- DB 迁移：`V116__pxb_legacy_get_api.sql`、`V125__extend_orders_for_pxb_legacy.sql`、`V132__create_member_provider.sql` 等
