@@ -159,7 +159,7 @@ public class PxbLegacyCourseSyncServiceImpl implements PxbLegacyCourseSyncServic
         }
         try {
             PxbSaveCoursesResponse parsed = objectMapper.readValue(body, PxbSaveCoursesResponse.class);
-            if (Boolean.TRUE.equals(parsed.isOk)) {
+            if (parsed.isSuccess()) {
                 return;
             }
             String msg = parsed.msg != null ? parsed.msg : body;
@@ -168,8 +168,13 @@ public class PxbLegacyCourseSyncServiceImpl implements PxbLegacyCourseSyncServic
             throw e;
         } catch (Exception e) {
             throw new PxbLegacyCourseSyncException(
-                    "培训宝 saveCourses 响应非 JSON 或 is_ok 不为 true: " + truncate(body, LOG_BODY_MAX), e);
+                    "培训宝 saveCourses 响应非 JSON 或 isok/is_ok 不为 true: " + truncate(body, LOG_BODY_MAX), e);
         }
+    }
+
+    /** 供单测：解析 saveCourses 响应是否成功（PXB ajaxSuccess 用 isok，部分环境用 is_ok）。 */
+    static boolean isSaveCoursesResponseSuccess(String body, ObjectMapper objectMapper) throws Exception {
+        return objectMapper.readValue(body, PxbSaveCoursesResponse.class).isSuccess();
     }
 
     private static String truncate(String body, int maxLen) {
@@ -180,9 +185,17 @@ public class PxbLegacyCourseSyncServiceImpl implements PxbLegacyCourseSyncServic
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private static class PxbSaveCoursesResponse {
+    static class PxbSaveCoursesResponse {
+        /** PXB ajaxSuccess 标准字段 */
+        @JsonProperty("isok")
+        private Boolean isok;
+        /** 少数环境使用 is_ok */
         @JsonProperty("is_ok")
-        private Boolean isOk;
+        private Boolean isOkLegacy;
         private String msg;
+
+        boolean isSuccess() {
+            return Boolean.TRUE.equals(isok) || Boolean.TRUE.equals(isOkLegacy);
+        }
     }
 }
