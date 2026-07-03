@@ -159,6 +159,12 @@ taoke:
       enabled: true
       api-url: http://test.scho.com.cn
       secret-key: 1E904D6E91A01D4A5C86EDE8B13370BE
+    zgx:
+      enabled: true
+      cdn-url: https://cdn5-pxb-videos.taoke.com
+      path-prefix: zgx
+      ali-auth-key: xiangdongtest
+      h5-site-url: https://m.taoke.com/
   # 在线支付（支付宝 PC 网站支付 + 微信 Native 扫码）。enabled=false 时仅 MOCK 可用
   payment:
     enabled: false

@@ -3,6 +3,7 @@ package com.taoke.course.service.pxb;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.service.CategoryService;
 import com.taoke.course.api.PxbLegacyVideoQueryService;
+import com.taoke.course.dto.pxb.PxbLegacyMobilePlaybackResult;
 import com.taoke.course.dto.pxb.PxbLegacyPurchaseInfo;
 import com.taoke.course.dto.pxb.PxbLegacyVideoRow;
 import com.taoke.course.entity.order.Order;
@@ -55,6 +56,7 @@ public class PxbLegacyVideoQueryServiceImpl implements PxbLegacyVideoQueryServic
     private final VideoPackageGroupRepository videoPackageGroupRepository;
     private final VideoPackageRelationRepository videoPackageRelationRepository;
     private final CategoryService categoryService;
+    private final LegacyMobilePlaybackResolver mobilePlaybackResolver;
 
     @Override
     public PageResponse<PxbLegacyVideoRow> searchPublishedVideos(Integer categoryId,
@@ -374,45 +376,38 @@ public class PxbLegacyVideoQueryServiceImpl implements PxbLegacyVideoQueryServic
     }
 
     @Override
-    public Map<String, Object> resolveMobilePlayback(Integer userId,
-                                                       Integer videoId,
-                                                       Integer chapterId,
-                                                       Integer pxbRootId) {
+    public PxbLegacyMobilePlaybackResult resolveMobilePlayback(Integer userId,
+                                                               Integer videoId,
+                                                               Integer chapterId,
+                                                               Integer pxbRootId) {
         Video video = videoRepository.findById(videoId)
                 .filter(v -> Objects.equals(v.getStatus(), VideoStatus.PUBLISHED.getValue()))
                 .orElse(null);
         if (video == null) {
-            return Map.of();
-        }
-        if (!canPlayVideo(userId, video, pxbRootId)) {
-            return Map.of();
+            return PxbLegacyMobilePlaybackResult.reject(
+                    PxbLegacyMobilePlaybackResult.RejectReason.NOT_FOUND, "未找到相匹配的资源");
         }
 
-        VideoChapter chapter = resolveChapter(video, chapterId);
-        String playUrl = chapter != null && StringUtils.hasText(chapter.getVideoUrl())
-                ? chapter.getVideoUrl() : video.getVideoUrl();
-        if (!StringUtils.hasText(playUrl)) {
-            playUrl = buildLegacyVideoUrl(video);
+        int vType = LegacyMobilePlaybackResolver.resolveLegacyVType(video);
+        if (vType >= 9 && vType <= 11 && isZgxContentBlocked(video)) {
+            return PxbLegacyMobilePlaybackResult.reject(
+                    PxbLegacyMobilePlaybackResult.RejectReason.ZGX_UNAVAILABLE, "课程已过期，不能提供服务");
         }
-        String poster = chapter != null && StringUtils.hasText(chapter.getCoverUrl())
-                ? chapter.getCoverUrl() : video.getCoverUrl();
-        int vType = inferLegacyVType(playUrl);
 
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("video_url", playUrl);
-        payload.put("poster", poster != null ? poster : "");
-        payload.put("online", false);
-        payload.put("size", chapter != null && chapter.getFileSize() != null ? chapter.getFileSize() : 0L);
-        payload.put("v_type", vType);
-        return payload;
+        PxbLegacyMobilePlaybackResult.RejectReason accessReason = resolvePlayAccessReason(userId, video, pxbRootId);
+        if (accessReason != null) {
+            return PxbLegacyMobilePlaybackResult.reject(accessReason, playAccessMessage(accessReason));
+        }
+
+        return mobilePlaybackResolver.resolveSignedPlayback(video, chapterId, userId);
     }
 
     @Override
-    public int resolvePlaybackConcurrencyLimit(Integer userId, Integer videoId) {
+    public int resolvePlaybackConcurrencyLimit(Integer userId, Integer videoId, Integer pxbRootId) {
         if (userId == null || userId <= 0 || videoId == null || videoId <= 0) {
             return 0;
         }
-        Map<Integer, Order> paidOrders = loadPaidOrdersForUser(userId, null);
+        Map<Integer, Order> paidOrders = loadPaidOrdersForUser(userId, pxbRootId);
         int max = 0;
         LocalDateTime now = LocalDateTime.now();
         for (Order order : paidOrders.values()) {
@@ -430,27 +425,65 @@ public class PxbLegacyVideoQueryServiceImpl implements PxbLegacyVideoQueryServic
         return max >= 100000 ? 0 : max;
     }
 
-    private boolean canPlayVideo(Integer userId, Video video, Integer pxbRootId) {
+    private PxbLegacyMobilePlaybackResult.RejectReason resolvePlayAccessReason(Integer userId,
+                                                                               Video video,
+                                                                               Integer pxbRootId) {
         if (video.getPrice() == null || video.getPrice().signum() == 0
                 || (video.getIsFree() != null && video.getIsFree() == 1)) {
-            return true;
+            return null;
         }
         if (userId == null || userId <= 0) {
-            return false;
+            return PxbLegacyMobilePlaybackResult.RejectReason.NOT_PURCHASED;
         }
-        Map<Integer, PxbLegacyPurchaseInfo> purchases = findPurchaseInfoByVideoIds(
+
+        Map<Integer, PxbLegacyPurchaseInfo> active = findPurchaseInfoByVideoIds(
                 userId, List.of(video.getId()), pxbRootId);
-        return resolveBuyStatus(purchases.get(video.getId())) > 0;
+        if (resolveBuyStatus(active.get(video.getId())) > 0) {
+            return null;
+        }
+
+        if (hasExpiredEnrollment(userId, video.getId(), pxbRootId)) {
+            return PxbLegacyMobilePlaybackResult.RejectReason.EXPIRED;
+        }
+        return PxbLegacyMobilePlaybackResult.RejectReason.NOT_PURCHASED;
     }
 
-    private VideoChapter resolveChapter(Video video, Integer chapterId) {
-        if (chapterId != null && chapterId > 0) {
-            return videoChapterRepository.findById(chapterId)
-                    .filter(c -> Objects.equals(c.getVideoId(), video.getId()))
-                    .orElse(null);
+    private boolean hasExpiredEnrollment(Integer userId, Integer videoId, Integer pxbRootId) {
+        LocalDateTime now = LocalDateTime.now();
+        for (VideoEnrollment enrollment : videoEnrollmentRepository.findByUserIdAndVideoIdIn(
+                userId, List.of(videoId))) {
+            if (!Objects.equals(enrollment.getStatus(), 1)) {
+                continue;
+            }
+            if (enrollment.getExpiredAt() != null && !enrollment.getExpiredAt().isAfter(now)) {
+                return true;
+            }
         }
-        List<VideoChapter> chapters = videoChapterRepository.findByVideoIdOrderBySortOrderAsc(video.getId());
-        return chapters.isEmpty() ? null : chapters.getFirst();
+        Map<Integer, Order> paidOrders = loadPaidOrdersForUser(userId, pxbRootId);
+        for (Order order : paidOrders.values()) {
+            if (!matchesPxbRoot(order, pxbRootId)) {
+                continue;
+            }
+            if (order.getValidUntil() != null && !order.getValidUntil().isAfter(now)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isZgxContentBlocked(Video video) {
+        return video.getStatus() != null && !Objects.equals(video.getStatus(), VideoStatus.PUBLISHED.getValue());
+    }
+
+    private static String playAccessMessage(PxbLegacyMobilePlaybackResult.RejectReason reason) {
+        return switch (reason) {
+            case NOT_FOUND -> "未找到相匹配的资源";
+            case NOT_PURCHASED -> "课程未购买，不能提供服务";
+            case EXPIRED -> "课程已过期，不能提供服务";
+            case UNPAID -> "课程未付款，不能提供服务";
+            case ZGX_UNAVAILABLE -> "课程已过期，不能提供服务";
+            case PLAYBACK_FAILED -> "太火爆了，请稍后再试";
+        };
     }
 
     private Map<String, Object> buildBuyStatusMap(PxbLegacyPurchaseInfo purchase) {
@@ -631,14 +664,29 @@ public class PxbLegacyVideoQueryServiceImpl implements PxbLegacyVideoQueryServic
             return 1;
         }
         String lower = videoUrl.toLowerCase();
-        if (lower.contains("kuanxue.com")) {
-            return 9;
+        if (lower.startsWith("kuanxue:") || lower.contains("kuanxue.com") || lower.startsWith("courseid=")) {
+            return 7;
         }
-        if (lower.contains("witsharer.com") || lower.contains("kuaike")) {
-            return 10;
+        if (lower.startsWith("scho:") || lower.startsWith("/lease/")) {
+            return 8;
         }
-        if (lower.contains("eceibs.com")) {
+        if (lower.startsWith("kuaike:") || lower.contains("witsharer.com")) {
+            return 4;
+        }
+        if (lower.startsWith("eceibs:") || lower.contains("@@") || lower.contains("eceibs.com")) {
+            return 5;
+        }
+        if (lower.contains("/supplier/zgx/") || lower.contains("/supplier/zgx2/")) {
+            if (lower.endsWith(".jpg") || lower.contains(".jpg?")) {
+                return 9;
+            }
+            if (lower.contains("index.html")) {
+                return 10;
+            }
             return 11;
+        }
+        if (lower.contains("youku.com") || lower.contains("tudou.com") || lower.contains("qq.com")) {
+            return 2;
         }
         return 1;
     }

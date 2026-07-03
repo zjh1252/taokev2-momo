@@ -669,19 +669,20 @@ GET /api/trainer.php?opt=get_trainer_detail&appid=pxb&timetamp=...&signature=...
 
 ---
 
-## 五、移动站播放链（2 类入口）
+## 五、移动站播放链（3 类入口）
 
-### 5.1 taokevideo 播放（PXB 移动端）
+### 5.1 taokevideo 播放（PXB 移动端 / PC iframe）
 
 **地址：**
 
 ```
-GET|POST {BASE}/?c=taokevideo&a=player&from=pxbmobile&...
+GET|POST {BASE}/?c=taokevideo&a=player&...
 ```
 
 | Query 参数 | 必填 | 说明 |
 |------------|------|------|
-| `from` | 是 | 必须为 `pxbmobile` |
+| `from` | pxbmobile 时必填 | 移动端 APP 传 `pxbmobile` 返回 **JSON**；**不传**则返回 **HTML 播放页**（培训宝 PC iframe，`video_origin=pxbpc`） |
+| `video_origin` | 否 | `pxbpc` 时播放器尺寸 910×490，并注入自动播放脚本（对齐老站 `player.htm`） |
 | `cdbid` | 是 | UCenter uid |
 | `timestamp` | 是 | Unix 秒 |
 | `video_id` | 是 | 淘课视频 ID |
@@ -689,7 +690,7 @@ GET|POST {BASE}/?c=taokevideo&a=player&from=pxbmobile&...
 | `token` | 是 | 播放签名（见下） |
 | `app_id` | 否 | 默认 `taoke` |
 | `pxb_root_id` | 否 | |
-| `callback` | 否 | JSONP 回调名 |
+| `callback` | 否 | JSONP 回调名（仅 JSON 模式） |
 
 **播放签名（与 search_course 不同）：**
 
@@ -697,7 +698,28 @@ GET|POST {BASE}/?c=taokevideo&a=player&from=pxbmobile&...
 ksort(appid, cdbid, timetamp, video_id) → md5(query + secret)
 ```
 
-**成功响应：**
+#### 5.1.0 双模式响应
+
+| 条件 | 响应 | 典型场景 |
+|------|------|----------|
+| `from=pxbmobile` | `application/json` | PXB 移动 APP / i人事 |
+| 无 `from`（可带 `video_origin=pxbpc`） | `text/html` 播放页 | 培训宝 PC 课程页 iframe 嵌套 |
+
+**HTML 播放页（v_type 1 / 6 / 7 / 11）：** 输出 `<video>` + 并发心跳脚本；`video_url` 为 PXB CDN 时改写为同源反代绝对地址 `{BASE}/pxb-videos/...`（见 **§5.3**），避免 iframe / `<video>` 携带 Referer 访问 CDN 被 403。
+
+**已验证示例（培训宝 PC iframe，video_id=19240，v_type=6）：**
+
+```
+GET {BASE}/?c=taokevideo&a=player&cdbid=16257&timestamp={ts}&video_id=19240
+    &video_url=dmlkPTE5MjQwJmNoaWxkPTA=&pxb_root_id=44&token={sig}&video_origin=pxbpc
+```
+
+- 培训宝 iframe 内：自动播放正常，视频源为 `{BASE}/pxb-videos/old-videos/{md5}.mp4`
+- `getData` 心跳每 5 秒：`{ "isok": true, "tip": "success" }`
+
+#### 5.1.1 JSON 成功响应（from=pxbmobile）
+
+**成功响应（v_type 1 / 6 / 7 / 11 返回 JSON；8 / 9 / 10 返回 supplier.htm 同源 HTML）：**
 
 ```json
 {
@@ -711,24 +733,65 @@ ksort(appid, cdbid, timetamp, video_id) → md5(query + secret)
       "targetId": "...",
       "resourceId": "tk_vco_{userId}_{videoId}",
       "limit": 5,
-      "endtime": 1719003600
+      "endtime": 3600
     }
   }
 }
 ```
 
-**失败：** `{ "isok": false, "data": "未授权不能提供服务" }` 或购买/并发错误文案
+| v_type | 说明 | pxbmobile 响应 | PC iframe（无 from） |
+|--------|------|----------------|----------------------|
+| 1 | 本地淘课 CDN | JSON | HTML `<video>` |
+| 6 | 培训宝共享（`medio_type=1` 时为网络 embed，`online=true`） | JSON | HTML `<video>` 或 iframe |
+| 7 | 宽学网（换临时 mp4） | JSON | HTML `<video>` |
+| 8 | 思酷租赁 embed | HTML supplier 页 | HTML supplier 页 |
+| 9–10 | 纵贯线图文/H5 | HTML supplier 页 | HTML supplier 页 |
+| 11 | 纵贯线视频 | JSON | HTML `<video>` |
+
+**v_type=6 本地录播 URL 签发（对齐老站 `getPxbVideoUrl`）：** 文件在 `https://cdn5-pxb-videos.taoke.com/old-videos/{md5}.mp4`；HTML 模式输出前改写为 `{BASE}/pxb-videos/old-videos/{md5}.mp4`。
+
+**购买/资源失败文案（对齐老站）：** 未授权 / 未找到资源 / 课程未购买 / 课程已过期 / 并发名额已满 / 宽学「太火爆了，请稍后再试」
+
+**浏览器直开联调说明（非培训宝主路径）：**
+
+| 现象 | 原因 | 处理 |
+|------|------|------|
+| 播放页直开黑屏 0:00、不自动播 | 浏览器 **Autoplay 策略**：`video_origin=pxbpc` 会在 `DOMContentLoaded` 调 `video.play()`，新标签无用户手势时常被拦截 | 手动点 ▶ 可播；培训宝 iframe 内用户点击课程后一般可自动播 |
+| 直开 `{BASE}/pxb-videos/...mp4` 黑屏 | 修反代前失败响应被 **按顶层站点分区缓存**（iframe 与直开 cache 分区不同） | DevTools 勾选 **Disable cache** 或无痕窗口后再试 |
+| 直开播放页提示「名额已满」 | 并发 `limit=1` 时，培训宝 iframe 已占槽 | 关闭占用标签或等待约 15s（Redis 槽位 TTL）后再开 |
+
+---
+
+### 5.1.2 taokevideo supplier（第三方 embed）
+
+**地址：**
+
+```
+GET {BASE}/?c=taokevideo&a=supplier&v_type=8&video_id=1001&token={base64_url}&length={token长度}
+```
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `video_id` | 是 | 淘课视频 ID |
+| `token` | 是 | Base64 编码后的播放 URL |
+| `length` | 是 | `strlen(token)`，与老站一致 |
+| `v_type` | 否 | 8/9/10 控制 img / iframe 渲染 |
+
+**失败：** HTML 错误页「未授权不能提供服务」
 
 ---
 
 ### 5.2 getData 并发心跳
 
-**地址（任选其一）：**
+**地址（任选其一，尾斜杠均可）：**
 
 ```
+GET|POST {BASE}/getData?json={...}
 GET|POST {BASE}/getData/?json={...}
 GET|POST {BASE}/?c=taokeajax&a=getData&json={...}
 ```
+
+> v2 对 `/getData` 与 `/getData/` 均注册路由（老站 heartbeat 使用 `/getData/?t=...`）。
 
 **当前已实现 cmd：**
 
@@ -740,12 +803,60 @@ GET|POST {BASE}/?c=taokeajax&a=getData&json={...}
     "targetId": "abc123",
     "resourceId": "tk_vco_1_1001",
     "limit": 5,
-    "endtime": 1719003600
+    "endtime": 3600
   }
 }
 ```
 
 **响应：** `{ "isok": true, "tip": "success" }`
+
+**已验证：** 培训宝 PC iframe 播放页每 5s 心跳，`resourceId=tk_vco_{userId}_{videoId}`，响应正常。
+
+---
+
+### 5.3 PXB 录播 CDN 同源反代（`/pxb-videos/**`）
+
+培训宝 PC iframe / HTML 播放页中，`<video>` 或 iframe 若直连 `cdn5-pxb-videos.taoke.com` 会携带 Referer（如 `local.taokenew.com`），CDN 返回 **403**。v2 将 PXB CDN URL 改写为同源反代，由**服务端**拉流（不带 Referer）。
+
+**地址：**
+
+```
+GET|HEAD {BASE}/pxb-videos/{cdn相对路径}
+```
+
+**示例：**
+
+```
+CDN 原址：https://cdn5-pxb-videos.taoke.com/old-videos/9c5728ce827c6967d55374cb9035b587.mp4
+反代地址：{BASE}/pxb-videos/old-videos/9c5728ce827c6967d55374cb9035b587.mp4
+```
+
+| 项目 | 说明 |
+|------|------|
+| 鉴权 | 公开路径，无需 JWT（`SecurityConfig` 白名单 + `@Public`） |
+| 实现 | `LegacyPxbCdnProxyFilter`（Servlet Filter，优先于 Security/MVC，避免二进制流被安全头干扰） |
+| 上游 | `https://cdn5-pxb-videos.taoke.com` |
+| Range | 支持 `Range` / `If-Range` 转发，响应 **206 Partial Content**（视频 seek 依赖） |
+| 响应头 | 透传 `Content-Type`、`Content-Length`、`Content-Range`、`Accept-Ranges`、`ETag` 等 |
+| iframe | 已关闭全局 `X-Frame-Options: DENY`，允许培训宝嵌入 HTML 播放页 |
+
+**已验证（2026-06，local.taokenew.com:8080）：**
+
+| 检测项 | 结果 |
+|--------|------|
+| HEAD 反代 mp4 | 200，`Content-Type: video/mp4` |
+| Range `0-1023` | 206，1024 字节与 CDN 一致 |
+| Range 尾部（moov） | 206，可 seek |
+| 培训宝 iframe 播放页 + `video_origin=pxbpc` | 正常播放 |
+| 浏览器直开 mp4（Disable cache） | 正常播放 |
+| 浏览器直开播放页（Disable cache，手动 ▶） | 正常播放 |
+
+**curl 自检：**
+
+```powershell
+curl.exe -sI "http://local.taokenew.com:8080/pxb-videos/old-videos/9c5728ce827c6967d55374cb9035b587.mp4"
+curl.exe -sI -r 0-1023 "http://local.taokenew.com:8080/pxb-videos/old-videos/9c5728ce827c6967d55374cb9035b587.mp4"
+```
 
 ---
 
@@ -776,8 +887,10 @@ GET|POST {BASE}/?c=taokeajax&a=getData&json={...}
 | `related_tktrainer` | GET/POST | `/api/get.php?opt=related_tktrainer&...` | 讲师关联日志 |
 | `get_trainer_list` | GET/POST | `/api/trainer.php?opt=get_trainer_list&...` | 师资库推荐列表 |
 | `get_trainer_detail` | GET/POST | `/api/trainer.php?opt=get_trainer_detail&...` | 师资库讲师详情 |
-| taokevideo 播放 | GET/POST | `/?c=taokevideo&a=player&from=pxbmobile&...` | APP/PC 播放 |
-| getData 心跳 | GET/POST | `/getData/?json=...` | 并发控制 |
+| taokevideo 播放 | GET/POST | `/?c=taokevideo&a=player&...` | APP JSON（`from=pxbmobile`）/ PC iframe HTML（无 from）✅ |
+| taokevideo supplier | GET | `/?c=taokevideo&a=supplier&video_id=&token=&length=` | 第三方 embed 页 |
+| PXB 录播反代 | GET/HEAD | `/pxb-videos/old-videos/{md5}.mp4` | CDN 同源拉流，免 Referer 403 ✅ |
+| getData 心跳 | GET/POST | `/getData/?json=...` | 并发控制 ✅ |
 
 ---
 
@@ -793,14 +906,18 @@ GET|POST {BASE}/?c=taokeajax&a=getData&json={...}
 | i人事在线课程下单 + 入库 | `wittrain` | `generateOrder` → `signature-urls` 出库 |
 | 师资库 | `pxb` | `trainer.php`：`get_trainer_list` / `get_trainer_detail` |
 | 讲师关联 | `pxb` | `get.php`：`related_tktrainer` |
+| 移动站播放 JSON | `pxb` | `/?c=taokevideo&a=player&from=pxbmobile&...`（v_type 1/6 等，返回可播 `video_url`） |
+| 培训宝 PC iframe 播放 | `pxb` | 无 `from` + `video_origin=pxbpc` → HTML 播放页 + `/pxb-videos/` 反代（如 video_id=19240） |
+| getData 并发心跳 | — | `/getData/?json=...`，`cmd=video_orders`，`action=concurrencyLimiter` |
+| PXB CDN 反代 | — | `GET /pxb-videos/old-videos/{md5}.mp4`，Range 206，与 CDN 字节一致 |
 
 ### 7.2 尚未实现或待验证
 
 - **getOrders（i人事参数格式）**：`uid[uids]` 嵌套参数兼容（见 **§2.3**）
 - **get.php**：`tkvideo`、`video_state` 在 PXB「视频共享 / 审核」场景实机验证
 - **P2 组织**：`syncOrgMember`、`bindOrgShop`
-- **播放补全**：第三方供应商 v_type 7–11 播放 URL 完整签发（宽学/快课/中欧等）
-- **移动站播放**：`/?c=taokevideo&a=player` 真机 / PXB APP 回归
+- **播放补全**：第三方供应商 v_type 7–11 播放 URL 完整签发（宽学/快课/中欧等）— 部分 v_type 已实现，建议 PXB APP / i人事 **真机回归**
+- **移动站播放 supplier**：v_type 8–10 embed 页已实现，待 PXB 实机回归
 - **member_provider 历史数据**：生产切流前评估是否从老库 `tk_member_provider` 迁移
 
 ---
@@ -841,6 +958,12 @@ python pxb-legacy-smoke.py call-get --opt video_state --param video_id=1001
 # trainer.php（已验证可用）
 python pxb-legacy-smoke.py call-trainer --opt get_trainer_list --param trade=15
 python pxb-legacy-smoke.py call-trainer --opt get_trainer_detail --param role_id=756913
+
+# taokevideo 播放（pxbmobile JSON）
+python pxb-legacy-smoke.py player --cdbid 16257 --video-id 19240
+
+# getData 并发心跳
+python pxb-legacy-smoke.py getdata --action concurrencyLimiter --resource-id tk_vco_16257_19240 --target-id {targetId}
 ```
 
 **浏览器 / curl 示例（trainer.php，参数可全放 Query）：**
@@ -849,6 +972,17 @@ python pxb-legacy-smoke.py call-trainer --opt get_trainer_detail --param role_id
 http://localhost:8080/api/trainer.php?opt=get_trainer_list&appid=pxb&timetamp={ts}&signature={sig}&trade=15
 
 http://localhost:8080/api/trainer.php?opt=get_trainer_detail&appid=pxb&timetamp={ts}&signature={sig}&role_id=756913
+```
+
+**浏览器 / curl 示例（PXB PC iframe 播放 + 反代，需有效 token/timestamp）：**
+
+```
+# HTML 播放页（培训宝 PC iframe，无 from=pxbmobile）
+http://local.taokenew.com:8080/?c=taokevideo&a=player&cdbid=16257&timestamp={ts}&video_id=19240
+    &video_url=dmlkPTE5MjQwJmNoaWxkPTA=&pxb_root_id=44&token={sig}&video_origin=pxbpc
+
+# 同源反代 mp4（Disable cache 或无痕，避免修 bug 前旧缓存）
+http://local.taokenew.com:8080/pxb-videos/old-videos/9c5728ce827c6967d55374cb9035b587.mp4
 ```
 
 **Flyway 本地启动报错（V111/V112 checksum mismatch）时：**
@@ -862,7 +996,12 @@ mvn flyway:repair
 
 - 模块：`backend/taoke-legacy/`、`backend/taoke-course/`（PXB 视频/订单）、`backend/taoke-user/`（讲师 / MemberProvider）
 - 入口 Controller：`LegacySearchCourseController`、`LegacyGetController`、`LegacyTrainerController`、`LegacyMobileController`
+- 播放链：`LegacyMobilePlayerService`、`LegacyMobilePlayerHtmlRenderer`、`LegacyMobilePlaybackResolver`（course 模块）
+- PXB 录播 URL：`LegacyPxbVideoUrlResolver`（v_type=6 → `old-videos/{md5}.mp4`）
+- CDN 反代：`LegacyPxbCdnProxyFilter`、`LegacyPxbCdnProxyConfig`；URL 改写：`LegacyPlaybackProxyUrls`
+- 并发控制：`LegacyConcurrencyLimiterService`、`LegacyGetDataService`
+- 安全白名单：`SecurityConfig` → `/pxb-videos/**`、`/getData/**`；已关闭 `X-Frame-Options` 以支持培训宝 iframe
 - 配置：`backend/taoke-app/src/main/resources/application.yaml` → `taoke.legacy-api`；密钥见 `backend/.env.example`
 - 出库实现：`PxbLegacyCourseSyncServiceImpl`（saveCourses）
 - 用户映射：`PxbUserResolver`、`MemberProviderServiceImpl`
-- DB 迁移：`V116__pxb_legacy_get_api.sql`、`V125__extend_orders_for_pxb_legacy.sql`、`V132__create_member_provider.sql` 等
+- DB 迁移：`V116__pxb_legacy_get_api.sql`、`V125__extend_orders_for_pxb_legacy.sql`、`V132__create_member_provider.sql`、`V88__normalize_video_play_urls.sql` 等
