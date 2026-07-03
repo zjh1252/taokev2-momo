@@ -111,7 +111,7 @@ public class LegacyMobilePlayerService {
         }
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("video_url", playback.getVideoUrl());
+        data.put("video_url", LegacyPlaybackProxyUrls.toAbsoluteProxy(playback.getVideoUrl(), publicBaseUrl));
         data.put("poster", playback.getPoster());
         data.put("online", playback.isOnline());
         data.put("size", playback.getSize());

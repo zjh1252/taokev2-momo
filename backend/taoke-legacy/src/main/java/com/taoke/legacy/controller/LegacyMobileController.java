@@ -6,6 +6,7 @@ import com.taoke.legacy.service.LegacyGetDataService;
 import com.taoke.legacy.service.LegacyMobilePlayResult;
 import com.taoke.legacy.service.LegacyMobilePlayerService;
 import com.taoke.legacy.service.LegacyParamResolver;
+import com.taoke.legacy.support.LegacyJsonpResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -57,15 +58,15 @@ public class LegacyMobileController {
     }
 
     @Public
-    @GetMapping(value = {"/getData", "/getData/"}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getDataGet(@RequestParam(value = "json", required = false) String json,
-                             HttpServletRequest request) throws Exception {
-        return writeJson(getDataService.dispatch(resolveJson(json, request)));
+    @GetMapping(value = {"/getData", "/getData/"})
+    public ResponseEntity<String> getDataGet(@RequestParam(value = "json", required = false) String json,
+                                            HttpServletRequest request) throws Exception {
+        return jsonOrJsonp(getDataService.dispatch(resolveJson(json, request)), request);
     }
 
     @Public
-    @PostMapping(value = {"/getData", "/getData/"}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public String getDataPost(HttpServletRequest request) throws Exception {
+    @PostMapping(value = {"/getData", "/getData/"})
+    public ResponseEntity<String> getDataPost(HttpServletRequest request) throws Exception {
         String json = paramResolver.getString(request, "json");
         if (!StringUtils.hasText(json)) {
             json = new String(request.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
@@ -73,19 +74,19 @@ public class LegacyMobileController {
                 json = json.substring(5);
             }
         }
-        return writeJson(getDataService.dispatch(json));
+        return jsonOrJsonp(getDataService.dispatch(json), request);
     }
 
     @Public
-    @GetMapping(params = {"c=taokeajax", "a=getData"}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public String taokeAjaxGetData(@RequestParam(value = "json", required = false) String json,
-                                   HttpServletRequest request) throws Exception {
-        return writeJson(getDataService.dispatch(resolveJson(json, request)));
+    @GetMapping(params = {"c=taokeajax", "a=getData"})
+    public ResponseEntity<String> taokeAjaxGetData(@RequestParam(value = "json", required = false) String json,
+                                                   HttpServletRequest request) throws Exception {
+        return jsonOrJsonp(getDataService.dispatch(resolveJson(json, request)), request);
     }
 
     @Public
-    @PostMapping(params = {"c=taokeajax", "a=getData"}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public String taokeAjaxGetDataPost(HttpServletRequest request) throws Exception {
+    @PostMapping(params = {"c=taokeajax", "a=getData"})
+    public ResponseEntity<String> taokeAjaxGetDataPost(HttpServletRequest request) throws Exception {
         String json = paramResolver.getString(request, "json");
         if (!StringUtils.hasText(json)) {
             json = new String(request.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
@@ -93,7 +94,7 @@ public class LegacyMobileController {
                 json = json.substring(5);
             }
         }
-        return writeJson(getDataService.dispatch(json));
+        return jsonOrJsonp(getDataService.dispatch(json), request);
     }
 
     private ResponseEntity<String> handlePlayer(HttpServletRequest request) throws Exception {
@@ -118,14 +119,7 @@ public class LegacyMobileController {
 
         String json = objectMapper.writeValueAsString(result.getJsonBody());
         String callback = paramResolver.getString(request, "callback");
-        if (StringUtils.hasText(callback)) {
-            json = callback + "(" + json + ")";
-        }
-        return jsonResponse(json);
-    }
-
-    private static ResponseEntity<String> jsonResponse(String body) {
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(body);
+        return LegacyJsonpResponse.ok(json, callback);
     }
 
     private String resolveJson(String json, HttpServletRequest request) {
@@ -135,8 +129,10 @@ public class LegacyMobileController {
         return paramResolver.getString(request, "json");
     }
 
-    private String writeJson(Map<String, Object> body) throws Exception {
-        return objectMapper.writeValueAsString(body);
+    private ResponseEntity<String> jsonOrJsonp(Map<String, Object> body, HttpServletRequest request)
+            throws Exception {
+        String json = objectMapper.writeValueAsString(body);
+        return LegacyJsonpResponse.ok(json, paramResolver.getString(request, "callback"));
     }
 
     private static String buildPublicBaseUrl(HttpServletRequest request) {

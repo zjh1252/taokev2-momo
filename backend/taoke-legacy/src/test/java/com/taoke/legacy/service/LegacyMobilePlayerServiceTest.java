@@ -81,4 +81,25 @@ class LegacyMobilePlayerServiceTest {
         Map<String, Object> limit = (Map<String, Object>) data.get("limit");
         assertEquals(3600, limit.get("endtime"));
     }
+
+    @Test
+    void jsonPlaybackRewritesPxbCdnToSameOriginProxy() {
+        when(signatureService.verifySortedData(anyMap(), eq("pxb"), eq("token"))).thenReturn(true);
+        when(signatureService.isTimestampValid(eq("taokevideo"), anyLong())).thenReturn(true);
+        when(userResolver.resolveUserId("pxb", 1)).thenReturn(10);
+        String cdn = "https://cdn5-pxb-videos.taoke.com/old-videos/abc.mp4";
+        when(legacyVideoQueryService.resolveMobilePlayback(10, 100, 0, null))
+                .thenReturn(PxbLegacyMobilePlaybackResult.playback(
+                        6, false, cdn, "https://cdn.example/p.jpg", false, 1024L));
+        when(legacyVideoQueryService.resolvePlaybackConcurrencyLimit(10, 100, null)).thenReturn(0);
+
+        String encoded = java.util.Base64.getEncoder().encodeToString("vid=100&child=0".getBytes());
+        LegacyMobilePlayResult result = service.play(
+                1, 1_700_000_000L, 100, "token", encoded, "pxb", 0, true, false,
+                "http://local.taokenew.com:8080");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) result.getJsonBody().get("data");
+        assertEquals("http://local.taokenew.com:8080/pxb-videos/old-videos/abc.mp4", data.get("video_url"));
+    }
 }
