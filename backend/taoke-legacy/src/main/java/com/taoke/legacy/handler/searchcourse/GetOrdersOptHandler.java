@@ -1,8 +1,9 @@
 package com.taoke.legacy.handler.searchcourse;
 
 import com.taoke.course.api.PxbLegacyOrderService;
+import com.taoke.legacy.adapter.LegacyOrderAdapter;
 import com.taoke.legacy.service.LegacyParamResolver;
-import com.taoke.user.api.UserService;
+import com.taoke.legacy.service.PxbUserResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -19,8 +20,9 @@ import java.util.stream.Collectors;
 public class GetOrdersOptHandler implements SearchCourseOptHandler {
 
     private final LegacyParamResolver params;
-    private final UserService userService;
+    private final PxbUserResolver userResolver;
     private final PxbLegacyOrderService legacyOrderService;
+    private final LegacyOrderAdapter legacyOrderAdapter;
 
     @Override
     public String opt() {
@@ -30,29 +32,30 @@ public class GetOrdersOptHandler implements SearchCourseOptHandler {
     @Override
     public Map<String, Object> handle(HttpServletRequest request) {
         Map<String, String> filter = extractFilter(request);
-        List<Integer> userIds = resolveUserIds(filter.get("uids"));
+        List<Integer> userIds = resolveUserIds(request, filter.get("uids"));
         if (filter.containsKey("uids") && userIds.isEmpty()) {
             return Map.of("total", 0, "orders_list", List.of());
         }
         int page = params.getInt(request, "page", 1);
         int pageSize = params.getInt(request, "pagesize", 15);
-        return legacyOrderService.listOrders(userIds, filter, page, pageSize);
+        return legacyOrderAdapter.toListResponse(
+                legacyOrderService.listOrders(userIds, filter, page, pageSize));
     }
 
-    private List<Integer> resolveUserIds(String uidsRaw) {
+    private List<Integer> resolveUserIds(HttpServletRequest request, String uidsRaw) {
         if (!StringUtils.hasText(uidsRaw)) {
             return List.of();
         }
-        List<Integer> ucUids = Arrays.stream(uidsRaw.split(","))
+        List<Integer> pxbUids = Arrays.stream(uidsRaw.split(","))
                 .map(String::trim)
                 .filter(StringUtils::hasText)
                 .map(Integer::parseInt)
                 .filter(id -> id > 0)
                 .collect(Collectors.toList());
-        if (ucUids.isEmpty()) {
+        if (pxbUids.isEmpty()) {
             return List.of();
         }
-        return userService.findUserIdsByUcUids(ucUids);
+        return userResolver.resolveUserIds(request, pxbUids);
     }
 
     private Map<String, String> extractFilter(HttpServletRequest request) {

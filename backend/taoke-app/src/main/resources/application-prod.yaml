@@ -28,6 +28,21 @@ spring:
       password: ${NACOS_PASSWORD:nacos}
 
 taoke:
+  legacy-api:
+    signature-keys:
+      pxb: ${LEGACY_SIGNATURE_KEY_PXB:}
+      taoke: ${LEGACY_SIGNATURE_KEY_TAOKE:}
+      shequ: ${LEGACY_SIGNATURE_KEY_SHEQU:}
+      wittrain: ${LEGACY_SIGNATURE_KEY_WITTRAIN:}
+      qa_wittrain: ${LEGACY_SIGNATURE_KEY_QA_WITTRAIN:}
+      ihr_wittrain: ${LEGACY_SIGNATURE_KEY_IHR_WITTRAIN:}
+    signature-urls:
+      wittrain: ${LEGACY_SIGNATURE_URL_WITTRAIN:}
+      qa_wittrain: ${LEGACY_SIGNATURE_URL_QA_WITTRAIN:}
+      ihr_wittrain: ${LEGACY_SIGNATURE_URL_IHR_WITTRAIN:}
+    pxb-outbound:
+      enabled: ${PXB_OUTBOUND_ENABLED:true}
+      base-url: ${PXB_SITE_URL:}
   jwt:
     secret: ${JWT_SECRET:}
   # 其余 UCenter / 短信凭据继承自通用 application.yml（appid=2、UC_KEY、pxb 凭据）；

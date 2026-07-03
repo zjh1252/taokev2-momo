@@ -14,7 +14,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class LegacySignatureCrossCheckTest {
 
-    private final LegacySignatureService service = new LegacySignatureService(new LegacyApiProperties());
+    private final LegacySignatureService service = new LegacySignatureService(defaultLegacyApiProperties());
+
+    private static LegacyApiProperties defaultLegacyApiProperties() {
+        LegacyApiProperties properties = new LegacyApiProperties();
+        properties.getSignatureKeys().put("pxb", "fn234gyty4542");
+        properties.getSignatureKeys().put("taoke", "adfdsrve34243");
+        return properties;
+    }
 
     @Test
     void searchCourseSignature_fixedTimestamp_matchesGoldenHash() {

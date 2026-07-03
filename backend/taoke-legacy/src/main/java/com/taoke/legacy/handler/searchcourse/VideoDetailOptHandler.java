@@ -28,7 +28,7 @@ public class VideoDetailOptHandler implements SearchCourseOptHandler {
         int videoId = params.getInt(request, "video_id", 0);
         int pxbUid = params.getInt(request, "uid", 0);
         int pxbRootId = params.getInt(request, "pxb_root_id", 0);
-        int userId = userResolver.resolveUserId(pxbUid);
+        int userId = userResolver.resolveUserId(request, pxbUid);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("isok", true);

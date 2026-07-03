@@ -2,7 +2,7 @@ package com.taoke.legacy.handler.searchcourse;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.taoke.course.api.PxbLegacyCourseSyncService;
+import com.taoke.course.api.PxbLegacyResourceTypeSyncService;
 import com.taoke.legacy.service.LegacyParamResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ public class SyncCourseOptHandler implements SearchCourseOptHandler {
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
 
     private final LegacyParamResolver params;
-    private final PxbLegacyCourseSyncService courseSyncService;
+    private final PxbLegacyResourceTypeSyncService courseSyncService;
     private final ObjectMapper objectMapper;
 
     @Override

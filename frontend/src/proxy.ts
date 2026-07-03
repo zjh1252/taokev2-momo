@@ -47,6 +47,15 @@ export function proxy(request: NextRequest) {
     );
   }
 
+  // 培训宝 / 老站详情链: /video_details/7846.htm → 同 /video/7846.htm
+  const videoDetailsMatch = pathname.match(/^\/video_details\/(\d+)(?:\.htm)?$/);
+  if (videoDetailsMatch) {
+    return rewriteKeepingQuery(
+      request,
+      `/${locale}/videos/${videoDetailsMatch[1]}`,
+    );
+  }
+
   // 城市频道 SEO: /city/shanghai → /zh-CN/cities/shanghai
   const cityHomeMatch = pathname.match(/^\/city\/([a-z0-9-]+)$/);
   if (cityHomeMatch) {

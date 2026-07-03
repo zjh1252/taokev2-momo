@@ -41,7 +41,7 @@ public class CourseListOptHandler implements SearchCourseOptHandler {
 
         int pxbUid = params.getInt(request, "uid", 0);
         int pxbRootId = params.getInt(request, "pxb_root_id", 0);
-        int userId = userResolver.resolveUserId(pxbUid);
+        int userId = userResolver.resolveUserId(request, pxbUid);
         if (userId <= 0) {
             return emptyList();
         }
