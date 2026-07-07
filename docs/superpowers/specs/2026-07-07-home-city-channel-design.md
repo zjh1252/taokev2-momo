@@ -9,11 +9,11 @@
 - 仅改 C 端首页城市频道模块。
 - 保留现有首页数据入口：`getActiveCities(18)`。
 - 复用现有城市跳转路径：`cityChannelPath(enName)`。
-- 使用现有图片资源：
-  - `/statics/images/重点城市切图/城市名片，上海.png`
-  - `/statics/images/重点城市切图/城市名片，深圳.png`
-  - `/statics/images/重点城市切图/城市名片，广州.png`
-  - `/statics/images/其余小城市/*.png`
+- 使用现有图片资源，统一从 `/statics/images/city/` 读取：
+  - `/statics/images/city/城市名片，上海.png`
+  - `/statics/images/city/城市名片，深圳.png`
+  - `/statics/images/city/城市名片，广州.png`
+  - `/statics/images/city/*.png`
 
 ## 视觉结构
 
@@ -34,7 +34,7 @@
 
 4. 小城市网格：
    - 展示苏州、北京、杭州、西安、武汉、成都、青岛、嘉兴、合肥、长沙、昆明、重庆等城市。
-   - 图片来自 `其余小城市` 目录。
+   - 图片来自 `/statics/images/city/` 目录。
    - 每张卡包含城市图标、城市名、课程数、查看课程入口。
 
 5. 底部需求 CTA：
@@ -45,7 +45,7 @@
 ## 组件与数据
 
 - 主要修改 `frontend/src/features/city/components/CityChannelCard.tsx`。
-- 可在同文件内维护城市图片映射和兜底展示数据，避免新增过多抽象。
+- 可在同文件内维护城市图片映射和兜底展示数据，所有城市图片路径统一指向 `/statics/images/city/`，避免实现中依赖中文目录名。
 - 若后端未返回某个展示城市，用兜底城市项保证视觉完整。
 - 不改 `CityChannelSection`、城市详情页或后端接口。
 
