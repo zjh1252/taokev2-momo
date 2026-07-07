@@ -86,6 +86,14 @@ export function getFirstError(errors: ValidationError[]): string | undefined {
   return errors[0]?.message;
 }
 
+export function getTodayDateValue(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 /**
  * 常用验证器
  */
@@ -113,5 +121,15 @@ export const Validators = {
       return '营业执照号需为15位纯数字或18位大写统一社会信用代码';
     }
     return undefined;
+  },
+  notFutureDate: (message = '日期不能晚于今天') => (value: unknown) => {
+    const date = String(value ?? '').trim();
+    if (!date) {
+      return undefined;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return '请输入正确的日期';
+    }
+    return date > getTodayDateValue() ? message : undefined;
   },
 };

@@ -41,6 +41,24 @@ const FIELD_ANCHORS = {
   intro: 'course-field-intro',
 } as const;
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function plainTextToRichHtml(value?: string) {
+  const lines = value
+    ?.split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines || lines.length === 0) return '';
+  return lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('');
+}
+
 function scrollToCourseField(key: keyof typeof FIELD_ANCHORS) {
   document.getElementById(FIELD_ANCHORS[key])?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -253,6 +271,9 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
       setKeywords(parsed.keywords.slice(0, 3).join('，'));
     }
     if (parsed.audience) setAudience(parsed.audience);
+    if (parsed.highlights) setHighlights(parsed.highlights);
+    if (parsed.intro) setIntro(plainTextToRichHtml(parsed.intro));
+    if (parsed.syllabus) setSyllabus(plainTextToRichHtml(parsed.syllabus));
   };
 
   /**
@@ -769,7 +790,7 @@ function MaterialUploadButton({
   const inputRef = useRef<HTMLInputElement>(null);
   const [parsing, setParsing] = useState(false);
 
-  const accept = '.doc,.docx,.pdf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const accept = '.docx,.pdf,.jpg,.jpeg,.png,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp';
 
   const handleFile = async (file: File) => {
     setParsing(true);

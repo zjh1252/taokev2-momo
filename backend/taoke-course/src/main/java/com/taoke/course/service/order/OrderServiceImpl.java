@@ -308,6 +308,10 @@ public class OrderServiceImpl {
             return item;
         }
 
+        if (productType == ProductType.INTERNAL_COURSE) {
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_PURCHASABLE);
+        }
+
         Video video = videoRepository.findById(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
         if (video.getStatus() != 2) {

@@ -156,6 +156,9 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
     }
 
     private boolean isPublished(RecommendedResourceItemVO item) {
+        if ("BANNER".equals(item.getResourceType())) {
+            return true;
+        }
         Integer status = item.getResourceStatus();
         if (status == null) {
             return false;

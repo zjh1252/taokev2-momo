@@ -17,7 +17,7 @@ public interface CourseAiService {
     /**
      * 解析课程资料文件，返回上传 URL、全文及 AI 提取出的结构化字段。
      *
-     * @param file 上传的 docx / pdf 文件
+     * @param file 上传的 docx / pdf / 图片文件
      * @return 解析结果
      */
     AiParseMaterialResultVO parseMaterial(MultipartFile file);

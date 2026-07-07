@@ -1,8 +1,5 @@
 package com.taoke.course.service;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.taoke.common.ai.AiChatService;
-import com.taoke.common.config.AiProperties;
 import com.taoke.common.dto.CategoryTreeVO;
 import com.taoke.common.dto.FileUploadResponse;
 import com.taoke.common.enums.CategoryType;
@@ -10,6 +7,7 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.service.CategoryService;
 import com.taoke.common.service.FileUploadService;
+import com.taoke.common.service.docparse.AliyunOcrTextExtractor;
 import com.taoke.common.service.docparse.DocumentTextExtractor;
 import com.taoke.course.api.CourseAiService;
 import com.taoke.course.dto.course.AiParseMaterialResultVO;
@@ -25,6 +23,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -33,11 +33,10 @@ import java.util.stream.Collectors;
  * <p>编排步骤：</p>
  * <ol>
  *   <li>调用 {@link FileUploadService#uploadFile(MultipartFile)} 落盘并拿 URL</li>
- *   <li>用 {@link DocumentTextExtractor} 抽取 docx / pdf 全文</li>
- *   <li>文本超长按「前段 + 末段」截断，避免触发 LLM token 上限</li>
- *   <li>把 COURSE_CATEGORY 的候选分类一起写进系统提示词，调用 {@link AiChatService#chatJson}</li>
- *   <li>对 AI 返回的 categoryName 做大小写不敏感、去空格的精确匹配，找到则填 categoryId</li>
- *   <li>关键词裁到最多 3 个，全部空字段保持 null</li>
+ *   <li>用 {@link DocumentTextExtractor} 抽取 docx / 文本 PDF 全文</li>
+ *   <li>图片或扫描 PDF 走 {@link AliyunOcrTextExtractor} 识别全文</li>
+ *   <li>本地规则提取标题、时长、分类、关键词、受众、简介、大纲等字段</li>
+ *   <li>对 categoryName 做大小写不敏感、去空格的精确匹配，找到则填 categoryId</li>
  * </ol>
  *
  * @author Fangxinxin
@@ -50,27 +49,13 @@ public class CourseAiServiceImpl implements CourseAiService {
 
     private final FileUploadService fileUploadService;
     private final DocumentTextExtractor documentTextExtractor;
-    private final AiChatService aiChatService;
+    private final AliyunOcrTextExtractor aliyunOcrTextExtractor;
     private final CategoryService categoryService;
-    private final AiProperties aiProperties;
 
-    private static final String SYSTEM_PROMPT_TEMPLATE = """
-            你是一名课程资料结构化分析助手。
-            用户会给你一段课程相关的原始资料（讲义/PPT/PDF 转写文本），请你根据资料内容提取出以下字段并以 JSON 输出：
-
-            字段说明：
-            - title          (string): 课程标题
-            - durationDays   (integer|null): 课程培训天数（整数）；若资料中能推断出整数天数则填，否则为 null
-            - totalHours     (number|null): 课程总时长（小时，可含一位小数）；若资料中明确说明总课时则填，否则为 null
-            - categoryName   (string|null): 一级课程分类名，必须严格从以下候选中选择最匹配的一项，没有把握就留空：[%s]
-            - keywords       (array<string>): 提炼最多 3 个关键词，按重要性排序
-            - audience       (string): 目标受众（适用人群）
-
-            严格要求：
-            1. 输出必须是合法 JSON 对象，键名严格按上面的英文名；
-            2. 没有把握 / 资料中无明确信息的字段，按照上述类型返回 null 或空串/空数组，禁止编造；
-            3. 不要在 JSON 之外输出任何解释性文字，不要使用 markdown 代码块。
-            """;
+    private static final Pattern DURATION_DAY_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*(天|日)");
+    private static final Pattern TOTAL_HOUR_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*(小时|课时|学时|h|H)");
+    private static final Pattern TITLE_LABEL_PATTERN = Pattern.compile(
+            "(?:课程名称|课程标题|培训主题|主题)\\s*[:：]\\s*(.+)");
 
     @Override
     public AiParseMaterialResultVO parseMaterial(MultipartFile file) {
@@ -79,33 +64,48 @@ public class CourseAiServiceImpl implements CourseAiService {
         }
 
         // 1. 上传文件
-        FileUploadResponse uploaded = fileUploadService.uploadFile(file);
+        FileUploadResponse uploaded = uploadMaterial(file);
 
-        // 2. 抽取文本（以原始文件名识别格式，重新打开 InputStream）
+        String fileName = file.getOriginalFilename();
         String materialText;
-        try (InputStream in = file.getInputStream()) {
-            materialText = documentTextExtractor.extract(file.getOriginalFilename(), in);
-        } catch (IOException e) {
-            log.warn("课程资料文本抽取读流失败 file={}", file.getOriginalFilename(), e);
-            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "文档读取失败");
+        if (isImageFile(fileName, file.getContentType())) {
+            materialText = extractOcrText(file);
+        } else {
+            materialText = extractText(file);
+        }
+        if ((materialText == null || materialText.isBlank()) && isPdfFile(fileName, file.getContentType())) {
+            materialText = extractOcrText(file);
         }
         if (materialText == null || materialText.isBlank()) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "未能从文件中抽取出文本内容，请确认文件不为空且非纯图片扫描件");
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "未能从文件中抽取出文本内容，请确认文件不为空");
         }
 
-        // 3. 调用 AI（candidates 注入提示词；输入文本截断）
-        List<String> candidates = listCourseCategoryNames();
-        String systemPrompt = SYSTEM_PROMPT_TEMPLATE.formatted(String.join(", ", candidates));
-        String userPrompt = truncate(materialText, aiProperties.getMaxInputChars());
+        // 2. 本地规则解析字段，避免依赖大模型
+        AiRawResponse raw = parseFieldsByRules(materialText);
 
-        AiRawResponse raw = aiChatService.chatJson(systemPrompt, userPrompt, AiRawResponse.class);
+        // 3. 装配结果
+        AiParseMaterialResultVO result = buildResult(uploaded.getUrl(), materialText, raw);
+        return result;
+    }
 
-        // 4. 装配结果
+    private String extractOcrText(MultipartFile file) {
+        try (InputStream in = file.getInputStream()) {
+            return aliyunOcrTextExtractor.extract(file.getOriginalFilename(), file.getContentType(), in);
+        } catch (IOException e) {
+            log.warn("课程资料 OCR 读流失败 file={}", file.getOriginalFilename(), e);
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "文件读取失败");
+        }
+    }
+
+    private AiParseMaterialResultVO buildResult(String materialUrl, String materialText, AiRawResponse raw) {
         AiParseMaterialResultVO.ParsedFields parsed = new AiParseMaterialResultVO.ParsedFields();
         parsed.setTitle(blankToNull(raw.getTitle()));
         parsed.setDurationDays(raw.getDurationDays());
         parsed.setTotalHours(raw.getTotalHours());
         parsed.setAudience(blankToNull(raw.getAudience()));
+        parsed.setHighlights(blankToNull(raw.getHighlights()));
+        parsed.setIntro(blankToNull(raw.getIntro()));
+        parsed.setSyllabus(blankToNull(raw.getSyllabus()));
 
         // 关键词裁切到最多 3 个
         if (raw.getKeywords() != null && !raw.getKeywords().isEmpty()) {
@@ -126,10 +126,48 @@ public class CourseAiServiceImpl implements CourseAiService {
         }
 
         AiParseMaterialResultVO result = new AiParseMaterialResultVO();
-        result.setMaterialUrl(uploaded.getUrl());
+        result.setMaterialUrl(materialUrl);
         result.setMaterialText(materialText);
         result.setParsed(parsed);
         return result;
+    }
+
+    private FileUploadResponse uploadMaterial(MultipartFile file) {
+        if (isImageFile(file.getOriginalFilename(), file.getContentType())) {
+            return fileUploadService.uploadImage(file);
+        }
+        return fileUploadService.uploadFile(file);
+    }
+
+    private String extractText(MultipartFile file) {
+        try (InputStream in = file.getInputStream()) {
+            return documentTextExtractor.extract(file.getOriginalFilename(), in);
+        } catch (BusinessException e) {
+            if (isPdfFile(file.getOriginalFilename(), file.getContentType())) {
+                log.info("PDF 文本层抽取失败，尝试视觉识别 file={}, reason={}", file.getOriginalFilename(), e.getMessage());
+                return "";
+            }
+            throw e;
+        } catch (IOException e) {
+            log.warn("课程资料文本抽取读流失败 file={}", file.getOriginalFilename(), e);
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "文档读取失败");
+        }
+    }
+
+    private static boolean isPdfFile(String fileName, String contentType) {
+        String lowerName = fileName == null ? "" : fileName.toLowerCase(Locale.ROOT);
+        String lowerType = contentType == null ? "" : contentType.toLowerCase(Locale.ROOT);
+        return lowerName.endsWith(".pdf") || "application/pdf".equals(lowerType);
+    }
+
+    private static boolean isImageFile(String fileName, String contentType) {
+        String lowerName = fileName == null ? "" : fileName.toLowerCase(Locale.ROOT);
+        String lowerType = contentType == null ? "" : contentType.toLowerCase(Locale.ROOT);
+        return lowerType.startsWith("image/")
+                || lowerName.endsWith(".jpg")
+                || lowerName.endsWith(".jpeg")
+                || lowerName.endsWith(".png")
+                || lowerName.endsWith(".webp");
     }
 
     /** 取一级 COURSE_CATEGORY 的所有可见分类名 */
@@ -164,31 +202,220 @@ public class CourseAiServiceImpl implements CourseAiService {
         return null;
     }
 
-    /** 文本超出限制时取前 70% + 末 30%，中段截掉，最大化保留首尾上下文 */
-    private static String truncate(String text, Integer max) {
-        if (max == null || max <= 0 || text == null || text.length() <= max) {
-            return text == null ? "" : text;
+    private AiRawResponse parseFieldsByRules(String materialText) {
+        String text = materialText == null ? "" : materialText;
+        AiRawResponse raw = new AiRawResponse();
+        raw.setMaterialText(text);
+
+        String title = parseTitle(text);
+        raw.setTitle(title);
+
+        Integer days = parseDurationDays(text);
+        BigDecimal hours = parseTotalHours(text);
+        if (hours == null && days != null) {
+            hours = BigDecimal.valueOf(days * 6L);
+        } else if (days == null && hours != null && hours.compareTo(BigDecimal.ZERO) > 0) {
+            days = Math.max(1, hours.divide(BigDecimal.valueOf(6), 0, java.math.RoundingMode.CEILING).intValue());
         }
-        int head = (int) (max * 0.7);
-        int tail = max - head;
-        return text.substring(0, head)
-                + "\n\n... (中间内容已截断，原文长度 " + text.length() + " 字) ...\n\n"
-                + text.substring(text.length() - tail);
+        raw.setDurationDays(days);
+        raw.setTotalHours(hours);
+
+        String categoryName = parseCategoryName(text);
+        raw.setCategoryName(categoryName);
+        raw.setAudience(extractSection(text, List.of("目标受众", "适用对象", "适用人群", "培训对象", "目标学员", "适合人群"), 300));
+        raw.setHighlights(extractSection(text, List.of("课程收益", "培训收益", "学习收益", "课程亮点", "课程目标", "培训目标", "课程价值"), 500));
+        raw.setIntro(extractSection(text, List.of("课程简介", "课程介绍", "课程背景", "项目背景", "课程概述"), 800));
+        raw.setSyllabus(extractSection(text, List.of("课程大纲", "课程内容", "课程安排", "课程模块", "课程目录", "培训内容"), 1500));
+        if (raw.getIntro() == null) {
+            raw.setIntro(firstTextBlock(text, 500));
+        }
+        raw.setKeywords(parseKeywords(text, title, categoryName));
+        return raw;
+    }
+
+    private String parseTitle(String text) {
+        Matcher labelMatcher = TITLE_LABEL_PATTERN.matcher(text);
+        if (labelMatcher.find()) {
+            return cleanLine(labelMatcher.group(1), 80);
+        }
+        for (String line : splitLines(text)) {
+            String cleaned = cleanLine(line, 80);
+            if (cleaned == null) {
+                continue;
+            }
+            if (cleaned.matches("第\\s*\\d+\\s*页") || cleaned.length() < 4) {
+                continue;
+            }
+            if (cleaned.contains("目录") || cleaned.contains("课程大纲") || cleaned.contains("课程内容")) {
+                continue;
+            }
+            return cleaned;
+        }
+        return null;
+    }
+
+    private Integer parseDurationDays(String text) {
+        Matcher matcher = DURATION_DAY_PATTERN.matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
+        BigDecimal value = new BigDecimal(matcher.group(1));
+        return Math.max(1, value.setScale(0, java.math.RoundingMode.CEILING).intValue());
+    }
+
+    private BigDecimal parseTotalHours(String text) {
+        Matcher matcher = TOTAL_HOUR_PATTERN.matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
+        return new BigDecimal(matcher.group(1)).stripTrailingZeros();
+    }
+
+    private String parseCategoryName(String text) {
+        String normalized = text == null ? "" : text.toLowerCase(Locale.ROOT);
+        for (String name : listCourseCategoryNames()) {
+            if (name != null && !name.isBlank() && normalized.contains(name.toLowerCase(Locale.ROOT))) {
+                return name;
+            }
+        }
+        return null;
+    }
+
+    private List<String> parseKeywords(String text, String title, String categoryName) {
+        List<String> keywords = new ArrayList<>();
+        String explicit = extractSection(text, List.of("关键词", "关键字", "标签"), 80);
+        if (explicit != null) {
+            for (String part : explicit.split("[,，、;；\\s]+")) {
+                addKeyword(keywords, part);
+            }
+        }
+        addKeyword(keywords, categoryName);
+        if (title != null) {
+            for (String part : title.split("[《》:：,，、;；\\s]+")) {
+                if (part.length() >= 2 && part.length() <= 8) {
+                    addKeyword(keywords, part);
+                }
+            }
+        }
+        return keywords.isEmpty() ? null : keywords.stream().limit(3).collect(Collectors.toList());
+    }
+
+    private static void addKeyword(List<String> keywords, String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return;
+        }
+        String cleaned = keyword.trim();
+        if (!keywords.contains(cleaned)) {
+            keywords.add(cleaned);
+        }
+    }
+
+    private String extractSection(String text, List<String> labels, int maxChars) {
+        List<String> lines = splitLines(text);
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i).trim();
+            String matchedLabel = labels.stream().filter(line::contains).findFirst().orElse(null);
+            if (matchedLabel == null) {
+                continue;
+            }
+            StringBuilder section = new StringBuilder();
+            String sameLine = line.substring(line.indexOf(matchedLabel) + matchedLabel.length())
+                    .replaceFirst("^\\s*[:：-]*\\s*", "");
+            appendSectionLine(section, sameLine, maxChars);
+            for (int j = i + 1; j < lines.size() && section.length() < maxChars; j++) {
+                String next = lines.get(j).trim();
+                if (next.isBlank() || isSectionBoundary(next)) {
+                    if (section.length() > 0) {
+                        break;
+                    }
+                    continue;
+                }
+                appendSectionLine(section, next, maxChars);
+            }
+            String value = section.toString().trim();
+            return value.isBlank() ? null : value;
+        }
+        return null;
+    }
+
+    private static void appendSectionLine(StringBuilder section, String line, int maxChars) {
+        String cleaned = cleanLine(line, maxChars);
+        if (cleaned == null || section.length() >= maxChars) {
+            return;
+        }
+        if (section.length() > 0) {
+            section.append('\n');
+        }
+        int remaining = maxChars - section.length();
+        section.append(cleaned, 0, Math.min(cleaned.length(), remaining));
+    }
+
+    private static boolean isSectionBoundary(String line) {
+        String cleaned = line.trim();
+        if (cleaned.matches("第\\s*\\d+\\s*页")) {
+            return true;
+        }
+        if (cleaned.length() <= 16 && cleaned.matches(".*(课程简介|课程介绍|课程背景|课程收益|课程亮点|课程目标|目标受众|适用对象|培训对象|课程大纲|课程内容|课程安排|课程模块|目录|讲师介绍).*")) {
+            return true;
+        }
+        return cleaned.length() <= 20 && cleaned.endsWith("：");
+    }
+
+    private static String firstTextBlock(String text, int maxChars) {
+        StringBuilder block = new StringBuilder();
+        for (String line : splitLines(text)) {
+            String cleaned = cleanLine(line, maxChars);
+            if (cleaned == null || cleaned.matches("第\\s*\\d+\\s*页")) {
+                continue;
+            }
+            appendSectionLine(block, cleaned, maxChars);
+            if (block.length() >= maxChars) {
+                break;
+            }
+        }
+        String value = block.toString().trim();
+        return value.isBlank() ? null : value;
+    }
+
+    private static List<String> splitLines(String text) {
+        if (text == null || text.isBlank()) {
+            return List.of();
+        }
+        return text.lines()
+                .map(String::trim)
+                .filter(line -> !line.isBlank())
+                .collect(Collectors.toList());
+    }
+
+    private static String cleanLine(String line, int maxChars) {
+        if (line == null) {
+            return null;
+        }
+        String cleaned = line.trim()
+                .replaceFirst("^[\\s#>*•·\\-—–一二三四五六七八九十0-9.、)）(（]+", "")
+                .trim();
+        if (cleaned.isBlank()) {
+            return null;
+        }
+        return cleaned.length() > maxChars ? cleaned.substring(0, maxChars) : cleaned;
     }
 
     private static String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s.trim();
     }
 
-    /** AI 原始返回（仅用于反序列化，键名与提示词一致） */
+    /** 本地规则解析出的中间字段，结构沿用原 AI 返回字段名。 */
     @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class AiRawResponse {
+        private String materialText;
         private String title;
         private Integer durationDays;
         private BigDecimal totalHours;
         private String categoryName;
         private List<String> keywords;
         private String audience;
+        private String highlights;
+        private String intro;
+        private String syllabus;
     }
 }

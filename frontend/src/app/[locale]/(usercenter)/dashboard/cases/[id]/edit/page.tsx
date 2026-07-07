@@ -12,7 +12,7 @@ import {
 } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
-import { validateForm, getFirstError } from '@/lib/validation';
+import { validateForm, getFirstError, getTodayDateValue, Validators } from '@/lib/validation';
 import { CASE_RULES, traineeCountValidator } from '../../create/page';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
@@ -107,6 +107,15 @@ export default function EditCasePage({
     value: SaveTrainerCaseRequest[K] | undefined,
   ) => setForm((prev) => ({ ...prev, [key]: value }));
 
+  const handleTrainingDateChange = (value: string) => {
+    const error = Validators.notFutureDate('培训日期不能晚于今天')(value);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    updateField('trainingDate', value);
+  };
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -148,7 +157,7 @@ export default function EditCasePage({
         // 平台层已统一处理错误提示
       }
     },
-    [caseId],
+    [caseId, trainerUserId],
   );
 
   const handleRemoveFile = useCallback(
@@ -163,7 +172,7 @@ export default function EditCasePage({
       }
       setFiles((prev) => prev.filter((_, i) => i !== index));
     },
-    [caseId],
+    [caseId, trainerUserId],
   );
 
   const handleSubmit = async () => {
@@ -285,7 +294,8 @@ export default function EditCasePage({
             <input
               type="date"
               value={form.trainingDate || ''}
-              onChange={(e) => updateField('trainingDate', e.target.value)}
+              max={getTodayDateValue()}
+              onChange={(e) => handleTrainingDateChange(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </FormField>

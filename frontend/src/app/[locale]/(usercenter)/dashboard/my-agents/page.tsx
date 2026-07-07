@@ -1,21 +1,22 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import {
-  Handshake,
-  Users,
-  CheckCircle2,
-  XCircle,
   AlertCircle,
   Building2,
+  CheckCircle2,
+  Handshake,
   Loader2,
+  Plus,
+  Users,
+  XCircle,
 } from 'lucide-react';
 import {
+  confirmBindingByTrainer,
   listMyAgents,
   listMyBindingRequests,
-  confirmBindingByTrainer,
   rejectBindingByTrainer,
   unbind,
 } from '@/features/binding/api/service';
@@ -25,18 +26,8 @@ import {
   type BindingType,
 } from '@/features/binding/api/types';
 import { RejectReasonDialog } from '@/features/binding/components/reject-reason-dialog';
+import { Link } from '@/i18n/navigation';
 
-/**
- * 我的代理 — 专家视角
- * <p>
- * <ul>
- *   <li>顶部「待我确认」：列出 PENDING 请求，可一键同意/拒绝</li>
- *   <li>下方「已生效绑定」：助理 / 经纪人 / 培训机构 / 经纪公司</li>
- * </ul>
- *
- * @author Fangxinxin
- * @date 2026-04-21 17:30
- */
 export default function MyAgentsPage() {
   const [pending, setPending] = useState<BindingItem[]>([]);
   const [active, setActive] = useState<BindingItem[]>([]);
@@ -75,10 +66,6 @@ export default function MyAgentsPage() {
     }
   };
 
-  const handleReject = (item: BindingItem) => {
-    setRejectingItem(item);
-  };
-
   const submitReject = async (reason: string) => {
     if (!rejectingItem) return;
     setActingId(rejectingItem.id);
@@ -108,9 +95,14 @@ export default function MyAgentsPage() {
     }
   };
 
+  const rejectingName = rejectingItem
+    ? rejectingItem.counterpartNickname
+      || rejectingItem.counterpartOrgName
+      || `用户#${rejectingItem.counterpartUserId}`
+    : '';
+
   return (
     <section className="space-y-6">
-      {/* 待我确认 */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -136,7 +128,7 @@ export default function MyAgentsPage() {
                   acting={actingId === item.id}
                   showPendingActions
                   onConfirm={handleConfirm}
-                  onReject={handleReject}
+                  onReject={setRejectingItem}
                 />
               ))}
             </div>
@@ -144,7 +136,6 @@ export default function MyAgentsPage() {
         </div>
       </div>
 
-      {/* 已生效绑定 */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -155,9 +146,13 @@ export default function MyAgentsPage() {
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 hidden sm:block">
-            被绑定的角色可代为发布/管理你的课程、案例、视频、著作等资源。
-          </p>
+          <Link
+            href="/dashboard/my-agents/add"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
+          >
+            <Plus className="size-3.5" />
+            添加代理
+          </Link>
         </div>
         <div className="p-6">
           {loading ? (
@@ -181,15 +176,11 @@ export default function MyAgentsPage() {
 
       <RejectReasonDialog
         open={!!rejectingItem}
-        onOpenChange={(v) => {
-          if (!v) setRejectingItem(null);
+        onOpenChange={(open) => {
+          if (!open) setRejectingItem(null);
         }}
         title="拒绝绑定请求"
-        description={
-          rejectingItem
-            ? `拒绝来自「${rejectingItem.counterpartNickname || rejectingItem.counterpartOrgName || `用户#${rejectingItem.counterpartUserId}`}」的绑定请求，可填写理由（可选）。`
-            : ''
-        }
+        description={rejectingItem ? `拒绝来自“${rejectingName}”的绑定请求，可填写理由（可选）。` : ''}
         loading={actingId === rejectingItem?.id}
         onConfirm={submitReject}
       />
@@ -230,13 +221,15 @@ function BindingCard({
   onUnbind?: (item: BindingItem) => void;
 }) {
   const roleLabel = item.counterpartRoleLabel || roleLabelByType(item.bindingType);
+  const displayName = item.counterpartOrgName || item.counterpartNickname || `用户#${item.counterpartUserId}`;
+
   return (
     <div className="border border-slate-200 rounded-lg p-4 hover:border-primary/40 hover:shadow-md transition-all">
       <div className="flex gap-3">
         {item.counterpartAvatarUrl ? (
           <Image
             src={item.counterpartAvatarUrl}
-            alt={item.counterpartNickname || ''}
+            alt={item.counterpartNickname || displayName}
             width={48}
             height={48}
             className="size-12 rounded-full object-cover bg-slate-100"
@@ -252,9 +245,7 @@ function BindingCard({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-800 truncate">
-              {item.counterpartOrgName || item.counterpartNickname || `用户#${item.counterpartUserId}`}
-            </span>
+            <span className="font-medium text-gray-800 truncate">{displayName}</span>
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
               {roleLabel}
             </span>
@@ -264,7 +255,6 @@ function BindingCard({
               联系人：{item.counterpartNickname}
             </div>
           )}
-          {/* 真实姓名 / 电话：无值时占位为空，便于一行式辨识 */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 mt-1">
             <span>真实姓名：{item.counterpartRealName || ''}</span>
             <span>电话：{item.counterpartPhone || ''}</span>
@@ -318,11 +308,17 @@ function BindingCard({
 
 function roleLabelByType(type: BindingType): string {
   switch (type) {
-    case 'AGENT_TRAINER': return '专家经纪人';
-    case 'ASSISTANT_TRAINER': return '专家助理';
-    case 'INSTITUTION_TRAINER': return '培训机构';
-    case 'ENTERPRISE_AGENT_TRAINER': return '专家经纪公司';
-    case 'INSTITUTION_EMPLOYEE': return '机构员工';
-    default: return '绑定方';
+    case 'AGENT_TRAINER':
+      return '专家经纪人';
+    case 'ASSISTANT_TRAINER':
+      return '专家助理';
+    case 'INSTITUTION_TRAINER':
+      return '机构';
+    case 'ENTERPRISE_AGENT_TRAINER':
+      return '专家经纪公司';
+    case 'INSTITUTION_EMPLOYEE':
+      return '机构员工';
+    default:
+      return '绑定方';
   }
 }

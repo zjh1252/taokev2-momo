@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 推荐位编码 — 对应后台推荐管理原型 1_1 ~ 4_1
+ * 推荐位编码，对应后台推荐管理原型 1_1 ~ 4_1。
  *
  * @author Fangxinxin
  * @date 2026-06-12 18:00
@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum RecommendationSlot {
 
+    HOME_BANNER("HOME_BANNER", "首页-Banner轮播图", "BANNER"),
     HOME_TRAINER("HOME_TRAINER", "首页-推荐专家", "TRAINER"),
     TRAINER_LIST_TRAINER("TRAINER_LIST_TRAINER", "专家页-推荐专家", "TRAINER"),
     TRAINER_CATEGORY_EXPERT("TRAINER_CATEGORY_EXPERT", "专家页-擅长领域专家", "TRAINER"),

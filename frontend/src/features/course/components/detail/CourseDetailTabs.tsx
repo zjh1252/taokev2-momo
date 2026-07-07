@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import { Star } from 'lucide-react';
+import { MaterialLinkSection } from '@/components/material-link-section';
 import { useTranslations } from 'next-intl';
 import type { CourseDetail } from '../../api/types';
 import { CoursePlanTable } from './CoursePlanTable';
@@ -13,9 +13,44 @@ import { courseSectionH3 } from '@/lib/seo/headings';
 
 interface CourseDetailTabsProps {
   course: CourseDetail;
-  /** 开课计划详情页：排除当前计划并切换表格标题 */
   activePlanCode?: string;
   planTableTitle?: string;
+}
+
+function CourseRichSection({
+  courseTitle,
+  title,
+  html,
+  text,
+}: {
+  courseTitle: string;
+  title: string;
+  html?: string | null;
+  text?: string | null;
+}) {
+  const htmlContent = html?.trim();
+  const textContent = text?.trim();
+
+  if (!htmlContent && !textContent) return null;
+
+  return (
+    <section>
+      <h2 className="text-xl font-bold text-slate-900 mb-4">{title}</h2>
+      <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
+        {courseSectionH3(courseTitle, title)}
+      </h3>
+      {htmlContent ? (
+        <div
+          className="prose prose-slate max-w-none text-sm"
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
+      ) : (
+        <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+          {textContent}
+        </div>
+      )}
+    </section>
+  );
 }
 
 export function CourseDetailTabs({
@@ -40,11 +75,11 @@ export function CourseDetailTabs({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-      {/* Tab 头 */}
       <div className="flex border-b border-slate-100">
         {tabs.map((tab) => (
           <button
             key={tab.key}
+            type="button"
             onClick={() => setActiveTab(tab.key)}
             className={`px-8 py-4 text-sm font-medium transition-colors relative ${
               activeTab === tab.key
@@ -60,11 +95,9 @@ export function CourseDetailTabs({
         ))}
       </div>
 
-      {/* Tab 内容 */}
       <div className="p-8">
         {(activeTab === 'intro' || activeTab === 'detail') && (
           <div className="space-y-8">
-            {/* 公开课：开课计划表格 */}
             {isOpen && course.plans && course.plans.length > 0 && (
               <CoursePlanTable
                 plans={course.plans}
@@ -76,60 +109,46 @@ export function CourseDetailTabs({
               />
             )}
 
-            {/* 培训受众 */}
-            {course.audience && (
-              <section>
-                <h2 className="text-xl font-bold text-slate-900 mb-4">{t('trainingTarget')}</h2>
-                <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                  {courseSectionH3(course.title, '目标受众')}
-                </h3>
-                <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                  {course.audience}
-                </div>
-              </section>
-            )}
+            <CourseRichSection
+              courseTitle={course.title}
+              title="课程简介"
+              html={course.intro}
+              text={course.summary}
+            />
+            <CourseRichSection
+              courseTitle={course.title}
+              title="课纲"
+              html={course.syllabus}
+            />
+            <CourseRichSection
+              courseTitle={course.title}
+              title={t('trainingTarget')}
+              text={course.audience}
+            />
+            <CourseRichSection
+              courseTitle={course.title}
+              title={t('courseHighlights')}
+              html={course.highlights}
+            />
+            <CourseRichSection
+              courseTitle={course.title}
+              title="授课形式"
+              text={course.typeLabel}
+            />
 
-            {/* 课程收益 */}
-            {course.highlights && (
-              <section>
-                <h2 className="text-xl font-bold text-slate-900 mb-4">{t('courseHighlights')}</h2>
-                <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                  {courseSectionH3(course.title, '课程收益')}
-                </h3>
-                <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{ __html: course.highlights }}
-                />
-              </section>
-            )}
+            <MaterialLinkSection
+              courseTitle={course.title}
+              materialUrl={course.materialUrl}
+              sourceTexts={[
+                course.materialText,
+                course.intro,
+                course.summary,
+                course.syllabus,
+                course.audience,
+                course.highlights,
+              ]}
+            />
 
-            {/* 课程介绍（富文本） */}
-            {course.intro && (
-              <section>
-                <h2 className="text-xl font-bold text-slate-900 mb-4">{t('tabIntro')}</h2>
-                <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                  {courseSectionH3(course.title, '课程背景')}
-                </h3>
-                <div
-                  className="prose prose-slate max-w-none text-sm"
-                  dangerouslySetInnerHTML={{ __html: course.intro }}
-                />
-              </section>
-            )}
-
-            {/* 课程大纲（富文本） */}
-            {course.syllabus && (
-              <section>
-                <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
-                  {courseSectionH3(course.title, '课程大纲')}
-                </h3>
-                <div
-                  className="prose prose-slate max-w-none text-sm"
-                  dangerouslySetInnerHTML={{ __html: course.syllabus }}
-                />
-              </section>
-            )}
-
-            {/* 授课专家 */}
             {course.trainerName && (
               <section>
                 <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
@@ -137,9 +156,11 @@ export function CourseDetailTabs({
                 </h3>
                 <div className="p-4 bg-slate-50 rounded-lg">
                   <p className="font-bold text-slate-900">{course.trainerName}</p>
-                  {/* TODO: trainerId 回填后可链接到讲师主页 */}
                   {course.trainerId > 0 && (
-                    <a href={`/trainer/${course.trainerId}.htm`} className="text-sm text-primary hover:underline mt-1 inline-block">
+                    <a
+                      href={`/trainer/${course.trainerId}.htm`}
+                      className="text-sm text-primary hover:underline mt-1 inline-block"
+                    >
                       {t('viewTrainerPage')} →
                     </a>
                   )}
@@ -186,7 +207,9 @@ function CourseReviewsPanel({ courseId }: { courseId: number }) {
     <div className="space-y-4">
       <div className="flex items-center gap-4 mb-4">
         <span className="text-2xl font-extrabold text-primary">{avgScore}</span>
-        <span className="text-sm text-slate-500">综合评分 · 共 {reviews.length} 条</span>
+        <span className="text-sm text-slate-500">
+          综合评分 · 共 {reviews.length} 条
+        </span>
       </div>
       {reviews.map((review) => (
         <article key={review.id} className="border border-slate-200 rounded-lg p-4">

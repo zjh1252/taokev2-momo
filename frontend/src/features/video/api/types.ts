@@ -129,6 +129,8 @@ export interface VideoDetail {
   subCategoryName: string;
   coverUrl: string;
   intro: string;
+  materialUrl?: string | null;
+  materialText?: string | null;
   videoUrl: string;
   externalUrl: string;
   teacherName: string;

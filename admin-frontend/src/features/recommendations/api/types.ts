@@ -1,7 +1,7 @@
 export type RecommendationSlotMeta = {
   code: string;
   label: string;
-  resourceType: 'TRAINER' | 'COURSE' | 'CASE' | 'INSTITUTION';
+  resourceType: 'TRAINER' | 'COURSE' | 'CASE' | 'INSTITUTION' | 'BANNER';
 };
 
 export type RecommendedResourceItem = {

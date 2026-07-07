@@ -329,6 +329,13 @@ export const navGroups: NavGroup[] = [
         icon: 'ad',
         isActive: false,
         items: []
+      },
+      {
+        title: '轮播图管理',
+        url: '/dashboard/banners',
+        icon: 'media',
+        isActive: false,
+        items: []
       }
     ]
   },

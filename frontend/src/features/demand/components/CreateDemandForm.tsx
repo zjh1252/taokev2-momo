@@ -14,6 +14,9 @@ type CreateDemandFormProps = {
   mode: 'auth' | 'public';
   cancelHref: string;
   title?: string;
+  initialValue?: Partial<CreateDemandRequest>;
+  submitLabel?: string;
+  onSubmit?: (data: CreateDemandRequest) => Promise<{ demandNo?: string } | void>;
   onSuccess?: (demandNo?: string) => void;
 };
 
@@ -24,6 +27,9 @@ export function CreateDemandForm({
   mode,
   cancelHref,
   title = '发布培训需求',
+  initialValue,
+  submitLabel,
+  onSubmit,
   onSuccess,
 }: CreateDemandFormProps) {
   const searchParams = useSearchParams();
@@ -34,22 +40,22 @@ export function CreateDemandForm({
 
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<CreateDemandRequest>({
-    demandType: initialType,
-    title: '',
-    trainingTopic: '',
-    traineeCount: undefined,
-    budgetMin: undefined,
-    budgetMax: undefined,
-    expectedStartDate: undefined,
-    format: undefined,
-    description: '',
-    sourceCaseId: undefined,
-    sourceCourseId: sourceCourseId ? Number(sourceCourseId) : undefined,
-    contactName: '',
-    contactPhone: '',
-    provinceId: undefined,
-    cityId: undefined,
-    districtId: undefined,
+    demandType: initialValue?.demandType || initialType,
+    title: initialValue?.title || '',
+    trainingTopic: initialValue?.trainingTopic || '',
+    traineeCount: initialValue?.traineeCount,
+    budgetMin: initialValue?.budgetMin,
+    budgetMax: initialValue?.budgetMax,
+    expectedStartDate: initialValue?.expectedStartDate,
+    format: initialValue?.format,
+    description: initialValue?.description || '',
+    sourceCaseId: initialValue?.sourceCaseId,
+    sourceCourseId: initialValue?.sourceCourseId ?? (sourceCourseId ? Number(sourceCourseId) : undefined),
+    contactName: initialValue?.contactName || '',
+    contactPhone: initialValue?.contactPhone || '',
+    provinceId: initialValue?.provinceId,
+    cityId: initialValue?.cityId,
+    districtId: initialValue?.districtId,
   });
 
   useEffect(() => {
@@ -90,10 +96,12 @@ export function CreateDemandForm({
     }
     setSubmitting(true);
     try {
-      const result = mode === 'auth'
-        ? await createDemand(form)
-        : await createPublicDemand(form);
-      onSuccess?.(result.demandNo);
+      const result = onSubmit
+        ? await onSubmit(form)
+        : mode === 'auth'
+          ? await createDemand(form)
+          : await createPublicDemand(form);
+      onSuccess?.(result?.demandNo);
     } catch {
       // apiClient 已弹 toast
     } finally {
@@ -269,7 +277,7 @@ export function CreateDemandForm({
               className="bg-primary hover:bg-primary/90 text-white px-8 py-2.5 rounded-md text-sm font-medium transition-colors disabled:opacity-60 flex items-center gap-2"
             >
               {submitting && <Loader2 className="size-4 animate-spin" />}
-              提交需求
+              {submitLabel || '提交需求'}
             </button>
             <Link
               href={cancelHref}
