@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { resolveAssetUrl } from '@/lib/resolve-asset-url';
@@ -72,13 +72,16 @@ export function MaterialGridView({
                     if (url) window.open(url, '_blank', 'noopener,noreferrer');
                   }}
                 >
-                  <Image
-                    src={resolveAssetUrl(item.url)}
+                  <AssetImage
+                    src={item.url}
                     alt={item.name}
                     fill
-                    sizes='(max-width: 768px) 50vw, 20vw'
+                    wrapperClassName={
+                      materialType === 'AVATAR'
+                        ? 'h-28 w-28 rounded-full'
+                        : 'h-28 w-full rounded-md'
+                    }
                     className='object-cover'
-                    unoptimized
                   />
                 </button>
 

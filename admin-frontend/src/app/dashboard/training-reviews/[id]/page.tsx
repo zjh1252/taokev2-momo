@@ -22,8 +22,7 @@ import {
   REVIEW_STATUS_MAP
 } from '@/features/training-reviews/api/types';
 import { getAdminUserDetailUrl } from '@/lib/frontend-links';
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -183,9 +182,9 @@ export default function TrainingReviewDetailPage(props: PageProps) {
             <h3 className='mb-2 font-medium'>现场照片</h3>
             <div className='flex flex-wrap gap-3'>
               {detail.photoUrls.map((url) => (
-                <Image
+                <AssetImage
                   key={url}
-                  src={resolveAssetUrl(url)}
+                  src={url}
                   alt='现场照片'
                   width={160}
                   height={120}

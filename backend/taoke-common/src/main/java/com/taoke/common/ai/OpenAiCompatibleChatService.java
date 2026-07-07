@@ -70,14 +70,14 @@ public class OpenAiCompatibleChatService implements AiChatService {
     @Override
     public String chat(String systemPrompt, String userPrompt) {
         ensureAvailable();
-        return doChat(systemPrompt, userPrompt, false);
+        return doChat(systemPrompt, userPrompt, null, false);
     }
 
     @Override
     public <T> T chatJson(String systemPrompt, String userPrompt, Class<T> type) {
         ensureAvailable();
         // 第一次：要求 JSON 输出
-        String content = doChat(systemPrompt, userPrompt, true);
+        String content = doChat(systemPrompt, userPrompt, null, true);
         try {
             return objectMapper.readValue(stripJsonFence(content), type);
         } catch (JsonProcessingException firstError) {
@@ -85,11 +85,31 @@ public class OpenAiCompatibleChatService implements AiChatService {
             // 第二次：在 system prompt 上追加更强的 JSON 约束
             String stricter = (systemPrompt == null ? "" : systemPrompt)
                     + "\n\n[严格要求] 仅输出 JSON，不要任何解释、不要 markdown 代码块标记。";
-            content = doChat(stricter, userPrompt, true);
+            content = doChat(stricter, userPrompt, null, true);
             try {
                 return objectMapper.readValue(stripJsonFence(content), type);
             } catch (JsonProcessingException secondError) {
                 log.error("AI 返回 JSON 二次解析仍失败，最终内容: {}", trim(content), secondError);
+                throw new BusinessException(ErrorCode.AI_PARSE_FAILED);
+            }
+        }
+    }
+
+    @Override
+    public <T> T chatJsonWithImages(String systemPrompt, String userPrompt, List<AiImageInput> images, Class<T> type) {
+        ensureAvailable();
+        String content = doChat(systemPrompt, userPrompt, images, true);
+        try {
+            return objectMapper.readValue(stripJsonFence(content), type);
+        } catch (JsonProcessingException firstError) {
+            log.warn("AI 多模态返回 JSON 解析失败，进行第二次重试。第一次原始内容: {}", trim(content), firstError);
+            String stricter = (systemPrompt == null ? "" : systemPrompt)
+                    + "\n\n[严格要求] 仅输出 JSON，不要任何解释、不要 markdown 代码块标记。";
+            content = doChat(stricter, userPrompt, images, true);
+            try {
+                return objectMapper.readValue(stripJsonFence(content), type);
+            } catch (JsonProcessingException secondError) {
+                log.error("AI 多模态返回 JSON 二次解析仍失败，最终内容: {}", trim(content), secondError);
                 throw new BusinessException(ErrorCode.AI_PARSE_FAILED);
             }
         }
@@ -102,15 +122,16 @@ public class OpenAiCompatibleChatService implements AiChatService {
      * @param userPrompt   用户输入
      * @param jsonMode     是否走 {@code response_format=json_object}
      */
-    private String doChat(String systemPrompt, String userPrompt, boolean jsonMode) {
+    private String doChat(String systemPrompt, String userPrompt, List<AiImageInput> images, boolean jsonMode) {
         String url = trimTrailingSlash(properties.getBaseUrl()) + "/chat/completions";
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", properties.getModel());
         body.put("temperature", properties.getTemperature());
+        Object userContent = buildUserContent(userPrompt, images);
         body.put("messages", List.of(
                 Map.of("role", "system", "content", systemPrompt == null ? "" : systemPrompt),
-                Map.of("role", "user", "content", userPrompt == null ? "" : userPrompt)
+                Map.of("role", "user", "content", userContent)
         ));
         if (jsonMode) {
             // OpenAI / 部分兼容服务支持；不支持的服务会忽略此字段
@@ -142,6 +163,24 @@ public class OpenAiCompatibleChatService implements AiChatService {
             log.error("AI 调用异常 url={}", url, e);
             throw new BusinessException(ErrorCode.AI_CALL_FAILED);
         }
+    }
+
+    private static Object buildUserContent(String userPrompt, List<AiImageInput> images) {
+        if (images == null || images.isEmpty()) {
+            return userPrompt == null ? "" : userPrompt;
+        }
+        List<Map<String, Object>> content = new java.util.ArrayList<>();
+        content.add(Map.of("type", "text", "text", userPrompt == null ? "" : userPrompt));
+        for (AiImageInput image : images) {
+            if (image == null || image.dataUrl() == null || image.dataUrl().isBlank()) {
+                continue;
+            }
+            content.add(Map.of(
+                    "type", "image_url",
+                    "image_url", Map.of("url", image.dataUrl())
+            ));
+        }
+        return content;
     }
 
     /** 抛出 AI_NOT_ENABLED 当配置未就绪 */

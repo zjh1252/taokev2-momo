@@ -3,6 +3,8 @@ package com.taoke.admin.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taoke.admin.dto.rolecert.AdminAgentWorkCertVO;
+import com.taoke.admin.dto.rolecert.AdminBuyerRealNameCertVO;
+import com.taoke.admin.dto.rolecert.AdminBuyerWorkCertVO;
 import com.taoke.admin.dto.rolecert.AdminEnterpriseAgentCertVO;
 import com.taoke.admin.dto.rolecert.AdminInstitutionCompanyInfoVO;
 import com.taoke.admin.dto.rolecert.AdminRoleCertQuery;
@@ -12,9 +14,12 @@ import com.taoke.user.api.UserService;
 import com.taoke.user.entity.Agent;
 import com.taoke.user.entity.AgentWorkExperience;
 import com.taoke.user.entity.EnterpriseAgent;
+import com.taoke.user.entity.EnterpriseBuyer;
+import com.taoke.user.entity.EnterpriseBuyerWorkExperience;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.User;
 import com.taoke.user.repository.AgentRepository;
+import com.taoke.user.repository.EnterpriseBuyerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -43,6 +48,7 @@ public class AdminRoleCertificationService {
 
     private final RoleCertificationAdminService adminService;
     private final AgentRepository agentRepository;
+    private final EnterpriseBuyerRepository enterpriseBuyerRepository;
     private final UserService userService;
 
     // ==================== 经纪人 — 工作认证 ====================
@@ -202,6 +208,109 @@ public class AdminRoleCertificationService {
 
     public void auditInstitutionCompanyInfo(Integer institutionId, boolean approved, String reason) {
         adminService.auditInstitutionCompanyInfo(institutionId, approved, reason);
+    }
+
+    // ==================== 企业采购方 — 实名认证 ====================
+
+    public PageResult<AdminBuyerRealNameCertVO> listBuyerRealName(AdminRoleCertQuery query) {
+        PageRequest pageable = PageRequest.of(
+                query.getPage() - 1, query.getSize(),
+                Sort.by(Sort.Direction.DESC, "realNameSubmittedAt", "id"));
+        Page<EnterpriseBuyer> page = adminService.pageBuyerRealName(query.getStatus(), pageable);
+        List<EnterpriseBuyer> records = page.getContent();
+        if (records.isEmpty()) {
+            return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), List.of());
+        }
+
+        Map<Integer, User> userMap = loadUsers(records.stream().map(EnterpriseBuyer::getUserId).toList());
+
+        List<AdminBuyerRealNameCertVO> voList = records.stream().map(b -> {
+            AdminBuyerRealNameCertVO vo = new AdminBuyerRealNameCertVO();
+            vo.setBuyerId(b.getId());
+            vo.setUserId(b.getUserId());
+            vo.setCompanyName(b.getCompanyName());
+            vo.setRealName(b.getContactName());
+            vo.setIdCardNo(b.getIdCardNo());
+            vo.setIdCardFront(b.getIdCardFront());
+            vo.setIdCardBack(b.getIdCardBack());
+            vo.setStatus(b.getRealNameStatus());
+            vo.setRejectReason(b.getRealNameRejectReason());
+            vo.setSubmittedAt(b.getRealNameSubmittedAt());
+            vo.setAuditedAt(b.getRealNameAuditedAt());
+            User u = userMap.get(b.getUserId());
+            if (u != null) {
+                vo.setPhone(u.getPhone());
+                vo.setNickname(u.getNickname());
+                if (vo.getRealName() == null || vo.getRealName().isBlank()) {
+                    vo.setRealName(u.getRealName());
+                }
+            }
+            return vo;
+        }).toList();
+
+        return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(),
+                applySearch(voList, query.getSearch(),
+                        v -> List.of(safe(v.getPhone()), safe(v.getNickname()), safe(v.getRealName()),
+                                safe(v.getCompanyName()))));
+    }
+
+    public void auditBuyerRealName(Integer buyerId, boolean approved, String reason) {
+        adminService.auditBuyerRealName(buyerId, approved, reason);
+    }
+
+    // ==================== 企业采购方 — 工作认证 ====================
+
+    public PageResult<AdminBuyerWorkCertVO> listBuyerWorkExperiences(AdminRoleCertQuery query) {
+        PageRequest pageable = PageRequest.of(
+                query.getPage() - 1, query.getSize(),
+                Sort.by(Sort.Direction.DESC, "createdAt", "id"));
+        Page<EnterpriseBuyerWorkExperience> page = adminService.pageBuyerWorkExperiences(query.getStatus(), pageable);
+        List<EnterpriseBuyerWorkExperience> records = page.getContent();
+        if (records.isEmpty()) {
+            return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), List.of());
+        }
+
+        List<Integer> buyerIds = records.stream().map(EnterpriseBuyerWorkExperience::getBuyerId).distinct().toList();
+        Map<Integer, EnterpriseBuyer> buyerMap = enterpriseBuyerRepository.findAllById(buyerIds).stream()
+                .collect(Collectors.toMap(EnterpriseBuyer::getId, Function.identity()));
+        Map<Integer, User> userMap = loadUsers(buyerMap.values().stream().map(EnterpriseBuyer::getUserId).toList());
+
+        List<AdminBuyerWorkCertVO> voList = records.stream().map(w -> {
+            AdminBuyerWorkCertVO vo = new AdminBuyerWorkCertVO();
+            vo.setId(w.getId());
+            vo.setBuyerId(w.getBuyerId());
+            vo.setWorkCompanyName(w.getCompanyName());
+            vo.setPosition(w.getPosition());
+            vo.setStartDate(w.getStartDate());
+            vo.setEndDate(w.getEndDate());
+            vo.setJobDescription(w.getJobDescription());
+            vo.setProofFile(w.getProofFile());
+            vo.setStatus(w.getStatus());
+            vo.setRejectReason(w.getRejectReason());
+            vo.setSubmittedAt(w.getSubmittedAt() == null ? w.getCreatedAt() : w.getSubmittedAt());
+            vo.setAuditedAt(w.getAuditedAt());
+            EnterpriseBuyer b = buyerMap.get(w.getBuyerId());
+            if (b != null) {
+                vo.setUserId(b.getUserId());
+                vo.setCompanyName(b.getCompanyName());
+                vo.setContactName(b.getContactName());
+                User u = userMap.get(b.getUserId());
+                if (u != null) {
+                    vo.setPhone(u.getPhone());
+                    vo.setNickname(u.getNickname());
+                }
+            }
+            return vo;
+        }).toList();
+
+        return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(),
+                applySearch(voList, query.getSearch(),
+                        v -> List.of(safe(v.getPhone()), safe(v.getNickname()), safe(v.getCompanyName()),
+                                safe(v.getContactName()), safe(v.getWorkCompanyName()), safe(v.getPosition()))));
+    }
+
+    public void auditBuyerWorkExperience(Integer recordId, boolean approved, String reason) {
+        adminService.auditBuyerWorkExperience(recordId, approved, reason);
     }
 
     // ==================== 工具方法 ====================

@@ -25,6 +25,7 @@ export function TrainerResultCard({ item }: TrainerResultCardProps) {
           alt={item.name || ''}
           width={100}
           height={120}
+          apiResolved
           className="w-[100px] h-[120px] object-cover rounded-sm border-2 border-white shadow-sm"
         />
       </div>

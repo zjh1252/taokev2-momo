@@ -11,6 +11,7 @@ import com.taoke.course.api.VideoService;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.api.TrainerBookService;
 import com.taoke.user.api.TrainerCaseService;
+import com.taoke.user.api.TrainerCertificationAdminService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.api.UserRoleService;
 import com.taoke.user.api.UserService;
@@ -57,6 +58,7 @@ import java.util.stream.Collectors;
 public class AdminTrainerService {
 
     private final TrainerService trainerService;
+    private final TrainerCertificationAdminService trainerCertificationAdminService;
     private final UserService userService;
     private final UserRoleService userRoleService;
     private final RoleApplyService roleApplyService;
@@ -86,7 +88,19 @@ public class AdminTrainerService {
             return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), List.of());
         }
 
-        List<AdminTrainerVO> voList = trainers.stream().map(this::toTrainerVO).toList();
+        Map<Integer, List<String>> trustedLabelsMap =
+                trainerCertificationAdminService.batchTrustedCertLabels(trainers);
+
+        List<AdminTrainerVO> voList = trainers.stream().map(trainer -> {
+            AdminTrainerVO vo = toTrainerVO(trainer);
+            List<String> labels = trustedLabelsMap.getOrDefault(trainer.getId(), List.of());
+            if (labels.isEmpty()) {
+                vo.setTrustedLabels(List.of("未认证"));
+            } else {
+                vo.setTrustedLabels(labels);
+            }
+            return vo;
+        }).toList();
         return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), voList);
     }
 
@@ -165,6 +179,70 @@ public class AdminTrainerService {
      */
     public void rejectApplication(Integer userId, String reason) {
         roleApplyService.reject(userId, BusinessRole.Code.TRAINER, reason);
+    }
+
+    /**
+     * 运营代填专家入驻：创建/指定用户 → 提交申请 → 可选自动审核通过。
+     */
+    @Transactional
+    public AdminTrainerApplicationVO createTrainerApplication(AdminCreateTrainerApplicationRequest request) {
+        Integer userId = request.getUserId();
+        if (userId == null) {
+            if (request.getPhone() == null || request.getPhone().isBlank()) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, "请指定用户或填写手机号");
+            }
+            if (request.getNickname() == null || request.getNickname().isBlank()) {
+                throw new BusinessException(ErrorCode.PARAM_INVALID, "新建用户时昵称不能为空");
+            }
+            User created = userService.adminCreateUser(
+                    request.getPhone().trim(),
+                    request.getNickname().trim(),
+                    request.getProfile() != null ? request.getProfile().getName() : null);
+            userId = created.getId();
+        } else if (!userService.existsById(userId)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
+        }
+
+        TrainerRequest profile = request.getProfile();
+        if (profile.getAgreementSigned() == null || !Boolean.TRUE.equals(profile.getAgreementSigned())) {
+            profile.setAgreementSigned(true);
+            if (profile.getAgreementVersion() == null || profile.getAgreementVersion().isBlank()) {
+                profile.setAgreementVersion("v1");
+            }
+        }
+        trainerService.apply(userId, profile);
+
+        if (request.getAutoApprove() == null || Boolean.TRUE.equals(request.getAutoApprove())) {
+            approveApplication(userId);
+        }
+
+        UserRole userRole = userRoleService.findByUserId(userId).stream()
+                .filter(ur -> BusinessRole.Code.TRAINER.equals(ur.getRole()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR, "专家申请创建失败"));
+        User user = userService.findAllByIds(List.of(userId)).stream().findFirst().orElse(null);
+        Trainer trainer = trainerService.findByUserIds(List.of(userId)).stream().findFirst().orElse(null);
+
+        AdminTrainerApplicationVO vo = new AdminTrainerApplicationVO();
+        vo.setId(userRole.getId());
+        vo.setUserId(userId);
+        vo.setStatus(userRole.getStatus());
+        vo.setReapplying(Boolean.TRUE.equals(userRole.getReapplying()));
+        vo.setRejectReason(userRole.getRejectReason());
+        vo.setCreatedAt(userRole.getCreatedAt());
+        vo.setUpdatedAt(userRole.getUpdatedAt());
+        vo.setApprovedAt(userRole.getApprovedAt());
+        if (user != null) {
+            vo.setPhone(user.getPhone());
+            vo.setNickname(user.getNickname());
+        }
+        if (trainer != null) {
+            vo.setTrainerName(trainer.getName());
+            vo.setTrainerTitle(trainer.getTitle());
+            vo.setTrainerAvatar(trainer.getAvatar());
+            vo.setTrainerId(trainer.getId());
+        }
+        return vo;
     }
 
     /**

@@ -34,8 +34,10 @@ interface CourseSidebarProps {
 export function CourseSidebar({ course }: CourseSidebarProps) {
   const t = useTranslations('course.detail');
   const isOpen = course.type === 'OPEN_OFFLINE' || course.type === 'OPEN_ONLINE';
+  const isInternal = course.type === 'INTERNAL';
   const isOverdue = Boolean(course.isOverdue);
   const isPurchasable = isOpen && course.price > 0 && course.isFree !== 1 && !isOverdue;
+  const productType = isInternal ? 'INTERNAL_COURSE' : 'OPEN_COURSE';
   const { addItem } = useCart();
   const router = useRouter();
   const { requireAuth } = useAuthGuard();
@@ -117,11 +119,55 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
   };
 
   const handleAddToCart = async () => {
-    if (!isPurchasable) {
+    if (isOpen && !isPurchasable) {
       toast.info('该课程暂不支持加入购物车');
       return;
     }
-    await addItem({ productType: 'OPEN_COURSE', productId: course.id });
+    await addItem({ productType, productId: course.id });
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const writeText = navigator.clipboard?.writeText?.bind(navigator.clipboard);
+    const copyWithSelection = () => {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.readOnly = true;
+      textarea.style.position = 'fixed';
+      textarea.style.top = '-9999px';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+
+      try {
+        return document.execCommand('copy');
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    };
+
+    const showFallback = () => toast.warning('当前浏览器不支持自动复制，请手动复制地址栏网址');
+
+    if (!writeText) {
+      if (copyWithSelection()) {
+        toast.success('已复制该页面网址');
+      } else {
+        showFallback();
+      }
+      return;
+    }
+
+    try {
+      await writeText(url);
+      toast.success('已复制该页面网址');
+    } catch {
+      if (copyWithSelection()) {
+        toast.success('已复制该页面网址');
+      } else {
+        showFallback();
+      }
+    }
   };
 
   return (
@@ -143,6 +189,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
       {isPurchasable && (
         <>
           <button
+            type="button"
             onClick={() => requireAuth(handleBuyNow)}
             disabled={buyLoading}
             className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md disabled:opacity-50"
@@ -151,6 +198,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
             {buyLoading ? '处理中...' : '立即购买'}
           </button>
           <button
+            type="button"
             onClick={() => requireAuth(handleAddToCart)}
             className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-primary text-primary font-medium text-sm hover:bg-primary/5 transition-all"
           >
@@ -161,8 +209,30 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
       )}
 
       {/* 非付费课程 — 内训课显示报名按钮，免费公开课显示预约按钮 */}
-      {!isPurchasable && !isOverdue && (
+      {isInternal && !isOverdue && (
+        <>
+          <button
+            type="button"
+            onClick={() => setConsultOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md"
+          >
+            <MessageCircle className="size-4" />
+            联系客服购买
+          </button>
+          <button
+            type="button"
+            onClick={() => requireAuth(handleAddToCart)}
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-primary text-primary font-medium text-sm hover:bg-primary/5 transition-all"
+          >
+            <ShoppingCart className="size-4" />
+            加入购物车
+          </button>
+        </>
+      )}
+
+      {!isPurchasable && !isInternal && !isOverdue && (
         <button
+          type="button"
           onClick={() => requireAuth(() => {
             if (!isOpen) {
               router.push(`/dashboard/demands/create?type=INTERNAL_RESERVATION&courseType=INTERNAL&courseid=${course.id}`);
@@ -179,7 +249,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
       )}
 
       {/* 立即咨询 */}
-      {!isOverdue && (
+      {!isInternal && !isOverdue && (
       <button
         type="button"
         onClick={() => setConsultOpen(true)}
@@ -192,6 +262,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
 
       {/* 收藏按钮 */}
       <button
+        type="button"
         onClick={() => requireAuth(toggleFavorite)}
         disabled={favLoading}
         className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg border font-medium text-sm transition-all ${
@@ -206,7 +277,11 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
 
       {/* 互动数据 */}
       <div className="flex items-center justify-around pt-4 border-t border-slate-100 text-xs text-slate-500">
-        <button className="flex items-center gap-1 hover:text-primary transition-colors">
+        <button
+          type="button"
+          onClick={handleShare}
+          className="flex items-center gap-1 hover:text-primary transition-colors"
+        >
           <Share2 className="size-3.5" />
           {t('share')}
         </button>
@@ -215,6 +290,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
           {isOpen ? t('views') : t('popularity')}: {course.viewCount}
         </span>
         <button
+          type="button"
           onClick={() => requireAuth(() => setReviewOpen(true))}
           className="flex items-center gap-1 hover:text-primary transition-colors"
         >

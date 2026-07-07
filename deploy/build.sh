@@ -102,10 +102,15 @@ ensure_buildx() {
 
   if ! docker buildx inspect "${BUILDER_NAME}" >/dev/null 2>&1; then
     echo "创建 buildx builder: ${BUILDER_NAME}"
+    PROXY_OPTS=()
+    [ -n "${HTTP_PROXY:-}" ]  && PROXY_OPTS+=(--driver-opt "env.HTTP_PROXY=${HTTP_PROXY}")
+    [ -n "${HTTPS_PROXY:-}" ] && PROXY_OPTS+=(--driver-opt "env.HTTPS_PROXY=${HTTPS_PROXY}")
+    [ -n "${NO_PROXY:-}" ]    && PROXY_OPTS+=(--driver-opt "env.NO_PROXY=${NO_PROXY}")
     docker buildx create \
       --name "${BUILDER_NAME}" \
       --driver docker-container \
       --config "${BUILDKIT_CONFIG}" \
+      "${PROXY_OPTS[@]}" \
       --use
     docker buildx inspect --bootstrap
   else

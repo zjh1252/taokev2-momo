@@ -1,4 +1,8 @@
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
+import {
+  isLikelyImageAssetUrl,
+  isPlaceholderLegacyAvatar,
+  resolveAssetUrl
+} from '@/lib/resolve-asset-url';
 import type { RecommendedResourceItem } from '../api/types';
 import {
   HOME_TRAINER_FIXED_EXPERTS,
@@ -81,22 +85,31 @@ export function parseTags(value?: string | null): string[] {
     .filter(Boolean);
 }
 
-/** 专家头像：优先原始头像，空则占位图 */
+/** 从候选字段中选取首个有效图片 URL */
+function pickTrainerImageUrl(
+  ...candidates: (string | null | undefined)[]
+): string {
+  for (const candidate of candidates) {
+    const raw = candidate?.trim();
+    if (!raw || !isLikelyImageAssetUrl(raw) || isPlaceholderLegacyAvatar(raw)) continue;
+    const resolved = resolveAssetUrl(raw);
+    if (resolved) return resolved;
+  }
+  return resolveAssetUrl(DEFAULT_TRAINER_AVATAR);
+}
+
+/** 专家头像：档案头像优先，其次运营 coverUrl（与 C 端 avatar 字段一致） */
 export function resolveTrainerAvatarUrl(
   item?: Pick<RecommendedResourceItem, 'resourceCoverUrl' | 'coverUrl'> | null
 ): string {
-  const raw = item?.resourceCoverUrl?.trim() || item?.coverUrl?.trim() || '';
-  const resolved = raw ? resolveAssetUrl(raw) : '';
-  return resolved || resolveAssetUrl(DEFAULT_TRAINER_AVATAR);
+  return pickTrainerImageUrl(item?.resourceCoverUrl, item?.coverUrl);
 }
 
-/** 推荐封面：运营封面优先 */
+/** 推荐封面：运营 coverUrl 优先，跳过占位图后回退档案头像 */
 export function resolveTrainerCoverUrl(
   item?: Pick<RecommendedResourceItem, 'resourceCoverUrl' | 'coverUrl'> | null
 ): string {
-  const raw = item?.coverUrl?.trim() || item?.resourceCoverUrl?.trim() || '';
-  const resolved = raw ? resolveAssetUrl(raw) : '';
-  return resolved || resolveAssetUrl(DEFAULT_TRAINER_AVATAR);
+  return pickTrainerImageUrl(item?.coverUrl, item?.resourceCoverUrl);
 }
 
 /** 去除 HTML 标签，供预览卡片纯文本展示 */
@@ -132,21 +145,27 @@ export type PreviewExpertView = {
   positionTitle: string;
   oneLineIntro: string;
   chiefIntro: string;
+  /** 卡片正文简介，与 C 端 bio 一致：首席简介优先，否则一句话简介 */
+  bio: string;
   badge?: string;
   avatarUrl: string;
   coverUrl: string;
   tags: string[];
   isFixed?: boolean;
+  resourceId?: number;
 };
 
 export function mapFixedToPreview(slot: HomeTrainerFixedSlot): PreviewExpertView {
   const expert = HOME_TRAINER_FIXED_EXPERTS[slot];
+  const oneLineIntro = expert.subtitle || expert.bio;
+  const chiefIntro = expert.chiefIntro;
   return {
     key: `fixed-${slot}`,
     name: expert.name,
     positionTitle: expert.title,
-    oneLineIntro: expert.subtitle || expert.bio,
-    chiefIntro: expert.chiefIntro,
+    oneLineIntro,
+    chiefIntro,
+    bio: chiefIntro || oneLineIntro,
     badge: expert.badge,
     avatarUrl: resolveAssetUrl(expert.avatar) || resolveAssetUrl(DEFAULT_TRAINER_AVATAR),
     coverUrl: resolveAssetUrl(expert.coverImage) || resolveAssetUrl(DEFAULT_TRAINER_AVATAR),
@@ -161,17 +180,20 @@ export function mapManagedToPreview(
 ): PreviewExpertView {
   const tags = parseTags(item.keyTags || item.expertiseOverride);
   const oneLineIntro = resolveOneLineIntro(item);
+  const chiefIntro = resolveChiefIntro(item);
   return {
     key: `managed-${item.id}`,
     name: item.resourceName ?? `#${item.resourceId}`,
     positionTitle: resolvePositionTitle(item),
     oneLineIntro,
-    chiefIntro: resolveChiefIntro(item),
+    chiefIntro,
+    bio: chiefIntro || oneLineIntro,
     badge: layout === 'main' ? '首席专家' : undefined,
     avatarUrl: resolveTrainerAvatarUrl(item),
     coverUrl: resolveTrainerCoverUrl(item),
     tags,
-    isFixed: false
+    isFixed: false,
+    resourceId: item.resourceId
   };
 }
 

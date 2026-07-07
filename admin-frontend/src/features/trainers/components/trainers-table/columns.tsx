@@ -6,11 +6,10 @@ import type { AdminTrainer } from '../../api/types';
 import { TRAINER_STATUS_MAP, TRAINER_STATUS_OPTIONS } from '../../api/types';
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 import { RecommendSwitch } from './recommend-switch';
 import { FrontendLink } from '@/components/admin/frontend-link';
 import { getTrainerPublicUrl } from '@/lib/frontend-links';
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 
 function statusVariant(status: number) {
   switch (status) {
@@ -40,38 +39,41 @@ export const columns: ColumnDef<AdminTrainer>[] = [
       <DataTableColumnHeader column={column} title='专家姓名' />
     ),
     cell: ({ row }) => (
-      <div className='flex items-center gap-3'>
-        {row.original.avatar ? (
-          <Image
-            src={resolveAssetUrl(row.original.avatar)}
-            alt={row.original.name || ''}
-            width={32}
-            height={32}
-            className='h-8 w-8 rounded-full object-cover'
-          />
-        ) : (
-          <div className='flex h-8 w-8 items-center justify-center rounded-full bg-muted'>
-            <Icons.user className='h-4 w-4 text-muted-foreground' />
-          </div>
-        )}
-        <div className='flex flex-col'>
+      <div className='flex min-w-0 max-w-[220px] items-center gap-3'>
+        <AssetImage
+          src={row.original.avatar}
+          alt={row.original.name || ''}
+          width={32}
+          height={32}
+          className='h-8 w-8 shrink-0 rounded-full object-cover'
+          fallback={
+            <div className='flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted'>
+              <Icons.user className='h-4 w-4 text-muted-foreground' />
+            </div>
+          }
+        />
+        <div className='min-w-0 flex-1'>
           <Link
             href={`/dashboard/trainers/${row.original.id}?from=list`}
-            className='font-medium text-primary hover:underline'
+            className='block truncate font-medium text-primary hover:underline'
+            title={row.original.name || undefined}
           >
             {row.original.name || '-'}
           </Link>
           <FrontendLink
             href={getTrainerPublicUrl(row.original.id)}
-            className='text-xs text-muted-foreground'
+            className='block truncate text-xs text-muted-foreground'
           >
             前台
           </FrontendLink>
-          {row.original.title && (
-            <span className='text-muted-foreground text-xs'>
+          {row.original.title ? (
+            <span
+              className='text-muted-foreground block truncate text-xs'
+              title={row.original.title}
+            >
               {row.original.title}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
     ),
@@ -115,6 +117,33 @@ export const columns: ColumnDef<AdminTrainer>[] = [
     cell: ({ cell }) => {
       const val = cell.getValue<number>();
       return val > 0 ? val.toFixed(1) : '-';
+    }
+  },
+  {
+    id: 'trustedLabels',
+    accessorKey: 'trustedLabels',
+    header: '信得过',
+    enableSorting: false,
+    cell: ({ row }) => {
+      const labels = row.original.trustedLabels ?? ['未认证'];
+      const isUncertified =
+        labels.length === 1 && labels[0] === '未认证';
+      if (isUncertified) {
+        return (
+          <Badge variant='outline' className='font-normal'>
+            未认证
+          </Badge>
+        );
+      }
+      return (
+        <div className='flex max-w-[200px] flex-wrap gap-1'>
+          {labels.map((label) => (
+            <Badge key={label} variant='secondary' className='font-normal'>
+              {label}
+            </Badge>
+          ))}
+        </div>
+      );
     }
   },
   {

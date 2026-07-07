@@ -201,7 +201,6 @@ function OpenCourseListSectionInner({
             priceMin: f.priceMin,
             priceMax: f.priceMax,
             isFree: f.isFree,
-            enrollStatus: f.enrollStatus,
           });
           setData(result);
           setCurrentPage(page);
@@ -352,13 +351,6 @@ function OpenCourseListSectionInner({
           priceMax: undefined,
           isFree: undefined,
         }),
-      });
-    }
-    if (filters.enrollStatus && filters.enrollStatusLabel) {
-      chips.push({
-        key: 'enrollStatus',
-        label: `报名状态：${filters.enrollStatusLabel}`,
-        onRemove: () => ({ ...filters, enrollStatus: undefined, enrollStatusLabel: undefined }),
       });
     }
     return chips;

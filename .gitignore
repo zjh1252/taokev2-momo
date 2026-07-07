@@ -63,3 +63,6 @@ dataClaw-master/
 
 ### 文档相关 ###
 testdoc/
+
+### 本地ES ###
+elasticsearch/

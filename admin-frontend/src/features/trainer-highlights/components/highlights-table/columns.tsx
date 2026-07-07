@@ -9,9 +9,8 @@ import {
 } from '../../api/types';
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
-import Image from 'next/image';
+import { AssetThumb } from '@/components/admin/asset-thumb';
 import { CellAction } from './cell-action';
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 
 function statusVariant(status: number) {
   switch (status) {
@@ -36,22 +35,16 @@ export const columns: ColumnDef<AdminTrainerHighlight>[] = [
     id: 'cover',
     header: '封面',
     cell: ({ row }) => {
-      const coverUrl = row.original.coverImage
+      const coverUrl =
+        row.original.coverImage
         || row.original.files?.[0]?.thumbnailUrl
         || row.original.files?.[0]?.fileUrl;
-      return coverUrl ? (
-        <div className='relative h-10 w-16 overflow-hidden rounded'>
-          <Image
-            src={resolveAssetUrl(coverUrl)}
-            alt={row.original.title || ''}
-            fill
-            className='object-cover'
-          />
-        </div>
-      ) : (
-        <div className='flex h-10 w-16 items-center justify-center rounded bg-muted'>
-          <Icons.media className='h-4 w-4 text-muted-foreground' />
-        </div>
+      return (
+        <AssetThumb
+          src={coverUrl}
+          alt={row.original.title || '封面'}
+          className='h-10 w-16 rounded'
+        />
       );
     }
   },

@@ -57,9 +57,10 @@ taoke:
   jwt:
     secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
   storage:
-    provider: local
-    base-dir: ./storage
-    public-domain:
+    provider: ${STORAGE_PROVIDER:aliyun-oss}
+    oss:
+      access-key-id: ${OSS_ACCESS_KEY_ID:}
+      access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
   cors:
     allowed-origins: '*'
     allow-credentials: false

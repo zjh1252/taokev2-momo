@@ -213,6 +213,9 @@ export interface AiParsedFields {
   /** 关键词，最多 3 个 */
   keywords?: string[];
   audience?: string;
+  highlights?: string;
+  intro?: string;
+  syllabus?: string;
 }
 
 /** AI 解析课程资料接口的响应（对应后端 AiParseMaterialResultVO） */

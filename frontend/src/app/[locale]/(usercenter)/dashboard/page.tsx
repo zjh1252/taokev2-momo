@@ -23,6 +23,7 @@ import type { ContinueLearning, MyVideoLearning } from '@/features/learning/api/
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import { cn } from '@/lib/utils';
+import { CustomerServiceChatDialog } from '@/components/customer-service-chat-dialog';
 
 const ROLE_LABELS: Record<string, string> = {
   BUYER: '学员',
@@ -48,6 +49,7 @@ export default function DashboardPage() {
   const { user, activeRole, setActiveRole, trainerCode } = useAuth();
   const [activeTab, setActiveTab] = useState<'recent' | 'recommend'>('recent');
   const [switchTarget, setSwitchTarget] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const [continueLearning, setContinueLearning] = useState<ContinueLearning | null>(null);
   const [continueLoading, setContinueLoading] = useState(true);
@@ -68,7 +70,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchUnreadCount();
+    void Promise.resolve().then(fetchUnreadCount);
   }, [fetchUnreadCount]);
 
   useEffect(() => {
@@ -243,16 +245,20 @@ export default function DashboardPage() {
               <div className="flex-1 flex gap-3">
                 <a
                   href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setChatOpen(true);
+                  }}
                   className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
                 >
                   <Brain className="size-[18px]" /> AI智能选课
                 </a>
-                <a
-                  href="#"
+                <Link
+                  href="/videos?sortBy=viewCount"
                   className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
                 >
                   <Flame className="size-[18px]" /> 行业热点课
-                </a>
+                </Link>
               </div>
             </div>
             <div className="w-full h-[1px] bg-slate-100" />
@@ -262,13 +268,17 @@ export default function DashboardPage() {
               </div>
               <div className="flex-1 flex gap-3">
                 <a
-                  href="#"
+                  href="https://www.91pxb.com/?mod=marketing&do=intro"
+                  target="_blank"
+                  rel="noreferrer"
                   className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
                 >
                   <Wrench className="size-[18px]" /> 培训宝
                 </a>
                 <a
-                  href="#"
+                  href="https://www.91mbt.com/home/#/download"
+                  target="_blank"
+                  rel="noreferrer"
                   className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
                 >
                   <Target className="size-[18px]" /> 目标通
@@ -393,6 +403,8 @@ export default function DashboardPage() {
       </section>
 
       {/* 切换角色确认对话框 */}
+      <CustomerServiceChatDialog open={chatOpen} onOpenChange={setChatOpen} />
+
       {switchTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="w-full max-w-sm mx-4 rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200 p-6">

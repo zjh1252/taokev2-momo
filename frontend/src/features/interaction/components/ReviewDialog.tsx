@@ -22,6 +22,10 @@ import {
   type FormValidationRules,
 } from '@/lib/validation';
 
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 /** 培训主题候选项（专家维度评价时使用） */
 export interface ReviewTopicOption {
   /** 主题来源类型：课程/录播课 */
@@ -381,6 +385,7 @@ export default function ReviewDialog({
             <RequiredLabel>开课时间</RequiredLabel>
             <Input
               type="date"
+              max={todayStr()}
               value={trainingDate}
               onChange={(e) => setTrainingDate(e.target.value)}
             />

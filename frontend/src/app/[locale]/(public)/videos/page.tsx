@@ -12,6 +12,7 @@ interface Props {
     institutionId?: string;
     categoryId?: string;
     categoryName?: string;
+    sortBy?: string;
   }>;
 }
 
@@ -27,6 +28,7 @@ export default async function VideosPage({ searchParams }: Props) {
   const institutionId = sp.institutionId ? Number(sp.institutionId) : undefined;
   const validInstitutionId = institutionId && !isNaN(institutionId) ? institutionId : undefined;
   const categoryId = normalizeNumberIds(sp.categoryId ? [sp.categoryId] : undefined)[0];
+  const sortBy = firstStringValue(sp.sortBy);
 
   const categoryTreePromise = getCachedVideoCategoryTree();
   const categoryNavPromise = categoryTreePromise.then(buildVideoCategoryNavItems).catch(() => []);
@@ -37,6 +39,7 @@ export default async function VideosPage({ searchParams }: Props) {
       size: 15,
       institutionId: validInstitutionId,
       categoryId,
+      sortBy: sortBy || undefined,
     }).catch(() => ({
       list: [],
       total: 0,
@@ -66,8 +69,9 @@ export default async function VideosPage({ searchParams }: Props) {
         initialInstitutionName={institution?.orgName}
         initialCategoryId={categoryId}
         initialCategoryName={categoryName}
+        initialSortBy={sortBy}
         bottomCategoryNav={{
-          title: '视频分类',
+          title: '可播放视频分类',
           countUnit: '门',
           itemsPromise: categoryNavPromise,
         }}

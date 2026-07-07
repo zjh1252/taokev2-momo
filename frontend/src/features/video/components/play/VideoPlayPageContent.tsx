@@ -130,7 +130,6 @@ export function VideoPlayPageContent({ video }: VideoPlayPageContentProps) {
                 initialTime={initialTime}
                 videoId={video.id}
                 chapterId={currentChapterId ?? undefined}
-                externalUrl={video.externalUrl}
               />
             ) : (
               <>

@@ -8,8 +8,8 @@ export default function Page() {
   return (
     <PageContainer
       scrollable={false}
-      pageTitle='资质认证'
-      pageDescription='审核机构员工提交的资质认证申请'
+      pageTitle='工作认证'
+      pageDescription='审核机构员工提交的工作认证申请'
     >
       <div className='text-muted-foreground flex flex-1 items-center justify-center py-20 text-sm'>
         暂无数据

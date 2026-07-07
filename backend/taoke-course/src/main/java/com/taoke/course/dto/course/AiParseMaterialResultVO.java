@@ -54,5 +54,11 @@ public class AiParseMaterialResultVO {
         private List<String> keywords;
         /** 目标受众 */
         private String audience;
+        /** 课程收益/亮点 */
+        private String highlights;
+        /** 课程简介（纯文本，前端转为富文本 HTML） */
+        private String intro;
+        /** 课程大纲（纯文本，前端转为富文本 HTML） */
+        private String syllabus;
     }
 }

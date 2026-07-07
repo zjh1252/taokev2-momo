@@ -43,7 +43,7 @@
           </view>
           <view class="field field--upload">
             <text class="field__label">学历证明文件 <text class="req">*</text></text>
-            <TkCertFileUpload v-model="form.proofFile" label="学历证明" />
+            <TkCertFileUpload v-model="form.proofFile" label="学历证明" camera-only />
           </view>
 
           <view v-if="editing.id" class="progress-wrap">
@@ -78,7 +78,8 @@
           </view>
 
           <view v-else class="list">
-            <view v-for="r in records" :key="r.id" class="row" @tap="handleEdit(r)">
+            <view v-for="(r, idx) in records" :key="r.id" class="row" @tap="handleEdit(r)">
+              <text class="row__index">{{ idx + 1 }}</text>
               <view class="row__main">
                 <view class="row__title-row">
                   <text class="row__school">{{ r.schoolName }}</text>
@@ -301,6 +302,21 @@ function handleDelete(id) {
   gap: $tk-sp-2;
   box-shadow: $tk-shadow-card;
 
+  &__index {
+    flex-shrink: 0;
+    width: 48rpx;
+    height: 48rpx;
+    border-radius: 50%;
+    background: $tk-primary-soft;
+    color: $tk-primary;
+    font-size: $tk-fs-md;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
   &__main { flex: 1; min-width: 0; }
 
   &__title-row {
@@ -387,12 +403,14 @@ function handleDelete(id) {
 
   &__input, &__picker {
     width: 100%;
+    min-height: 80rpx;
     padding: 20rpx 24rpx;
     background: $tk-bg-page;
     border-radius: $tk-radius-md;
     font-size: $tk-fs-md;
     color: $tk-text-1;
     box-sizing: border-box;
+    word-break: break-all;
   }
 
   &--upload { margin-top: 8rpx; }

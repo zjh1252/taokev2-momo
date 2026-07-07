@@ -1,89 +1,89 @@
--- -- 培训宝 legacy：补全 V112 列（开发库 flyway 已记录但 DDL 未落库时使用）
--- -- 日期：2026-06-22；可重复执行
---
--- DROP PROCEDURE IF EXISTS v115_ensure_pxb_package_label_columns;
---
--- DELIMITER $$
--- CREATE PROCEDURE v115_ensure_pxb_package_label_columns()
--- BEGIN
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'topic_id'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN topic_id INT NOT NULL DEFAULT 0 COMMENT '老站 topic_id';
---     END IF;
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'item_parent'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN item_parent INT NOT NULL DEFAULT 0 COMMENT '老站 item_parent';
---     END IF;
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'item_index'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN item_index TINYINT NOT NULL DEFAULT 0 COMMENT '老站 item_index';
---     END IF;
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'type'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN type TINYINT NOT NULL DEFAULT 0 COMMENT '0=通用 1=行业畅销';
---     END IF;
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'serial_index'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN serial_index TINYINT NOT NULL DEFAULT 0 COMMENT '老站 serial_index';
---     END IF;
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'price'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN price INT NOT NULL DEFAULT 0 COMMENT '包售价（元）';
---     END IF;
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'company_price'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN company_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00 COMMENT '企业采购价';
---     END IF;
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'disabled'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN disabled TINYINT NOT NULL DEFAULT 0 COMMENT '1=已删除';
---     END IF;
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'topic_name'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN topic_name VARCHAR(100) NOT NULL DEFAULT '' COMMENT '专题名称';
---     END IF;
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'package_code'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN package_code VARCHAR(50) NOT NULL DEFAULT '' COMMENT '老站 package';
---     END IF;
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'descr'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN descr TEXT NULL COMMENT '分类介绍';
---     END IF;
---     IF NOT EXISTS (
---         SELECT 1 FROM information_schema.columns
---         WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'cover'
---     ) THEN
---         ALTER TABLE video_package_labels ADD COLUMN cover VARCHAR(255) NULL COMMENT '类别封面';
---     END IF;
--- END$$
--- DELIMITER ;
---
--- CALL v115_ensure_pxb_package_label_columns();
--- DROP PROCEDURE IF EXISTS v115_ensure_pxb_package_label_columns;
---
--- -- 回填（与 V114 相同，确保 V114 失败后仍可补齐）
--- UPDATE video_package_labels SET topic_id = id, topic_name = name
--- WHERE topic_id = 0 OR topic_name = '';
+-- 培训宝 legacy：补全 V112 列（开发库 flyway 已记录但 DDL 未落库时使用）
+-- 日期：2026-06-22；可重复执行
+
+DROP PROCEDURE IF EXISTS v115_ensure_pxb_package_label_columns;
+
+DELIMITER $$
+CREATE PROCEDURE v115_ensure_pxb_package_label_columns()
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'topic_id'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN topic_id INT NOT NULL DEFAULT 0 COMMENT '老站 topic_id';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'item_parent'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN item_parent INT NOT NULL DEFAULT 0 COMMENT '老站 item_parent';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'item_index'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN item_index TINYINT NOT NULL DEFAULT 0 COMMENT '老站 item_index';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'type'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN type TINYINT NOT NULL DEFAULT 0 COMMENT '0=通用 1=行业畅销';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'serial_index'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN serial_index TINYINT NOT NULL DEFAULT 0 COMMENT '老站 serial_index';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'price'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN price INT NOT NULL DEFAULT 0 COMMENT '包售价（元）';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'company_price'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN company_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00 COMMENT '企业采购价';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'disabled'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN disabled TINYINT NOT NULL DEFAULT 0 COMMENT '1=已删除';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'topic_name'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN topic_name VARCHAR(100) NOT NULL DEFAULT '' COMMENT '专题名称';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'package_code'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN package_code VARCHAR(50) NOT NULL DEFAULT '' COMMENT '老站 package';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'descr'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN descr TEXT NULL COMMENT '分类介绍';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'video_package_labels' AND column_name = 'cover'
+    ) THEN
+        ALTER TABLE video_package_labels ADD COLUMN cover VARCHAR(255) NULL COMMENT '类别封面';
+    END IF;
+END$$
+DELIMITER ;
+
+CALL v115_ensure_pxb_package_label_columns();
+DROP PROCEDURE IF EXISTS v115_ensure_pxb_package_label_columns;
+
+-- 回填（与 V114 相同，确保 V114 失败后仍可补齐）
+UPDATE video_package_labels SET topic_id = id, topic_name = name
+WHERE topic_id = 0 OR topic_name = '';

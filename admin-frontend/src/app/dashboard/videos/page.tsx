@@ -1,3 +1,4 @@
+import { AddLinkButton } from '@/components/admin/add-link-button';
 import PageContainer from '@/components/layout/page-container';
 import VideoListingPage from '@/features/videos/components/video-listing';
 import { searchParamsCache } from '@/lib/searchparams';
@@ -20,6 +21,9 @@ export default async function VideosPage(props: PageProps) {
       scrollable={false}
       pageTitle='视频列表'
       pageDescription='查看和管理平台所有录播课，支持审核、上架、推荐与置顶'
+      pageHeaderAction={
+        <AddLinkButton href='/dashboard/videos/new' label='添加录播课' />
+      }
     >
       <VideoListingPage />
     </PageContainer>

@@ -1,7 +1,31 @@
 import type { NextConfig } from 'next';
 
+const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080').replace(
+  /\/+$/,
+  ''
+);
+const frontendBase = (
+  process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || 'http://localhost:3000'
+).replace(/\/+$/, '');
+
 const nextConfig: NextConfig = {
   output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
+  async rewrites() {
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: `${apiBase}/uploads/:path*`
+      },
+      {
+        source: '/statics/:path*',
+        destination: `${frontendBase}/statics/:path*`
+      },
+      {
+        source: '/taoke-legacy/:path*',
+        destination: 'https://www.taoke.com/:path*'
+      }
+    ];
+  },
   images: {
     remotePatterns: [
       {
@@ -49,6 +73,18 @@ const nextConfig: NextConfig = {
         protocol: 'http',
         hostname: '127.0.0.1',
         port: '8080'
+      },
+      {
+        protocol: 'https',
+        hostname: '**.aliyuncs.com'
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn-static.taoke.com'
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn5-pxb-videos.taoke.com'
       }
     ]
   },

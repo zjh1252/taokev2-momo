@@ -603,6 +603,7 @@ public class CourseServiceImpl implements CourseService {
         Map<Integer, Integer> legacyLecturerUserIds = legacyTaokeCourseReader.findLecturerUserIds(courseIds);
         Map<Integer, String> legacyKeywordsMap = legacyTaokeCourseReader.findKeywordsByCourseIds(courseIds);
         Map<Integer, String> legacyCategoryMap = legacyTaokeCourseReader.findCourseCategoryNames(courseIds);
+        Map<Integer, String> legacyCoverMap = legacyTaokeCourseReader.findCoverUrlsByCourseIds(courseIds);
         Map<Integer, Integer> legacyOrganizerUserIds = legacyTaokeCourseReader.findOrganizerUserIds(courseIds);
         Map<Integer, String> legacyOrganizerFromLecturer = legacyTaokeCourseReader.findOrganizerNamesFromLecturer(courseIds);
 
@@ -686,11 +687,13 @@ public class CourseServiceImpl implements CourseService {
                 }
             }
             final String categoryNameForCover = vo.getCategoryName();
+            final String coverUrlForDisplay = firstNonBlank(c.getCoverUrl(), legacyCoverMap.get(c.getId()));
             if (trainer != null) {
                 applyTrainerToListItem(vo, trainer, trainerRegionNameMap);
-                vo.setCoverUrl(resolveCoverUrl(c, trainerAvatarMap.getOrDefault(trainer.getId(), trainer.getAvatar()), categoryNameForCover));
+                String trainerAvatar = trainerAvatarMap.getOrDefault(trainer.getId(), trainer.getAvatar());
+                vo.setCoverUrl(resolveCoverUrl(c, coverUrlForDisplay, trainerAvatar, categoryNameForCover));
             } else {
-                vo.setCoverUrl(resolveCoverUrl(c, null, categoryNameForCover));
+                vo.setCoverUrl(resolveCoverUrl(c, coverUrlForDisplay, null, categoryNameForCover));
                 String legacyLecturer = legacyLecturerMap.get(c.getId());
                 if (legacyLecturer != null && !legacyLecturer.isBlank()) {
                     vo.setTrainerName(legacyLecturer);
@@ -1203,7 +1206,10 @@ public class CourseServiceImpl implements CourseService {
                     if (categoryName == null || categoryName.isBlank()) {
                         categoryName = resolveLegacyCategoryNameForCourse(course.getId()).orElse(null);
                     }
-                    vo.setCoverUrl(resolveCoverUrl(course, trainerAvatar, categoryName));
+                    String legacyCover = legacyTaokeCourseReader.findCoverUrlsByCourseIds(List.of(course.getId()))
+                            .get(course.getId());
+                    vo.setCoverUrl(resolveCoverUrl(course, firstNonBlank(course.getCoverUrl(), legacyCover),
+                            trainerAvatar, categoryName));
                     vo.setViewCount(course.getViewCount());
                     vo.setType(course.getType() != null ? course.getType().name() : null);
                     return vo;
@@ -1557,6 +1563,9 @@ public class CourseServiceImpl implements CourseService {
         if (vo.getCategoryName() == null || vo.getCategoryName().isBlank()) {
             resolveLegacyCategoryNameForCourse(course.getId()).ifPresent(vo::setCategoryName);
         }
+        String legacyCover = legacyTaokeCourseReader.findCoverUrlsByCourseIds(List.of(course.getId()))
+                .get(course.getId());
+        String coverUrlForDisplay = firstNonBlank(course.getCoverUrl(), legacyCover);
 
         // 讲师名称 + 封面回退（无 cover_url 时用讲师头像 / 默认封面池）
         if (course.getTrainerId() != null && course.getTrainerId() > 0) {
@@ -1565,13 +1574,14 @@ public class CourseServiceImpl implements CourseService {
                 Trainer trainer = trainers.get(0);
                 vo.setTrainerName(trainer.getName());
                 Map<Integer, String> avatarMap = trainerService.resolveDisplayAvatars(Set.of(trainer.getId()));
-                vo.setCoverUrl(resolveCoverUrl(course, avatarMap.getOrDefault(trainer.getId(), trainer.getAvatar()), vo.getCategoryName()));
+                String trainerAvatar = avatarMap.getOrDefault(trainer.getId(), trainer.getAvatar());
+                vo.setCoverUrl(resolveCoverUrl(course, coverUrlForDisplay, trainerAvatar, vo.getCategoryName()));
             } else {
-                vo.setCoverUrl(resolveCoverUrl(course, null, vo.getCategoryName()));
+                vo.setCoverUrl(resolveCoverUrl(course, coverUrlForDisplay, null, vo.getCategoryName()));
             }
         } else {
             resolveLegacyLecturerName(course.getId()).ifPresent(vo::setTrainerName);
-            vo.setCoverUrl(resolveCoverUrl(course, null, vo.getCategoryName()));
+            vo.setCoverUrl(resolveCoverUrl(course, coverUrlForDisplay, null, vo.getCategoryName()));
         }
 
         Map<Integer, Integer> legacyOrganizerUserIds = legacyTaokeCourseReader.findOrganizerUserIds(List.of(course.getId()));
@@ -1719,10 +1729,17 @@ public class CourseServiceImpl implements CourseService {
         if (course == null) {
             return "";
         }
+        return resolveCoverUrl(course, course.getCoverUrl(), trainerAvatar, categoryName);
+    }
+
+    private String resolveCoverUrl(Course course, String coverUrl, String trainerAvatar, String categoryName) {
+        if (course == null) {
+            return "";
+        }
         String scene = resolveCoverMaterialScene(course.getType());
         int seed = course.getId() != null ? course.getId() : 0;
         return opsMaterialResolver.resolveCourseCoverUrl(
-                course.getCoverUrl(), trainerAvatar, categoryName, scene, seed);
+                coverUrl, trainerAvatar, categoryName, scene, seed);
     }
 
     private static String resolveCoverMaterialScene(CourseType type) {
@@ -1733,6 +1750,18 @@ public class CourseServiceImpl implements CourseService {
             return "OPEN";
         }
         return "GENERAL";
+    }
+
+    private static String firstNonBlank(String... candidates) {
+        if (candidates == null) {
+            return null;
+        }
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate.trim();
+            }
+        }
+        return null;
     }
 
     @Override

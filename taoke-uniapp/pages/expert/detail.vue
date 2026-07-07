@@ -61,8 +61,11 @@
           <view class="info-card__stats">
             <view class="info-card__stat">
               <view class="info-card__stat-row">
-                <TkIcon name="star" filled :size="24" color="#F59E0B" />
-                <text class="info-card__stat-value">{{ Number(trainer.score || 0).toFixed(1) }}</text>
+                <template v-if="expertRating.showStars">
+                  <TkIcon name="star" filled :size="24" color="#F59E0B" />
+                  <text class="info-card__stat-value">{{ expertRating.label }}</text>
+                </template>
+                <text v-else class="info-card__stat-value info-card__stat-value--muted">{{ expertRating.label }}</text>
               </view>
               <text class="info-card__stat-label">综合评分</text>
             </view>
@@ -87,6 +90,10 @@
             <TkIcon name="location" :size="22" color="#999" />
             <text class="info-card__loc-txt">{{ locationText }}</text>
           </view>
+        </view>
+
+        <view class="demand-entry" @tap="onCreateDemand">
+          <text class="demand-entry__txt">发布定制需求</text>
         </view>
 
         <!-- 标签 -->
@@ -165,10 +172,11 @@
             >
               <view class="case-preview__cover">
                 <image
-                  v-if="cs.coverImage"
+                  v-if="caseCoverUrl(cs)"
                   class="case-preview__img"
-                  :src="toAssetUrl(cs.coverImage)"
+                  :src="caseCoverUrl(cs)"
                   mode="aspectFill"
+                  @error="onCaseCoverError(cs.id)"
                 />
                 <view v-else class="case-preview__ph">暂无封面</view>
               </view>
@@ -184,7 +192,7 @@
 
     <!-- 吸底操作栏 -->
     <TkActionBar>
-      <TkActionBtn icon="chat" label="咨询" @tap="onConsult" />
+      <TkActionBtn icon="phone" label="电话" @tap="onPhone" />
       <TkActionBtn
         icon="heart"
         :icon-filled="favorited"
@@ -192,7 +200,7 @@
         :label="favorited ? '已收藏' : '收藏'"
         @tap="onFavorite"
       />
-      <TkActionBtn label="立即预约" type="primary" @tap="onBook" />
+      <TkActionBtn label="立即咨询" type="primary" @tap="onConsult" />
     </TkActionBar>
 
     <TkLoading v-if="loading && !trainer.id" />
@@ -207,6 +215,9 @@ import * as interactionApi from '@/api/interaction';
 import { MOCK_TRAINER_DETAIL, MOCK_COURSES } from '@/utils/mock';
 import { normalizeCase } from '@/utils/normalize';
 import { toAssetUrl } from '@/utils/asset';
+import { formatExpertRating } from '@/utils/rating-display';
+import { callServicePhone } from '@/utils/consult';
+import { requireLogin } from '@/utils/auth';
 
 const heroH = 360;
 
@@ -214,6 +225,7 @@ const id = ref('');
 const trainer = ref({});
 const courses = ref([]);
 const cases = ref([]);
+const caseCoverFailed = ref({});
 const loading = ref(false);
 const refreshing = ref(false);
 const favorited = ref(false);
@@ -231,6 +243,8 @@ const locationText = computed(() => {
   if (p && c && p !== c) return `${p} · ${c}`;
   return p || c;
 });
+
+const expertRating = computed(() => formatExpertRating(trainer.value.score));
 
 function normalizeCourse(v) {
   return {
@@ -293,16 +307,18 @@ async function onRefresh() {
   refreshing.value = false;
 }
 
-function onConsult() {
-  uni.showToast({ title: '咨询入口建设中', icon: 'none' });
+function onPhone() {
+  callServicePhone();
 }
 
-function onBook() {
-  if (courses.value && courses.value.length) {
-    uni.navigateTo({ url: `/pages/course/detail?id=${courses.value[0].id}` });
-    return;
-  }
-  uni.showToast({ title: '该专家暂无可预约课程', icon: 'none' });
+function onConsult() {
+  callServicePhone();
+}
+
+function onCreateDemand() {
+  if (!requireLogin()) return;
+  const name = encodeURIComponent(trainer.value.name || '');
+  uni.navigateTo({ url: `/pages/demand/create?trainerName=${name}` });
 }
 
 async function onFavorite() {
@@ -332,6 +348,16 @@ function caseDesc(cs) {
   const d = cs?.description || '';
   if (!d || typeof d !== 'string') return '';
   return d.replace(/<[^>]+>/g, '').trim();
+}
+
+function caseCoverUrl(cs) {
+  if (!cs?.id || caseCoverFailed.value[cs.id]) return '';
+  return toAssetUrl(cs.coverImage || cs.image || '');
+}
+
+function onCaseCoverError(caseId) {
+  if (!caseId) return;
+  caseCoverFailed.value = { ...caseCoverFailed.value, [caseId]: true };
 }
 
 onLoad((opt) => {
@@ -473,6 +499,12 @@ onLoad((opt) => {
     font-size: $tk-fs-xl;
     font-weight: 800;
     color: $tk-text-1;
+
+    &--muted {
+      font-size: $tk-fs-md;
+      font-weight: 600;
+      color: $tk-text-4;
+    }
   }
   &__stat-label {
     font-size: $tk-fs-xs;
@@ -494,6 +526,23 @@ onLoad((opt) => {
   &__loc-txt {
     font-size: $tk-fs-sm;
     color: $tk-text-2;
+  }
+}
+
+.demand-entry {
+  margin-top: $tk-sp-3;
+  padding: 24rpx;
+  border-radius: $tk-radius-md;
+  border: 2rpx solid $tk-primary;
+  background: rgba(230, 33, 23, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &__txt {
+    font-size: $tk-fs-md;
+    font-weight: 700;
+    color: $tk-primary;
   }
 }
 

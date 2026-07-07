@@ -15,7 +15,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: 10.0.14.20:5000/taokev2/backend:${VERSION:-1.6.0}
+    image: 10.0.14.20:5000/taokev2/backend:${VERSION:-2.2.0}
     container_name: taokev2-backend
     ports:
       - "8080:8080"
@@ -24,6 +24,9 @@ services:
       - ./web/storage:/app/storage
     environment:
       SPRING_PROFILES_ACTIVE: test
+      STORAGE_PROVIDER: aliyun-oss
+      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID:-}
+      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET:-}
       CRAWLER_CALLBACK_TOKEN: test-crawler-token
       CRAWLER_BASE_URL: http://crawler:8100
       CRAWLER_CALLBACK_URL: http://backend:8080/internal/crawl/callback

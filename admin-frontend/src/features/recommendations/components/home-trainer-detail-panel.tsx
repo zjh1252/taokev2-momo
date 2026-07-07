@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { uploadImageFile } from '@/features/materials/api/service';
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
+import { uploadAvatarFile } from '@/features/materials/api/service';
+import { resolveAssetUrl, isPlaceholderLegacyAvatar } from '@/lib/resolve-asset-url';
 import { resolveRecommendationDetailPath } from '../api/detail-path';
 import type { RecommendedResourceItem } from '../api/types';
 import type { updateRecommendation } from '../api/service';
@@ -19,7 +20,7 @@ import {
   resolveChiefIntro,
   resolveOneLineIntro,
   resolvePositionTitle,
-  resolveTrainerCoverUrl,
+  resolveTrainerAvatarUrl,
   type HomeTrainerFixedLocks,
   type HomeTrainerSelection
 } from '../utils/home-trainer-layout';
@@ -31,7 +32,7 @@ type DetailForm = {
   expertiseOverride: string;
   keyTags: string;
   adminNote: string;
-  coverUrl: string;
+  avatarUrl: string;
 };
 
 type Props = {
@@ -43,7 +44,9 @@ type Props = {
   isSaving: boolean;
   isSavingLocks: boolean;
   onSave: (payload: Parameters<typeof updateRecommendation>[1]) => void;
+  onSaveAvatar?: (resourceId: number, avatarUrl: string) => void;
   onLocksChange: (locks: HomeTrainerFixedLocks) => void;
+  onUnfix?: (slot: 'main' | 'middle') => void;
 };
 
 export function HomeTrainerDetailPanel({
@@ -55,7 +58,9 @@ export function HomeTrainerDetailPanel({
   isSaving,
   isSavingLocks,
   onSave,
-  onLocksChange
+  onSaveAvatar,
+  onLocksChange,
+  onUnfix
 }: Props) {
   const [form, setForm] = useState<DetailForm>({
     title: '',
@@ -64,10 +69,10 @@ export function HomeTrainerDetailPanel({
     expertiseOverride: '',
     keyTags: '',
     adminNote: '',
-    coverUrl: ''
+    avatarUrl: ''
   });
-  const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
 
   const managedItem =
     selection?.kind === 'managed'
@@ -94,7 +99,7 @@ export function HomeTrainerDetailPanel({
         expertiseOverride: fixedExpert.expertise,
         keyTags: fixedExpert.keyTags,
         adminNote: fixedExpert.adminNote,
-        coverUrl: fixedExpert.coverUrl
+        avatarUrl: fixedExpert.avatar
       });
       return;
     }
@@ -107,7 +112,7 @@ export function HomeTrainerDetailPanel({
         expertiseOverride: managedItem.expertiseOverride ?? managedItem.resourceMeta ?? '',
         keyTags: managedItem.keyTags ?? '',
         adminNote: managedItem.adminNote ?? '',
-        coverUrl: managedItem.coverUrl ?? managedItem.resourceCoverUrl ?? ''
+        avatarUrl: managedItem.resourceCoverUrl ?? ''
       });
       return;
     }
@@ -119,7 +124,7 @@ export function HomeTrainerDetailPanel({
       expertiseOverride: '',
       keyTags: '',
       adminNote: '',
-      coverUrl: ''
+      avatarUrl: ''
     });
   }, [fixedExpert, managedItem]);
 
@@ -135,21 +140,27 @@ export function HomeTrainerDetailPanel({
   const resourceId = fixedExpert?.id ?? managedItem?.resourceId ?? 0;
   const listedAt = fixedExpert?.listedAt ?? formatListedAt(managedItem?.createdAt);
   const displayPosition = slotLabelForSelection(selection, slotLabel, locks);
-  const coverPreview = form.coverUrl.trim()
-    ? resolveAssetUrl(form.coverUrl)
-    : managedItem
-      ? resolveTrainerCoverUrl(managedItem)
-      : fixedExpert
-        ? resolveAssetUrl(fixedExpert.coverUrl)
-        : '';
+  const avatarPreview = (() => {
+    const raw = form.avatarUrl.trim();
+    if (raw && !isPlaceholderLegacyAvatar(raw)) {
+      return resolveAssetUrl(raw);
+    }
+    if (managedItem) return resolveTrainerAvatarUrl(managedItem);
+    if (fixedExpert) return resolveAssetUrl(fixedExpert.avatar);
+    return '';
+  })();
 
-  const handleUpload = async (file: File) => {
-    setUploading(true);
+  const handleAvatarUpload = async (file: File) => {
+    if (!managedItem || !onSaveAvatar) return;
+    setUploadingAvatar(true);
     try {
-      const url = await uploadImageFile(file);
-      setForm((prev) => ({ ...prev, coverUrl: url }));
+      const url = await uploadAvatarFile(file);
+      setForm((prev) => ({ ...prev, avatarUrl: url }));
+      onSaveAvatar(managedItem.resourceId, url);
+    } catch {
+      toast.error('头像上传失败');
     } finally {
-      setUploading(false);
+      setUploadingAvatar(false);
     }
   };
 
@@ -190,6 +201,20 @@ export function HomeTrainerDetailPanel({
           <Label>显示位置</Label>
           <div className='bg-muted rounded-md px-3 py-2 text-sm'>{displayPosition}</div>
         </div>
+
+        {isFixedSelection && fixedSlot && locks[fixedSlot] ? (
+          <div className='flex justify-end md:col-span-2'>
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              disabled={isSavingLocks}
+              onClick={() => onUnfix?.(fixedSlot)}
+            >
+              取消固定
+            </Button>
+          </div>
+        ) : null}
 
         {fixedSlot === 'main' || fixedSlot === 'middle' ? (
           <div className='flex items-center justify-between rounded-md border px-3 py-2 md:col-span-2'>
@@ -279,60 +304,51 @@ export function HomeTrainerDetailPanel({
           />
         </div>
 
-        <div className='space-y-2 md:col-span-2'>
-          <Label>推荐封面</Label>
-          <div className='flex flex-wrap items-center gap-2'>
-            <Input
-              value={form.coverUrl}
-              disabled={isFixedSelection}
-              onChange={(e) => setForm((prev) => ({ ...prev, coverUrl: e.target.value }))}
-              placeholder='封面 URL，留空则使用专家头像'
-              className='min-w-[240px] flex-1'
-            />
-            {coverPreview ? (
-              <Button type='button' variant='outline' size='sm' asChild>
-                <a href={coverPreview} target='_blank' rel='noreferrer'>
-                  查看
-                </a>
-              </Button>
-            ) : null}
-            {!isFixedSelection ? (
-              <>
-                <input
-                  ref={fileRef}
-                  type='file'
-                  accept='image/*'
-                  className='hidden'
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void handleUpload(file);
-                    e.target.value = '';
-                  }}
-                />
-                <Button
-                  type='button'
-                  variant='outline'
-                  size='sm'
-                  isLoading={uploading}
-                  onClick={() => fileRef.current?.click()}
-                >
-                  <Icons.upload className='mr-1 h-3.5 w-3.5' />
-                  上传
-                </Button>
-              </>
-            ) : null}
-          </div>
-          {coverPreview ? (
-            <div className='mt-2 h-24 w-40 overflow-hidden rounded-md border'>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={coverPreview}
-                alt='推荐封面预览'
-                className='h-full w-full object-cover'
+        {!isFixedSelection && managedItem ? (
+          <div className='space-y-2 md:col-span-2'>
+            <Label>专家头像</Label>
+            <div className='flex flex-wrap items-center gap-3'>
+              <div className='h-16 w-16 overflow-hidden rounded-full border'>
+                {avatarPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarPreview}
+                    alt='专家头像'
+                    className='h-full w-full object-cover'
+                  />
+                ) : (
+                  <div className='bg-muted flex h-full w-full items-center justify-center'>
+                    <Icons.user className='h-6 w-6' />
+                  </div>
+                )}
+              </div>
+              <input
+                ref={avatarFileRef}
+                type='file'
+                accept='image/*'
+                className='hidden'
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleAvatarUpload(file);
+                  e.target.value = '';
+                }}
               />
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                isLoading={uploadingAvatar}
+                onClick={() => avatarFileRef.current?.click()}
+              >
+                <Icons.upload className='mr-1 h-3.5 w-3.5' />
+                上传头像
+              </Button>
+              <p className='text-muted-foreground text-xs'>
+                上传后同步更新专家档案，首页左侧大卡封面与预览区头像即时刷新
+              </p>
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         <div className='space-y-2'>
           <Label>上架时间</Label>
@@ -351,8 +367,7 @@ export function HomeTrainerDetailPanel({
                 chiefIntro: form.chiefIntro || undefined,
                 expertiseOverride: form.expertiseOverride || undefined,
                 keyTags: form.keyTags || undefined,
-                adminNote: form.adminNote || undefined,
-                coverUrl: form.coverUrl || undefined
+                adminNote: form.adminNote || undefined
               })
             }
           >

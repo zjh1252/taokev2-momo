@@ -432,7 +432,7 @@
 
             </view>
 
-            <view class="menu__row menu__row--last" @tap="goReviews">
+            <view class="menu__row" @tap="goReviews">
 
               <view class="menu__row-l">
 
@@ -443,6 +443,30 @@
                 </view>
 
                 <text class="menu__row-txt">我的点评</text>
+
+              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
+            </view>
+
+            <view
+              v-for="(item, idx) in roleMenus.supply"
+              :key="item.url"
+              class="menu__row"
+              :class="{ 'menu__row--last': idx === roleMenus.supply.length - 1 }"
+              @tap="goPage(item.url)"
+            >
+
+              <view class="menu__row-l">
+
+                <view class="menu__icon" :class="`menu__icon--${item.color}`">
+
+                  <TkIcon :name="item.icon" :size="32" :color="menuIconColor(item.color)" />
+
+                </view>
+
+                <text class="menu__row-txt">{{ item.label }}</text>
 
               </view>
 
@@ -497,6 +521,29 @@
                 </view>
 
                 <text class="menu__row-txt">更多信息</text>
+
+              </view>
+
+              <TkIcon name="chevron-right" :size="28" color="#C2C8D0" />
+
+            </view>
+
+            <view
+              v-for="item in roleMenus.account"
+              :key="item.url"
+              class="menu__row"
+              @tap="goPage(item.url)"
+            >
+
+              <view class="menu__row-l">
+
+                <view class="menu__icon menu__icon--red">
+
+                  <TkIcon :name="item.icon" :size="32" color="#E62117" />
+
+                </view>
+
+                <text class="menu__row-txt">{{ item.label }}</text>
 
               </view>
 
@@ -709,6 +756,7 @@ import * as interactionApi from '@/api/interaction';
 import * as learningApi from '@/api/learning';
 
 import { roleLabels as toRoleLabels } from '@/constants/role';
+import { getUserCenterMenus } from '@/constants/user-center-nav';
 
 import { toAssetUrl } from '@/utils/asset';
 
@@ -734,12 +782,14 @@ const recentLoading = ref(false);
 
 
 
-const roleLabels = computed(() => toRoleLabels(userStore.roleCodes).slice(0, 4));
+const roleLabels = computed(() => toRoleLabels(userStore.roleCodes));
 
 const showMoreInfo = computed(() => {
   const role = userStore.activeRole || 'BUYER';
   return role === 'BUYER' || userStore.roleCodes.includes('BUYER');
 });
+
+const roleMenus = computed(() => getUserCenterMenus(userStore.activeRole || 'BUYER'));
 
 const showTrainerCerts = computed(() => {
   const role = userStore.activeRole || 'BUYER';
@@ -992,6 +1042,21 @@ function goCertEducation() {
 
 function goCertWork() {
   ensureLogged(() => uni.navigateTo({ url: '/pages/user/cert/work' }));
+}
+
+function goPage(url) {
+  ensureLogged(() => uni.navigateTo({ url }));
+}
+
+function menuIconColor(color) {
+  const map = {
+    red: '#E62117',
+    blue: '#2563EB',
+    orange: '#F59E0B',
+    green: '#16A34A',
+    gray: '#666',
+  };
+  return map[color] || '#666';
 }
 
 

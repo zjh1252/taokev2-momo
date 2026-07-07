@@ -6,6 +6,7 @@ import com.taoke.admin.dto.AdminCourseQuery;
 import com.taoke.admin.dto.AdminCourseVO;
 import com.taoke.common.dto.PageResult;
 import com.taoke.common.service.CategoryService;
+import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.course.api.CourseService;
 import com.taoke.course.dto.course.CourseDetailVO;
 import com.taoke.course.entity.Course;
@@ -46,6 +47,7 @@ public class AdminCourseService {
     private final InstitutionService institutionService;
     private final CategoryService categoryService;
     private final UserService userService;
+    private final OpsMaterialResolver opsMaterialResolver;
 
     /**
      * 分页查询课程列表
@@ -106,7 +108,9 @@ public class AdminCourseService {
             vo.setTitle(course.getTitle());
             vo.setType(course.getType().name());
             vo.setTypeLabel(course.getType().getLabel());
-            vo.setCoverUrl(course.getCoverUrl());
+            String categoryName = categoryNameMap.get(course.getCategoryId());
+            String trainerAvatar = trainer != null ? trainer.getAvatar() : null;
+            vo.setCoverUrl(resolveCoverUrl(course, trainerAvatar, categoryName));
             vo.setPublisherId(course.getPublisherId());
             vo.setPublisherType(course.getPublisherType());
             vo.setPublisherDisplayName(formatPublisherDisplay(
@@ -114,7 +118,7 @@ public class AdminCourseService {
                     publisherUserMap.get(course.getPublisherId()),
                     trainer != null ? trainer.getName() : null));
             vo.setCategoryId(course.getCategoryId());
-            vo.setCategoryName(categoryNameMap.get(course.getCategoryId()));
+            vo.setCategoryName(categoryName);
             vo.setDurationDays(course.getDurationDays());
             vo.setPrice(course.getPrice());
             vo.setIsFeatured(course.getIsFeatured());
@@ -306,5 +310,26 @@ public class AdminCourseService {
         }).toList();
 
         return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), voList);
+    }
+
+    /** 解析列表展示用封面：自定义封面 &gt; 讲师头像 &gt; 默认封面素材池 */
+    private String resolveCoverUrl(Course course, String trainerAvatar, String categoryName) {
+        if (course == null) {
+            return "";
+        }
+        String scene = resolveCoverMaterialScene(course.getType());
+        int seed = course.getId() != null ? course.getId() : 0;
+        return opsMaterialResolver.resolveCourseCoverUrl(
+                course.getCoverUrl(), trainerAvatar, categoryName, scene, seed);
+    }
+
+    private static String resolveCoverMaterialScene(CourseType type) {
+        if (type == CourseType.INTERNAL) {
+            return "INTERNAL";
+        }
+        if (type != null && type.isOpen()) {
+            return "OPEN";
+        }
+        return "GENERAL";
     }
 }

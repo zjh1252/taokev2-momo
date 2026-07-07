@@ -28,6 +28,16 @@ export async function createDemand(data: CreateDemandRequest): Promise<DemandDet
   return res.data;
 }
 
+/** 修改我的需求 */
+export async function updateDemand(id: number, data: CreateDemandRequest): Promise<DemandDetail> {
+  const res = await apiPut<ApiResponse<DemandDetail>>(
+    `/demands/${id}`,
+    data,
+    { headers: authHeaders() },
+  );
+  return res.data;
+}
+
 /** 游客发布需求（无需登录） */
 export async function createPublicDemand(data: CreateDemandRequest): Promise<DemandDetail> {
   const res = await apiPost<ApiResponse<DemandDetail>>('/demands/public', data);

@@ -18,7 +18,8 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { getTrainers } from '@/features/trainers/api/service';
+import { getTrainers, updateTrainerDetail } from '@/features/trainers/api/service';
+import { uploadAvatarFile } from '@/features/materials/api/service';
 import { getCourses } from '@/features/courses/api/service';
 import { getInstitutions } from '@/features/institutions/api/service';
 import { getTrainerCases } from '@/features/trainer-cases/api/service';
@@ -62,6 +63,7 @@ export function RecommendationManager({ config }: Props) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [homeTrainerSelection, setHomeTrainerSelection] =
     useState<HomeTrainerSelection | null>(null);
+  const [avatarUploadingId, setAvatarUploadingId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [candidatePage, setCandidatePage] = useState(1);
   const [backendWarning, setBackendWarning] = useState<string | null>(null);
@@ -198,6 +200,35 @@ export function RecommendationManager({ config }: Props) {
     onError: () => toast.error('排序失败')
   });
 
+  const avatarMutation = useMutation({
+    mutationFn: ({ trainerId, avatarUrl }: { trainerId: number; avatarUrl: string }) =>
+      updateTrainerDetail(trainerId, { avatar: avatarUrl }),
+    onSuccess: () => {
+      toast.success('专家头像已更新');
+      invalidate();
+    },
+    onError: () => toast.error('头像更新失败')
+  });
+
+  const handleAvatarUpload = async (resourceId: number, file: File) => {
+    setAvatarUploadingId(resourceId);
+    try {
+      const url = await uploadAvatarFile(file);
+      await avatarMutation.mutateAsync({ trainerId: resourceId, avatarUrl: url });
+    } catch {
+      toast.error('头像上传失败');
+    } finally {
+      setAvatarUploadingId(null);
+    }
+  };
+
+  const handleUnfix = (slot: 'main' | 'middle') => {
+    lockMutation.mutate({
+      ...homeTrainerLocks,
+      [slot]: false
+    });
+  };
+
   const moveItem = (index: number, direction: -1 | 1) => {
     const reorderItems = isHomeTrainerSlot ? homeTrainerManagedItems : items;
     const nextIndex = index + direction;
@@ -269,8 +300,10 @@ export function RecommendationManager({ config }: Props) {
             locks={homeTrainerLocks}
             selection={homeTrainerSelection}
             onSelect={setHomeTrainerSelection}
-            onMove={moveItem}
             onRemove={(id) => removeMutation.mutate(id)}
+            onUnfix={handleUnfix}
+            onAvatarUpload={handleAvatarUpload}
+            avatarUploadingId={avatarUploadingId}
           />
           <HomeTrainerDetailPanel
             selection={homeTrainerSelection}
@@ -281,6 +314,10 @@ export function RecommendationManager({ config }: Props) {
             isSaving={updateMutation.isPending}
             isSavingLocks={lockMutation.isPending}
             onLocksChange={(locks) => lockMutation.mutate(locks)}
+            onUnfix={handleUnfix}
+            onSaveAvatar={(resourceId, avatarUrl) => {
+              avatarMutation.mutate({ trainerId: resourceId, avatarUrl });
+            }}
             onSave={(payload) => {
               if (!selectedManagedItem) return;
               updateMutation.mutate({ id: selectedManagedItem.id, payload });

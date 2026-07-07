@@ -130,6 +130,7 @@ export function MaterialPickerDialog({
                       alt={item.name}
                       className="h-full w-full object-cover"
                       loading="lazy"
+                      referrerPolicy={previewSrc.startsWith('http') ? 'no-referrer' : undefined}
                       onError={(e) => {
                         e.currentTarget.src = '/statics/images/taoke-new-logo.jpg';
                       }}

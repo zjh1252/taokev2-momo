@@ -67,4 +67,10 @@ public class SaveVideoRequest {
 
     /** 关键词 */
     private String keywords;
+
+    /** 企业采购封顶价（元）；0 或不设置表示不限 */
+    private BigDecimal companyPrice;
+
+    /** 单次最多购买人数；与封顶价配合使用 */
+    private Integer maxPurchaseQty;
 }

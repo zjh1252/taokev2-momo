@@ -1,10 +1,9 @@
 'use client';
 
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Icons } from '@/components/icons';
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   AVATAR_SCENE_MAP,
@@ -53,22 +52,17 @@ export function buildMaterialColumns(materialType: MaterialType): ColumnDef<Mate
       cell: ({ row }) => {
         const item = row.original;
         return (
-          <div
-            className={`relative overflow-hidden bg-muted ${
+          <AssetImage
+            src={item.url}
+            alt={item.name}
+            fill
+            wrapperClassName={
               materialType === 'AVATAR'
                 ? 'h-10 w-10 rounded-full'
                 : 'h-10 w-16 rounded'
-            }`}
-          >
-            <Image
-              src={resolveAssetUrl(item.url)}
-              alt={item.name}
-              fill
-              sizes='48px'
-              className='object-cover'
-              unoptimized
-            />
-          </div>
+            }
+            className='object-cover'
+          />
         );
       }
     },

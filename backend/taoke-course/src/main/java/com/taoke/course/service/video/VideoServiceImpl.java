@@ -27,7 +27,7 @@ import com.taoke.user.api.UserService;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.User;
-import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -292,6 +292,7 @@ public class VideoServiceImpl implements VideoService {
         Specification<Video> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()));
+            predicates.add(playableVideoPredicate(root, cq, cb));
 
             if (categoryId != null || subCategoryId != null) {
                 Set<Integer> categoryFilterIds = new HashSet<>();
@@ -366,6 +367,7 @@ public class VideoServiceImpl implements VideoService {
 
         Specification<Video> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()),
+                playableVideoPredicate(root, cq, cb),
                 cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION),
                 cb.equal(root.get("publisherId"), institutionUserId)
         );
@@ -390,6 +392,7 @@ public class VideoServiceImpl implements VideoService {
         }
         Specification<Video> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()),
+                playableVideoPredicate(root, cq, cb),
                 cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION),
                 cb.equal(root.get("publisherId"), institutionUserId)
         );
@@ -407,6 +410,7 @@ public class VideoServiceImpl implements VideoService {
         }
         Specification<Video> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()),
+                playableVideoPredicate(root, cq, cb),
                 cb.equal(root.get("publisherType"), BusinessRole.Code.TRAINER),
                 cb.equal(root.get("publisherId"), trainerUserId)
         );
@@ -433,6 +437,45 @@ public class VideoServiceImpl implements VideoService {
         } catch (BusinessException ex) {
             return null;
         }
+    }
+
+    /** 公开列表仅展示现代浏览器可在本站稳定播放的录播课。 */
+    private Predicate playableVideoPredicate(Root<Video> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+        Subquery<Long> chapterSubquery = query.subquery(Long.class);
+        Root<VideoChapter> chapter = chapterSubquery.from(VideoChapter.class);
+        chapterSubquery.select(cb.literal(1L));
+        chapterSubquery.where(
+                cb.equal(chapter.get("videoId"), root.get("id")),
+                playableUrlPredicate(chapter.get("videoUrl"), cb)
+        );
+
+        return cb.or(
+                playableUrlPredicate(root.get("videoUrl"), cb),
+                cb.exists(chapterSubquery)
+        );
+    }
+
+    private Predicate playableUrlPredicate(Expression<String> rawUrl, CriteriaBuilder cb) {
+        Expression<String> url = cb.lower(cb.coalesce(rawUrl, ""));
+        return cb.or(
+                cb.like(url, "%.mp4%"),
+                cb.like(url, "%.m3u8%"),
+                cb.like(url, "%.webm%"),
+                cb.like(url, "%.mov%"),
+                cb.like(url, "%.m4v%"),
+                cb.like(url, "%.mpd%"),
+                cb.like(url, "%pxb-videos.taoke.com%"),
+                cb.like(url, "%sc.cdn.kuanxue.com%"),
+                cb.like(url, "%preview.kuanxue.com/fsm/%"),
+                cb.like(url, "/uploads/%"),
+                cb.like(url, "eceibs:%"),
+                cb.like(url, "kuaike:%"),
+                cb.like(url, "kuanxue:%"),
+                cb.like(url, "scho:%"),
+                cb.like(url, "%@@%"),
+                cb.like(url, "courseid=%"),
+                cb.like(url, "/lease/%")
+        );
     }
 
     // ==================== 后台管理 ====================
@@ -887,6 +930,8 @@ public class VideoServiceImpl implements VideoService {
         }
         if (req.getDuration() != null) video.setDuration(req.getDuration());
         if (req.getKeywords() != null) video.setKeywords(req.getKeywords());
+        if (req.getCompanyPrice() != null) video.setCompanyPrice(req.getCompanyPrice());
+        if (req.getMaxPurchaseQty() != null) video.setMaxPurchaseQty(req.getMaxPurchaseQty());
     }
 
     private void applyChapterRequest(VideoChapter chapter, SaveVideoChapterRequest req) {

@@ -6,7 +6,7 @@ import { ROUTES } from '@/config/routes';
 import { createCase, addCaseFile } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
-import { validateForm, getFirstError } from '@/lib/validation';
+import { validateForm, getFirstError, getTodayDateValue, Validators } from '@/lib/validation';
 import { CASE_RULES, traineeCountValidator } from '@/features/trainer-case/lib/case-form-rules';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
@@ -49,6 +49,15 @@ export default function CreateCasePage() {
     value: SaveTrainerCaseRequest[K] | undefined,
   ) => setForm((prev) => ({ ...prev, [key]: value }));
 
+  const handleTrainingDateChange = (value: string) => {
+    const error = Validators.notFutureDate('培训日期不能晚于今天')(value);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    updateField('trainingDate', value);
+  };
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -67,7 +76,7 @@ export default function CreateCasePage() {
     setFiles((prev) => [...prev, file]);
   }, []);
 
-  const handleRemoveFile = useCallback((_index: number, _file: UploadedFile) => {
+  const handleRemoveFile = useCallback((_index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== _index));
   }, []);
 
@@ -185,7 +194,7 @@ export default function CreateCasePage() {
               }))
             }
             maxLevel={4}
-            requireDistrict
+            requireDistrict={false}
           />
         </FormField>
 
@@ -205,7 +214,8 @@ export default function CreateCasePage() {
             <input
               type="date"
               value={form.trainingDate || ''}
-              onChange={(e) => updateField('trainingDate', e.target.value)}
+              max={getTodayDateValue()}
+              onChange={(e) => handleTrainingDateChange(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </FormField>

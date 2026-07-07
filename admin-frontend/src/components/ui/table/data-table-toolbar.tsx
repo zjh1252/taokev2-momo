@@ -8,6 +8,7 @@ import { DataTableFacetedFilter } from '@/components/ui/table/data-table-faceted
 import { DataTableSliderFilter } from '@/components/ui/table/data-table-slider-filter';
 import { DataTableViewOptions } from '@/components/ui/table/data-table-view-options';
 import { Button } from '@/components/ui/button';
+import { DeferredSearchInput } from '@/components/ui/deferred-search-input';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Cross2Icon } from '@radix-ui/react-icons';
@@ -78,11 +79,11 @@ function DataTableToolbarFilter<TData>({ column }: DataTableToolbarFilterProps<T
       switch (columnMeta.variant) {
         case 'text':
           return (
-            <Input
+            <DeferredSearchInput
               placeholder={columnMeta.placeholder ?? columnMeta.label}
               value={(column.getFilterValue() as string) ?? ''}
-              onChange={(event) => column.setFilterValue(event.target.value)}
-              className='h-8 w-40 lg:w-56'
+              onSearch={(next) => column.setFilterValue(next || undefined)}
+              inputClassName='w-40 lg:w-56'
             />
           );
 

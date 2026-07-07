@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -130,15 +130,18 @@ export function TrainerDetailView({ detail, mode, onUpdated }: Props) {
       </div>
 
       <div className='flex gap-6'>
-        {avatar ? (
-          <div className='relative h-24 w-24 shrink-0 overflow-hidden rounded-full'>
-            <Image src={avatar} alt={detail.name || ''} fill className='object-cover' />
-          </div>
-        ) : (
-          <div className='flex h-24 w-24 items-center justify-center rounded-full bg-muted'>
-            <Icons.user className='h-8 w-8 text-muted-foreground' />
-          </div>
-        )}
+        <AssetImage
+          src={avatar}
+          alt={detail.name || ''}
+          fill
+          wrapperClassName='h-24 w-24 shrink-0 rounded-full'
+          className='object-cover'
+          fallback={
+            <div className='flex h-24 w-24 items-center justify-center rounded-full bg-muted'>
+              <Icons.user className='h-8 w-8 text-muted-foreground' />
+            </div>
+          }
+        />
         <div className='space-y-1'>
           <h2 className='text-xl font-semibold'>{detail.name || '未命名'}</h2>
           {detail.title ? (

@@ -166,8 +166,64 @@ public class LegacyTaokeCourseReader {
         return result;
     }
 
+    /**
+     * 批量取老库课程封面（tk_course_pic.pic）。
+     * <p>
+     * 部分公开课的新表 ID 对齐的是 {@code tk_course.id}，真实封面挂在 {@code tk_course.cid}
+     * 指向的课程信息下，因此同时按课程 ID 与 {@code tk_course.id -> cid} 两种路径查找。
+     * </p>
+     */
+    public Map<Integer, String> findCoverUrlsByCourseIds(Collection<Integer> courseIds) {
+        if (courseIds == null || courseIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Integer> ids = courseIds.stream().filter(id -> id != null && id > 0).distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
+        List<CoverRow> rows;
+        try {
+            rows = jdbcTemplate.query(
+                    """
+                    SELECT q.course_id, TRIM(tcp.pic) AS pic, tcp.up_time, tcp.id AS pic_id
+                    FROM (
+                        SELECT id AS course_id, id AS pic_cid
+                        FROM taoke.tk_courseinfo
+                        WHERE id IN (%s)
+                        UNION ALL
+                        SELECT id AS course_id, cid AS pic_cid
+                        FROM taoke.tk_course
+                        WHERE id IN (%s) AND cid > 0
+                    ) q
+                    INNER JOIN taoke.tk_course_pic tcp ON tcp.cid = q.pic_cid
+                    WHERE TRIM(COALESCE(tcp.pic, '')) != ''
+                    ORDER BY q.course_id, tcp.up_time DESC, tcp.id DESC
+                    """.formatted(placeholders, placeholders),
+                    (rs, rowNum) -> new CoverRow(
+                            rs.getInt("course_id"),
+                            rs.getString("pic")),
+                    concatArgs(ids, ids));
+        } catch (DataAccessException e) {
+            log.warn("读取老库 tk_course_pic.pic 失败，跳过课程封面补全: {}", e.getMessage());
+            return Map.of();
+        }
+
+        Map<Integer, String> result = new HashMap<>();
+        for (CoverRow row : rows) {
+            if (row.pic() != null && !row.pic().isBlank()) {
+                result.putIfAbsent(row.courseId(), row.pic().trim());
+            }
+        }
+        return result;
+    }
+
+
+
     private record LecturerRow(int courseId, String lecturer, String memberName) {}
 
+    private record CoverRow(int courseId, String pic) {}
     /**
      * 课程 ID 与 tk_courseinfo.id 对齐时，取老库课程分类名（tk_cate）。
      */
@@ -348,4 +404,17 @@ public class LegacyTaokeCourseReader {
         String name = raw.substring(pipe + 1).trim();
         return name.isEmpty() ? "" : name;
     }
+
+    private static Object[] concatArgs(List<Integer> left, List<Integer> right) {
+        Object[] args = new Object[left.size() + right.size()];
+        int index = 0;
+        for (Integer id : left) {
+            args[index++] = id;
+        }
+        for (Integer id : right) {
+            args[index++] = id;
+        }
+        return args;
+    }
+
 }

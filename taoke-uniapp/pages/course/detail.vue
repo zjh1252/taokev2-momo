@@ -70,10 +70,11 @@
               </text>
             </view>
             <view class="meta-card__price-stats">
-              <text v-if="course.score" class="meta-card__price-stat">
+              <view v-if="courseRating.showStars" class="meta-card__price-stat">
                 <TkIcon name="star" filled :size="22" color="#F59E0B" />
-                {{ Number(course.score).toFixed(1) }}
-              </text>
+                <text>{{ courseRating.label }}</text>
+              </view>
+              <text v-else class="meta-card__price-stat meta-card__price-stat--muted">{{ courseRating.label }}</text>
               <text v-if="course.enrollmentCount" class="meta-card__price-stat">
                 {{ course.enrollmentCount }} 人已报名
               </text>
@@ -208,7 +209,7 @@ import { requireLogin } from '@/utils/auth';
 import { MOCK_COURSE_DETAIL } from '@/utils/mock';
 import { toAssetUrl } from '@/utils/asset';
 import { formatPlanStartDate } from '@/utils/course-display';
-
+import { formatCourseRating } from '@/utils/rating-display';
 import { getNavBarHeight } from '@/utils/system';
 
 const navBarH = getNavBarHeight();
@@ -236,6 +237,8 @@ const isPurchasable = computed(() => {
 const metaLine = computed(
   () => course.value.nextPlanStartDate || course.value.nextPlanCity || course.value.durationDays,
 );
+
+const courseRating = computed(() => formatCourseRating(course.value.score));
 
 const syllabusLines = computed(() => splitLines(course.value.syllabus));
 const highlightLines = computed(() => splitLines(course.value.highlights));
@@ -534,6 +537,10 @@ onLoad((opt) => {
     display: flex;
     align-items: center;
     gap: 4rpx;
+
+    &--muted {
+      color: $tk-text-4;
+    }
   }
 }
 

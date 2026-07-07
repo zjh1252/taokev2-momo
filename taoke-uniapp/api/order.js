@@ -12,6 +12,14 @@ export const getOrderDetail = (orderNo) => http.get(`/orders/${orderNo}`);
 /** 取消订单 */
 export const cancelOrder = (orderNo) => http.put(`/orders/${orderNo}/cancel`);
 
+/** 提交发票申请 POST /orders/{orderNo}/invoice */
+export const submitInvoiceRequest = (orderNo, data) =>
+  http.post(`/orders/${orderNo}/invoice`, data);
+
+/** 查询发票申请 GET /orders/{orderNo}/invoice */
+export const getInvoiceRequest = (orderNo) =>
+  http.get(`/orders/${orderNo}/invoice`, {}, { silent: true });
+
 /** 查询指定商品的有效待支付订单 */
 export const getPendingOrderByProduct = (productType, productId) =>
   http.get('/orders/pending-by-product', { productType, productId }, { silent: true });

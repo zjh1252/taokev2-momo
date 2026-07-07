@@ -49,6 +49,8 @@ export const ROUTES = {
   UC_ACCOUNT_CERT_WORK: '/dashboard/account/certification/work',
   // 三角色身份信息认证
   UC_ACCOUNT_AGENT_WORK_CERT: '/dashboard/account/certification/agent/work',
+  UC_ACCOUNT_BUYER_CERT_REAL_NAME: '/dashboard/account/certification/buyer/real-name',
+  UC_ACCOUNT_BUYER_CERT_WORK: '/dashboard/account/certification/buyer/work',
   UC_ACCOUNT_AGENCY_QUALIFICATION: '/dashboard/account/certification/agency/qualification',
   UC_ACCOUNT_INSTITUTION_COMPANY_INFO: '/dashboard/account/certification/institution/company-info',
 

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, XCircle } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { ArrowLeft, Edit3, Loader2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ROUTES } from '@/config/routes';
 import { getDemandDetail, cancelDemand } from '@/features/demand/api/service';
@@ -18,7 +18,6 @@ import { Link } from '@/i18n/navigation';
  */
 export default function DemandDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [detail, setDetail] = useState<DemandDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
@@ -90,15 +89,24 @@ export default function DemandDetailPage() {
           </span>
         </div>
         {!isTerminal && (
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={cancelling}
-            className="text-red-500 hover:text-red-600 text-sm flex items-center gap-1 disabled:opacity-50"
-          >
-            {cancelling ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />}
-            取消需求
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/dashboard/demands/${detail.id}/edit`}
+              className="text-primary hover:text-primary/80 text-sm flex items-center gap-1"
+            >
+              <Edit3 className="size-4" />
+              编辑
+            </Link>
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="text-red-500 hover:text-red-600 text-sm flex items-center gap-1 disabled:opacity-50"
+            >
+              {cancelling ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />}
+              取消需求
+            </button>
+          </div>
         )}
       </div>
 

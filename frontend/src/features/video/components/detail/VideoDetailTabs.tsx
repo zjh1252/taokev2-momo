@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { usePathname, useRouter } from '@/i18n/navigation';
+import { MaterialLinkSection } from '@/components/material-link-section';
 import { resolveRichTextHtml } from '@/lib/rich-text';
 import { VideoRelatedCourses } from './VideoRelatedCourses';
 import { VideoCommentsSection } from './VideoCommentsSection';
@@ -77,6 +78,12 @@ export function VideoDetailTabs({ video }: VideoDetailTabsProps) {
                 <p className="text-slate-400 text-center py-8 text-sm">暂无视频介绍</p>
               )}
             </section>
+
+            <MaterialLinkSection
+              courseTitle={video.title}
+              materialUrl={video.materialUrl}
+              sourceTexts={[video.materialText, video.intro]}
+            />
 
             <VideoRelatedCourses videoId={video.id} />
 

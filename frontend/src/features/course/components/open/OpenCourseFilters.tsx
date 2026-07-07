@@ -45,9 +45,6 @@ export interface OpenCourseFilterValue {
   priceMin?: number;
   priceMax?: number;
   isFree?: number;
-
-  enrollStatus?: string;
-  enrollStatusLabel?: string;
 }
 
 interface OpenCourseFiltersProps {
@@ -56,7 +53,7 @@ interface OpenCourseFiltersProps {
   onChange: (value: OpenCourseFilterValue) => void;
 }
 
-type FilterKey = 'category' | 'openCity' | 'openTime' | 'priceRange' | 'enrollStatus';
+type FilterKey = 'category' | 'openCity' | 'openTime' | 'priceRange';
 
 interface FilterMeta {
   key: FilterKey;
@@ -69,7 +66,6 @@ const FILTER_ITEMS: FilterMeta[] = [
   { key: 'openCity', label: '开课省市', flyoutWidth: 540 },
   { key: 'openTime', label: '开课时间', flyoutWidth: 360 },
   { key: 'priceRange', label: '价格范围', flyoutWidth: 340 },
-  { key: 'enrollStatus', label: '报名状态', flyoutWidth: 240 },
 ];
 
 /** 时间快捷段：与后端 PublicCourseQuery.timeQuick 解析对齐 */
@@ -91,12 +87,6 @@ const PRICE_PRESETS: {
   { label: '1000-3000', priceMin: 1000, priceMax: 3000 },
   { label: '3000-5000', priceMin: 3000, priceMax: 5000 },
   { label: '5000以上', priceMin: 5000 },
-];
-
-/** 报名状态预设 — 仅保留可由开课计划判定的两类 */
-const ENROLL_STATUS_OPTIONS: { label: string; key: string; color: string }[] = [
-  { label: '正在报名中', key: 'ENROLLING', color: 'bg-emerald-500' },
-  { label: '报名已结束', key: 'ENDED', color: 'bg-slate-300' },
 ];
 
 interface RegionItem {
@@ -230,11 +220,6 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
     if (max !== undefined && Number.isNaN(max)) return;
     const label = `${min ?? '不限'}-${max ?? '不限'}`;
     patch({ priceLabel: label, priceMin: min, priceMax: max, isFree: undefined });
-    closeFlyout();
-  };
-
-  const handleEnrollStatus = (key: string, label: string) => {
-    patch({ enrollStatus: key, enrollStatusLabel: label });
     closeFlyout();
   };
 
@@ -457,28 +442,6 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
               </>
             )}
 
-            {activeFilter === 'enrollStatus' && (
-              <div className="flex flex-col gap-1 text-sm">
-                {ENROLL_STATUS_OPTIONS.map((s) => {
-                  const active = value.enrollStatus === s.key;
-                  return (
-                    <button
-                      key={s.key}
-                      type="button"
-                      onClick={() => handleEnrollStatus(s.key, s.label)}
-                      className={`px-3 py-2 rounded cursor-pointer transition-colors flex items-center gap-2 text-left ${
-                        active
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-primary'
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${s.color}`} />
-                      {s.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
       )}

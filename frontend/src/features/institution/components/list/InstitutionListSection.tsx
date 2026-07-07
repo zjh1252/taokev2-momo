@@ -229,6 +229,7 @@ function InstitutionListSectionInner({
                       alt={item.orgName}
                       width={112}
                       height={112}
+                      apiResolved
                       className="max-w-full max-h-full object-contain"
                       fallback={getInstitutionLogoFallback(item.orgName)}
                     />

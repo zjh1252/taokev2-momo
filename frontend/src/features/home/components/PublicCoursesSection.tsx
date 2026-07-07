@@ -2,7 +2,6 @@ import { BookOpen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { SafeImage } from '@/components/safe-image';
-import { resolveImageSrc } from '@/lib/media';
 import { SectionHeader } from './SectionHeader';
 import type { PublicCourse } from '../types';
 
@@ -36,19 +35,17 @@ export function PublicCoursesSection({ courses }: PublicCoursesSectionProps) {
 
 function PublicCourseItem({ course }: { course: PublicCourse }) {
   const t = useTranslations('home');
-  const coverSrc = resolveImageSrc(course.coverUrl);
 
   return (
     <div className="bg-white rounded-lg p-6 flex flex-col md:flex-row items-center gap-8 shadow-sm hover:shadow-md transition-all border border-slate-50 group">
       <div className="w-full md:w-[240px] h-[160px] rounded-lg overflow-hidden shrink-0 relative bg-slate-100">
-        {coverSrc ? (
-          <SafeImage
-            src={coverSrc}
-            alt={course.title}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
-          />
-        ) : null}
+        <SafeImage
+          src={course.coverUrl}
+          alt={course.title}
+          fill
+          apiResolved
+          className="object-cover transition-transform group-hover:scale-105"
+        />
       </div>
 
       <div className="flex-1 flex flex-col gap-4 min-w-0 w-full">

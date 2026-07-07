@@ -21,6 +21,7 @@ interface VideoListSectionProps {
   initialInstitutionName?: string;
   initialCategoryId?: number;
   initialCategoryName?: string;
+  initialSortBy?: string;
   bottomCategoryNav?: {
     title: string;
     countUnit: string;
@@ -70,6 +71,7 @@ function VideoListSectionInner({
   initialInstitutionName,
   initialCategoryId,
   initialCategoryName,
+  initialSortBy,
   bottomCategoryNav,
 }: VideoListSectionProps) {
   const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
@@ -79,7 +81,6 @@ function VideoListSectionInner({
     initialCategoryName,
   );
   const selectedCategoryRef = useRef<number | undefined>(initialCategoryId);
-  selectedCategoryRef.current = selectedCategory;
   const topCategoryId = useMemo(
     () => resolveTopCategoryId(categoryTree, selectedCategory),
     [categoryTree, selectedCategory],
@@ -87,8 +88,8 @@ function VideoListSectionInner({
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
   const [listMode, setListMode] = useState<VideoListMode>('all');
   const listModeRef = useRef<VideoListMode>('all');
-  listModeRef.current = listMode;
-  const [sortKey, setSortKey] = useState('default');
+  const initialSortKey = SORT_OPTIONS.find((option) => option.sortBy === initialSortBy)?.key ?? 'default';
+  const [sortKey, setSortKey] = useState(initialSortKey);
   const [keyword, setKeyword] = useState(keywordFromUrl);
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
@@ -103,6 +104,14 @@ function VideoListSectionInner({
     [initialCategoryId, initialInstitutionId],
   );
   const serverFilterKeyRef = useRef(serverFilterKey);
+
+  useEffect(() => {
+    selectedCategoryRef.current = selectedCategory;
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    listModeRef.current = listMode;
+  }, [listMode]);
 
   useEffect(() => {
     if (serverFilterKeyRef.current === serverFilterKey) {
@@ -188,14 +197,16 @@ function VideoListSectionInner({
   });
 
   useEffect(() => {
-    if (!keywordBootstrappedRef.current) {
-      keywordBootstrappedRef.current = true;
-      if (!keywordFromUrl) return;
-    }
-    if (keywordFromUrl === keyword) return;
-    setKeyword(keywordFromUrl);
-    commitPageChange(1);
-    fetchData(1, selectedCategory, sortKey, keywordFromUrl);
+    void Promise.resolve().then(() => {
+      if (!keywordBootstrappedRef.current) {
+        keywordBootstrappedRef.current = true;
+        if (!keywordFromUrl) return;
+      }
+      if (keywordFromUrl === keyword) return;
+      setKeyword(keywordFromUrl);
+      commitPageChange(1);
+      fetchData(1, selectedCategory, sortKey, keywordFromUrl);
+    });
   }, [keywordFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClearInstitution = useCallback(() => {

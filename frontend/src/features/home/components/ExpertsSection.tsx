@@ -142,7 +142,7 @@ function MainExpertCard({ expert }: { expert: Expert }) {
         )}
       </div>
       <div className="md:w-[55%] p-6 lg:p-8 flex flex-col flex-1 relative z-20">
-        <h3 className="text-3xl font-black mb-2 text-slate-800">
+        <h3 className="text-3xl font-black mb-2 text-slate-800 truncate">
           {expert.name}
           {expert.title && (
             <span className="text-lg font-normal text-slate-500 ml-2">
@@ -151,7 +151,7 @@ function MainExpertCard({ expert }: { expert: Expert }) {
           )}
         </h3>
         {expert.subtitle ? (
-          <p className="text-primary text-sm font-bold mb-6">
+          <p className="text-primary text-sm font-bold mb-6 line-clamp-1">
             {toPlainIntroText(expert.subtitle)}
           </p>
         ) : null}
@@ -189,7 +189,7 @@ function MiddleExpertCard({ expert }: { expert: Expert }) {
           className="w-full h-full object-cover"
         />
       </div>
-      <h3 className="text-3xl font-bold mb-3 tracking-wide">{expert.name}</h3>
+      <h3 className="text-3xl font-bold mb-3 tracking-wide truncate">{expert.name}</h3>
       <p className="text-white/80 text-base text-center mb-6 leading-relaxed line-clamp-3">
         {toPlainIntroText(expert.bio)}
       </p>
@@ -224,10 +224,10 @@ function SideExpertCard({ expert }: { expert: Expert }) {
           />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-slate-800 group-hover:text-primary transition-colors">
+          <h3 className="text-xl font-bold text-slate-800 group-hover:text-primary transition-colors truncate">
             {expert.name}
           </h3>
-          <p className="text-slate-500 text-sm mt-1">{expert.title}</p>
+          <p className="text-slate-500 text-sm mt-1 line-clamp-1">{expert.title}</p>
         </div>
       </div>
       <p className="text-slate-500 text-sm leading-relaxed mb-4 line-clamp-2">

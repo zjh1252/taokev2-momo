@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.32.1",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "dev:check": "powershell -ExecutionPolicy Bypass -File ./scripts/check-backend.ps1",
     "predev": "powershell -ExecutionPolicy Bypass -File ./scripts/check-backend.ps1 -WarnOnly",
     "build": "next build",

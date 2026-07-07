@@ -55,6 +55,14 @@ public class DemandController {
         return ApiResponse.ok(demandService.getDetail(id, SecurityUtils.getRequiredUserId()));
     }
 
+    @Operation(summary = "修改我的需求")
+    @PutMapping("/demands/{id}")
+    public ApiResponse<DemandDetailResponse> update(
+            @PathVariable Integer id,
+            @Valid @RequestBody CreateDemandRequest request) {
+        return ApiResponse.ok(demandService.update(id, SecurityUtils.getRequiredUserId(), request));
+    }
+
     @Operation(summary = "取消需求")
     @PutMapping("/demands/{id}/cancel")
     public ApiResponse<Void> cancel(@PathVariable Integer id) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, use } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import {
@@ -11,7 +12,7 @@ import {
 } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
-import { validateForm, getFirstError } from '@/lib/validation';
+import { validateForm, getFirstError, getTodayDateValue, Validators } from '@/lib/validation';
 import { CASE_RULES, traineeCountValidator } from '@/features/trainer-case/lib/case-form-rules';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
@@ -30,6 +31,9 @@ export default function EditCasePage({
 }) {
   const params = use(paramsPromise);
   const caseId = Number(params.id);
+  const searchParams = useSearchParams();
+  const trainerUserIdFromUrl = searchParams.get('trainerUserId');
+  const initialTrainerUserId = trainerUserIdFromUrl ? Number(trainerUserIdFromUrl) : undefined;
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -60,7 +64,7 @@ export default function EditCasePage({
   useEffect(() => {
     (async () => {
       try {
-        const detail = await getMyCaseDetail(caseId);
+        const detail = await getMyCaseDetail(caseId, initialTrainerUserId);
         setTrainerUserId(detail.trainerUserId);
         setTrainerName(detail.trainerName);
         setForm({
@@ -96,12 +100,21 @@ export default function EditCasePage({
         setLoading(false);
       }
     })();
-  }, [caseId]);
+  }, [caseId, initialTrainerUserId]);
 
   const updateField = <K extends keyof SaveTrainerCaseRequest>(
     key: K,
     value: SaveTrainerCaseRequest[K] | undefined,
   ) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleTrainingDateChange = (value: string) => {
+    const error = Validators.notFutureDate('培训日期不能晚于今天')(value);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    updateField('trainingDate', value);
+  };
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,7 +140,7 @@ export default function EditCasePage({
           title: file.title || '',
           fileSize: file.fileSize,
           sortOrder: file.sortOrder,
-        });
+        }, trainerUserId);
         setFiles((prev) => [
           ...prev,
           {
@@ -144,14 +157,14 @@ export default function EditCasePage({
         // 平台层已统一处理错误提示
       }
     },
-    [caseId],
+    [caseId, trainerUserId],
   );
 
   const handleRemoveFile = useCallback(
     async (index: number, file: UploadedFile) => {
       if (file.id) {
         try {
-          await deleteCaseFile(caseId, file.id);
+          await deleteCaseFile(caseId, file.id, trainerUserId);
         } catch {
           // 平台层已统一处理错误提示
           return;
@@ -159,7 +172,7 @@ export default function EditCasePage({
       }
       setFiles((prev) => prev.filter((_, i) => i !== index));
     },
-    [caseId],
+    [caseId, trainerUserId],
   );
 
   const handleSubmit = async () => {
@@ -173,7 +186,7 @@ export default function EditCasePage({
 
     setSubmitting(true);
     try {
-      await updateCase(caseId, form as SaveTrainerCaseRequest);
+      await updateCase(caseId, form as SaveTrainerCaseRequest, trainerUserId);
       toast.success('案例已更新');
       router.push(ROUTES.UC_CASES_MANAGE);
     } catch {
@@ -281,7 +294,8 @@ export default function EditCasePage({
             <input
               type="date"
               value={form.trainingDate || ''}
-              onChange={(e) => updateField('trainingDate', e.target.value)}
+              max={getTodayDateValue()}
+              onChange={(e) => handleTrainingDateChange(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </FormField>

@@ -11,7 +11,7 @@ BEGIN
         WHERE table_schema = DATABASE() AND table_name = 'video_package_groups' AND column_name = 'type'
     ) THEN
         ALTER TABLE video_package_groups
-            ADD COLUMN type INT NOT NULL DEFAULT 0 COMMENT '0=通用 1=行业畅销（老站 topic_item.type）' AFTER video_count;
+            ADD COLUMN type TINYINT NOT NULL DEFAULT 0 COMMENT '0=通用 1=行业畅销（老站 topic_item.type）' AFTER video_count;
     END IF;
 
     IF NOT EXISTS (
@@ -19,7 +19,7 @@ BEGIN
         WHERE table_schema = DATABASE() AND table_name = 'video_package_groups' AND column_name = 'serial_index'
     ) THEN
         ALTER TABLE video_package_groups
-            ADD COLUMN serial_index INT NOT NULL DEFAULT 0 COMMENT '推荐顺序（老站 serial_index）' AFTER type;
+            ADD COLUMN serial_index TINYINT NOT NULL DEFAULT 0 COMMENT '推荐顺序（老站 serial_index）' AFTER type;
     END IF;
 
     IF NOT EXISTS (
@@ -27,7 +27,7 @@ BEGIN
         WHERE table_schema = DATABASE() AND table_name = 'video_package_groups' AND column_name = 'item_index'
     ) THEN
         ALTER TABLE video_package_groups
-            ADD COLUMN item_index INT NOT NULL DEFAULT 0 COMMENT '排序（老站 item_index）' AFTER serial_index;
+            ADD COLUMN item_index TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '排序（老站 item_index）' AFTER serial_index;
     END IF;
 
     IF NOT EXISTS (

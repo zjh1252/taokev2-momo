@@ -80,6 +80,7 @@ export function InstitutionSidebarRecommendations({
                         alt={item.orgName}
                         width={36}
                         height={36}
+                        apiResolved
                         className="max-w-full max-h-full object-contain"
                         fallback={getInstitutionLogoFallback(item.orgName)}
                       />

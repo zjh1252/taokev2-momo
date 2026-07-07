@@ -140,6 +140,8 @@ public enum ErrorCode {
     AI_NOT_ENABLED(503, 90030, "AI 解析能力未启用，请联系管理员配置"),
     AI_CALL_FAILED(503, 90031, "AI 服务调用失败，请稍后重试"),
     AI_PARSE_FAILED(500, 90032, "AI 返回内容解析失败"),
+    OCR_NOT_ENABLED(503, 90033, "OCR 识别能力未启用，请联系管理员配置"),
+    OCR_CALL_FAILED(503, 90034, "OCR 服务调用失败，请稍后重试"),
 
     INTERNAL_ERROR(500, 99999, "系统繁忙，请稍后再试");
 

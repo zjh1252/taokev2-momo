@@ -44,6 +44,13 @@ public class AdminTrainerController {
         return ApiResponse.ok(adminTrainerService.listApplications(query));
     }
 
+    @Operation(summary = "运营代填专家入驻申请")
+    @PostMapping("/admin/trainers/applications")
+    public ApiResponse<AdminTrainerApplicationVO> createApplication(
+            @Valid @RequestBody AdminCreateTrainerApplicationRequest request) {
+        return ApiResponse.ok(adminTrainerService.createTrainerApplication(request));
+    }
+
     @Operation(summary = "审核通过专家申请")
     @PutMapping("/admin/trainers/applications/{userId}/approve")
     public ApiResponse<Void> approve(@PathVariable Integer userId) {

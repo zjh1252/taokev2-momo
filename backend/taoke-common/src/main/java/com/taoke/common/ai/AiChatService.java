@@ -1,5 +1,7 @@
 package com.taoke.common.ai;
 
+import java.util.List;
+
 /**
  * 通用 AI 对话服务（OpenAI 兼容协议）。
  *
@@ -33,6 +35,17 @@ public interface AiChatService {
      * @return 反序列化后的对象
      */
     <T> T chatJson(String systemPrompt, String userPrompt, Class<T> type);
+
+    /**
+     * 带图片的 JSON 对话，适用于扫描 PDF / 纯图片 OCR 后结构化。
+     *
+     * @param systemPrompt 系统提示词
+     * @param userPrompt   用户文本输入
+     * @param images       图片输入，按原文件页序/顺序排列
+     * @param type         反序列化目标类型
+     * @return 反序列化后的对象
+     */
+    <T> T chatJsonWithImages(String systemPrompt, String userPrompt, List<AiImageInput> images, Class<T> type);
 
     /**
      * 当前是否可用（{@code enabled=true && api-key 非空}）。

@@ -4,7 +4,7 @@ import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-h
 import type { Product } from '../../api/types';
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 import { CellAction } from './cell-action';
 import { CATEGORY_OPTIONS } from './options';
 
@@ -14,15 +14,13 @@ export const columns: ColumnDef<Product>[] = [
     header: 'IMAGE',
     cell: ({ row }) => {
       return (
-        <div className='relative aspect-square'>
-          <Image
-            src={row.getValue('photo_url')}
-            alt={row.getValue('name')}
-            fill
-            sizes='80px'
-            className='rounded-lg'
-          />
-        </div>
+        <AssetImage
+          src={row.getValue('photo_url') as string}
+          alt={row.getValue('name') as string}
+          fill
+          wrapperClassName='aspect-square'
+          className='rounded-lg object-cover'
+        />
       );
     }
   },

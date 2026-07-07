@@ -107,6 +107,13 @@
       }
     },
     {
+      "path": "pages/order/invoice",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "申请发票"
+      }
+    },
+    {
       "path": "pages/video/play",
       "style": {
         "navigationStyle": "custom",
@@ -121,10 +128,24 @@
       }
     },
     {
+      "path": "pages/demand/create",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "发布定制需求"
+      }
+    },
+    {
       "path": "pages/review/list",
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "我的点评"
+      }
+    },
+    {
+      "path": "pages/review/submit",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "发表评价"
       }
     },
     {
@@ -188,6 +209,104 @@
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "工作认证"
+      }
+    },
+    {
+      "path": "pages/binding/my-experts",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的专家"
+      }
+    },
+    {
+      "path": "pages/binding/my-agents",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的代理"
+      }
+    },
+    {
+      "path": "pages/binding/my-enterprise-agent",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的经纪公司"
+      }
+    },
+    {
+      "path": "pages/binding/my-agents-team",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的团队"
+      }
+    },
+    {
+      "path": "pages/binding/my-institution",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的机构"
+      }
+    },
+    {
+      "path": "pages/binding/my-employees",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的员工"
+      }
+    },
+    {
+      "path": "pages/publish/course-list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的课程"
+      }
+    },
+    {
+      "path": "pages/publish/course-form",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "发布课程"
+      }
+    },
+    {
+      "path": "pages/publish/case-list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的案例"
+      }
+    },
+    {
+      "path": "pages/publish/case-form",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "发布案例"
+      }
+    },
+    {
+      "path": "pages/publish/highlight-list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "精彩瞬间"
+      }
+    },
+    {
+      "path": "pages/publish/highlight-form",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "发布精彩瞬间"
+      }
+    },
+    {
+      "path": "pages/user/cert/agency-qualification",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "经纪公司资质"
+      }
+    },
+    {
+      "path": "pages/user/cert/institution-company",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "公司资料"
       }
     }
   ],

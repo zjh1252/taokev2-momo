@@ -2,21 +2,13 @@
   TkExpertCard —— 专家卡片
   - variant="grid"：竖向，用于首页"推荐专家"横向滚动
   - variant="row" ：横向（头像+姓名+介绍+评分+标签），用于专家列表
-
-  数据契约（适配后端 TrainerListItemVO / 临时替代字段）：
-    {
-      id, nickname / name, avatar, title (头衔/简介一句话),
-      verified (boolean 信得过), rating (number),
-      tags ([string]), viewCount, favCount
-    }
 -->
 <template>
   <view :class="['tk-expert', `tk-expert--${variant}`]" @tap="onTap">
-    <!-- 信得过 标 -->
     <view v-if="expert.verified" class="tk-expert__badge">信得过</view>
 
     <view class="tk-expert__header">
-      <image class="tk-expert__avatar" :src="avatarUrl" mode="aspectFill" />
+      <image class="tk-expert__avatar" :src="avatarUrl" mode="aspectFill" @error="onAvatarError" />
       <view v-if="variant === 'row'" class="tk-expert__head-info">
         <text class="tk-expert__name">{{ expert.nickname || expert.name }}</text>
         <text class="tk-expert__title">{{ expert.title || '资深专家' }}</text>
@@ -27,14 +19,17 @@
       <text class="tk-expert__name">{{ expert.nickname || expert.name }}</text>
       <text class="tk-expert__title">{{ expert.title || '资深专家' }}</text>
       <view class="tk-expert__rating">
-        <TkIcon
-          v-for="i in 5"
-          :key="i"
-          name="star"
-          filled
-          :size="20"
-          :color="i <= Math.round(expert.rating || 5) ? '#F59E0B' : '#E0E3E6'"
-        />
+        <template v-if="ratingDisplay.showStars">
+          <TkIcon
+            v-for="i in 5"
+            :key="i"
+            name="star"
+            filled
+            :size="20"
+            :color="i <= ratingDisplay.starCount ? '#F59E0B' : '#E0E3E6'"
+          />
+        </template>
+        <text v-else class="tk-expert__rating-label">{{ ratingDisplay.label }}</text>
       </view>
       <view class="tk-expert__btn">
         <text class="tk-expert__btn-txt">查看主页</text>
@@ -44,22 +39,25 @@
     <template v-else>
       <view class="tk-expert__row-meta">
         <view class="tk-expert__rating">
-          <TkIcon
-            v-for="i in 5"
-            :key="i"
-            name="star"
-            filled
-            :size="20"
-            :color="i <= Math.round(expert.rating || 5) ? '#F59E0B' : '#E0E3E6'"
-          />
-          <text class="tk-expert__rating-txt">{{ (expert.rating || 0).toFixed(1) }}</text>
+          <template v-if="ratingDisplay.showStars">
+            <TkIcon
+              v-for="i in 5"
+              :key="i"
+              name="star"
+              filled
+              :size="20"
+              :color="i <= ratingDisplay.starCount ? '#F59E0B' : '#E0E3E6'"
+            />
+            <text class="tk-expert__rating-txt">{{ ratingDisplay.label }}</text>
+          </template>
+          <text v-else class="tk-expert__rating-label">{{ ratingDisplay.label }}</text>
         </view>
         <view class="tk-expert__row-stats">
           <text class="tk-expert__stat">浏览 {{ expert.viewCount || 0 }}</text>
           <text class="tk-expert__stat">收藏 {{ expert.favCount || 0 }}</text>
         </view>
       </view>
-      <view class="tk-expert__tags" v-if="expert.tags && expert.tags.length">
+      <view v-if="expert.tags && expert.tags.length" class="tk-expert__tags">
         <text v-for="t in expert.tags.slice(0, 3)" :key="t" class="tk-expert__tag">{{ t }}</text>
       </view>
     </template>
@@ -67,17 +65,33 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { toAssetUrl } from '@/utils/asset';
+import { formatExpertRating } from '@/utils/rating-display';
 
 const props = defineProps({
   expert:  { type: Object, required: true },
-  variant: { type: String, default: 'grid' }, // 'grid' | 'row'
+  variant: { type: String, default: 'grid' },
 });
 const emit = defineEmits(['tap']);
 
 const FALLBACK_AVATAR = '/static/logo.png';
-const avatarUrl = computed(() => toAssetUrl(props.expert.avatar) || FALLBACK_AVATAR);
+const avatarFailed = ref(false);
+
+watch(() => props.expert.avatar, () => { avatarFailed.value = false; });
+
+const avatarUrl = computed(() => {
+  if (avatarFailed.value) return FALLBACK_AVATAR;
+  return toAssetUrl(props.expert.avatar) || FALLBACK_AVATAR;
+});
+
+const ratingDisplay = computed(() =>
+  formatExpertRating(props.expert.rating ?? props.expert.score),
+);
+
+function onAvatarError() {
+  avatarFailed.value = true;
+}
 
 function onTap() {
   emit('tap', props.expert);
@@ -137,8 +151,11 @@ function onTap() {
     color: $tk-text-2;
     margin-left: 6rpx;
   }
+  &__rating-label {
+    font-size: $tk-fs-xs;
+    color: $tk-text-4;
+  }
 
-  // grid 变体（首页横滑）
   &--grid {
     width: 280rpx;
     flex-shrink: 0;
@@ -162,7 +179,6 @@ function onTap() {
     }
   }
 
-  // row 变体（列表）
   &--row {
     .tk-expert__header {
       display: flex;
