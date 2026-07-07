@@ -117,7 +117,7 @@ public class AdminTrainerHighlightController {
     public ApiResponse<TrainerHighlightResponse> create(
             @RequestParam Integer trainerUserId,
             @Valid @RequestBody SaveTrainerHighlightRequest request) {
-        return ApiResponse.ok(highlightService.createHighlight(trainerUserId, request));
+        return ApiResponse.ok(highlightService.createHighlight(trainerUserId, request, false));
     }
 
     @Operation(summary = "审核通过")

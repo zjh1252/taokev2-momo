@@ -1,5 +1,8 @@
 package com.taoke.course.service;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.taoke.common.ai.AiChatService;
+import com.taoke.common.config.AiProperties;
 import com.taoke.common.dto.CategoryTreeVO;
 import com.taoke.common.dto.FileUploadResponse;
 import com.taoke.common.enums.CategoryType;
@@ -23,8 +26,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -35,7 +36,7 @@ import java.util.stream.Collectors;
  *   <li>调用 {@link FileUploadService#uploadFile(MultipartFile)} 落盘并拿 URL</li>
  *   <li>用 {@link DocumentTextExtractor} 抽取 docx / 文本 PDF 全文</li>
  *   <li>图片或扫描 PDF 走 {@link AliyunOcrTextExtractor} 识别全文</li>
- *   <li>本地规则提取标题、时长、分类、关键词、受众、简介、大纲等字段</li>
+ *   <li>调用 gpt-5.5 提取标题、时长、分类、关键词、受众、简介、大纲等字段</li>
  *   <li>对 categoryName 做大小写不敏感、去空格的精确匹配，找到则填 categoryId</li>
  * </ol>
  *
@@ -50,12 +51,32 @@ public class CourseAiServiceImpl implements CourseAiService {
     private final FileUploadService fileUploadService;
     private final DocumentTextExtractor documentTextExtractor;
     private final AliyunOcrTextExtractor aliyunOcrTextExtractor;
+    private final AiChatService aiChatService;
     private final CategoryService categoryService;
+    private final AiProperties aiProperties;
 
-    private static final Pattern DURATION_DAY_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*(天|日)");
-    private static final Pattern TOTAL_HOUR_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*(小时|课时|学时|h|H)");
-    private static final Pattern TITLE_LABEL_PATTERN = Pattern.compile(
-            "(?:课程名称|课程标题|培训主题|主题)\\s*[:：]\\s*(.+)");
+    private static final String SYSTEM_PROMPT_TEMPLATE = """
+            你是一名课程资料结构化分析助手。
+            用户会给你一段课程相关的原始资料文本，可能来自 DOCX/PDF 文本抽取，也可能来自 OCR 识别。
+            请根据整份资料提取发布新课程表单所需字段，并以 JSON 输出。
+
+            字段说明：
+            - title          (string): 课程标题，优先使用资料中的正式课程名称
+            - durationDays   (integer|null): 课程培训天数（整数）；若资料中能推断出整数天数则填，否则为 null
+            - totalHours     (number|null): 课程总时长（小时，可含一位小数）；若资料中明确说明总课时/学时则填，否则为 null
+            - categoryName   (string|null): 一级课程分类名，必须严格从以下候选中选择最匹配的一项，没有把握就留空：[%s]
+            - keywords       (array<string>): 提炼最多 3 个关键词，按重要性排序
+            - audience       (string): 目标受众或适用人群
+            - highlights     (string): 课程收益/亮点，适合回填到表单的短文本
+            - intro          (string): 课程简介，适合回填到富文本编辑器的纯文本内容
+            - syllabus       (string): 课程大纲，按模块/章节分行整理的纯文本内容
+
+            严格要求：
+            1. 输出必须是合法 JSON 对象，键名严格按上面的英文名；
+            2. 没有把握 / 资料中无明确信息的字段，按照上述类型返回 null 或空数组，禁止编造；
+            3. 分类只能从候选分类里选，不能新增分类；
+            4. 不要在 JSON 之外输出任何解释性文字，不要使用 markdown 代码块。
+            """;
 
     @Override
     public AiParseMaterialResultVO parseMaterial(MultipartFile file) {
@@ -80,8 +101,11 @@ public class CourseAiServiceImpl implements CourseAiService {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "未能从文件中抽取出文本内容，请确认文件不为空");
         }
 
-        // 2. 本地规则解析字段，避免依赖大模型
-        AiRawResponse raw = parseFieldsByRules(materialText);
+        // 2. 调用 AI 结构化解析字段
+        List<String> candidates = listCourseCategoryNames();
+        String systemPrompt = SYSTEM_PROMPT_TEMPLATE.formatted(String.join(", ", candidates));
+        String userPrompt = truncate(materialText, aiProperties.getMaxInputChars());
+        AiRawResponse raw = aiChatService.chatJson(systemPrompt, userPrompt, AiRawResponse.class);
 
         // 3. 装配结果
         AiParseMaterialResultVO result = buildResult(uploaded.getUrl(), materialText, raw);
@@ -202,212 +226,26 @@ public class CourseAiServiceImpl implements CourseAiService {
         return null;
     }
 
-    private AiRawResponse parseFieldsByRules(String materialText) {
-        String text = materialText == null ? "" : materialText;
-        AiRawResponse raw = new AiRawResponse();
-        raw.setMaterialText(text);
-
-        String title = parseTitle(text);
-        raw.setTitle(title);
-
-        Integer days = parseDurationDays(text);
-        BigDecimal hours = parseTotalHours(text);
-        if (hours == null && days != null) {
-            hours = BigDecimal.valueOf(days * 6L);
-        } else if (days == null && hours != null && hours.compareTo(BigDecimal.ZERO) > 0) {
-            days = Math.max(1, hours.divide(BigDecimal.valueOf(6), 0, java.math.RoundingMode.CEILING).intValue());
+    /** 文本超出限制时取前 70% + 末 30%，中段截掉，最大化保留首尾上下文 */
+    private static String truncate(String text, Integer max) {
+        if (max == null || max <= 0 || text == null || text.length() <= max) {
+            return text == null ? "" : text;
         }
-        raw.setDurationDays(days);
-        raw.setTotalHours(hours);
-
-        String categoryName = parseCategoryName(text);
-        raw.setCategoryName(categoryName);
-        raw.setAudience(extractSection(text, List.of("目标受众", "适用对象", "适用人群", "培训对象", "目标学员", "适合人群"), 300));
-        raw.setHighlights(extractSection(text, List.of("课程收益", "培训收益", "学习收益", "课程亮点", "课程目标", "培训目标", "课程价值"), 500));
-        raw.setIntro(extractSection(text, List.of("课程简介", "课程介绍", "课程背景", "项目背景", "课程概述"), 800));
-        raw.setSyllabus(extractSection(text, List.of("课程大纲", "课程内容", "课程安排", "课程模块", "课程目录", "培训内容"), 1500));
-        if (raw.getIntro() == null) {
-            raw.setIntro(firstTextBlock(text, 500));
-        }
-        raw.setKeywords(parseKeywords(text, title, categoryName));
-        return raw;
-    }
-
-    private String parseTitle(String text) {
-        Matcher labelMatcher = TITLE_LABEL_PATTERN.matcher(text);
-        if (labelMatcher.find()) {
-            return cleanLine(labelMatcher.group(1), 80);
-        }
-        for (String line : splitLines(text)) {
-            String cleaned = cleanLine(line, 80);
-            if (cleaned == null) {
-                continue;
-            }
-            if (cleaned.matches("第\\s*\\d+\\s*页") || cleaned.length() < 4) {
-                continue;
-            }
-            if (cleaned.contains("目录") || cleaned.contains("课程大纲") || cleaned.contains("课程内容")) {
-                continue;
-            }
-            return cleaned;
-        }
-        return null;
-    }
-
-    private Integer parseDurationDays(String text) {
-        Matcher matcher = DURATION_DAY_PATTERN.matcher(text);
-        if (!matcher.find()) {
-            return null;
-        }
-        BigDecimal value = new BigDecimal(matcher.group(1));
-        return Math.max(1, value.setScale(0, java.math.RoundingMode.CEILING).intValue());
-    }
-
-    private BigDecimal parseTotalHours(String text) {
-        Matcher matcher = TOTAL_HOUR_PATTERN.matcher(text);
-        if (!matcher.find()) {
-            return null;
-        }
-        return new BigDecimal(matcher.group(1)).stripTrailingZeros();
-    }
-
-    private String parseCategoryName(String text) {
-        String normalized = text == null ? "" : text.toLowerCase(Locale.ROOT);
-        for (String name : listCourseCategoryNames()) {
-            if (name != null && !name.isBlank() && normalized.contains(name.toLowerCase(Locale.ROOT))) {
-                return name;
-            }
-        }
-        return null;
-    }
-
-    private List<String> parseKeywords(String text, String title, String categoryName) {
-        List<String> keywords = new ArrayList<>();
-        String explicit = extractSection(text, List.of("关键词", "关键字", "标签"), 80);
-        if (explicit != null) {
-            for (String part : explicit.split("[,，、;；\\s]+")) {
-                addKeyword(keywords, part);
-            }
-        }
-        addKeyword(keywords, categoryName);
-        if (title != null) {
-            for (String part : title.split("[《》:：,，、;；\\s]+")) {
-                if (part.length() >= 2 && part.length() <= 8) {
-                    addKeyword(keywords, part);
-                }
-            }
-        }
-        return keywords.isEmpty() ? null : keywords.stream().limit(3).collect(Collectors.toList());
-    }
-
-    private static void addKeyword(List<String> keywords, String keyword) {
-        if (keyword == null || keyword.isBlank()) {
-            return;
-        }
-        String cleaned = keyword.trim();
-        if (!keywords.contains(cleaned)) {
-            keywords.add(cleaned);
-        }
-    }
-
-    private String extractSection(String text, List<String> labels, int maxChars) {
-        List<String> lines = splitLines(text);
-        for (int i = 0; i < lines.size(); i++) {
-            String line = lines.get(i).trim();
-            String matchedLabel = labels.stream().filter(line::contains).findFirst().orElse(null);
-            if (matchedLabel == null) {
-                continue;
-            }
-            StringBuilder section = new StringBuilder();
-            String sameLine = line.substring(line.indexOf(matchedLabel) + matchedLabel.length())
-                    .replaceFirst("^\\s*[:：-]*\\s*", "");
-            appendSectionLine(section, sameLine, maxChars);
-            for (int j = i + 1; j < lines.size() && section.length() < maxChars; j++) {
-                String next = lines.get(j).trim();
-                if (next.isBlank() || isSectionBoundary(next)) {
-                    if (section.length() > 0) {
-                        break;
-                    }
-                    continue;
-                }
-                appendSectionLine(section, next, maxChars);
-            }
-            String value = section.toString().trim();
-            return value.isBlank() ? null : value;
-        }
-        return null;
-    }
-
-    private static void appendSectionLine(StringBuilder section, String line, int maxChars) {
-        String cleaned = cleanLine(line, maxChars);
-        if (cleaned == null || section.length() >= maxChars) {
-            return;
-        }
-        if (section.length() > 0) {
-            section.append('\n');
-        }
-        int remaining = maxChars - section.length();
-        section.append(cleaned, 0, Math.min(cleaned.length(), remaining));
-    }
-
-    private static boolean isSectionBoundary(String line) {
-        String cleaned = line.trim();
-        if (cleaned.matches("第\\s*\\d+\\s*页")) {
-            return true;
-        }
-        if (cleaned.length() <= 16 && cleaned.matches(".*(课程简介|课程介绍|课程背景|课程收益|课程亮点|课程目标|目标受众|适用对象|培训对象|课程大纲|课程内容|课程安排|课程模块|目录|讲师介绍).*")) {
-            return true;
-        }
-        return cleaned.length() <= 20 && cleaned.endsWith("：");
-    }
-
-    private static String firstTextBlock(String text, int maxChars) {
-        StringBuilder block = new StringBuilder();
-        for (String line : splitLines(text)) {
-            String cleaned = cleanLine(line, maxChars);
-            if (cleaned == null || cleaned.matches("第\\s*\\d+\\s*页")) {
-                continue;
-            }
-            appendSectionLine(block, cleaned, maxChars);
-            if (block.length() >= maxChars) {
-                break;
-            }
-        }
-        String value = block.toString().trim();
-        return value.isBlank() ? null : value;
-    }
-
-    private static List<String> splitLines(String text) {
-        if (text == null || text.isBlank()) {
-            return List.of();
-        }
-        return text.lines()
-                .map(String::trim)
-                .filter(line -> !line.isBlank())
-                .collect(Collectors.toList());
-    }
-
-    private static String cleanLine(String line, int maxChars) {
-        if (line == null) {
-            return null;
-        }
-        String cleaned = line.trim()
-                .replaceFirst("^[\\s#>*•·\\-—–一二三四五六七八九十0-9.、)）(（]+", "")
-                .trim();
-        if (cleaned.isBlank()) {
-            return null;
-        }
-        return cleaned.length() > maxChars ? cleaned.substring(0, maxChars) : cleaned;
+        int head = (int) (max * 0.7);
+        int tail = max - head;
+        return text.substring(0, head)
+                + "\n\n... (中间内容已截断，原文长度 " + text.length() + " 字) ...\n\n"
+                + text.substring(text.length() - tail);
     }
 
     private static String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s.trim();
     }
 
-    /** 本地规则解析出的中间字段，结构沿用原 AI 返回字段名。 */
+    /** AI 原始返回（仅用于反序列化，键名与提示词一致）。 */
     @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class AiRawResponse {
-        private String materialText;
         private String title;
         private Integer durationDays;
         private BigDecimal totalHours;

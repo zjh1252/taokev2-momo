@@ -76,7 +76,7 @@ public class AdminTrainerCaseController {
     public ApiResponse<TrainerCaseResponse> create(
             @RequestParam Integer trainerUserId,
             @Valid @RequestBody SaveTrainerCaseRequest request) {
-        return ApiResponse.ok(trainerCaseService.createCase(trainerUserId, request));
+        return ApiResponse.ok(trainerCaseService.createCase(trainerUserId, request, false));
     }
 
     @Operation(summary = "审核通过")

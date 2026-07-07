@@ -1,10 +1,10 @@
 'use client';
 
 import Image from 'next/image';
-import { SafeImage } from '@/components/safe-image';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/lib/auth/auth-context';
+import { resolveImageSrc } from '@/lib/media';
 import {
   PlayCircle,
   Brain,
@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'recent' | 'recommend'>('recent');
   const [switchTarget, setSwitchTarget] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [brokenAvatarSrc, setBrokenAvatarSrc] = useState<string | null>(null);
 
   const [continueLearning, setContinueLearning] = useState<ContinueLearning | null>(null);
   const [continueLoading, setContinueLoading] = useState(true);
@@ -87,6 +88,8 @@ export default function DashboardPage() {
 
   const nickname = user?.nickname || '用户';
   const initials = nickname.slice(0, 2).toUpperCase();
+  const avatarSrc = user?.avatarUrl ? resolveImageSrc(user.avatarUrl) : '';
+  const showAvatar = Boolean(avatarSrc && brokenAvatarSrc !== avatarSrc);
 
   return (
     <>
@@ -96,23 +99,25 @@ export default function DashboardPage() {
           {/* 头像 — 点击进入「个人资料」编辑页 */}
           <Link
             href="/dashboard/account/base"
-            className="relative group cursor-pointer block shrink-0"
+            className="relative group cursor-pointer flex size-20 shrink-0 overflow-hidden rounded-full border-4 border-slate-50 bg-primary shadow-sm"
             title="编辑个人资料"
           >
-            {user?.avatarUrl ? (
-              <SafeImage
-                src={user.avatarUrl}
+            <div className="absolute inset-0 flex items-center justify-center text-white text-2xl font-bold">
+              {initials}
+            </div>
+            {showAvatar && (
+              <Image
+                src={avatarSrc}
                 alt={nickname}
                 width={80}
                 height={80}
-                className="w-20 h-20 rounded-full object-cover border-4 border-slate-50 shadow-sm"
+                unoptimized
+                referrerPolicy="no-referrer"
+                className="relative z-10 size-full rounded-full object-cover"
+                onError={() => setBrokenAvatarSrc(avatarSrc)}
               />
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-white text-2xl font-bold border-4 border-slate-50 shadow-sm">
-                {initials}
-              </div>
             )}
-            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute inset-0 z-20 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <Camera className="size-5 text-white" />
             </div>
           </Link>
