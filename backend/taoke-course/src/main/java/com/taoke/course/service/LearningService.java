@@ -10,12 +10,14 @@ import com.taoke.course.entity.CoursePlan;
 import com.taoke.course.entity.order.CourseEnrollment;
 import com.taoke.course.entity.video.Video;
 import com.taoke.course.entity.video.VideoChapter;
+import com.taoke.course.entity.video.VideoChapterProgress;
 import com.taoke.course.entity.video.VideoEnrollment;
 import com.taoke.course.entity.video.VideoStudent;
 import com.taoke.course.repository.CoursePlanRepository;
 import com.taoke.course.repository.CourseRepository;
 import com.taoke.course.repository.order.CourseEnrollmentRepository;
 import com.taoke.course.repository.video.VideoChapterRepository;
+import com.taoke.course.repository.video.VideoChapterProgressRepository;
 import com.taoke.course.repository.video.VideoEnrollmentRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.repository.video.VideoStudentRepository;
@@ -27,6 +29,9 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.taoke.course.service.video.VideoLearningProgressCalculator.calculateOverallProgress;
+import static com.taoke.course.service.video.VideoLearningProgressCalculator.clampProgress;
 
 /**
  * 我的学习聚合服务 — 负责"我的录播课"、"我的公开课"、"继续学习"三个查询
@@ -45,6 +50,7 @@ public class LearningService {
     private final VideoRepository videoRepository;
     private final VideoEnrollmentRepository videoEnrollmentRepository;
     private final VideoChapterRepository videoChapterRepository;
+    private final VideoChapterProgressRepository chapterProgressRepository;
     private final CourseEnrollmentRepository courseEnrollmentRepository;
     private final CourseRepository courseRepository;
     private final CoursePlanRepository coursePlanRepository;
@@ -76,23 +82,31 @@ public class LearningService {
         Map<Integer, VideoEnrollment> enrollmentMap = videoEnrollmentRepository
                 .findByUserIdAndVideoIdIn(userId, videoIds).stream()
                 .collect(Collectors.toMap(VideoEnrollment::getVideoId, Function.identity(), (a, b) -> a));
+        Map<Integer, List<VideoChapterProgress>> chapterProgressMap = chapterProgressRepository
+                .findByUserIdAndVideoIdIn(userId, videoIds).stream()
+                .collect(Collectors.groupingBy(VideoChapterProgress::getVideoId));
 
         List<MyVideoLearningVO> voList = students.stream().map(s -> {
             MyVideoLearningVO vo = new MyVideoLearningVO();
             vo.setVideoId(s.getVideoId());
-            vo.setProgress(s.getProgress());
             vo.setCompletedChapters(s.getCompletedChapters());
             vo.setCompleted(s.getIsCompleted() == 1);
             vo.setLastChapterId(s.getLastChapterId());
             vo.setLastWatchedAt(s.getLastWatchedAt());
 
             Video video = videoMap.get(s.getVideoId());
+            Integer totalEpisodes = null;
             if (video != null) {
                 vo.setTitle(video.getTitle());
                 vo.setCoverUrl(video.getCoverUrl());
                 vo.setTeacherName(video.getTeacherName());
                 vo.setTotalEpisodes(video.getTotalEpisodes());
+                totalEpisodes = video.getTotalEpisodes();
             }
+            vo.setProgress(resolveDisplayedProgress(
+                    s.getProgress(),
+                    chapterProgressMap.get(s.getVideoId()),
+                    totalEpisodes));
 
             VideoEnrollment enrollment = enrollmentMap.get(s.getVideoId());
             if (enrollment != null) {
@@ -181,7 +195,7 @@ public class LearningService {
      */
     public ContinueLearningVO getContinueLearning(Integer userId) {
         Optional<VideoStudent> optStudent = videoStudentRepository
-                .findFirstByUserIdAndIsCompletedOrderByLastWatchedAtDesc(userId, 0);
+                .findFirstByUserIdAndIsCompletedAndLastWatchedAtIsNotNullOrderByLastWatchedAtDesc(userId, 0);
 
         if (optStudent.isEmpty()) {
             return null;
@@ -190,19 +204,25 @@ public class LearningService {
         VideoStudent student = optStudent.get();
         ContinueLearningVO vo = new ContinueLearningVO();
         vo.setVideoId(student.getVideoId());
-        vo.setProgress(student.getProgress());
         vo.setCompletedChapters(student.getCompletedChapters());
         vo.setCompleted(false);
         vo.setLastChapterId(student.getLastChapterId());
         vo.setLastWatchedAt(student.getLastWatchedAt());
 
         // 查录播课主表
-        videoRepository.findById(student.getVideoId()).ifPresent(video -> {
+        Video video = videoRepository.findById(student.getVideoId()).orElse(null);
+        if (video != null) {
             vo.setTitle(video.getTitle());
             vo.setCoverUrl(video.getCoverUrl());
             vo.setTeacherName(video.getTeacherName());
             vo.setTotalEpisodes(video.getTotalEpisodes());
-        });
+        }
+        List<VideoChapterProgress> chapterProgress = chapterProgressRepository
+                .findByVideoIdAndUserId(student.getVideoId(), userId);
+        vo.setProgress(resolveDisplayedProgress(
+                student.getProgress(),
+                chapterProgress,
+                video != null ? video.getTotalEpisodes() : null));
 
         // 查报名信息
         videoEnrollmentRepository.findByVideoIdAndUserId(student.getVideoId(), userId)
@@ -219,5 +239,13 @@ public class LearningService {
         }
 
         return vo;
+    }
+
+    private int resolveDisplayedProgress(Integer storedProgress,
+                                         List<VideoChapterProgress> chapterProgress,
+                                         Integer totalEpisodes) {
+        int stored = clampProgress(storedProgress);
+        int derived = calculateOverallProgress(chapterProgress, totalEpisodes);
+        return Math.max(stored, derived);
     }
 }

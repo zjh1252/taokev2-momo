@@ -15,6 +15,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static com.taoke.course.service.video.VideoLearningProgressCalculator.calculateOverallProgress;
+import static com.taoke.course.service.video.VideoLearningProgressCalculator.clampProgress;
+
 /**
  * 录播课学习进度服务
  *
@@ -36,30 +39,30 @@ public class VideoProgressService {
     public void updateProgress(Integer videoId, Integer chapterId, Integer userId,
                                Integer watchDuration, Integer chapterDuration) {
         LocalDateTime now = LocalDateTime.now();
+        int safeChapterDuration = Math.max(1, chapterDuration);
+        int safeWatchDuration = Math.min(Math.max(0, watchDuration), safeChapterDuration);
 
         // 更新/创建章节进度
         Optional<VideoChapterProgress> optCp = chapterProgressRepository.findByChapterIdAndUserId(chapterId, userId);
         VideoChapterProgress cp;
         if (optCp.isPresent()) {
             cp = optCp.get();
-            cp.setWatchDuration(watchDuration);
-            cp.setChapterDuration(chapterDuration);
+            cp.setWatchDuration(Math.max(cp.getWatchDuration(), safeWatchDuration));
+            cp.setChapterDuration(safeChapterDuration);
             cp.setLastWatchedAt(now);
         } else {
             cp = new VideoChapterProgress();
             cp.setVideoId(videoId);
             cp.setChapterId(chapterId);
             cp.setUserId(userId);
-            cp.setWatchDuration(watchDuration);
-            cp.setChapterDuration(chapterDuration);
+            cp.setWatchDuration(safeWatchDuration);
+            cp.setChapterDuration(safeChapterDuration);
             cp.setStartedAt(now);
             cp.setLastWatchedAt(now);
         }
 
         // 计算章节进度百分比
-        int progress = chapterDuration > 0
-                ? Math.min(100, (int) ((long) watchDuration * 100 / chapterDuration))
-                : 0;
+        int progress = clampProgress((int) ((long) cp.getWatchDuration() * 100 / safeChapterDuration));
         cp.setProgress(progress);
 
         // 看完判定（进度>=95%视为完成）
@@ -78,21 +81,25 @@ public class VideoProgressService {
      */
     public VideoProgressVO getProgress(Integer videoId, Integer userId) {
         VideoProgressVO vo = new VideoProgressVO();
+        List<VideoChapterProgress> cpList = chapterProgressRepository.findByVideoIdAndUserId(videoId, userId);
+        Integer totalEpisodes = videoRepository.findById(videoId)
+                .map(Video::getTotalEpisodes)
+                .orElse(0);
+        int derivedProgress = calculateOverallProgress(cpList, totalEpisodes);
 
         Optional<VideoStudent> optStudent = videoStudentRepository.findByVideoIdAndUserId(videoId, userId);
         if (optStudent.isPresent()) {
             VideoStudent student = optStudent.get();
-            vo.setOverallProgress(student.getProgress());
+            vo.setOverallProgress(Math.max(clampProgress(student.getProgress()), derivedProgress));
             vo.setLastChapterId(student.getLastChapterId());
             vo.setTotalWatchTime(student.getTotalWatchTime());
             vo.setLastWatchedAt(student.getLastWatchedAt());
         } else {
-            vo.setOverallProgress(0);
+            vo.setOverallProgress(derivedProgress);
             vo.setLastChapterId(0);
             vo.setTotalWatchTime(0);
         }
 
-        List<VideoChapterProgress> cpList = chapterProgressRepository.findByVideoIdAndUserId(videoId, userId);
         List<VideoProgressVO.ChapterProgressItem> items = cpList.stream().map(cp -> {
             VideoProgressVO.ChapterProgressItem item = new VideoProgressVO.ChapterProgressItem();
             item.setChapterId(cp.getChapterId());
@@ -120,9 +127,7 @@ public class VideoProgressService {
         // 查询该录播课总章节数来计算整体进度
         Video video = videoRepository.findById(videoId).orElse(null);
         int totalEpisodes = video != null ? video.getTotalEpisodes() : 0;
-        int overallProgress = totalEpisodes > 0
-                ? (int) (completedCount * 100 / totalEpisodes)
-                : 0;
+        int overallProgress = calculateOverallProgress(allProgress, totalEpisodes);
 
         // 首次学习时 studentCount++
         boolean isFirstTime = !videoStudentRepository.existsByVideoIdAndUserId(videoId, userId);
@@ -138,7 +143,7 @@ public class VideoProgressService {
                 });
 
         student.setLastChapterId(chapterId);
-        student.setProgress(Math.min(100, overallProgress));
+        student.setProgress(overallProgress);
         student.setCompletedChapters((int) completedCount);
         student.setTotalWatchTime(totalWatch);
         student.setLastWatchedAt(now);
