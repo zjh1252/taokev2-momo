@@ -136,8 +136,9 @@ function VideoListSectionInner({
   ]);
 
   const syncUrl = useCallback(
-    (page: number, catId?: number, catName?: string) => {
+    (page: number, catId?: number, catName?: string, nextSortKey = sortKey) => {
       const params = new URLSearchParams();
+      const sortByValue = SORT_OPTIONS.find((option) => option.key === nextSortKey)?.sortBy;
       if (institutionId) {
         params.set('institutionId', String(institutionId));
       }
@@ -147,10 +148,13 @@ function VideoListSectionInner({
           params.set('categoryName', catName);
         }
       }
+      if (sortByValue && sortByValue !== 'default') {
+        params.set('sortBy', sortByValue);
+      }
       setPageParam(params, page);
       replaceBrowserUrl(getBrowserPathname(), params);
     },
-    [institutionId],
+    [institutionId, sortKey],
   );
 
   const fetchData = useCallback(
@@ -240,9 +244,10 @@ function VideoListSectionInner({
   const handleSortChange = useCallback(
     (key: string) => {
       setSortKey(key);
+      syncUrl(1, selectedCategory, selectedCategoryName, key);
       fetchData(1, selectedCategory, key);
     },
-    [fetchData, selectedCategory],
+    [fetchData, selectedCategory, selectedCategoryName, syncUrl],
   );
 
   const handleSearch = useCallback(() => {

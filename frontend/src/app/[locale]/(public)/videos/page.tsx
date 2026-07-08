@@ -6,6 +6,7 @@ import { buildVideoCategoryNavItems } from '@/lib/channel-category-stats';
 import { getCachedVideoCategoryTree } from '@/lib/cached-categories';
 import { videoListMetadata, videoListH1 } from '@/lib/seo';
 import { firstStringValue, normalizeNumberIds } from '@/lib/search-params';
+import type { CategoryTreeNode } from '@/features/video/api/types';
 
 interface Props {
   searchParams: Promise<{
@@ -14,6 +15,14 @@ interface Props {
     categoryName?: string;
     sortBy?: string;
   }>;
+}
+
+function resolveVideoCategoryByName(
+  categoryTree: CategoryTreeNode[],
+  categoryName?: string,
+): CategoryTreeNode | undefined {
+  if (!categoryName) return undefined;
+  return categoryTree.find((category) => category.name === categoryName);
 }
 
 export async function generateMetadata({ searchParams }: Props) {
@@ -27,13 +36,20 @@ export default async function VideosPage({ searchParams }: Props) {
   const sp = await searchParams;
   const institutionId = sp.institutionId ? Number(sp.institutionId) : undefined;
   const validInstitutionId = institutionId && !isNaN(institutionId) ? institutionId : undefined;
-  const categoryId = normalizeNumberIds(sp.categoryId ? [sp.categoryId] : undefined)[0];
+  const requestedCategoryId = normalizeNumberIds(sp.categoryId ? [sp.categoryId] : undefined)[0];
+  const requestedCategoryName = firstStringValue(sp.categoryName);
   const sortBy = firstStringValue(sp.sortBy);
 
   const categoryTreePromise = getCachedVideoCategoryTree();
+  const categoryTree = await categoryTreePromise;
+  const resolvedCategory = requestedCategoryId
+    ? undefined
+    : resolveVideoCategoryByName(categoryTree, requestedCategoryName);
+  const categoryId = requestedCategoryId ?? resolvedCategory?.id;
+  const categoryName = resolvedCategory?.name ?? requestedCategoryName;
   const categoryNavPromise = categoryTreePromise.then(buildVideoCategoryNavItems).catch(() => []);
 
-  const [initialData, categoryTree, institution] = await Promise.all([
+  const [initialData, institution] = await Promise.all([
     getVideoList({
       page: 1,
       size: 15,
@@ -47,13 +63,11 @@ export default async function VideosPage({ searchParams }: Props) {
       size: 15,
       totalPages: 0,
     })),
-    categoryTreePromise,
     validInstitutionId
       ? getInstitutionDetail(validInstitutionId).catch(() => null)
       : Promise.resolve(null),
   ]);
 
-  const categoryName = firstStringValue(sp.categoryName);
   const listH1 = videoListH1({ category: categoryName });
 
   return (

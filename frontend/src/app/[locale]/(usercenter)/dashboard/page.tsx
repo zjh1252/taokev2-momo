@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/lib/auth/auth-context';
 import { resolveImageSrc } from '@/lib/media';
@@ -17,9 +17,11 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
+import type { MouseEvent } from 'react';
 import { getContinueLearning, getMyVideoLearnings } from '@/features/learning/api/service';
 import { getUnreadCount } from '@/features/notification/api/service';
 import type { ContinueLearning, MyVideoLearning } from '@/features/learning/api/types';
+import { getVideoDetail } from '@/features/video/api/service';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import { cn } from '@/lib/utils';
@@ -39,6 +41,23 @@ const ROLE_LABELS: Record<string, string> = {
 
 const PLATFORM_ROLES = new Set(['SUPER_ADMIN', 'ADMIN']);
 
+interface VideoCategoryLinkSource {
+  categoryId?: number | null;
+  categoryName?: string | null;
+}
+
+function buildIndustryHotVideoHref(video?: VideoCategoryLinkSource | null) {
+  const params = new URLSearchParams();
+  if (video?.categoryId) {
+    params.set('categoryId', String(video.categoryId));
+  }
+  if (video?.categoryName) {
+    params.set('categoryName', video.categoryName);
+  }
+  params.set('sortBy', 'viewCount');
+  return `${ROUTES.ONLINE_COURSES}?${params.toString()}`;
+}
+
 /**
  * 用户中心 — 个人主页
  *
@@ -46,11 +65,13 @@ const PLATFORM_ROLES = new Set(['SUPER_ADMIN', 'ADMIN']);
  * @date 2026-04-03 10:30
  */
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, activeRole, setActiveRole, trainerCode } = useAuth();
   const [activeTab, setActiveTab] = useState<'recent' | 'recommend'>('recent');
   const [switchTarget, setSwitchTarget] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [brokenAvatarSrc, setBrokenAvatarSrc] = useState<string | null>(null);
+  const [hotVideoCategory, setHotVideoCategory] = useState<VideoCategoryLinkSource | null>(null);
 
   const [continueLearning, setContinueLearning] = useState<ContinueLearning | null>(null);
   const [continueLoading, setContinueLoading] = useState(true);
@@ -76,7 +97,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     getContinueLearning()
-      .then(setContinueLearning)
+      .then((video) => {
+        setContinueLearning(video);
+        setHotVideoCategory(video);
+      })
       .catch(() => setContinueLearning(null))
       .finally(() => setContinueLoading(false));
 
@@ -86,10 +110,51 @@ export default function DashboardPage() {
       .finally(() => setRecentLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!continueLearning || hotVideoCategory?.categoryId || hotVideoCategory?.categoryName) {
+      return;
+    }
+    let cancelled = false;
+    getVideoDetail(continueLearning.videoId)
+      .then((detail) => {
+        if (cancelled) return;
+        setHotVideoCategory({
+          categoryId: detail.categoryId,
+          categoryName: detail.categoryName,
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [continueLearning, hotVideoCategory]);
+
   const nickname = user?.nickname || '用户';
   const initials = nickname.slice(0, 2).toUpperCase();
   const avatarSrc = user?.avatarUrl ? resolveImageSrc(user.avatarUrl) : '';
   const showAvatar = Boolean(avatarSrc && brokenAvatarSrc !== avatarSrc);
+  const industryHotVideoHref = buildIndustryHotVideoHref(hotVideoCategory);
+
+  const handleIndustryHotVideoClick = useCallback(
+    async (event: MouseEvent<HTMLAnchorElement>) => {
+      if (!continueLearning || hotVideoCategory?.categoryId || hotVideoCategory?.categoryName) {
+        return;
+      }
+      event.preventDefault();
+      try {
+        const detail = await getVideoDetail(continueLearning.videoId);
+        const category = {
+          categoryId: detail.categoryId,
+          categoryName: detail.categoryName,
+        };
+        setHotVideoCategory(category);
+        router.push(buildIndustryHotVideoHref(category));
+      } catch {
+        router.push(buildIndustryHotVideoHref(null));
+      }
+    },
+    [continueLearning, hotVideoCategory, router],
+  );
 
   return (
     <>
@@ -259,7 +324,8 @@ export default function DashboardPage() {
                   <Brain className="size-[18px]" /> AI智能选课
                 </a>
                 <Link
-                  href="/videos?sortBy=viewCount"
+                  href={industryHotVideoHref}
+                  onClick={handleIndustryHotVideoClick}
                   className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
                 >
                   <Flame className="size-[18px]" /> 行业热点课

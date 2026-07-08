@@ -1,6 +1,7 @@
 package com.taoke.course.service;
 
 import com.taoke.common.response.PageResponse;
+import com.taoke.common.service.CategoryService;
 import com.taoke.common.service.RegionService;
 import com.taoke.course.dto.learning.ContinueLearningVO;
 import com.taoke.course.dto.learning.MyCourseEnrollmentVO;
@@ -55,6 +56,7 @@ public class LearningService {
     private final CourseRepository courseRepository;
     private final CoursePlanRepository coursePlanRepository;
     private final RegionService regionService;
+    private final CategoryService categoryService;
 
     /**
      * 我的录播课列表（含学习进度）
@@ -216,6 +218,11 @@ public class LearningService {
             vo.setCoverUrl(video.getCoverUrl());
             vo.setTeacherName(video.getTeacherName());
             vo.setTotalEpisodes(video.getTotalEpisodes());
+            vo.setCategoryId(video.getCategoryId());
+            if (video.getCategoryId() != null && video.getCategoryId() > 0) {
+                vo.setCategoryName(categoryService.getNameMap(Set.of(video.getCategoryId()))
+                        .get(video.getCategoryId()));
+            }
         }
         List<VideoChapterProgress> chapterProgress = chapterProgressRepository
                 .findByVideoIdAndUserId(student.getVideoId(), userId);
