@@ -1,0 +1,12 @@
+[project]
+name = "crawler-service"
+version = "0.1.0"
+description = "淘课网爬虫微服务"
+requires-python = ">=3.12"
+dependencies = [
+    "scrapling[all]>=0.4.8",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+    "httpx>=0.28.0",
+    "pydantic>=2.0.0",
+]

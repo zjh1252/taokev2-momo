@@ -133,7 +133,7 @@ SELECT MAX(CAST(version AS UNSIGNED)) FROM flyway_schema_history WHERE success =
 | 禁用 `DELIMITER` | 存储过程式脚本 Flyway 拆分易失败；用 `PREPARE` + `information_schema` 或改放 `data-trans/` |
 | 列/表存在 | DDL 用 `IF NOT EXISTS` / `information_schema.COLUMNS`（参考 V128） |
 | 幂等 DML | 大批量 UPDATE/DELETE 可重复执行或影响面可预期 |
-| 自动化验证 | 运行 `python data-trans/scripts/_validate_flyway_migration.py --version <N>` |
+| 自动化验证 | 运行 `uv run python data-trans/scripts/_validate_flyway_migration.py --version <N>`（需先 `uv sync`） |
 | 历史冲突 | 库内 `flyway_schema_history` 同版本 `script` 名与仓库一致；孤儿版本用 `_fix_flyway_*.py` 清理，**勿删已入库脚本对应记录** |
 
 **典型启动失败信号**（日志 / 现象）：

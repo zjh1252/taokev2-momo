@@ -18,6 +18,9 @@ public class PublicRecommendedItemVO {
 
     /** 运营覆盖封面，优先于 resourceCoverUrl */
     private String coverUrl;
+    private String consultButtonImageUrl;
+    private String topicButtonImageUrl;
+    private String topicButtonLinkUrl;
     private String title;
     private String description;
     private String chiefIntro;

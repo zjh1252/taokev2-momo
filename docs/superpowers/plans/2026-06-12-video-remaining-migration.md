@@ -77,9 +77,9 @@ SECTIONS = [
 - [ ] **Step 2: dry-run 执行**
 
 ```bash
-conda activate common-ai
+uv sync
 cd d:/taokev2-mono
-python data-trans/scripts/_audit_video_remaining_scope.py
+uv run python data-trans/scripts/_audit_video_remaining_scope.py
 ```
 
 Expected: 生成 JSON，`orders_by_status` 非 3 合计约 5853。

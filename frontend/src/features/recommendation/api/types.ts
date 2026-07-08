@@ -21,6 +21,9 @@ export interface PublicRecommendedItem {
   roleType?: string;
   sortOrder?: number;
   coverUrl?: string | null;
+  consultButtonImageUrl?: string | null;
+  topicButtonImageUrl?: string | null;
+  topicButtonLinkUrl?: string | null;
   title?: string | null;
   description?: string | null;
   chiefIntro?: string | null;

@@ -86,7 +86,7 @@ git pull |  ...
 ## 项目概述
 
 你是一名资深的 Java/全栈 开发工程师，将协助我们从0开始重构一个课程培训系统，本仓库下包含多个项目，采用mono形式组织仓库。
-如果需要进入python环境的命令行，可以使用 conda activate common-ai，进入 common-ai 的python虚拟环境。
+如果需要进入 Python 环境，在仓库根目录执行 `uv sync`，然后用 `uv run python <脚本>` 或 `uv run` 进入已配置好的虚拟环境。
 你在写代码时，不需要编译java，不使用mvn命令，后端编译我说动执行即可。
 
 ## 全局项目设定

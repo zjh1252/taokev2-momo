@@ -13,6 +13,9 @@ export type RecommendedResourceItem = {
   roleType: 'PRIMARY' | 'BACKUP';
   sortOrder: number;
   coverUrl: string | null;
+  consultButtonImageUrl: string | null;
+  topicButtonImageUrl: string | null;
+  topicButtonLinkUrl: string | null;
   title: string | null;
   description: string | null;
   chiefIntro: string | null;
@@ -46,6 +49,9 @@ export type AddRecommendationPayload = {
   categoryId?: number;
   roleType?: 'PRIMARY' | 'BACKUP';
   coverUrl?: string;
+  consultButtonImageUrl?: string;
+  topicButtonImageUrl?: string;
+  topicButtonLinkUrl?: string;
   title?: string;
   description?: string;
   chiefIntro?: string;
@@ -56,6 +62,9 @@ export type AddRecommendationPayload = {
 
 export type UpdateRecommendationPayload = {
   coverUrl?: string;
+  consultButtonImageUrl?: string;
+  topicButtonImageUrl?: string;
+  topicButtonLinkUrl?: string;
   title?: string;
   description?: string;
   chiefIntro?: string;

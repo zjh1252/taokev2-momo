@@ -9,11 +9,9 @@ export interface HeroCategory {
 export interface HomeBanner {
   id: string;
   imageUrl: string;
-  tagline: string;
-  title: string;
-  description: string;
-  ctaLabel: string;
-  secondaryLabel: string;
+  consultButtonImageUrl: string;
+  topicButtonImageUrl: string;
+  topicButtonLinkUrl: string;
 }
 
 export interface Expert {

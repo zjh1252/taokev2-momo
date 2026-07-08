@@ -70,7 +70,7 @@ taoke-admin 是薄编排层：禁止注入 Repository，禁止构造跨模块 En
 - 文件编码: UTF-8 | 注释语言: 中文 | 时区: Asia/Shanghai | Locale: zh-CN
 - **禁止**编译 Java 或运行 `mvn` 命令，后端编译由开发者手动执行
 - **禁止**读取 `/docs/ai-prd-exports`、`/docs/tmp`、`/tmp`
-- Python 环境: `conda activate common-ai`
+- Python 环境: [uv](https://docs.astral.sh/uv/)，根目录 `uv sync` 安装依赖；执行脚本 `uv run python <path>`
 - 全新项目，无需兼容旧版本，无需 `@Deprecated`
 - **优先复用**：开发前先搜索仓库已有工具类/组件，严禁重复编写
 - **老站数据迁移脚本一律放 `data-trans/`**（`scripts/`、`output/`、`docs/`），Flyway 只做 schema/种子；详见 `docs/guides/data-trans-migration.md`
@@ -115,7 +115,14 @@ bun lint:fix    # oxlint --fix + oxfmt
 bun format      # oxfmt --write .
 ```
 
-包管理器锁死：frontend 用 pnpm，admin-frontend 用 bun，**勿混用**。
+### Python — 仅用 uv
+```bash
+uv sync --all-packages   # 安装 data-trans 工具 + crawler-service 依赖
+uv run python data-trans/scripts/_validate_flyway_migration.py --version <N>
+uv run --directory crawler-service uvicorn main:app --host 0.0.0.0 --port 8100
+```
+
+包管理器锁死：frontend 用 pnpm，admin-frontend 用 bun，Python 用 uv，**勿混用**。
 
 ## 后端技术栈与规范
 

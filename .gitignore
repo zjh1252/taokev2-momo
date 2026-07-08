@@ -54,10 +54,11 @@ data-trans/scripts/*
 ### 本地工具脚本（不入库） ###
 scripts/vision.py
 
-### Python 爬虫服务 ###
+### Python ###
 **/__pycache__/
 **/*.pyc
 **/.pytest_cache/
+.venv/
 crawler-service/.venv/
 crawler-service/venv/
 

@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { uploadImageFile } from '@/features/materials/api/service';
 import { ApiError, assertApiOk } from '@/lib/api-client';
 import { recommendationKeys } from '@/features/recommendations/api/queries';
@@ -29,19 +28,20 @@ import type { RecommendedResourceItem } from '@/features/recommendations/api/typ
 
 const SLOT_CODE = 'HOME_BANNER';
 const RESOURCE_TYPE = 'BANNER';
-const DEFAULT_IMAGE = '/statics/images/hero-banner.jpg';
 const EMPTY_ITEMS: RecommendedResourceItem[] = [];
 const EMPTY_ITEM_QUERY: BannerItemsQuery = {
   items: EMPTY_ITEMS,
   unavailable: false
 };
 
+const DEFAULT_TOPIC_BUTTON_LINK = '/trainer/field=MBA%2F总裁班.htm';
+
 type BannerForm = {
   position: number;
   coverUrl: string;
-  tagline: string;
-  title: string;
-  description: string;
+  consultButtonImageUrl: string;
+  topicButtonImageUrl: string;
+  topicButtonLinkUrl: string;
 };
 
 type BannerItemsQuery = {
@@ -50,27 +50,29 @@ type BannerItemsQuery = {
   message?: string;
 };
 
+type UploadField = 'coverUrl' | 'consultButtonImageUrl' | 'topicButtonImageUrl';
+
 const DEFAULT_BANNERS: BannerForm[] = [
   {
     position: 1,
-    coverUrl: DEFAULT_IMAGE,
-    tagline: '淘课网 2026 年度专题',
-    title: '找得到、信得过、价更优、+AI',
-    description: '汇聚全球 5000+ 顶尖商学院专家，为您的企业量身定制成长路径'
+    coverUrl: '/statics/images/banner改/无按钮/Frame 26.png',
+    consultButtonImageUrl: '/statics/images/banner改/按钮/橙色/Frame 28.png',
+    topicButtonImageUrl: '/statics/images/banner改/按钮/橙色/Frame 29.png',
+    topicButtonLinkUrl: DEFAULT_TOPIC_BUTTON_LINK
   },
   {
     position: 2,
-    coverUrl: DEFAULT_IMAGE,
-    tagline: '淘课网 2026 年度专题',
-    title: '找得到、信得过、价更优、+AI',
-    description: '汇聚全球 5000+ 顶尖商学院专家，为您的企业量身定制成长路径'
+    coverUrl: '/statics/images/banner改/无按钮/Frame 28.png',
+    consultButtonImageUrl: '/statics/images/banner改/按钮/紫色/紫1.png',
+    topicButtonImageUrl: '/statics/images/banner改/按钮/紫色/紫2.png',
+    topicButtonLinkUrl: DEFAULT_TOPIC_BUTTON_LINK
   },
   {
     position: 3,
-    coverUrl: DEFAULT_IMAGE,
-    tagline: '淘课网 2026 年度专题',
-    title: '找得到、信得过、价更优、+AI',
-    description: '汇聚全球 5000+ 顶尖商学院专家，为您的企业量身定制成长路径'
+    coverUrl: '/statics/images/banner改/无按钮/Frame 30.png',
+    consultButtonImageUrl: '/statics/images/banner改/按钮/蓝色/蓝1.png',
+    topicButtonImageUrl: '/statics/images/banner改/按钮/蓝色/蓝2.png',
+    topicButtonLinkUrl: DEFAULT_TOPIC_BUTTON_LINK
   }
 ];
 
@@ -84,9 +86,12 @@ function buildForms(items: RecommendedResourceItem[]): BannerForm[] {
     return {
       position: fallback.position,
       coverUrl: item?.coverUrl?.trim() || fallback.coverUrl,
-      tagline: item?.chiefIntro?.trim() || fallback.tagline,
-      title: item?.title?.trim() || fallback.title,
-      description: item?.description?.trim() || fallback.description
+      consultButtonImageUrl:
+        item?.consultButtonImageUrl?.trim() || fallback.consultButtonImageUrl,
+      topicButtonImageUrl:
+        item?.topicButtonImageUrl?.trim() || fallback.topicButtonImageUrl,
+      topicButtonLinkUrl:
+        item?.topicButtonLinkUrl?.trim() || fallback.topicButtonLinkUrl
     };
   });
 }
@@ -97,11 +102,15 @@ function findItem(items: RecommendedResourceItem[], position: number) {
   );
 }
 
+function uploadKey(position: number, field: UploadField) {
+  return `${position}-${field}`;
+}
+
 export function BannerManager() {
   const queryClient = useQueryClient();
-  const inputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [forms, setForms] = useState<BannerForm[]>(DEFAULT_BANNERS);
-  const [uploadingPosition, setUploadingPosition] = useState<number | null>(null);
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
   const [savingPosition, setSavingPosition] = useState<number | null>(null);
 
   const {
@@ -141,9 +150,9 @@ export function BannerManager() {
     mutationFn: async (form: BannerForm) => {
       const payload = {
         coverUrl: form.coverUrl.trim(),
-        chiefIntro: form.tagline.trim(),
-        title: form.title.trim(),
-        description: form.description.trim(),
+        consultButtonImageUrl: form.consultButtonImageUrl.trim(),
+        topicButtonImageUrl: form.topicButtonImageUrl.trim(),
+        topicButtonLinkUrl: form.topicButtonLinkUrl.trim(),
         adminNote: `首页轮播图第 ${form.position} 张`
       };
       const existing = findItem(items, form.position);
@@ -177,12 +186,7 @@ export function BannerManager() {
     onSettled: () => setSavingPosition(null)
   });
 
-  const updateForm = (
-    position: number,
-    patch: Partial<
-      Pick<BannerForm, 'coverUrl' | 'tagline' | 'title' | 'description'>
-    >
-  ) => {
+  const updateForm = (position: number, patch: Partial<BannerForm>) => {
     setForms((current) =>
       current.map((form) =>
         form.position === position ? { ...form, ...patch } : form
@@ -190,39 +194,32 @@ export function BannerManager() {
     );
   };
 
-  const handleUpload = async (position: number, file: File | undefined) => {
+  const handleUpload = async (
+    position: number,
+    field: UploadField,
+    file: File | undefined
+  ) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       toast.error('请选择图片文件');
       return;
     }
-    setUploadingPosition(position);
+    const key = uploadKey(position, field);
+    setUploadingKey(key);
     try {
       const url = await uploadImageFile(file);
-      updateForm(position, { coverUrl: url });
+      updateForm(position, { [field]: url });
       toast.success('图片上传成功，请保存配置');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '图片上传失败');
     } finally {
-      setUploadingPosition(null);
+      setUploadingKey(null);
     }
   };
 
   const handleSave = async (form: BannerForm) => {
     if (!form.coverUrl.trim()) {
-      toast.error('请上传或填写轮播图图片');
-      return;
-    }
-    if (!form.title.trim()) {
-      toast.error('请输入轮播图 H1 标题');
-      return;
-    }
-    if (!form.tagline.trim()) {
-      toast.error('请输入轮播图顶部小字');
-      return;
-    }
-    if (!form.description.trim()) {
-      toast.error('请输入轮播图描述');
+      toast.error('请上传或填写轮播图大图');
       return;
     }
     setSavingPosition(form.position);
@@ -231,6 +228,72 @@ export function BannerManager() {
     } catch {
       // onError 已负责展示错误提示，避免未捕获 Promise 触发 Next Runtime Error。
     }
+  };
+
+  const renderImageField = (
+    form: BannerForm,
+    field: UploadField,
+    label: string,
+    placeholder: string
+  ) => {
+    const key = uploadKey(form.position, field);
+    const uploading = uploadingKey === key;
+    const previewUrl = form[field];
+
+    return (
+      <div className='space-y-2'>
+        <Label htmlFor={`banner-${field}-${form.position}`}>{label}</Label>
+        <div className='relative aspect-[4/1] overflow-hidden rounded-md border bg-muted'>
+          <AssetImage
+            src={previewUrl}
+            alt={label}
+            fill
+            wrapperClassName='h-full w-full'
+            className='object-contain p-2'
+            fallback={
+              <div className='flex h-full w-full items-center justify-center text-sm text-muted-foreground'>
+                暂无图片
+              </div>
+            }
+          />
+        </div>
+        <Input
+          id={`banner-${field}-${form.position}`}
+          value={previewUrl}
+          onChange={(event) =>
+            updateForm(form.position, { [field]: event.target.value })
+          }
+          placeholder={placeholder}
+        />
+        <Button
+          type='button'
+          variant='outline'
+          size='sm'
+          disabled={uploading}
+          onClick={() => inputRefs.current[key]?.click()}
+        >
+          {uploading ? (
+            <Icons.spinner className='size-4 animate-spin' />
+          ) : (
+            <Icons.upload className='size-4' />
+          )}
+          上传{label}
+        </Button>
+        <input
+          ref={(node) => {
+            inputRefs.current[key] = node;
+          }}
+          type='file'
+          accept='image/*'
+          className='hidden'
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            void handleUpload(form.position, field, file);
+          }}
+        />
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -263,102 +326,54 @@ export function BannerManager() {
     <div className='space-y-4'>
       <div className='grid gap-4 xl:grid-cols-3'>
         {forms.map((form) => {
-        const existing = findItem(items, form.position);
-        const uploading = uploadingPosition === form.position;
-        const saving = savingPosition === form.position;
+          const existing = findItem(items, form.position);
+          const saving = savingPosition === form.position;
 
-        return (
-          <Card key={form.position} className='overflow-hidden'>
-            <CardHeader>
-              <div className='flex items-center justify-between gap-3'>
-                <div className='space-y-1'>
-                  <CardTitle>轮播图 {form.position}</CardTitle>
-                  <CardDescription>首页顶部第 {form.position} 张展示图</CardDescription>
+          return (
+            <Card key={form.position} className='overflow-hidden'>
+              <CardHeader>
+                <div className='flex items-center justify-between gap-3'>
+                  <div className='space-y-1'>
+                    <CardTitle>轮播图 {form.position}</CardTitle>
+                    <CardDescription>首页顶部第 {form.position} 张展示图</CardDescription>
+                  </div>
+                  <Badge variant={existing ? 'default' : 'secondary'}>
+                    {existing ? '已配置' : '待保存'}
+                  </Badge>
                 </div>
-                <Badge variant={existing ? 'default' : 'secondary'}>
-                  {existing ? '已配置' : '待保存'}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className='space-y-4'>
-              <div className='relative aspect-[16/7] overflow-hidden rounded-md border bg-muted'>
-                <AssetImage
-                  src={form.coverUrl}
-                  alt={`轮播图 ${form.position}`}
-                  fill
-                  wrapperClassName='h-full w-full'
-                  className='object-cover'
-                  fallback={
-                    <div className='flex h-full w-full items-center justify-center text-sm text-muted-foreground'>
-                      暂无图片
-                    </div>
-                  }
-                />
-              </div>
+              </CardHeader>
+              <CardContent className='space-y-4'>
+                {renderImageField(
+                  form,
+                  'coverUrl',
+                  '轮播大图',
+                  '上传后自动填入 OSS 图片地址'
+                )}
+                {renderImageField(
+                  form,
+                  'consultButtonImageUrl',
+                  '立即咨询按钮图',
+                  '立即咨询按钮图片地址'
+                )}
+                {renderImageField(
+                  form,
+                  'topicButtonImageUrl',
+                  '查看专题按钮图',
+                  '查看专题按钮图片地址'
+                )}
 
-              <div className='space-y-2'>
-                <Label htmlFor={`banner-cover-${form.position}`}>图片地址</Label>
-                <Input
-                  id={`banner-cover-${form.position}`}
-                  value={form.coverUrl}
-                  onChange={(event) =>
-                    updateForm(form.position, { coverUrl: event.target.value })
-                  }
-                  placeholder='上传后自动填入 OSS 图片地址'
-                />
-              </div>
+                <div className='space-y-2'>
+                  <Label htmlFor={`banner-topic-link-${form.position}`}>查看专题跳转地址</Label>
+                  <Input
+                    id={`banner-topic-link-${form.position}`}
+                    value={form.topicButtonLinkUrl}
+                    onChange={(event) =>
+                      updateForm(form.position, { topicButtonLinkUrl: event.target.value })
+                    }
+                    placeholder='/trainer/field=MBA%2F总裁班.htm 或 https://...'
+                  />
+                </div>
 
-              <div className='space-y-2'>
-                <Label htmlFor={`banner-tagline-${form.position}`}>顶部小字</Label>
-                <Input
-                  id={`banner-tagline-${form.position}`}
-                  value={form.tagline}
-                  onChange={(event) =>
-                    updateForm(form.position, { tagline: event.target.value })
-                  }
-                  placeholder='淘课网 2026 年度专题'
-                />
-              </div>
-
-              <div className='space-y-2'>
-                <Label htmlFor={`banner-title-${form.position}`}>H1 标题</Label>
-                <Input
-                  id={`banner-title-${form.position}`}
-                  value={form.title}
-                  onChange={(event) =>
-                    updateForm(form.position, { title: event.target.value })
-                  }
-                  placeholder='找得到、信得过、价更优、+AI'
-                />
-              </div>
-
-              <div className='space-y-2'>
-                <Label htmlFor={`banner-description-${form.position}`}>描述</Label>
-                <Textarea
-                  id={`banner-description-${form.position}`}
-                  value={form.description}
-                  onChange={(event) =>
-                    updateForm(form.position, { description: event.target.value })
-                  }
-                  rows={3}
-                  placeholder='首页轮播图描述'
-                />
-              </div>
-
-              <div className='flex flex-wrap gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  disabled={uploading}
-                  onClick={() => inputRefs.current[form.position]?.click()}
-                >
-                  {uploading ? (
-                    <Icons.spinner className='size-4 animate-spin' />
-                  ) : (
-                    <Icons.upload className='size-4' />
-                  )}
-                  上传图片
-                </Button>
                 <Button
                   type='button'
                   isLoading={saving}
@@ -367,24 +382,9 @@ export function BannerManager() {
                 >
                   保存配置
                 </Button>
-              </div>
-
-              <input
-                ref={(node) => {
-                  inputRefs.current[form.position] = node;
-                }}
-                type='file'
-                accept='image/*'
-                className='hidden'
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = '';
-                  void handleUpload(form.position, file);
-                }}
-              />
-            </CardContent>
-          </Card>
-        );
+              </CardContent>
+            </Card>
+          );
         })}
       </div>
     </div>

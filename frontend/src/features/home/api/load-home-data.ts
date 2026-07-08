@@ -23,6 +23,7 @@ import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recomm
 import { toPlainIntroText } from '@/features/trainer/utils/displayTitle';
 import { resolveImageSrc, resolveApiImageSrc } from '@/lib/media';
 import { featuredCases, featuredExperts } from '../data/mock';
+import { HOME_BANNER_DEFAULTS } from '../constants/banner-defaults';
 import type { CaseStudy, Expert, HomeBanner, InternalCourse, PublicCourse } from '../types';
 
 /** 优先选取封面 URL 不重复的课程，避免首页多张卡片显示同一张图 */
@@ -132,35 +133,13 @@ function formatCaseDate(value?: string | null): string | undefined {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
-const FALLBACK_HOME_BANNERS: HomeBanner[] = [
-  {
-    id: 'fallback-2026-1',
-    imageUrl: '/statics/images/hero-banner.jpg',
-    tagline: '淘课网 2026 年度专题',
-    title: '找得到、信得过、价更优、+AI',
-    description: '汇聚全球 5000+ 顶尖商学院专家，为您的企业量身定制成长路径',
-    ctaLabel: '立即咨询',
-    secondaryLabel: '查看专题'
-  },
-  {
-    id: 'fallback-2026-2',
-    imageUrl: '/statics/images/hero-banner.jpg',
-    tagline: '淘课网 2026 年度专题',
-    title: '找得到、信得过、价更优、+AI',
-    description: '汇聚全球 5000+ 顶尖商学院专家，为您的企业量身定制成长路径',
-    ctaLabel: '立即咨询',
-    secondaryLabel: '查看专题'
-  },
-  {
-    id: 'fallback-2026-3',
-    imageUrl: '/statics/images/hero-banner.jpg',
-    tagline: '淘课网 2026 年度专题',
-    title: '找得到、信得过、价更优、+AI',
-    description: '汇聚全球 5000+ 顶尖商学院专家，为您的企业量身定制成长路径',
-    ctaLabel: '立即咨询',
-    secondaryLabel: '查看专题'
-  }
-];
+const FALLBACK_HOME_BANNERS: HomeBanner[] = HOME_BANNER_DEFAULTS.map((item) => ({
+  id: `fallback-${item.position}`,
+  imageUrl: item.coverUrl,
+  consultButtonImageUrl: item.consultButtonImageUrl,
+  topicButtonImageUrl: item.topicButtonImageUrl,
+  topicButtonLinkUrl: item.topicButtonLinkUrl
+}));
 
 export async function loadHomeBanners(): Promise<HomeBanner[]> {
   try {
@@ -168,18 +147,23 @@ export async function loadHomeBanners(): Promise<HomeBanner[]> {
     const banners = items
       .filter((item) => item.coverUrl || item.resourceCoverUrl)
       .slice(0, 3)
-      .map((item, index) => ({
-        id: `${item.resourceId}-${index}`,
-        imageUrl: resolveApiImageSrc(item.coverUrl || item.resourceCoverUrl || '/statics/images/hero-banner.jpg'),
-        tagline: item.chiefIntro || '淘课网 2026 年度专题',
-        title: item.title || item.resourceName || '找得到、信得过、价更优、+AI',
-        description:
-          item.description ||
-          item.resourceDescription ||
-          '汇聚全球 5000+ 顶尖商学院专家，为您的企业量身定制成长路径',
-        ctaLabel: '立即咨询',
-        secondaryLabel: '查看专题'
-      }));
+      .map((item, index) => {
+        const fallback = HOME_BANNER_DEFAULTS[index] ?? HOME_BANNER_DEFAULTS[0];
+        return {
+          id: `${item.resourceId}-${index}`,
+          imageUrl: resolveApiImageSrc(
+            item.coverUrl || item.resourceCoverUrl || fallback.coverUrl
+          ),
+          consultButtonImageUrl: resolveApiImageSrc(
+            item.consultButtonImageUrl || fallback.consultButtonImageUrl
+          ),
+          topicButtonImageUrl: resolveApiImageSrc(
+            item.topicButtonImageUrl || fallback.topicButtonImageUrl
+          ),
+          topicButtonLinkUrl:
+            item.topicButtonLinkUrl?.trim() || fallback.topicButtonLinkUrl
+        };
+      });
     return banners.length > 0 ? banners : FALLBACK_HOME_BANNERS;
   } catch {
     return FALLBACK_HOME_BANNERS;

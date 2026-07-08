@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { CustomerServiceChatDialog } from '@/components/customer-service-chat-dialog';
 import type { CategoryTreeNode } from '@/features/course/api/types';
+import { HOME_BANNER_DEFAULTS, DEFAULT_TOPIC_BUTTON_LINK } from '@/features/home/constants/banner-defaults';
 import type { HomeBanner } from '@/features/home/types';
 import { filtersToHtmPath } from '@/features/trainer/utils/url';
 import { Link } from '@/i18n/navigation';
@@ -16,21 +17,28 @@ interface HeroSectionProps {
   banners: HomeBanner[];
 }
 
+const AUTOPLAY_INTERVAL_MS = 5000;
+
 const DEFAULT_BANNER: HomeBanner = {
   id: 'default-2026',
-  imageUrl: '/statics/images/hero-banner.jpg',
-  tagline: '淘课网 2026 年度专题',
-  title: '找得到、信得过、价更优、+AI',
-  description: '汇聚全球 5000+ 顶尖商学院专家，为您的企业量身定制成长路径',
-  ctaLabel: '立即咨询',
-  secondaryLabel: '查看专题'
+  imageUrl: HOME_BANNER_DEFAULTS[0].coverUrl,
+  consultButtonImageUrl: HOME_BANNER_DEFAULTS[0].consultButtonImageUrl,
+  topicButtonImageUrl: HOME_BANNER_DEFAULTS[0].topicButtonImageUrl,
+  topicButtonLinkUrl: DEFAULT_TOPIC_BUTTON_LINK
 };
+
+const TOPIC_BUTTON_CLASS =
+  'relative block h-16 w-[170px] cursor-pointer transition-all duration-200 hover:scale-110 hover:brightness-110 hover:drop-shadow-lg active:scale-95';
+
+function isExternalLink(url: string) {
+  return /^https?:\/\//i.test(url);
+}
 
 export function HeroSection({ categories, banners }: HeroSectionProps) {
   const t = useTranslations('home');
   const [activeIndex, setActiveIndex] = useState(0);
   const [chatOpen, setChatOpen] = useState(false);
-  const menuRows = useMemo(() => buildCategoryMenuRows(categories), [categories]);
+  const menuRows = buildCategoryMenuRows(categories);
   const slides = banners.length > 0 ? banners : [DEFAULT_BANNER];
   const activeBanner = slides[activeIndex] ?? slides[0];
 
@@ -41,6 +49,16 @@ export function HeroSection({ categories, banners }: HeroSectionProps) {
   const showNext = () => {
     setActiveIndex((index) => (index + 1) % slides.length);
   };
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
+
+    const timer = window.setInterval(() => {
+      setActiveIndex((index) => (index + 1) % slides.length);
+    }, AUTOPLAY_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
+  }, [slides.length]);
 
   return (
     <section className="grid grid-cols-12 gap-6 h-[480px]">
@@ -75,37 +93,59 @@ export function HeroSection({ categories, banners }: HeroSectionProps) {
       <div className="col-span-9 relative rounded-lg overflow-hidden shadow-sm bg-slate-900 group">
         <Image
           src={activeBanner.imageUrl}
-          alt={activeBanner.title}
+          alt="首页轮播图"
           fill
           sizes="(max-width: 768px) 100vw, 75vw"
-          className="object-cover opacity-70"
+          className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-transparent flex flex-col justify-center px-12">
-          <span className="text-white/80 font-bold tracking-widest mb-4">
-            {activeBanner.tagline}
-          </span>
-          <h1 className="text-white text-5xl font-black leading-tight mb-6">
-            {activeBanner.title}
-          </h1>
-          <p className="text-white/85 text-lg max-w-md mb-8">
-            {activeBanner.description}
-          </p>
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => setChatOpen(true)}
-              className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg"
+
+        <div className="absolute bottom-5 left-12 flex items-center gap-4">
+          <button
+            type="button"
+            aria-label="立即咨询"
+            onClick={() => setChatOpen(true)}
+            className="relative h-16 w-[170px] cursor-pointer transition-all duration-200 hover:scale-110 hover:brightness-110 hover:drop-shadow-lg active:scale-95"
+          >
+            <Image
+              src={activeBanner.consultButtonImageUrl}
+              alt="立即咨询"
+              fill
+              sizes="170px"
+              className="object-fill"
+            />
+          </button>
+          {isExternalLink(activeBanner.topicButtonLinkUrl) ? (
+            <a
+              href={activeBanner.topicButtonLinkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="查看专题"
+              className={TOPIC_BUTTON_CLASS}
             >
-              {activeBanner.ctaLabel}
-            </button>
+              <Image
+                src={activeBanner.topicButtonImageUrl}
+                alt="查看专题"
+                fill
+                sizes="170px"
+                className="object-fill"
+              />
+            </a>
+          ) : (
             <Link
-              href={filtersToHtmPath({ field: 'MBA/总裁班' })}
-              className="bg-white/20 backdrop-blur-md text-white border border-white/30 px-8 py-3 rounded-full font-bold hover:bg-white/30 transition-all"
+              href={activeBanner.topicButtonLinkUrl}
+              aria-label="查看专题"
+              className={TOPIC_BUTTON_CLASS}
             >
-              {activeBanner.secondaryLabel}
+              <Image
+                src={activeBanner.topicButtonImageUrl}
+                alt="查看专题"
+                fill
+                sizes="170px"
+                className="object-fill"
+              />
             </Link>
-          </div>
+          )}
         </div>
 
         {slides.length > 1 && (

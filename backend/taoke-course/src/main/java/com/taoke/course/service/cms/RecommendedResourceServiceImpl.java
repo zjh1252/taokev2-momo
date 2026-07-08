@@ -170,6 +170,12 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
 
         entity.setCoverUrl(request.getCoverUrl());
 
+        entity.setConsultButtonImageUrl(request.getConsultButtonImageUrl());
+
+        entity.setTopicButtonImageUrl(request.getTopicButtonImageUrl());
+
+        entity.setTopicButtonLinkUrl(request.getTopicButtonLinkUrl());
+
         entity.setTitle(request.getTitle());
 
         entity.setDescription(request.getDescription());
@@ -217,6 +223,24 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
         if (request.getCoverUrl() != null) {
 
             entity.setCoverUrl(request.getCoverUrl());
+
+        }
+
+        if (request.getConsultButtonImageUrl() != null) {
+
+            entity.setConsultButtonImageUrl(request.getConsultButtonImageUrl());
+
+        }
+
+        if (request.getTopicButtonImageUrl() != null) {
+
+            entity.setTopicButtonImageUrl(request.getTopicButtonImageUrl());
+
+        }
+
+        if (request.getTopicButtonLinkUrl() != null) {
+
+            entity.setTopicButtonLinkUrl(request.getTopicButtonLinkUrl());
 
         }
 

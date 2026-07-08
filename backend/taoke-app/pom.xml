@@ -29,6 +29,7 @@
             <groupId>com.taoke</groupId>
             <artifactId>taoke-admin</artifactId>
         </dependency>
+        
         <dependency>
             <groupId>com.taoke</groupId>
             <artifactId>taoke-legacy</artifactId>

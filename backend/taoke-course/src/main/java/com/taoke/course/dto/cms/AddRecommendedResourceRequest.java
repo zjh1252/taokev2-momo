@@ -28,6 +28,9 @@ public class AddRecommendedResourceRequest {
     private String roleType;
 
     private String coverUrl;
+    private String consultButtonImageUrl;
+    private String topicButtonImageUrl;
+    private String topicButtonLinkUrl;
     private String title;
     private String description;
     private String chiefIntro;

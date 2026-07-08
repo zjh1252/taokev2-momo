@@ -185,6 +185,9 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
         vo.setRoleType(item.getRoleType());
         vo.setSortOrder(item.getSortOrder());
         vo.setCoverUrl(firstNonBlank(item.getCoverUrl(), item.getResourceCoverUrl()));
+        vo.setConsultButtonImageUrl(item.getConsultButtonImageUrl());
+        vo.setTopicButtonImageUrl(item.getTopicButtonImageUrl());
+        vo.setTopicButtonLinkUrl(item.getTopicButtonLinkUrl());
         vo.setTitle(item.getTitle());
         vo.setDescription(item.getDescription());
         vo.setChiefIntro(item.getChiefIntro());
