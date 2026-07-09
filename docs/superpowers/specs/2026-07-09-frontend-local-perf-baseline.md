@@ -64,3 +64,50 @@
 - 证据: HOME_INNER_COURSE 4 条仍触发 GET /courses?isOpen=false size=36 ≈1.56s
 - 改动文件: frontend/src/features/home/api/load-home-data.ts (`loadHomeInternalCourses`)
 - 预期效果: 有运营位数据时不再打慢列表；首页热 TTFB 应明显下降
+
+## 复测（改后）
+
+| 项 | 值 |
+|----|-----|
+| 测量时间 | 2026-07-09（本地，Task 2–4 合并后） |
+| Git | `e032618b`（含 covers / experts / inner courses 三笔 perf） |
+| C 端 | worktree `frontend-local-perf`：`pnpm exec next dev --webpack -p 3002` → `http://localhost:3002`（**勿与主工作区 :3000 混淆**；:3001 为 admin） |
+| 后端 | 同基线 `http://localhost:8080`（`NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`） |
+| Locale / 样本专家 | 同基线；专家 ID `56185` |
+| 测量方式 | 同基线：`curl.exe` 文档 TTFB（每页 4 次热路径）；API 直打 8080；Next 终端 `application-code` |
+
+### 样本页测量
+
+| 页面 | 路径 | Next 编译 / 路由就绪 | TTFB / 文档到达 | Top 3 慢 API（URL + 耗时 + 是否串行） | 主因标签 |
+|------|------|---------------------|-----------------|--------------------------------------|----------|
+| 首页 | `/`（等效 `/zh-CN`） | **热**：next.js ≈ 28–44ms | **热** 4 次：min **0.434s** / avg **0.547s** / max **0.745s**；后续再测 4 次约 **0.447–0.506s**；Next `application-code` ≈ **400–701ms**（稳定段约 **424–467ms**） | ① 运营位 `HOME_*` / 分类树等并行，墙钟约 **0.4–0.5s**（**不再**出现 `GET /courses?isOpen=false&size=36`）② 内训 slot `HOME_INNER_COURSE` ≈ **203ms**（4 条直接映射）③ 公开课 / 专家 slot 有封面与简介字段，**无**首页路径上的 batch `getCourseDetail`；专家 slot 字段齐全时跳过 detail fan-out | `SSR 并行`（已去掉 1.56s 墙钟主因） |
+| 专家列表 | `/trainers` | **首编**：next.js ≈ **2.0s**（total 9.3s，含 application-code）；**热**：next.js ≈ 35–40ms | **热** 4 次：min **0.500s** / avg **0.526s** / max **0.558s**；application-code ≈ **459–523ms** | 与基线同量级；本轮未改列表页数据路径 | `dev 编译`（首开）+ 列表 SSR |
+| 专家详情 | `/trainers/56185` | **首编**：next.js ≈ **2.3s**；**热**：next.js ≈ 30–47ms | **热** 4 次：min **0.410s** / avg **0.461s** / max **0.574s**；application-code ≈ **375–501ms** | 与基线同量级；本轮未改详情页 | `dev 编译`（首开）+ detail→子资源 |
+
+### 对照（同机同后端）
+
+| 指标 | 改前（基线 :3000 / 旧码） | 改后（worktree :3002） |
+|------|---------------------------|-------------------------|
+| 首页热 TTFB avg | **1.842s** | **0.547s**（约 **-70%**） |
+| 首页热 application-code | ≈ **1.74–1.88s** | ≈ **0.40–0.47s**（稳定段） |
+| 同次 spot：旧 :3000 vs 新 :3002 | 2.256s | 0.507s |
+
+### 路径级验证（API / 行为）
+
+| 检查项 | 结果 |
+|--------|------|
+| `HOME_INNER_COURSE` 有数据（4 条）时是否仍打 `GET /courses?isOpen=false&page=1&size=36` | **否**（代码：`slotItems.length > 0` 即 `mapSlotCoursesToInternalCourses`；首页热墙钟已远低于该接口 ≈ **1.44–1.59s**） |
+| 该慢列表接口本身是否仍慢 | **是**（直打仍 ≈ **1442–1587ms**）——仅证明「首页已绕开」，接口本身未加速 |
+| 首页公开课是否 batch `getCourseDetail` 只为封面 | **否**（Task 2：slot/列表 `coverUrl` 直用；OPEN slot 1 条且含 cover） |
+| 专家 slot 字段齐全时 detail fan-out | **应跳过**（4 条均有 `avatar` + `coverUrl` + `oneLineIntro`/`description` → `needsDetail=false`）；若 `lockMain`/`lockMiddle` 注入 mock 专家仍可能个别拉详情 |
+| 功能冒烟 | `GET http://localhost:3002/` → **200**；HTML ≈ 366KB；含「专家」「内训」「公开课」「案例」及运营位姓名/课名（如关明生、张帆、办公室人员） |
+
+## 验收清单
+
+- [x] 至少一个样本页有可对比数字改善：首页热 TTFB **1.842s → 0.547s**
+- [x] 每项代码修复有证据对应：
+  - Task 2 covers：公开课 slot 带 `coverUrl`，首页不再为封面打 `getCourseDetail`
+  - Task 3 experts：slot 字段齐全时 `enrichExpertsFromApi` 跳过 detail
+  - Task 4 inner courses：INNER slot 有条目即用，首页不再打 1.56s legacy 列表（主因）
+- [x] 功能冒烟：首页 / 专家列表 / 专家详情均 **200**；首页 HTML 含关键区块文案与运营位内容
+- [x] 复测在 **修复后的 worktree 端口**（:3002）完成，未误测主工作区旧码 :3000

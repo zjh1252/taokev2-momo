@@ -305,7 +305,7 @@ git commit -m "perf: fix measured bottleneck on <page-or-api>"
 **Files:**
 - Modify: `docs/superpowers/specs/2026-07-09-frontend-local-perf-baseline.md`
 
-- [ ] **Step 1: 同条件复测三个样本页**
+- [x] **Step 1: 同条件复测三个样本页**
 
 在基线文件追加「复测」表，字段与基线相同，并写前后对比：
 
@@ -318,13 +318,13 @@ git commit -m "perf: fix measured bottleneck on <page-or-api>"
 - 功能检查: [ ] 轮播 [ ] 专家 [ ] 案例 [ ] 内训课 [ ] 公开课 [ ] 城市频道
 ```
 
-- [ ] **Step 2: 验收清单**
+- [x] **Step 2: 验收清单**
 
-- [ ] 至少 1 个样本页有可解释的耗时下降，或已证明主因是 `dev 编译` 并记录可选后续
-- [ ] 每条代码优化能对应基线证据
-- [ ] 样本页无功能回归
+- [x] 至少 1 个样本页有可解释的耗时下降，或已证明主因是 `dev 编译` 并记录可选后续
+- [x] 每条代码优化能对应基线证据
+- [x] 样本页无功能回归
 
-- [ ] **Step 3: Commit 复测结果**
+- [x] **Step 3: Commit 复测结果**
 
 ```bash
 git add docs/superpowers/specs/2026-07-09-frontend-local-perf-baseline.md
