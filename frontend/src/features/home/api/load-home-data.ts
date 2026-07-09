@@ -1,4 +1,4 @@
-import { getCourseDetail, getCourseList } from '@/features/course/api/service';
+import { getCourseList } from '@/features/course/api/service';
 import type { CourseListItem } from '@/features/course/api/types';
 import {
   formatPlanStartDate,
@@ -95,23 +95,6 @@ function pickHomeOpenCourses(list: CourseListItem[], count = 3): CourseListItem[
   }
 
   return picked.slice(0, count);
-}
-
-/** 首页公开课封面与详情页一致：优先详情接口 coverUrl，再 resolveImageSrc */
-async function enrichPublicCourseCovers(courses: PublicCourse[]): Promise<PublicCourse[]> {
-  if (courses.length === 0) return courses;
-
-  const details = await Promise.all(
-    courses.map((course) => getCourseDetail(course.id).catch(() => null))
-  );
-
-  return courses.map((course, index) => {
-    const detailCover = details[index]?.coverUrl?.trim();
-    const slotCover = course.coverUrl?.trim();
-    const raw = detailCover || slotCover || '';
-    const resolved = raw ? resolveImageSrc(raw) : '';
-    return resolved ? { ...course, coverUrl: resolved } : course;
-  });
 }
 
 import { dedupeTags, parseDelimitedTags } from '@/lib/tags';
@@ -409,17 +392,18 @@ async function loadHomePublicCoursesLegacy(): Promise<PublicCourse[]> {
 
 export async function loadHomePublicCourses(): Promise<PublicCourse[]> {
   try {
-    const slotItems = await getPublicRecommendations(RecommendationSlotCode.HOME_OPEN_COURSE, { limit: 3 });
+    const slotItems = await getPublicRecommendations(RecommendationSlotCode.HOME_OPEN_COURSE, {
+      limit: 3
+    });
     if (slotItems.length > 0) {
-      const mapped = mapSlotCoursesToPublicCourses(slotItems, (value) =>
+      return mapSlotCoursesToPublicCourses(slotItems, (value) =>
         formatPlanStartDate(value ?? undefined)
       );
-      return enrichPublicCourseCovers(mapped);
     }
-    return enrichPublicCourseCovers(await loadHomePublicCoursesLegacy());
+    return await loadHomePublicCoursesLegacy();
   } catch {
     try {
-      return enrichPublicCourseCovers(await loadHomePublicCoursesLegacy());
+      return await loadHomePublicCoursesLegacy();
     } catch {
       return [];
     }
