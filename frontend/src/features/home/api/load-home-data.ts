@@ -361,7 +361,8 @@ async function loadHomeInternalCoursesLegacy(): Promise<InternalCourse[]> {
 export async function loadHomeInternalCourses(): Promise<InternalCourse[]> {
   try {
     const slotItems = await getPublicRecommendations(RecommendationSlotCode.HOME_INNER_COURSE, { limit: 6 });
-    if (slotItems.length >= 6) {
+    // 与公开课一致：运营位有数据即用，避免因不足 6 条回退慢列表（size=36 ≈1.5s）
+    if (slotItems.length > 0) {
       return mapSlotCoursesToInternalCourses(slotItems);
     }
     return await loadHomeInternalCoursesLegacy();

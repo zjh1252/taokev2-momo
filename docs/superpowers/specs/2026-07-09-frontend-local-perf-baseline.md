@@ -58,3 +58,9 @@
 - 文档 TTFB 用 `curl.exe` 对 HTML；未另起 Playwright（热路径与 Next 终端 `application-code` 一致，足够归因）。  
 - API 耗时为直打 `localhost:8080` 的 TTFB（3 次取 avg/min/max 或 2 次 avg）；并行 fan-out 用 PowerShell runspace，避免 `Start-Job` 进程开销虚高。  
 - 冷/热：上表「热」为路由已编译后连续请求；「首编/冷」来自同一次 `pnpm dev` 终端日志。
+
+## Task 4 选定改动
+- 样本页: 首页 `/`
+- 证据: HOME_INNER_COURSE 4 条仍触发 GET /courses?isOpen=false size=36 ≈1.56s
+- 改动文件: frontend/src/features/home/api/load-home-data.ts (`loadHomeInternalCourses`)
+- 预期效果: 有运营位数据时不再打慢列表；首页热 TTFB 应明显下降
