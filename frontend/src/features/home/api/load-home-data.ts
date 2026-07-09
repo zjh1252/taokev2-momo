@@ -176,12 +176,7 @@ function mapTrainerListItemToExpert(
 
 async function mapTrainersToExperts(trainers: TrainerListItem[]): Promise<Expert[]> {
   if (trainers.length === 0) return [];
-
-  const details = await Promise.all(
-    trainers.slice(0, 2).map((t) => getTrainerDetail(t.id).catch(() => null))
-  );
-
-  return trainers.map((t, index) => mapTrainerListItemToExpert(t, index, index < 2 ? details[index] : null));
+  return trainers.map((t, index) => mapTrainerListItemToExpert(t, index, null));
 }
 
 /** 运营位优先，不足时用推荐池与公开列表补齐至目标数量 */
@@ -190,6 +185,20 @@ async function enrichExpertsFromApi(experts: Expert[]): Promise<Expert[]> {
   return Promise.all(
     experts.map(async (expert) => {
       if (!expert.id) return expert;
+
+      const needsDetail =
+        !expert.avatar?.trim() ||
+        !expert.coverImage?.trim() ||
+        !expert.bio?.trim();
+
+      if (!needsDetail) {
+        return {
+          ...expert,
+          avatar: resolveApiImageSrc(expert.avatar),
+          coverImage: resolveApiImageSrc(expert.coverImage || expert.avatar)
+        };
+      }
+
       try {
         const detail = await getTrainerDetail(expert.id);
         const avatarRaw = detail.avatar?.trim();
