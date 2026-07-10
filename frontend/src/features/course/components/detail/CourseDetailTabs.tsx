@@ -41,11 +41,11 @@ function CourseRichSection({
       </h3>
       {htmlContent ? (
         <div
-          className="prose prose-slate max-w-none text-sm"
+          className="prose prose-slate max-w-none text-sm break-words [&_*]:max-w-full [&_img]:h-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto"
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
       ) : (
-        <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+        <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words">
           {textContent}
         </div>
       )}

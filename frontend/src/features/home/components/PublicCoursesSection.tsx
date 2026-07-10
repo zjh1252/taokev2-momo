@@ -44,7 +44,7 @@ function PublicCourseItem({ course }: { course: PublicCourse }) {
           alt={course.title}
           fill
           apiResolved
-          className="object-cover transition-transform group-hover:scale-105"
+          className="object-cover object-top transition-transform group-hover:scale-105"
         />
       </div>
 

@@ -81,7 +81,7 @@ export function TrainerRecommendedScroller({
 
   return (
     <div
-      className="relative h-full overflow-hidden rounded-xl"
+      className="relative h-[306px] w-full max-w-[721px] overflow-hidden rounded-xl"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -96,20 +96,21 @@ export function TrainerRecommendedScroller({
           const displayName = getTrainerDisplayName(t);
           const subtitle = pickDisplayTitle(t.title, displayName)
             || plainIntroOrUndefined(t.oneLineIntro);
+          const isPageEnd = idx % CARDS_PER_PAGE === CARDS_PER_PAGE - 1;
           return (
           <Link
             key={`${t.id}-${idx}`}
             href={`/trainer/${t.id}.htm`}
-            className="shrink-0 basis-1/3 px-1.5 cursor-pointer group/item"
+            className={`shrink-0 w-[227px] cursor-pointer group/item ${isPageEnd ? '' : 'mr-5'}`}
           >
-            <div className="relative w-full h-full overflow-hidden rounded-md bg-slate-100">
+            <div className="relative h-[306px] w-[227px] aspect-[227/306] overflow-hidden rounded-md bg-slate-100">
               <SafeImage
                 src={t.avatar}
                 alt={displayName}
                 fill
                 apiResolved
                 sizes="(max-width: 1024px) 33vw, 320px"
-                className="object-cover transition-transform duration-500 group-hover/item:scale-[1.04]"
+                className="object-cover object-[center_top] transition-transform duration-500 group-hover/item:scale-[1.04]"
               />
               <div className="absolute inset-x-0 bottom-0 px-4 pt-12 pb-3 bg-gradient-to-t from-black/80 via-black/45 to-transparent text-white">
                 <h4 className="text-[15px] font-semibold mb-0.5 line-clamp-1">{displayName}</h4>

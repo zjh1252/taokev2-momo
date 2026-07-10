@@ -58,14 +58,17 @@ public final class LegacyAvatarUrls {
     }
 
     /**
-     * 可用于课程封面的 URL：在 {@link #isUsable} 基础上排除无路径脏数据，
-     * 以便回退到素材库默认封面。
+     * 可用于课程封面的 URL：在 {@link #isUsable} 基础上排除无路径脏数据与二维码类误传图，
+     * 以便回退到讲师头像或素材库默认封面。
      */
     public static boolean isUsableCourseCover(String url) {
         if (!isUsable(url)) {
             return false;
         }
         String normalized = url.trim().replace('\\', '/');
+        if (looksLikeQrCodeCover(normalized)) {
+            return false;
+        }
         if (normalized.startsWith("http://") || normalized.startsWith("https://")
                 || normalized.startsWith("/uploads/") || normalized.startsWith("/statics/")
                 || normalized.startsWith("/attachments/") || normalized.startsWith("attachments/")
@@ -73,6 +76,24 @@ public final class LegacyAvatarUrls {
             return true;
         }
         return normalized.contains("/");
+    }
+
+    /** URL 路径含二维码语义时视为不可用封面（旧站误把微信/活动二维码当封面） */
+    static boolean looksLikeQrCodeCover(String url) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        String lower = url.toLowerCase();
+        return lower.contains("qrcode")
+                || lower.contains("qr_code")
+                || lower.contains("qr-code")
+                || lower.contains("/qr.")
+                || lower.contains("_qr.")
+                || lower.contains("-qr.")
+                || lower.contains("erweima")
+                || lower.contains("wechat_qr")
+                || lower.contains("wx_qr")
+                || lower.contains("二维码");
     }
 
     /** 将相对路径规范为 https 绝对地址（attachments/、/u/ 等） */

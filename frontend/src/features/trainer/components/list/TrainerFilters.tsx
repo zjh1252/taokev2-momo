@@ -123,8 +123,8 @@ export function TrainerFilters({
   const activeMeta = FILTER_ITEMS.find((f) => f.key === activeFilter);
 
   return (
-    <div className="w-64 shrink-0 relative" onMouseLeave={handleMouseLeave}>
-      <aside className="bg-white rounded-xl shadow-sm border border-slate-100">
+    <div className="w-[227px] h-[306px] shrink-0 relative" onMouseLeave={handleMouseLeave}>
+      <aside className="h-full bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
         <h2 className="px-4 py-3 text-sm font-bold text-slate-800 border-b border-slate-100">
           讲师筛选条件
         </h2>
@@ -133,12 +133,12 @@ export function TrainerFilters({
           return (
             <div
               key={item.key}
-              className="border-b border-slate-100"
+              className="flex-1 border-b border-slate-100"
               onMouseEnter={() => handleMouseEnter(item.key)}
             >
               <button
                 type="button"
-                className={`w-full flex items-center justify-between p-4 text-left cursor-pointer transition-colors ${
+                className={`h-full w-full flex items-center justify-between px-4 text-left cursor-pointer transition-colors ${
                   activeFilter === item.key ? 'bg-slate-50' : 'hover:bg-slate-50'
                 }`}
               >
@@ -162,7 +162,7 @@ export function TrainerFilters({
 
         {/* 质量承诺 */}
         <div
-          className="p-4 flex items-center justify-between"
+          className="flex-1 px-4 flex items-center justify-between"
           onMouseEnter={() => {
             if (leaveTimer.current) { clearTimeout(leaveTimer.current); leaveTimer.current = null; }
             setActiveFilter(null);

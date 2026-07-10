@@ -74,32 +74,28 @@ export function CourseHero({ course }: CourseHeroProps) {
           <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-6">{course.title}</h1>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-8 text-sm">
-            <div className="text-slate-500">
+            <div className="text-slate-500 min-w-0 break-words">
               {t('courseId')}：
               <span className="text-slate-800 font-medium">
                 TK-{String(course.id).padStart(6, '0')}
               </span>
             </div>
-            <div className="text-slate-500">
+            <div className="text-slate-500 min-w-0 break-words">
               {t('duration')}：
               <span className="text-slate-800 font-medium">
                 {course.durationDays || '-'} {t('daysUnit')}
                 {totalHoursDisplay ? ` / ${totalHoursDisplay} ${t('hoursUnit')}` : null}
               </span>
             </div>
-            <div className="text-slate-500">
-              {t('audience')}：
-              <span className="text-slate-800 font-medium">{course.audience || '-'}</span>
-            </div>
-            <div className="text-slate-500">
+            <div className="text-slate-500 min-w-0 break-words">
               {t('trainer')}：
               <span className="text-primary font-medium">{course.trainerName || '-'}</span>
             </div>
-            <div className="text-slate-500">
+            <div className="text-slate-500 min-w-0 break-words">
               {t('category')}：
               <span className="text-primary font-medium">{course.categoryName || '-'}</span>
             </div>
-            <div className="text-slate-500 flex items-center gap-1">
+            <div className="text-slate-500 flex items-center gap-1 min-w-0">
               {t('rating')}：
               <span className="text-slate-800 font-bold">{course.score || '0.0'}</span>
               <Star className="size-4 fill-yellow-400 text-yellow-400" />
