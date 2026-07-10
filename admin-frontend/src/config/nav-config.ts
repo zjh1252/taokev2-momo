@@ -277,11 +277,15 @@ export const navGroups: NavGroup[] = [
         isActive: false,
         items: [
           {
-            title: '爬取课程',
+            title: '审核专家',
+            url: '/dashboard/crawl/trainers'
+          },
+          {
+            title: '审核课程',
             url: '/dashboard/crawl/courses'
           },
           {
-            title: '爬取任务',
+            title: '任务进程',
             url: '/dashboard/crawl/jobs'
           },
           {

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 后台 — 数据爬取管理（触发爬取 + 审核入库 + 任务管理）。
+ * 后台 - 数据爬取管理（触发爬取 + 审核入库 + 任务管理）。
  *
  * @author Fangxinxin
  * @date 2026-05-12 10:00
@@ -128,6 +128,13 @@ public class AdminCrawlController {
         return ApiResponse.ok(adminCrawlService.getCrawledCourseDetail(id));
     }
 
+    @Operation(summary = "保存爬取课程审核修改")
+    @PutMapping("/admin/crawl/courses/{id}")
+    public ApiResponse<CrawledCourseDetailVO> updateCrawledCourse(@PathVariable Integer id,
+                                                                   @RequestBody ImportCourseRequest edits) {
+        return ApiResponse.ok(adminCrawlService.updateCrawledCourse(id, edits));
+    }
+
     @Operation(summary = "审核通过并导入课程")
     @PostMapping("/admin/crawl/courses/{id}/import")
     public ApiResponse<Integer> importCourse(@PathVariable Integer id,
@@ -140,6 +147,13 @@ public class AdminCrawlController {
     public ApiResponse<Void> rejectCrawledCourse(@PathVariable Integer id,
                                                    @Valid @RequestBody RejectApplicationRequest request) {
         adminCrawlService.rejectCrawledCourse(id, request.getReason());
+        return ApiResponse.ok(null);
+    }
+
+    @Operation(summary = "恢复已驳回爬取课程为待审核")
+    @PutMapping("/admin/crawl/courses/{id}/restore")
+    public ApiResponse<Void> restoreCrawledCourse(@PathVariable Integer id) {
+        adminCrawlService.restoreCrawledCourse(id);
         return ApiResponse.ok(null);
     }
 

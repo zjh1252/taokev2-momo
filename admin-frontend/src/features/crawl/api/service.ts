@@ -11,7 +11,8 @@ import type {
   CrawlSourcesResponse,
   TriggerCrawlResponse,
   SaveCrawlSourcePayload,
-  CrawlSourceResponse
+  CrawlSourceResponse,
+  CrawledCourseEditPayload
 } from './types';
 
 // ==================== 参数构建 ====================
@@ -101,7 +102,7 @@ export async function getCrawlJobDetail(id: number): Promise<TriggerCrawlRespons
 }
 
 export async function cancelCrawlJob(id: number) {
-  return apiClient<{ code: number; message: string; data: null }>(`/crawl/jobs/${id}/cancel`, {
+  return apiClient<{ code: number; message: string }>(`/crawl/jobs/${id}/cancel`, {
     method: 'PUT'
   });
 }
@@ -133,10 +134,10 @@ export async function importCrawledTrainer(
 }
 
 export async function rejectCrawledTrainer(id: number, reason: string) {
-  return apiClient<{ code: number; message: string }>(
-    `/crawl/trainers/${id}/reject`,
-    { method: 'PUT', body: JSON.stringify({ reason }) }
-  );
+  return apiClient<{ code: number; message: string }>(`/crawl/trainers/${id}/reject`, {
+    method: 'PUT',
+    body: JSON.stringify({ reason })
+  });
 }
 
 // ==================== 爬取课程 ====================
@@ -152,22 +153,32 @@ export async function getCrawledCourseDetail(id: number): Promise<CrawledCourseD
   return apiClient<CrawledCourseDetailResponse>(`/crawl/courses/${id}`);
 }
 
-export async function importCrawledCourse(
+export async function importCrawledCourse(id: number, edits?: CrawledCourseEditPayload) {
+  return apiClient<{ code: number; message: string; data: number }>(`/crawl/courses/${id}/import`, {
+    method: 'POST',
+    body: edits ? JSON.stringify(edits) : undefined
+  });
+}
+
+export async function updateCrawledCourse(
   id: number,
-  edits?: { categoryId?: number; subCategoryId?: number; trainerId?: number; title?: string; forceImport?: boolean }
-) {
-  return apiClient<{ code: number; message: string; data: number }>(
-    `/crawl/courses/${id}/import`,
-    {
-      method: 'POST',
-      body: edits ? JSON.stringify(edits) : undefined
-    }
-  );
+  edits: CrawledCourseEditPayload
+): Promise<CrawledCourseDetailResponse> {
+  return apiClient<CrawledCourseDetailResponse>(`/crawl/courses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(edits)
+  });
 }
 
 export async function rejectCrawledCourse(id: number, reason: string) {
-  return apiClient<{ code: number; message: string }>(
-    `/crawl/courses/${id}/reject`,
-    { method: 'PUT', body: JSON.stringify({ reason }) }
-  );
+  return apiClient<{ code: number; message: string }>(`/crawl/courses/${id}/reject`, {
+    method: 'PUT',
+    body: JSON.stringify({ reason })
+  });
+}
+
+export async function restoreCrawledCourse(id: number) {
+  return apiClient<{ code: number; message: string }>(`/crawl/courses/${id}/restore`, {
+    method: 'PUT'
+  });
 }

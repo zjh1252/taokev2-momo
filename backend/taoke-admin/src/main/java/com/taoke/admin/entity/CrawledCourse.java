@@ -8,6 +8,7 @@ import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * 爬取课程数据中间表实体 — 对应 crawled_courses 表。
@@ -141,6 +142,26 @@ public class CrawledCourse extends BaseEntity {
     /** 疑似/确认重复的 courses.id */
     @Column(name = "dedup_course_id")
     private Integer dedupCourseId;
+
+    /** 重复目标类型：COURSE / CRAWLED_COURSE */
+    @Column(name = "dedup_target_type", length = 32)
+    private String dedupTargetType;
+
+    /** 重复目标 ID */
+    @Column(name = "dedup_target_id")
+    private Integer dedupTargetId;
+
+    /** 去重匹配规则 */
+    @Column(name = "dedup_match_type", length = 64)
+    private String dedupMatchType;
+
+    /** 去重匹配分数 */
+    @Column(name = "dedup_score")
+    private Integer dedupScore;
+
+    /** 最近一次去重检查时间 */
+    @Column(name = "dedup_checked_at")
+    private LocalDateTime dedupCheckedAt;
 
     /** 去重判定原因 */
     @Column(name = "dedup_reason", length = 255)

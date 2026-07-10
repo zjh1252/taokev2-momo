@@ -14,11 +14,28 @@ from datetime import datetime
 from html import unescape
 from typing import Any, AsyncGenerator, Dict, List
 
+from bs4 import BeautifulSoup
+
+from crawlers.course_utils import append_diagnostic, detect_content_type, enrich_course_record, set_price_fields
 from crawlers.media import media_asset, normalize_url
 
 
 BASE_URL = "https://www.huashijingji.com"
 LIST_URL = f"{BASE_URL}/index/course/index"
+COPYRIGHT_ENTRY_URLS = (
+    f"{BASE_URL}/index/project/winning",
+    f"{BASE_URL}/index/copyright/know",
+    f"{BASE_URL}/index/copyright/huayin",
+    f"{BASE_URL}/index/copyright/danze",
+    f"{BASE_URL}/index/copyright/shimen",
+)
+ONLINE_ENTRY_URLS = (
+    f"{BASE_URL}/index/online/ksb",
+    f"{BASE_URL}/index/online/dzkj",
+    f"{BASE_URL}/index/online/api",
+    f"{BASE_URL}/index/online/content",
+    f"{BASE_URL}/index/online/cooperation",
+)
 KNOWN_PAGES = 305
 MISSING = "暂无"
 logger = logging.getLogger(__name__)
@@ -30,6 +47,28 @@ def clean_html(value: Any, default: str = MISSING) -> str:
     text = re.sub(r"<[^>]+>", " ", str(value))
     text = " ".join(unescape(text).split())
     return text or default
+
+
+def soup_text(node: Any, default: str = MISSING) -> str:
+    if node is None:
+        return default
+    return clean_html(node.get_text(" ", strip=True), default)
+
+
+def absolute_url(href: str) -> str:
+    if not href:
+        return ""
+    if href.startswith("http://") or href.startswith("https://"):
+        return href
+    return f"{BASE_URL}{href}" if href.startswith("/") else f"{BASE_URL}/{href}"
+
+
+def first_match(text: str, patterns: List[str], default: str = MISSING) -> str:
+    for pattern in patterns:
+        match = re.search(pattern, text, re.DOTALL)
+        if match:
+            return clean_html(match.group(1), default)
+    return default
 
 
 def fetch_text(url: str, timeout: int = 10, retries: int = 3) -> str:
@@ -52,40 +91,151 @@ def fetch_text(url: str, timeout: int = 10, retries: int = 3) -> str:
 
 def parse_list(html: str) -> List[Dict[str, Any]]:
     courses: List[Dict[str, Any]] = []
-    cards = re.findall(r'<a href="(/index/course/details\?id=\d+)"[^>]*class="course-box(.*?)</a>', html, re.DOTALL)
-    for href, card_html in cards:
+    page = BeautifulSoup(html, "html.parser")
+    for card in page.select("a.course-box"):
+        href = card.get("href", "")
+        if "/index/course/details" not in href:
+            continue
         cid = re.search(r"id=(\d+)", href)
-        title = re.search(r'<h5[^>]*class="title[^"]*"[^>]*>([^<]+)</h5>', card_html)
-        cover = re.search(r'data-original="([^"]+)"', card_html) or re.search(r'<img[^>]*src="([^"]+)"', card_html)
-        desc = re.search(r'<p class="text[^"]*"[^>]*>(.*?)</p>', card_html, re.DOTALL)
-        tags = re.search(r"<label[^>]*>([^<]+)</label>", card_html)
-        audience = re.search(r"授课对象[：:]?\s*([^<]*)</p>", card_html)
-        trainer = re.search(r"讲师[：:]?\s*([^<]*)</p>", card_html)
-        description = clean_html(desc.group(1))[:500] if desc else MISSING
+        title = soup_text(card.select_one(".title"), "")
+        cover_el = card.select_one("img")
+        cover = cover_el.get("data-original") or cover_el.get("src", "") if cover_el else ""
+        description = soup_text(card.select_one("p.text"), MISSING)
+        category = soup_text(card.select_one("label"), MISSING)
+        card_text = soup_text(card, "")
+        audience = first_match(card_text, [r"授课对象[：:]?\s*(.+?)(?:讲师[：:]|$)"])
+        trainer = first_match(card_text, [r"讲师[：:]?\s*(.+)$"])
         courses.append(
             {
                 "source_course_id": cid.group(1) if cid else "",
-                "source_url": f"{BASE_URL}{href}",
-                "title": clean_html(title.group(1)) if title else MISSING,
-                "type": "OPEN_OFFLINE",
-                "category_name_raw": clean_html(tags.group(1)) if tags else MISSING,
-                "cover_url": normalize_url(BASE_URL, cover.group(1) if cover else ""),
+                "source_url": absolute_url(href),
+                "title": title or MISSING,
+                "type": "INTERNAL",
+                "category_name_raw": category,
+                "cover_url": normalize_url(BASE_URL, cover),
                 "intro": description,
                 "summary": description,
-                "syllabus": MISSING,
-                "audience": clean_html(audience.group(1)) if audience else MISSING,
-                "highlights": MISSING,
+                "syllabus": description if len(description) > 80 else MISSING,
+                "audience": audience,
+                "highlights": description,
                 "duration_days": 0,
-                "keywords": clean_html(tags.group(1)) if tags else MISSING,
-                "trainer_name_raw": clean_html(trainer.group(1)) if trainer else MISSING,
+                "keywords": category,
+                "trainer_name_raw": trainer,
                 "plans_json": [],
                 "evaluation_json": [],
-                "target_audience": clean_html(audience.group(1)) if audience else MISSING,
-                "learning_outcomes": MISSING,
+                "target_audience": audience,
+                "learning_outcomes": description,
                 "services_json": [],
+                "raw_json": {
+                    "source_entry": "course",
+                    "source_entry_name": "找课程",
+                    "field_sources": {
+                        "category_name_raw": "course card label",
+                        "learning_outcomes": "course card description",
+                        "audience": "course card 授课对象",
+                        "trainer_name_raw": "course card 讲师",
+                    },
+                },
             }
         )
     return courses
+
+
+def parse_category_links(html: str, limit: int = 20) -> List[str]:
+    page = BeautifulSoup(html, "html.parser")
+    links: List[str] = []
+    seen: set[str] = set()
+    for anchor in page.select('a[href*="/index/course/index?fid="]'):
+        href = anchor.get("href", "")
+        url = absolute_url(href)
+        if url in seen:
+            continue
+        seen.add(url)
+        links.append(url)
+        if len(links) >= limit:
+            break
+    return links
+
+
+def parse_copyright_detail(html: str, url: str) -> Dict[str, Any]:
+    page = BeautifulSoup(html, "html.parser")
+    title = soup_text(page.select_one("h1"), "")
+    if not title:
+        title = soup_text(page.select_one("title"), MISSING)
+    text = soup_text(page, "")
+    meta_desc = ""
+    meta = page.select_one('meta[name="description"]')
+    if meta:
+        meta_desc = clean_html(meta.get("content", ""), "")
+    summary = meta_desc or clean_html(text[:800], MISSING)
+    cover = ""
+    for img in page.select("img"):
+        src = img.get("data-original") or img.get("src", "")
+        if src and not any(skip in src for skip in ("logo", "tel.png", "favicon")):
+            cover = src
+            break
+    category = "版权课程"
+    item = {
+        "source_course_id": url.rstrip("/").rsplit("/", 1)[-1],
+        "source_url": url,
+        "title": title.replace(" - 华师经纪", ""),
+        "type": "INTERNAL",
+        "category_name_raw": category,
+        "cover_url": normalize_url(BASE_URL, cover),
+        "intro": summary,
+        "summary": summary[:500],
+        "syllabus": first_match(text, [r"(?:课程体系|课程内容|项目内容|核心模块)\s*(.+?)(?:适用|服务|合作|$)"], MISSING),
+        "audience": first_match(text, [r"(?:适用对象|适合对象|服务对象|目标客户)\s*(.+?)(?:课程|项目|服务|$)"], MISSING),
+        "highlights": first_match(text, [r"(?:课程特色|项目特色|核心优势|产品优势)\s*(.+?)(?:课程|项目|服务|$)"], summary[:500]),
+        "duration_days": 0,
+        "keywords": category,
+        "trainer_name_raw": MISSING,
+        "plans_json": [],
+        "evaluation_json": [],
+        "target_audience": MISSING,
+        "learning_outcomes": first_match(text, [r"(?:课程收益|项目收益|学习收益|培训收益)\s*(.+?)(?:课程|项目|服务|$)"], summary),
+        "services_json": [],
+        "raw_json": {
+            "source_entry": "copyright",
+            "source_entry_name": "版权课程",
+            "field_sources": {
+                "summary": "meta description/page text",
+                "category_name_raw": "版权课程入口",
+            },
+        },
+    }
+    set_price_fields(item, "项目咨询")
+    return item
+
+
+def parse_online_entry(html: str, url: str) -> Dict[str, Any]:
+    page = BeautifulSoup(html, "html.parser")
+    title = soup_text(page.select_one("h1"), "")
+    if not title:
+        title = soup_text(page.select_one("title"), MISSING)
+    text = soup_text(page, "")
+    return {
+        "source_url": url,
+        "title": title,
+        "content_type": detect_content_type(text, "线上课程 电子课件 API 课件 内容资源"),
+        "reason": "online_or_courseware_entry_not_imported_to_courses",
+    }
+
+
+def finalize_course_record(item: Dict[str, Any], *, media_assets: List[Dict[str, Any]], detail_error: str = "") -> Dict[str, Any]:
+    if media_assets:
+        item["services_json"] = media_assets
+    raw_json = item.get("raw_json") if isinstance(item.get("raw_json"), dict) else {}
+    item["raw_json"] = {**raw_json, "media_assets": media_assets, "crawled_at": datetime.now().isoformat()}
+    set_price_fields(item, item.get("price_raw") or item["raw_json"].get("price_raw") or "培训咨询")
+    if detail_error:
+        item["raw_json"]["detail_error"] = detail_error
+        append_diagnostic(item, "detail", "detail_fetch_failed", detail_error)
+    enrich_course_record(item, fallback_type="INTERNAL")
+    if item["raw_json"].get("source_entry") in {"course", "copyright"} and not item.get("plans_json"):
+        item["type"] = "INTERNAL"
+        item["raw_json"]["type_evidence"] = f"{item['raw_json'].get('type_evidence', '')},huashijingji_{item['raw_json'].get('source_entry')}_without_public_schedule"
+    return item
 
 
 def parse_price_value(price_text: str) -> float:
@@ -119,6 +269,7 @@ def parse_detail(html: str) -> Dict[str, Any]:
         if price_text_match:
             price_text = clean_html(price_text_match.group(1), "")
             detail["price_text"] = price_text or MISSING
+            detail["price_raw"] = price_text or MISSING
             detail["price"] = parse_price_value(price_text)
         if duration_match:
             detail["duration_days"] = parse_price_value(duration_match.group(1))
@@ -151,16 +302,42 @@ def parse_detail(html: str) -> Dict[str, Any]:
 def iter_huashijingji_courses(max_items: int | None = None):
     seen: set[str] = set()
     emitted = 0
+    list_urls = [LIST_URL]
 
-    for page in range(1, KNOWN_PAGES + 1):
-        url = LIST_URL if page == 1 else f"{LIST_URL}?page={page}"
+    try:
+        first_page = fetch_text(LIST_URL)
+        list_urls.extend(parse_category_links(first_page, limit=12))
+        page_rows = parse_list(first_page)
+    except Exception as exc:
+        logger.warning("huashijingji course 首页抓取失败 url=%s error=%s", LIST_URL, exc)
+        page_rows = []
+
+    for item in page_rows:
+        key = item["source_course_id"] or item["source_url"]
+        if key in seen:
+            continue
+        seen.add(key)
+        detail_error = ""
+        try:
+            detail = parse_detail(fetch_text(item["source_url"], timeout=5, retries=1))
+            item.update({k: v for k, v in detail.items() if v not in ("", None, MISSING)})
+        except Exception as exc:
+            detail_error = str(exc)
+        media_assets = [media_asset("cover", item["cover_url"], "课程封面")] if item.get("cover_url") else []
+        finalize_course_record(item, media_assets=media_assets, detail_error=detail_error)
+        if item["raw_json"].get("content_type") in {"RECORDED_VIDEO", "DOCUMENT", "AUDIO"}:
+            continue
+        yield item
+        emitted += 1
+        if max_items and emitted >= max_items:
+            return
+
+    for url in list_urls[1:]:
         try:
             rows = parse_list(fetch_text(url))
         except Exception as exc:
-            logger.warning("huashijingji course 列表页抓取失败，跳过 page=%s url=%s error=%s", page, url, exc)
+            logger.warning("huashijingji course 分类页抓取失败，跳过 url=%s error=%s", url, exc)
             continue
-        if not rows:
-            break
         for item in rows:
             key = item["source_course_id"] or item["source_url"]
             if key in seen:
@@ -168,21 +345,45 @@ def iter_huashijingji_courses(max_items: int | None = None):
             seen.add(key)
             detail_error = ""
             try:
-                detail = parse_detail(fetch_text(item["source_url"]))
+                detail = parse_detail(fetch_text(item["source_url"], timeout=5, retries=1))
                 item.update({k: v for k, v in detail.items() if v not in ("", None)})
             except Exception as exc:
                 detail_error = str(exc)
             media_assets = [media_asset("cover", item["cover_url"], "课程封面")] if item.get("cover_url") else []
-            if media_assets:
-                item["services_json"] = media_assets
-            item["raw_json"] = {**item, "media_assets": media_assets, "crawled_at": datetime.now().isoformat()}
-            if detail_error:
-                item["raw_json"]["detail_error"] = detail_error
+            finalize_course_record(item, media_assets=media_assets, detail_error=detail_error)
+            if item["raw_json"].get("content_type") in {"RECORDED_VIDEO", "DOCUMENT", "AUDIO"}:
+                continue
             yield item
             emitted += 1
             if max_items and emitted >= max_items:
                 return
         time.sleep(0.1)
+
+    for url in COPYRIGHT_ENTRY_URLS:
+        if max_items and emitted >= max_items:
+            return
+        try:
+            item = parse_copyright_detail(fetch_text(url), url)
+        except Exception as exc:
+            logger.warning("huashijingji copyright 页面抓取失败，跳过 url=%s error=%s", url, exc)
+            continue
+        key = item["source_course_id"] or item["source_url"]
+        if key in seen:
+            continue
+        seen.add(key)
+        media_assets = [media_asset("cover", item["cover_url"], "课程封面")] if item.get("cover_url") else []
+        finalize_course_record(item, media_assets=media_assets)
+        if item["raw_json"].get("content_type") in {"RECORDED_VIDEO", "DOCUMENT", "AUDIO"}:
+            continue
+        yield item
+        emitted += 1
+
+    for url in ONLINE_ENTRY_URLS:
+        try:
+            info = parse_online_entry(fetch_text(url), url)
+            logger.info("huashijingji online entry skipped: %s", info)
+        except Exception as exc:
+            logger.warning("huashijingji online 页面识别失败 url=%s error=%s", url, exc)
 
 def crawl_huashijingji_courses(max_items: int | None = None) -> List[Dict[str, Any]]:
     return list(iter_huashijingji_courses(max_items))
@@ -202,6 +403,8 @@ class HuashiJingjiCourseSpider:
     source = "huashijingji"
     data_type = "COURSE"
     max_items = None
+    supported_course_types = ("INTERNAL", "OPEN_ONLINE")
+    coverage_note = "课程经纪/版权/线上课程入口并存，当前以内训或线上课程证据兜底诊断。"
 
     def pause(self) -> None:
         """兼容 JobManager 的取消流程。"""

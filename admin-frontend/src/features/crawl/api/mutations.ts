@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { crawlKeys } from './queries';
 import {
   triggerCrawl,
@@ -7,12 +6,14 @@ import {
   importCrawledTrainer,
   rejectCrawledTrainer,
   importCrawledCourse,
+  updateCrawledCourse,
   rejectCrawledCourse,
+  restoreCrawledCourse,
   createCrawlSource,
   updateCrawlSource,
   deleteCrawlSource
 } from './service';
-import type { SaveCrawlSourcePayload } from './types';
+import type { CrawledCourseEditPayload, SaveCrawlSourcePayload } from './types';
 
 export function useTriggerCrawl() {
   const qc = useQueryClient();
@@ -28,12 +29,8 @@ export function useCancelCrawlJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => cancelCrawlJob(id),
-    onSuccess: (_, __, context) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: crawlKeys.all });
-    },
-    onError: (error: unknown) => {
-      const err = error as { message?: string };
-      toast.error(err.message || '取消任务失败');
     }
   });
 }
@@ -41,9 +38,12 @@ export function useCancelCrawlJob() {
 export function useImportCrawledTrainer() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, edits }: {
+    mutationFn: ({
+      id,
+      edits
+    }: {
       id: number;
-      edits?: { name?: string; title?: string; bio?: string; forceImport?: boolean }
+      edits?: { name?: string; title?: string; bio?: string; forceImport?: boolean };
     }) => importCrawledTrainer(id, edits),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: crawlKeys.all });
@@ -65,10 +65,19 @@ export function useRejectCrawledTrainer() {
 export function useImportCrawledCourse() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, edits }: {
-      id: number;
-      edits?: { categoryId?: number; subCategoryId?: number; trainerId?: number; title?: string; forceImport?: boolean }
-    }) => importCrawledCourse(id, edits),
+    mutationFn: ({ id, edits }: { id: number; edits?: CrawledCourseEditPayload }) =>
+      importCrawledCourse(id, edits),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: crawlKeys.all });
+    }
+  });
+}
+
+export function useUpdateCrawledCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, edits }: { id: number; edits: CrawledCourseEditPayload }) =>
+      updateCrawledCourse(id, edits),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: crawlKeys.all });
     }
@@ -78,8 +87,17 @@ export function useImportCrawledCourse() {
 export function useRejectCrawledCourse() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
-      rejectCrawledCourse(id, reason),
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => rejectCrawledCourse(id, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: crawlKeys.all });
+    }
+  });
+}
+
+export function useRestoreCrawledCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => restoreCrawledCourse(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: crawlKeys.all });
     }
