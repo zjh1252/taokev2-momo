@@ -4,10 +4,10 @@
 
 spring:
   # Nacos 配置中心
-  # nacos:
-  #   config:
-  #     server-addr: 10.0.14.20:8848
-  #     namespace: test
+  nacos:
+    config:
+      server-addr: 10.0.14.20:8848
+      namespace: test
 
   datasource:
     url: jdbc:mysql://10.0.14.20:3306/v3test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
@@ -56,6 +56,8 @@ taoke:
     exchange: taoke.events
   jwt:
     secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
+  sms:
+    provider: mock
   storage:
     provider: local
     base-dir: ./storage
@@ -63,11 +65,6 @@ taoke:
   cors:
     allowed-origins: '*'
     allow-credentials: false
-
-# Docker Compose 内网：backend ↔ crawler
-crawler:
-  base-url: http://crawler:8100
-  callback-url: http://backend:8080/internal/crawl/callback
 
 logging:
   level:

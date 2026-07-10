@@ -4,7 +4,7 @@ import { NavGroup } from '@/types';
  * 后台管理系统侧边栏导航配置
  *
  * 按业务模块分组，每个 NavGroup 渲染为一个 SidebarGroupLabel。
- * label 为空字符串时不渲染分组标题。
+ * label 为空字符串时不渲染分组标题，避免与菜单项文字重复。
  */
 export const navGroups: NavGroup[] = [
   {
@@ -21,17 +21,73 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '用户管理',
+    label: '',
     items: [
       {
-        title: '平台所有用户管理',
+        title: '用户管理',
         url: '/dashboard/users',
         icon: 'teams',
+        shortcut: ['u', 'u'],
         isActive: false,
         items: []
-      },
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
       {
-        title: '专家',
+        title: '课程管理',
+        url: '#',
+        icon: 'book',
+        isActive: false,
+        items: [
+          {
+            title: '课程列表',
+            url: '/dashboard/courses'
+          },
+          {
+            title: '排课管理',
+            url: '/dashboard/courses/plans'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
+        title: '培训评价管理',
+        url: '/dashboard/training-reviews',
+        icon: 'star',
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
+        title: '录播课管理',
+        url: '#',
+        icon: 'video',
+        isActive: false,
+        items: [
+          {
+            title: '录播课列表',
+            url: '/dashboard/videos'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
+        title: '专家管理',
         url: '#',
         icon: 'user',
         isActive: false,
@@ -45,79 +101,47 @@ export const navGroups: NavGroup[] = [
             url: '/dashboard/trainers/applications'
           },
           {
-            title: '推荐专家',
-            url: '/dashboard/trainers/recommended'
+            title: '案例管理',
+            url: '/dashboard/trainers/cases'
           },
           {
-            title: '资质认证',
-            url: '/dashboard/trainers/certifications'
-          }
-        ]
-      },
-      {
-        title: '企业采购方',
-        url: '#',
-        icon: 'briefcase',
-        isActive: false,
-        items: [
-          {
-            title: '采购方列表',
-            url: '/dashboard/enterprise-buyers'
-          }
-        ]
-      },
-      {
-        title: '专家助理',
-        url: '#',
-        icon: 'headset',
-        isActive: false,
-        items: [
-          {
-            title: '助理列表',
-            url: '/dashboard/assistants'
-          }
-        ]
-      },
-      {
-        title: '专家经纪人',
-        url: '#',
-        icon: 'userCheck',
-        isActive: false,
-        items: [
-          {
-            title: '经纪人列表',
-            url: '/dashboard/agents'
+            title: '精彩瞬间管理',
+            url: '/dashboard/trainers/highlights'
           },
+          // 资质认证管理（含 4 个孙菜单）
           {
-            title: '资质认证',
-            url: '/dashboard/agents/certifications/work'
+            title: '资质认证管理',
+            url: '#',
+            items: [
+              {
+                title: '实名认证',
+                url: '/dashboard/trainers/certifications/real-name'
+              },
+              {
+                title: '专业认证',
+                url: '/dashboard/trainers/certifications/professional'
+              },
+              {
+                title: '学历认证',
+                url: '/dashboard/trainers/certifications/education'
+              },
+              {
+                title: '工作认证',
+                url: '/dashboard/trainers/certifications/work'
+              }
+            ]
           }
         ]
-      },
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
       {
-        title: '专家经纪公司',
+        title: '机构管理',
         url: '#',
         icon: 'building',
-        isActive: false,
-        items: [
-          {
-            title: '经纪公司列表',
-            url: '/dashboard/enterprise-agents'
-          },
-          {
-            title: '经纪公司申请',
-            url: '/dashboard/enterprise-agents/applications'
-          },
-          {
-            title: '资质认证',
-            url: '/dashboard/enterprise-agents/certifications/qualification'
-          }
-        ]
-      },
-      {
-        title: '机构',
-        url: '#',
-        icon: 'buildingCommunity',
         isActive: false,
         items: [
           {
@@ -129,147 +153,126 @@ export const navGroups: NavGroup[] = [
             url: '/dashboard/institutions/applications'
           },
           {
-            title: '资质认证',
-            url: '/dashboard/institutions/certifications/company-info'
-          },
-          {
-            title: '推荐机构',
-            url: '/dashboard/institutions/recommended'
-          }
-        ]
-      },
-      {
-        title: '机构员工',
-        url: '#',
-        icon: 'usersGroup',
-        isActive: false,
-        items: [
-          {
-            title: '员工列表',
+            title: '机构员工列表',
             url: '/dashboard/institutions/employees'
           },
           {
-            title: '资质认证',
-            url: '/dashboard/institutions/employees/certifications'
+            title: '资质认证管理',
+            url: '#',
+            items: [
+              {
+                title: '公司资料审核',
+                url: '/dashboard/institutions/certifications/company-info'
+              }
+            ]
+          }
+          // 机构员工申请已下放至机构在用户中心审核，平台不再受理
+        ]
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
+        title: '专家经纪人管理',
+        url: '#',
+        icon: 'userCheck',
+        isActive: false,
+        items: [
+          {
+            title: '经纪人列表',
+            url: '/dashboard/agents'
+          },
+          {
+            title: '资质认证管理',
+            url: '#',
+            items: [
+              {
+                title: '工作认证审核',
+                url: '/dashboard/agents/certifications/work'
+              }
+            ]
+          }
+          // 经纪人申请已下放至经纪公司在用户中心审核，平台不再受理
+        ]
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
+      {
+        title: '专家经纪公司管理',
+        url: '#',
+        icon: 'briefcase',
+        isActive: false,
+        items: [
+          {
+            title: '经纪公司列表',
+            url: '/dashboard/enterprise-agents'
+          },
+          {
+            title: '经纪公司申请',
+            url: '/dashboard/enterprise-agents/applications'
+          },
+          {
+            title: '资质认证管理',
+            url: '#',
+            items: [
+              {
+                title: '资质认证审核',
+                url: '/dashboard/enterprise-agents/certifications/qualification'
+              }
+            ]
           }
         ]
       }
     ]
   },
   {
-    label: '内容资源运营',
+    label: '',
     items: [
       {
-        title: '课程管理',
-        url: '#',
-        icon: 'book',
-        isActive: false,
-        items: [
-          {
-            title: '添加课程',
-            url: '/dashboard/courses/new'
-          },
-          {
-            title: '课程列表',
-            url: '/dashboard/courses'
-          },
-          {
-            title: '推荐课程',
-            url: '/dashboard/courses/recommended'
-          }
-        ]
-      },
-      {
-        title: '录播课管理',
-        url: '#',
-        icon: 'video',
-        isActive: false,
-        items: [
-          {
-            title: '添加视频',
-            url: '/dashboard/videos/new'
-          },
-          {
-            title: '视频列表',
-            url: '/dashboard/videos'
-          },
-          {
-            title: '订单管理',
-            url: '/dashboard/video-orders'
-          },
-          {
-            title: '评论管理',
-            url: '/dashboard/video-comments'
-          },
-          {
-            title: '发票管理',
-            url: '/dashboard/video-invoices'
-          },
-          {
-            title: '供应商管理',
-            url: '/dashboard/video-suppliers'
-          }
-        ]
-      },
-      {
-        title: '案例管理',
-        url: '#',
-        icon: 'post',
-        isActive: false,
-        items: [
-          {
-            title: '案例列表',
-            url: '/dashboard/trainers/cases'
-          },
-          {
-            title: '推荐管理',
-            url: '/dashboard/trainers/cases/recommended'
-          }
-        ]
-      },
-      {
-        title: '精彩瞬间管理',
-        url: '/dashboard/trainers/highlights',
-        icon: 'media',
+        title: '专家助理管理',
+        url: '/dashboard/assistants',
+        icon: 'headset',
         isActive: false,
         items: []
-      },
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
       {
-        title: '著作管理',
-        url: '#',
-        icon: 'books',
+        title: '需求管理',
+        url: '/dashboard/demands',
+        icon: 'forms',
         isActive: false,
-        items: [
-          {
-            title: '添加著作',
-            url: '/dashboard/books/list/new'
-          },
-          {
-            title: '著作列表',
-            url: '/dashboard/books/list'
-          }
-        ]
-      },
+        items: []
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
       {
-        title: '素材库',
-        url: '#',
-        icon: 'media',
+        title: '留言管理',
+        url: '/dashboard/trainer-messages',
+        icon: 'message',
         isActive: false,
-        items: [
-          {
-            title: '课程封面素材库',
-            url: '/dashboard/materials?tab=cover'
-          },
-          {
-            title: '头像素材库',
-            url: '/dashboard/materials?tab=avatar'
-          }
-        ]
-      },
+        items: []
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
       {
-        title: '评价管理',
-        url: '/dashboard/training-reviews',
-        icon: 'star',
+        title: '企业采购方管理',
+        url: '/dashboard/enterprise-buyers',
+        icon: 'briefcase',
         isActive: false,
         items: []
       }
@@ -285,11 +288,15 @@ export const navGroups: NavGroup[] = [
         isActive: false,
         items: [
           {
-            title: '爬取课程',
+            title: '审核专家',
+            url: '/dashboard/crawl/trainers'
+          },
+          {
+            title: '审核课程',
             url: '/dashboard/crawl/courses'
           },
           {
-            title: '爬取任务',
+            title: '任务进程',
             url: '/dashboard/crawl/jobs'
           },
           {
@@ -301,22 +308,54 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '平台运营管理',
+    label: '',
     items: [
       {
-        title: '需求管理',
-        url: '/dashboard/demands',
-        icon: 'forms',
+        title: '分类管理',
+        url: '#',
+        icon: 'tags',
         isActive: false,
-        items: []
-      },
+        items: [
+          {
+            title: '课程分类',
+            url: '/dashboard/categories/course-category'
+          },
+          {
+            title: '专家擅长领域',
+            url: '/dashboard/categories/trainer-expertise'
+          },
+          {
+            title: '专家擅长行业',
+            url: '/dashboard/categories/trainer-industry'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
       {
         title: '通知管理',
-        url: '/dashboard/notification-templates',
+        url: '#',
         icon: 'notification',
         isActive: false,
-        items: []
-      },
+        items: [
+          {
+            title: '通知模板管理',
+            url: '/dashboard/notification-templates'
+          },
+          {
+            title: '发送通知消息',
+            url: '/dashboard/notifications/send'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    label: '',
+    items: [
       {
         title: '角色管理',
         url: '/dashboard/roles',
@@ -330,46 +369,31 @@ export const navGroups: NavGroup[] = [
         icon: 'permission',
         isActive: false,
         items: []
-      },
-      {
-        title: '广告管理',
-        url: '/dashboard/advertisements',
-        icon: 'ad',
-        isActive: false,
-        items: []
       }
     ]
   },
   {
-    label: '系统管理',
+    label: '',
     items: [
       {
-        title: '系统设置',
-        url: '/dashboard/settings',
+        title: '系统管理',
+        url: '#',
         icon: 'settings',
         isActive: false,
-        items: []
-      },
-      {
-        title: '敏感词管理',
-        url: '/dashboard/sensitive-words',
-        icon: 'eyeOff',
-        isActive: false,
-        items: []
-      },
-      {
-        title: '全文搜索管理',
-        url: '/dashboard/search',
-        icon: 'search',
-        isActive: false,
-        items: []
-      },
-      {
-        title: '合约管理',
-        url: '/dashboard/contracts',
-        icon: 'contract',
-        isActive: false,
-        items: []
+        items: [
+          {
+            title: '系统设置',
+            url: '/dashboard/settings'
+          },
+          {
+            title: '敏感词管理',
+            url: '/dashboard/sensitive-words'
+          },
+          {
+            title: '全文搜索管理',
+            url: '/dashboard/search'
+          }
+        ]
       }
     ]
   }

@@ -24,8 +24,11 @@ public class CrawledCourseDetailVO {
     // 核心信息
     private String title;
     private String type;
+    private String typeLabel;
     private Integer categoryId;
     private Integer subCategoryId;
+    private String categoryName;
+    private String subCategoryName;
     private String categoryNameRaw;
     private String coverUrl;
     private String intro;
@@ -36,6 +39,9 @@ public class CrawledCourseDetailVO {
     private Integer durationDays;
     private BigDecimal totalHours;
     private BigDecimal price;
+    private String priceRaw;
+    private String priceParseStatus;
+    private String contentType;
     private BigDecimal originalPrice;
     private String keywords;
     private String trainerNameRaw;
@@ -49,6 +55,11 @@ public class CrawledCourseDetailVO {
     private Integer dedupStatus;
     private String dedupStatusText;
     private Integer dedupCourseId;
+    private String dedupTargetType;
+    private Integer dedupTargetId;
+    private String dedupMatchType;
+    private Integer dedupScore;
+    private LocalDateTime dedupCheckedAt;
     private String dedupReason;
 
     // 审核
@@ -60,13 +71,19 @@ public class CrawledCourseDetailVO {
 
     private LocalDateTime createdAt;
     private List<Map<String, Object>> servicesList;
+    private List<Map<String, Object>> diagnostics;
     private Map<String, Object> rawJson;
 
     @Data
     public static class PlanItem {
         private String startTime;
         private String endTime;
+        private String startDate;
+        private Integer provinceId;
+        private Integer cityId;
+        private Integer districtId;
         private String city;
         private String address;
+        private String onlineUrl;
     }
 }

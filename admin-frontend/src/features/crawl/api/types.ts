@@ -11,6 +11,11 @@ export type CrawledTrainer = {
   experienceYears: number | null;
   dedupStatus: number;
   dedupStatusText: string;
+  dedupTargetType: string | null;
+  dedupTargetId: number | null;
+  dedupMatchType: string | null;
+  dedupScore: number | null;
+  dedupCheckedAt: string | null;
   dedupReason: string | null;
   reviewStatus: number;
   reviewStatusText: string;
@@ -112,16 +117,32 @@ export type CrawledCourse = {
   sourceUrl: string;
   title: string;
   type: string;
+  typeLabel: string | null;
+  categoryId: number;
+  subCategoryId: number;
+  categoryName: string | null;
+  subCategoryName: string | null;
   categoryNameRaw: string | null;
   coverUrl: string | null;
   price: number;
+  priceRaw: string | null;
+  priceParseStatus: string | null;
+  contentType: string | null;
   durationDays: number;
   trainerNameRaw: string | null;
   dedupStatus: number;
   dedupStatusText: string;
+  dedupTargetType: string | null;
+  dedupTargetId: number | null;
+  dedupMatchType: string | null;
+  dedupScore: number | null;
+  dedupCheckedAt: string | null;
   dedupReason: string | null;
   reviewStatus: number;
   reviewStatusText: string;
+  reviewRejectReason: string | null;
+  reviewedAt: string | null;
+  importedCourseId: number | null;
   createdAt: string;
 };
 
@@ -133,8 +154,11 @@ export type CrawledCourseDetail = {
   sourceCourseId: string | null;
   title: string;
   type: string;
+  typeLabel: string | null;
   categoryId: number;
   subCategoryId: number;
+  categoryName: string | null;
+  subCategoryName: string | null;
   categoryNameRaw: string | null;
   coverUrl: string | null;
   intro: string | null;
@@ -145,6 +169,9 @@ export type CrawledCourseDetail = {
   durationDays: number;
   totalHours: number;
   price: number;
+  priceRaw: string | null;
+  priceParseStatus: string | null;
+  contentType: string | null;
   originalPrice: number;
   keywords: string | null;
   trainerNameRaw: string | null;
@@ -154,6 +181,11 @@ export type CrawledCourseDetail = {
   dedupStatus: number;
   dedupStatusText: string;
   dedupCourseId: number | null;
+  dedupTargetType: string | null;
+  dedupTargetId: number | null;
+  dedupMatchType: string | null;
+  dedupScore: number | null;
+  dedupCheckedAt: string | null;
   dedupReason: string | null;
   reviewStatus: number;
   reviewStatusText: string;
@@ -162,20 +194,59 @@ export type CrawledCourseDetail = {
   importedCourseId: number | null;
   createdAt: string;
   servicesList: MediaAsset[] | null;
+  diagnostics: CrawlDiagnostic[] | null;
   rawJson: Record<string, unknown> | null;
+};
+
+export type CrawlDiagnostic = {
+  field?: string;
+  reason?: string;
+  raw?: string;
+  message?: string;
 };
 
 export type PlanItem = {
   startTime: string;
   endTime: string;
+  startDate?: string;
+  provinceId?: number;
+  cityId?: number;
+  districtId?: number;
   city: string;
   address: string;
+  onlineUrl?: string;
+  status?: string;
 };
 
 export type MediaAsset = {
   type?: string;
   url?: string;
   label?: string;
+};
+
+export type CrawledCourseEditPayload = {
+  categoryId?: number;
+  subCategoryId?: number;
+  trainerId?: number;
+  title?: string;
+  type?: string;
+  categoryNameRaw?: string;
+  coverUrl?: string;
+  intro?: string;
+  summary?: string;
+  syllabus?: string;
+  audience?: string;
+  highlights?: string;
+  durationDays?: number;
+  totalHours?: number;
+  price?: number;
+  originalPrice?: number;
+  keywords?: string;
+  trainerNameRaw?: string;
+  targetAudience?: string;
+  learningOutcomes?: string;
+  plansJson?: Record<string, unknown>[];
+  forceImport?: boolean;
 };
 
 /** 爬虫任务（对齐 CrawlJobVO） */

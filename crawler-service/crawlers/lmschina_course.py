@@ -14,6 +14,7 @@ from datetime import datetime
 from http.cookiejar import CookieJar
 from typing import Any, AsyncGenerator, Dict, List
 
+from crawlers.course_utils import append_diagnostic, detect_content_type, enrich_course_record, set_price_fields
 from crawlers.media import media_asset
 
 
@@ -22,6 +23,7 @@ API_URL = f"{BASE_URL}/api/bdm/activity/getBasicEntityPage/activity_.shtml"
 PAGE_SIZE = 50
 MISSING = "暂无"
 HELPER_NAMES = {"培训小助手"}
+NON_COURSE_CONTENT_TYPES = {"RECORDED_VIDEO", "DOCUMENT", "AUDIO"}
 
 
 def timestamp_ms() -> int:
@@ -62,6 +64,32 @@ def clean_html(value: Any) -> str:
     return text
 
 
+def first_present(*values: Any, default: str = "") -> str:
+    for value in values:
+        text = clean_html(value)
+        if text:
+            return text
+    return default
+
+
+def normalize_price_raw(value: Any) -> str:
+    if value in (None, ""):
+        return MISSING
+    if isinstance(value, (int, float)):
+        return f"{float(value) / 100:.2f}"
+    return clean_html(value)
+
+
+def money_yuan(value: Any) -> float:
+    if value in (None, ""):
+        return 0.0
+    if isinstance(value, (int, float)):
+        return round(float(value) / 100, 2)
+    text = clean_html(value)
+    match = re.search(r"\d+(?:\.\d+)?", text.replace(",", ""))
+    return float(match.group()) if match else 0.0
+
+
 def extract_trainer_name(row: Dict[str, Any]) -> str:
     teachers = row.get("teachers", []) or []
     names: list[str] = []
@@ -78,6 +106,78 @@ def extract_trainer_name(row: Dict[str, Any]) -> str:
     if row.get("creator_role") == "TRAINER" and creator_name and creator_name not in HELPER_NAMES:
         return creator_name
     return MISSING
+
+
+def detect_lmschina_content_type(row: Dict[str, Any], detail: Dict[str, Any] | None = None) -> str:
+    detail = detail or {}
+    haystack = " ".join(
+        clean_html(value)
+        for value in (
+            row.get("activity_name"),
+            row.get("activity_type"),
+            row.get("activity_subtype"),
+            row.get("activity_desc"),
+            row.get("activity_summary"),
+            row.get("train_time_range"),
+            detail.get("summary"),
+            detail.get("objective"),
+        )
+    )
+    media_texts = detail.get("summary_media_texts", []) or []
+    media_types = " ".join(
+        clean_html(media.get("type", ""))
+        for media in media_texts
+        if isinstance(media, dict)
+    )
+    activity_type = str(row.get("activity_type", "") or "").upper()
+    activity_subtype = str(row.get("activity_subtype", "") or "").upper()
+    if activity_subtype in {"VIDEO", "RECORDED", "VOD"} or "VIDEO" in activity_type:
+        return "RECORDED_VIDEO"
+    if activity_subtype in {"DOC", "DOCUMENT", "ARTICLE"} or activity_type in {"DOCUMENT", "ARTICLE"}:
+        return "DOCUMENT"
+    if activity_subtype in {"AUDIO", "VOICE"} or activity_type == "AUDIO":
+        return "AUDIO"
+    if row.get("has_courseware") or row.get("course_count"):
+        return detect_content_type(haystack, media_types, "线上课程")
+    return detect_content_type(haystack, media_types)
+
+
+def build_plans(row: Dict[str, Any]) -> List[Dict[str, str]]:
+    train_time_range = clean_html(row.get("train_time_range", ""))
+    if not train_time_range or train_time_range == "不限":
+        return []
+    plan: Dict[str, str] = {"status": "待确认", "time_range": train_time_range}
+    if any(word in train_time_range for word in ("线上", "在线", "直播", "远程")):
+        plan["location"] = "在线课程"
+        plan["online_url"] = row.get("online_url", "") or ""
+        return [plan]
+    location = first_present(row.get("city_name"), row.get("city"), row.get("address"), row.get("train_address"))
+    if location:
+        plan["location"] = location
+    elif train_time_range:
+        plan["location"] = train_time_range
+    return [plan]
+
+
+def classify_lmschina_course(row: Dict[str, Any], content_type: str, plans: List[Dict[str, str]]) -> tuple[str, str]:
+    activity_type = str(row.get("activity_type", "") or "").upper()
+    activity_subtype = str(row.get("activity_subtype", "") or "").upper()
+    train_time_range = clean_html(row.get("train_time_range", ""))
+    if content_type in NON_COURSE_CONTENT_TYPES:
+        return "OPEN_ONLINE", f"non_course_content:{content_type}"
+    if activity_type == "CLASS" and plans:
+        if all("online_url" in plan or any(word in clean_html(plan.get("location", "")) for word in ("在线", "线上", "直播", "远程")) for plan in plans):
+            return "OPEN_ONLINE", "class_online_schedule"
+        return "OPEN_OFFLINE", "class_offline_schedule"
+    if activity_type == "CLASS":
+        return "INTERNAL", "class_without_public_schedule"
+    if row.get("has_courseware") or row.get("course_count") or activity_type == "COURSE":
+        return "OPEN_ONLINE", "courseware_or_course_resource"
+    if activity_subtype in {"LECTURER_SERVICE", "TRAINER_SERVICE", "SOLUTION", "CUSTOM"}:
+        return "INTERNAL", "service_or_solution"
+    if any(word in train_time_range for word in ("线上", "在线", "直播", "远程")):
+        return "OPEN_ONLINE", "online_keyword"
+    return "INTERNAL", "fallback_internal"
 
 
 def enrich_course_from_detail(item: Dict[str, Any], detail: Dict[str, Any]) -> None:
@@ -99,14 +199,17 @@ def enrich_course_from_detail(item: Dict[str, Any], detail: Dict[str, Any]) -> N
         item["intro"] = image_summary
         item["summary"] = image_summary
         item["syllabus"] = image_summary
+        append_diagnostic(item, "detail_text", "image_only_detail", image_urls[0])
 
-    target_users = detail.get("target_users") or clean_html(detail.get("target_users_locales") or "")
-    objective = detail.get("objective") or clean_html(detail.get("objective_locales") or "")
+    target_users = first_present(detail.get("target_users"), detail.get("target_users_locales"))
+    objective = first_present(detail.get("objective"), detail.get("objective_locales"), detail.get("learning_objective"))
     if target_users:
         item["audience"] = str(target_users)
         item["target_audience"] = str(target_users)
     if objective:
         item["learning_outcomes"] = str(objective)
+        if item.get("highlights") in (MISSING, "", None):
+            item["highlights"] = str(objective)[:500]
 
     catalogs = detail.get("catalogs", []) or []
     if catalogs and catalogs[0].get("name"):
@@ -122,27 +225,38 @@ def enrich_course_from_detail(item: Dict[str, Any], detail: Dict[str, Any]) -> N
         "detail": detail,
         "media_assets": services,
     }
+    row = item["raw_json"].get("row", item["raw_json"])
+    content_type = detect_lmschina_content_type(row, detail)
+    item["raw_json"]["content_type"] = content_type
+    if content_type in NON_COURSE_CONTENT_TYPES:
+        append_diagnostic(item, "content_type", "non_course_content", content_type)
 
 
 def map_course(row: Dict[str, Any]) -> Dict[str, Any]:
     catalogs = row.get("catalogs", []) or []
     category_name = catalogs[0].get("name", "") if catalogs else ""
     activity_type = row.get("activity_type", "")
+    activity_subtype = row.get("activity_subtype", "")
     source_id = str(row.get("id", "") or "")
+    train_time_range = row.get("train_time_range", "") or ""
+    content_type = detect_lmschina_content_type(row)
+    plans = build_plans(row)
+    course_type, type_evidence = classify_lmschina_course(row, content_type, plans)
 
     cover_url = row.get("activity_cover", "") or ""
-    return {
+    record = {
         "source_course_id": source_id,
         "source_url": f"{BASE_URL}/static/admin/#/activity/detail/{source_id}",
         "title": row.get("activity_name", "") or MISSING,
-        "type": "OPEN_OFFLINE" if activity_type != "COURSE" else "INTERNAL",
+        "type": course_type,
         "category_name_raw": category_name or MISSING,
         "cover_url": cover_url,
         "duration_days": row.get("class_hour", 0) or 0,
-        "train_time_range": row.get("train_time_range", "") or "",
+        "train_time_range": train_time_range,
         "trainer_name_raw": extract_trainer_name(row),
-        "price": row.get("enroll_fee", 0) or 0,
-        "original_price": row.get("site_lease_fee", 0) or 0,
+        "price": money_yuan(row.get("enroll_fee", 0)),
+        "price_raw": normalize_price_raw(row.get("enroll_fee", "")),
+        "original_price": money_yuan(row.get("site_lease_fee", 0)),
         "org_name": row.get("org_name", "") or "",
         "course_count": row.get("course_count", 0) or 0,
         "visit_count": row.get("visits_amount", 0) or 0,
@@ -156,16 +270,28 @@ def map_course(row: Dict[str, Any]) -> Dict[str, Any]:
         "target_audience": MISSING,
         "learning_outcomes": MISSING,
         "syllabus": MISSING,
-        "plans_json": [],
+        "plans_json": plans,
         "evaluation_json": [],
         "services_json": [],
         "popularity": row.get("upvote_amount", 0) or 0,
-        "reference_price": row.get("site_buyout_fee", 0) or 0,
+        "reference_price": money_yuan(row.get("site_buyout_fee", 0)),
         "raw_json": {
-            **row,
+            "row": row,
+            "source_price_unit": "cent",
+            "source_enroll_fee": row.get("enroll_fee"),
+            "source_site_lease_fee": row.get("site_lease_fee"),
+            "source_site_buyout_fee": row.get("site_buyout_fee"),
+            "activity_type": activity_type,
+            "activity_subtype": activity_subtype,
+            "source_entry": "activity_api",
+            "source_entry_name": "课程商城/活动 API",
+            "content_type": content_type,
+            "type_evidence": type_evidence,
             "media_assets": [media_asset("cover", cover_url, "课程封面")] if cover_url else [],
         },
     }
+    set_price_fields(record, record["price_raw"])
+    return record
 
 
 def iter_lmschina_courses(max_items: int | None = None):
@@ -205,6 +331,13 @@ def iter_lmschina_courses(max_items: int | None = None):
                     }
             except Exception as exc:
                 item["raw_json"] = {**item.get("raw_json", {}), "detail_error": str(exc)}
+            if item["raw_json"].get("content_type") in NON_COURSE_CONTENT_TYPES:
+                continue
+            original_type = item.get("type") or "INTERNAL"
+            original_type_evidence = item.get("raw_json", {}).get("type_evidence", "lmschina_source_classification")
+            enrich_course_record(item, fallback_type=original_type)
+            item["type"] = original_type
+            item["raw_json"]["type_evidence"] = original_type_evidence
             yield item
             emitted += 1
             if max_items and emitted >= max_items:
@@ -229,6 +362,8 @@ class LmschinaCourseSpider:
     source = "lmschina"
     data_type = "COURSE"
     max_items = None
+    supported_course_types = ("INTERNAL", "OPEN_OFFLINE", "OPEN_ONLINE")
+    coverage_note = "企业学习平台源，需按活动类型和内容形态区分内训、公开课和线上资源。"
 
     def pause(self) -> None:
         """兼容 JobManager 的取消流程。"""

@@ -4,14 +4,27 @@ import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
-function Table({ className, ...props }: React.ComponentProps<'table'>) {
+type TableProps = React.ComponentProps<'table'> & {
+  containerClassName?: string;
+  scrollContainerClassName?: string;
+};
+
+function Table({ className, containerClassName, scrollContainerClassName, ...props }: TableProps) {
   return (
-    <div data-slot='table-container' className='relative w-full'>
-      <table
-        data-slot='table'
-        className={cn('w-full caption-bottom text-sm', className)}
-        {...props}
-      />
+    <div className={cn('max-w-full', containerClassName)}>
+      <div
+        data-slot='table-container'
+        className={cn(
+          'relative max-w-full overflow-x-auto overscroll-x-contain pb-2',
+          scrollContainerClassName
+        )}
+      >
+        <table
+          data-slot='table'
+          className={cn('w-max min-w-full caption-bottom text-sm', className)}
+          {...props}
+        />
+      </div>
     </div>
   );
 }

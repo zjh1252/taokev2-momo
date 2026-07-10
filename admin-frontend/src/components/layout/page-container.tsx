@@ -25,7 +25,8 @@ export default function PageContainer({
   accessFallback,
   pageTitle,
   pageDescription,
-  pageHeaderAction
+  pageHeaderAction,
+  stickyHeader = true
 }: {
   children: React.ReactNode;
   scrollable?: boolean;
@@ -35,14 +36,13 @@ export default function PageContainer({
   pageTitle?: string;
   pageDescription?: string;
   pageHeaderAction?: React.ReactNode;
+  stickyHeader?: boolean;
 }) {
   if (!access) {
     return (
       <div className='flex flex-1 items-center justify-center p-4 md:px-6'>
         {accessFallback ?? (
-          <div className='text-muted-foreground text-center text-lg'>
-            您没有权限访问此页面
-          </div>
+          <div className='text-muted-foreground text-center text-lg'>您没有权限访问此页面</div>
         )}
       </div>
     );
@@ -55,11 +55,13 @@ export default function PageContainer({
   const inner = (
     <div className='flex flex-1 flex-col p-4 md:px-6'>
       {hasHeader && (
-        <div className='bg-background sticky top-0 z-10 mb-4 flex items-start justify-between gap-4 pb-4'>
-          <Heading
-            title={pageTitle ?? ''}
-            description={pageDescription ?? ''}
-          />
+        <div
+          className={[
+            'mb-4 flex items-start justify-between gap-4 pb-4',
+            stickyHeader ? 'bg-background sticky top-0 z-10' : ''
+          ].join(' ')}
+        >
+          <Heading title={pageTitle ?? ''} description={pageDescription ?? ''} />
           {pageHeaderAction && <div className='shrink-0'>{pageHeaderAction}</div>}
         </div>
       )}

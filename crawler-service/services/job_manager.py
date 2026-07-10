@@ -32,7 +32,25 @@ class JobManager:
         from crawlers.zpedu_trainer import ZpeduTrainerSpider
         from crawlers.jiangshitai_course import JiangshitaiCourseSpider
         from crawlers.jiangshitai_trainer import JiangshitaiTrainerSpider
-        from crawlers.peixun_trainer import PeixunTrainerSpider
+        from crawlers.shchance_course import ShchanceCourseSpider
+        from crawlers.qiyingschool_course import QiyingSchoolCourseSpider
+        from crawlers.champconsult_course import ChampconsultCourseSpider
+        from crawlers.free863_course import Free863CourseSpider
+        from crawlers.chinacpx_course import ChinacpxCourseSpider
+        from crawlers.qgpx_course import QgpxCourseSpider
+        from crawlers.gaopei_course import GaopeiCourseSpider
+        from crawlers.vmta_course import VmtaCourseSpider
+        from crawlers.hztbc_course import HztbcCourseSpider
+        from crawlers.easyfinance_course import EasyFinanceCourseSpider
+        from crawlers.jyqc_course import JyqcCourseSpider
+        from crawlers.zqzhpx_course import ZqzhpxCourseSpider
+        from crawlers.keycourse_course import KeycourseCourseSpider
+        from crawlers.qianjinyuan_course import QianjinyuanCourseSpider
+        from crawlers.hjcn_course import HjcnCourseSpider
+        from crawlers.learnbank_course import LearnbankCourseSpider
+        from crawlers.bosum_course import BosumCourseSpider
+        from crawlers.huide_course import HuideCourseSpider
+        from crawlers.beiuec_course import BeiuecCourseSpider
 
         return {
             "jiangshibao_trainer": JiangshiBaoTrainerSpider,
@@ -47,7 +65,25 @@ class JobManager:
             "zpedu_course": ZpeduCourseSpider,
             "jiangshitai_trainer": JiangshitaiTrainerSpider,
             "jiangshitai_course": JiangshitaiCourseSpider,
-            "peixun_trainer": PeixunTrainerSpider,
+            "shchance_course": ShchanceCourseSpider,
+            "qiyingschool_course": QiyingSchoolCourseSpider,
+            "champconsult_course": ChampconsultCourseSpider,
+            "free863_course": Free863CourseSpider,
+            "chinacpx_course": ChinacpxCourseSpider,
+            "qgpx_course": QgpxCourseSpider,
+            "gaopei_course": GaopeiCourseSpider,
+            "vmta_course": VmtaCourseSpider,
+            "hztbc_course": HztbcCourseSpider,
+            "easyfinance_course": EasyFinanceCourseSpider,
+            "jyqc_course": JyqcCourseSpider,
+            "zqzhpx_course": ZqzhpxCourseSpider,
+            "keycourse_course": KeycourseCourseSpider,
+            "qianjinyuan_course": QianjinyuanCourseSpider,
+            "hjcn_course": HjcnCourseSpider,
+            "learnbank_course": LearnbankCourseSpider,
+            "bosum_course": BosumCourseSpider,
+            "huide_course": HuideCourseSpider,
+            "beiuec_course": BeiuecCourseSpider,
         }
 
     def get_available_sources(self) -> List[Dict[str, str]]:
@@ -125,19 +161,124 @@ class JobManager:
                 "url": "https://www.jiangshitai.com",
                 "data_type": "COURSE",
             },
+            {
+                "code": "shchance",
+                "name": "上海强思企管",
+                "url": "http://www.shchance.com.cn",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "qiyingschool",
+                "name": "企赢培训学院",
+                "url": "https://www.qiyingschool.com",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "champconsult",
+                "name": "冠卓顾问",
+                "url": "http://www.champconsult.com",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "free863",
+                "name": "复锐咨询",
+                "url": "https://www.free863.com",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "chinacpx",
+                "name": "中培网",
+                "url": "https://www.chinacpx.com",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "qgpx",
+                "name": "中华企管培训网",
+                "url": "https://www.qgpx.com",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "gaopei",
+                "name": "高培商院",
+                "url": "http://www.gaopei.org",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "vmta",
+                "name": "健峰企管集团",
+                "url": "https://www.vmta.com",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "hztbc",
+                "name": "时代光华",
+                "url": "https://www.hztbc.com",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "easyfinance",
+                "name": "安越财商院",
+                "url": "https://www.easyfinance.com.cn",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "jyqc",
+                "name": "锦业企程",
+                "url": "http://www.jyqc.cn",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "zqzhpx",
+                "name": "中企智慧培训",
+                "url": "http://www.zqzhpx.com",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "keycourse",
+                "name": "睿选优课",
+                "url": "https://www.keycourse.com",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "qianjinyuan",
+                "name": "前锦园",
+                "url": "http://www.qianjinyuan.org",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "hjcn",
+                "name": "HJCN",
+                "url": "http://www.hjcn.com",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "learnbank",
+                "name": "Learnbank",
+                "url": "http://www.learnbank.com.cn",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "bosum",
+                "name": "博商管理科学研究院",
+                "url": "https://bosum.com",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "huide",
+                "name": "惠德培训",
+                "url": "http://www.huide.net",
+                "data_type": "COURSE",
+            },
+            {
+                "code": "beiuec",
+                "name": "上海倍跃企业管理咨询",
+                "url": "http://www.beiuec.com",
+                "data_type": "COURSE",
+            },
         ]
-
-    def _spider_key(self, source: str, data_type: str) -> str:
-        return f"{source}_{data_type.lower()}"
 
     def create_job(self, request: CrawlJobRequest) -> str:
         """创建爬取任务。"""
-        spider_key = self._spider_key(request.source, request.data_type)
-        if spider_key not in self._spider_registry:
-            raise ValueError(
-                f"未找到爬虫: {spider_key}，请先在 crawler-service 中实现并注册对应爬虫"
-            )
-
         job_id = str(uuid.uuid4())[:8]
         self._jobs[job_id] = {
             "id": job_id,
@@ -186,19 +327,18 @@ class JobManager:
         job = self._jobs[job_id]
         job["status"] = "running"
 
-        callback = CallbackService(
-            callback_url=job.get("callback_url"),
-            callback_token=job.get("callback_token"),
-        )
-
-        spider_key = self._spider_key(job["source"], job["data_type"])
+        spider_key = f"{job['source']}_{job['data_type'].lower()}"
         SpiderClass = self._spider_registry.get(spider_key)
         if not SpiderClass:
             job["status"] = "failed"
             job["error"] = f"未找到爬虫: {spider_key}"
             logger.error(f"未找到爬虫: {spider_key}")
-            await callback.notify_error(job_id, job["error"])
             return
+
+        callback = CallbackService(
+            callback_url=job.get("callback_url"),
+            callback_token=job.get("callback_token"),
+        )
 
         try:
             spider = SpiderClass()
