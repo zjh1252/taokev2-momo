@@ -123,7 +123,7 @@ public class SearchSyncScheduler {
      * @param provider    文档提供者
      * @param targetIndex 目标索引（null 则使用默认索引）
      */
-    public void fullReindex(DocumentSyncProvider provider, String targetIndex) {
+    public long fullReindex(DocumentSyncProvider provider, String targetIndex) {
         String index = (targetIndex != null && !targetIndex.isBlank())
                 ? targetIndex : properties.getIndexName();
         String docType = provider.getDocType();
@@ -141,6 +141,7 @@ public class SearchSyncScheduler {
         stringRedisTemplate.opsForValue().set(redisKey, now.format(FORMATTER));
 
         log.info("全量重建完成: docType={}, count={}, targetIndex={}", docType, all.size(), index);
+        return all.size();
     }
 
     /**

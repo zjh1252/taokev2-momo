@@ -137,6 +137,31 @@ public class SearchIndexService {
     }
 
     /**
+     * 列出索引及基础统计信息，供后台管理页展示。
+     */
+    public List<SearchIndexInfo> listIndexInfos() {
+        String defaultIndex = properties.getIndexName();
+        return listIndices().stream()
+                .sorted()
+                .map(name -> new SearchIndexInfo(name, defaultIndex.equals(name), countDocuments(name)))
+                .toList();
+    }
+
+    /**
+     * 统计指定索引中的文档数量。索引不存在时返回 0，避免管理页因空环境不可用。
+     */
+    public long countDocuments(String indexName) {
+        try {
+            return esClient.count(c -> c.index(indexName)).count();
+        } catch (Exception e) {
+            if (isIndexNotFound(e)) {
+                return 0L;
+            }
+            throw new SearchException(ErrorCode.SEARCH_INDEX_ERROR, "统计索引文档数失败: " + indexName, e);
+        }
+    }
+
+    /**
      * 批量写入文档到指定索引
      *
      * @param indexName 目标索引

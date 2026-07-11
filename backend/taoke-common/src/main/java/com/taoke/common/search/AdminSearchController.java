@@ -11,7 +11,9 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -35,6 +37,19 @@ public class AdminSearchController {
     @GetMapping("/admin/search/indices")
     public ApiResponse<Set<String>> listIndices() {
         return ApiResponse.ok(searchIndexService.listIndices());
+    }
+
+    @Operation(summary = "后台全文搜索管理概览")
+    @GetMapping("/admin/search/overview")
+    public ApiResponse<SearchManagementOverview> overview() {
+        List<String> docTypes = syncScheduler.getProviders().stream()
+                .map(DocumentSyncProvider::getDocType)
+                .toList();
+        return ApiResponse.ok(new SearchManagementOverview(
+                searchIndexService.getDefaultIndexName(),
+                searchIndexService.listIndexInfos(),
+                docTypes
+        ));
     }
 
     @Operation(summary = "创建索引")
@@ -67,16 +82,18 @@ public class AdminSearchController {
     @Operation(summary = "全量重建所有文档类型")
     @PostMapping("/admin/search/reindex")
     public ApiResponse<ReindexResult> reindexAll(@RequestBody(required = false) ReindexRequest request) {
-        String targetIndex = (request != null) ? request.getTargetIndex() : null;
+        String targetIndex = resolveTargetIndex(request);
+        Map<String, Long> indexedCounts = new LinkedHashMap<>();
 
         List<String> docTypes = syncScheduler.getProviders().stream()
                 .map(provider -> {
-                    syncScheduler.fullReindex(provider, targetIndex);
-                    return provider.getDocType();
+                    String docType = provider.getDocType();
+                    indexedCounts.put(docType, syncScheduler.fullReindex(provider, targetIndex));
+                    return docType;
                 })
                 .toList();
 
-        return ApiResponse.ok(new ReindexResult(docTypes, "全量重建完成"));
+        return ApiResponse.ok(new ReindexResult(docTypes, "全量重建完成", targetIndex, indexedCounts));
     }
 
     @Operation(summary = "按文档类型全量重建")
@@ -90,10 +107,22 @@ public class AdminSearchController {
             throw new SearchException(ErrorCode.SEARCH_INDEX_ERROR, "未找到文档类型: " + docType);
         }
 
-        String targetIndex = (request != null) ? request.getTargetIndex() : null;
-        syncScheduler.fullReindex(provider, targetIndex);
+        String targetIndex = resolveTargetIndex(request);
+        long indexedCount = syncScheduler.fullReindex(provider, targetIndex);
 
-        return ApiResponse.ok(new ReindexResult(List.of(docType), "重建完成"));
+        return ApiResponse.ok(new ReindexResult(
+                List.of(docType),
+                "重建完成",
+                targetIndex,
+                Map.of(docType, indexedCount)
+        ));
+    }
+
+    private String resolveTargetIndex(ReindexRequest request) {
+        if (request != null && request.getTargetIndex() != null && !request.getTargetIndex().isBlank()) {
+            return request.getTargetIndex();
+        }
+        return searchIndexService.getDefaultIndexName();
     }
 
     // ==================== 请求/响应 DTO ====================
@@ -113,5 +142,7 @@ public class AdminSearchController {
     public static class ReindexResult {
         private final List<String> docTypes;
         private final String message;
+        private final String targetIndex;
+        private final Map<String, Long> indexedCounts;
     }
 }

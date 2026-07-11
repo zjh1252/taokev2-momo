@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Icons } from '@/components/icons';
+import { AlertModal } from '@/components/modal/alert-modal';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,104 +15,193 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { AlertModal } from '@/components/modal/alert-modal';
-import { indicesQueryOptions, searchKeys } from '../api/queries';
-import { createIndex, deleteIndex, reindexAll, reindexByType, putMapping } from '../api/service';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { createIndex, deleteIndex, putMapping, reindexAll, reindexByType } from '../api/service';
+import { searchKeys, searchOverviewQueryOptions } from '../api/queries';
+import type { ReindexResult } from '../api/types';
 
-const DEFAULT_INDEX = 'taokev2app';
+const DOC_TYPE_LABELS: Record<string, string> = {
+  course: '课程',
+  trainer: '专家'
+};
+
+function docTypeLabel(docType: string) {
+  return DOC_TYPE_LABELS[docType] ?? docType;
+}
+
+function formatNumber(value?: number) {
+  return new Intl.NumberFormat('zh-CN').format(value ?? 0);
+}
+
+function formatReindexResult(result?: ReindexResult) {
+  if (!result) return '重建完成';
+
+  const counts = result.docTypes
+    .map((docType) => `${docTypeLabel(docType)} ${formatNumber(result.indexedCounts?.[docType])} 条`)
+    .join('，');
+
+  return `已重建到 ${result.targetIndex}：${counts}`;
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
 
 export function SearchManagement() {
   const queryClient = useQueryClient();
-  const { data: indicesResp, isLoading } = useQuery(indicesQueryOptions());
+  const {
+    data: overviewResp,
+    isLoading,
+    isFetching,
+    error,
+    refetch
+  } = useQuery(searchOverviewQueryOptions());
 
-  const indices = indicesResp?.data ?? [];
+  const overview = overviewResp?.data;
+  const defaultIndex = overview?.defaultIndex ?? 'taokev2app';
+  const indices = overview?.indices ?? [];
+  const docTypes = overview?.docTypes ?? [];
+  const totalDocuments = indices.reduce((sum, item) => sum + item.documentCount, 0);
 
-  // --------------- 创建索引 ---------------
   const [createOpen, setCreateOpen] = useState(false);
   const [newIndexName, setNewIndexName] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [reindexConfirm, setReindexConfirm] = useState<string | null>(null);
+  const [targetIndex, setTargetIndex] = useState('default');
+
+  const requestTargetIndex = targetIndex === 'default' ? undefined : targetIndex;
+
+  const refreshOverview = () => {
+    queryClient.invalidateQueries({ queryKey: searchKeys.overview() });
+    queryClient.invalidateQueries({ queryKey: searchKeys.indices() });
+  };
 
   const createMutation = useMutation({
     mutationFn: (name?: string) => createIndex(name),
     onSuccess: (resp) => {
-      if (resp.data) {
-        toast.success('索引创建成功');
-      } else {
-        toast.info('索引已存在');
-      }
-      queryClient.invalidateQueries({ queryKey: searchKeys.indices() });
+      toast[resp.data ? 'success' : 'info'](resp.data ? '索引创建成功' : '索引已存在');
+      refreshOverview();
       setCreateOpen(false);
       setNewIndexName('');
     },
-    onError: () => toast.error('索引创建失败')
+    onError: (error) => toast.error(errorMessage(error, '索引创建失败'))
   });
-
-  // --------------- 删除索引 ---------------
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: (name: string) => deleteIndex(name),
     onSuccess: () => {
       toast.success('索引删除成功');
-      queryClient.invalidateQueries({ queryKey: searchKeys.indices() });
+      if (deleteTarget === targetIndex) setTargetIndex('default');
+      refreshOverview();
       setDeleteTarget(null);
     },
-    onError: () => toast.error('索引删除失败')
+    onError: (error) => toast.error(errorMessage(error, '索引删除失败'))
   });
 
-  // --------------- 更新 Mapping ---------------
   const putMappingMutation = useMutation({
     mutationFn: (name: string) => putMapping(name),
     onSuccess: (resp) => {
-      if (resp.data) {
-        toast.success('Mapping 更新成功');
-      } else {
-        toast.info('索引不存在，无需更新');
-      }
+      toast[resp.data ? 'success' : 'info'](
+        resp.data ? 'Mapping 更新成功' : '索引不存在，无需更新'
+      );
     },
-    onError: () => toast.error('Mapping 更新失败')
+    onError: (error) => toast.error(errorMessage(error, 'Mapping 更新失败'))
   });
-  const [reindexConfirm, setReindexConfirm] = useState<string | null>(null);
 
   const reindexAllMutation = useMutation({
-    mutationFn: () => reindexAll(),
+    mutationFn: (target?: string) => reindexAll(target),
     onSuccess: (resp) => {
-      toast.success(resp.data?.message ?? '全量重建完成');
+      toast.success(formatReindexResult(resp.data));
+      refreshOverview();
       setReindexConfirm(null);
     },
-    onError: () => toast.error('全量重建失败')
+    onError: (error) => toast.error(errorMessage(error, '全量重建失败'))
   });
 
   const reindexTypeMutation = useMutation({
-    mutationFn: (docType: string) => reindexByType(docType),
+    mutationFn: ({ docType, target }: { docType: string; target?: string }) =>
+      reindexByType(docType, target),
     onSuccess: (resp) => {
-      toast.success(resp.data?.message ?? '重建完成');
+      toast.success(formatReindexResult(resp.data));
+      refreshOverview();
       setReindexConfirm(null);
     },
-    onError: () => toast.error('重建失败')
+    onError: (error) => toast.error(errorMessage(error, '重建失败'))
   });
 
   const handleReindexConfirm = () => {
     if (!reindexConfirm) return;
     if (reindexConfirm === 'all') {
-      reindexAllMutation.mutate();
-    } else {
-      reindexTypeMutation.mutate(reindexConfirm);
+      reindexAllMutation.mutate(requestTargetIndex);
+      return;
     }
+    reindexTypeMutation.mutate({ docType: reindexConfirm, target: requestTargetIndex });
   };
 
-  const isReindexing =
-    reindexAllMutation.isPending || reindexTypeMutation.isPending;
+  const isReindexing = reindexAllMutation.isPending || reindexTypeMutation.isPending;
+  const reindexTargetName = requestTargetIndex ?? defaultIndex;
 
   return (
     <div className='space-y-6'>
-      {/* ==================== 索引管理 ==================== */}
+      <div className='grid gap-4 md:grid-cols-3'>
+        <div className='rounded-lg border bg-card p-5'>
+          <div className='text-sm text-muted-foreground'>默认索引</div>
+          <div className='mt-2 font-mono text-base font-semibold'>{defaultIndex}</div>
+        </div>
+        <div className='rounded-lg border bg-card p-5'>
+          <div className='text-sm text-muted-foreground'>索引数量</div>
+          <div className='mt-2 text-2xl font-semibold'>{indices.length}</div>
+        </div>
+        <div className='rounded-lg border bg-card p-5'>
+          <div className='text-sm text-muted-foreground'>索引文档</div>
+          <div className='mt-2 text-2xl font-semibold'>{formatNumber(totalDocuments)}</div>
+        </div>
+      </div>
+
+      {error instanceof Error && (
+        <div className='rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive'>
+          {error.message}
+        </div>
+      )}
+
       <div className='rounded-lg border bg-card p-6'>
-        <div className='mb-4 flex items-center justify-between'>
-          <h3 className='text-lg font-semibold'>索引管理</h3>
-          <Button size='sm' onClick={() => setCreateOpen(true)}>
-            <Icons.add className='mr-2 h-4 w-4' />
-            创建索引
-          </Button>
+        <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
+          <div>
+            <h3 className='text-lg font-semibold'>索引管理</h3>
+            <div className='mt-1 flex flex-wrap gap-2'>
+              {docTypes.map((docType) => (
+                <Badge key={docType} variant='secondary'>
+                  {docTypeLabel(docType)}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          <div className='flex items-center gap-2'>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              {isFetching ? (
+                <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
+              ) : (
+                <Icons.refresh className='mr-2 h-4 w-4' />
+              )}
+              刷新
+            </Button>
+            <Button size='sm' onClick={() => setCreateOpen(true)}>
+              <Icons.add className='mr-2 h-4 w-4' />
+              创建索引
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -122,27 +213,31 @@ export function SearchManagement() {
           <p className='py-8 text-center text-muted-foreground'>暂无索引</p>
         ) : (
           <div className='divide-y rounded-md border'>
-            {indices.map((name) => (
-              <div key={name} className='flex items-center justify-between px-4 py-3'>
-                <div className='flex items-center gap-3'>
-                  <Icons.search className='h-4 w-4 text-muted-foreground' />
-                  <span className='font-mono text-sm'>{name}</span>
-                  {name === DEFAULT_INDEX && (
-                    <span className='rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary'>
-                      默认
-                    </span>
-                  )}
+            {indices.map((item) => (
+              <div
+                key={item.name}
+                className='flex flex-wrap items-center justify-between gap-3 px-4 py-3'
+              >
+                <div className='min-w-0 space-y-1'>
+                  <div className='flex flex-wrap items-center gap-3'>
+                    <Icons.search className='h-4 w-4 shrink-0 text-muted-foreground' />
+                    <span className='break-all font-mono text-sm'>{item.name}</span>
+                    {item.defaultIndex && <Badge>默认</Badge>}
+                  </div>
+                  <div className='pl-7 text-xs text-muted-foreground'>
+                    {formatNumber(item.documentCount)} 个文档
+                  </div>
                 </div>
                 <div className='flex items-center gap-1'>
                   <Button
                     variant='ghost'
                     size='sm'
                     disabled={putMappingMutation.isPending}
-                    onClick={() => putMappingMutation.mutate(name)}
-                    title='更新 Mapping（加新字段后使用）'
+                    onClick={() => putMappingMutation.mutate(item.name)}
+                    title='更新 Mapping'
                   >
                     {putMappingMutation.isPending &&
-                    putMappingMutation.variables === name ? (
+                    putMappingMutation.variables === item.name ? (
                       <Icons.spinner className='h-4 w-4 animate-spin' />
                     ) : (
                       <Icons.refresh className='h-4 w-4 text-muted-foreground' />
@@ -151,9 +246,9 @@ export function SearchManagement() {
                   <Button
                     variant='ghost'
                     size='sm'
-                    disabled={name === DEFAULT_INDEX}
-                    onClick={() => setDeleteTarget(name)}
-                    title={name === DEFAULT_INDEX ? '默认索引不可删除' : '删除索引'}
+                    disabled={item.defaultIndex}
+                    onClick={() => setDeleteTarget(item.name)}
+                    title={item.defaultIndex ? '默认索引不可删除' : '删除索引'}
                   >
                     <Icons.trash className='h-4 w-4 text-destructive' />
                   </Button>
@@ -164,12 +259,26 @@ export function SearchManagement() {
         )}
       </div>
 
-      {/* ==================== 数据重建 ==================== */}
       <div className='rounded-lg border bg-card p-6'>
-        <h3 className='mb-4 text-lg font-semibold'>数据重建</h3>
-        <p className='mb-4 text-sm text-muted-foreground'>
-          将数据库中的数据全量同步到 ES 索引。数据量较大时可能需要一些时间。
-        </p>
+        <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
+          <h3 className='text-lg font-semibold'>数据重建</h3>
+          <Select value={targetIndex} onValueChange={setTargetIndex}>
+            <SelectTrigger className='w-[260px]'>
+              <SelectValue placeholder='选择目标索引' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='default'>默认索引（{defaultIndex}）</SelectItem>
+              {indices
+                .filter((item) => !item.defaultIndex)
+                .map((item) => (
+                  <SelectItem key={item.name} value={item.name}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className='flex flex-wrap gap-3'>
           <Button
             variant='outline'
@@ -179,54 +288,44 @@ export function SearchManagement() {
             {reindexAllMutation.isPending && (
               <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
             )}
-            全量重建（全部类型）
+            重建全部类型
           </Button>
-          <Button
-            variant='outline'
-            onClick={() => setReindexConfirm('course')}
-            disabled={isReindexing}
-          >
-            {reindexTypeMutation.isPending &&
-              reindexTypeMutation.variables === 'course' && (
-                <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
-              )}
-            重建课程数据
-          </Button>
-          <Button
-            variant='outline'
-            onClick={() => setReindexConfirm('trainer')}
-            disabled={isReindexing}
-          >
-            {reindexTypeMutation.isPending &&
-              reindexTypeMutation.variables === 'trainer' && (
-                <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
-              )}
-            重建专家数据
-          </Button>
+          {docTypes.map((docType) => (
+            <Button
+              key={docType}
+              variant='outline'
+              onClick={() => setReindexConfirm(docType)}
+              disabled={isReindexing}
+            >
+              {reindexTypeMutation.isPending &&
+                reindexTypeMutation.variables?.docType === docType && (
+                  <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
+                )}
+              重建{docTypeLabel(docType)}
+            </Button>
+          ))}
         </div>
       </div>
 
-      {/* ==================== 创建索引对话框 ==================== */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>创建索引</DialogTitle>
             <DialogDescription>
-              输入索引名称，留空则使用默认索引名 ({DEFAULT_INDEX})
+              留空将创建默认索引 {defaultIndex}
             </DialogDescription>
           </DialogHeader>
-          <input
+          <Input
             value={newIndexName}
-            onChange={(e) => setNewIndexName(e.target.value)}
-            placeholder={DEFAULT_INDEX}
-            className='w-full rounded-md border px-3 py-2 text-sm'
+            onChange={(event) => setNewIndexName(event.target.value)}
+            placeholder={defaultIndex}
           />
           <DialogFooter>
             <Button variant='outline' onClick={() => setCreateOpen(false)}>
               取消
             </Button>
             <Button
-              onClick={() => createMutation.mutate(newIndexName || undefined)}
+              onClick={() => createMutation.mutate(newIndexName.trim() || undefined)}
               disabled={createMutation.isPending}
             >
               {createMutation.isPending && (
@@ -238,17 +337,15 @@ export function SearchManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* ==================== 删除确认 ==================== */}
       <AlertModal
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
         loading={deleteMutation.isPending}
         title='删除索引'
-        description={`确定要删除索引 "${deleteTarget}" 吗？此操作不可恢复。`}
+        description={`确定删除索引 "${deleteTarget}" 吗？此操作不可恢复。`}
       />
 
-      {/* ==================== 重建确认 ==================== */}
       <AlertModal
         isOpen={reindexConfirm !== null}
         onClose={() => setReindexConfirm(null)}
@@ -257,8 +354,8 @@ export function SearchManagement() {
         title='确认重建'
         description={
           reindexConfirm === 'all'
-            ? '确定要全量重建所有文档类型吗？这可能需要一些时间。'
-            : `确定要重建 ${reindexConfirm} 类型的文档吗？`
+            ? `确定重建全部类型到 "${reindexTargetName}" 吗？`
+            : `确定重建${docTypeLabel(reindexConfirm ?? '')}到 "${reindexTargetName}" 吗？`
         }
       />
     </div>

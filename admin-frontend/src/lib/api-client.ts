@@ -18,16 +18,21 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiClient<T>(endpoint: string, options?: RequestInit): Promise<T> {
+export type ApiClientOptions = RequestInit & {
+  timeoutMs?: number;
+};
+
+export async function apiClient<T>(endpoint: string, options?: ApiClientOptions): Promise<T> {
+  const { timeoutMs = 30_000, ...fetchOptions } = options ?? {};
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30_000);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   let res: Response;
   try {
     res = await fetch(`${baseUrl()}${API_PREFIX}${endpoint}`, {
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
-      ...options
+      ...fetchOptions
     });
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
@@ -48,7 +53,7 @@ export async function apiClient<T>(endpoint: string, options?: RequestInit): Pro
       // 重试原请求
       const retryRes = await fetch(`${baseUrl()}${API_PREFIX}${endpoint}`, {
         headers: { 'Content-Type': 'application/json' },
-        ...options
+        ...fetchOptions
       });
       if (retryRes.ok) {
         return retryRes.json() as Promise<T>;
