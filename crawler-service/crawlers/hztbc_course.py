@@ -11,6 +11,8 @@ from typing import Any, AsyncGenerator, Dict, Iterable, List
 from urllib.parse import urljoin
 
 from crawlers.course_utils import append_diagnostic, detect_content_type, enrich_course_record, set_price_fields
+from crawlers.media import apply_content_block, media_asset
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "https://www.hztbc.com"
@@ -370,6 +372,63 @@ def extract_cover_url(html: str) -> str:
     return ""
 
 
+def normalize_detail_image_url(src: str) -> str:
+    value = (src or "").strip()
+    protocol_positions = [match.start() for match in re.finditer(r"https?://", value, flags=re.I)]
+    if len(protocol_positions) > 1:
+        value = value[protocol_positions[-1]:]
+    return absolute_url(value)
+
+
+def extract_h2_section_html(html: str, heading: str) -> str:
+    pattern = rf"<h2[^>]*>\s*{re.escape(heading)}\s*</h2>\s*(<div[^>]+class=[\"'][^\"']*gkkin03_xx[^\"']*[\"'][^>]*>[\s\S]*?</div>)"
+    match = re.search(pattern, html, flags=re.I)
+    return match.group(1) if match else ""
+
+
+def extract_syllabus_image_assets(html: str) -> list[dict[str, str]]:
+    section_html = extract_h2_section_html(html, "课程大纲")
+    assets: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for src in re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', section_html, flags=re.I):
+        url = normalize_detail_image_url(src)
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        assets.append(media_asset("syllabus_image", url, "课程大纲图片"))
+    return assets
+
+
+def extract_h3_section_html(html: str, heading: str) -> str:
+    pattern = rf"<h3[^>]*>\s*{re.escape(heading)}[\s\S]*?</h3>\s*(<h2[^>]*>[\s\S]*?</h2>)"
+    match = re.search(pattern, html, flags=re.I)
+    return match.group(1) if match else ""
+
+
+def extract_internal_section_image_assets(html: str, heading: str, kind: str, label: str) -> list[dict[str, str]]:
+    section_html = extract_h3_section_html(html, heading)
+    assets: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for src in re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', section_html, flags=re.I):
+        url = normalize_detail_image_url(src)
+        lower_url = url.lower()
+        if not url or url in seen:
+            continue
+        if any(skip in lower_url for skip in ("/images/house-courses/", "/images/index/", "but_", "logo")):
+            continue
+        seen.add(url)
+        assets.append(media_asset(kind, url, label))
+    return assets
+
+
+def extract_internal_syllabus_image_assets(html: str) -> list[dict[str, str]]:
+    return extract_internal_section_image_assets(html, "课程内容", "syllabus_image", "课程内容图片")
+
+
+def extract_site_photo_assets(html: str) -> list[dict[str, str]]:
+    return extract_internal_section_image_assets(html, "现场图片", "site_photo", "现场图片")
+
+
 def build_plan_from_detail(item: dict[str, Any], text: str) -> dict[str, Any]:
     start_raw = extract_label_value(text, "开课时间", 120)
     end_raw = extract_label_value(text, "结束时间", 120)
@@ -396,6 +455,8 @@ def build_plan_from_detail(item: dict[str, Any], text: str) -> dict[str, Any]:
 
 def parse_open_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any]:
     text = extract_detail_text(html)
+    syllabus_html = extract_h2_section_html(html, "课程大纲")
+    syllabus_images = extract_syllabus_image_assets(html)
     title = extract_title(html, item.get("title") or MISSING)
     category = extract_label_value(text, "课程类别", 120)
     if category == MISSING:
@@ -429,7 +490,7 @@ def parse_open_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any]:
         "keywords": meta_content(html, "keywords"),
         "trainer_name_raw": clean_trainer(trainer),
         "plans_json": [plan] if plan else item.get("plans_json", []),
-        "services_json": [],
+        "services_json": syllabus_images.copy(),
         "raw_json": {
             "source_entry": item.get("source_entry", "public_annual_schedule"),
             "source_entry_name": "公开课/年度排期表",
@@ -448,6 +509,20 @@ def parse_open_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any]:
             "diagnostics": [],
         },
     }
+    if syllabus_images:
+        apply_content_block(
+            record,
+            "syllabus",
+            plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+            images=syllabus_images,
+        )
+    apply_syllabus_rich_content(
+        record,
+        syllabus_html,
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        images=syllabus_images,
+        base_url=BASE_URL,
+    )
     set_price_fields(record, price_raw)
     for plan_item in record["plans_json"]:
         start = plan_item.get("startDate")
@@ -472,6 +547,9 @@ def parse_open_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any]:
 
 def parse_internal_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any]:
     text = extract_detail_text(html)
+    syllabus_html = extract_h3_section_html(html, "课程内容")
+    syllabus_images = extract_internal_syllabus_image_assets(html)
+    site_photo_images = extract_site_photo_assets(html)
     title = extract_title(html, item.get("title") or MISSING)
     category = extract_after_labels(text, ("领 域",), 160)
     if category != MISSING:
@@ -503,7 +581,7 @@ def parse_internal_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any
         "keywords": meta_content(html, "keywords"),
         "trainer_name_raw": trainer,
         "plans_json": [],
-        "services_json": [],
+        "services_json": syllabus_images.copy() + site_photo_images.copy(),
         "raw_json": {
             "source_entry": item.get("source_entry", "lesson_internal_list"),
             "source_entry_name": "企业内训",
@@ -522,6 +600,22 @@ def parse_internal_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any
             "diagnostics": [],
         },
     }
+    if syllabus_images:
+        apply_content_block(
+            record,
+            "syllabus",
+            plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+            images=syllabus_images,
+        )
+    apply_syllabus_rich_content(
+        record,
+        syllabus_html,
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        images=syllabus_images,
+        base_url=BASE_URL,
+    )
+    if site_photo_images:
+        apply_content_block(record, "site_photos", images=site_photo_images)
     set_price_fields(record, "内训咨询")
     append_diagnostic(record, "plans_json", "internal_course_has_no_public_schedule")
     enrich_course_record(record, fallback_type="INTERNAL")

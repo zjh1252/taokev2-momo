@@ -11,6 +11,7 @@ from typing import Any, AsyncGenerator, Dict, List
 from urllib.parse import urljoin
 
 from crawlers.course_utils import append_diagnostic, enrich_course_record, set_price_fields
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "http://www.beiuec.com"
@@ -132,6 +133,18 @@ def extract_between(text: str, start_labels: tuple[str, ...], stop_labels: tuple
     return clean_html(segment, MISSING)[:limit] or MISSING
 
 
+def extract_detail_html(html: str) -> str:
+    anchors = ["日期", "价格", "地点", "课程目标", "培训对象", "课程大纲"]
+    positions = [html.find(anchor) for anchor in anchors if html.find(anchor) >= 0]
+    start = min(positions) if positions else 0
+    end = len(html)
+    for stop in ("版权所有", "联系电话", "Copyright"):
+        pos = html.find(stop, start + 1)
+        if pos > start:
+            end = min(end, pos)
+    return html[start:end]
+
+
 def parse_list_rows(html: str, limit: int | None = None) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for row_html in re.findall(r"<tr[^>]*>([\s\S]*?)</tr>", html, flags=re.I):
@@ -246,6 +259,12 @@ def parse_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any]:
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        extract_detail_html(html),
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, record["raw_json"]["price_raw"])
     if not record["plans_json"][0].get("province_name_raw"):
         append_diagnostic(record, "plans_json.province_name_raw", "source_location_needs_manual_province_mapping", location)

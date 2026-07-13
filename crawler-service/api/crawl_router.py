@@ -26,11 +26,19 @@ async def create_job(request: CrawlJobRequest, bg: BackgroundTasks):
 @router.get("/jobs/{job_id}", response_model=CrawlJobStatus)
 async def get_job_status(job_id: str):
     """查询任务状态"""
-    return job_manager.get_job_status(job_id)
+    try:
+        return job_manager.get_job_status(job_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.put("/jobs/{job_id}/cancel")
 async def cancel_job(job_id: str):
     """取消任务"""
-    job_manager.cancel_job(job_id)
+    try:
+        job_manager.cancel_job(job_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"status": "cancelled"}

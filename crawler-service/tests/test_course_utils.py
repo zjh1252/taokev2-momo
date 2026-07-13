@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+from datetime import datetime
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -8,6 +9,7 @@ if str(ROOT) not in sys.path:
 
 from crawlers.course_utils import detect_content_type, infer_course_type, parse_price  # noqa: E402
 from crawlers.course_utils import enrich_course_record  # noqa: E402
+from crawlers.course_utils import should_skip_expired_public_course  # noqa: E402
 from crawlers.champconsult_course import parse_internal_detail_html as parse_champ_internal_detail  # noqa: E402
 from crawlers.champconsult_course import parse_open_detail_html as parse_champ_open_detail  # noqa: E402
 from crawlers.champconsult_course import parse_open_list_rows as parse_champ_open_rows  # noqa: E402
@@ -62,6 +64,7 @@ from crawlers.qgpx_course import parse_internal_list_rows as parse_qgpx_internal
 from crawlers.qgpx_course import parse_online_entry as parse_qgpx_online_entry  # noqa: E402
 from crawlers.qgpx_course import parse_open_detail_html as parse_qgpx_open_detail  # noqa: E402
 from crawlers.qgpx_course import parse_open_list_rows as parse_qgpx_open_rows  # noqa: E402
+from crawlers.rich_content import apply_syllabus_rich_content, sanitize_rich_html  # noqa: E402
 from crawlers.shchance_course import extract_list_rows as extract_shchance_rows  # noqa: E402
 from crawlers.shchance_course import parse_course_detail_html as parse_shchance_detail  # noqa: E402
 from crawlers.vmta_course import build_open_record as build_vmta_open_record  # noqa: E402
@@ -80,6 +83,103 @@ def test_parse_price_statuses():
     assert parse_price("免费").status == "FREE"
     assert parse_price("待商量").status == "NEGOTIABLE"
     assert parse_price("").status == "MISSING"
+
+
+def test_expired_public_course_filter_keeps_empty_or_unparseable_plans():
+    now = datetime(2026, 7, 13, 10, 30)
+
+    assert should_skip_expired_public_course(
+        {"type": "OPEN_OFFLINE", "plans_json": []},
+        now=now,
+    ) == (False, "")
+    assert should_skip_expired_public_course(
+        {"type": "OPEN_OFFLINE", "plans_json": [{"startDate": "pending"}]},
+        now=now,
+    ) == (False, "")
+
+
+def test_expired_public_course_filter_keeps_any_future_plan():
+    now = datetime(2026, 7, 13, 10, 30)
+
+    skip, reason = should_skip_expired_public_course(
+        {
+            "type": "OPEN_OFFLINE",
+            "plans_json": [
+                {"startTime": "2026-07-12 09:00"},
+                {"startDate": "2026-07-13", "startTime": "10:30"},
+            ],
+        },
+        now=now,
+    )
+
+    assert skip is False
+    assert reason == ""
+
+
+def test_expired_public_course_filter_skips_all_past_open_plans():
+    now = datetime(2026, 7, 13, 10, 30)
+
+    skip, reason = should_skip_expired_public_course(
+        {
+            "type": "OPEN_ONLINE",
+            "plans_json": [
+                {"startTime": "2026-07-12 09:00"},
+                {"startDate": "2026-07-13", "start_time": "10:29"},
+            ],
+        },
+        now=now,
+    )
+
+    assert skip is True
+    assert reason == "全部排期已过期，跳过抓取"
+
+
+def test_expired_public_course_filter_does_not_skip_internal_courses():
+    now = datetime(2026, 7, 13, 10, 30)
+
+    assert should_skip_expired_public_course(
+        {"type": "INTERNAL", "plans_json": [{"startTime": "2026-07-12 09:00"}]},
+        now=now,
+    ) == (False, "")
+
+
+def test_rich_html_sanitizer_preserves_formatting_and_strips_dangerous_content():
+    html = """
+    <div onclick="bad()">
+      <h2 style="color: red; background-image: url(javascript:bad)">课程大纲</h2>
+      <p><strong>第一讲</strong><a href="javascript:bad()">恶意链接</a></p>
+      <ul><li>模块一</li></ul>
+      <img src="/outline.png" onerror="bad()" />
+      <script>alert(1)</script><iframe src="https://evil.example"></iframe>
+    </div>
+    """
+
+    sanitized = sanitize_rich_html(html, "https://example.com/course/")
+
+    assert '<h2 style="color: red">课程大纲</h2>' in sanitized
+    assert "<strong>第一讲</strong>" in sanitized
+    assert "<li>模块一</li>" in sanitized
+    assert "onclick" not in sanitized
+    assert "javascript:" not in sanitized
+    assert "<script" not in sanitized
+    assert "<iframe" not in sanitized
+    assert "<img" not in sanitized
+
+
+def test_apply_syllabus_rich_content_sets_true_html_without_fake_image_tags():
+    record = {"syllabus": "第一讲 模块一"}
+
+    apply_syllabus_rich_content(
+        record,
+        "<div><h2>课程大纲</h2><p>第一讲 <b>模块一</b></p><img src='/outline.png'></div>",
+        images=[{"type": "syllabus_image", "url": "https://example.com/outline.png", "label": "大纲图"}],
+        base_url="https://example.com/course/",
+    )
+
+    assert record["syllabus_html"] == "<div><h2>课程大纲</h2><p>第一讲 <b>模块一</b></p></div>"
+    assert record["syllabus_plain_text"] == "课程大纲\n第一讲 模块一"
+    assert record["syllabus_images"][0]["type"] == "syllabus_image"
+    assert record["syllabus_content_type"] == "MIXED"
 
 
 def test_infer_course_type_from_plans():
@@ -703,6 +803,37 @@ def test_champconsult_open_detail_outputs_offline_plan():
     assert row["raw_json"]["price_parse_status"] == "NUMERIC"
 
 
+def test_champconsult_open_detail_skips_real_tab_navigation_for_syllabus():
+    item = {
+        "url": "http://www.champconsult.com/curriculum_detail.aspx?one=2&two=64&three=103&id=1245",
+        "source_course_id": "1245",
+        "title": "AI全域工具赋能人力资源效能倍增实战坊",
+        "category_name_raw": "人力资源管理系列",
+        "duration_days": "2",
+        "price_raw": "4880元",
+        "city": "上海",
+        "date_text": "2026-09-18",
+    }
+    html = """
+    <div class="incrlcont">
+      AI全域工具赋能人力资源效能倍增实战坊
+      参加对象：人力资源VP/总监、HRM、HRBP
+      课时：2 天
+      价格：4880元
+      课程简介 课程纲要 讲师简介 客户评价
+      课程背景：AI2.0时代，企业人力资源管理正在重塑。
+      培训目标：掌握专业级提示词构建。
+      第一讲：从对话框到执行体：AI如何颠覆HR生产力
+      一、技术演进：认知AI时代的新物种
+      第二讲：提示词工程与HR场景
+      讲师简介
+    </div>
+    """
+    row = parse_champ_open_detail(item, html)
+    assert row["syllabus"].startswith("第一讲")
+    assert "讲师简介" not in row["syllabus"]
+
+
 def test_champconsult_internal_solution_outputs_internal():
     item = {
         "url": "http://www.champconsult.com/consult_factory_con.aspx?one=4&two=17",
@@ -857,7 +988,41 @@ def test_free863_open_detail_outputs_offline_course():
     assert row["plans_json"][0]["city"] == "上海"
     assert row["audience"].startswith("企业各个部门经理")
     assert "角色特征" in row["learning_outcomes"]
+    assert "第一部分" in row["syllabus"]
     assert row["raw_json"]["price_parse_status"] == "NUMERIC"
+
+
+def test_free863_detail_keeps_main2_syllabus_images():
+    item = {
+        "url": "https://www.free863.com/class.php?id=63744",
+        "source_course_id": "63744",
+        "title": "中层经理通用管理技能训练（MTP）",
+        "price_raw": "4600",
+        "type": "OPEN_OFFLINE",
+        "plans_json": [],
+    }
+    html = """
+    <html><body>
+      <div class="tparea"><img src="/uploadfile/upload/image/cover.jpg" alt="" class="tp"></div>
+      开课时间： 2026 课程时长： 12 授课讲师： 田胜波 课程价格： ￥4600 天数： 2
+      背景与目标 课程背景： 管理者角色转换。
+      主要内容
+      <div class="citem citem2">
+        <h4 class="c_tit">主要内容</h4>
+        <div class="nr" id="main2">
+          <p><strong>课程大纲：</strong></p>
+          <p><img src="/uploadfile/upload/image/syllabus.jpg" /></p>
+          <p>第一部分 认识管理、角色定位、能力构建</p>
+        </div>
+      </div>
+      在线报名
+    </body></html>
+    """
+    row = parse_free863_open_detail(item, html)
+    assert row["cover_url"] == "https://www.free863.com/uploadfile/upload/image/cover.jpg"
+    assert row["syllabus_images"][0]["type"] == "syllabus_image"
+    assert row["syllabus_images"][0]["url"] == "https://www.free863.com/uploadfile/upload/image/syllabus.jpg"
+    assert row["syllabus_content_type"] == "MIXED"
 
 
 def test_free863_internal_detail_outputs_internal_negotiable():
@@ -889,6 +1054,7 @@ def test_free863_internal_detail_outputs_internal_negotiable():
     assert row["plans_json"] == []
     assert row["trainer_name_raw"] == "鄢老师"
     assert "创新工具" in row["learning_outcomes"]
+    assert "第一部分" in row["syllabus"]
 
 
 def test_chinacpx_open_list_rows_keep_city_date_price():
@@ -1256,6 +1422,35 @@ def test_vmta_open_detail_outputs_offline_course():
     assert row["audience"].startswith("人力资源部门主管")
 
 
+def test_vmta_open_detail_skips_real_tab_navigation_for_syllabus():
+    item = {
+        "url": "https://www.vmta.com/xk/pxckx1/782.html",
+        "source_course_id": "782",
+        "title": "改变的力量 从心开始",
+        "category_name_raw": "开班计划",
+        "duration_days": "3 天",
+        "price_raw": "¥ 6800",
+        "type": "OPEN_OFFLINE",
+    }
+    html = """
+    <html><body>
+      <h1>改变的力量 从心开始</h1>
+      <div class="span"><span>开课区域</span><em>健峰培训城</em></div>
+      <div class="span"><span>天 数</span><em>3 天</em></div>
+      <div class="span"><span>价 格</span><em>¥ 6800</em></div>
+      <div>课程日程表 课程详情 课程视频 课程宗旨
+      内在觉察与关系修复。课程效益 建立自我觉察能力。
+      课程内容 参加对象 返回顶部 课程视频
+      课程内容 第一天 看见自己｜建立信念 1. 生命时间线 2. 信念重塑
+      第二天 理解他人｜建立信任与深化沟通
+      上课精彩画面 参加对象 基中层管理人员 企业包班 获取定制化课程大纲</div>
+    </body></html>
+    """
+    row = build_vmta_open_record(item, html)
+    assert row["syllabus"].startswith("第一天")
+    assert "获取定制化课程大纲" not in row["syllabus"]
+
+
 def test_vmta_study_tour_detail_keeps_year_missing_diagnostic():
     html = """
     <html><head><title>健峰创智双核企业家苏州研学团_健峰企管集团官网</title></head><body>
@@ -1277,6 +1472,31 @@ def test_vmta_study_tour_detail_keeps_year_missing_diagnostic():
     assert row["plans_json"][0]["city"] == "苏州市"
     assert row["plans_json"][0]["sourceDateText"].startswith("8月26日-8月28日")
     assert any(item["reason"] == "study_tour_schedule_year_missing" for item in row["raw_json"]["diagnostics"])
+
+
+def test_vmta_study_tour_detail_classifies_visit_company_images_as_syllabus():
+    html = """
+    <html><head><title>健峰创智双核企业家苏州研学团_健峰企管集团官网</title></head><body>
+      <h1>健峰创智双核企业家苏州研学团</h1>
+      健峰创智双核企业家苏州研学团 中国·苏州
+      出团时间：8月26日-8月28日，3天3夜（含授课、用餐、住宿、参访点移动交通费用）
+      参加对象：董事长、总裁、总经理、副总经理
+      参加费用：每人团费人民币 8,800元/人（含税）
+      <li class="a2 c2"><a href="#b2">参访企业</a>
+        <div class="none"><div class="child-div2">
+          <p>课纲：1. 大模型智能评价企业现有的数字化系统真实水平</p>
+          <p><img alt="健峰创智双核企业家苏州研学团(图1)" src="/uploads/allimg/20251218/a744-未命名 -2.jpg" /></p>
+          <p><img alt="健峰创智双核企业家苏州研学团(图2)" src="/uploads/allimg/20260605/o9754-未命名 -1.jpg" /></p>
+        </div></div>
+      </li>
+      <li class="a3"><img src="/css/202606/hd2026.jpg" /></li>
+    </body></html>
+    """
+    row = parse_vmta_study_tour_detail("https://www.vmta.com/rc/kc/34.html", html)
+    assert [asset["type"] for asset in row["services_json"]] == ["syllabus_image", "syllabus_image"]
+    assert row["syllabus_images"][0]["url"].endswith("/uploads/allimg/20251218/a744-未命名 -2.jpg")
+    assert row["syllabus_content_type"] == "MIXED"
+    assert all("/css/" not in asset["url"] for asset in row["syllabus_images"])
 
 
 def test_vmta_online_entry_is_not_courses_flow():
@@ -1371,6 +1591,53 @@ def test_hztbc_open_detail_outputs_offline_course():
     assert "内容增长" in row["learning_outcomes"]
 
 
+def test_hztbc_open_detail_keeps_real_syllabus_image_block():
+    item = {
+        "url": "https://www.hztbc.com/public/info_4971.html",
+        "source_course_id": "4971",
+        "title": "问题解决与组织绩效改进工作坊",
+        "category_name_raw": "综合管理",
+        "price_raw": "4980",
+        "trainer_name_raw": "陈老师",
+        "audience": "总裁、高层管理、中层管理、基层主管",
+        "plans_json": [
+            {
+                "startDate": "2026-09-10",
+                "start_date": "2026-09-10",
+                "endDate": "2026-09-11",
+                "end_date": "2026-09-11",
+                "city": "杭州",
+                "type": "OFFLINE",
+            }
+        ],
+        "type": "OPEN_OFFLINE",
+    }
+    html = """
+    <html><body>
+      <h1>问题解决与组织绩效改进工作坊</h1>
+      开课时间：2026年09月10日 09:30
+      结束时间：2026年09月11日 16:30
+      课程价格：4980元/人
+      授课讲师：陈老师
+      开课地点：杭州 文一西路522号
+      课程类别：综合管理
+      <div class="gkk_in03">
+        <h2>适用对象</h2><div class="gkkin03_xx">总裁、高层管理、中层管理、基层主管</div>
+        <h2>课程收益</h2><div class="gkkin03_xx"></div>
+        <h2>课程大纲</h2>
+        <div class="gkkin03_xx"><img style="width: 100%" src="http://res.eweixue.comhttp://hangfubao.eweixue.com/img/outline.jpg"></div>
+      </div>
+      <div><img src="./images/hzkh.jpg" /></div>
+      <h2>相关课程</h2>
+    </body></html>
+    """
+    row = parse_hztbc_open_detail(item, html)
+    assert row["syllabus_images"][0]["type"] == "syllabus_image"
+    assert row["syllabus_images"][0]["url"] == "http://hangfubao.eweixue.com/img/outline.jpg"
+    assert row["syllabus_content_type"] == "IMAGE"
+    assert row["services_json"][0]["type"] == "syllabus_image"
+
+
 def test_hztbc_internal_detail_outputs_internal_negotiable():
     item = {
         "url": "https://www.hztbc.com/lesson/info_2206.html",
@@ -1398,6 +1665,44 @@ def test_hztbc_internal_detail_outputs_internal_negotiable():
     assert row["audience"].startswith("总裁")
     assert "核心人才库" in row["learning_outcomes"]
     assert "角色定位" in row["syllabus"]
+
+
+def test_hztbc_internal_detail_classifies_site_photos_and_content_images():
+    item = {
+        "url": "https://www.hztbc.com/lesson/info_3015.html",
+        "source_course_id": "3015",
+        "title": "BLM业务领先模型",
+        "type": "INTERNAL",
+    }
+    html = """
+    <html><head><title>BLM业务领先模型-时代光华管理培训网</title></head><body>
+      <h1>BLM业务领先模型</h1>
+      领 域： 战略管理
+      培训对象：总裁 高层管理
+      <div id="Course_Description-bj">
+        <h5>课程收益</h5><h2>学习BLM模型的落地使用，制定企业领先的战略。</h2>
+        <h3>现场图片</h3>
+        <h2 style="height:140px;width:733px;">
+          <div class="Site_img"><a href="http://www.hztbc.com/admin_upload_pic/site1.jpg"><img src="http://www.hztbc.com/admin_upload_pic/site1.jpg" width="110" height="110" /></a></div>
+          <div class="Site_img"><a href="http://www.hztbc.com/admin_upload_pic/site2.jpg"><img src="http://www.hztbc.com/admin_upload_pic/site2.jpg" width="110" height="110" /></a></div>
+        </h2>
+        <h3>课程内容</h3>
+        <h2><p><img src="/userfiles/image/outline1.png" width="500" height="2283" /><img src="/userfiles/image/outline2.png" width="500" height="2117" /></p></h2>
+        <h3>学员评价</h3>
+      </div>
+    </body></html>
+    """
+    row = parse_hztbc_internal_detail(item, html)
+    assert [asset["type"] for asset in row["services_json"]] == [
+        "syllabus_image",
+        "syllabus_image",
+        "site_photo",
+        "site_photo",
+    ]
+    assert row["syllabus_images"][0]["url"] == "https://www.hztbc.com/userfiles/image/outline1.png"
+    assert row["syllabus_content_type"] == "IMAGE"
+    assert row["site_photos_images"][0]["url"] == "http://www.hztbc.com/admin_upload_pic/site1.jpg"
+    assert row["site_photos_content_type"] == "IMAGE"
 
 
 def test_hztbc_online_entry_is_not_courses_flow():
@@ -1676,6 +1981,47 @@ def test_keycourse_face_record_keeps_schedule_city_price_and_sections():
     assert record["plans_json"][0]["startDate"] == "2026-07-17"
 
 
+def test_keycourse_face_record_skips_real_tab_navigation_for_syllabus():
+    item = {
+        "productId": 1075,
+        "headUrl": "http://crm.sino-bestway.com.cn/bp/marketForm/downloadPic?fileId=233453",
+        "trainingTarget": "设计、文案、数据分析人员",
+        "productName": "AI办公效能跃迁-AI大模型全场景落地实战与智能体构建",
+        "trainingDuration": "2天",
+        "coursePrice": 4900,
+        "courseOutList": [
+            {
+                "productId": 1075,
+                "startTimeStr": "2026-07-17",
+                "endTimeStr": "2026-07-18",
+                "courseCity": "上海",
+                "coursePrice": 4900,
+                "courseFlag": "报名",
+            }
+        ],
+        "teachingForm": "FACE",
+        "courseProfit": "<p>从知识层面理解AI趋势</p>",
+    }
+    html = """
+    <html><body>
+      最新课程安排表 选课中心 面授课 职场效能 个人效能
+      AI办公效能跃迁-AI大模型全场景落地实战与智能体构建
+      课程时长：2天 课程价格：¥4900 培训对象：设计、文案、数据分析人员
+      索取课纲 预约报名 课后资料 课程介绍 课程大纲 开课安排 睿选观点
+      随着AI技术爆发，如何让企业降本提效？
+      课程收益 掌握AIGC工具并能落地到日常工作。
+      培训时间 2天
+      （一）秒懂Deepseek，轻松驾驭AI工具
+      1.中国AI强势崛起
+      （二）用好Deepseek的核心：掌握精准表达的提问技巧
+      开课安排 上海 2026-07-17
+    </body></html>
+    """
+    record = build_keycourse_record(item, html)
+    assert record["syllabus"].startswith("（一）秒懂Deepseek")
+    assert "开课安排 上海" not in record["syllabus"]
+
+
 def test_keycourse_online_item_is_excluded_from_courses_flow():
     item = {
         "productId": 1144,
@@ -1868,10 +2214,12 @@ if __name__ == "__main__":
     test_vmta_open_list_rows_keep_schedule_location_price()
     test_vmta_open_detail_outputs_offline_course()
     test_vmta_study_tour_detail_keeps_year_missing_diagnostic()
+    test_vmta_study_tour_detail_classifies_visit_company_images_as_syllabus()
     test_vmta_online_entry_is_not_courses_flow()
     test_hztbc_open_schedule_rows_keep_date_price_location()
     test_hztbc_open_detail_outputs_offline_course()
     test_hztbc_internal_detail_outputs_internal_negotiable()
+    test_hztbc_internal_detail_classifies_site_photos_and_content_images()
     test_hztbc_online_entry_is_not_courses_flow()
     test_easyfinance_open_list_rows_keep_schedule_city_price()
     test_easyfinance_open_detail_outputs_offline_course()

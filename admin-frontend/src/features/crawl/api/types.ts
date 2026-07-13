@@ -13,6 +13,7 @@ export type CrawledTrainer = {
   dedupStatusText: string;
   dedupTargetType: string | null;
   dedupTargetId: number | null;
+  dedupTargetFrontendUrl: string | null;
   dedupMatchType: string | null;
   dedupScore: number | null;
   dedupCheckedAt: string | null;
@@ -134,6 +135,7 @@ export type CrawledCourse = {
   dedupStatusText: string;
   dedupTargetType: string | null;
   dedupTargetId: number | null;
+  dedupTargetFrontendUrl: string | null;
   dedupMatchType: string | null;
   dedupScore: number | null;
   dedupCheckedAt: string | null;
@@ -164,6 +166,18 @@ export type CrawledCourseDetail = {
   intro: string | null;
   summary: string | null;
   syllabus: string | null;
+  syllabusPlainText: string | null;
+  syllabusHtml: string | null;
+  syllabusContentType: CourseContentType | null;
+  syllabusImages: CourseImageItem[] | null;
+  sitePhotosPlainText: string | null;
+  sitePhotosHtml: string | null;
+  sitePhotosContentType: CourseContentType | null;
+  sitePhotosImages: CourseImageItem[] | null;
+  honorCertificatesPlainText: string | null;
+  honorCertificatesHtml: string | null;
+  honorCertificatesContentType: CourseContentType | null;
+  honorCertificatesImages: CourseImageItem[] | null;
   audience: string | null;
   highlights: string | null;
   durationDays: number;
@@ -196,6 +210,14 @@ export type CrawledCourseDetail = {
   servicesList: MediaAsset[] | null;
   diagnostics: CrawlDiagnostic[] | null;
   rawJson: Record<string, unknown> | null;
+};
+
+export type CourseContentType = 'TEXT' | 'IMAGE' | 'MIXED';
+
+export type CourseImageItem = {
+  type?: string;
+  url?: string;
+  label?: string;
 };
 
 export type CrawlDiagnostic = {

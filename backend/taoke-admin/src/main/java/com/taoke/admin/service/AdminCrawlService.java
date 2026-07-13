@@ -91,6 +91,9 @@ public class AdminCrawlService {
     @Value("${crawler.callback-token:}")
     private String callbackToken;
 
+    @Value("${app.site-base-url:http://localhost:3000}")
+    private String siteBaseUrl;
+
     // ==================== 数据源 ====================
 
     /**
@@ -274,7 +277,7 @@ public class AdminCrawlService {
         CrawlSource entity = crawlSourceRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("数据源不存在"));
         if (Boolean.TRUE.equals(entity.getBuiltIn())) {
-            throw new BusinessException("内置数据源不可删除");
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "内置数据源不可删除");
         }
         crawlSourceRepository.delete(entity);
     }
@@ -1287,7 +1290,29 @@ public class AdminCrawlService {
         cc.setCoverUrl(getString(item, "cover_url"));
         cc.setIntro(getString(item, "intro"));
         cc.setSummary(getString(item, "summary"));
-        cc.setSyllabus(getString(item, "syllabus"));
+        String syllabus = getStringAny(item, "syllabus");
+        String syllabusHtml = getStringAny(item, "syllabus_html", "syllabusHtml");
+        String syllabusPlainText = getStringAny(item, "syllabus_plain_text", "syllabusPlainText", "syllabus_text", "syllabusText");
+        String syllabusImagesJson = getJsonAny(item, "syllabus_images_json", "syllabusImagesJson", "syllabus_images", "syllabusImages");
+        cc.setSyllabus(defaultText(syllabus, ""));
+        cc.setSyllabusPlainText(defaultText(syllabusPlainText, defaultText(syllabus, "")));
+        cc.setSyllabusHtml(defaultText(syllabusHtml, ""));
+        cc.setSyllabusImagesJson(defaultJsonArray(syllabusImagesJson));
+        cc.setSyllabusContentType(normalizeContentType(
+                getStringAny(item, "syllabus_content_type", "syllabusContentType"),
+                inferContentType(cc.getSyllabusPlainText(), cc.getSyllabusHtml(), cc.getSyllabusImagesJson())));
+        cc.setSitePhotosPlainText(defaultText(getStringAny(item, "site_photos_plain_text", "sitePhotosPlainText"), ""));
+        cc.setSitePhotosHtml(defaultText(getStringAny(item, "site_photos_html", "sitePhotosHtml"), ""));
+        cc.setSitePhotosImagesJson(defaultJsonArray(getJsonAny(item, "site_photos_images_json", "sitePhotosImagesJson", "site_photos", "sitePhotos", "site_photos_images", "sitePhotosImages")));
+        cc.setSitePhotosContentType(normalizeContentType(
+                getStringAny(item, "site_photos_content_type", "sitePhotosContentType"),
+                inferContentType(cc.getSitePhotosPlainText(), cc.getSitePhotosHtml(), cc.getSitePhotosImagesJson())));
+        cc.setHonorCertificatesPlainText(defaultText(getStringAny(item, "honor_certificates_plain_text", "honorCertificatesPlainText"), ""));
+        cc.setHonorCertificatesHtml(defaultText(getStringAny(item, "honor_certificates_html", "honorCertificatesHtml"), ""));
+        cc.setHonorCertificatesImagesJson(defaultJsonArray(getJsonAny(item, "honor_certificates_images_json", "honorCertificatesImagesJson", "honor_certificates", "honorCertificates", "honor_certificates_images", "honorCertificatesImages")));
+        cc.setHonorCertificatesContentType(normalizeContentType(
+                getStringAny(item, "honor_certificates_content_type", "honorCertificatesContentType"),
+                inferContentType(cc.getHonorCertificatesPlainText(), cc.getHonorCertificatesHtml(), cc.getHonorCertificatesImagesJson())));
         cc.setAudience(getString(item, "audience"));
         cc.setHighlights(getString(item, "highlights"));
         cc.setDurationDays(getInt(item, "duration_days", 0));
@@ -1598,6 +1623,7 @@ public class AdminCrawlService {
         vo.setDedupStatusText(dedupStatusText(cc.getDedupStatus()));
         vo.setDedupTargetType(cc.getDedupTargetType());
         vo.setDedupTargetId(cc.getDedupTargetId());
+        vo.setDedupTargetFrontendUrl(dedupTargetFrontendUrl(cc));
         vo.setDedupMatchType(cc.getDedupMatchType());
         vo.setDedupScore(cc.getDedupScore());
         vo.setDedupCheckedAt(cc.getDedupCheckedAt());
@@ -1630,6 +1656,18 @@ public class AdminCrawlService {
         vo.setIntro(cc.getIntro());
         vo.setSummary(cc.getSummary());
         vo.setSyllabus(cc.getSyllabus());
+        vo.setSyllabusPlainText(cc.getSyllabusPlainText());
+        vo.setSyllabusHtml(cc.getSyllabusHtml());
+        vo.setSyllabusContentType(cc.getSyllabusContentType());
+        vo.setSyllabusImages(parseJson(cc.getSyllabusImagesJson(), new TypeReference<>() {}));
+        vo.setSitePhotosPlainText(cc.getSitePhotosPlainText());
+        vo.setSitePhotosHtml(cc.getSitePhotosHtml());
+        vo.setSitePhotosContentType(cc.getSitePhotosContentType());
+        vo.setSitePhotosImages(parseJson(cc.getSitePhotosImagesJson(), new TypeReference<>() {}));
+        vo.setHonorCertificatesPlainText(cc.getHonorCertificatesPlainText());
+        vo.setHonorCertificatesHtml(cc.getHonorCertificatesHtml());
+        vo.setHonorCertificatesContentType(cc.getHonorCertificatesContentType());
+        vo.setHonorCertificatesImages(parseJson(cc.getHonorCertificatesImagesJson(), new TypeReference<>() {}));
         vo.setAudience(cc.getAudience());
         vo.setHighlights(cc.getHighlights());
         vo.setDurationDays(cc.getDurationDays());
@@ -1649,6 +1687,7 @@ public class AdminCrawlService {
         vo.setDedupCourseId(cc.getDedupCourseId());
         vo.setDedupTargetType(cc.getDedupTargetType());
         vo.setDedupTargetId(cc.getDedupTargetId());
+        vo.setDedupTargetFrontendUrl(dedupTargetFrontendUrl(cc));
         vo.setDedupMatchType(cc.getDedupMatchType());
         vo.setDedupScore(cc.getDedupScore());
         vo.setDedupCheckedAt(cc.getDedupCheckedAt());
@@ -1789,6 +1828,20 @@ public class AdminCrawlService {
 
     // ==================== 工具方法 ====================
 
+    private String dedupTargetFrontendUrl(CrawledCourse cc) {
+        if (cc == null
+                || cc.getDedupTargetId() == null
+                || !CourseDuplicateService.TARGET_COURSE.equals(cc.getDedupTargetType())) {
+            return null;
+        }
+        String normalizedType = normalizeCourseType(cc.getType());
+        String segment = ("OPEN_ONLINE".equals(normalizedType) || "OPEN_OFFLINE".equals(normalizedType))
+                ? "opencourse"
+                : "inhousecourse";
+        String base = siteBaseUrl == null ? "" : siteBaseUrl.replaceAll("/+$", "");
+        return base + "/zh-CN/" + segment + "/" + cc.getDedupTargetId() + ".htm";
+    }
+
     private String dedupStatusText(Integer status) {
         if (status == null) return "未检查";
         return switch (status) {
@@ -1852,6 +1905,64 @@ public class AdminCrawlService {
     private String getString(Map<String, Object> item, String key) {
         Object val = item.get(key);
         return val != null ? val.toString() : null;
+    }
+
+    private String getStringAny(Map<String, Object> item, String... keys) {
+        for (String key : keys) {
+            String value = getString(item, key);
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private String getJsonAny(Map<String, Object> item, String... keys) {
+        for (String key : keys) {
+            Object value = item.get(key);
+            if (value == null) {
+                continue;
+            }
+            if (value instanceof String text) {
+                if (!text.isBlank()) {
+                    return text;
+                }
+                continue;
+            }
+            return toJson(value);
+        }
+        return null;
+    }
+
+    private String normalizeContentType(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        if (Set.of("TEXT", "IMAGE", "MIXED").contains(normalized)) {
+            return normalized;
+        }
+        return fallback;
+    }
+
+    private String inferContentType(String plainText, String html, String imagesJson) {
+        boolean hasText = (plainText != null && !plainText.isBlank()) || (html != null && !html.isBlank());
+        boolean hasImages = hasJsonItems(imagesJson);
+        if (hasText && hasImages) {
+            return "MIXED";
+        }
+        if (hasImages) {
+            return "IMAGE";
+        }
+        return "TEXT";
+    }
+
+    private boolean hasJsonItems(String json) {
+        if (json == null || json.isBlank()) {
+            return false;
+        }
+        List<?> items = parseJson(json, new TypeReference<>() {});
+        return items != null && !items.isEmpty();
     }
 
     private Integer getInt(Map<String, Object> item, String key, Integer defaultVal) {

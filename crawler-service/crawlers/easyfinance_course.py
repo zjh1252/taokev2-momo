@@ -11,6 +11,7 @@ from typing import Any, AsyncGenerator, Dict, Iterable, List
 from urllib.parse import urljoin, urlparse
 
 from crawlers.course_utils import append_diagnostic, detect_content_type, enrich_course_record, set_price_fields
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "https://www.easyfinance.com.cn"
@@ -164,6 +165,18 @@ def extract_detail_text(html: str) -> str:
         if pos > 800:
             text = text[:pos]
     return text
+
+
+def extract_detail_html(html: str) -> str:
+    anchors = ["开课时间：", "培训对象：", "课程收益", "课程介绍", "一站式财商赋能落地解决方案", "什么是财务智能体"]
+    positions = [html.find(anchor) for anchor in anchors if html.find(anchor) >= 0]
+    start = max(0, min(positions) - 180) if positions else 0
+    end = len(html)
+    for stop in ("安越财商院： 021", "免费获取课程资料", "CopyRight"):
+        pos = html.find(stop, start + 1)
+        if pos > start:
+            end = min(end, pos)
+    return html[start:end]
 
 
 def valid_section(value: str) -> str:
@@ -423,6 +436,13 @@ def build_base_record(item: dict[str, Any], html: str, course_type: str) -> Dict
             "diagnostics": [],
         },
     }
+    if course_type != "OPEN_ONLINE":
+        apply_syllabus_rich_content(
+            record,
+            extract_detail_html(html),
+            plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+            base_url=BASE_URL,
+        )
     return record
 
 

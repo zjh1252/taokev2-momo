@@ -38,6 +38,7 @@ public class CrawledCourseVO {
     private String dedupStatusText;
     private String dedupTargetType;
     private Integer dedupTargetId;
+    private String dedupTargetFrontendUrl;
     private String dedupMatchType;
     private Integer dedupScore;
     private LocalDateTime dedupCheckedAt;

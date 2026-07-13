@@ -79,6 +79,42 @@ public class CrawledCourse extends BaseEntity {
     @Column(name = "syllabus", columnDefinition = "longtext")
     private String syllabus;
 
+    @Column(name = "syllabus_plain_text", columnDefinition = "longtext")
+    private String syllabusPlainText;
+
+    @Column(name = "syllabus_html", columnDefinition = "longtext")
+    private String syllabusHtml;
+
+    @Column(name = "syllabus_images_json", columnDefinition = "json")
+    private String syllabusImagesJson;
+
+    @Column(name = "syllabus_content_type", length = 16)
+    private String syllabusContentType = "TEXT";
+
+    @Column(name = "site_photos_plain_text", columnDefinition = "longtext")
+    private String sitePhotosPlainText;
+
+    @Column(name = "site_photos_html", columnDefinition = "longtext")
+    private String sitePhotosHtml;
+
+    @Column(name = "site_photos_images_json", columnDefinition = "json")
+    private String sitePhotosImagesJson;
+
+    @Column(name = "site_photos_content_type", length = 16)
+    private String sitePhotosContentType = "TEXT";
+
+    @Column(name = "honor_certificates_plain_text", columnDefinition = "longtext")
+    private String honorCertificatesPlainText;
+
+    @Column(name = "honor_certificates_html", columnDefinition = "longtext")
+    private String honorCertificatesHtml;
+
+    @Column(name = "honor_certificates_images_json", columnDefinition = "json")
+    private String honorCertificatesImagesJson;
+
+    @Column(name = "honor_certificates_content_type", length = 16)
+    private String honorCertificatesContentType = "TEXT";
+
     /** 适用人群 */
     @Column(name = "audience", columnDefinition = "text")
     private String audience;

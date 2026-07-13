@@ -7,6 +7,7 @@ from typing import Dict, List, Any, Optional
 from models.schemas import CrawlJobRequest, CrawlJobStatus
 from services.callback_service import CallbackService
 from crawlers.base import BaseCrawler
+from crawlers.course_utils import should_skip_expired_public_course
 
 logger = logging.getLogger(__name__)
 
@@ -360,6 +361,17 @@ class JobManager:
                     spider.pause()
                     break
 
+                skip_item, skip_reason = should_skip_expired_public_course(item)
+                if skip_item:
+                    logger.info(
+                        "%s: source=%s title=%s url=%s",
+                        skip_reason,
+                        job["source"],
+                        item.get("title"),
+                        item.get("source_url") or item.get("sourceUrl"),
+                    )
+                    continue
+
                 job["items"].append(item)
                 batch_buffer.append(item)
 
@@ -401,9 +413,12 @@ class JobManager:
             job["status"] = "failed"
             job["error"] = str(e)
             logger.exception(f"任务失败: job_id={job_id}")
-            await callback.notify_error(
-                job_id,
-                str(e),
-                processed=len(job.get("items", [])),
-                total=job.get("expected_total") or len(job.get("items", [])),
-            )
+            try:
+                await callback.notify_error(
+                    job_id,
+                    str(e),
+                    processed=len(job.get("items", [])),
+                    total=job.get("expected_total") or len(job.get("items", [])),
+                )
+            except Exception:
+                logger.exception("Failed to notify crawler error callback: job_id=%s", job_id)

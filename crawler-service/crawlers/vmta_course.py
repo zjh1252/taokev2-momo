@@ -11,6 +11,8 @@ from typing import Any, AsyncGenerator, Dict, Iterable, List
 from urllib.parse import urljoin
 
 from crawlers.course_utils import append_diagnostic, detect_content_type, enrich_course_record, set_price_fields
+from crawlers.media import apply_content_block, media_asset
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "https://www.vmta.com"
@@ -165,6 +167,17 @@ def extract_detail_text(html: str) -> str:
     return text
 
 
+def extract_detail_rich_html(html: str) -> str:
+    starts = [html.find(label) for label in ("课程日程表", "课程详情", "研学详情", "课程宗门", "课程体系规划") if html.find(label) >= 0]
+    start = min(starts) if starts else 0
+    end = len(html)
+    for marker in ("获取定制化课程大纲", "关于健峰", "Copyright"):
+        pos = html.find(marker, start + 1)
+        if pos > start:
+            end = min(end, pos)
+    return html[start:end]
+
+
 def extract_after_labels(text: str, labels: Iterable[str], limit: int = 1800) -> str:
     candidates: list[tuple[int, str, str]] = []
     for label in labels:
@@ -189,7 +202,9 @@ def extract_after_labels(text: str, labels: Iterable[str], limit: int = 1800) ->
             continue
         if best_bad == MISSING:
             best_bad = segment
-        if segment in {"返回顶部", "课程视频", "课程详情"} or segment.startswith("返回顶部"):
+        if segment in {"返回顶部", "课程视频", "课程详情", "参加对象", "开课安排"}:
+            continue
+        if segment.startswith(("返回顶部", "参加对象", "课程视频", "课程详情")):
             continue
         return segment
     return best_bad
@@ -365,6 +380,7 @@ def parse_open_list_rows(html: str, *, limit: int | None = None) -> list[dict[st
 
 def build_open_record(item: dict[str, Any], html: str) -> Dict[str, Any]:
     text = extract_detail_text(html)
+    rich_html = extract_detail_rich_html(html)
     full_text = clean_html(html)
     fields = parse_card_fields(html)
     duration_days = parse_duration_days(item.get("duration_days"), fields.get("天 数"), text)
@@ -424,6 +440,12 @@ def build_open_record(item: dict[str, Any], html: str) -> Dict[str, Any]:
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        rich_html,
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, item.get("price_raw") or fields.get("价 格") or (plans[0].get("priceRaw") if plans else ""))
     if not plans:
         append_diagnostic(record, "plans_json", "open_offline_schedule_missing_or_unparsed")
@@ -445,9 +467,49 @@ def build_open_record(item: dict[str, Any], html: str) -> Dict[str, Any]:
     return record
 
 
+def extract_study_tour_syllabus_images(html: str) -> list[dict[str, str]]:
+    starts = [html.find(label) for label in ("参访企业", "研学详情", "课纲") if html.find(label) >= 0]
+    if not starts:
+        return []
+    start = min(starts)
+    end = len(html)
+    for marker in ('<li class="a3', '<li class="a4', "关于我们", "获取定制化课程大纲"):
+        pos = html.find(marker, start + 1)
+        if pos > start:
+            end = min(end, pos)
+    section_html = html[start:end]
+    assets: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for src in re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', section_html, flags=re.I):
+        url = absolute_url(src)
+        lower_url = url.lower()
+        if not url or url in seen:
+            continue
+        if any(skip in lower_url for skip in ("/css/", "/images/", "logo", "banner")):
+            continue
+        seen.add(url)
+        assets.append(media_asset("syllabus_image", url, "参访企业图片"))
+    return assets
+
+
+def extract_study_tour_syllabus_html(html: str) -> str:
+    starts = [html.find(label) for label in ("参访企业", "研学详情", "课纲") if html.find(label) >= 0]
+    if not starts:
+        return ""
+    start = min(starts)
+    end = len(html)
+    for marker in ('<li class="a3', '<li class="a4', "关于我们", "获取定制化课程大纲"):
+        pos = html.find(marker, start + 1)
+        if pos > start:
+            end = min(end, pos)
+    return html[start:end]
+
+
 def parse_study_tour_detail_html(url: str, html: str) -> Dict[str, Any]:
     text = extract_detail_text(html)
     full_text = clean_html(html)
+    syllabus_html = extract_study_tour_syllabus_html(html)
+    syllabus_images = extract_study_tour_syllabus_images(html)
     title = extract_title(html)
     location_match = re.search(rf"{re.escape(title)}\s+([^ ]*[·]?[^ ]+)\s+出团时间", full_text)
     location_text = clean_html(location_match.group(1)) if location_match else ""
@@ -482,7 +544,7 @@ def parse_study_tour_detail_html(url: str, html: str) -> Dict[str, Any]:
         "keywords": meta_content(html, "keywords"),
         "trainer_name_raw": MISSING,
         "plans_json": [{key: value for key, value in plan.items() if value not in {"", None}}],
-        "services_json": [],
+        "services_json": syllabus_images.copy(),
         "raw_json": {
             "source_entry": "study_tour_detail",
             "source_entry_name": "企业考察研学",
@@ -500,6 +562,20 @@ def parse_study_tour_detail_html(url: str, html: str) -> Dict[str, Any]:
             "diagnostics": [],
         },
     }
+    if syllabus_images:
+        apply_content_block(
+            record,
+            "syllabus",
+            plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+            images=syllabus_images,
+        )
+    apply_syllabus_rich_content(
+        record,
+        syllabus_html,
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        images=syllabus_images,
+        base_url=BASE_URL,
+    )
     set_price_fields(record, price_text)
     append_diagnostic(record, "plans_json.startDate", "study_tour_schedule_year_missing", date_text)
     if not location_text:
@@ -514,6 +590,7 @@ def parse_study_tour_detail_html(url: str, html: str) -> Dict[str, Any]:
 def parse_internal_series_detail_html(url: str, html: str) -> Dict[str, Any]:
     text = extract_detail_text(html)
     full_text = clean_html(html)
+    rich_html = extract_detail_rich_html(html)
     title = extract_title(html)
     intro = extract_after_labels(text, ("课程体系规划", "课程体系", "课程宗旨"), 1500)
     syllabus = extract_after_labels(text, ("课程体系", "课程内容", "课纲"), 5000)
@@ -563,6 +640,12 @@ def parse_internal_series_detail_html(url: str, html: str) -> Dict[str, Any]:
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        rich_html,
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, "内训咨询")
     append_diagnostic(record, "plans_json", "internal_course_has_no_public_schedule")
     if record["intro"] == MISSING:

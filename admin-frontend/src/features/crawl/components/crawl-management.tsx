@@ -63,6 +63,7 @@ import type {
   CrawledCourseDetail,
   CrawledTrainer,
   CrawledTrainerDetail,
+  CourseImageItem,
   MediaAsset,
   CrawledCourseEditPayload
 } from '../api/types';
@@ -191,6 +192,23 @@ function dedupTargetLabel(value?: string | null) {
   return '重复目标';
 }
 
+function DuplicateFrontendLink({ url }: { url?: string | null }) {
+  if (!url) {
+    return <span className='text-muted-foreground'>{'\u65e0\u524d\u53f0\u94fe\u63a5'}</span>;
+  }
+  return (
+    <a
+      href={url}
+      target='_blank'
+      rel='noreferrer'
+      className='inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline'
+    >
+      {'\u524d\u53f0\u8bfe\u7a0b\u94fe\u63a5'}
+      <Icons.externalLink className='h-3.5 w-3.5' />
+    </a>
+  );
+}
+
 const courseReviewTabs = [
   { value: '0', label: '待审核', title: '待审核课程', emptyText: '暂无待审核课程' },
   { value: '3', label: '已入库', title: '已入库课程', emptyText: '暂无已入库课程' },
@@ -286,7 +304,7 @@ function ReviewTableViewport({ children }: { children: ReactNode }) {
 function normalizeMediaAssets(
   detail:
     | Pick<CrawledTrainerDetail, 'rawJson'>
-    | Pick<CrawledCourseDetail, 'servicesList' | 'rawJson'>
+    | Pick<CrawledCourseDetail, 'coverUrl' | 'servicesList' | 'rawJson'>
 ) {
   const result: MediaAsset[] = [];
   const seen = new Set<string>();
@@ -298,6 +316,7 @@ function normalizeMediaAssets(
   };
 
   if ('servicesList' in detail) {
+    push({ type: 'cover', url: detail.coverUrl ?? undefined, label: '\u8bfe\u7a0b\u5c01\u9762' });
     (detail.servicesList ?? []).forEach(push);
   }
 
@@ -322,11 +341,14 @@ function JsonPreview({ data }: { data: unknown }) {
 }
 
 function MediaGallery({ assets }: { assets: MediaAsset[] }) {
+  const [previewAsset, setPreviewAsset] = useState<MediaAsset | null>(null);
+
   if (assets.length === 0) {
     return <div className='text-sm text-muted-foreground'>暂无图片资源</div>;
   }
 
   return (
+    <>
     <div className='grid gap-3 sm:grid-cols-2'>
       {assets.map((asset, index) => (
         <div key={`${asset.url}-${index}`} className='space-y-2 rounded-md border p-3'>
@@ -345,16 +367,65 @@ function MediaGallery({ assets }: { assets: MediaAsset[] }) {
             ) : null}
           </div>
           {asset.url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <button
+              type='button'
+              className='block w-full cursor-zoom-in'
+              onClick={() => setPreviewAsset(asset)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
               src={asset.url}
               alt={asset.label || asset.type || '图片资源'}
-              className='aspect-video w-full rounded-md border object-cover'
-            />
+                className='aspect-video w-full rounded-md border object-cover'
+              />
+            </button>
           ) : null}
           <div className='break-all text-xs text-muted-foreground'>{asset.url || '-'}</div>
         </div>
       ))}
+    </div>
+    <Dialog open={Boolean(previewAsset)} onOpenChange={(open) => !open && setPreviewAsset(null)}>
+      <DialogContent className='max-h-[90vh] overflow-auto sm:max-w-5xl'>
+        <DialogHeader>
+          <DialogTitle>{previewAsset?.label || previewAsset?.type || '\u56fe\u7247\u9884\u89c8'}</DialogTitle>
+          <DialogDescription className='break-all'>{previewAsset?.url || ''}</DialogDescription>
+        </DialogHeader>
+        {previewAsset?.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={previewAsset.url}
+            alt={previewAsset.label || previewAsset.type || '\u56fe\u7247\u9884\u89c8'}
+            className='max-h-[72vh] w-full rounded-md border object-contain'
+          />
+        ) : null}
+      </DialogContent>
+    </Dialog>
+    </>
+  );
+}
+
+function CourseContentBlock({
+  label,
+  text,
+  images
+}: {
+  label: string;
+  text?: string | null;
+  images?: CourseImageItem[] | null;
+}) {
+  const imageItems = images?.filter((image) => image.url) ?? [];
+  const hasText = Boolean(text?.trim());
+  if (!hasText && imageItems.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className='space-y-3'>
+      <div className='text-xs text-muted-foreground'>{label}</div>
+      {hasText ? (
+        <div className='rounded-md border p-3 text-sm leading-6 whitespace-pre-wrap'>{text}</div>
+      ) : null}
+      {imageItems.length > 0 ? <MediaGallery assets={imageItems} /> : null}
     </div>
   );
 }
@@ -471,7 +542,21 @@ function CourseDetailDialog({
             </div>
             <DiagnosticsList diagnostics={detail.diagnostics} />
             <DetailBlock label='简介' value={detail.intro || detail.summary} large />
-            <DetailBlock label='大纲' value={detail.syllabus} large />
+            <CourseContentBlock
+              label='课程大纲'
+              text={detail.syllabusPlainText || detail.syllabus}
+              images={detail.syllabusImages}
+            />
+            <CourseContentBlock
+              label='现场图片'
+              text={detail.sitePhotosPlainText}
+              images={detail.sitePhotosImages}
+            />
+            <CourseContentBlock
+              label='荣誉证书'
+              text={detail.honorCertificatesPlainText}
+              images={detail.honorCertificatesImages}
+            />
             <JsonPreview data={detail.rawJson} />
           </div>
         ) : (
@@ -788,6 +873,9 @@ function CourseReviewDialog({
                       {detail.dedupMatchType ? ` · ${detail.dedupMatchType}` : ''}
                     </div>
                     {detail.dedupReason && <div className='mt-1'>{detail.dedupReason}</div>}
+                    <div className='mt-1'>
+                      <DuplicateFrontendLink url={detail.dedupTargetFrontendUrl} />
+                    </div>
                   </div>
                 )}
                 <DiagnosticsList diagnostics={detail.diagnostics} compact />
@@ -1666,11 +1754,14 @@ export function CrawledCoursesPanel() {
                       {course.dedupStatusText}
                     </Badge>
                     {course.dedupStatus === 2 && (
-                      <div className='mt-1 max-w-[110px] truncate text-xs text-muted-foreground'>
+                      <div className='mt-1 max-w-[110px] space-y-1 text-xs text-muted-foreground'>
+                        <div className='truncate'>
                         {course.dedupTargetId
                           ? `${dedupTargetLabel(course.dedupTargetType)} #${course.dedupTargetId}`
                           : '重复目标待确认'}
                         {course.dedupScore != null ? ` · ${course.dedupScore}分` : ''}
+                        </div>
+                        <DuplicateFrontendLink url={course.dedupTargetFrontendUrl} />
                       </div>
                     )}
                     {course.dedupReason && (

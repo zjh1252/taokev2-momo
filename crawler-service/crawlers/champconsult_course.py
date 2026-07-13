@@ -11,6 +11,7 @@ from typing import Any, AsyncGenerator, Dict, Iterable, List
 from urllib.parse import parse_qs, urljoin, urlparse
 
 from crawlers.course_utils import append_diagnostic, detect_content_type, enrich_course_record, set_price_fields
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "http://www.champconsult.com"
@@ -146,6 +147,17 @@ def extract_detail_text(html: str) -> str:
     return clean_html(html)
 
 
+def extract_detail_html(html: str) -> str:
+    for pattern in (
+        r'<div[^>]+class=["\']incrlcont["\'][^>]*>([\s\S]*?)(?:<div[^>]+class=["\']footer|</body>)',
+        r'<div[^>]+class=["\']incrlmadecontent["\'][^>]*>([\s\S]*?)(?:<div[^>]+class=["\']clear|</body>)',
+    ):
+        match = re.search(pattern, html, flags=re.I)
+        if match:
+            return match.group(1)
+    return html
+
+
 def extract_title(html: str, fallback: str = MISSING) -> str:
     for pattern in (
         r'<div[^>]+class=["\']incrlcont["\'][^>]*>\s*<h[123][^>]*>([\s\S]*?)</h[123]>',
@@ -240,7 +252,24 @@ def extract_highlights(text: str) -> str:
 
 def extract_syllabus(text: str) -> str:
     syllabus = extract_after_labels(text, ("课程纲要", "咨询内容：", "项目内容"), 5000)
-    return syllabus if syllabus != MISSING else text[:5000]
+    if syllabus != MISSING and len(syllabus) > 20 and syllabus not in {"讲师简介", "客户评价"}:
+        return syllabus
+    markers = ("第一讲", "第一部分", "第一模块", "模块一", "一、", "1.", "1、")
+    positions = [text.find(marker) for marker in markers if text.find(marker) >= 0]
+    if positions:
+        segment = text[min(positions):]
+        stops = []
+        for stop in ("讲师简介", "客户评价", "教育及资格认证", "师经历及专长"):
+            pos = segment.find(stop)
+            if pos > 30:
+                stops.append(pos)
+        teacher_intro = re.search(r"[^\s]{1,12}老师\s+教育及资格认证", segment)
+        if teacher_intro and teacher_intro.start() > 30:
+            stops.append(teacher_intro.start())
+        if stops:
+            segment = segment[: min(stops)]
+        return segment[:5000].strip() or MISSING
+    return text[:5000]
 
 
 def parse_duration_days(*values: str) -> int:
@@ -427,6 +456,12 @@ def parse_open_detail_html(item: dict[str, str], html: str) -> Dict[str, Any]:
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        extract_detail_html(html),
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, item.get("price_raw") or top.get("price_raw") or MISSING)
     if record["type"] == "OPEN_OFFLINE" and plan.get("address") == item.get("city"):
         append_diagnostic(record, "plans_json.address", "source_only_provides_city_no_street_address", item.get("city", ""))
@@ -489,6 +524,12 @@ def parse_internal_detail_html(item: dict[str, str], html: str) -> Dict[str, Any
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        extract_detail_html(html),
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, "内训咨询")
     append_diagnostic(record, "plans_json", "internal_course_has_no_public_schedule")
     append_diagnostic(record, "duration_days", "source_solution_has_no_fixed_duration")

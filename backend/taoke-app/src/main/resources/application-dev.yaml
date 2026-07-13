@@ -100,7 +100,7 @@ taoke:
 # 若改为本机直接 uvicorn 启动爬虫，可改回 http://localhost:18080/internal/crawl/callback
 crawler:
   base-url: http://localhost:8100
-  callback-url: http://host.docker.internal:8080/internal/crawl/callback
+  callback-url: ${CRAWLER_CALLBACK_URL:http://localhost:8080/internal/crawl/callback}
   callback-token: local-crawler-token
 
 logging:
