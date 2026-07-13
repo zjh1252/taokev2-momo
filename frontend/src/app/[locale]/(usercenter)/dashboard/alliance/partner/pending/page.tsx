@@ -89,7 +89,7 @@ export default function PartnerPendingPage() {
               <p className="mx-auto mt-4 max-w-lg text-sm leading-7">
                 {content.description}
               </p>
-              {application.status === 2 ? (
+              {application.status === 1 || application.status === 2 ? (
                 <p className="mt-6 text-sm">
                   培训合伙人编号：
                   <span className="font-bold">{application.partnerCode}</span>
