@@ -1,15 +1,11 @@
 package com.taoke.user.service;
 
 import com.taoke.common.dto.PageResult;
-import com.taoke.common.enums.NotificationType;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.user.api.AlliancePartnerApplicationService;
-import com.taoke.user.api.NotificationService;
-import com.taoke.user.api.NotificationTemplateService;
 import com.taoke.user.dto.alliance.AlliancePartnerApplyRequest;
 import com.taoke.user.dto.alliance.AlliancePartnerApplicationResponse;
-import com.taoke.user.dto.notification.RenderedTemplate;
 import com.taoke.user.entity.AlliancePartnerApplication;
 import com.taoke.user.repository.AlliancePartnerApplicationRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,10 +16,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 
 /**
  * 培训合伙人申请服务实现。
@@ -45,8 +42,7 @@ public class AlliancePartnerApplicationServiceImpl
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private final AlliancePartnerApplicationRepository repository;
-    private final NotificationTemplateService templateService;
-    private final NotificationService notificationService;
+    private final AlliancePartnerNotificationSender notificationSender;
 
     @Override
     public AlliancePartnerApplicationResponse getLatestByUserId(Integer userId) {
@@ -124,7 +120,7 @@ public class AlliancePartnerApplicationServiceImpl
         application.setReviewedAt(LocalDateTime.now());
         application.setReviewedBy(reviewerUserId);
         repository.save(application);
-        sendReviewNotification(application, "APPLY_PASSED", "");
+        sendReviewNotificationAfterCommit(application, "APPLY_PASSED", "");
     }
 
     @Override
@@ -140,7 +136,7 @@ public class AlliancePartnerApplicationServiceImpl
         application.setReviewedAt(LocalDateTime.now());
         application.setReviewedBy(reviewerUserId);
         repository.save(application);
-        sendReviewNotification(application, "APPLY_REJECTED", reason);
+        sendReviewNotificationAfterCommit(application, "APPLY_REJECTED", reason);
     }
 
     private AlliancePartnerApplication findById(Integer id) {
@@ -161,23 +157,32 @@ public class AlliancePartnerApplicationServiceImpl
                 + String.format("%06d", userId);
     }
 
-    private void sendReviewNotification(
+    private void sendReviewNotificationAfterCommit(
             AlliancePartnerApplication application, String templateCode, String reason) {
+        Runnable notification = () -> sendReviewNotificationSafely(
+                application.getId(), application.getUserId(), templateCode, reason);
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            notification.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        notification.run();
+                    }
+                });
+    }
+
+    private void sendReviewNotificationSafely(
+            Integer applicationId, Integer userId, String templateCode, String reason) {
         try {
-            RenderedTemplate rendered = templateService.renderTemplate(
-                    templateCode,
-                    Map.of("roleName", "培训合伙人", "reason", reason));
-            notificationService.send(
-                    application.getUserId(),
-                    NotificationType.APPLY_RESULT,
-                    rendered.getTitle(),
-                    rendered.getContent(),
-                    String.valueOf(application.getId()),
-                    null);
+            notificationSender.sendReviewResult(
+                    applicationId, userId, templateCode, reason);
         } catch (Exception exception) {
             log.warn(
                     "发送培训合伙人申请审核通知失败，applicationId={}",
-                    application.getId(),
+                    applicationId,
                     exception);
         }
     }

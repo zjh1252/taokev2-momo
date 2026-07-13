@@ -18,6 +18,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Map;
@@ -29,10 +33,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,6 +45,9 @@ class AlliancePartnerApplicationServiceImplTest {
 
     @Mock
     AlliancePartnerApplicationRepository repository;
+
+    @Mock
+    AlliancePartnerNotificationSender notificationSender;
 
     @Mock
     NotificationTemplateService templateService;
@@ -138,19 +146,12 @@ class AlliancePartnerApplicationServiceImplTest {
     void approve_sendsApplyPassed() {
         AlliancePartnerApplication application = pendingApp(5, 42);
         when(repository.findById(5)).thenReturn(Optional.of(application));
-        when(templateService.renderTemplate(eq("APPLY_PASSED"), anyMap()))
-                .thenReturn(new RenderedTemplate("t", "c"));
 
         service.approve(5, 99);
 
         assertEquals(2, application.getStatus());
         assertEquals(99, application.getReviewedBy());
-        verify(notificationService).send(
-                42, NotificationType.APPLY_RESULT, "t", "c", "5", null);
-        verify(templateService).renderTemplate("APPLY_PASSED", Map.of(
-                "roleName", "培训合伙人",
-                "reason", ""
-        ));
+        verify(notificationSender).sendReviewResult(5, 42, "APPLY_PASSED", "");
     }
 
     @Test
@@ -160,7 +161,7 @@ class AlliancePartnerApplicationServiceImplTest {
         when(repository.findById(5)).thenReturn(Optional.of(application));
 
         assertThrows(BusinessException.class, () -> service.approve(5, 99));
-        verify(notificationService, never()).send(anyInt(), any(), any(), any(), any(), any());
+        verify(notificationSender, never()).sendReviewResult(anyInt(), anyInt(), any(), any());
     }
 
     @Test
@@ -174,19 +175,91 @@ class AlliancePartnerApplicationServiceImplTest {
     void reject_sendsApplyRejectedWithReason() {
         AlliancePartnerApplication application = pendingApp(5, 42);
         when(repository.findById(5)).thenReturn(Optional.of(application));
-        when(templateService.renderTemplate(eq("APPLY_REJECTED"), anyMap()))
-                .thenReturn(new RenderedTemplate("驳回", "材料不完整"));
 
         service.reject(5, 99, "材料不完整");
 
         assertEquals(3, application.getStatus());
         assertEquals("材料不完整", application.getRejectReason());
-        verify(templateService).renderTemplate("APPLY_REJECTED", Map.of(
+        verify(notificationSender)
+                .sendReviewResult(5, 42, "APPLY_REJECTED", "材料不完整");
+    }
+
+    @Test
+    void approve_sendsNotificationAfterCommitAndSwallowsFailure() {
+        AlliancePartnerApplication application = pendingApp(5, 42);
+        when(repository.findById(5)).thenReturn(Optional.of(application));
+        doThrow(new RuntimeException("notification failed"))
+                .when(notificationSender)
+                .sendReviewResult(5, 42, "APPLY_PASSED", "");
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.approve(5, 99);
+
+            assertEquals(2, application.getStatus());
+            verify(repository).save(application);
+            verifyNoInteractions(notificationSender);
+
+            for (TransactionSynchronization synchronization
+                    : TransactionSynchronizationManager.getSynchronizations()) {
+                synchronization.afterCommit();
+            }
+            verify(notificationSender).sendReviewResult(5, 42, "APPLY_PASSED", "");
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void reject_sendsNotificationAfterCommitAndSwallowsFailure() {
+        AlliancePartnerApplication application = pendingApp(5, 42);
+        when(repository.findById(5)).thenReturn(Optional.of(application));
+        doThrow(new RuntimeException("notification failed"))
+                .when(notificationSender)
+                .sendReviewResult(5, 42, "APPLY_REJECTED", "材料不完整");
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.reject(5, 99, "材料不完整");
+
+            assertEquals(3, application.getStatus());
+            verify(repository).save(application);
+            verifyNoInteractions(notificationSender);
+
+            for (TransactionSynchronization synchronization
+                    : TransactionSynchronizationManager.getSynchronizations()) {
+                synchronization.afterCommit();
+            }
+            verify(notificationSender)
+                    .sendReviewResult(5, 42, "APPLY_REJECTED", "材料不完整");
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void notificationSender_usesRequiresNewTransactionAndSendsRenderedTemplate()
+            throws NoSuchMethodException {
+        when(templateService.renderTemplate("APPLY_PASSED", Map.of(
                 "roleName", "培训合伙人",
-                "reason", "材料不完整"
-        ));
+                "reason", ""
+        ))).thenReturn(new RenderedTemplate("通过", "审核通过"));
+        AlliancePartnerNotificationSender sender =
+                new AlliancePartnerNotificationSender(templateService, notificationService);
+
+        sender.sendReviewResult(5, 42, "APPLY_PASSED", "");
+
         verify(notificationService).send(
-                42, NotificationType.APPLY_RESULT, "驳回", "材料不完整", "5", null);
+                42, NotificationType.APPLY_RESULT, "通过", "审核通过", "5", null);
+        Transactional transactional = AlliancePartnerNotificationSender.class
+                .getMethod(
+                        "sendReviewResult",
+                        Integer.class,
+                        Integer.class,
+                        String.class,
+                        String.class)
+                .getAnnotation(Transactional.class);
+        assertEquals(Propagation.REQUIRES_NEW, transactional.propagation());
     }
 
     private AlliancePartnerApplyRequest validRequest() {
