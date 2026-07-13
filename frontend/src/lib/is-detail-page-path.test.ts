@@ -4,9 +4,14 @@ import { isDetailPagePath } from './is-detail-page-path';
 describe('isDetailPagePath', () => {
   it('matches entity detail pages', () => {
     expect(isDetailPagePath('/trainer/1001')).toBe(true);
+    expect(isDetailPagePath('/trainer/1001.htm')).toBe(true);
     expect(isDetailPagePath('/opencourse/12345')).toBe(true);
+    expect(isDetailPagePath('/opencourse/12345.htm')).toBe(true);
     expect(isDetailPagePath('/opencourse/TK-000015-1')).toBe(true);
     expect(isDetailPagePath('/inhousecourse/99')).toBe(true);
+    expect(isDetailPagePath('/inhousecourse/99.htm')).toBe(true);
+    expect(isDetailPagePath('/innercourses/99')).toBe(true);
+    expect(isDetailPagePath('/innercourses/99.htm')).toBe(true);
     expect(isDetailPagePath('/company/88')).toBe(true);
     expect(isDetailPagePath('/association/5')).toBe(true);
     expect(isDetailPagePath('/video/200')).toBe(true);
