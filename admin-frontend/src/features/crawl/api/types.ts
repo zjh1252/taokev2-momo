@@ -197,6 +197,7 @@ export type CrawledCourseDetail = {
   dedupCourseId: number | null;
   dedupTargetType: string | null;
   dedupTargetId: number | null;
+  dedupTargetFrontendUrl: string | null;
   dedupMatchType: string | null;
   dedupScore: number | null;
   dedupCheckedAt: string | null;
@@ -340,7 +341,10 @@ export type CrawledCourseFilters = {
   source?: string;
   reviewStatus?: string;
   dedupStatus?: string;
+  type?: string;
   keyword?: string;
+  sortBy?: string;
+  sortDirection?: string;
 };
 
 export type CrawlJobFilters = {

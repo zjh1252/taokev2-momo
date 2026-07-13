@@ -516,29 +516,51 @@ public class AdminCrawlService {
     public PageResult<CrawledCourseVO> listCrawledCourses(CrawledCourseQuery query) {
         PageRequest pageable = PageRequest.of(
                 query.getPage() - 1, query.getSize(),
-                Sort.by(Sort.Direction.DESC, "id")
+                buildCrawledCourseSort(query)
         );
 
-        Page<CrawledCourse> page;
-        if (query.getSource() != null && query.getReviewStatus() != null) {
-            page = crawledCourseRepository.findBySourceAndReviewStatus(query.getSource(), query.getReviewStatus(), pageable);
-        } else if (query.getReviewStatus() != null) {
-            page = crawledCourseRepository.findByReviewStatus(query.getReviewStatus(), pageable);
-        } else if (query.getSource() != null) {
-            page = crawledCourseRepository.findBySource(query.getSource(), pageable);
-        } else {
-            page = crawledCourseRepository.findAll(pageable);
-        }
+        Page<CrawledCourse> page = crawledCourseRepository.searchCourses(
+                blankToNull(query.getSource()),
+                query.getReviewStatus(),
+                query.getDedupStatus(),
+                normalizedCourseTypeFilter(query.getType()),
+                blankToNull(query.getKeyword()),
+                pageable
+        );
 
-        List<CrawledCourse> content = page.getContent();
-        if (query.getDedupStatus() != null) {
-            content = content.stream()
-                    .filter(c -> Objects.equals(c.getDedupStatus(), query.getDedupStatus()))
-                    .toList();
-        }
-
-        List<CrawledCourseVO> voList = content.stream().map(this::toCourseVO).toList();
+        List<CrawledCourseVO> voList = page.getContent().stream().map(this::toCourseVO).toList();
         return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), voList);
+    }
+
+    private Sort buildCrawledCourseSort(CrawledCourseQuery query) {
+        Sort.Direction direction = "ASC".equalsIgnoreCase(query.getSortDirection())
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        String sortBy = normalizeCrawledCourseSortBy(query.getSortBy());
+        return Sort.by(direction, sortBy).and(Sort.by(Sort.Direction.DESC, "id"));
+    }
+
+    private String normalizeCrawledCourseSortBy(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "updatedAt";
+        }
+        String normalized = sortBy.trim().replace("_", "").replace("-", "").toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "createdat", "createtime" -> "createdAt";
+            case "id" -> "id";
+            default -> "updatedAt";
+        };
+    }
+
+    private String normalizedCourseTypeFilter(String type) {
+        if (type == null || type.isBlank()) {
+            return null;
+        }
+        String normalized = type.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "OPEN_OFFLINE", "OPEN_ONLINE", "INTERNAL" -> normalized;
+            default -> null;
+        };
     }
 
     /**
@@ -2031,6 +2053,13 @@ public class AdminCrawlService {
 
     private int maxInt(Integer left, Integer right) {
         return Math.max(defaultInt(left), defaultInt(right));
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private String defaultText(String value) {

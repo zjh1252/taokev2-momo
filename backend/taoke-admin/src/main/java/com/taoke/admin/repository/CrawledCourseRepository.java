@@ -25,6 +25,21 @@ public interface CrawledCourseRepository extends JpaRepository<CrawledCourse, In
 
     Page<CrawledCourse> findBySource(String source, Pageable pageable);
 
+    @Query("""
+            select c from CrawledCourse c
+            where (:source is null or c.source = :source)
+              and (:reviewStatus is null or c.reviewStatus = :reviewStatus)
+              and (:dedupStatus is null or c.dedupStatus = :dedupStatus)
+              and (:type is null or c.type = :type)
+              and (:keyword is null or :keyword = '' or lower(c.title) like lower(concat('%', :keyword, '%')))
+            """)
+    Page<CrawledCourse> searchCourses(@Param("source") String source,
+                                      @Param("reviewStatus") Integer reviewStatus,
+                                      @Param("dedupStatus") Integer dedupStatus,
+                                      @Param("type") String type,
+                                      @Param("keyword") String keyword,
+                                      Pageable pageable);
+
     Optional<CrawledCourse> findBySourceAndSourceCourseId(String source, String sourceCourseId);
 
     @Query("""

@@ -35,7 +35,10 @@ export function buildCrawledCourseParams(filters: CrawledCourseFilters): URLSear
   if (filters.source) params.set('source', filters.source);
   if (filters.reviewStatus) params.set('reviewStatus', filters.reviewStatus);
   if (filters.dedupStatus) params.set('dedupStatus', filters.dedupStatus);
+  if (filters.type) params.set('type', filters.type);
   if (filters.keyword) params.set('keyword', filters.keyword);
+  if (filters.sortBy) params.set('sortBy', filters.sortBy);
+  if (filters.sortDirection) params.set('sortDirection', filters.sortDirection);
   return params;
 }
 

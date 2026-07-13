@@ -278,6 +278,28 @@ class JobManager:
             },
         ]
 
+    def _progress_message(self, job: Dict[str, Any]) -> str:
+        accepted_count = len(job.get("items", []))
+        skipped_count = job.get("skipped_count", 0)
+        if skipped_count:
+            return f"已抓取 {accepted_count} 条，已跳过 {skipped_count} 条"
+        return f"已抓取 {accepted_count} 条"
+
+    def _complete_message(self, job: Dict[str, Any]) -> str:
+        accepted_count = len(job.get("items", []))
+        skipped_count = job.get("skipped_count", 0)
+        if not skipped_count:
+            return f"爬取完成，共抓取 {accepted_count} 条"
+
+        skipped_reasons = job.get("skipped_reasons", {})
+        reason_summary = "、".join(
+            f"{reason} {count} 条"
+            for reason, count in sorted(skipped_reasons.items(), key=lambda item: item[0])
+        )
+        if reason_summary:
+            return f"爬取完成，共抓取 {accepted_count} 条，跳过 {skipped_count} 条（{reason_summary}）"
+        return f"爬取完成，共抓取 {accepted_count} 条，跳过 {skipped_count} 条"
+
     def create_job(self, request: CrawlJobRequest) -> str:
         """创建爬取任务。"""
         job_id = str(uuid.uuid4())[:8]
@@ -293,6 +315,8 @@ class JobManager:
             "items": [],
             "expected_total": request.max_items or 0,
             "error_count": 0,
+            "skipped_count": 0,
+            "skipped_reasons": {},
             "error": None,
             "created_at": datetime.now(),
         }
@@ -310,6 +334,7 @@ class JobManager:
             data_type=job["data_type"],
             status=job["status"],
             total_items=len(job["items"]),
+            skipped_count=job.get("skipped_count", 0),
             error=job.get("error"),
         )
 
@@ -363,6 +388,10 @@ class JobManager:
 
                 skip_item, skip_reason = should_skip_expired_public_course(item)
                 if skip_item:
+                    reason_key = skip_reason or "skipped"
+                    job["skipped_count"] = job.get("skipped_count", 0) + 1
+                    skipped_reasons = job.setdefault("skipped_reasons", {})
+                    skipped_reasons[reason_key] = skipped_reasons.get(reason_key, 0) + 1
                     logger.info(
                         "%s: source=%s title=%s url=%s",
                         skip_reason,
@@ -382,7 +411,7 @@ class JobManager:
                         job_id,
                         total=expected_total or len(job["items"]),
                         processed=len(job["items"]),
-                        message=f"已抓取 {len(job['items'])} 条",
+                        message=self._progress_message(job),
                         error_count=job.get("error_count", 0),
                     )
                     batch_buffer.clear()
@@ -394,7 +423,7 @@ class JobManager:
                     job_id,
                     total=expected_total or len(job["items"]),
                     processed=len(job["items"]),
-                    message=f"已抓取 {len(job['items'])} 条",
+                    message=self._progress_message(job),
                     error_count=job.get("error_count", 0),
                 )
 
@@ -405,7 +434,7 @@ class JobManager:
                     job_id,
                     total,
                     processed=len(job["items"]),
-                    message=f"爬取完成，共抓取 {len(job['items'])} 条",
+                    message=self._complete_message(job),
                 )
                 logger.info(f"任务完成: job_id={job_id}, total={len(job['items'])}")
 

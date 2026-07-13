@@ -114,7 +114,8 @@ class AdminCrawlServiceReviewStatusTest {
         course.setReviewRejectReason("历史驳回原因");
         course.setReviewedAt(LocalDateTime.of(2026, 7, 10, 11, 30));
         course.setImportedCourseId(88);
-        when(crawledCourseRepository.findByReviewStatus(eq(3), any(Pageable.class)))
+        when(crawledCourseRepository.searchCourses(
+                any(), eq(3), any(), any(), any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(course), PageRequest.of(0, 10), 1));
 
         CrawledCourseQuery query = new CrawledCourseQuery();
