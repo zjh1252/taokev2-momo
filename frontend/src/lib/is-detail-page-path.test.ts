@@ -16,6 +16,9 @@ describe('isDetailPagePath', () => {
     expect(isDetailPagePath('/association/5')).toBe(true);
     expect(isDetailPagePath('/video/200')).toBe(true);
     expect(isDetailPagePath('/video/200/play')).toBe(true);
+    expect(isDetailPagePath('/vedio/200')).toBe(true);
+    expect(isDetailPagePath('/vedio/200.htm')).toBe(true);
+    expect(isDetailPagePath('/videos/200')).toBe(true);
     expect(isDetailPagePath('/case/42')).toBe(true);
   });
 

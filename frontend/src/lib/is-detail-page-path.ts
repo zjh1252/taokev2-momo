@@ -10,6 +10,7 @@ const INTERNAL_TO_SEO_BASE: Record<string, string> = {
   institutions: ROUTES.INSTITUTIONS.slice(1),
   associations: ROUTES.ASSOCIATIONS.slice(1),
   videos: 'video',
+  vedio: 'video', // 老站录播课 SEO 拼写（列表卡片仍用 /vedio/{id}.htm）
   cases: 'case',
 };
 
@@ -66,8 +67,8 @@ function isDetailSeoPath(path: string): boolean {
   if (isSingleIdDetail(ROUTES.ASSOCIATIONS, path)) return true;
   if (isSingleIdDetail('/case', path)) return true;
 
-  if (path.startsWith('/video/')) {
-    const rest = path.slice('/video/'.length);
+  if (path.startsWith('/video/') || path.startsWith('/vedio/')) {
+    const rest = path.slice(path.indexOf('/', 1) + 1);
     if (/^\d+$/.test(rest)) return true;
     if (/^\d+\/play$/.test(rest)) return true;
   }
