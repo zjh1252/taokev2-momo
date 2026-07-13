@@ -1,6 +1,5 @@
 import { headers } from 'next/headers';
-import { TopNavBar } from '@/components/layout/top-nav-bar';
-import { AppHeader } from '@/components/layout/app-header';
+import { PublicHeader } from '@/components/layout/public-header';
 import { AppFooter } from '@/components/layout/app-footer';
 import { FloatingActions } from '@/components/layout/floating-actions';
 import { PxbEmbedProvider } from '@/components/pxb-embed/pxb-embed-provider';
@@ -24,8 +23,7 @@ export default async function PublicLayout({ children }: { children: React.React
 
   return (
     <>
-      <TopNavBar />
-      <AppHeader />
+      <PublicHeader />
       <main className="flex-1 bg-[var(--page-bg)]">{children}</main>
       <AppFooter />
       <FloatingActions />
