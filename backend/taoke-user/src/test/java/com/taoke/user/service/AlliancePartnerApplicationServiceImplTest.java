@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -75,6 +76,22 @@ class AlliancePartnerApplicationServiceImplTest {
                 .thenReturn(Optional.of(new AlliancePartnerApplication()));
 
         assertThrows(BusinessException.class, () -> service.submit(1, validRequest()));
+        verify(repository, never()).save(any());
+    }
+
+    /**
+     * 并发提交时仅靠 findFirst 无法完全消除重复待审；无 DB 部分唯一索引时极小窗口仍可能产生两条 status=1。
+     * 实现通过提交前二次校验缩小窗口，剩余竞态依赖运营侧处理重复单。
+     */
+    @Test
+    void submit_recheckBeforeSaveRejectsLatePending() {
+        when(repository.findFirstByUserIdAndStatusOrderByIdDesc(1, 1))
+                .thenReturn(Optional.empty(), Optional.of(new AlliancePartnerApplication()));
+        when(repository.findFirstByUserIdAndStatusOrderByIdDesc(1, 2))
+                .thenReturn(Optional.empty());
+
+        assertThrows(BusinessException.class, () -> service.submit(1, validRequest()));
+        verify(repository, never()).save(any());
     }
 
     @Test
@@ -146,11 +163,11 @@ class AlliancePartnerApplicationServiceImplTest {
     void approve_sendsApplyPassed() {
         AlliancePartnerApplication application = pendingApp(5, 42);
         when(repository.findById(5)).thenReturn(Optional.of(application));
+        when(repository.approveIfPending(eq(5), any(LocalDateTime.class), eq(99))).thenReturn(1);
 
         service.approve(5, 99);
 
-        assertEquals(2, application.getStatus());
-        assertEquals(99, application.getReviewedBy());
+        verify(repository).approveIfPending(eq(5), any(LocalDateTime.class), eq(99));
         verify(notificationSender).sendReviewResult(5, 42, "APPLY_PASSED", "");
     }
 
@@ -159,6 +176,20 @@ class AlliancePartnerApplicationServiceImplTest {
         AlliancePartnerApplication application = pendingApp(5, 42);
         application.setStatus(2);
         when(repository.findById(5)).thenReturn(Optional.of(application));
+        when(repository.approveIfPending(eq(5), any(LocalDateTime.class), eq(99))).thenReturn(0);
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service.approve(5, 99));
+
+        assertEquals("当前状态不可审核", exception.getMessage());
+        verify(notificationSender, never()).sendReviewResult(anyInt(), anyInt(), any(), any());
+    }
+
+    @Test
+    void approve_rejectsWhenConcurrentReviewAlreadyChangedStatus() {
+        AlliancePartnerApplication application = pendingApp(5, 42);
+        when(repository.findById(5)).thenReturn(Optional.of(application));
+        when(repository.approveIfPending(eq(5), any(LocalDateTime.class), eq(99))).thenReturn(0);
 
         assertThrows(BusinessException.class, () -> service.approve(5, 99));
         verify(notificationSender, never()).sendReviewResult(anyInt(), anyInt(), any(), any());
@@ -175,19 +206,35 @@ class AlliancePartnerApplicationServiceImplTest {
     void reject_sendsApplyRejectedWithReason() {
         AlliancePartnerApplication application = pendingApp(5, 42);
         when(repository.findById(5)).thenReturn(Optional.of(application));
+        when(repository.rejectIfPending(
+                eq(5), eq("材料不完整"), any(LocalDateTime.class), eq(99)))
+                .thenReturn(1);
 
         service.reject(5, 99, "材料不完整");
 
-        assertEquals(3, application.getStatus());
-        assertEquals("材料不完整", application.getRejectReason());
+        verify(repository).rejectIfPending(
+                eq(5), eq("材料不完整"), any(LocalDateTime.class), eq(99));
         verify(notificationSender)
                 .sendReviewResult(5, 42, "APPLY_REJECTED", "材料不完整");
+    }
+
+    @Test
+    void reject_rejectsWhenConcurrentReviewAlreadyChangedStatus() {
+        AlliancePartnerApplication application = pendingApp(5, 42);
+        when(repository.findById(5)).thenReturn(Optional.of(application));
+        when(repository.rejectIfPending(
+                eq(5), eq("材料不完整"), any(LocalDateTime.class), eq(99)))
+                .thenReturn(0);
+
+        assertThrows(BusinessException.class, () -> service.reject(5, 99, "材料不完整"));
+        verify(notificationSender, never()).sendReviewResult(anyInt(), anyInt(), any(), any());
     }
 
     @Test
     void approve_sendsNotificationAfterCommitAndSwallowsFailure() {
         AlliancePartnerApplication application = pendingApp(5, 42);
         when(repository.findById(5)).thenReturn(Optional.of(application));
+        when(repository.approveIfPending(eq(5), any(LocalDateTime.class), eq(99))).thenReturn(1);
         doThrow(new RuntimeException("notification failed"))
                 .when(notificationSender)
                 .sendReviewResult(5, 42, "APPLY_PASSED", "");
@@ -196,8 +243,7 @@ class AlliancePartnerApplicationServiceImplTest {
         try {
             service.approve(5, 99);
 
-            assertEquals(2, application.getStatus());
-            verify(repository).save(application);
+            verify(repository).approveIfPending(eq(5), any(LocalDateTime.class), eq(99));
             verifyNoInteractions(notificationSender);
 
             for (TransactionSynchronization synchronization
@@ -214,6 +260,9 @@ class AlliancePartnerApplicationServiceImplTest {
     void reject_sendsNotificationAfterCommitAndSwallowsFailure() {
         AlliancePartnerApplication application = pendingApp(5, 42);
         when(repository.findById(5)).thenReturn(Optional.of(application));
+        when(repository.rejectIfPending(
+                eq(5), eq("材料不完整"), any(LocalDateTime.class), eq(99)))
+                .thenReturn(1);
         doThrow(new RuntimeException("notification failed"))
                 .when(notificationSender)
                 .sendReviewResult(5, 42, "APPLY_REJECTED", "材料不完整");
@@ -222,8 +271,8 @@ class AlliancePartnerApplicationServiceImplTest {
         try {
             service.reject(5, 99, "材料不完整");
 
-            assertEquals(3, application.getStatus());
-            verify(repository).save(application);
+            verify(repository).rejectIfPending(
+                    eq(5), eq("材料不完整"), any(LocalDateTime.class), eq(99));
             verifyNoInteractions(notificationSender);
 
             for (TransactionSynchronization synchronization

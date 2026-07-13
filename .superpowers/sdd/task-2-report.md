@@ -111,3 +111,22 @@ BUILD SUCCESS
 ```
 
 IDE diagnostics reported no linter errors in the three changed Java files.
+
+## Concurrency Fix
+
+- Added `approveIfPending` / `rejectIfPending` conditional JPQL updates on `AlliancePartnerApplicationRepository` (`WHERE status = 1`).
+- `approve` / `reject` now use these updates; `0` rows updated throws `BusinessException` ("当前状态不可审核") for concurrent double-review.
+- Submit keeps `findFirst` guards and adds a second pending check immediately before `save` to shrink the duplicate-pending window; remaining race without a partial unique index is documented in `submit_recheckBeforeSaveRejectsLatePending`.
+- No Flyway partial unique index (MySQL portability).
+
+### Concurrency Fix Verification
+
+```text
+mvn -pl taoke-user -Dtest=AlliancePartnerApplicationServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test
+Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+## Commit
+
+`fix(user): conditional approve/reject for alliance partner applications`

@@ -68,6 +68,11 @@ public class AlliancePartnerApplicationServiceImpl
             throw new BusinessException(
                     ErrorCode.PARAM_INVALID, "您已是培训合伙人，请勿重复申请");
         }
+        if (repository.findFirstByUserIdAndStatusOrderByIdDesc(userId, STATUS_PENDING)
+                .isPresent()) {
+            throw new BusinessException(
+                    ErrorCode.PARAM_INVALID, "您已有待审核的培训合伙人申请");
+        }
 
         AlliancePartnerApplication application = new AlliancePartnerApplication();
         application.setUserId(userId);
@@ -114,13 +119,12 @@ public class AlliancePartnerApplicationServiceImpl
     @Transactional
     public void approve(Integer id, Integer reviewerUserId) {
         AlliancePartnerApplication application = findById(id);
-        ensurePending(application);
-        application.setStatus(STATUS_APPROVED);
-        application.setRejectReason(null);
-        application.setReviewedAt(LocalDateTime.now());
-        application.setReviewedBy(reviewerUserId);
-        repository.save(application);
-        sendReviewNotificationAfterCommit(application, "APPLY_PASSED", "");
+        LocalDateTime reviewedAt = LocalDateTime.now();
+        if (repository.approveIfPending(id, reviewedAt, reviewerUserId) == 0) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "当前状态不可审核");
+        }
+        sendReviewNotificationAfterCommit(
+                application.getId(), application.getUserId(), "APPLY_PASSED", "");
     }
 
     @Override
@@ -130,25 +134,18 @@ public class AlliancePartnerApplicationServiceImpl
             throw new BusinessException(ErrorCode.PARAM_INVALID, "驳回原因不能为空");
         }
         AlliancePartnerApplication application = findById(id);
-        ensurePending(application);
-        application.setStatus(STATUS_REJECTED);
-        application.setRejectReason(reason);
-        application.setReviewedAt(LocalDateTime.now());
-        application.setReviewedBy(reviewerUserId);
-        repository.save(application);
-        sendReviewNotificationAfterCommit(application, "APPLY_REJECTED", reason);
+        LocalDateTime reviewedAt = LocalDateTime.now();
+        if (repository.rejectIfPending(id, reason, reviewedAt, reviewerUserId) == 0) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "当前状态不可审核");
+        }
+        sendReviewNotificationAfterCommit(
+                application.getId(), application.getUserId(), "APPLY_REJECTED", reason);
     }
 
     private AlliancePartnerApplication findById(Integer id) {
         return repository.findById(id)
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.NOT_FOUND, "未找到培训合伙人申请"));
-    }
-
-    private void ensurePending(AlliancePartnerApplication application) {
-        if (!Integer.valueOf(STATUS_PENDING).equals(application.getStatus())) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "当前状态不可审核");
-        }
     }
 
     private String generatePartnerCode(Integer userId) {
@@ -158,9 +155,9 @@ public class AlliancePartnerApplicationServiceImpl
     }
 
     private void sendReviewNotificationAfterCommit(
-            AlliancePartnerApplication application, String templateCode, String reason) {
+            Integer applicationId, Integer userId, String templateCode, String reason) {
         Runnable notification = () -> sendReviewNotificationSafely(
-                application.getId(), application.getUserId(), templateCode, reason);
+                applicationId, userId, templateCode, reason);
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             notification.run();
             return;
