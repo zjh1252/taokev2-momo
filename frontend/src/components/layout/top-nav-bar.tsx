@@ -1,9 +1,6 @@
 'use client';
 
-import { UserAuthArea } from './header-auth';
-import { NotificationBell } from '@/features/notification/components/NotificationBell';
-import { CartBadge } from '@/features/cart/components/CartBadge';
-import { useAuth } from '@/lib/auth/auth-context';
+import { HeaderUserActions } from './header-user-actions';
 
 /** 集团产品矩阵链接 */
 const GROUP_LINKS = [
@@ -26,8 +23,6 @@ const GROUP_LINKS = [
  * @date 2026-04-01 23:05
  */
 export function TopNavBar() {
-  const { user, loading } = useAuth();
-
   return (
     <div className="w-full bg-slate-50 border-b border-slate-100 text-xs py-1.5 px-8 z-50 sticky top-0">
       <div className="max-w-7xl w-full mx-auto flex items-center justify-between">
@@ -46,18 +41,7 @@ export function TopNavBar() {
           ))}
         </div>
 
-        {/* 右侧：已登录 → 购物车 + 通知 + 用户区域；未登录 → 仅登录/注册 */}
-        <div className="flex items-center gap-3 text-slate-500">
-          {!loading && user && (
-            <>
-              <CartBadge />
-              <span className="text-slate-300">|</span>
-              <NotificationBell />
-              <span className="text-slate-300">|</span>
-            </>
-          )}
-          <UserAuthArea />
-        </div>
+        <HeaderUserActions />
       </div>
     </div>
   );
