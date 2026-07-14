@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { SafeImage } from '@/components/safe-image';
-import { Star, StarHalf, MessageSquare, Heart } from 'lucide-react';
+import { Star, StarHalf, MessageSquare, Heart, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import type { TrainerDetail } from '../../types';
 import {
@@ -14,6 +15,8 @@ import TrainerMessageDialog from '@/features/interaction/components/TrainerMessa
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
+import { getTrainerDetailTabHref } from '../../utils/routes';
+import { Link } from '@/i18n/navigation';
 
 interface TrainerHeroProps {
   trainer: TrainerDetail;
@@ -25,11 +28,16 @@ function StarRating({ score }: { score: number }) {
   return (
     <div className="flex text-[#8A6D3B] text-[22px]">
       {Array.from({ length: fullStars }).map((_, i) => (
-        <Star key={i} className="size-5 fill-current" />
+        <Star key={i} className="size-4 fill-current" />
       ))}
-      {hasHalf && <StarHalf className="size-5 fill-current" />}
+      {hasHalf && <StarHalf className="size-4 fill-current" />}
     </div>
   );
+}
+
+function formatViewCount(viewCount: number | undefined): string {
+  if (!viewCount) return '0';
+  return `${(viewCount / 1000).toFixed(1)}k+`;
 }
 
 export function TrainerHero({ trainer }: TrainerHeroProps) {
@@ -41,6 +49,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
   const [msgOpen, setMsgOpen] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
+  const locationLabel = [trainer.provinceName, trainer.cityName].filter(Boolean).join(' ');
 
   useEffect(() => {
     getInteractionState('TRAINER', trainer.userId)
@@ -68,187 +77,222 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
   }, [favorited, trainer.userId]);
 
   return (
-    <section className="bg-white rounded-xl border border-slate-200 shadow-sm relative z-10 w-full mb-6 mt-6">
-      <div className="p-6 lg:p-8 flex flex-col xl:flex-row gap-8 relative">
-        {/* 左侧：头像与操作按钮 */}
-        <div className="w-full xl:w-[220px] flex flex-col items-center shrink-0 relative">
-          <div className="relative group">
-            <SafeImage
-              src={trainer.avatar}
-              alt={displayName}
-              width={190}
-              height={230}
-              apiResolved
-              className="w-[190px] h-[230px] object-cover border-[6px] border-white shadow-md rounded-sm transition-transform duration-300 group-hover:scale-[1.02]"
-            />
-            {trainer.isTrusted === 1 && (
-              <div
-                className="absolute -bottom-3 -right-6 border-[2px] border-primary text-primary px-3 py-1 font-black text-lg tracking-[0.2em] -rotate-[15deg] bg-white/95 shadow-sm whitespace-nowrap opacity-90 backdrop-blur-sm"
-                style={{ borderStyle: 'dashed', borderRadius: '4px' }}
+    <section className="relative z-10 w-full h-[322px] mb-6 flex flex-row overflow-hidden bg-white shadow-sm">
+      {/* 左侧：固定宽红底 + 证件照 */}
+      <div className="relative w-[339px] h-[322px] shrink-0 overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(162.13deg, rgb(140, 20, 31) 0%, rgb(191, 31, 38) 38.9%, rgb(229, 33, 23) 70.7%)',
+          }}
+        />
+        <Image
+          src="/statics/images/trainer/hero-left-decor.png"
+          alt=""
+          fill
+          unoptimized
+          className="object-cover pointer-events-none select-none"
+          aria-hidden
+        />
+        <div className="absolute left-[63px] top-[33px] w-[225px] h-[256px] border-[5px] border-white bg-slate-100 overflow-hidden">
+          <SafeImage
+            src={trainer.avatar}
+            alt={displayName}
+            width={225}
+            height={256}
+            apiResolved
+            className="w-full h-full object-cover"
+          />
+        </div>
+        {trainer.isTrusted === 1 && (
+          <Image
+            src="/statics/images/icons/trusted-xin.png"
+            alt="信得过"
+            width={60}
+            height={60}
+            className="absolute left-[269px] top-[253px] w-[60px] h-[60px] object-contain drop-shadow-md pointer-events-none select-none"
+          />
+        )}
+      </div>
+
+      {/* 右侧：信息区（随屏变宽） */}
+      <div className="relative flex-1 min-w-0 h-[322px] bg-white overflow-hidden">
+        <Image
+          src="/statics/images/trainer/hero-taoke-watermark.png"
+          alt=""
+          width={393}
+          height={141}
+          unoptimized
+          className="absolute left-[141px] top-[93px] w-[393px] h-auto opacity-[0.05] pointer-events-none select-none"
+          aria-hidden
+        />
+
+        {/* 右上操作 */}
+        <div className="absolute right-[24px] top-[40px] flex flex-col items-end gap-2 z-10">
+          <div className="flex items-center gap-[7px]">
+            <button
+              type="button"
+              disabled={favLoading}
+              onClick={() => requireAuth(toggleFavorite)}
+              className={`flex items-center gap-[5px] h-[25px] w-[68px] justify-center rounded border border-[#bfbfbf] bg-[#f4f7fe] text-[13.5px] font-semibold ${
+                favorited ? 'text-primary border-primary' : 'text-[#979fac]'
+              }`}
+            >
+              <Heart className={`size-3 ${favorited ? 'fill-primary text-primary' : ''}`} />
+              {favorited ? '已收藏' : '收藏'}
+            </button>
+            <Link
+              href={getTrainerDetailTabHref(trainer.id, 'comments')}
+              className="flex items-center gap-[5px] h-[25px] w-[68px] justify-center rounded border border-[#bfbfbf] bg-[#f4f7fe] text-[13.5px] font-semibold text-[#979fac]"
+            >
+              <Image
+                src="/statics/images/icons/trainer-hero-review.png"
+                alt=""
+                width={10}
+                height={10}
+                unoptimized
+                className="size-2.5 object-contain"
+              />
+              评价
+            </Link>
+            <button
+              type="button"
+              className="flex items-center gap-[5px] h-[25px] w-[68px] justify-center rounded border border-[#bfbfbf] bg-[#f4f7fe] text-[13.5px] font-semibold text-[#979fac]"
+            >
+              <Image
+                src="/statics/images/icons/trainer-hero-contact.png"
+                alt=""
+                width={10}
+                height={10}
+                unoptimized
+                className="size-2.5 object-contain"
+              />
+              联系
+            </button>
+          </div>
+          <button
+            type="button"
+            className="h-[25px] w-[79px] rounded border border-[#bfbfbf] text-[13.5px] font-medium text-[#979fac]"
+          >
+            下载简历
+          </button>
+        </div>
+
+        {/* 主信息 */}
+        <div className="relative z-[1] flex h-full flex-col pl-6 pr-[240px] pt-9 pb-5">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h1 className="text-[30px] font-bold leading-none text-[#0f172b] shrink-0 tracking-tight">
+              {displayName}
+            </h1>
+            {displayTitle ? (
+              <span
+                className="text-[12.5px] text-[#c24848] px-3 py-1 truncate max-w-[360px]"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,151,136,0.4) 20%, rgba(255,185,162,0.7) 50%, rgba(255,151,136,0.4) 80%, rgba(255,255,255,0) 100%)',
+                }}
               >
-                信得过
+                {displayTitle}
+              </span>
+            ) : null}
+          </div>
+
+          {locationLabel ? (
+            <div className="mt-4 flex items-center gap-1.5 text-[10px] text-[#62748e]">
+              <span className="font-medium">专家驻地：</span>
+              <MapPin className="size-3 text-slate-400 shrink-0" />
+              <span className="text-[#3f4753]">{locationLabel}</span>
+            </div>
+          ) : null}
+
+          <div className="mt-3 space-y-2.5">
+            {(trainer.expertiseCategories?.length ?? 0) > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-[#62748e] font-medium shrink-0 w-[60px]">
+                  擅长领域：
+                </span>
+                <div className="flex flex-wrap gap-3.5">
+                  {trainer.expertiseCategories.map((cat) => (
+                    <span
+                      key={cat.categoryId}
+                      className="h-[23px] inline-flex items-center px-3 rounded-full border border-[#be0202] text-[10px] font-medium text-[#c31313] bg-white/20"
+                    >
+                      {cat.categoryName}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(trainer.industryCategories?.length ?? 0) > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-[#62748e] font-medium shrink-0 w-[60px]">
+                  擅长行业：
+                </span>
+                <div className="flex flex-wrap gap-3.5">
+                  {trainer.industryCategories.map((cat) => (
+                    <span
+                      key={cat.categoryId}
+                      className="h-[23px] inline-flex items-center px-3 rounded-full border border-[#be0202] text-[10px] font-medium text-[#c31313] bg-white/20"
+                    >
+                      {cat.categoryName}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          <div className="flex flex-col gap-3 mt-6 w-[190px]">
-            <button
-              onClick={() => requireAuth(() => setMsgOpen(true))}
-              className="w-full px-4 py-2.5 bg-primary text-white rounded flex items-center justify-center gap-1.5 hover:bg-primary/90 font-medium transition-colors whitespace-nowrap"
-            >
-              <MessageSquare className="size-5" /> 给专家留言
-            </button>
-            <div className="flex items-center gap-3 w-full justify-between">
-              <button
-                onClick={() => requireAuth(toggleFavorite)}
-                disabled={favLoading}
-                className={`flex-1 py-2 border rounded font-medium bg-white transition-all text-[13px] text-center flex items-center justify-center gap-1 ${
-                  favorited
-                    ? 'border-primary text-primary'
-                    : 'border-slate-200 text-slate-600 hover:text-primary hover:border-primary'
-                }`}
-              >
-                <Heart className={`size-3.5 ${favorited ? 'fill-primary' : ''}`} />
-                {favorited ? '已收藏' : '收藏讲师'}
-              </button>
-              <button className="flex-1 py-2 border border-slate-200 rounded text-slate-600 hover:text-primary hover:border-primary font-medium bg-white transition-all text-[13px] text-center">
-                加入对比
-              </button>
-            </div>
-          </div>
-
-          <TrainerMessageDialog
-            open={msgOpen}
-            onOpenChange={setMsgOpen}
-            trainerUserId={trainer.userId}
-            trainerName={displayName}
-            onSuccess={() => toast.success('留言已提交，我们会尽快联系您！')}
-          />
-        </div>
-
-        {/* 右侧：信息与操作 */}
-        <div className="flex-1 pt-1 flex flex-col gap-4">
-          <div className="flex flex-col xl:flex-row justify-between gap-8 h-full">
-            <div className="flex flex-col gap-5 flex-1 mt-6">
-              <div className="flex flex-col md:flex-row md:items-baseline gap-3 md:gap-4">
-                <h1 className="text-[36px] leading-none font-extrabold text-slate-900 tracking-tight">
-                  {displayName}
-                </h1>
-                {displayTitle ? (
-                  <span className="text-[18px] text-slate-600 font-medium line-clamp-2">{displayTitle}</span>
-                ) : null}
-              </div>
-
-              {/* 专家编号和驻地 */}
-              <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-slate-600">
-                {trainer.trainerCode && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-medium text-slate-500">专家编号:</span>
-                    <span className="font-bold text-slate-800">{trainer.trainerCode}</span>
-                  </div>
-                )}
-                {(trainer.provinceName || trainer.cityName) && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-medium text-slate-500">专家驻地:</span>
-                    <span className="text-slate-800">
-                      {[trainer.provinceName, trainer.cityName].filter(Boolean).join(' ')}
+          <div className="mt-auto flex items-end justify-between gap-6 pt-3">
+            <div className="bg-[rgba(245,246,248,0.92)] rounded-[13.5px] h-[80px] w-[327px] shrink-0 flex items-center justify-around px-4">
+              <div className="flex flex-col items-center min-w-[54px]">
+                {trainer.score != null && trainer.score > 0 ? (
+                  <>
+                    <StarRating score={trainer.score} />
+                    <span className="text-[#002B5B] font-bold text-[16px] mt-1">
+                      {trainer.score.toFixed(1)}
                     </span>
-                  </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[#313a47] font-semibold text-[13.5px]">暂无评分</span>
+                    <span className="text-[#a8a8a8] font-bold text-[22.5px] leading-none mt-1">—</span>
+                  </>
                 )}
               </div>
-
-              <div className="mt-2 space-y-4">
-                {/* 擅长领域 */}
-                {(trainer.expertiseCategories?.length ?? 0) > 0 && (
-                  <div className="flex items-center gap-4">
-                    <span className="text-[14px] text-slate-600 w-[65px] font-medium shrink-0">
-                      擅长领域:
-                    </span>
-                    <div className="flex flex-wrap gap-2.5 flex-1">
-                      {trainer.expertiseCategories.map((cat, i) => (
-                        <span
-                          key={cat.categoryId}
-                          className={`px-3.5 py-1 rounded-full text-[13px] font-medium ${
-                            i === 0
-                              ? 'border border-primary text-primary'
-                              : 'border border-slate-200 text-slate-600 bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer'
-                          }`}
-                        >
-                          {cat.categoryName}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 擅长行业 */}
-                {(trainer.industryCategories?.length ?? 0) > 0 && (
-                  <div className="flex items-center gap-4">
-                    <span className="text-[14px] text-slate-600 w-[65px] font-medium shrink-0">
-                      擅长行业:
-                    </span>
-                    <div className="flex flex-wrap gap-2.5">
-                      {trainer.industryCategories.map((cat) => (
-                        <span
-                          key={cat.categoryId}
-                          className="px-3.5 py-1 rounded-full border border-slate-200 text-slate-600 text-[13px] bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer"
-                        >
-                          {cat.categoryName}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            </div>
-          </div>
-
-          {/* 数据展示卡片 */}
-          <div className="mt-auto bg-[#F4F7FE] rounded-xl px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-6 w-full">
-            <div className="flex items-center gap-3">
-              {trainer.score != null && trainer.score > 0 ? (
-                <>
-                  <StarRating score={trainer.score} />
-                  <span className="text-[#002B5B] font-bold text-[22px]">
-                    {trainer.score.toFixed(1)}
-                  </span>
-                </>
-              ) : (
-                <span className="text-[#002B5B] font-medium text-[16px]">暂无评分</span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-8 text-[#002B5B] mr-auto md:mr-0 md:ml-4">
-              <div className="flex flex-col">
-                <span className="text-[12px] text-slate-500 font-medium mb-1">累计咨询</span>
-                <span className="font-bold text-[18px] leading-none">
+              <div className="flex flex-col items-center min-w-[54px]">
+                <span className="text-[#313a47] font-semibold text-[13.5px]">累计咨询</span>
+                <span className="text-[red] font-bold text-[17px] mt-1.5 leading-none">
                   {trainer.consultationCount || 0}
                 </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-[12px] text-slate-500 font-medium mb-1">累计曝光</span>
-                <span className="font-bold text-[18px] leading-none">
-                  {trainer.viewCount ? `${(trainer.viewCount / 1000).toFixed(1)}k+` : '0'}
+              <div className="flex flex-col items-center min-w-[54px]">
+                <span className="text-[#313a47] font-semibold text-[13.5px]">累计曝光</span>
+                <span className="text-[red] font-bold text-[17px] mt-1.5 leading-none">
+                  {formatViewCount(trainer.viewCount)}
                 </span>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2 flex-1">
-              {trainer.isSigned === 1 && (
-                <span className="px-3 py-1 text-[12px] bg-white border border-primary/40 text-primary rounded-full shadow-sm">
-                  签约
-                </span>
-              )}
-              {trainer.hasCopyrightCourse === 1 && (
-                <span className="px-3 py-1 text-[12px] bg-white border border-primary/40 text-primary rounded-full shadow-sm">
-                  版权课
-                </span>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => requireAuth(() => setMsgOpen(true))}
+              className="h-[52px] w-[194px] shrink-0 rounded bg-[#be0000] text-white text-[13.5px] font-semibold flex items-center justify-center gap-2.5 hover:bg-[#be0000]/90"
+            >
+              <MessageSquare className="size-3.5" />
+              给专家留言
+            </button>
           </div>
         </div>
       </div>
+
+      <TrainerMessageDialog
+        open={msgOpen}
+        onOpenChange={setMsgOpen}
+        trainerUserId={trainer.userId}
+        trainerName={displayName}
+        onSuccess={() => toast.success('留言已提交，我们会尽快联系您！')}
+      />
     </section>
   );
 }
