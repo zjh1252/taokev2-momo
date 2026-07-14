@@ -3,6 +3,7 @@ import {
   PREVIEW_PARTNER_CODE,
   getPartnerApplicationStatus,
   parsePartnerPreviewStatus,
+  shouldShowPartnerStatusPanel,
 } from './partner-application';
 
 describe('parsePartnerPreviewStatus', () => {
@@ -56,5 +57,25 @@ describe('getPartnerApplicationStatus', () => {
   it('treats rejected mock as none for UI branching this phase', () => {
     process.env.NEXT_PUBLIC_PARTNER_STATUS_MOCK = 'rejected';
     expect(getPartnerApplicationStatus()).toEqual({ status: 'none' });
+  });
+
+  it('normalizes mock value with surrounding whitespace', () => {
+    process.env.NEXT_PUBLIC_PARTNER_STATUS_MOCK = ' PENDING ';
+    expect(getPartnerApplicationStatus()).toEqual({
+      status: 'pending',
+      partnerCode: PREVIEW_PARTNER_CODE,
+    });
+  });
+});
+
+describe('shouldShowPartnerStatusPanel', () => {
+  it('returns true for pending and approved', () => {
+    expect(shouldShowPartnerStatusPanel('pending')).toBe(true);
+    expect(shouldShowPartnerStatusPanel('approved')).toBe(true);
+  });
+
+  it('returns false for none and rejected', () => {
+    expect(shouldShowPartnerStatusPanel('none')).toBe(false);
+    expect(shouldShowPartnerStatusPanel('rejected')).toBe(false);
   });
 });
