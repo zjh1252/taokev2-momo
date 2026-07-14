@@ -3,11 +3,11 @@
 import { Suspense } from 'react';
 import { HeaderLogo } from './header-logo';
 import { HeaderNavLinks } from './header-nav-links';
-import { HeaderUserActions } from './header-user-actions';
+import { UserAuthArea } from './header-auth';
 import { SearchBar } from './search-bar';
 
 /**
- * 详情页单行顶栏 — Logo + 频道导航 + 搜索 + 用户区（无集团产品矩阵条）
+ * 详情页单行顶栏 — Logo + 频道导航 + 收窄搜索 + 精简用户区（无购物车/通知）
  */
 export function DetailPageHeader() {
   return (
@@ -16,12 +16,12 @@ export function DetailPageHeader() {
         <HeaderLogo />
         <HeaderNavLinks />
         <div className="flex flex-1 items-center justify-end gap-3 min-w-0">
-          <div className="flex flex-1 max-w-md justify-end min-w-0">
+          <div className="flex justify-end min-w-0 shrink">
             <Suspense fallback={<SearchBarFallback />}>
-              <SearchBar />
+              <SearchBar className="min-w-0 max-w-[280px] w-full [&_input]:min-w-0" />
             </Suspense>
           </div>
-          <HeaderUserActions className="hidden sm:flex shrink-0" />
+          <UserAuthArea variant="compact" />
         </div>
       </div>
     </header>
@@ -30,6 +30,6 @@ export function DetailPageHeader() {
 
 function SearchBarFallback() {
   return (
-    <div className="w-full max-w-[360px] h-[38px] rounded-md bg-slate-100 border border-slate-200 animate-pulse" />
+    <div className="w-full max-w-[280px] h-[38px] rounded-md bg-slate-100 border border-slate-200 animate-pulse" />
   );
 }
