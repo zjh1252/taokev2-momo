@@ -158,6 +158,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
             </Link>
             <button
               type="button"
+              aria-disabled="true"
               className="flex items-center gap-[5px] h-[25px] w-[68px] justify-center rounded border border-[#bfbfbf] bg-[#f4f7fe] text-[13.5px] font-semibold text-[#979fac]"
             >
               <Image
@@ -173,6 +174,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           </div>
           <button
             type="button"
+            aria-disabled="true"
             className="h-[25px] w-[79px] rounded border border-[#bfbfbf] text-[13.5px] font-medium text-[#979fac]"
           >
             下载简历
@@ -182,7 +184,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
         {/* 主信息 */}
         <div className="relative z-[1] flex h-full flex-col pl-6 pr-[240px] pt-9 pb-5">
           <div className="flex items-baseline gap-3 min-w-0">
-            <h1 className="text-[30px] font-bold leading-none text-[#0f172b] shrink-0 tracking-tight">
+            <h1 className="min-w-0 truncate text-[30px] font-bold leading-none text-[#0f172b] tracking-tight">
               {displayName}
             </h1>
             {displayTitle ? (
@@ -201,12 +203,12 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           {locationLabel ? (
             <div className="mt-4 flex items-center gap-1.5 text-[10px] text-[#62748e]">
               <span className="font-medium">专家驻地：</span>
-              <MapPin className="size-3 text-slate-400 shrink-0" />
+              <MapPin className="size-3 text-slate-400 shrink-0" aria-hidden />
               <span className="text-[#3f4753]">{locationLabel}</span>
             </div>
           ) : null}
 
-          <div className="mt-3 space-y-2.5">
+          <div className="mt-3 max-h-[72px] space-y-2.5 overflow-hidden">
             {(trainer.expertiseCategories?.length ?? 0) > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-[#62748e] font-medium shrink-0 w-[60px]">
