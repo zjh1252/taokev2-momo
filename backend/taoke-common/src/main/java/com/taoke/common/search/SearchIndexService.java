@@ -41,6 +41,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SearchIndexService {
 
+    private static final String MANAGED_INDEX_PREFIX = "taokev2";
+    private static final String INDEX_NAME_PATTERN = "^[a-z0-9][a-z0-9._-]*$";
+
     private final ElasticsearchClient esClient;
     private final ElasticsearchProperties properties;
     private final ObjectMapper objectMapper;
@@ -52,6 +55,7 @@ public class SearchIndexService {
      * @return 是否创建成功（索引已存在时返回 false）
      */
     public boolean createIndex(String indexName) {
+        validateManagedIndexName(indexName);
         try {
             if (indexExists(indexName)) {
                 log.info("索引已存在，跳过创建: {}", indexName);
@@ -73,6 +77,7 @@ public class SearchIndexService {
      * 更新已有索引的 mapping（添加新字段，不影响已有字段）。
      */
     public boolean putMapping(String indexName) {
+        validateManagedIndexName(indexName);
         try {
             if (!indexExists(indexName)) {
                 log.info("索引不存在，跳过 mapping 更新: {}", indexName);
@@ -98,6 +103,7 @@ public class SearchIndexService {
      * @param indexName 索引名称
      */
     public void deleteIndex(String indexName) {
+        validateManagedIndexName(indexName);
         if (properties.getIndexName().equals(indexName)) {
             throw new SearchException(ErrorCode.SEARCH_FORBIDDEN, "禁止删除默认索引: " + indexName);
         }
@@ -113,6 +119,7 @@ public class SearchIndexService {
      * 检查索引是否存在
      */
     public boolean indexExists(String indexName) {
+        validateManagedIndexName(indexName);
         try {
             return esClient.indices().exists(e -> e.index(indexName)).value();
         } catch (IOException e) {
@@ -151,6 +158,7 @@ public class SearchIndexService {
      * 统计指定索引中的文档数量。索引不存在时返回 0，避免管理页因空环境不可用。
      */
     public long countDocuments(String indexName) {
+        validateManagedIndexName(indexName);
         try {
             return esClient.count(c -> c.index(indexName)).count();
         } catch (Exception e) {
@@ -470,6 +478,18 @@ public class SearchIndexService {
      */
     public String getDefaultIndexName() {
         return properties.getIndexName();
+    }
+
+    public void validateManagedIndexName(String indexName) {
+        if (indexName == null || indexName.isBlank()) {
+            throw new SearchException(ErrorCode.PARAM_INVALID, "索引名称不能为空");
+        }
+        if (!indexName.matches(INDEX_NAME_PATTERN)) {
+            throw new SearchException(ErrorCode.PARAM_INVALID, "索引名称只能包含小写字母、数字、点、下划线和短横线");
+        }
+        if (!indexName.startsWith(MANAGED_INDEX_PREFIX)) {
+            throw new SearchException(ErrorCode.PARAM_INVALID, "索引名称必须以 " + MANAGED_INDEX_PREFIX + " 开头");
+        }
     }
 
     /** IK 分词器：索引时最细粒度切分，搜索时智能切分 */

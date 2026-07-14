@@ -1,11 +1,15 @@
 package com.taoke.common.search;
 
 import com.taoke.common.response.ApiResponse;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.taoke.common.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -61,5 +65,23 @@ class AdminSearchControllerTest {
         assertThat(response.getData().getTargetIndex()).isEqualTo("taokev2_shadow");
         assertThat(response.getData().getIndexedCounts()).containsEntry("course", 42L);
         assertThat(response.getData().getDocTypes()).containsExactly("course");
+    }
+
+    @Test
+    void createIndexRejectsNamesOutsideManagedPrefixBeforeCallingElasticsearch() {
+        ElasticsearchClient esClient = mock(ElasticsearchClient.class);
+        ElasticsearchProperties properties = new ElasticsearchProperties();
+        properties.setIndexName("taokev2app");
+        SearchIndexService searchIndexService = new SearchIndexService(
+                esClient,
+                properties,
+                new ObjectMapper()
+        );
+
+        assertThatThrownBy(() -> searchIndexService.createIndex("test"))
+                .isInstanceOf(SearchException.class)
+                .satisfies(error -> assertThat(((SearchException) error).getErrorCode())
+                        .isEqualTo(ErrorCode.PARAM_INVALID))
+                .hasMessageContaining("taokev2");
     }
 }

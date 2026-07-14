@@ -31,6 +31,8 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   course: '课程',
   trainer: '专家'
 };
+const MANAGED_INDEX_PREFIX = 'taokev2';
+const INDEX_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 
 function docTypeLabel(docType: string) {
   return DOC_TYPE_LABELS[docType] ?? docType;
@@ -54,6 +56,18 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
+function indexNameError(indexName: string) {
+  const name = indexName.trim();
+  if (!name) return null;
+  if (!INDEX_NAME_PATTERN.test(name)) {
+    return '索引名称只能包含小写字母、数字、点、下划线和短横线';
+  }
+  if (!name.startsWith(MANAGED_INDEX_PREFIX)) {
+    return `索引名称必须以 ${MANAGED_INDEX_PREFIX} 开头`;
+  }
+  return null;
+}
+
 export function SearchManagement() {
   const queryClient = useQueryClient();
   const {
@@ -75,6 +89,7 @@ export function SearchManagement() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [reindexConfirm, setReindexConfirm] = useState<string | null>(null);
   const [targetIndex, setTargetIndex] = useState('default');
+  const createIndexError = indexNameError(newIndexName);
 
   const requestTargetIndex = targetIndex === 'default' ? undefined : targetIndex;
 
@@ -312,7 +327,7 @@ export function SearchManagement() {
           <DialogHeader>
             <DialogTitle>创建索引</DialogTitle>
             <DialogDescription>
-              留空将创建默认索引 {defaultIndex}
+              留空将创建默认索引 {defaultIndex}；自定义索引必须以 {MANAGED_INDEX_PREFIX} 开头。
             </DialogDescription>
           </DialogHeader>
           <Input
@@ -320,13 +335,16 @@ export function SearchManagement() {
             onChange={(event) => setNewIndexName(event.target.value)}
             placeholder={defaultIndex}
           />
+          {createIndexError && (
+            <div className='text-sm text-destructive'>{createIndexError}</div>
+          )}
           <DialogFooter>
             <Button variant='outline' onClick={() => setCreateOpen(false)}>
               取消
             </Button>
             <Button
               onClick={() => createMutation.mutate(newIndexName.trim() || undefined)}
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || createIndexError !== null}
             >
               {createMutation.isPending && (
                 <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />

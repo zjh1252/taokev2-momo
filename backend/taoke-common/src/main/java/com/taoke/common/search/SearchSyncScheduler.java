@@ -127,6 +127,7 @@ public class SearchSyncScheduler {
         String index = (targetIndex != null && !targetIndex.isBlank())
                 ? targetIndex : properties.getIndexName();
         String docType = provider.getDocType();
+        indexService.validateManagedIndexName(index);
 
         log.info("开始全量重建: docType={}, targetIndex={}", docType, index);
         LocalDateTime now = LocalDateTime.now();

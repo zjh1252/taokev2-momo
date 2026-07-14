@@ -274,7 +274,7 @@ public class AdminCrawlService {
         CrawlSource entity = crawlSourceRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("数据源不存在"));
         if (Boolean.TRUE.equals(entity.getBuiltIn())) {
-            throw new BusinessException("内置数据源不可删除");
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "内置数据源不可删除");
         }
         crawlSourceRepository.delete(entity);
     }
