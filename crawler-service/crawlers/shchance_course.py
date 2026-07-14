@@ -12,6 +12,7 @@ from urllib.parse import urljoin
 
 from crawlers.course_utils import append_diagnostic, detect_content_type, enrich_course_record, set_price_fields
 from crawlers.media import media_asset, normalize_url
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "http://www.shchance.com.cn"
@@ -347,6 +348,12 @@ def parse_course_detail_html(item: dict[str, str], html: str) -> Dict[str, Any]:
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        content_html,
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, price_raw)
     if not plan.get("address") or plan.get("address") == item.get("city"):
         append_diagnostic(record, "plans_json.address", "source_only_provides_city_no_street_address", item.get("city", ""))

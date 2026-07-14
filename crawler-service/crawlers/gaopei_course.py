@@ -10,6 +10,7 @@ from typing import Any, AsyncGenerator, Dict, Iterable, List
 from urllib.parse import urljoin
 
 from crawlers.course_utils import append_diagnostic, detect_content_type, enrich_course_record, set_price_fields
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "http://www.gaopei.org"
@@ -154,6 +155,18 @@ def extract_detail_text(html: str) -> str:
         if pos > 800:
             text = text[:pos]
     return text
+
+
+def extract_detail_html(html: str) -> str:
+    anchors = ["课程简介：", "课程背景：", "【课程分类】", "项目简介："]
+    positions = [html.find(anchor) for anchor in anchors if html.find(anchor) >= 0]
+    start = min(positions) if positions else 0
+    end = len(html)
+    for stop in ("精品课程", "推荐课程", "友情链接", "Copyright"):
+        pos = html.find(stop, start + 1)
+        if pos > start:
+            end = min(end, pos)
+    return html[start:end]
 
 
 def extract_after_labels(text: str, labels: Iterable[str], limit: int = 1800) -> str:
@@ -325,6 +338,12 @@ def parse_internal_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        extract_detail_html(html),
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, "内训咨询")
     append_diagnostic(record, "plans_json", "internal_course_has_no_public_schedule")
     if detect_content_type(detail_text, record["title"]) in {"RECORDED_VIDEO", "DOCUMENT", "AUDIO", "ARTICLE"}:

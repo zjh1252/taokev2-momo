@@ -1,8 +1,10 @@
 import re
 from dataclasses import dataclass
+from datetime import date, datetime, time
 from html import unescape
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional
 
+from crawlers.media import apply_semantic_media_from_services
 
 MISSING_TEXTS = {"", "-", "--", "暂无", "待补充", "未知", "null", "None", "none"}
 
@@ -175,6 +177,84 @@ def normalize_course_type(value: Any, default: str = "OPEN_OFFLINE") -> str:
     return default
 
 
+def _parse_plan_start_datetime(plan: Mapping[str, Any]) -> Optional[datetime]:
+    start_date = first_present(
+        plan.get("startDate"),
+        plan.get("start_date"),
+        plan.get("date"),
+        plan.get("courseDate"),
+        plan.get("course_date"),
+    )
+    start_time = first_present(plan.get("startTime"), plan.get("start_time"), plan.get("time"))
+    candidates = []
+    if start_date and start_time and not re.search(r"\d{4}[-/年.]\d{1,2}", start_time):
+        candidates.append(f"{start_date} {start_time}")
+    candidates.extend(value for value in (start_time, start_date) if value)
+
+    for value in candidates:
+        parsed = _parse_datetime_text(value)
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _parse_datetime_text(value: Any) -> Optional[datetime]:
+    text = clean_text(value)
+    if not text:
+        return None
+    text = text.replace("T", " ")
+    text = re.sub(r"[年月.]", "-", text)
+    text = text.replace("日", " ")
+    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"([+-]\d{2}:?\d{2}|Z)$", "", text).strip()
+
+    match = re.search(
+        r"(?P<date>\d{4}[-/]\d{1,2}[-/]\d{1,2})(?:\s+(?P<hour>\d{1,2}):(?P<minute>\d{1,2})(?::\d{1,2})?)?",
+        text,
+    )
+    if not match:
+        return None
+    date_part = match.group("date").replace("/", "-")
+    hour = int(match.group("hour") or 0)
+    minute = int(match.group("minute") or 0)
+    try:
+        day = date.fromisoformat(
+            "-".join(part.zfill(2) if index > 0 else part for index, part in enumerate(date_part.split("-")))
+        )
+        return datetime.combine(day, time(hour=hour, minute=minute))
+    except ValueError:
+        return None
+
+
+def should_skip_expired_public_course(
+    record: Mapping[str, Any],
+    *,
+    now: Optional[datetime] = None,
+) -> tuple[bool, str]:
+    course_type = normalize_course_type(record.get("type"), default="")
+    if course_type not in {"OPEN_OFFLINE", "OPEN_ONLINE"}:
+        return False, ""
+
+    plans = record.get("plans_json")
+    if not isinstance(plans, list) or not plans:
+        return False, ""
+
+    parsed_starts = [
+        parsed
+        for plan in plans
+        if isinstance(plan, Mapping)
+        for parsed in [_parse_plan_start_datetime(plan)]
+        if parsed is not None
+    ]
+    if not parsed_starts:
+        return False, ""
+
+    cutoff = (now or datetime.now()).replace(second=0, microsecond=0)
+    if any(start >= cutoff for start in parsed_starts):
+        return False, ""
+    return True, "全部排期已过期，跳过抓取"
+
+
 def extract_section_text(html: str, aliases: Iterable[str], limit: int = 1500) -> str:
     if not html:
         return ""
@@ -209,6 +289,7 @@ def enrich_course_record(record: MutableMapping[str, Any], *, fallback_type: str
     raw_json.setdefault("content_type", detect_content_type(type_text, record.get("summary"), record.get("intro")))
     if raw_json["content_type"] in {"RECORDED_VIDEO", "DOCUMENT", "AUDIO"}:
         append_diagnostic(record, "content_type", "non_course_content", raw_json["content_type"])
+    apply_semantic_media_from_services(record)
 
     for field in ("category_name_raw", "learning_outcomes", "audience", "highlights", "syllabus", "trainer_name_raw"):
         if is_missing(record.get(field)):

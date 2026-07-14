@@ -11,6 +11,7 @@ from typing import Any, AsyncGenerator, Dict, Iterable, List
 from urllib.parse import urljoin
 
 from crawlers.course_utils import append_diagnostic, detect_content_type, enrich_course_record, set_price_fields
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "https://www.qgpx.com"
@@ -179,6 +180,18 @@ def extract_detail_text(html: str) -> str:
         if pos > 800:
             text = text[:pos]
     return text
+
+
+def extract_detail_html(html: str) -> str:
+    anchors = ["公开课大纲", "内训课程大纲", "【课程背景】", "培训对象：", "课程收益："]
+    positions = [html.find(anchor) for anchor in anchors if html.find(anchor) >= 0]
+    start = min(positions) if positions else 0
+    end = len(html)
+    for stop in ("相关公开课推荐", "相关内训推荐", "培训现场", "网站始创于", "京ICP备"):
+        pos = html.find(stop, start + 1)
+        if pos > start:
+            end = min(end, pos)
+    return html[start:end]
 
 
 def extract_intro(text: str, fallback: str = MISSING) -> str:
@@ -422,6 +435,12 @@ def parse_open_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any]:
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        extract_detail_html(html),
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, item.get("price_raw") or extract_label_value(html, "参加费用"))
     if plan.get("startDate"):
         try:
@@ -489,6 +508,12 @@ def parse_internal_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        extract_detail_html(html),
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, "内训咨询")
     append_diagnostic(record, "plans_json", "internal_course_has_no_public_schedule")
     enrich_course_record(record, fallback_type="INTERNAL")

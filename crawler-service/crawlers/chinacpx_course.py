@@ -11,6 +11,7 @@ from typing import Any, AsyncGenerator, Dict, Iterable, List
 from urllib.parse import urljoin
 
 from crawlers.course_utils import append_diagnostic, detect_content_type, enrich_course_record, set_price_fields
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "https://www.chinacpx.com"
@@ -112,6 +113,25 @@ def extract_main_text(html: str) -> str:
         if pos > 800:
             text = text[:pos]
     return text
+
+
+def extract_main_html(html: str) -> str:
+    anchors = [
+        "课程编号：",
+        "课程类型：",
+        "课程收益/背景：",
+        "培训对象：",
+        "课程收益：",
+        "课程背景：",
+    ]
+    positions = [html.find(anchor) for anchor in anchors if html.find(anchor) >= 0]
+    start = min(positions) if positions else 0
+    end = len(html)
+    for stop in ("近期相关公开课", "相关内训课", "公开课 行政工作", "您可能遇到的问题", "关于我们"):
+        pos = html.find(stop, start + 1)
+        if pos > start:
+            end = min(end, pos)
+    return html[start:end]
 
 
 def extract_between(text: str, label: str, stops: Iterable[str], limit: int = 1200) -> str:
@@ -358,6 +378,12 @@ def parse_open_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any]:
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        extract_main_html(html),
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, item.get("price_raw") or extract_between(detail_text, "学习费用：", ("元", "/位"), 80))
     for plan in record["plans_json"]:
         if plan.get("address") == plan.get("city"):
@@ -421,6 +447,12 @@ def parse_internal_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        extract_main_html(html),
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, "内训咨询")
     record["raw_json"]["source_price_text"] = "按方案定价"
     append_diagnostic(record, "plans_json", "internal_course_has_no_public_schedule")

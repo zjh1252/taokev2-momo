@@ -34,6 +34,18 @@ public class CrawledCourseDetailVO {
     private String intro;
     private String summary;
     private String syllabus;
+    private String syllabusPlainText;
+    private String syllabusHtml;
+    private String syllabusContentType;
+    private List<ImageItem> syllabusImages;
+    private String sitePhotosPlainText;
+    private String sitePhotosHtml;
+    private String sitePhotosContentType;
+    private List<ImageItem> sitePhotosImages;
+    private String honorCertificatesPlainText;
+    private String honorCertificatesHtml;
+    private String honorCertificatesContentType;
+    private List<ImageItem> honorCertificatesImages;
     private String audience;
     private String highlights;
     private Integer durationDays;
@@ -57,6 +69,7 @@ public class CrawledCourseDetailVO {
     private Integer dedupCourseId;
     private String dedupTargetType;
     private Integer dedupTargetId;
+    private String dedupTargetFrontendUrl;
     private String dedupMatchType;
     private Integer dedupScore;
     private LocalDateTime dedupCheckedAt;
@@ -85,5 +98,12 @@ public class CrawledCourseDetailVO {
         private String city;
         private String address;
         private String onlineUrl;
+    }
+
+    @Data
+    public static class ImageItem {
+        private String type;
+        private String url;
+        private String label;
     }
 }

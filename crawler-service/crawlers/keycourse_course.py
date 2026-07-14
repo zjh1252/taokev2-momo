@@ -12,6 +12,7 @@ from typing import Any, AsyncGenerator, Dict, Iterable, List
 from urllib.parse import urljoin
 
 from crawlers.course_utils import append_diagnostic, enrich_course_record, set_price_fields
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "https://www.keycourse.com"
@@ -229,6 +230,21 @@ def extract_detail_text(html: str) -> str:
     return text
 
 
+def extract_detail_html(html: str) -> str:
+    if not html:
+        return ""
+    marker = "最新课程安排表 选课中心"
+    start = html.find(marker)
+    if start < 0:
+        start = 0
+    end = len(html)
+    for stop in ("相关推荐", "热门好课", "加入我们", "关于睿选优课", "Copyright"):
+        pos = html.find(stop, start + 1)
+        if pos > start:
+            end = min(end, pos)
+    return html[start:end]
+
+
 def extract_between(text: str, aliases: Iterable[str], limit: int = 2000) -> str:
     starts: list[tuple[int, str]] = []
     for alias in aliases:
@@ -268,22 +284,32 @@ def extract_inline_value(text: str, label: str, limit: int = 200) -> str:
 
 def extract_syllabus(text: str) -> str:
     value = extract_between(text, ("课程大纲",), 5000)
-    if value != MISSING and len(value) > 20 and value not in {"开课安排", "课程介绍 开课安排"}:
+    if value != MISSING and len(value) > 20 and value not in {"开课安排", "课程介绍 开课安排"} and not value.startswith("开课安排"):
         return value
-    markers = ["导论", "第一模块", "第一讲", "模块一", "一、"]
+    markers = ["导论", "第一模块", "第一讲", "第一部分", "模块一", "（一）", "(一)", "一、", "1."]
     positions = [text.find(marker) for marker in markers if text.find(marker) >= 0]
     if not positions:
         return MISSING
     segment = text[min(positions):]
     stops = []
-    for stop in ("开课安排", "睿选观点", "索取课纲", "预约报名", "课后资料"):
+    for stop in (
+        "开课安排",
+        "睿选观点",
+        "索取课纲",
+        "预约报名",
+        "课后资料",
+        "城市 天数 价格",
+        "注册获取课程计划",
+        "相关课程",
+        "最新公开课计划表",
+    ):
         pos = segment.find(stop)
         if pos > 20:
             stops.append(pos)
     if stops:
         segment = segment[: min(stops)]
     segment = clean_html(segment, MISSING)[:5000]
-    return segment if segment not in {"开课安排", "课程介绍 开课安排"} else MISSING
+    return segment if segment not in {"开课安排", "课程介绍 开课安排"} and not segment.startswith("开课安排") else MISSING
 
 
 def extract_category(text: str, item: dict[str, Any]) -> str:
@@ -363,6 +389,13 @@ def build_record_from_item(item: dict[str, Any], html: str | None = None) -> Dic
             "diagnostics": [],
         },
     }
+    if html:
+        apply_syllabus_rich_content(
+            record,
+            extract_detail_html(html),
+            plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+            base_url=BASE_URL,
+        )
     set_price_fields(record, price_raw)
     if not plans:
         append_diagnostic(record, "plans_json", "source_public_course_has_no_schedule", item.get("courseOutList"))

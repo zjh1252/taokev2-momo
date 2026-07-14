@@ -11,6 +11,7 @@ from typing import Any, AsyncGenerator, Dict, List
 from urllib.parse import urljoin
 
 from crawlers.course_utils import append_diagnostic, enrich_course_record, set_price_fields
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "http://www.huide.net"
@@ -146,6 +147,18 @@ def extract_between(text: str, starts: tuple[str, ...], stops: tuple[str, ...], 
         if cleaned not in {MISSING, "课程目标", "课程纲要", "课程大纲", "相关资料", "学员反馈"} and len(cleaned) >= 8:
             return cleaned[:limit]
     return MISSING
+
+
+def extract_detail_html(html: str) -> str:
+    anchors = ["课程目标", "课程纲要", "课程大纲", "适合人群", "培训对象", "报名要求"]
+    positions = [html.find(anchor) for anchor in anchors if html.find(anchor) >= 0]
+    start = min(positions) if positions else 0
+    end = len(html)
+    for stop in ("相关资料", "学员反馈", "惠德声明", "Copyright"):
+        pos = html.find(stop, start + 1)
+        if pos > start:
+            end = min(end, pos)
+    return html[start:end]
 
 
 def split_table_cells(row_html: str) -> list[str]:
@@ -363,6 +376,12 @@ def parse_detail_html(item: dict[str, Any], html: str) -> Dict[str, Any]:
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        extract_detail_html(html),
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, price_raw)
     if not plans:
         append_diagnostic(record, "plans_json", "source_detail_schedule_missing_or_unparsed")

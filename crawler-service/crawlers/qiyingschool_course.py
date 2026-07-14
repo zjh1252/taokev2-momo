@@ -11,6 +11,7 @@ from typing import Any, AsyncGenerator, Dict, Iterable, List
 from urllib.parse import urljoin
 
 from crawlers.course_utils import append_diagnostic, detect_content_type, enrich_course_record, set_price_fields
+from crawlers.rich_content import apply_syllabus_rich_content
 
 
 BASE_URL = "https://www.qiyingschool.com"
@@ -124,6 +125,17 @@ def extract_detail_text(html: str) -> str:
         return clean_html(match.group(1))
     match = re.search(r'<div[^>]+class=["\']content[^"\']*["\'][^>]*>([\s\S]*?)(?:<div[^>]+class=["\']right|<div[^>]+class=["\']footer|</body>)', html, flags=re.I)
     return clean_html(match.group(1)) if match else clean_html(html)
+
+
+def extract_detail_html(html: str) -> str:
+    for pattern in (
+        r'<div[^>]+class=["\']courses_dt[^"\']*["\'][^>]*>([\s\S]*?)(?:<div[^>]+class=["\']right|<div[^>]+class=["\']footer|</body>)',
+        r'<div[^>]+class=["\']content[^"\']*["\'][^>]*>([\s\S]*?)(?:<div[^>]+class=["\']right|<div[^>]+class=["\']footer|</body>)',
+    ):
+        match = re.search(pattern, html, flags=re.I)
+        if match:
+            return match.group(1)
+    return html
 
 
 SECTION_STOPS = (
@@ -400,6 +412,12 @@ def parse_open_detail_html(item: dict[str, str], html: str) -> Dict[str, Any]:
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        extract_detail_html(html),
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, item.get("price_raw") or MISSING)
     if plan.get("address") and plan.get("address") == item.get("city"):
         append_diagnostic(record, "plans_json.address", "source_only_provides_city_no_street_address", item.get("city", ""))
@@ -465,6 +483,12 @@ def parse_internal_detail_html(item: dict[str, str], html: str) -> Dict[str, Any
             "diagnostics": [],
         },
     }
+    apply_syllabus_rich_content(
+        record,
+        extract_detail_html(html),
+        plain_text="" if record["syllabus"] == MISSING else record["syllabus"],
+        base_url=BASE_URL,
+    )
     set_price_fields(record, "内训咨询")
     append_diagnostic(record, "plans_json", "internal_course_has_no_public_schedule")
     enrich_course_record(record, fallback_type="INTERNAL")

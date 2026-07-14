@@ -25,4 +25,5 @@ class CrawlJobStatus(BaseModel):
     data_type: str
     status: str  # pending/running/completed/failed/cancelled
     total_items: int = 0
+    skipped_count: int = 0
     error: Optional[str] = None

@@ -26,6 +26,15 @@ public class CrawledCourseQuery {
     /** 按去重状态过滤 */
     private Integer dedupStatus;
 
+    /** 课程类型：OPEN_OFFLINE/OPEN_ONLINE/INTERNAL */
+    private String type;
+
     /** 模糊搜索（标题） */
     private String keyword;
+
+    /** 排序字段：updatedAt/createdAt/id */
+    private String sortBy = "updatedAt";
+
+    /** 排序方向：ASC/DESC */
+    private String sortDirection = "DESC";
 }

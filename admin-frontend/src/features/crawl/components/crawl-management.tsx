@@ -63,6 +63,8 @@ import type {
   CrawledCourseDetail,
   CrawledTrainer,
   CrawledTrainerDetail,
+  CourseImageItem,
+  CrawlDiagnostic,
   MediaAsset,
   CrawledCourseEditPayload
 } from '../api/types';
@@ -191,11 +193,49 @@ function dedupTargetLabel(value?: string | null) {
   return '重复目标';
 }
 
+function DuplicateFrontendLink({ url }: { url?: string | null }) {
+  if (!url) {
+    return <span className='text-muted-foreground'>{'\u65e0\u524d\u53f0\u94fe\u63a5'}</span>;
+  }
+  return (
+    <a
+      href={url}
+      target='_blank'
+      rel='noreferrer'
+      className='inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline'
+    >
+      {'\u524d\u53f0\u8bfe\u7a0b\u94fe\u63a5'}
+      <Icons.externalLink className='h-3.5 w-3.5' />
+    </a>
+  );
+}
+
 const courseReviewTabs = [
   { value: '0', label: '待审核', title: '待审核课程', emptyText: '暂无待审核课程' },
   { value: '3', label: '已入库', title: '已入库课程', emptyText: '暂无已入库课程' },
   { value: '2', label: '已驳回', title: '已驳回课程', emptyText: '暂无已驳回课程' },
   { value: 'all', label: '全部', title: '全部采集课程', emptyText: '暂无采集课程' }
+] as const;
+
+const courseTypeFilterOptions = [
+  { value: 'all', label: '全部类型' },
+  { value: 'OPEN_OFFLINE', label: '线下公开课' },
+  { value: 'OPEN_ONLINE', label: '线上公开课' },
+  { value: 'INTERNAL', label: '内训课' }
+] as const;
+
+const courseDedupFilterOptions = [
+  { value: 'all', label: '全部去重状态' },
+  { value: '0', label: '未检查' },
+  { value: '1', label: '未重复' },
+  { value: '2', label: '疑似重复' },
+  { value: '3', label: '已重复' }
+] as const;
+
+const courseSortOptions = [
+  { value: 'updatedAt_desc', label: '最近更新优先' },
+  { value: 'updatedAt_asc', label: '最早更新优先' },
+  { value: 'createdAt_desc', label: '最近创建优先' }
 ] as const;
 
 type CourseReviewTabValue = (typeof courseReviewTabs)[number]['value'];
@@ -286,7 +326,7 @@ function ReviewTableViewport({ children }: { children: ReactNode }) {
 function normalizeMediaAssets(
   detail:
     | Pick<CrawledTrainerDetail, 'rawJson'>
-    | Pick<CrawledCourseDetail, 'servicesList' | 'rawJson'>
+    | Pick<CrawledCourseDetail, 'coverUrl' | 'servicesList' | 'rawJson'>
 ) {
   const result: MediaAsset[] = [];
   const seen = new Set<string>();
@@ -298,6 +338,7 @@ function normalizeMediaAssets(
   };
 
   if ('servicesList' in detail) {
+    push({ type: 'cover', url: detail.coverUrl ?? undefined, label: '\u8bfe\u7a0b\u5c01\u9762' });
     (detail.servicesList ?? []).forEach(push);
   }
 
@@ -322,11 +363,14 @@ function JsonPreview({ data }: { data: unknown }) {
 }
 
 function MediaGallery({ assets }: { assets: MediaAsset[] }) {
+  const [previewAsset, setPreviewAsset] = useState<MediaAsset | null>(null);
+
   if (assets.length === 0) {
     return <div className='text-sm text-muted-foreground'>暂无图片资源</div>;
   }
 
   return (
+    <>
     <div className='grid gap-3 sm:grid-cols-2'>
       {assets.map((asset, index) => (
         <div key={`${asset.url}-${index}`} className='space-y-2 rounded-md border p-3'>
@@ -345,16 +389,65 @@ function MediaGallery({ assets }: { assets: MediaAsset[] }) {
             ) : null}
           </div>
           {asset.url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <button
+              type='button'
+              className='block w-full cursor-zoom-in'
+              onClick={() => setPreviewAsset(asset)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
               src={asset.url}
               alt={asset.label || asset.type || '图片资源'}
-              className='aspect-video w-full rounded-md border object-cover'
-            />
+                className='aspect-video w-full rounded-md border object-cover'
+              />
+            </button>
           ) : null}
           <div className='break-all text-xs text-muted-foreground'>{asset.url || '-'}</div>
         </div>
       ))}
+    </div>
+    <Dialog open={Boolean(previewAsset)} onOpenChange={(open) => !open && setPreviewAsset(null)}>
+      <DialogContent className='max-h-[90vh] overflow-auto sm:max-w-5xl'>
+        <DialogHeader>
+          <DialogTitle>{previewAsset?.label || previewAsset?.type || '\u56fe\u7247\u9884\u89c8'}</DialogTitle>
+          <DialogDescription className='break-all'>{previewAsset?.url || ''}</DialogDescription>
+        </DialogHeader>
+        {previewAsset?.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={previewAsset.url}
+            alt={previewAsset.label || previewAsset.type || '\u56fe\u7247\u9884\u89c8'}
+            className='max-h-[72vh] w-full rounded-md border object-contain'
+          />
+        ) : null}
+      </DialogContent>
+    </Dialog>
+    </>
+  );
+}
+
+function CourseContentBlock({
+  label,
+  text,
+  images
+}: {
+  label: string;
+  text?: string | null;
+  images?: CourseImageItem[] | null;
+}) {
+  const imageItems = images?.filter((image) => image.url) ?? [];
+  const hasText = Boolean(text?.trim());
+  if (!hasText && imageItems.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className='space-y-3'>
+      <div className='text-xs text-muted-foreground'>{label}</div>
+      {hasText ? (
+        <div className='rounded-md border p-3 text-sm leading-6 whitespace-pre-wrap'>{text}</div>
+      ) : null}
+      {imageItems.length > 0 ? <MediaGallery assets={imageItems} /> : null}
     </div>
   );
 }
@@ -471,7 +564,21 @@ function CourseDetailDialog({
             </div>
             <DiagnosticsList diagnostics={detail.diagnostics} />
             <DetailBlock label='简介' value={detail.intro || detail.summary} large />
-            <DetailBlock label='大纲' value={detail.syllabus} large />
+            <CourseContentBlock
+              label='课程大纲'
+              text={detail.syllabusPlainText || detail.syllabus}
+              images={detail.syllabusImages}
+            />
+            <CourseContentBlock
+              label='现场图片'
+              text={detail.sitePhotosPlainText}
+              images={detail.sitePhotosImages}
+            />
+            <CourseContentBlock
+              label='荣誉证书'
+              text={detail.honorCertificatesPlainText}
+              images={detail.honorCertificatesImages}
+            />
             <JsonPreview data={detail.rawJson} />
           </div>
         ) : (
@@ -540,7 +647,6 @@ function CourseReviewDialog({
       coverUrl: detail.coverUrl ?? '',
       trainerNameRaw: detail.trainerNameRaw ?? '',
       price: detail.price ?? 0,
-      originalPrice: detail.originalPrice ?? 0,
       durationDays: detail.durationDays ?? 0,
       totalHours: detail.totalHours ?? 0,
       summary: detail.summary ?? '',
@@ -628,7 +734,6 @@ function CourseReviewDialog({
       durationDays: Number(form.durationDays) || 0,
       totalHours: Number(form.totalHours) || 0,
       price: Number(form.price) || 0,
-      originalPrice: Number(form.originalPrice) || 0,
       plansJson
     };
   };
@@ -788,6 +893,9 @@ function CourseReviewDialog({
                       {detail.dedupMatchType ? ` · ${detail.dedupMatchType}` : ''}
                     </div>
                     {detail.dedupReason && <div className='mt-1'>{detail.dedupReason}</div>}
+                    <div className='mt-1'>
+                      <DuplicateFrontendLink url={detail.dedupTargetFrontendUrl} />
+                    </div>
                   </div>
                 )}
                 <DiagnosticsList diagnostics={detail.diagnostics} compact />
@@ -827,6 +935,7 @@ function CourseReviewDialog({
                     setValue('categoryId', toNumber(value));
                     setValue('subCategoryId', 0);
                   }}
+                  disabled={categoryQuery.isLoading || categories.length === 0}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder='\u8bf7\u9009\u62e9\u5e73\u53f0\u5206\u7c7b' />
@@ -840,6 +949,19 @@ function CourseReviewDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                {categoryQuery.isLoading && (
+                  <div className='text-xs text-muted-foreground'>正在加载平台分类...</div>
+                )}
+                {!categoryQuery.isLoading && categories.length === 0 && (
+                  <div className='text-xs text-destructive'>
+                    未加载到平台分类，请检查后台课程分类数据或分类接口。
+                  </div>
+                )}
+                {categoryQuery.error && (
+                  <div className='text-xs text-destructive'>
+                    平台分类加载失败：{errorMessage(categoryQuery.error, '请确认后端已启动')}
+                  </div>
+                )}
               </div>
               <div className='space-y-2'>
                 <Label>{'\u4e8c\u7ea7\u5206\u7c7b'}</Label>
@@ -903,12 +1025,6 @@ function CourseReviewDialog({
                   </div>
                 )}
               </div>
-              <LabeledInput
-                label='原价'
-                type='number'
-                value={toText(form.originalPrice)}
-                onChange={(value) => setValue('originalPrice', toNumber(value))}
-              />
               <LabeledInput
                 label='课程天数'
                 type='number'
@@ -1484,16 +1600,24 @@ export function CrawledCoursesPanel() {
   const [detailId, setDetailId] = useState<number | null>(null);
   const [reviewCourse, setReviewCourse] = useState<CrawledCourse | null>(null);
   const [activeReviewStatus, setActiveReviewStatus] = useState<CourseReviewTabValue>('0');
+  const [courseTypeFilter, setCourseTypeFilter] = useState('all');
+  const [dedupStatusFilter, setDedupStatusFilter] = useState('all');
+  const [sortMode, setSortMode] = useState('updatedAt_desc');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const activeTab = courseReviewTab(activeReviewStatus);
+  const [sortBy, sortDirection] = sortMode.split('_');
   const filters = useMemo(
     () => ({
       page,
       size: pageSize,
-      reviewStatus: activeReviewStatus === 'all' ? undefined : activeReviewStatus
+      reviewStatus: activeReviewStatus === 'all' ? undefined : activeReviewStatus,
+      type: courseTypeFilter === 'all' ? undefined : courseTypeFilter,
+      dedupStatus: dedupStatusFilter === 'all' ? undefined : dedupStatusFilter,
+      sortBy,
+      sortDirection: sortDirection?.toUpperCase() ?? 'DESC'
     }),
-    [activeReviewStatus, page, pageSize]
+    [activeReviewStatus, courseTypeFilter, dedupStatusFilter, page, pageSize, sortBy, sortDirection]
   );
   const query = useQuery(crawledCoursesQueryOptions(filters));
   const rejectMutation = useRejectCrawledCourse();
@@ -1526,6 +1650,21 @@ export function CrawledCoursesPanel() {
 
   const handleTabChange = (value: string) => {
     setActiveReviewStatus(value as CourseReviewTabValue);
+    setPage(1);
+  };
+
+  const handleCourseTypeFilterChange = (value: string) => {
+    setCourseTypeFilter(value);
+    setPage(1);
+  };
+
+  const handleDedupStatusFilterChange = (value: string) => {
+    setDedupStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleSortModeChange = (value: string) => {
+    setSortMode(value);
     setPage(1);
   };
 
@@ -1569,6 +1708,44 @@ export function CrawledCoursesPanel() {
           ))}
         </TabsList>
       </Tabs>
+      <div className='flex flex-wrap items-center gap-3'>
+        <Select value={sortMode} onValueChange={handleSortModeChange}>
+          <SelectTrigger className='h-9 w-[180px]'>
+            <SelectValue placeholder='更新时间排序' />
+          </SelectTrigger>
+          <SelectContent>
+            {courseSortOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={courseTypeFilter} onValueChange={handleCourseTypeFilterChange}>
+          <SelectTrigger className='h-9 w-[160px]'>
+            <SelectValue placeholder='课程类型' />
+          </SelectTrigger>
+          <SelectContent>
+            {courseTypeFilterOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={dedupStatusFilter} onValueChange={handleDedupStatusFilterChange}>
+          <SelectTrigger className='h-9 w-[170px]'>
+            <SelectValue placeholder='去重状态' />
+          </SelectTrigger>
+          <SelectContent>
+            {courseDedupFilterOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <ReviewTableViewport>
         <Table className='min-w-[1240px] table-fixed'>
           <TableHeader>
@@ -1666,11 +1843,14 @@ export function CrawledCoursesPanel() {
                       {course.dedupStatusText}
                     </Badge>
                     {course.dedupStatus === 2 && (
-                      <div className='mt-1 max-w-[110px] truncate text-xs text-muted-foreground'>
+                      <div className='mt-1 max-w-[110px] space-y-1 text-xs text-muted-foreground'>
+                        <div className='truncate'>
                         {course.dedupTargetId
                           ? `${dedupTargetLabel(course.dedupTargetType)} #${course.dedupTargetId}`
                           : '重复目标待确认'}
                         {course.dedupScore != null ? ` · ${course.dedupScore}分` : ''}
+                        </div>
+                        <DuplicateFrontendLink url={course.dedupTargetFrontendUrl} />
                       </div>
                     )}
                     {course.dedupReason && (
@@ -1811,6 +1991,80 @@ function CourseReviewActions({
   );
 }
 
+const diagnosticFieldLabels: Record<string, string> = {
+  audience: '适用对象',
+  category_name_raw: '源站分类',
+  content_type: '内容形态',
+  detail: '详情页',
+  detail_content: '详情内容',
+  detail_text: '详情正文',
+  duration_days: '课程天数',
+  intro: '课程简介',
+  learning_outcomes: '学习收益',
+  plans_json: '开课计划',
+  'plans_json.address': '开课地址',
+  'plans_json.location': '开课地点',
+  'plans_json.province_name_raw': '省份识别',
+  'plans_json.startDate': '开课日期',
+  'plans_json.status': '开课状态',
+  price: '价格',
+  services_json: '附件/资料',
+  syllabus: '课程大纲',
+  trainer_name_raw: '讲师'
+};
+
+const diagnosticReasonLabels: Record<string, string> = {
+  detail_fetch_failed: '详情页抓取失败，需人工核对源站',
+  image_only_detail: '源站详情主要是图片，文字信息可能不完整',
+  internal_course_has_no_public_schedule: '内训课通常没有公开排期',
+  internal_solution_duration_needs_manual_confirmation: '内训方案课时需人工确认',
+  internal_series_page_intro_unparsed: '内训系列页简介未完整解析',
+  missing_or_default: '源站未提供有效内容或使用默认值',
+  missing_syllabus_pdf: '源站未提供课程大纲附件',
+  non_course_content: '识别为非课程内容，导入前需确认',
+  open_offline_schedule_missing_or_unparsed: '线下公开课排期缺失或未解析',
+  past_schedule_removed: '已移除过期排期',
+  public_detail_has_schedule_only_or_content_hidden: '详情页仅展示排期或正文隐藏',
+  recorded_course_entry_skipped: '识别到录播课入口，按规则不应导入',
+  source_city_needs_manual_province_mapping: '源站只给城市，省份需人工确认',
+  source_detail_audience_missing: '详情页未抓到适用对象',
+  source_detail_intro_not_expanded_or_not_visible: '详情简介未展开或不可见',
+  source_detail_outcomes_missing: '详情页未抓到学习收益',
+  source_detail_schedule_missing_or_unparsed: '详情排期缺失或未解析',
+  source_detail_syllabus_not_expanded_or_not_visible: '课程大纲未展开或不可见',
+  source_duration_needs_manual_review: '源站课时/天数需人工确认',
+  source_live_has_no_item_level_category: '直播列表未提供单条课程分类',
+  source_live_is_ended: '源站标记直播/课程已结束',
+  source_location_needs_manual_province_mapping: '开课地点需人工映射省份',
+  source_location_needs_manual_review: '开课地点需人工确认',
+  source_only_provides_city_no_street_address: '源站只提供城市，未提供详细地址',
+  source_project_course_has_no_public_schedule: '项目制课程没有公开排期',
+  source_public_course_has_no_schedule: '公开课未抓到可导入排期',
+  source_schedule_date_is_in_past: '源站排期日期已过期',
+  source_schedule_date_missing_or_unparsed: '源站排期日期缺失或无法解析',
+  source_schedule_has_no_item_level_category: '排期列表未提供单条课程分类',
+  source_solution_has_no_fixed_duration: '方案课没有固定课时',
+  source_uses_month_based_program_duration_not_day_based: '源站按月描述周期，不能直接换算天数',
+  study_tour_location_missing_or_unparsed: '游学地点缺失或未解析',
+  study_tour_schedule_year_missing: '游学排期缺少年份'
+};
+
+function diagnosticFieldLabel(field?: string) {
+  if (!field) return '字段';
+  return diagnosticFieldLabels[field] ?? field.replaceAll('_', ' ');
+}
+
+function diagnosticReasonLabel(reason?: string) {
+  if (!reason) return '需要人工确认';
+  return diagnosticReasonLabels[reason] ?? reason.replaceAll('_', ' ');
+}
+
+function diagnosticItemLabel(item: CrawlDiagnostic) {
+  const main = `${diagnosticFieldLabel(item.field)}：${diagnosticReasonLabel(item.reason)}`;
+  const raw = item.message || item.raw;
+  return raw ? `${main}（源站：${String(raw)}）` : main;
+}
+
 function DiagnosticsList({
   diagnostics,
   compact = false
@@ -1822,17 +2076,25 @@ function DiagnosticsList({
   const visible = diagnostics.slice(0, compact ? 3 : 8);
   return (
     <div className={compact ? 'mt-3 space-y-1' : 'space-y-2'}>
-      {!compact && <div className='text-xs text-muted-foreground'>字段质量提示</div>}
+      <div className='text-xs text-muted-foreground'>
+        {compact ? '抓取提示' : '抓取字段提示'}
+      </div>
       <div className='flex flex-wrap gap-2'>
         {visible.map((item, index) => (
           <Badge
             key={`${item.field ?? 'field'}-${item.reason ?? 'reason'}-${index}`}
             variant='secondary'
+            title={[item.field, item.reason, item.raw].filter(Boolean).join(' / ')}
           >
-            {[item.field, item.reason, item.raw].filter(Boolean).join(' / ')}
+            {diagnosticItemLabel(item)}
           </Badge>
         ))}
       </div>
+      {diagnostics.length > visible.length && (
+        <div className='text-xs text-muted-foreground'>
+          还有 {diagnostics.length - visible.length} 条提示，可在原始 JSON 中查看。
+        </div>
+      )}
     </div>
   );
 }
