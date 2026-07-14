@@ -369,10 +369,23 @@ export const navGroups: NavGroup[] = [
       },
       {
         title: '合约管理',
-        url: '/dashboard/contracts',
+        url: '#',
         icon: 'contract',
         isActive: false,
-        items: []
+        items: [
+          {
+            title: '推广大使',
+            url: '/dashboard/contracts/ambassador'
+          },
+          {
+            title: '培训合伙人',
+            url: '/dashboard/contracts/partners'
+          },
+          {
+            title: '721讲师合作',
+            url: '/dashboard/contracts/721'
+          }
+        ]
       }
     ]
   }

@@ -44,6 +44,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   'sensitive-words': '敏感词管理',
   search: '全文搜索管理',
   contracts: '合约管理',
+  partners: '培训合伙人',
   applications: '申请管理',
   categories: '分类管理',
   'course-category': '课程分类',
@@ -285,6 +286,12 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
     { title: 'Dashboard', link: '/dashboard' },
     { title: '系统管理', link: '#' },
     { title: '合约管理', link: '/dashboard/contracts' }
+  ],
+  '/dashboard/contracts/partners': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '系统管理', link: '#' },
+    { title: '合约管理', link: '/dashboard/contracts/partners' },
+    { title: '培训合伙人', link: '/dashboard/contracts/partners' }
   ]
 };
 
