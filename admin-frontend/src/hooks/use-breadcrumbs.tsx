@@ -44,7 +44,9 @@ const SEGMENT_LABELS: Record<string, string> = {
   'sensitive-words': '敏感词管理',
   search: '全文搜索管理',
   contracts: '合约管理',
+  ambassador: '推广大使',
   partners: '培训合伙人',
+  '721': '721讲师合作',
   applications: '申请管理',
   categories: '分类管理',
   'course-category': '课程分类',
@@ -292,6 +294,18 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
     { title: '系统管理', link: '#' },
     { title: '合约管理', link: '/dashboard/contracts/partners' },
     { title: '培训合伙人', link: '/dashboard/contracts/partners' }
+  ],
+  '/dashboard/contracts/ambassador': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '系统管理', link: '#' },
+    { title: '合约管理', link: '/dashboard/contracts/partners' },
+    { title: '推广大使', link: '/dashboard/contracts/ambassador' }
+  ],
+  '/dashboard/contracts/721': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '系统管理', link: '#' },
+    { title: '合约管理', link: '/dashboard/contracts/partners' },
+    { title: '721讲师合作', link: '/dashboard/contracts/721' }
   ]
 };
 
