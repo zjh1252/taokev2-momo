@@ -22,11 +22,13 @@ export default async function PublicLayout({ children }: { children: React.React
   }
 
   return (
-    <>
-      <PublicHeader />
-      <main className="flex-1 bg-[var(--page-bg)]">{children}</main>
-      <AppFooter />
+    <div className="w-full overflow-x-auto">
+      <div className="min-w-[1400px]">
+        <PublicHeader />
+        <main className="flex-1 bg-[var(--page-bg)]">{children}</main>
+        <AppFooter />
+      </div>
       <FloatingActions />
-    </>
+    </div>
   );
 }
