@@ -127,7 +127,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
             width={560}
             height={200}
             unoptimized
-            className="absolute right-0 top-[70px] w-[560px] h-auto opacity-[0.14] pointer-events-none select-none"
+            className="absolute right-0 top-[70px] w-[560px] h-auto opacity-[0.24] pointer-events-none select-none"
             aria-hidden
           />
 
