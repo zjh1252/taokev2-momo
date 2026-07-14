@@ -26,11 +26,11 @@ function StarRating({ score }: { score: number }) {
   const fullStars = Math.floor(score);
   const hasHalf = score - fullStars >= 0.25;
   return (
-    <div className="flex text-[#8A6D3B] text-[22px]">
+    <div className="flex gap-0.5">
       {Array.from({ length: fullStars }).map((_, i) => (
-        <Star key={i} className="size-4 fill-current" />
+        <Star key={i} className="size-4 fill-[#FFD700] text-[#FFD700]" />
       ))}
-      {hasHalf && <StarHalf className="size-4 fill-current" />}
+      {hasHalf && <StarHalf className="size-4 fill-[#FFD700] text-[#FFD700]" />}
     </div>
   );
 }
@@ -127,7 +127,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
             width={560}
             height={200}
             unoptimized
-            className="absolute right-0 top-[70px] w-[560px] h-auto opacity-[0.24] pointer-events-none select-none"
+            className="absolute right-0 top-[70px] w-[560px] h-auto opacity-[0.34] pointer-events-none select-none"
             aria-hidden
           />
 
@@ -199,10 +199,12 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                 <div className="flex flex-col items-center min-w-[54px]">
                   {trainer.score != null && trainer.score > 0 ? (
                     <>
-                      <StarRating score={trainer.score} />
-                      <span className="text-[#002B5B] font-bold text-[16px] mt-1">
+                      <span className="text-[#002B5B] font-bold text-[16px] leading-none">
                         {trainer.score.toFixed(1)}
                       </span>
+                      <div className="mt-1">
+                        <StarRating score={trainer.score} />
+                      </div>
                     </>
                   ) : (
                     <>
