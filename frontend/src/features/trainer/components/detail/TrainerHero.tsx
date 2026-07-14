@@ -127,7 +127,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
             width={560}
             height={200}
             unoptimized
-            className="absolute right-0 top-[70px] w-[560px] h-auto opacity-[0.34] pointer-events-none select-none"
+            className="absolute right-0 top-[70px] w-[560px] h-auto opacity-[0.49] pointer-events-none select-none"
             aria-hidden
           />
 
@@ -199,29 +199,37 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                 <div className="flex flex-col items-center min-w-[54px]">
                   {trainer.score != null && trainer.score > 0 ? (
                     <>
-                      <span className="text-[#002B5B] font-bold text-[16px] leading-none">
+                      <span className="flex h-[21px] items-center text-[#002B5B] font-bold text-[16px] leading-none">
                         {trainer.score.toFixed(1)}
                       </span>
-                      <div className="mt-1">
+                      <div className="mt-1.5 flex h-[22px] items-center">
                         <StarRating score={trainer.score} />
                       </div>
                     </>
                   ) : (
                     <>
-                      <span className="text-[#313a47] font-semibold text-[14px]">暂无评分</span>
-                      <span className="text-[#a8a8a8] font-bold text-[24px] leading-none mt-1">—</span>
+                      <span className="flex h-[21px] items-center text-[#313a47] font-semibold text-[14px] leading-none">
+                        暂无评分
+                      </span>
+                      <span className="mt-1.5 flex h-[22px] items-center text-[#a8a8a8] font-bold text-[22px] leading-none">
+                        —
+                      </span>
                     </>
                   )}
                 </div>
                 <div className="flex flex-col items-center min-w-[54px]">
-                  <span className="text-[#313a47] font-semibold text-[14px]">累计咨询</span>
-                  <span className="text-[red] font-bold text-[22px] mt-1.5 leading-none">
+                  <span className="flex h-[21px] items-center text-[#313a47] font-semibold text-[14px] leading-none">
+                    累计咨询
+                  </span>
+                  <span className="mt-1.5 flex h-[22px] items-center text-[red] font-bold text-[22px] leading-none">
                     {trainer.consultationCount || 0}
                   </span>
                 </div>
                 <div className="flex flex-col items-center min-w-[54px]">
-                  <span className="text-[#313a47] font-semibold text-[14px]">累计曝光</span>
-                  <span className="text-[red] font-bold text-[22px] mt-1.5 leading-none">
+                  <span className="flex h-[21px] items-center text-[#313a47] font-semibold text-[14px] leading-none">
+                    累计曝光
+                  </span>
+                  <span className="mt-1.5 flex h-[22px] items-center text-[red] font-bold text-[22px] leading-none">
                     {formatViewCount(trainer.viewCount)}
                   </span>
                 </div>
