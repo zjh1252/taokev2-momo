@@ -79,7 +79,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
   return (
     <section className="relative z-10 w-full h-[322px] mb-6 overflow-hidden bg-white shadow-sm">
       <div
-        className="absolute inset-y-0 left-0 z-0 overflow-hidden w-[calc((100%-min(100%,1400px))/2+24px+225px+50px)]"
+        className="absolute inset-y-0 left-0 z-0 overflow-hidden w-[calc((100%-min(100%,1400px))/2+24px+225px+96px)]"
         style={{
           backgroundImage:
             'linear-gradient(162.13deg, rgb(140, 20, 31) 0%, rgb(191, 31, 38) 38.9%, rgb(229, 33, 23) 70.7%)',
@@ -91,7 +91,11 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           alt=""
           fill
           unoptimized
-          className="object-cover object-right pointer-events-none select-none"
+          className="object-cover object-right object-bottom pointer-events-none select-none"
+        />
+        <div
+          className="pointer-events-none absolute bottom-0 right-0 h-3 w-16 bg-white/90"
+          aria-hidden
         />
       </div>
 
@@ -118,7 +122,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           )}
         </div>
 
-        <div className="relative ml-6 flex min-w-0 flex-1 flex-row">
+        <div className="relative ml-24 flex min-w-0 flex-1 flex-row">
           <Image
             src="/statics/images/trainer/hero-taoke-watermark.png"
             alt=""
@@ -131,12 +135,12 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
 
           <div className="relative z-[1] flex min-w-0 flex-1 flex-col pb-5 pt-9 pr-6">
             <div className="flex items-baseline gap-3 min-w-0">
-              <h1 className="min-w-0 truncate text-[30px] font-bold leading-none text-[#0f172b] tracking-tight">
+              <h1 className="min-w-0 truncate text-[34px] font-bold leading-none text-[#0f172b] tracking-tight">
                 {displayName}
               </h1>
               {displayTitle ? (
                 <span
-                  className="text-[12.5px] text-[#c24848] px-3 py-1 truncate max-w-[360px]"
+                  className="text-[14px] text-[#c24848] px-3 py-1 truncate max-w-[360px]"
                   style={{
                     backgroundImage:
                       'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,151,136,0.4) 20%, rgba(255,185,162,0.7) 50%, rgba(255,151,136,0.4) 80%, rgba(255,255,255,0) 100%)',
@@ -211,13 +215,13 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                 </div>
                 <div className="flex flex-col items-center min-w-[54px]">
                   <span className="text-[#313a47] font-semibold text-[13.5px]">累计咨询</span>
-                  <span className="text-[red] font-bold text-[17px] mt-1.5 leading-none">
+                  <span className="text-[red] font-bold text-[20px] mt-1.5 leading-none">
                     {trainer.consultationCount || 0}
                   </span>
                 </div>
                 <div className="flex flex-col items-center min-w-[54px]">
                   <span className="text-[#313a47] font-semibold text-[13.5px]">累计曝光</span>
-                  <span className="text-[red] font-bold text-[17px] mt-1.5 leading-none">
+                  <span className="text-[red] font-bold text-[20px] mt-1.5 leading-none">
                     {formatViewCount(trainer.viewCount)}
                   </span>
                 </div>
