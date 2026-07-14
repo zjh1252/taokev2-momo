@@ -100,8 +100,13 @@ ensure_buildx() {
     exit 1
   fi
 
+  # docker-container 驱动启动时会拉 moby/buildkit；该拉取走 Docker 守护进程，
+  # 不读 buildkitd.toml 的 mirrors，需通过 --driver-opt image= 指定加速源。
+  BUILDKIT_IMAGE="$(hub_image 'moby/buildkit:buildx-stable-1')"
+
   if ! docker buildx inspect "${BUILDER_NAME}" >/dev/null 2>&1; then
     echo "创建 buildx builder: ${BUILDER_NAME}"
+    echo "BuildKit 镜像: ${BUILDKIT_IMAGE}"
     PROXY_OPTS=()
     [ -n "${HTTP_PROXY:-}" ]  && PROXY_OPTS+=(--driver-opt "env.HTTP_PROXY=${HTTP_PROXY}")
     [ -n "${HTTPS_PROXY:-}" ] && PROXY_OPTS+=(--driver-opt "env.HTTPS_PROXY=${HTTPS_PROXY}")
@@ -109,6 +114,7 @@ ensure_buildx() {
     docker buildx create \
       --name "${BUILDER_NAME}" \
       --driver docker-container \
+      --driver-opt "image=${BUILDKIT_IMAGE}" \
       --config "${BUILDKIT_CONFIG}" \
       "${PROXY_OPTS[@]}" \
       --use

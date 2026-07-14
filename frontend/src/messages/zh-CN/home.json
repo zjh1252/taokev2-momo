@@ -9,8 +9,9 @@
   },
   "aiMatch": {
     "title": "平台优势",
-    "headline": "找得到、信得过、价更优、+AI",
-    "ctaPublish": "发布需求"
+    "description": "大数据引擎实时筛选，极速匹配最适合您的讲师与课程",
+    "ctaPublish": "发布需求",
+    "ctaService": "智能客服，AI智能匹配培训资源"
   },
   "experts": {
     "sectionTitle": "推荐专家",
