@@ -91,38 +91,36 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           alt=""
           fill
           unoptimized
-          className="object-cover object-right object-bottom pointer-events-none select-none"
-        />
-        <div
-          className="pointer-events-none absolute bottom-0 right-0 h-3 w-16 bg-white/90"
-          aria-hidden
+          className="object-cover object-right pointer-events-none select-none"
         />
       </div>
 
       <div className="relative z-10 mx-auto flex h-full max-w-[1400px] flex-row px-6">
         <div className="relative flex h-full w-[225px] shrink-0 items-center">
-          <div className="relative h-[256px] w-[225px] overflow-hidden border-[5px] border-white bg-slate-100">
-            <SafeImage
-              src={trainer.avatar}
-              alt={displayName}
-              width={225}
-              height={256}
-              apiResolved
-              className="w-full h-full object-cover"
-            />
+          <div className="relative">
+            <div className="relative h-[256px] w-[225px] overflow-hidden border-[5px] border-white bg-slate-100">
+              <SafeImage
+                src={trainer.avatar}
+                alt={displayName}
+                width={225}
+                height={256}
+                apiResolved
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {trainer.isTrusted === 1 && (
+              <Image
+                src="/statics/images/icons/trusted-xin.png"
+                alt="信得过"
+                width={60}
+                height={60}
+                className="absolute bottom-3 -right-3 z-10 w-[60px] h-[60px] object-contain drop-shadow-md pointer-events-none select-none"
+              />
+            )}
           </div>
-          {trainer.isTrusted === 1 && (
-            <Image
-              src="/statics/images/icons/trusted-xin.png"
-              alt="信得过"
-              width={60}
-              height={60}
-              className="absolute -bottom-1 -right-3 w-[60px] h-[60px] object-contain drop-shadow-md pointer-events-none select-none"
-            />
-          )}
         </div>
 
-        <div className="relative ml-24 flex min-w-0 flex-1 flex-row">
+        <div className="relative ml-36 flex min-w-0 flex-1 flex-row">
           <Image
             src="/statics/images/trainer/hero-taoke-watermark.png"
             alt=""
@@ -135,12 +133,12 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
 
           <div className="relative z-[1] flex min-w-0 flex-1 flex-col pb-5 pt-9 pr-6">
             <div className="flex items-baseline gap-3 min-w-0">
-              <h1 className="min-w-0 truncate text-[34px] font-bold leading-none text-[#0f172b] tracking-tight">
+              <h1 className="min-w-0 truncate text-[38px] font-bold leading-none text-[#0f172b] tracking-tight">
                 {displayName}
               </h1>
               {displayTitle ? (
                 <span
-                  className="text-[14px] text-[#c24848] px-3 py-1 truncate max-w-[360px]"
+                  className="text-[15px] text-[#c24848] px-3 py-1 truncate max-w-[360px]"
                   style={{
                     backgroundImage:
                       'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,151,136,0.4) 20%, rgba(255,185,162,0.7) 50%, rgba(255,151,136,0.4) 80%, rgba(255,255,255,0) 100%)',
@@ -152,24 +150,24 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
             </div>
 
             {locationLabel ? (
-              <div className="mt-4 flex items-center gap-1.5 text-[10px] text-[#62748e]">
+              <div className="mt-4 flex items-center gap-1.5 text-[13px] text-[#62748e]">
                 <span className="font-medium">专家驻地：</span>
-                <MapPin className="size-3 text-slate-400 shrink-0" aria-hidden />
+                <MapPin className="size-3.5 text-slate-400 shrink-0" aria-hidden />
                 <span className="text-[#3f4753]">{locationLabel}</span>
               </div>
             ) : null}
 
-            <div className="mt-3 max-h-[72px] space-y-2.5 overflow-hidden">
+            <div className="mt-3 max-h-[80px] space-y-2.5 overflow-hidden">
               {(trainer.expertiseCategories?.length ?? 0) > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-[#62748e] font-medium shrink-0 w-[60px]">
+                  <span className="text-[13px] text-[#62748e] font-medium shrink-0 w-[70px]">
                     擅长领域：
                   </span>
                   <div className="flex flex-wrap gap-3.5">
                     {trainer.expertiseCategories.map((cat) => (
                       <span
                         key={cat.categoryId}
-                        className="h-[23px] inline-flex items-center px-3 rounded-full border border-[#be0202] text-[10px] font-medium text-[#c31313] bg-white/20"
+                        className="h-[26px] inline-flex items-center px-3.5 rounded-full border border-[#be0202] text-[12px] font-medium text-[#c31313] bg-white/20"
                       >
                         {cat.categoryName}
                       </span>
@@ -179,14 +177,14 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
               )}
               {(trainer.industryCategories?.length ?? 0) > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-[#62748e] font-medium shrink-0 w-[60px]">
+                  <span className="text-[13px] text-[#62748e] font-medium shrink-0 w-[70px]">
                     擅长行业：
                   </span>
                   <div className="flex flex-wrap gap-3.5">
                     {trainer.industryCategories.map((cat) => (
                       <span
                         key={cat.categoryId}
-                        className="h-[23px] inline-flex items-center px-3 rounded-full border border-[#be0202] text-[10px] font-medium text-[#c31313] bg-white/20"
+                        className="h-[26px] inline-flex items-center px-3.5 rounded-full border border-[#be0202] text-[12px] font-medium text-[#c31313] bg-white/20"
                       >
                         {cat.categoryName}
                       </span>
@@ -208,20 +206,20 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                     </>
                   ) : (
                     <>
-                      <span className="text-[#313a47] font-semibold text-[13.5px]">暂无评分</span>
-                      <span className="text-[#a8a8a8] font-bold text-[22.5px] leading-none mt-1">—</span>
+                      <span className="text-[#313a47] font-semibold text-[14px]">暂无评分</span>
+                      <span className="text-[#a8a8a8] font-bold text-[24px] leading-none mt-1">—</span>
                     </>
                   )}
                 </div>
                 <div className="flex flex-col items-center min-w-[54px]">
-                  <span className="text-[#313a47] font-semibold text-[13.5px]">累计咨询</span>
-                  <span className="text-[red] font-bold text-[20px] mt-1.5 leading-none">
+                  <span className="text-[#313a47] font-semibold text-[14px]">累计咨询</span>
+                  <span className="text-[red] font-bold text-[22px] mt-1.5 leading-none">
                     {trainer.consultationCount || 0}
                   </span>
                 </div>
                 <div className="flex flex-col items-center min-w-[54px]">
-                  <span className="text-[#313a47] font-semibold text-[13.5px]">累计曝光</span>
-                  <span className="text-[red] font-bold text-[20px] mt-1.5 leading-none">
+                  <span className="text-[#313a47] font-semibold text-[14px]">累计曝光</span>
+                  <span className="text-[red] font-bold text-[22px] mt-1.5 leading-none">
                     {formatViewCount(trainer.viewCount)}
                   </span>
                 </div>
