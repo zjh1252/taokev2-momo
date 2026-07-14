@@ -124,10 +124,10 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           <Image
             src="/statics/images/trainer/hero-taoke-watermark.png"
             alt=""
-            width={393}
-            height={141}
+            width={560}
+            height={200}
             unoptimized
-            className="absolute left-[141px] top-[93px] w-[393px] h-auto opacity-[0.05] pointer-events-none select-none"
+            className="absolute right-0 top-[70px] w-[560px] h-auto opacity-[0.06] pointer-events-none select-none"
             aria-hidden
           />
 
