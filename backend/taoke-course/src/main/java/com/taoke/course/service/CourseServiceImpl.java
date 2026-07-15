@@ -417,7 +417,8 @@ public class CourseServiceImpl implements CourseService {
 
         Sort sort = resolvePublicSort(query.getSortBy());
         PageRequest pageable = PageRequest.of(page - 1, size, sort);
-        Page<Course> coursePage = isPlanStartTimeSort(query.getSortBy())
+        // 仅公开课「开课时间」走计划维排序；内训「发布时间」等走 publishedAt，避免无用相关子查询
+        Page<Course> coursePage = isPlanStartTimeSort(query.getSortBy(), query.getIsOpen())
                 ? findCoursesSortedByDisplayPlanStart(
                         spec,
                         "time_asc".equals(query.getSortBy()) ? Sort.Direction.ASC : Sort.Direction.DESC,
@@ -484,51 +485,72 @@ public class CourseServiceImpl implements CourseService {
         LocalDateTime fromTs = startFrom != null ? startFrom.atStartOfDay() : null;
         LocalDateTime toTs = startTo != null ? startTo.atTime(LocalTime.MAX) : null;
 
-        Specification<CoursePlan> spec = (root, cq, cb) -> {
-            List<Predicate> ps = new ArrayList<>();
-            if (provinceIds != null && !provinceIds.isEmpty()) {
-                ps.add(root.get("provinceId").in(provinceIds));
-            }
-            if (cityIds != null && !cityIds.isEmpty()) {
-                ps.add(root.get("cityId").in(cityIds));
-            }
-            if (fromTs != null) {
-                ps.add(cb.greaterThanOrEqualTo(root.get("startTime"), fromTs));
-            }
-            if (toTs != null) {
-                ps.add(cb.lessThanOrEqualTo(root.get("startTime"), toTs));
-            }
-            // ENROLLING：只看 startTime >= 当前时间的计划，命中即视为可报名
-            if ("ENROLLING".equalsIgnoreCase(enrollStatus)) {
-                ps.add(cb.greaterThanOrEqualTo(root.get("startTime"), now));
-            }
-            // ENDED：只看 startTime < 当前时间的计划；下方再排除掉那些"还存在未来计划"的课程
-            if ("ENDED".equalsIgnoreCase(enrollStatus)) {
-                ps.add(cb.lessThan(root.get("startTime"), now));
-            }
-            return ps.isEmpty() ? cb.conjunction() : cb.and(ps.toArray(Predicate[]::new));
-        };
+        // 仅投影 DISTINCT courseId，禁止 findAll 整行实体（城市频道无 ENROLLING 时历史计划量极大）
+        Set<Integer> matched = findDistinctCourseIdsByPlanFilter(
+                provinceIds, cityIds, fromTs, toTs, enrollStatus, now);
 
-        // 一次性拉满匹配计划，按 courseId 去重
-        List<CoursePlan> plans = coursePlanRepository.findAll(spec);
-        Set<Integer> matched = plans.stream()
-                .map(CoursePlan::getCourseId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-
-        // ENDED 还需排除"任意一条计划仍属未来"的课程
+        // ENDED 还需排除「任意一条计划仍属未来」的课程（同样只投影 ID）
         if ("ENDED".equalsIgnoreCase(enrollStatus) && !matched.isEmpty()) {
-            Specification<CoursePlan> futureSpec = (root, cq, cb) -> cb.and(
-                    root.get("courseId").in(matched),
-                    cb.greaterThanOrEqualTo(root.get("startTime"), now)
-            );
-            Set<Integer> withFuture = coursePlanRepository.findAll(futureSpec).stream()
-                    .map(CoursePlan::getCourseId)
-                    .collect(Collectors.toSet());
+            Set<Integer> withFuture = findDistinctCourseIdsByPlanFilter(
+                    null, null, now, null, null, now, matched);
             matched.removeAll(withFuture);
         }
 
         return matched;
+    }
+
+    /**
+     * 按开课计划条件投影去重 courseId（不加载 CoursePlan 实体）。
+     */
+    private Set<Integer> findDistinctCourseIdsByPlanFilter(
+            List<Integer> provinceIds,
+            List<Integer> cityIds,
+            LocalDateTime fromTs,
+            LocalDateTime toTs,
+            String enrollStatus,
+            LocalDateTime now) {
+        return findDistinctCourseIdsByPlanFilter(
+                provinceIds, cityIds, fromTs, toTs, enrollStatus, now, null);
+    }
+
+    private Set<Integer> findDistinctCourseIdsByPlanFilter(
+            List<Integer> provinceIds,
+            List<Integer> cityIds,
+            LocalDateTime fromTs,
+            LocalDateTime toTs,
+            String enrollStatus,
+            LocalDateTime now,
+            Set<Integer> restrictCourseIds) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Integer> cq = cb.createQuery(Integer.class);
+        Root<CoursePlan> root = cq.from(CoursePlan.class);
+        List<Predicate> ps = new ArrayList<>();
+        if (provinceIds != null && !provinceIds.isEmpty()) {
+            ps.add(root.get("provinceId").in(provinceIds));
+        }
+        if (cityIds != null && !cityIds.isEmpty()) {
+            ps.add(root.get("cityId").in(cityIds));
+        }
+        if (fromTs != null) {
+            ps.add(cb.greaterThanOrEqualTo(root.get("startTime"), fromTs));
+        }
+        if (toTs != null) {
+            ps.add(cb.lessThanOrEqualTo(root.get("startTime"), toTs));
+        }
+        if ("ENROLLING".equalsIgnoreCase(enrollStatus)) {
+            ps.add(cb.greaterThanOrEqualTo(root.get("startTime"), now));
+        }
+        if ("ENDED".equalsIgnoreCase(enrollStatus)) {
+            ps.add(cb.lessThan(root.get("startTime"), now));
+        }
+        if (restrictCourseIds != null && !restrictCourseIds.isEmpty()) {
+            ps.add(root.get("courseId").in(restrictCourseIds));
+        }
+        cq.select(root.get("courseId")).distinct(true);
+        if (!ps.isEmpty()) {
+            cq.where(ps.toArray(Predicate[]::new));
+        }
+        return new LinkedHashSet<>(entityManager.createQuery(cq).getResultList());
     }
 
     /**
@@ -599,13 +621,15 @@ public class CourseServiceImpl implements CourseService {
                 : regionService.getNamesByIds(regionIds);
 
         List<Integer> courseIds = courses.stream().map(Course::getId).toList();
-        Map<Integer, String> legacyLecturerMap = legacyTaokeCourseReader.findLecturerDisplayNames(courseIds);
-        Map<Integer, Integer> legacyLecturerUserIds = legacyTaokeCourseReader.findLecturerUserIds(courseIds);
-        Map<Integer, String> legacyKeywordsMap = legacyTaokeCourseReader.findKeywordsByCourseIds(courseIds);
-        Map<Integer, String> legacyCategoryMap = legacyTaokeCourseReader.findCourseCategoryNames(courseIds);
+        // 老库列表补全合并为 1 次主查询 + 1 次封面（不可用时进程内缓存跳过，避免串行打空库）
+        LegacyTaokeCourseReader.ListEnrichment legacy = legacyTaokeCourseReader.loadListEnrichment(courseIds);
+        Map<Integer, String> legacyLecturerMap = legacy.lecturerNames();
+        Map<Integer, Integer> legacyLecturerUserIds = legacy.lecturerUserIds();
+        Map<Integer, String> legacyKeywordsMap = legacy.keywords();
+        Map<Integer, String> legacyCategoryMap = legacy.categoryNames();
+        Map<Integer, Integer> legacyOrganizerUserIds = legacy.organizerUserIds();
+        Map<Integer, String> legacyOrganizerFromLecturer = legacy.organizerNamesFromLecturer();
         Map<Integer, String> legacyCoverMap = legacyTaokeCourseReader.findCoverUrlsByCourseIds(courseIds);
-        Map<Integer, Integer> legacyOrganizerUserIds = legacyTaokeCourseReader.findOrganizerUserIds(courseIds);
-        Map<Integer, String> legacyOrganizerFromLecturer = legacyTaokeCourseReader.findOrganizerNamesFromLecturer(courseIds);
 
         // trainer_id 缺失或无效时，按老库 lecturerid → user_trainers 补全主讲专家档案
         Set<Integer> legacyTrainerUserIds = new HashSet<>();
@@ -967,7 +991,13 @@ public class CourseServiceImpl implements CourseService {
         }
     }
 
-    private boolean isPlanStartTimeSort(String sortBy) {
+    /**
+     * 公开课列表「开课时间」才走计划维相关子查询；内训「发布时间」走 publishedAt。
+     */
+    private boolean isPlanStartTimeSort(String sortBy, Boolean isOpen) {
+        if (!Boolean.TRUE.equals(isOpen)) {
+            return false;
+        }
         return "time".equals(sortBy) || "time_asc".equals(sortBy);
     }
 
@@ -1052,6 +1082,9 @@ public class CourseServiceImpl implements CourseService {
             case "time" -> Sort.by(Sort.Direction.DESC, "publishedAt")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             case "time_asc" -> Sort.by(Sort.Direction.ASC, "publishedAt")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            // 仅按上架时间（城市频道「最新」等，避开计划维开课时间排序）
+            case "published" -> Sort.by(Sort.Direction.DESC, "publishedAt")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             case "default_asc" -> Sort.by(Sort.Direction.ASC, "sortOrder")
                     .and(Sort.by(Sort.Direction.ASC, "publishedAt"))

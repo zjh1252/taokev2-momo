@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getActiveCities, getCityByEnName } from '@/features/city/api/service';
@@ -29,9 +30,12 @@ interface Props {
 
 const emptyPage = { list: [], total: 0, page: 1, size: 10, totalPages: 0 };
 
+/** 同请求内 metadata + page 去重，避免串行打两次 /cities/{enName} */
+const getCityByEnNameCached = cache((enName: string) => getCityByEnName(enName));
+
 export async function generateMetadata({ params }: Props) {
   const { city } = await params;
-  const detail = await getCityByEnName(city).catch(() => null);
+  const detail = await getCityByEnNameCached(city).catch(() => null);
   if (!detail) return { title: '城市培训频道 - 淘课网' };
   return buildCityChannelMetadata(detail.cityName);
 }
@@ -41,7 +45,7 @@ export async function generateMetadata({ params }: Props) {
  */
 export default async function CityChannelPage({ params }: Props) {
   const { city } = await params;
-  const detail = await getCityByEnName(city).catch(() => null);
+  const detail = await getCityByEnNameCached(city).catch(() => null);
 
   if (!detail) {
     notFound();
@@ -60,6 +64,7 @@ export default async function CityChannelPage({ params }: Props) {
     trainers,
     allCities,
   ] = await Promise.all([
+    // 最近开课：按开课计划时间排（后端 isOpen=true + sortBy=time）
     getCourseList({
       page: 1,
       size: 10,
@@ -75,12 +80,13 @@ export default async function CityChannelPage({ params }: Props) {
       trainerCityId: cityId,
       sortBy: 'viewCount',
     }).catch(() => emptyPage),
+    // 「最新」合并用 publishedAt，勿走计划维相关子查询
     getCourseList({
       page: 1,
       size: 10,
       isOpen: true,
       cityIds,
-      sortBy: 'time',
+      sortBy: 'published',
     }).catch(() => emptyPage),
     getVideoList({ page: 1, size: 10, sortBy: 'time' }).catch(() => emptyPage),
     getInstitutionList({
