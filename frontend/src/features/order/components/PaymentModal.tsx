@@ -19,10 +19,11 @@ interface PaymentModalProps {
 type PayStep = 'confirm' | 'paying' | 'qrcode' | 'alipay' | 'success';
 
 const POLL_INTERVAL_MS = 2000;
-const isDev = process.env.NODE_ENV === 'development';
+/** 真实支付未接通前统一使用 MOCK，点击即成功 */
+const FORCE_MOCK_PAYMENT = true;
 
 /**
- * 支付弹窗：PC 端微信扫码 / 支付宝跳转，开发环境可切换 MOCK。
+ * 支付弹窗：PC 端微信扫码 / 支付宝跳转；当前阶段强制 MOCK 直接成功。
  */
 export function PaymentModal({
   orderNo,
@@ -33,7 +34,9 @@ export function PaymentModal({
 }: PaymentModalProps) {
   const [step, setStep] = useState<PayStep>('confirm');
   const [result, setResult] = useState<PayResultVO | null>(null);
-  const [method, setMethod] = useState<PaymentMethodOption>('WECHAT');
+  const [method, setMethod] = useState<PaymentMethodOption>(
+    FORCE_MOCK_PAYMENT ? 'MOCK' : 'WECHAT',
+  );
   const [pendingPayment, setPendingPayment] = useState<PayResultVO | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -78,9 +81,10 @@ export function PaymentModal({
   const handlePay = async () => {
     setStep('paying');
     try {
+      const payMethod = FORCE_MOCK_PAYMENT ? 'MOCK' : method;
       const res = await pay({
         orderNo,
-        method,
+        method: payMethod,
         clientType: 'PC',
       });
 
@@ -163,69 +167,57 @@ export function PaymentModal({
 
             <div className="mb-6">
               <p className="text-sm font-medium text-slate-700 mb-3">支付方式</p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <label
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                    method === 'WECHAT'
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="WECHAT"
-                    checked={method === 'WECHAT'}
-                    onChange={() => setMethod('WECHAT')}
-                    className="sr-only"
-                  />
-                  <span className="font-medium">微信支付</span>
-                </label>
-                <label
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                    method === 'ALIPAY'
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="ALIPAY"
-                    checked={method === 'ALIPAY'}
-                    onChange={() => setMethod('ALIPAY')}
-                    className="sr-only"
-                  />
-                  <span className="font-medium">支付宝支付</span>
-                </label>
-                {isDev && (
-                  <label
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                      method === 'MOCK'
-                        ? 'border-amber-500 bg-amber-50 text-amber-700'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="MOCK"
-                      checked={method === 'MOCK'}
-                      onChange={() => setMethod('MOCK')}
-                      className="sr-only"
-                    />
+              {FORCE_MOCK_PAYMENT ? (
+                <>
+                  <div className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-amber-500 bg-amber-50 text-amber-700">
                     <span className="font-medium">模拟支付</span>
-                  </label>
-                )}
-              </div>
-              {isDev && method === 'MOCK' ? (
-                <p className="text-xs text-amber-600 mt-3 text-center">
-                  开发环境模拟支付，点击即完成
-                </p>
+                  </div>
+                  <p className="text-xs text-amber-600 mt-3 text-center">
+                    当前为模拟支付，确认后直接成功
+                  </p>
+                </>
               ) : (
-                <p className="text-xs text-slate-400 mt-3 text-center">
-                  微信请扫码支付，支付宝将在新窗口打开
-                </p>
+                <>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <label
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                        method === 'WECHAT'
+                          ? 'border-primary bg-primary/5 text-primary'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="WECHAT"
+                        checked={method === 'WECHAT'}
+                        onChange={() => setMethod('WECHAT')}
+                        className="sr-only"
+                      />
+                      <span className="font-medium">微信支付</span>
+                    </label>
+                    <label
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                        method === 'ALIPAY'
+                          ? 'border-primary bg-primary/5 text-primary'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="ALIPAY"
+                        checked={method === 'ALIPAY'}
+                        onChange={() => setMethod('ALIPAY')}
+                        className="sr-only"
+                      />
+                      <span className="font-medium">支付宝支付</span>
+                    </label>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-3 text-center">
+                    微信请扫码支付，支付宝将在新窗口打开
+                  </p>
+                </>
               )}
             </div>
 

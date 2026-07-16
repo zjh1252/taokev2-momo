@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { InnerCourseListSection } from '@/features/course/components/inner/InnerCourseListSection';
 import { PxbInnerCourseListSection } from '@/features/course/components/open/pxb/PxbInnerCourseListSection';
@@ -12,6 +13,8 @@ import { getCachedCourseCategoryTree } from '@/lib/cached-categories';
 import { isPxbEmbedOrigin } from '@/lib/pxb-embed';
 import { innerCourseListMetadata, innerCourseListH1 } from '@/lib/seo';
 import { firstStringValue, normalizeNumberIds } from '@/lib/search-params';
+import type { ChannelCategoryNavItem } from '@/components/layout/channel-category-nav';
+import type { CategoryTreeNode } from '@/features/course/api/types';
 
 function embedSearchParams(
   sp: Record<string, string | string[] | undefined>,
@@ -58,6 +61,56 @@ export async function generateMetadata({ searchParams }: Props) {
   });
 }
 
+async function InnerCourseListBody({
+  validInstitutionId,
+  initialCategoryId,
+  initialCategoryName,
+  categoryNavPromise,
+  categoryTreePromise,
+}: {
+  validInstitutionId?: number;
+  initialCategoryId?: number;
+  initialCategoryName?: string;
+  categoryNavPromise: Promise<ChannelCategoryNavItem[]>;
+  categoryTreePromise: Promise<CategoryTreeNode[]>;
+}) {
+  const [initialData, categoryTree, institution] = await Promise.all([
+    getCourseList({
+      page: 1,
+      size: 15,
+      isOpen: false,
+      institutionId: validInstitutionId,
+      categoryIds: initialCategoryId ? [initialCategoryId] : undefined,
+    }).catch(() => ({
+      list: [],
+      total: 0,
+      page: 1,
+      size: 15,
+      totalPages: 0,
+    })),
+    categoryTreePromise,
+    validInstitutionId
+      ? getInstitutionDetail(validInstitutionId).catch(() => null)
+      : Promise.resolve(null),
+  ]);
+
+  return (
+    <InnerCourseListSection
+      initialData={initialData}
+      categoryTree={categoryTree}
+      initialInstitutionId={validInstitutionId}
+      initialInstitutionName={institution?.orgName}
+      initialCategoryId={initialCategoryId}
+      initialCategoryName={initialCategoryName}
+      bottomCategoryNav={{
+        title: '内训课课程分类',
+        countUnit: '门',
+        itemsPromise: categoryNavPromise,
+      }}
+    />
+  );
+}
+
 export default async function InnerCoursesPage({ searchParams }: Props) {
   const sp = await searchParams;
   const categoryTreePromise = getCachedCourseCategoryTree();
@@ -86,27 +139,7 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
 
   const categoryNavPromise = categoryTreePromise
     .then((tree) => buildCourseCategoryNavItems(tree, false, '/inhousecourse'))
-    .catch(() => []);
-
-  const [initialData, categoryTree, institution] = await Promise.all([
-    getCourseList({
-      page: 1,
-      size: 15,
-      isOpen: false,
-      institutionId: validInstitutionId,
-      categoryIds: initialCategoryId ? [initialCategoryId] : undefined,
-    }).catch(() => ({
-      list: [],
-      total: 0,
-      page: 1,
-      size: 15,
-      totalPages: 0,
-    })),
-    categoryTreePromise,
-    validInstitutionId
-      ? getInstitutionDetail(validInstitutionId).catch(() => null)
-      : Promise.resolve(null),
-  ]);
+    .catch(() => [] as ChannelCategoryNavItem[]);
 
   const listH1 = innerCourseListH1({
     category: initialCategoryName,
@@ -117,19 +150,17 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
       <PageBreadcrumb items={[{ label: '内训课' }]} />
       <h1 className="text-2xl font-bold text-slate-900">{listH1}</h1>
 
-      <InnerCourseListSection
-        initialData={initialData}
-        categoryTree={categoryTree}
-        initialInstitutionId={validInstitutionId}
-        initialInstitutionName={institution?.orgName}
-        initialCategoryId={initialCategoryId}
-        initialCategoryName={initialCategoryName}
-        bottomCategoryNav={{
-          title: '内训课课程分类',
-          countUnit: '门',
-          itemsPromise: categoryNavPromise,
-        }}
-      />
+      <Suspense
+        fallback={<div className="min-h-[480px] animate-pulse rounded-xl bg-slate-100" />}
+      >
+        <InnerCourseListBody
+          validInstitutionId={validInstitutionId}
+          initialCategoryId={initialCategoryId}
+          initialCategoryName={initialCategoryName}
+          categoryNavPromise={categoryNavPromise}
+          categoryTreePromise={categoryTreePromise}
+        />
+      </Suspense>
     </main>
   );
 }

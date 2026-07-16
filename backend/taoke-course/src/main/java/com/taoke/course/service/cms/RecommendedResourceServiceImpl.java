@@ -27,6 +27,8 @@ import com.taoke.course.enums.RecommendationSlot;
 
 import com.taoke.course.repository.RecommendedResourceRepository;
 
+import com.taoke.course.support.PublicRecommendationCache;
+
 import com.taoke.user.api.InstitutionService;
 
 import com.taoke.user.api.TrainerService;
@@ -91,17 +93,21 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
 
     private final InstitutionService institutionService;
 
+    private final PublicRecommendationCache publicRecommendationCache;
+
     public RecommendedResourceServiceImpl(
             RecommendedResourceRepository recommendedResourceRepository,
             RecommendationSlotConfigService recommendationSlotConfigService,
             RecommendedResourceEnricher enricher,
             TrainerService trainerService,
-            InstitutionService institutionService) {
+            InstitutionService institutionService,
+            PublicRecommendationCache publicRecommendationCache) {
         this.recommendedResourceRepository = recommendedResourceRepository;
         this.recommendationSlotConfigService = recommendationSlotConfigService;
         this.enricher = enricher;
         this.trainerService = trainerService;
         this.institutionService = institutionService;
+        this.publicRecommendationCache = publicRecommendationCache;
     }
 
     @Override
@@ -193,6 +199,7 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
         RecommendedResource saved = recommendedResourceRepository.save(entity);
 
         syncLegacyFlags(saved, true);
+        publicRecommendationCache.evictSlot(saved.getSlotCode());
 
 
 
@@ -283,6 +290,7 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
 
 
         recommendedResourceRepository.save(entity);
+        publicRecommendationCache.evictSlot(entity.getSlotCode());
 
         return listBySlot(entity.getSlotCode(), entity.getCategoryId()).stream()
 
@@ -309,6 +317,7 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
         recommendedResourceRepository.delete(entity);
 
         syncLegacyFlags(entity, false);
+        publicRecommendationCache.evictSlot(entity.getSlotCode());
 
     }
 
@@ -355,6 +364,7 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
             recommendedResourceRepository.save(row);
 
         }
+        publicRecommendationCache.evictSlot(request.getSlotCode());
 
     }
 

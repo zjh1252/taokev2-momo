@@ -17,6 +17,7 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.*;
 import com.taoke.user.mapper.TrainerMapper;
 import com.taoke.user.repository.*;
+import com.taoke.user.support.PublicTrainerListCache;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
@@ -70,6 +71,7 @@ public class TrainerServiceImpl implements TrainerService {
     private final OpsMaterialResolver opsMaterialResolver;
     private final RoleApplicationChangeLogService changeLogService;
     private final Optional<TrainerListItemEnricher> trainerListItemEnricher;
+    private final PublicTrainerListCache publicTrainerListCache;
 
     @Override
     public TrainerResponse getByUserId(Integer userId) {
@@ -89,6 +91,17 @@ public class TrainerServiceImpl implements TrainerService {
                                                             String keyword,
                                                             String sort,
                                                             Integer isTrusted) {
+        boolean cacheable = publicTrainerListCache.isCacheableDefault(
+                page, size, expertiseCategoryId, industryCategoryId, provinceId, cityId,
+                keyword, sort, isTrusted);
+        if (cacheable) {
+            PageResponse<TrainerListItemResponse> cached =
+                    publicTrainerListCache.getDefaultList(sort, page, size);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
         // 构建排序
         Sort jpaSort = switch (sort != null ? sort : "") {
             case "score" -> Sort.by(Sort.Direction.DESC, "score")
@@ -189,11 +202,20 @@ public class TrainerServiceImpl implements TrainerService {
 
         trainerListItemEnricher.ifPresent(enricher -> enricher.enrich(items));
 
-        return PageResponse.of(items, trainerPage.getTotalElements(), page, size);
+        PageResponse<TrainerListItemResponse> response =
+                PageResponse.of(items, trainerPage.getTotalElements(), page, size);
+        if (cacheable) {
+            publicTrainerListCache.putDefaultList(sort, page, size, response);
+        }
+        return response;
     }
 
     @Override
     public Map<Integer, Long> countPublicByExpertiseL1() {
+        Map<Integer, Long> cached = publicTrainerListCache.getExpertiseL1Counts();
+        if (cached != null) {
+            return cached;
+        }
         Map<Integer, Long> map = new HashMap<>();
         for (Object[] row : expertiseCategoryRepository.countPublishedTrainersByExpertiseL1()) {
             if (row[0] == null) {
@@ -202,6 +224,7 @@ public class TrainerServiceImpl implements TrainerService {
             long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
             map.put(((Number) row[0]).intValue(), count);
         }
+        publicTrainerListCache.putExpertiseL1Counts(map);
         return map;
     }
 
@@ -465,6 +488,7 @@ public class TrainerServiceImpl implements TrainerService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "专家不存在"));
         trainer.setIsRecommended(value != null && value == 1 ? 1 : 0);
         trainerRepository.save(trainer);
+        publicTrainerListCache.evictPublicListCaches();
     }
 
     @Override

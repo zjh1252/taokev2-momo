@@ -15,7 +15,7 @@ import {
   loadHomePublicCourses,
 } from '@/features/home/api/load-home-data';
 import { getCategoryTree } from '@/features/course/api/service';
-import { getActiveCities } from '@/features/city/api/service';
+import { getActiveCitiesCached } from '@/features/city/api/server';
 import { CityChannelCard } from '@/features/city/components/CityChannelCard';
 
 export async function generateMetadata() {
@@ -29,7 +29,7 @@ export default async function HomePage() {
   const [expertiseCategories, activeCities, banners, experts, cases, internalCourses, publicCourses] =
     await Promise.all([
       getCategoryTree('TRAINER_EXPERTISE').catch(() => []),
-      getActiveCities(18).catch(() => []),
+      getActiveCitiesCached(18).catch(() => []),
       loadHomeBanners(),
       loadHomeExperts(),
       loadHomeCases(),

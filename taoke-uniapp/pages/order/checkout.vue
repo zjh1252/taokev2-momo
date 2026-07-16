@@ -122,6 +122,7 @@ import {
   canUseMockPayment,
   checkoutPay,
   getDefaultPaymentMethod,
+  isForceMockPayment,
   resolveWechatOpenId,
 } from '@/utils/payment';
 import { callServicePhone } from '@/utils/consult';
@@ -138,6 +139,9 @@ const remainingMs = ref(0);
 let timer = null;
 
 const payMethods = computed(() => {
+  if (isForceMockPayment()) {
+    return [{ value: 'MOCK', label: '模拟支付（点击即成功）' }];
+  }
   const list = [
     { value: 'WECHAT', label: '微信支付' },
     { value: 'ALIPAY', label: '支付宝' },

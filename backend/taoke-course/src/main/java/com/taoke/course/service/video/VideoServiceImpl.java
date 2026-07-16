@@ -20,6 +20,7 @@ import com.taoke.course.repository.video.VideoChapterRepository;
 import com.taoke.course.repository.video.VideoEnrollmentRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.repository.video.VideoSeriesRepository;
+import com.taoke.course.support.PublicVideoListCache;
 import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
@@ -63,6 +64,7 @@ public class VideoServiceImpl implements VideoService {
     private final InteractionQueryService interactionQueryService;
     private final VideoPackageService videoPackageService;
     private final OpsMaterialResolver opsMaterialResolver;
+    private final PublicVideoListCache publicVideoListCache;
 
     // ==================== C 端发布者操作 ====================
 
@@ -152,6 +154,7 @@ public class VideoServiceImpl implements VideoService {
         }
         video.setStatus(VideoStatus.UNPUBLISHED.getValue());
         videoRepository.save(video);
+        publicVideoListCache.evictPublicListCaches();
     }
 
     @Transactional
@@ -277,6 +280,16 @@ public class VideoServiceImpl implements VideoService {
                                                      Integer institutionId,
                                                      Integer isFeatured,
                                                      int page, int size, Integer viewerUserId) {
+        boolean cacheable = publicVideoListCache.isCacheableDefault(
+                categoryId, subCategoryId, keyword, sortBy, institutionId, isFeatured,
+                page, size, viewerUserId);
+        if (cacheable) {
+            PageResponse<VideoListItemVO> cached = publicVideoListCache.getDefaultList(sortBy, page, size);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
         // 机构过滤：先反查机构 user_id，机构不存在直接返回空页
         final Integer institutionUserId;
         if (institutionId != null) {
@@ -342,11 +355,19 @@ public class VideoServiceImpl implements VideoService {
                 .toList();
         enrichPublisherNames(items);
         enrichUnlockedStatus(items, viewerUserId);
-        return PageResponse.of(items, videoPage.getTotalElements(), page, size);
+        PageResponse<VideoListItemVO> response = PageResponse.of(items, videoPage.getTotalElements(), page, size);
+        if (cacheable) {
+            publicVideoListCache.putDefaultList(sortBy, page, size, response);
+        }
+        return response;
     }
 
     @Override
     public Map<Integer, Long> countPublicByCategoryL1() {
+        Map<Integer, Long> cached = publicVideoListCache.getCategoryL1Counts();
+        if (cached != null) {
+            return cached;
+        }
         Map<Integer, Long> map = new HashMap<>();
         for (Object[] row : videoRepository.countPublishedByCategoryL1()) {
             if (row[0] == null) {
@@ -355,6 +376,7 @@ public class VideoServiceImpl implements VideoService {
             long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
             map.put(((Number) row[0]).intValue(), count);
         }
+        publicVideoListCache.putCategoryL1Counts(map);
         return map;
     }
 
@@ -634,6 +656,7 @@ public class VideoServiceImpl implements VideoService {
         video.setPublishedAt(LocalDateTime.now());
         video.setRejectReason("");
         videoRepository.save(video);
+        publicVideoListCache.evictPublicListCaches();
     }
 
     @Transactional
@@ -659,6 +682,7 @@ public class VideoServiceImpl implements VideoService {
         }
         video.setStatus(VideoStatus.UNPUBLISHED.getValue());
         videoRepository.save(video);
+        publicVideoListCache.evictPublicListCaches();
     }
 
     @Transactional
@@ -672,6 +696,7 @@ public class VideoServiceImpl implements VideoService {
         video.setStatus(VideoStatus.PUBLISHED.getValue());
         video.setPublishedAt(LocalDateTime.now());
         videoRepository.save(video);
+        publicVideoListCache.evictPublicListCaches();
     }
 
     @Override

@@ -13,6 +13,7 @@ import com.taoke.common.events.user.TrainerCertificationAuditedEvent;
 import com.taoke.user.api.NotificationService;
 import com.taoke.user.repository.InstitutionRepository;
 import com.taoke.user.repository.TrainerRepository;
+import com.taoke.user.support.PublicTrainerListCache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -35,6 +36,7 @@ public class UserEventListener {
     private final TrainerRepository trainerRepository;
     private final InstitutionRepository institutionRepository;
     private final NotificationService notificationService;
+    private final PublicTrainerListCache publicTrainerListCache;
 
     /**
      * 角色入驻审核通过 — 同步更新业务主表状态、发送站内信。
@@ -55,6 +57,7 @@ public class UserEventListener {
                     trainer.setTrainerCode(generateUniqueTrainerCode());
                 }
                 trainerRepository.save(trainer);
+                publicTrainerListCache.evictPublicListCaches();
                 log.info("专家档案状态已更新为审核通过: trainerId={}, trainerCode={}, userId={}",
                         trainer.getId(), trainer.getTrainerCode(), userId);
             });
@@ -106,6 +109,7 @@ public class UserEventListener {
                 trainer.setStatus(3);
                 trainer.setRejectReason(reason);
                 trainerRepository.save(trainer);
+                publicTrainerListCache.evictPublicListCaches();
                 log.info("专家档案状态已更新为驳回: trainerId={}, userId={}", trainer.getId(), userId);
             });
         } else if (BusinessRole.Code.INSTITUTION.equals(role)) {

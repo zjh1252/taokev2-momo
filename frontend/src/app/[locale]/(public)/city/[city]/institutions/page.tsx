@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { InstitutionListSection } from '@/features/institution/components/list/InstitutionListSection';
-import { getCityByEnName } from '@/features/city/api/service';
+import { getCityByEnNameCached } from '@/features/city/api/server';
 import { cityChannelPath } from '@/features/city/lib/paths';
 import { resolveCityFilterId } from '@/features/city/lib/filter-city-id';
 import { getInstitutionList } from '@/features/institution/api/service';
@@ -16,19 +16,20 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { city } = await params;
-  const detail = await getCityByEnName(city).catch(() => null);
+  const detail = await getCityByEnNameCached(city).catch(() => null);
   if (!detail) return { title: '城市培训机构 - 淘课网' };
   return institutionListMetadata({ city: detail.cityName });
 }
 
 export default async function CityInstitutionListPage({ params }: Props) {
   const { city } = await params;
-  const detail = await getCityByEnName(city).catch(() => null);
+  const detail = await getCityByEnNameCached(city).catch(() => null);
   if (!detail) notFound();
 
   const cityId = resolveCityFilterId(detail);
 
-  const [initialData, goldPool, expertiseTree] = await Promise.all([
+  // 一次列表请求同时供首屏分页与金牌推荐回退池，避免同城再打 size=50
+  const [initialData, expertiseTree] = await Promise.all([
     getInstitutionList({
       page: 1,
       size: 15,
@@ -41,17 +42,10 @@ export default async function CityInstitutionListPage({ params }: Props) {
       size: 15,
       totalPages: 0,
     })),
-    getInstitutionList({ page: 1, size: 50, cityId }).catch(() => ({
-      list: [],
-      total: 0,
-      page: 1,
-      size: 50,
-      totalPages: 0,
-    })),
     getCachedTrainerExpertiseTree(),
   ]);
 
-  const initialGoldRecommends = await loadGoldInstitutions(goldPool.list, 4);
+  const initialGoldRecommends = await loadGoldInstitutions(initialData.list, 4);
   const categoryItems = buildInstitutionCategoryLinks(expertiseTree, '/company');
 
   return (

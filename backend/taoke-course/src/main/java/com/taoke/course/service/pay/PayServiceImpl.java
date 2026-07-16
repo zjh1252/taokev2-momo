@@ -4,6 +4,7 @@ import com.taoke.common.eventbus.EventPublisher;
 import com.taoke.common.events.video.VideoPurchasedEvent;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.course.config.PaymentProperties;
 import com.taoke.course.dto.pay.PayRequest;
 import com.taoke.course.dto.pay.PayResultVO;
 import com.taoke.course.dto.pay.PaymentPrepayResult;
@@ -71,6 +72,7 @@ public class PayServiceImpl {
     private final EventPublisher eventPublisher;
     private final UserService userService;
     private final PaymentChannelRegistry paymentChannelRegistry;
+    private final PaymentProperties paymentProperties;
 
     private static final DateTimeFormatter PAY_NO_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final Random RANDOM = new Random();
@@ -96,6 +98,12 @@ public class PayServiceImpl {
         }
 
         PaymentMethod method = PaymentMethod.valueOf(request.getMethod());
+        // 真实支付未启用时统一走 MOCK，直接成功（当前阶段联调）
+        if (!paymentProperties.isEnabled() && method != PaymentMethod.MOCK) {
+            log.info("真实支付未启用，降级为 MOCK: orderNo={}, requested={}",
+                    order.getOrderNo(), method);
+            method = PaymentMethod.MOCK;
+        }
         PaymentClientType clientType = PaymentClientType.from(request.getClientType());
 
         Payment payment = new Payment();

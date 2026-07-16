@@ -17,10 +17,12 @@ import com.taoke.course.entity.CoursePlan;
 import com.taoke.course.enums.CourseStatus;
 import com.taoke.course.enums.CourseType;
 import com.taoke.course.mapper.CourseMapper;
+import com.taoke.course.repository.CourseListCoreProjection;
 import com.taoke.course.repository.CoursePlanRepository;
 import com.taoke.course.repository.CourseRepository;
 import com.taoke.course.support.LegacyTaokeCourseReader;
 import com.taoke.course.support.OpenCourseExpireSupport;
+import com.taoke.course.support.PublicCourseListCache;
 import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
@@ -73,6 +75,7 @@ public class CourseServiceImpl implements CourseService {
     private final LegacyTaokeCourseReader legacyTaokeCourseReader;
     private final BindingAuthority bindingAuthority;
     private final OpsMaterialResolver opsMaterialResolver;
+    private final PublicCourseListCache publicCourseListCache;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -170,6 +173,7 @@ public class CourseServiceImpl implements CourseService {
         }
         course.setStatus(CourseStatus.UNPUBLISHED.getValue());
         courseRepository.save(course);
+        publicCourseListCache.evictPublicListCaches();
     }
 
     @Transactional
@@ -282,6 +286,14 @@ public class CourseServiceImpl implements CourseService {
         final int page = Math.max(1, query.getPage());
         final int size = query.getSize() <= 0 ? 15 : query.getSize();
 
+        boolean cacheableDefault = publicCourseListCache.isCacheableDefault(query);
+        if (cacheableDefault) {
+            PageResponse<CourseListItemVO> cached = publicCourseListCache.getDefaultList(query);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
         // 机构筛选：先按 institutionId 反查 userId，作为 publisherType=INSTITUTION 的 publisherId
         final Integer institutionUserId;
         if (query.getInstitutionId() != null) {
@@ -350,11 +362,16 @@ public class CourseServiceImpl implements CourseService {
 
         final Set<Integer> trainerIdsFinal = trainerMatchedIds;
         Set<Integer> expandedCategoryIds = resolveExpandedCourseCategoryIds(query);
+        // 纯内训列表无需公开课到期隐藏谓词（OR 条件干扰优化器）
+        final boolean internalOnly = Boolean.FALSE.equals(query.getIsOpen())
+                || CourseType.INTERNAL.name().equals(query.getType());
 
         Specification<Course> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), CourseStatus.PUBLISHED.getValue()));
-            predicates.add(OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now()));
+            if (!internalOnly) {
+                predicates.add(OpenCourseExpireSupport.publicVisiblePredicate(root, cb, LocalDate.now()));
+            }
 
             if (!expandedCategoryIds.isEmpty()) {
                 predicates.add(cb.or(
@@ -417,27 +434,54 @@ public class CourseServiceImpl implements CourseService {
 
         Sort sort = resolvePublicSort(query.getSortBy());
         PageRequest pageable = PageRequest.of(page - 1, size, sort);
-        // 仅公开课「开课时间」走计划维排序；内训「发布时间」等走 publishedAt，避免无用相关子查询
-        Page<Course> coursePage = isPlanStartTimeSort(query.getSortBy(), query.getIsOpen())
-                ? findCoursesSortedByDisplayPlanStart(
-                        spec,
-                        "time_asc".equals(query.getSortBy()) ? Sort.Direction.ASC : Sort.Direction.DESC,
-                        PageRequest.of(page - 1, size))
-                : courseRepository.findAll(spec, pageable);
-
-        if (coursePage.isEmpty()) {
-            return PageResponse.of(List.of(), 0, page, size);
+        List<Course> courses;
+        long total;
+        // 仅公开课「开课时间」走计划维排序；其余走三段式（ID 分页 → 轻量回表 → 装配）
+        if (isPlanStartTimeSort(query.getSortBy(), query.getIsOpen())) {
+            Page<Course> coursePage = findCoursesSortedByDisplayPlanStart(
+                    spec,
+                    "time_asc".equals(query.getSortBy()) ? Sort.Direction.ASC : Sort.Direction.DESC,
+                    PageRequest.of(page - 1, size));
+            if (coursePage.isEmpty()) {
+                return PageResponse.of(List.of(), 0, page, size);
+            }
+            courses = coursePage.getContent();
+            total = coursePage.getTotalElements();
+        } else {
+            total = countCoursesBySpec(spec);
+            if (total == 0) {
+                return PageResponse.of(List.of(), 0, page, size);
+            }
+            List<Integer> pageIds = findCourseIdsBySpec(spec, pageable);
+            if (pageIds.isEmpty()) {
+                return PageResponse.of(List.of(), total, page, size);
+            }
+            Map<Integer, Course> byId = courseRepository.findListCoreByIdIn(pageIds).stream()
+                    .map(this::toCourseShell)
+                    .collect(Collectors.toMap(Course::getId, c -> c, (a, b) -> a));
+            courses = pageIds.stream().map(byId::get).filter(Objects::nonNull).toList();
         }
 
         List<CourseListItemVO> items = assembleListItems(
-                coursePage.getContent(),
+                courses,
                 hasProvince ? query.getProvinceIds() : null,
                 hasCity ? query.getCityIds() : null);
-        return PageResponse.of(items, coursePage.getTotalElements(), page, size);
+        PageResponse<CourseListItemVO> response = PageResponse.of(items, total, page, size);
+        if (cacheableDefault) {
+            publicCourseListCache.putDefaultList(query, response);
+        }
+        return response;
     }
 
     @Override
     public Map<Integer, Long> countPublicByCategoryL1(boolean isOpen, List<Integer> cityIds) {
+        boolean cacheable = cityIds == null || cityIds.isEmpty();
+        if (cacheable) {
+            Map<Integer, Long> cached = publicCourseListCache.getCategoryL1Counts(isOpen);
+            if (cached != null) {
+                return cached;
+            }
+        }
         List<Object[]> rows;
         if (isOpen && cityIds != null && !cityIds.isEmpty()) {
             rows = courseRepository.countPublishedOpenByCategoryL1AndCityIds(cityIds);
@@ -451,6 +495,9 @@ public class CourseServiceImpl implements CourseService {
             }
             long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
             map.put(((Number) row[0]).intValue(), count);
+        }
+        if (cacheable) {
+            publicCourseListCache.putCategoryL1Counts(isOpen, map);
         }
         return map;
     }
@@ -1001,6 +1048,74 @@ public class CourseServiceImpl implements CourseService {
         return "time".equals(sortBy) || "time_asc".equals(sortBy);
     }
 
+    /** 三段式第 1 段：仅投影主键分页 */
+    private List<Integer> findCourseIdsBySpec(Specification<Course> spec, Pageable pageable) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Integer> cq = cb.createQuery(Integer.class);
+        Root<Course> root = cq.from(Course.class);
+        Predicate predicate = spec.toPredicate(root, cq, cb);
+        if (predicate != null) {
+            cq.where(predicate);
+        }
+        cq.select(root.get("id"));
+        List<jakarta.persistence.criteria.Order> orders = new ArrayList<>();
+        for (Sort.Order order : pageable.getSort()) {
+            orders.add(order.isAscending()
+                    ? cb.asc(root.get(order.getProperty()))
+                    : cb.desc(root.get(order.getProperty())));
+        }
+        if (!orders.isEmpty()) {
+            cq.orderBy(orders);
+        }
+        return entityManager.createQuery(cq)
+                .setFirstResult((int) pageable.getOffset())
+                .setMaxResults(pageable.getPageSize())
+                .getResultList();
+    }
+
+    private long countCoursesBySpec(Specification<Course> spec) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<Course> root = cq.from(Course.class);
+        Predicate predicate = spec.toPredicate(root, cq, cb);
+        if (predicate != null) {
+            cq.where(predicate);
+        }
+        cq.select(cb.count(root));
+        return entityManager.createQuery(cq).getSingleResult();
+    }
+
+    /** 投影 → Course 壳对象，供既有 assembleListItems 复用（不含大字段） */
+    private Course toCourseShell(CourseListCoreProjection p) {
+        Course c = new Course();
+        c.setId(p.getId());
+        c.setTitle(p.getTitle());
+        c.setType(p.getType());
+        c.setCoverUrl(p.getCoverUrl());
+        c.setCategoryId(p.getCategoryId());
+        c.setSubCategoryId(p.getSubCategoryId());
+        c.setDurationDays(p.getDurationDays());
+        c.setTotalHours(p.getTotalHours());
+        c.setPrice(p.getPrice());
+        c.setOriginalPrice(p.getOriginalPrice());
+        c.setIsFeatured(p.getIsFeatured());
+        c.setIsFree(p.getIsFree());
+        c.setStatus(p.getStatus());
+        c.setViewCount(p.getViewCount());
+        c.setEnrollmentCount(p.getEnrollmentCount());
+        c.setScore(p.getScore());
+        c.setPublisherType(p.getPublisherType());
+        c.setPublisherId(p.getPublisherId());
+        c.setTrainerId(p.getTrainerId());
+        c.setKeywords(p.getKeywords());
+        c.setPublishedAt(p.getPublishedAt());
+        c.setCreatedAt(p.getCreatedAt());
+        c.setCourseOpenEndDate(p.getCourseOpenEndDate());
+        c.setIsExpireHide(p.getIsExpireHide());
+        c.setSortOrder(p.getSortOrder());
+        return c;
+    }
+
     /**
      * 按列表展示用的「最近一场开课时间」排序，逻辑与 {@link #pickDisplayPlansForOpenCourses} 一致：
      * 优先取 startTime &gt;= now 的最早场次，否则取历史最近一场。
@@ -1324,6 +1439,7 @@ public class CourseServiceImpl implements CourseService {
         course.setRejectReason("");
         courseRepository.save(course);
         syncOpenEndDateFromPlans(courseId, course.getType());
+        publicCourseListCache.evictPublicListCaches();
     }
 
     @Transactional
@@ -1349,6 +1465,7 @@ public class CourseServiceImpl implements CourseService {
         }
         course.setStatus(CourseStatus.UNPUBLISHED.getValue());
         courseRepository.save(course);
+        publicCourseListCache.evictPublicListCaches();
     }
 
     @Transactional
