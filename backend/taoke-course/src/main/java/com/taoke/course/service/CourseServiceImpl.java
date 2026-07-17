@@ -150,6 +150,9 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public void submitForReview(Integer courseId, Integer publisherId) {
         Course course = getOwnedCourse(courseId, publisherId);
+        if (course.getCoverUrl() == null || course.getCoverUrl().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传课程封面");
+        }
         int status = course.getStatus();
         if (status != CourseStatus.DRAFT.getValue() && status != CourseStatus.REJECTED.getValue()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的课程可提交审核");

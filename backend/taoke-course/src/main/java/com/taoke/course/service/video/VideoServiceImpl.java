@@ -135,6 +135,9 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public void submitForReview(Integer videoId, Integer publisherId) {
         Video video = getOwnedVideo(videoId, publisherId);
+        if (video.getCoverUrl() == null || video.getCoverUrl().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传课程封面");
+        }
         int status = video.getStatus();
         if (status != VideoStatus.DRAFT.getValue() && status != VideoStatus.REJECTED.getValue()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的录播课可提交审核");
