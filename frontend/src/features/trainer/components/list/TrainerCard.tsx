@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Star, MapPin } from 'lucide-react';
 import { SafeImage } from '@/components/safe-image';
@@ -28,8 +29,8 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
       onClick={onCardClick}
       className="bg-white rounded-xl border border-slate-200 p-5 flex gap-5 hover:shadow-md transition-all group"
     >
-      {/* 头像 */}
-      <div className="shrink-0 relative">
+      {/* 头像：self-start 避免被卡片内容撑高；relative 盒与头像同尺寸，徽章才紧贴像框 */}
+      <div className="shrink-0 self-start w-[100px] h-[120px] relative">
         <SafeImage
           src={trainer.avatar}
           alt={displayName}
@@ -37,12 +38,17 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
           height={120}
           apiResolved
           priority={priorityImage}
-          className="w-[100px] h-[120px] object-cover rounded-sm border-2 border-white shadow-sm"
+          className="w-full h-full object-cover rounded-sm border-2 border-white shadow-sm"
         />
         {trainer.isTrusted === 1 && (
-          <span className="absolute -bottom-1 -right-2 text-[10px] text-primary border border-primary/60 px-1.5 py-0.5 bg-white/95 font-bold tracking-wider -rotate-12 rounded-sm" style={{ borderStyle: 'dashed' }}>
-            信得过
-          </span>
+          <Image
+            src="/statics/images/icons/trusted-xin.png"
+            alt="信得过"
+            width={36}
+            height={36}
+            unoptimized
+            className="absolute -bottom-3.5 -right-2 w-9 h-9 object-contain drop-shadow-md pointer-events-none select-none"
+          />
         )}
       </div>
 

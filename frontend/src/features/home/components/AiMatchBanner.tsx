@@ -25,33 +25,37 @@ export function AiMatchBanner() {
   };
 
   return (
-    <section className="bg-primary rounded-lg p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-red-500/10">
-      <div className="flex items-center gap-6">
-        <div className="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
-          <Brain className="size-10 text-white" />
+    <section className="rounded-none bg-gradient-to-r from-primary via-primary/95 to-primary/45 px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-red-500/10">
+      <div className="flex items-center gap-5 min-w-0">
+        <div className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-white/20">
+          <Brain className="size-8 text-white" />
         </div>
-        <div>
-          <h2 className="text-white text-xl font-bold">{t('aiMatch.title')}</h2>
-          <p className="text-white/80 text-sm">{t('aiMatch.description')}</p>
+        <div className="flex min-w-0 flex-col justify-center gap-1 text-left">
+          <h2 className="text-xl font-bold leading-tight text-white">
+            {t('aiMatch.title')}
+          </h2>
+          <p className="text-sm leading-tight text-white/80">
+            {t('aiMatch.description')}
+          </p>
         </div>
       </div>
 
-      <div className="flex gap-4 w-full md:w-auto">
+      <div className="flex h-14 w-full shrink-0 items-center gap-3 md:w-auto">
         <button
           type="button"
           onClick={() => setChatOpen(true)}
-          className="flex-1 md:flex-none bg-white text-primary font-bold px-8 py-4 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-lg text-sm cursor-pointer"
+          className="flex h-14 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-bold text-primary shadow-md transition-all hover:bg-slate-50 md:flex-none"
         >
-          <Headphones className="size-5" />
-          {t('aiMatch.ctaService')}
+          <Headphones className="size-5 shrink-0" />
+          <span className="leading-none">{t('aiMatch.ctaService')}</span>
         </button>
         <button
           type="button"
           onClick={gotoPublishDemand}
-          className="flex-1 md:flex-none bg-primary/80 text-white font-bold px-8 py-4 rounded-lg flex items-center justify-center gap-2 border border-white/20 hover:bg-primary/70 transition-all text-sm cursor-pointer"
+          className="flex h-14 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-8 text-sm font-bold text-white shadow-md shadow-black/25 transition-all hover:bg-primary/90 md:flex-none"
         >
-          <Sparkles className="size-5" />
-          {t('aiMatch.ctaPublish')}
+          <Sparkles className="size-5 shrink-0" />
+          <span className="leading-none">{t('aiMatch.ctaPublish')}</span>
         </button>
       </div>
 
