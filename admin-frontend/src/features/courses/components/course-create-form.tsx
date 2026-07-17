@@ -18,7 +18,8 @@ import { COURSE_TYPE_OPTIONS } from '../api/types';
 
 const formSchema = z.object({
   title: z.string().min(1, '请输入课程名称'),
-  type: z.enum(['INTERNAL', 'OPEN_OFFLINE', 'OPEN_ONLINE'])
+  type: z.enum(['INTERNAL', 'OPEN_OFFLINE', 'OPEN_ONLINE']),
+  coverUrl: z.string().min(1, '请上传课程封面')
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -32,7 +33,8 @@ export function CourseCreateForm() {
   const form = useAppForm({
     defaultValues: {
       title: '',
-      type: 'OPEN_OFFLINE' as FormValues['type']
+      type: 'OPEN_OFFLINE' as FormValues['type'],
+      coverUrl: ''
     },
     validators: {
       onSubmit: formSchema
@@ -53,6 +55,12 @@ export function CourseCreateForm() {
         <form.AppForm>
           <form.Form className='space-y-4 max-w-xl'>
             <FormTextField name='title' label='课程名称' required />
+            <FormTextField
+              name='coverUrl'
+              label='封面图 URL'
+              required
+              placeholder='粘贴封面图地址'
+            />
             <form.AppField name='type'>
               {(field) => (
                 <div className='space-y-2'>
