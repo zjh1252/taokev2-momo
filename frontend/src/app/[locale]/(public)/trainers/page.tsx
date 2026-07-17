@@ -103,33 +103,36 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
   const slugParams = parseSlug(sp.slug || '');
 
   const categoryNavPromise = expertiseTreePromise.then(buildTrainerCategoryNavItems).catch(() => []);
+  const listPage = slugParams.page ?? page;
   const needsTreeForFilters = Boolean(slugParams.field || slugParams.industry);
 
   const listPromise = needsTreeForFilters
     ? Promise.all([expertiseTreePromise, industryTreePromise]).then(
-        ([expertiseTree, industryTree]) =>
-          getTrainerList(
-            slugParamsToTrainerListParams(slugParams, expertiseTree, industryTree, {
-              page,
-              size: 16,
-              sort: 'default',
-            }),
-          ).catch(() => ({
+        ([expertiseTree, industryTree]) => {
+          const params = slugParamsToTrainerListParams(slugParams, expertiseTree, industryTree, {
+            page: listPage,
+            size: 16,
+            sort: 'default',
+          });
+          if (slugParams.region) params.region = slugParams.region;
+          return getTrainerList(params).catch(() => ({
             list: [],
             total: 0,
-            page,
+            page: listPage,
             size: 16,
             totalPages: 0,
-          })),
+          }));
+        },
       )
     : getTrainerList({
-        page,
+        page: listPage,
         size: 16,
         sort: 'default',
+        ...(slugParams.region ? { region: slugParams.region } : {}),
       }).catch(() => ({
         list: [],
         total: 0,
-        page,
+        page: listPage,
         size: 16,
         totalPages: 0,
       }));
