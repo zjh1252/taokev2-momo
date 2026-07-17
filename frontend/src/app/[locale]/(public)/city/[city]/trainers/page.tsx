@@ -75,7 +75,7 @@ export default async function CityTrainerListPage({
     await Promise.all([
       expertiseTreePromise,
       getCachedTrainerIndustryTree(),
-      loadTrainerListRecommended(9),
+      loadTrainerListRecommended(12),
       loadTrainerPageCases(10),
       listPromise,
     ]);
