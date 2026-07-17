@@ -36,6 +36,7 @@ public interface TrainerService {
      * @param keyword              搜索关键词（可选，匹配 name / title / expertiseTags）
      * @param sort                 排序方式：default / score / newly_joined
      * @param isTrusted            质量承诺过滤：1=仅显示信得过专家，其他/null 不限
+     * @param includeCourse        是否回填课程数量与标题
      */
     PageResponse<TrainerListItemResponse> listPublic(int page, int size,
                                                      Integer expertiseCategoryId,
@@ -44,7 +45,8 @@ public interface TrainerService {
                                                      Integer cityId,
                                                      String keyword,
                                                      String sort,
-                                                     Integer isTrusted);
+                                                     Integer isTrusted,
+                                                     boolean includeCourse);
 
     /**
      * 已发布专家按擅长领域一级分类批量计数（含二级展开，与 listPublic 筛选口径一致）。

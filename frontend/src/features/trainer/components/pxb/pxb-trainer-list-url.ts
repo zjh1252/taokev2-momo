@@ -1,5 +1,5 @@
 import { appendPxbOrigin } from '@/lib/pxb-embed';
-import type { TrainerListParams } from '../../api/service';
+import type { TrainerListParams } from '../../types';
 import { mapTrainerSortByToApi } from './pxb-trainer-sort';
 
 export type PxbTrainerQuality = 'all' | 'premium';
@@ -73,5 +73,6 @@ export function pxbTrainerListParams(state: PxbTrainerListUrlState): TrainerList
     keyword: state.keyword || undefined,
     sort: mapTrainerSortByToApi(state.sortBy),
     isTrusted: state.quality === 'premium' ? 1 : undefined,
+    includeCourse: true,
   };
 }

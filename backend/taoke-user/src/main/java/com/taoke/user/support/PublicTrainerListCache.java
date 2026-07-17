@@ -60,8 +60,9 @@ public class PublicTrainerListCache {
                 && (isTrusted == null || isTrusted == 0);
     }
 
-    public PageResponse<TrainerListItemResponse> getDefaultList(String sort, int page, int size) {
-        String key = listKey(normalizeSort(sort), page, size);
+    public PageResponse<TrainerListItemResponse> getDefaultList(
+            String sort, int page, int size, boolean includeCourse) {
+        String key = listKey(normalizeSort(sort), page, size, includeCourse);
         try {
             String json = stringRedisTemplate.opsForValue().get(key);
             if (json == null || json.isBlank()) {
@@ -74,11 +75,12 @@ public class PublicTrainerListCache {
         }
     }
 
-    public void putDefaultList(String sort, int page, int size, PageResponse<TrainerListItemResponse> body) {
+    public void putDefaultList(String sort, int page, int size, boolean includeCourse,
+                               PageResponse<TrainerListItemResponse> body) {
         if (body == null) {
             return;
         }
-        String key = listKey(normalizeSort(sort), page, size);
+        String key = listKey(normalizeSort(sort), page, size, includeCourse);
         try {
             stringRedisTemplate.opsForValue().set(
                     key, objectMapper.writeValueAsString(body), jitter(LIST_TTL_BASE));
@@ -118,7 +120,8 @@ public class PublicTrainerListCache {
             keys.add(COUNT_KEY);
             for (int size : CACHEABLE_SIZES) {
                 for (String sort : CACHEABLE_SORTS) {
-                    keys.add(listKey(normalizeSort(sort), 1, size));
+                    keys.add(listKey(normalizeSort(sort), 1, size, false));
+                    keys.add(listKey(normalizeSort(sort), 1, size, true));
                 }
             }
             stringRedisTemplate.delete(keys);
@@ -127,9 +130,10 @@ public class PublicTrainerListCache {
         }
     }
 
-    private static String listKey(String sort, int page, int size) {
+    private static String listKey(String sort, int page, int size, boolean includeCourse) {
         String s = sort.isEmpty() ? "default" : sort;
-        return LIST_KEY_PREFIX + s + ":p" + page + ":s" + size;
+        return LIST_KEY_PREFIX + s + ":p" + page + ":s" + size
+                + ":c" + (includeCourse ? "1" : "0");
     }
 
     private static String normalizeSort(String sort) {

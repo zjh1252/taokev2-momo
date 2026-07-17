@@ -1,5 +1,4 @@
-import type { TrainerListParams } from '../api/service';
-import type { CategoryTreeNode } from '../types';
+import type { CategoryTreeNode, TrainerListParams } from '../types';
 import type { TrainerSlugParams } from './url';
 
 function findCategoryId(

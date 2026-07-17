@@ -73,9 +73,11 @@ public class TrainerController {
             @RequestParam(required = false) Integer cityId,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "default") String sort,
-            @RequestParam(required = false) Integer isTrusted) {
+            @RequestParam(required = false) Integer isTrusted,
+            @RequestParam(defaultValue = "false") boolean includeCourse) {
         return ApiResponse.ok(trainerService.listPublic(page, size,
-                expertiseCategoryId, industryCategoryId, provinceId, cityId, keyword, sort, isTrusted));
+                expertiseCategoryId, industryCategoryId, provinceId, cityId, keyword, sort, isTrusted,
+                includeCourse));
     }
 
     @Public

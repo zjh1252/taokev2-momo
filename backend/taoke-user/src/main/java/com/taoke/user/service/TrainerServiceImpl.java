@@ -90,13 +90,14 @@ public class TrainerServiceImpl implements TrainerService {
                                                             Integer cityId,
                                                             String keyword,
                                                             String sort,
-                                                            Integer isTrusted) {
+                                                            Integer isTrusted,
+                                                            boolean includeCourse) {
         boolean cacheable = publicTrainerListCache.isCacheableDefault(
                 page, size, expertiseCategoryId, industryCategoryId, provinceId, cityId,
                 keyword, sort, isTrusted);
         if (cacheable) {
             PageResponse<TrainerListItemResponse> cached =
-                    publicTrainerListCache.getDefaultList(sort, page, size);
+                    publicTrainerListCache.getDefaultList(sort, page, size, includeCourse);
             if (cached != null) {
                 return cached;
             }
@@ -200,12 +201,14 @@ public class TrainerServiceImpl implements TrainerService {
             return item;
         }).toList();
 
-        trainerListItemEnricher.ifPresent(enricher -> enricher.enrich(items));
+        if (includeCourse) {
+            trainerListItemEnricher.ifPresent(enricher -> enricher.enrich(items));
+        }
 
         PageResponse<TrainerListItemResponse> response =
                 PageResponse.of(items, trainerPage.getTotalElements(), page, size);
         if (cacheable) {
-            publicTrainerListCache.putDefaultList(sort, page, size, response);
+            publicTrainerListCache.putDefaultList(sort, page, size, includeCourse, response);
         }
         return response;
     }

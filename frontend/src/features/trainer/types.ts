@@ -16,6 +16,28 @@ export interface CategoryTreeNode {
   children?: CategoryTreeNode[];
 }
 
+/** 专家公开列表查询参数 */
+export interface TrainerListParams {
+  page?: number;
+  size?: number;
+  expertiseCategoryId?: number;
+  industryCategoryId?: number;
+  provinceId?: number;
+  cityId?: number;
+  keyword?: string;
+  sort?: string;
+  /** 质量承诺：1=仅显示信得过专家 */
+  isTrusted?: number;
+  /** 是否回填课程数量与标题 */
+  includeCourse?: boolean;
+  /** 擅长领域名称（多选用下划线连接，如 "经营战略_战略规划"） */
+  field?: string;
+  /** 擅长行业名称（多选用下划线连接） */
+  industry?: string;
+  /** 长驻省市名称 */
+  region?: string;
+}
+
 export interface TrainerEducation {
   id?: number;
   schoolName: string;
