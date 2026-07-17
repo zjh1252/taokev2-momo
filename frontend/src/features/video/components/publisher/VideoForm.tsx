@@ -269,11 +269,15 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   /**
    * 组装并提交表单。
    *
-   * @param draft true=保存草稿（仅校验标题），false=提交发布（完整校验）
+   * @param draft true=保存草稿（校验标题与封面），false=提交发布（完整校验）
    */
   const submitForm = async (draft: boolean) => {
     if (!title.trim()) {
       toast.warning('请输入视频标题');
+      return;
+    }
+    if (!coverUrl.trim()) {
+      toast.warning('请上传课程封面');
       return;
     }
     if (!draft) {
@@ -577,7 +581,9 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
 
       {/* 封面图片 */}
       <div className="flex items-start gap-4">
-        <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">封面图片</label>
+        <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">
+          封面图片 <span className="text-red-500">*</span>
+        </label>
         <div className="flex-1">
           {coverUrl ? (
             <div className="relative inline-block w-[200px] h-[150px]">

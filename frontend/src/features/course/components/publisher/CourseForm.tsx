@@ -279,7 +279,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
   /**
    * 组装并提交表单。
    *
-   * @param draft true=保存草稿（仅校验标题），false=提交审核（完整校验）
+   * @param draft true=保存草稿（校验标题与封面），false=提交审核（完整校验）
    */
   const submitForm = async (draft: boolean) => {
     const fail = (message: string, anchor?: keyof typeof FIELD_ANCHORS) => {
@@ -291,13 +291,13 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
       fail('请填写课程标题', 'title');
       return;
     }
+    if (!coverUrl.trim()) {
+      fail('请上传课程封面', 'cover');
+      return;
+    }
     if (!draft) {
       if (!categoryId) {
         fail('请选择课程分类', 'category');
-        return;
-      }
-      if (!coverUrl.trim()) {
-        fail('请上传课程封面', 'cover');
         return;
       }
       if (!durationDays || durationDays < 1) {
