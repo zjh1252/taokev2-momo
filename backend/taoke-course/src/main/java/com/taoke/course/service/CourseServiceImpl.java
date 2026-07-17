@@ -88,6 +88,7 @@ public class CourseServiceImpl implements CourseService {
         boolean draft = Boolean.TRUE.equals(request.getDraft());
         CourseType type = resolveCourseType(request);
         validatePublisherType(publisherType, type);
+        validateCoverRequired(request);
         if (!draft) {
             validateForSubmit(request);
             validatePlans(type, request.getPlans());
@@ -126,6 +127,7 @@ public class CourseServiceImpl implements CourseService {
 
         CourseType type = resolveCourseType(request);
         validatePublisherType(course.getPublisherType(), type);
+        validateCoverRequired(request);
         if (!draft) {
             validateForSubmit(request);
             validatePlans(type, request.getPlans());
@@ -1514,16 +1516,26 @@ public class CourseServiceImpl implements CourseService {
         }
     }
 
-    /** 提交审核时的内容完整性校验（草稿不做此校验，仅要求标题） */
+    /**
+     * 封面必填（含草稿）
+     *
+     * @author Fangxinxin
+     * @date 2026-07-17 16:14
+     */
+    private void validateCoverRequired(SaveCourseRequest request) {
+        if (request.getCoverUrl() == null || request.getCoverUrl().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传课程封面");
+        }
+    }
+
+    /** 提交审核时的内容完整性校验（草稿不做此校验，封面由 validateCoverRequired 单独校验） */
     private void validateForSubmit(SaveCourseRequest request) {
+        validateCoverRequired(request);
         if (isBlankHtml(request.getIntro())) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "请填写课程介绍");
         }
         if (request.getCategoryId() == null || request.getCategoryId() <= 0) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "请选择课程分类");
-        }
-        if (request.getCoverUrl() == null || request.getCoverUrl().isBlank()) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传课程封面");
         }
         if (request.getDurationDays() == null || request.getDurationDays() < 1) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "课程天数至少 1 天");

@@ -72,6 +72,7 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public VideoDetailVO create(Integer publisherId, String publisherType, SaveVideoRequest request) {
         boolean draft = Boolean.TRUE.equals(request.getDraft());
+        validateCoverRequired(request);
         if (!draft) {
             validateForSubmit(request);
         }
@@ -116,6 +117,7 @@ public class VideoServiceImpl implements VideoService {
                 && video.getStatus() != VideoStatus.REJECTED.getValue()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的录播课可保存为草稿");
         }
+        validateCoverRequired(request);
         if (!draft) {
             validateForSubmit(request);
         }
@@ -1018,8 +1020,21 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    /** 提交审核时的内容完整性校验（草稿不做此校验，仅要求标题） */
+    /**
+     * 封面必填（含草稿）
+     *
+     * @author Fangxinxin
+     * @date 2026-07-17 16:14
+     */
+    private void validateCoverRequired(SaveVideoRequest request) {
+        if (request.getCoverUrl() == null || request.getCoverUrl().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传课程封面");
+        }
+    }
+
+    /** 提交审核时的内容完整性校验（草稿不做此校验，封面由 validateCoverRequired 单独校验） */
     private void validateForSubmit(SaveVideoRequest request) {
+        validateCoverRequired(request);
         if (request.getIntro() == null || request.getIntro().isBlank()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "课程介绍不能为空");
         }
