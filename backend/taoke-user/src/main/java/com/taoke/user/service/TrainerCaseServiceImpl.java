@@ -242,7 +242,6 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
             r.setCaseTitle(c.getCaseTitle());
             r.setCoverImage(c.getCoverImage());
             r.setIndustry(c.getIndustry());
-            r.setDescription(c.getDescription());
             r.setTrainingDate(c.getTrainingDate());
             Trainer t = trainerMap.get(c.getTrainerId());
             if (t != null) {

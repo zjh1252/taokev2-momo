@@ -103,25 +103,36 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
   const slugParams = parseSlug(sp.slug || '');
 
   const categoryNavPromise = expertiseTreePromise.then(buildTrainerCategoryNavItems).catch(() => []);
+  const needsTreeForFilters = Boolean(slugParams.field || slugParams.industry);
 
-  const listPromise = Promise.all([
-    expertiseTreePromise,
-    getCachedTrainerIndustryTree(),
-  ]).then(([expertiseTree, industryTree]) =>
-    getTrainerList(
-      slugParamsToTrainerListParams(slugParams, expertiseTree, industryTree, {
+  const listPromise = needsTreeForFilters
+    ? Promise.all([expertiseTreePromise, industryTreePromise]).then(
+        ([expertiseTree, industryTree]) =>
+          getTrainerList(
+            slugParamsToTrainerListParams(slugParams, expertiseTree, industryTree, {
+              page,
+              size: 16,
+              sort: 'default',
+            }),
+          ).catch(() => ({
+            list: [],
+            total: 0,
+            page,
+            size: 16,
+            totalPages: 0,
+          })),
+      )
+    : getTrainerList({
         page,
         size: 16,
         sort: 'default',
-      }),
-    ).catch(() => ({
-      list: [],
-      total: 0,
-      page,
-      size: 16,
-      totalPages: 0,
-    })),
-  );
+      }).catch(() => ({
+        list: [],
+        total: 0,
+        page,
+        size: 16,
+        totalPages: 0,
+      }));
 
   const [expertiseTree, industryTree, recommendedTrainers, recentCases, initialData, categoryExpertTrainers] =
     await Promise.all([

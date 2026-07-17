@@ -131,7 +131,7 @@ export interface RecentTrainerCase {
   caseTitle: string;
   coverImage: string | null;
   industry: string | null;
-  description: string | null;
+  description?: string | null;
   /** 培训日期，首页案例卡片展示「案例时间」 */
   trainingDate?: string | null;
 }
