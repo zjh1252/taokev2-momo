@@ -13,8 +13,8 @@ import { getTrainerDisplayName } from '../../utils/displayName';
  *
  * <p>展示规则（与老站对齐）：</p>
  * <ul>
- *   <li>无标题/副标题，纯 3 张大图横向铺满，与左侧筛选侧栏等高。</li>
- *   <li>每 5 秒整体向左步进一组（一组 = 3 张），到末尾无缝回到第 1 组；hover 暂停。</li>
+ *   <li>无标题/副标题，纯 4 张大图横向铺满，与左侧筛选侧栏等高。</li>
+ *   <li>每 5 秒整体向左步进一组（一组 = 4 张），到末尾无缝回到第 1 组；hover 暂停。</li>
  *   <li>图片底部叠加渐变与「名字 + 头衔」。</li>
  * </ul>
  *
@@ -22,7 +22,7 @@ import { getTrainerDisplayName } from '../../utils/displayName';
  * @date 2026-04-22 21:10
  */
 
-const CARDS_PER_PAGE = 3;
+const CARDS_PER_PAGE = 4;
 const STEP_INTERVAL = 5000;
 const TRANSITION_MS = 700;
 
@@ -37,10 +37,10 @@ export function TrainerRecommendedScroller({
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    // SSR 返回数据不足一页（3 张）时，客户端补取一次
+    // SSR 返回数据不足一页（4 张）时，客户端补取一次
     if (initialItems && initialItems.length >= CARDS_PER_PAGE) return;
     let mounted = true;
-    getTopRecommendedTrainers(9)
+    getTopRecommendedTrainers(12)
       .then((list) => mounted && setItems(list))
       .catch(() => {});
     return () => {
@@ -101,15 +101,15 @@ export function TrainerRecommendedScroller({
           <Link
             key={`${t.id}-${idx}`}
             href={`/trainer/${t.id}.htm`}
-            className={`shrink-0 w-[227px] cursor-pointer group/item ${isPageEnd ? '' : 'mr-5'}`}
+            className={`shrink-0 w-[165px] cursor-pointer group/item ${isPageEnd ? '' : 'mr-5'}`}
           >
-            <div className="relative h-[306px] w-[227px] aspect-[227/306] overflow-hidden rounded-md bg-slate-100">
+            <div className="relative h-[306px] w-[165px] aspect-[165/306] overflow-hidden rounded-md bg-slate-100">
               <SafeImage
                 src={t.avatar}
                 alt={displayName}
                 fill
                 apiResolved
-                sizes="(max-width: 1024px) 33vw, 320px"
+                sizes="(max-width: 1024px) 25vw, 165px"
                 className="object-cover object-[center_top] transition-transform duration-500 group-hover/item:scale-[1.04]"
               />
               <div className="absolute inset-x-0 bottom-0 px-4 pt-12 pb-3 bg-gradient-to-t from-black/80 via-black/45 to-transparent text-white">

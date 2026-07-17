@@ -89,7 +89,7 @@ public class TrainerController {
     @Operation(summary = "C 端首页/列表页推荐专家位（最多 limit 条；不足时按 id 倒序补齐，允许重复）")
     @GetMapping("/trainers/recommended")
     public ApiResponse<List<TrainerListItemResponse>> recommendedForTop(
-            @RequestParam(defaultValue = "9") int limit) {
+            @RequestParam(defaultValue = "12") int limit) {
         return ApiResponse.ok(trainerService.listRecommendedForTop(limit));
     }
 

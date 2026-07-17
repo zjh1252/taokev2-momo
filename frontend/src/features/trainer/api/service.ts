@@ -127,7 +127,7 @@ export async function getRecommendedTrainers(
 /**
  * 获取首页/列表页推荐专家（仅后台 isRecommended=1，过滤测试占位数据）
  */
-export async function getTopRecommendedTrainers(limit = 9): Promise<TrainerListItem[]> {
+export async function getTopRecommendedTrainers(limit = 12): Promise<TrainerListItem[]> {
   const fetchLimit = Math.max(limit * 3, 12);
   const res = await apiGet<ApiResponse<TrainerListItem[]>>(
     `/trainers/recommended?limit=${fetchLimit}`,

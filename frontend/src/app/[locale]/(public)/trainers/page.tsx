@@ -127,7 +127,7 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
     await Promise.all([
       expertiseTreePromise,
       industryTreePromise,
-      loadTrainerListRecommended(9),
+      loadTrainerListRecommended(12),
       loadTrainerPageCases(10),
       listPromise,
       expertiseTreePromise.then((tree) => {

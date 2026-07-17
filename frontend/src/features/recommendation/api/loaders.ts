@@ -15,7 +15,7 @@ import type { InstitutionListItem } from '@/features/institution/types';
 import { pickGoldInstitutionRecommends } from '@/features/institution/utils/gold-recommends';
 
 /** 专家列表页推荐 scroller：slot 优先，不足回退 legacy */
-export async function loadTrainerListRecommended(limit = 9): Promise<TrainerListItem[]> {
+export async function loadTrainerListRecommended(limit = 12): Promise<TrainerListItem[]> {
   try {
     const slotItems = await getPublicRecommendations(RecommendationSlotCode.TRAINER_LIST_TRAINER, {
       limit
