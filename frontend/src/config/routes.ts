@@ -33,6 +33,7 @@ export const ROUTES = {
   UC_ALLIANCE_AMBASSADOR_PENDING: '/dashboard/alliance/ambassador/pending',
   UC_ALLIANCE_PARTNER: '/dashboard/alliance/partner',
   UC_ALLIANCE_PARTNER_PENDING: '/dashboard/alliance/partner/pending',
+  UC_ALLIANCE_PARTNER_PREVIEW: '/dashboard/alliance/partner/preview',
   UC_ALLIANCE_721: '/dashboard/alliance/721',
   UC_ALLIANCE_721_PENDING: '/dashboard/alliance/721/pending',
   UC_ACCOUNT_INFO: '/dashboard/account/info',

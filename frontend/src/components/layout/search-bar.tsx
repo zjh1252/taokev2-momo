@@ -6,6 +6,7 @@ import { usePathname, useRouter } from '@/i18n/navigation';
 import { Search, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { ROUTES } from '@/config/routes';
+import { cn } from '@/lib/utils';
 import {
   HEADER_SEARCH_CATEGORIES,
   buildSearchTarget,
@@ -19,7 +20,11 @@ import {
  *
  * <p>专家/公开课/内训课走 ES 全文搜索页；录播课/机构/培协跳转对应列表页并带 {@code keyword}。</p>
  */
-export function SearchBar() {
+type SearchBarProps = {
+  className?: string;
+};
+
+export function SearchBar({ className }: SearchBarProps) {
   const t = useTranslations('nav.search');
   const router = useRouter();
   const pathname = usePathname();
@@ -80,7 +85,10 @@ export function SearchBar() {
     <form
       ref={formRef}
       onSubmit={handleSubmit}
-      className="flex items-center bg-slate-100 rounded-md overflow-visible p-0.5 border border-slate-200 relative min-w-[360px]"
+      className={cn(
+        'flex items-center bg-slate-100 rounded-md overflow-visible p-0.5 border border-slate-200 relative min-w-[360px]',
+        className,
+      )}
     >
       <div className="relative shrink-0">
         <button
