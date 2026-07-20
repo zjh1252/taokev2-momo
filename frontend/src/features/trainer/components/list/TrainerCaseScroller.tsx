@@ -38,19 +38,20 @@ export function TrainerCaseScroller({
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (initialItems && initialItems.length > 0) return;
     let mounted = true;
     getRecentTrainerCases(10)
       .then((list) => {
         if (!mounted) return;
-        setItems(list);
+        if (list.length > 0) {
+          setItems(list);
+        }
         setLoaded(true);
       })
       .catch(() => mounted && setLoaded(true));
     return () => {
       mounted = false;
     };
-  }, [initialItems]);
+  }, []);
 
   // 把 items 切成 [[a,b],[c,d],...] 的二维行；不足 COLS 的最后一行用 null 占位
   const rows: (RecentTrainerCase | null)[][] = [];
@@ -116,9 +117,11 @@ export function TrainerCaseScroller({
                   <span className="flex-1 min-w-0 text-[14px] text-slate-800 line-clamp-1 group-hover/item:text-primary transition-colors">
                     {c.caseTitle}
                   </span>
-                  <span className="shrink-0 text-[13px] font-semibold text-rose-500">
-                    {formatScore(c)}分
-                  </span>
+                  {formatScore(c) ? (
+                    <span className="shrink-0 text-[13px] font-semibold text-rose-500">
+                      {formatScore(c)}分
+                    </span>
+                  ) : null}
                 </Link>
               ) : (
                 <div key={`empty-${colIdx}`} className="flex-1" />
@@ -131,10 +134,11 @@ export function TrainerCaseScroller({
   );
 }
 
-function formatScore(c: RecentTrainerCase): string {
-  // 评分按整数展示（与列表页风格一致）
+function formatScore(c: RecentTrainerCase): string | null {
+  // 评分按整数展示；无有效评分时不展示，避免推荐位缺字段时刷「0分」
   const s = c.trainerScore;
-  if (s == null) return '0';
+  if (s == null) return null;
   const n = typeof s === 'number' ? s : parseFloat(String(s));
-  return Number.isFinite(n) ? String(Math.round(n)) : '0';
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return String(Math.round(n));
 }

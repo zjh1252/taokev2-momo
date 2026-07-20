@@ -278,6 +278,7 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
                                 && !trainer.getTeachingName().isBlank()
                                 ? trainer.getTeachingName() : trainer.getName());
                         vo.setTrainerAvatar(trainer.getAvatar());
+                        vo.setTrainerScore(trainer.getScore());
                     }
                 }
             }

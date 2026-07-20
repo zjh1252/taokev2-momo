@@ -20,14 +20,14 @@ export function mapSlotTrainerToListItem(item: PublicRecommendedItem): TrainerLi
   const displayName = item.teachingName || item.resourceName || '';
   const avatar = resolveApiImageSrc(item.avatar || item.resourceCoverUrl || '');
   const intro = toPlainIntroText(
-    item.description || item.oneLineIntro || item.resourceDescription || ''
+    item.oneLineIntro || item.resourceDescription || item.description || ''
   );
   return {
     id: item.resourceId,
     name: displayName,
     teachingName: displayName,
     avatar,
-    title: toPlainIntroText(item.title || item.trainerTitle || ''),
+    title: toPlainIntroText(item.trainerTitle || item.title || ''),
     oneLineIntro: intro,
     score: 0,
     isRecommended: 1,
@@ -98,6 +98,7 @@ export function mapSlotCasesToRecentCases(items: PublicRecommendedItem[]): Recen
     trainerUserId: 0,
     trainerName: item.trainerNameForCase || '',
     trainerAvatar: item.trainerAvatar || null,
+    trainerScore: item.trainerScore ?? null,
     caseTitle: item.caseTitle || item.resourceName || '',
     coverImage: item.coverUrl || item.resourceCoverUrl || null,
     industry: item.industry || item.resourceMeta || null,

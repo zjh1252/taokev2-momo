@@ -46,6 +46,14 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    public boolean exists(Integer userId, NotificationType type, String relatedId) {
+        if (userId == null || type == null || relatedId == null || relatedId.isBlank()) {
+            return false;
+        }
+        return notificationRepository.existsByUserIdAndTypeAndRelatedId(userId, type.name(), relatedId);
+    }
+
+    @Override
     @Transactional
     public void sendBatch(List<Integer> userIds, NotificationType type, String title,
                           String content, String relatedUrl) {

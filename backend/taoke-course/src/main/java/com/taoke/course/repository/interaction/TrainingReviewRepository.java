@@ -5,6 +5,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * 培训评价持久化
@@ -44,4 +46,24 @@ public interface TrainingReviewRepository extends JpaRepository<TrainingReview, 
 
     /** 统计某机构已通过评价数 */
     long countByInstitutionIdAndStatus(Integer institutionId, Integer status);
+
+    /** 专家指定状态下评价 avg_score 算术平均（无记录时返回 null） */
+    @Query("""
+            SELECT AVG(r.avgScore)
+            FROM TrainingReview r
+            WHERE r.trainerUserId = :trainerUserId AND r.status = :status
+            """)
+    Double averageAvgScoreByTrainerUserIdAndStatus(
+            @Param("trainerUserId") Integer trainerUserId,
+            @Param("status") Integer status);
+
+    /** 机构指定状态下评价 avg_score 算术平均（无记录时返回 null） */
+    @Query("""
+            SELECT AVG(r.avgScore)
+            FROM TrainingReview r
+            WHERE r.institutionId = :institutionId AND r.status = :status
+            """)
+    Double averageAvgScoreByInstitutionIdAndStatus(
+            @Param("institutionId") Integer institutionId,
+            @Param("status") Integer status);
 }

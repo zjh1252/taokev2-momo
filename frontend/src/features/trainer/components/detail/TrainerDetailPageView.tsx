@@ -1,7 +1,7 @@
-import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import type { TrainerDetailPageData } from '../../api/trainer-detail-page-data';
 import { getTrainerDisplayName } from '../../utils/displayName';
 import type { TrainerTabId } from '../../utils/routes';
+import { TrainerDetailBreadcrumb } from './TrainerDetailBreadcrumb';
 import { TrainerHero } from './TrainerHero';
 import { TrainerDetailContent } from './TrainerDetailContent';
 import { TrainerSidebar } from './TrainerSidebar';
@@ -25,12 +25,7 @@ export function TrainerDetailPageView({
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-6 space-y-6">
-      <PageBreadcrumb
-        items={[
-          { label: '培训专家', href: '/trainer' },
-          { label: displayName || '专家详情' },
-        ]}
-      />
+      <TrainerDetailBreadcrumb trainerName={displayName || '专家详情'} />
 
       <TrainerHero trainer={trainer} />
 

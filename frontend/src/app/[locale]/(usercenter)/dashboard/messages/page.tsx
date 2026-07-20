@@ -12,6 +12,7 @@ import {
 } from '@/features/user-center/api/service';
 import { Trash2, Eye, X, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import { CourseReserveNotificationDetail } from '@/features/course/components/detail/CourseReserveNotificationDetail';
 
 /** 绑定 / 申请审核类通知的 type 集合 — 在消息列表里展示「前往处理」链接 */
 const BINDING_NOTIFICATION_TYPES = new Set<string>([
@@ -276,7 +277,13 @@ export default function MessagesPage() {
       </section>
 
       {/* 消息详情弹窗 */}
-      {detailItem && (
+      {detailItem && detailItem.type === 'COURSE_RESERVE' && (
+        <CourseReserveNotificationDetail
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+        />
+      )}
+      {detailItem && detailItem.type !== 'COURSE_RESERVE' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/40"

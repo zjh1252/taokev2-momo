@@ -50,17 +50,22 @@ export async function loadCategoryExpertTrainers(
 
 /** 专家列表页案例 scroller */
 export async function loadTrainerPageCases(limit = 10): Promise<RecentTrainerCase[]> {
+  // 优先走含 trainerScore 的公开案例接口；CMS 推荐位作回退（已 enrich trainerScore）
+  const legacy = await getRecentTrainerCases(limit).catch(() => [] as RecentTrainerCase[]);
+  if (legacy.length > 0) {
+    return legacy;
+  }
   try {
     const slotItems = await getPublicRecommendations(RecommendationSlotCode.TRAINER_PAGE_CASE, {
       limit
     });
-    if (slotItems.length >= limit) {
+    if (slotItems.length > 0) {
       return mapSlotCasesToRecentCases(slotItems).slice(0, limit);
     }
   } catch {
-    // 回退 legacy
+    // ignore
   }
-  return getRecentTrainerCases(limit).catch(() => []);
+  return [];
 }
 
 /** 机构页金牌推荐区 */

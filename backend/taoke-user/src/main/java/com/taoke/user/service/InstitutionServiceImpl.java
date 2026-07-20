@@ -30,6 +30,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -693,6 +695,19 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             int cur = inst.getCommentCount() == null ? 0 : inst.getCommentCount();
             int next = Math.max(0, cur + delta);
             inst.setCommentCount(next);
+            institutionRepository.save(inst);
+        });
+    }
+
+    @Override
+    @Transactional
+    public void updateReviewStats(Integer institutionId, BigDecimal score, int commentCount) {
+        if (institutionId == null) return;
+        institutionRepository.findById(institutionId).ifPresent(inst -> {
+            BigDecimal nextScore = (score == null ? BigDecimal.ZERO : score)
+                    .setScale(2, RoundingMode.HALF_UP);
+            inst.setScore(nextScore);
+            inst.setCommentCount(Math.max(0, commentCount));
             institutionRepository.save(inst);
         });
     }

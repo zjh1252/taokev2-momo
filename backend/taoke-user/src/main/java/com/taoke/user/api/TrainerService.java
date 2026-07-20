@@ -7,6 +7,7 @@ import com.taoke.user.entity.Trainer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -199,4 +200,14 @@ public interface TrainerService {
      * @param delta         增量（+1 表示新增一条已通过、-1 表示撤销/驳回）
      */
     void adjustCommentCountByUserId(Integer trainerUserId, int delta);
+
+    /**
+     * 覆盖写入专家评价统计（综合评分 + 已通过评价数）。
+     * <p>由评价模块按已通过评价全量重算后调用；score 为空时按 0 处理。</p>
+     *
+     * @param trainerUserId 专家所属 user_id
+     * @param score         综合评分（通常为已通过评价 avg_score 的算术平均）
+     * @param commentCount  已通过评价数（不会小于 0）
+     */
+    void updateReviewStatsByUserId(Integer trainerUserId, BigDecimal score, int commentCount);
 }

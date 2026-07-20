@@ -5,6 +5,7 @@ import com.taoke.common.response.PageResponse;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.course.dto.order.CreateOrderRequest;
 import com.taoke.course.dto.order.OrderVO;
+import com.taoke.course.service.OrderPurchaseNotifyService;
 import com.taoke.course.service.order.OrderServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class OrderController {
 
     private final OrderServiceImpl orderService;
+    private final OrderPurchaseNotifyService orderPurchaseNotifyService;
 
     @Operation(summary = "创建订单")
     @PostMapping("/orders")
@@ -64,5 +66,13 @@ public class OrderController {
             @RequestParam Integer productId) {
         Integer userId = SecurityUtils.getRequiredUserId();
         return ApiResponse.ok(orderService.findPendingOrderByProduct(userId, productType, productId));
+    }
+
+    @Operation(summary = "已支付订单补发购买站内信（全部商品）")
+    @PostMapping("/orders/{orderNo}/purchase-notify")
+    public ApiResponse<Void> purchaseNotify(@PathVariable String orderNo) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        orderPurchaseNotifyService.notifyPaidOrderByOrderNo(userId, orderNo);
+        return ApiResponse.ok();
     }
 }

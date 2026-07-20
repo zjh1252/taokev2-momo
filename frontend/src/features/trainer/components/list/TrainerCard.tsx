@@ -7,6 +7,7 @@ import { useBumpedViewCount } from '@/hooks/use-bumped-view-count';
 import type { TrainerListItem } from '../../types';
 import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
+import { rememberTrainerListPath } from '../../utils/list-return';
 interface TrainerCardProps {
   trainer: TrainerListItem;
   /** 首屏前若干张优先加载，避免翻页后 16 张同时请求 */
@@ -14,7 +15,12 @@ interface TrainerCardProps {
 }
 
 function TrainerCardRating({ score }: { score: number }) {
-  const normalizedScore = Number.isFinite(score) ? Math.max(0, Math.min(5, score)) : 0;
+  const normalizedScore = Number.isFinite(Number(score))
+    ? Math.max(0, Math.min(5, Number(score)))
+    : 0;
+  if (normalizedScore <= 0) {
+    return null;
+  }
   const filledStars = Math.round(normalizedScore);
 
   return (
@@ -45,12 +51,16 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
     || plainIntroOrUndefined(trainer.oneLineIntro);
   const expertiseNames = trainer.expertiseCategories?.map((c) => c.categoryName).filter(Boolean) ?? [];
   const industryNames = trainer.industryCategories?.map((c) => c.categoryName).filter(Boolean) ?? [];
-  const displayTags = [...expertiseNames, ...industryNames];
+  // 领域/行业可能同名（如「其它」），去重后再展示，避免 React key 冲突
+  const displayTags = [...new Set([...expertiseNames, ...industryNames])];
 
   return (
     <Link
       href={`/trainer/${trainer.id}.htm`}
-      onClick={onCardClick}
+      onClick={() => {
+        rememberTrainerListPath();
+        onCardClick();
+      }}
       className="relative min-h-[190px] bg-white rounded-xl border border-slate-200 p-5 flex flex-col sm:flex-row gap-5 hover:shadow-md transition-all group"
     >
       <TrainerCardRating score={trainer.score} />
@@ -59,6 +69,7 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
       <div className="shrink-0 relative">
         <SafeImage
           src={trainer.avatar}
+          fallback={trainer.avatarFallback || undefined}
           alt={displayName}
           width={150}
           height={150}

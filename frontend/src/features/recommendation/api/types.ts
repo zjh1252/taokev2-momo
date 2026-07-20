@@ -51,6 +51,8 @@ export interface PublicRecommendedItem {
   trainingDate?: string | null;
   trainerNameForCase?: string | null;
   trainerAvatar?: string | null;
+  /** 案例所属专家综合评分（CASE 推荐位 enrich） */
+  trainerScore?: number | null;
   orgName?: string | null;
   logoUrl?: string | null;
 }

@@ -16,6 +16,7 @@ import com.taoke.course.entity.Course;
 import com.taoke.course.entity.CoursePlan;
 import com.taoke.course.enums.CourseStatus;
 import com.taoke.course.enums.CourseType;
+import com.taoke.course.util.CourseOnlineUrlValidator;
 import com.taoke.course.mapper.CourseMapper;
 import com.taoke.course.repository.CourseListCoreProjection;
 import com.taoke.course.repository.CoursePlanRepository;
@@ -1595,6 +1596,11 @@ public class CourseServiceImpl implements CourseService {
             } else if (type == CourseType.OPEN_ONLINE) {
                 if (plan.getOnlineUrl() == null || plan.getOnlineUrl().isBlank()) {
                     throw new BusinessException(ErrorCode.PARAM_INVALID, "线上公开课的开课计划必须填写开课网址");
+                }
+                try {
+                    CourseOnlineUrlValidator.validateRequiredOnlineUrl(plan.getOnlineUrl().trim());
+                } catch (IllegalArgumentException ex) {
+                    throw new BusinessException(ErrorCode.PARAM_INVALID, ex.getMessage());
                 }
             }
         }

@@ -259,6 +259,19 @@ C 端 `apiClient` 在无法连接后端（`localhost:8080`）时会 toast：
 
 > 后续凡涉及 Flyway 脚本的增删改、生产/测试库 repair、与手工 SQL 的联动，在此追加一条。
 
+### 2026-07-17 — V150 纠正专家评价 scope 并回填评分
+
+- **问题**：迁库评价多为 `COURSE` + `course_id IS NULL` + `trainer_user_id`；V149 只按 `TRAINER` 回填，导致几乎全部专家 `score=0`。
+- **修复**：V150 将上述记录归并为 `TRAINER`，再按已通过评价重算 `user_trainers.score` / `comment_count`。
+- **校验**：`uv run python data-trans/scripts/_validate_flyway_migration.py --version 150`。
+
+### 2026-07-17 — V149 回填专家/机构综合评分
+
+- **问题**：评价审核只同步 `comment_count`，未重算 `score`，列表出现「有 N 条评价但评分 0.0」。
+- **修复**：`ReviewServiceImpl` 审核通过/驳回/隐藏后按已通过评价 `AVG(avg_score)` 全量回写；Flyway V149 对存量 `user_trainers` / `user_institutions` 做同口径回填（并同步 `comment_count`）。
+- **校验**：`uv run python data-trans/scripts/_validate_flyway_migration.py --version 149`。
+- **后续**：V149 回填口径过窄，由 V150 纠正。
+
 ### 2026-06-23 — V111/V112 checksum repair
 
 **背景**：V111（公开课到期隐藏）、V112（`is_expire_hide` 列类型修正）在 `v3test` 已成功执行后，本地迁移文件再次编辑，Flyway validate 报 checksum 不匹配，后端无法启动。

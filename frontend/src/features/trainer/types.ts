@@ -79,6 +79,8 @@ export interface TrainerDetail {
   /** 授课姓名（对外展示，可与 name 不同） */
   teachingName?: string;
   avatar: string;
+  /** 素材库默认头像；主头像加载失败时回退 */
+  avatarFallback?: string;
   title: string;
   gender: number;
   provinceId?: number;
@@ -122,6 +124,8 @@ export interface TrainerListItem {
   name: string;
   teachingName?: string;
   avatar: string;
+  /** 素材库默认头像；主头像加载失败时回退 */
+  avatarFallback?: string;
   title: string;
   oneLineIntro?: string;
   score: number;

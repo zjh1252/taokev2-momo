@@ -51,6 +51,7 @@ export async function getTrainerDetail(id: number): Promise<TrainerDetail> {
  */
 export async function getTrainerList(
   params: TrainerListParams = {},
+  init?: { silent?: boolean },
 ): Promise<PageResponse<TrainerListItem>> {
   const query = new URLSearchParams();
   if (params.page) query.set('page', String(params.page));
@@ -71,6 +72,7 @@ export async function getTrainerList(
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<TrainerListItem>>>(
     `/trainers${qs ? `?${qs}` : ''}`,
+    init,
   );
   return res.data;
 }

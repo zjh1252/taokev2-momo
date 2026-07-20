@@ -69,11 +69,23 @@
 
 ## §2 「热门培训领域」四人一组
 
+### 布局约束（与老站 tkw/ 同步，禁止改宽高比）
+
+| 项 | 值 | 说明 |
+|----|-----|------|
+| 单卡尺寸 | **227×306 px** | 与老站一致；侧栏筛选区同高 306px |
+| 宽高比 | **227:306** | 改每组人数时**只加宽容器**，不得压缩单卡 |
+| 卡间距 | 20px | Tailwind `mr-5` |
+| 4 人一组容器宽 | **968px** | 4×227 + 3×20 |
+| 3 人一组容器宽 | 721px | 历史值，仅作对照 |
+
+常量文件：`frontend/src/features/trainer/constants/recommended-scroller-layout.ts`
+
 ### 前端
 
 | 位置 | 改动 |
 |------|------|
-| `TrainerRecommendedScroller.tsx` | `CARDS_PER_PAGE`：`3` → `4`；调整卡宽 / 容器，保证一屏 4 张无半卡裁切 |
+| `TrainerRecommendedScroller.tsx` | `CARDS_PER_PAGE`：`3` → `4`；**单卡保持 227×306**，容器扩至 968px（勿用 165px 压窄） |
 | `trainers/page.tsx` | `loadTrainerListRecommended(9)` → `12` |
 | `loaders.ts` / 客户端补取 | 默认 limit / `getTopRecommendedTrainers` 同步为 `12` |
 

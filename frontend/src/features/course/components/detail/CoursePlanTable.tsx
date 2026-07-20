@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import type { CoursePlan } from '../../api/types';
+import { getCourseEnrollmentStatus } from '../../api/service';
 import { isPlanEnrolling } from '../../utils/display';
 import { formatPlanCode, getOpenCoursePlanPath } from '../../utils/plan-code';
 
@@ -17,6 +19,8 @@ interface CoursePlanTableProps {
   upcomingOnly?: boolean;
   /** 课程整体已过期时，场次状态一律展示为已结束 */
   courseOverdue?: boolean;
+  /** 外部传入已购买状态；不传则自行查询 */
+  purchased?: boolean;
 }
 
 export function CoursePlanTable({
@@ -26,8 +30,18 @@ export function CoursePlanTable({
   title,
   upcomingOnly = false,
   courseOverdue = false,
+  purchased: purchasedProp,
 }: CoursePlanTableProps) {
   const t = useTranslations('course.plan');
+  const [purchasedInner, setPurchasedInner] = useState(false);
+  const purchased = purchasedProp ?? purchasedInner;
+
+  useEffect(() => {
+    if (purchasedProp !== undefined) return;
+    getCourseEnrollmentStatus(courseId)
+      .then(setPurchasedInner)
+      .catch(() => setPurchasedInner(false));
+  }, [courseId, purchasedProp]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
@@ -112,7 +126,9 @@ export function CoursePlanTable({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    {enrolling ? (
+                    {purchased ? (
+                      <span className="text-slate-500 text-sm font-medium">{t('purchased')}</span>
+                    ) : enrolling ? (
                       <Link
                         href={getOpenCoursePlanPath(planCode)}
                         className="text-primary hover:underline text-sm font-medium"

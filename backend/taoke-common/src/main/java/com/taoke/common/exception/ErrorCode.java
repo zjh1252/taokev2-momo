@@ -75,6 +75,7 @@ public enum ErrorCode {
     COURSE_STATUS_INVALID(400, 30002, "课程当前状态不允许此操作"),
     COURSE_NO_PERMISSION(403, 30003, "无权操作此课程"),
     COURSE_PLAN_REQUIRED(400, 30004, "公开课必须添加至少一条开课计划"),
+    COURSE_ALREADY_RESERVED(400, 30005, "您已预约该课程"),
 
     /* ==================== 订单/支付 400xx ==================== */
     CART_ITEM_EXISTS(400, 40001, "该商品已在购物车中"),

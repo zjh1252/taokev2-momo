@@ -217,6 +217,10 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
       if (!plan.address?.trim()) return `${label}：线下公开课必须填写具体地址`;
     } else if (!plan.onlineUrl?.trim()) {
       return `${label}：线上公开课必须填写直播/回放地址`;
+    } else if (!/^https:\/\/.+/i.test(plan.onlineUrl.trim())) {
+      return `${label}：线上公开课必须填写有效的直播会议链接（以 https:// 开头）`;
+    } else if (!/^https:\/\/meeting\.tencent\.com\/dm\/[A-Za-z0-9]+$/i.test(plan.onlineUrl.trim())) {
+      return `${label}：请填写有效的腾讯会议链接`;
     }
     return null;
   };

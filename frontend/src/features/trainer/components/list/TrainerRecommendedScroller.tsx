@@ -5,24 +5,31 @@ import { Link } from '@/i18n/navigation';
 import { SafeImage } from '@/components/safe-image';
 import { getTopRecommendedTrainers } from '../../api/service';
 import type { TrainerListItem } from '../../types';
-import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
+import { pickRecommendedTrainerSubtitle } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
+import {
+  TRAINER_RECOMMENDED_CARD_ASPECT,
+  TRAINER_RECOMMENDED_CARD_HEIGHT,
+  TRAINER_RECOMMENDED_CARD_WIDTH,
+  TRAINER_RECOMMENDED_CARDS_PER_PAGE,
+  TRAINER_RECOMMENDED_SCROLLER_MAX_WIDTH,
+} from '../../constants/recommended-scroller-layout';
 
 /**
  * 专家列表页右上角「推荐位」步进式滚动条
  *
- * <p>展示规则（与老站对齐）：</p>
+ * <p>展示规则（与老站 tkw/ 对齐）：</p>
  * <ul>
- *   <li>无标题/副标题，纯 4 张大图横向铺满，与左侧筛选侧栏等高。</li>
+ *   <li>单卡固定 227×306，宽高比不可变；四人一组时只加宽容器，不压缩单卡。</li>
  *   <li>每 5 秒整体向左步进一组（一组 = 4 张），到末尾无缝回到第 1 组；hover 暂停。</li>
- *   <li>图片底部叠加渐变与「名字 + 头衔」。</li>
+ *   <li>图片底部叠加渐变与「名字 + 一句话介绍」（与老站一致，非短头衔优先）。</li>
  * </ul>
  *
  * @author Fangxinxin
  * @date 2026-04-22 21:10
  */
 
-const CARDS_PER_PAGE = 4;
+const CARDS_PER_PAGE = TRAINER_RECOMMENDED_CARDS_PER_PAGE;
 const STEP_INTERVAL = 5000;
 const TRANSITION_MS = 700;
 
@@ -81,7 +88,11 @@ export function TrainerRecommendedScroller({
 
   return (
     <div
-      className="relative h-[306px] w-full max-w-[721px] overflow-hidden rounded-xl"
+      className="relative w-full overflow-hidden rounded-xl"
+      style={{
+        height: TRAINER_RECOMMENDED_CARD_HEIGHT,
+        maxWidth: TRAINER_RECOMMENDED_SCROLLER_MAX_WIDTH,
+      }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -94,22 +105,30 @@ export function TrainerRecommendedScroller({
       >
         {loopItems.map((t, idx) => {
           const displayName = getTrainerDisplayName(t);
-          const subtitle = pickDisplayTitle(t.title, displayName)
-            || plainIntroOrUndefined(t.oneLineIntro);
+          const subtitle = pickRecommendedTrainerSubtitle(t.title, t.oneLineIntro, displayName);
           const isPageEnd = idx % CARDS_PER_PAGE === CARDS_PER_PAGE - 1;
           return (
           <Link
             key={`${t.id}-${idx}`}
             href={`/trainer/${t.id}.htm`}
-            className={`shrink-0 w-[165px] cursor-pointer group/item ${isPageEnd ? '' : 'mr-5'}`}
+            className={`shrink-0 cursor-pointer group/item ${isPageEnd ? '' : 'mr-5'}`}
+            style={{ width: TRAINER_RECOMMENDED_CARD_WIDTH }}
           >
-            <div className="relative h-[306px] w-[165px] aspect-[165/306] overflow-hidden rounded-md bg-slate-100">
+            <div
+              className="relative overflow-hidden rounded-md bg-slate-100"
+              style={{
+                width: TRAINER_RECOMMENDED_CARD_WIDTH,
+                height: TRAINER_RECOMMENDED_CARD_HEIGHT,
+                aspectRatio: TRAINER_RECOMMENDED_CARD_ASPECT,
+              }}
+            >
               <SafeImage
                 src={t.avatar}
+                fallback={t.avatarFallback || undefined}
                 alt={displayName}
                 fill
                 apiResolved
-                sizes="(max-width: 1024px) 25vw, 165px"
+                sizes="(max-width: 1024px) 25vw, 227px"
                 className="object-cover object-[center_top] transition-transform duration-500 group-hover/item:scale-[1.04]"
               />
               <div className="absolute inset-x-0 bottom-0 px-4 pt-12 pb-3 bg-gradient-to-t from-black/80 via-black/45 to-transparent text-white">

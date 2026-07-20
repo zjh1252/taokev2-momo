@@ -57,6 +57,8 @@ public class PublicRecommendedItemVO {
     private String trainingDate;
     private String trainerNameForCase;
     private String trainerAvatar;
+    /** 案例所属专家综合评分 */
+    private java.math.BigDecimal trainerScore;
 
     /** 机构 */
     private String orgName;

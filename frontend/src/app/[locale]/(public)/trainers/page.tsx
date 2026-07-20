@@ -101,9 +101,10 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
   );
 
   const slugParams = parseSlug(sp.slug || '');
+  // .htm SEO URL 把 page 写在 slug 里（/trainer/page=2.htm），优先于 ?page=
+  const listPage = slugParams.page ?? page;
 
   const categoryNavPromise = expertiseTreePromise.then(buildTrainerCategoryNavItems).catch(() => []);
-  const listPage = slugParams.page ?? page;
   const needsTreeForFilters = Boolean(slugParams.field || slugParams.industry);
 
   const listPromise = needsTreeForFilters

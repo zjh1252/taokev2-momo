@@ -75,6 +75,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           <div className="relative group">
             <SafeImage
               src={trainer.avatar}
+              fallback={trainer.avatarFallback || undefined}
               alt={displayName}
               width={190}
               height={230}

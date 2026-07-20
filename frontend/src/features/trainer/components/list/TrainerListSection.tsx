@@ -10,6 +10,7 @@ import { TrainerCategoryExpertBar } from './TrainerCategoryExpertBar';
 import { TrainerSortBar } from './TrainerSortBar';
 import { getTrainerList, type RecentTrainerCase } from '../../api/service';
 import { filtersToHtmPath, type TrainerSlugParams } from '../../utils/url';
+import { rememberTrainerListPath } from '../../utils/list-return';
 import type { TrainerListItem, CategoryTreeNode, PageResponse } from '../../types';
 import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-nav';
 import type { ChannelCategoryNavItem } from '@/components/layout/channel-category-nav';
@@ -157,7 +158,11 @@ function TrainerListSectionInner({
   useEffect(() => {
     if (initialSlugParams && Object.keys(initialSlugParams).length > 0) {
       syncUrl(initialData.page ?? 1, initialFilters);
+    } else {
+      rememberTrainerListPath();
     }
+    // 评分回填等后端变更后，客户端再拉一次避免 SSR/软导航残留旧分
+    fetchData(initialData.page ?? 1, initialFilters, 'default');
     // 仅执行一次（mount 时）
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -165,25 +170,30 @@ function TrainerListSectionInner({
   /** 拉取数据 */
   const fetchData = useCallback(
     (page: number, f: TrainerFilterValue, s: string) => {
-      startTransition(async () => {
-        try {
-          const result = await getTrainerList({
-            page,
-            size: 16,
-            expertiseCategoryId: resolveExpertiseCategoryId(f, expertiseTree),
-            industryCategoryId: f.industryCategoryId ?? (
-              f.industryName ? findCategoryIdByName(industryTree, f.industryName) : undefined
-            ),
-            provinceId: f.provinceId,
-            cityId: lockedCityId,
-            sort: s,
-            isTrusted: f.trustedOnly ? 1 : undefined,
-          });
-          setData(result);
-          setCurrentPage(page);
-        } catch (e) {
-          console.error('加载专家列表失败:', e);
-        }
+      startTransition(() => {
+        void (async () => {
+          try {
+            const result = await getTrainerList(
+              {
+                page,
+                size: 16,
+                expertiseCategoryId: resolveExpertiseCategoryId(f, expertiseTree),
+                industryCategoryId: f.industryCategoryId ?? (
+                  f.industryName ? findCategoryIdByName(industryTree, f.industryName) : undefined
+                ),
+                provinceId: f.provinceId,
+                cityId: lockedCityId,
+                sort: s,
+                isTrusted: f.trustedOnly ? 1 : undefined,
+              },
+              { silent: true },
+            );
+            setData(result);
+            setCurrentPage(page);
+          } catch (e) {
+            console.error('加载专家列表失败:', e);
+          }
+        })();
       });
     },
     [expertiseTree, industryTree, lockedCityId],
@@ -200,6 +210,7 @@ function TrainerListSectionInner({
       };
       const url = filtersToHtmPath(slugParams);
       window.history.replaceState(null, '', url);
+      rememberTrainerListPath(url);
     },
     [],
   );

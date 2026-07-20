@@ -33,6 +33,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -172,7 +174,7 @@ public class TrainerServiceImpl implements TrainerService {
         List<TrainerListItemResponse> items = trainerIds.stream().map(id -> {
             Trainer t = trainerMap.get(id);
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
-            applyUserAvatar(item, t, userAvatarMap);
+            applyDisplayAvatar(item, t, userAvatarMap);
 
             List<CategoryRefDTO> catRefs = expertiseMap.getOrDefault(id, List.of()).stream().map(ec -> {
                 CategoryRefDTO dto = new CategoryRefDTO();
@@ -455,8 +457,8 @@ public class TrainerServiceImpl implements TrainerService {
         }
 
         TrainerPublicResponse response = trainerMapper.toPublicResponse(trainer);
-        response.setAvatar(resolveTrainerDisplayAvatar(trainer, loadUserAvatarMap(
-                trainer.getUserId() != null ? List.of(trainer.getUserId()) : List.of())));
+        applyDisplayAvatar(response, trainer, loadUserAvatarMap(
+                trainer.getUserId() != null ? List.of(trainer.getUserId()) : List.of()));
         fillSubTableData(response, trainerId);
 
         // 填充省市名称
@@ -552,7 +554,7 @@ public class TrainerServiceImpl implements TrainerService {
 
         return picked.stream().map(t -> {
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
-            applyUserAvatar(item, t, userAvatarMap);
+            applyDisplayAvatar(item, t, userAvatarMap);
             item.setExpertiseCategories(List.of());
             return item;
         }).toList();
@@ -617,7 +619,7 @@ public class TrainerServiceImpl implements TrainerService {
         // 组装列表项（不需要分类、地区名称，留空即可，前端只展示头像/姓名/头衔/评分）
         return trainers.stream().map(t -> {
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
-            applyUserAvatar(item, t, userAvatarMap);
+            applyDisplayAvatar(item, t, userAvatarMap);
             item.setExpertiseCategories(List.of());
             return item;
         }).toList();
@@ -1001,6 +1003,20 @@ public class TrainerServiceImpl implements TrainerService {
         });
     }
 
+    @Override
+    @Transactional
+    public void updateReviewStatsByUserId(Integer trainerUserId, BigDecimal score, int commentCount) {
+        if (trainerUserId == null) return;
+        trainerRepository.findByUserId(trainerUserId).ifPresent(t -> {
+            BigDecimal nextScore = (score == null ? BigDecimal.ZERO : score)
+                    .setScale(2, RoundingMode.HALF_UP);
+            t.setScore(nextScore);
+            t.setCommentCount(Math.max(0, commentCount));
+            trainerRepository.save(t);
+            publicTrainerListCache.evictPublicListCaches();
+        });
+    }
+
     /** 列表/推荐位头像与详情一致：优先 sys_users.avatar_url */
     private Map<Integer, String> loadUserAvatarMap(Collection<Integer> userIds) {
         if (userIds == null || userIds.isEmpty()) {
@@ -1011,23 +1027,49 @@ public class TrainerServiceImpl implements TrainerService {
                 .collect(Collectors.toMap(User::getId, User::getAvatarUrl, (a, b) -> a));
     }
 
-    private void applyUserAvatar(TrainerListItemResponse item, Trainer trainer, Map<Integer, String> userAvatarMap) {
-        item.setAvatar(resolveTrainerDisplayAvatar(trainer, userAvatarMap));
-    }
-
     /**
      * 专家展示头像：用户表优先，跳过旧站占位图，回退 trainer.avatar，再回退默认头像素材池。
+     * <p>同时写入 {@code avatarFallback}（素材库默认），供前端在自定义头像 404 时回退。</p>
      */
-    private String resolveTrainerDisplayAvatar(Trainer trainer, Map<Integer, String> userAvatarMap) {
+    private void applyDisplayAvatar(TrainerListItemResponse item, Trainer trainer,
+                                    Map<Integer, String> userAvatarMap) {
+        AvatarResolve resolved = resolveTrainerDisplayAvatarPair(trainer, userAvatarMap);
+        item.setAvatar(resolved.avatar());
+        item.setAvatarFallback(resolved.fallback());
+    }
+
+    private void applyDisplayAvatar(TrainerPublicResponse response, Trainer trainer,
+                                    Map<Integer, String> userAvatarMap) {
+        AvatarResolve resolved = resolveTrainerDisplayAvatarPair(trainer, userAvatarMap);
+        response.setAvatar(resolved.avatar());
+        response.setAvatarFallback(resolved.fallback());
+    }
+
+    private record AvatarResolve(String avatar, String fallback) {}
+
+    private AvatarResolve resolveTrainerDisplayAvatarPair(Trainer trainer,
+                                                          Map<Integer, String> userAvatarMap) {
         if (trainer == null) {
-            return "";
+            return new AvatarResolve("", "");
         }
         String userUrl = trainer.getUserId() != null && userAvatarMap != null
                 ? userAvatarMap.get(trainer.getUserId())
                 : null;
         String raw = firstNonBlankAvatar(userUrl, trainer.getAvatar());
         int seed = trainer.getId() != null ? trainer.getId() : 0;
-        return opsMaterialResolver.resolveAvatarUrl(raw, "TRAINER", true, seed);
+        String material = opsMaterialResolver.pickDefaultMaterialUrl("AVATAR", null, "TRAINER", seed);
+        if (material == null) {
+            material = "";
+        }
+        String avatar = opsMaterialResolver.resolveAvatarUrl(raw, "TRAINER", true, seed);
+        if (avatar == null || avatar.isBlank()) {
+            avatar = material;
+        }
+        return new AvatarResolve(avatar, material);
+    }
+
+    private String resolveTrainerDisplayAvatar(Trainer trainer, Map<Integer, String> userAvatarMap) {
+        return resolveTrainerDisplayAvatarPair(trainer, userAvatarMap).avatar();
     }
 
     private static String firstNonBlankAvatar(String... candidates) {

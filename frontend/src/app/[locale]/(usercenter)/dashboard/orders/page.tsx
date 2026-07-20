@@ -6,6 +6,7 @@ import { CheckCircle, Search, ShoppingBag } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { getOrders, cancelOrder, createOrder, getPendingOrderByProduct } from '@/features/order/api/service';
+import { notifyOrderPurchase } from '@/features/course/api/service';
 import { OrderCard } from '@/features/order/components/OrderCard';
 import { PaymentModal } from '@/features/order/components/PaymentModal';
 import { PendingOrderReminderDialog } from '@/features/order/components/PendingOrderReminderDialog';
@@ -165,9 +166,17 @@ export default function OrdersPage() {
     router.push(`${ROUTES.UC_ORDERS_INVOICE}?orderNo=${order.orderNo}`);
   };
 
-  const handlePaySuccess = (_result: PayResultVO) => {
+  const handlePaySuccess = async (_result: PayResultVO) => {
+    const order = payingOrder;
     setPayingOrder(null);
     toast.success('支付成功');
+    if (order?.orderNo) {
+      try {
+        await notifyOrderPurchase(order.orderNo);
+      } catch {
+        // 错误已弹出；后端支付回调也会补发
+      }
+    }
     fetchOrders();
   };
 
@@ -191,7 +200,13 @@ export default function OrdersPage() {
           <div className="flex-1 min-w-0">
             <p className="font-medium text-green-800">支付成功</p>
             <p className="text-sm text-green-700 mt-0.5">
-              您已成功购买录播课，可在下方订单中查看详情。
+              您已成功完成支付，可在下方订单中查看详情。
+              线上公开课的开课通知已发送至
+              {' '}
+              <Link href={ROUTES.UC_MESSAGES} className="font-medium underline hover:text-green-900">
+                消息中心
+              </Link>
+              。
               {watchVideoId && (
                 <>
                   {' '}

@@ -24,6 +24,12 @@ import {
   removeFavorite,
   getInteractionState,
 } from '@/features/interaction/api/service';
+import {
+  getCourseEnrollmentStatus,
+  getCourseReserveStatus,
+  reserveCourse,
+} from '../../api/service';
+import { CourseReserveSuccessDialog } from './CourseReserveSuccessDialog';
 import ReviewDialog from '@/features/interaction/components/ReviewDialog';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 
@@ -34,8 +40,11 @@ interface CourseSidebarProps {
 export function CourseSidebar({ course }: CourseSidebarProps) {
   const t = useTranslations('course.detail');
   const isOpen = course.type === 'OPEN_OFFLINE' || course.type === 'OPEN_ONLINE';
+  const isOnlineOpen = course.type === 'OPEN_ONLINE';
+  const isOfflineOpen = course.type === 'OPEN_OFFLINE';
   const isInternal = course.type === 'INTERNAL';
   const isOverdue = Boolean(course.isOverdue);
+  const isFreeOnline = isOnlineOpen && course.isFree === 1;
   const isPurchasable = isOpen && course.price > 0 && course.isFree !== 1 && !isOverdue;
   const productType = isInternal ? 'INTERNAL_COURSE' : 'OPEN_COURSE';
   const { addItem } = useCart();
@@ -48,6 +57,10 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
   const [consultOpen, setConsultOpen] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<Awaited<ReturnType<typeof getPendingOrderByProduct>>>(null);
   const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
+  const [reserved, setReserved] = useState(false);
+  const [reserveLoading, setReserveLoading] = useState(false);
+  const [reserveSuccessOpen, setReserveSuccessOpen] = useState(false);
+  const [purchased, setPurchased] = useState(false);
 
   const primaryPlan = course.plans?.[0];
   const planLocation = primaryPlan
@@ -62,6 +75,20 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
       .then((s) => setFavorited(s.favorited))
       .catch(() => {});
   }, [course.id]);
+
+  useEffect(() => {
+    if (!isFreeOnline) return;
+    getCourseReserveStatus(course.id)
+      .then(setReserved)
+      .catch(() => {});
+  }, [course.id, isFreeOnline]);
+
+  useEffect(() => {
+    if (!isPurchasable) return;
+    getCourseEnrollmentStatus(course.id)
+      .then(setPurchased)
+      .catch(() => setPurchased(false));
+  }, [course.id, isPurchasable]);
 
   const toggleFavorite = useCallback(async () => {
     setFavLoading(true);
@@ -119,11 +146,27 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
   };
 
   const handleAddToCart = async () => {
-    if (isOpen && !isPurchasable) {
+    if (!isPurchasable) {
       toast.info('该课程暂不支持加入购物车');
       return;
     }
     await addItem({ productType, productId: course.id });
+  };
+
+  const handleReserve = async () => {
+    if (!isFreeOnline || reserved || isOverdue) return;
+    setReserveLoading(true);
+    try {
+      await reserveCourse(course.id);
+      setReserved(true);
+      setReserveSuccessOpen(true);
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('已预约')) {
+        setReserved(true);
+      }
+    } finally {
+      setReserveLoading(false);
+    }
   };
 
   const handleShare = async () => {
@@ -186,7 +229,17 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
       )}
 
       {/* 购买按钮（付费公开课） */}
-      {isPurchasable && (
+      {isPurchasable && purchased && (
+        <button
+          type="button"
+          disabled
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-slate-200 text-slate-500 font-bold text-sm cursor-not-allowed opacity-60"
+        >
+          <Zap className="size-4" />
+          {t('purchased')}
+        </button>
+      )}
+      {isPurchasable && !purchased && (
         <>
           <button
             type="button"
@@ -230,21 +283,46 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         </>
       )}
 
-      {!isPurchasable && !isInternal && !isOverdue && (
+      {/* 免费线上公开课 — 立即预约 */}
+      {isFreeOnline && !isOverdue && (
+        <button
+          type="button"
+          onClick={() => requireAuth(handleReserve)}
+          disabled={reserveLoading || reserved}
+          className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-bold text-sm transition-all shadow-md ${
+            reserved
+              ? 'bg-slate-200 text-slate-500 cursor-not-allowed opacity-60'
+              : 'bg-primary text-white hover:bg-primary/90 disabled:opacity-50'
+          }`}
+        >
+          <Zap className="size-4" />
+          {reserveLoading ? '预约中...' : reserved ? '已预约' : t('reserve')}
+        </button>
+      )}
+
+      {/* 线下公开课免费 — 立即报名 */}
+      {isOfflineOpen && !isPurchasable && !isOverdue && (
+        <button
+          type="button"
+          onClick={() => requireAuth(() => setConsultOpen(true))}
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md"
+        >
+          <Zap className="size-4" />
+          {t('enroll')}
+        </button>
+      )}
+
+      {/* 非公开课非付费场景保留原内训逻辑 */}
+      {!isOpen && !isInternal && !isOverdue && (
         <button
           type="button"
           onClick={() => requireAuth(() => {
-            if (!isOpen) {
-              router.push(`/dashboard/demands/create?type=INTERNAL_RESERVATION&courseType=INTERNAL&courseid=${course.id}`);
-            }
+            router.push(`/dashboard/demands/create?type=INTERNAL_RESERVATION&courseType=INTERNAL&courseid=${course.id}`);
           })}
           className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md"
         >
-          {isOpen ? (
-            <><Zap className="size-4" /> {t('reserve')}</>
-          ) : (
-            <><Zap className="size-4" /> {t('enroll')}</>
-          )}
+          <Zap className="size-4" />
+          {t('enroll')}
         </button>
       )}
 
@@ -318,6 +396,11 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         order={pendingOrder}
         onOpenChange={setPendingDialogOpen}
         onContinue={handleContinueBuy}
+      />
+
+      <CourseReserveSuccessDialog
+        open={reserveSuccessOpen}
+        onClose={() => setReserveSuccessOpen(false)}
       />
     </div>
   );

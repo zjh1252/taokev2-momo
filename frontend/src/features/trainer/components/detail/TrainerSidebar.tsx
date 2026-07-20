@@ -101,6 +101,7 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
                 >
                   <SafeImage
                     src={t.avatar}
+                    fallback={t.avatarFallback || undefined}
                     alt={relatedName}
                     width={40}
                     height={40}

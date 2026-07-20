@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Play, Star, StarHalf } from 'lucide-react';
@@ -87,6 +87,16 @@ export function TrainerDetailContent({
     books: books.length,
   };
   const displayName = getTrainerDisplayName(trainer);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (activeTab === 'home') return;
+    const node = contentRef.current;
+    if (!node) return;
+    requestAnimationFrame(() => {
+      node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [activeTab]);
 
   return (
     <>
@@ -124,7 +134,7 @@ export function TrainerDetailContent({
       </div>
 
       {/* Tab 内容区 */}
-      <div className="min-h-[800px]">
+      <div ref={contentRef} className="min-h-[800px] scroll-mt-28">
         {activeTab === 'home' && (
           <HomeView trainer={trainer} courses={courses} coursesTotal={coursesTotal} cases={cases} />
         )}
