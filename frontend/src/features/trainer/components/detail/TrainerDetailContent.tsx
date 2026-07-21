@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Play, Star, StarHalf } from 'lucide-react';
@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { LegacyRichText } from '@/components/legacy-rich-text';
 import { SafeImage } from '@/components/safe-image';
-import { resolveImageSrc } from '@/lib/media';
 import type { TrainerDetail, TrainerBook } from '../../types';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
@@ -57,11 +56,76 @@ const TABS: TabConfig[] = [
   { id: 'books', label: '著作', countKey: 'books' },
 ];
 
+interface TrainerDetailTabsProps {
+  activeTab: TrainerTabId;
+  trainer: TrainerDetail;
+  coursesTotal: number;
+  casesCount: number;
+  highlightsCount: number;
+  videosTotal: number;
+  booksCount: number;
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-4">
       <div className="w-1 h-5 bg-primary rounded-full" />
       <h3 className="text-[22px] font-bold">{children}</h3>
+    </div>
+  );
+}
+
+export function TrainerDetailTabs({
+  activeTab,
+  trainer,
+  coursesTotal,
+  casesCount,
+  highlightsCount,
+  videosTotal,
+  booksCount,
+}: TrainerDetailTabsProps) {
+  const counts = {
+    courses: coursesTotal,
+    cases: casesCount,
+    highlights: highlightsCount,
+    videos: videosTotal,
+    reviews: trainer.commentCount ?? 0,
+    books: booksCount,
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-[1400px] px-6">
+      <nav className="rounded-b-xl border border-t border-slate-200 bg-white px-6 lg:px-8">
+        <div className="flex h-[60px] items-center gap-8 overflow-x-auto text-[15px]">
+          {TABS.map((tab) => {
+            const count = tab.countKey ? counts[tab.countKey] : 0;
+            const isActive = activeTab === tab.id;
+            return (
+              <Link
+                key={tab.id}
+                href={getTrainerDetailTabHref(trainer.id, tab.id)}
+                className={`flex h-full cursor-pointer items-center gap-1.5 whitespace-nowrap border-b-2 transition-colors ${
+                  isActive
+                    ? 'border-primary text-primary font-bold'
+                    : 'border-transparent text-slate-600 hover:text-primary'
+                }`}
+              >
+                <span>{tab.label}</span>
+                {tab.countKey && count > 0 && (
+                  <span
+                    className={cn(
+                      'inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-bold',
+                      isActive ? 'bg-primary text-white' : 'bg-slate-200 text-slate-600',
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
@@ -77,64 +141,12 @@ export function TrainerDetailContent({
   videosTotal,
   books,
 }: TrainerDetailContentProps) {
-  // 学员评价角标：以专家累计已通过评论数为准（后端在评价审核通过时同步 +1）
-  const counts = {
-    courses: coursesTotal,
-    cases: cases.length,
-    highlights: highlights.length,
-    videos: videosTotal,
-    reviews: trainer.commentCount ?? 0,
-    books: books.length,
-  };
   const displayName = getTrainerDisplayName(trainer);
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (activeTab === 'home') return;
-    const node = contentRef.current;
-    if (!node) return;
-    requestAnimationFrame(() => {
-      node.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }, [activeTab]);
 
   return (
     <>
-      {/* Tab 导航 */}
-      <div className="px-6 lg:px-8 border-t border-slate-200 bg-white rounded-b-xl -mt-6 mb-6">
-        <div className="flex items-center gap-8 overflow-x-auto text-[15px]">
-          {TABS.map((tab) => {
-            const count = tab.countKey ? counts[tab.countKey] : 0;
-            const isActive = activeTab === tab.id;
-            return (
-              <Link
-                key={tab.id}
-                href={getTrainerDetailTabHref(trainer.id, tab.id)}
-                className={`py-4 whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1.5 ${
-                  isActive
-                    ? 'text-primary border-b-2 border-primary font-bold'
-                    : 'text-slate-600 hover:text-primary'
-                }`}
-              >
-                <span>{tab.label}</span>
-                {tab.countKey && count > 0 && (
-                  <span className={cn(
-                    'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold',
-                    isActive
-                      ? 'bg-primary text-white'
-                      : 'bg-slate-200 text-slate-600'
-                  )}>
-                    {count}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Tab 内容区 */}
-      <div ref={contentRef} className="min-h-[800px] scroll-mt-28">
+      <div className="min-h-[800px]">
         {activeTab === 'home' && (
           <HomeView trainer={trainer} courses={courses} coursesTotal={coursesTotal} cases={cases} />
         )}
