@@ -340,6 +340,34 @@ export const navGroups: NavGroup[] = [
         icon: 'media',
         isActive: false,
         items: []
+      },
+      {
+        title: '底部管理',
+        url: '#',
+        icon: 'page',
+        isActive: false,
+        items: [
+          {
+            title: '网站导航',
+            url: '/dashboard/footer/nav'
+          },
+          {
+            title: '关于我们',
+            url: '/dashboard/footer/about'
+          },
+          {
+            title: '商务服务',
+            url: '/dashboard/footer/business'
+          },
+          {
+            title: '法律声明',
+            url: '/dashboard/footer/legal'
+          },
+          {
+            title: '联系我们',
+            url: '/dashboard/footer/contact'
+          }
+        ]
       }
     ]
   },

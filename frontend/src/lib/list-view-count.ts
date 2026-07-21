@@ -22,6 +22,10 @@ function readCache(): Record<string, number> {
   return storage.get<Record<string, number>>(VIEW_COUNT_CACHE_KEY) ?? {};
 }
 
+function normalizeCount(value: number | null | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
 /** 读取本地已记录的最高浏览量（返回上一页 / 刷新后仍展示点击后的值） */
 export function getCachedListViewCount(
   type: ListViewResourceType,
@@ -46,23 +50,45 @@ export function setCachedListViewCount(
   storage.set(VIEW_COUNT_CACHE_KEY, cache);
 }
 
-/** 服务端直接使用 initial 值，不做 localStorage 合并（避免 hydration 不匹配） */
+/** SSR / hydration 首屏：仅使用服务端 initial，避免与 localStorage 不一致 */
 export function resolveListViewCount(
+  _type: ListViewResourceType,
+  _id: number,
+  initial: number,
+): number {
+  return normalizeCount(initial);
+}
+
+/** CSR 阶段：与服务端 initial 及本地缓存取较大值 */
+export function resolveClientListViewCount(
   type: ListViewResourceType,
   id: number,
   initial: number,
 ): number {
-  // SSR 阶段 storage 返回 null，直接返回 initial
-  // CSR 阶段由 useBumpedViewCount 的 useEffect 做 Math.max 对齐
-  return Number.isFinite(initial) ? initial : 0;
+  const base = normalizeCount(initial);
+  const cached = getCachedListViewCount(type, id);
+  return cached != null ? Math.max(base, cached) : base;
 }
 
 /**
- * 列表卡片点击时上报浏览量（GET bumpView=1，keepalive，不阻塞跳转）
+ * 列表卡片点击时乐观 +1（仅本地，实际上报在详情页进入时完成）
  */
-export function recordListViewCount(type: ListViewResourceType, id: number) {
-  if (typeof window === 'undefined' || id <= 0) return;
+export function optimisticBumpListViewCount(
+  type: ListViewResourceType,
+  id: number,
+  initial: number,
+): number {
+  if (typeof window === 'undefined' || id <= 0) {
+    return normalizeCount(initial);
+  }
 
+  const current = resolveClientListViewCount(type, id, initial);
+  const next = current + 1;
+  setCachedListViewCount(type, id, next);
+  return next;
+}
+
+function sendViewCountRequest(type: ListViewResourceType, id: number) {
   const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
   const headers: Record<string, string> = {};
   if (tokenData?.accessToken) {
@@ -75,4 +101,27 @@ export function recordListViewCount(type: ListViewResourceType, id: number) {
     keepalive: true,
     headers,
   }).catch(() => {});
+}
+
+/**
+ * 详情页进入时上报浏览量 +1，并同步本地缓存（GET bumpView=1，keepalive）
+ */
+export function recordDetailViewCount(
+  type: ListViewResourceType,
+  id: number,
+  serverViewCount: number,
+) {
+  if (typeof window === 'undefined' || id <= 0) return;
+
+  const base = normalizeCount(serverViewCount);
+  const cached = getCachedListViewCount(type, id);
+  const expectedAfterBump = base + 1;
+  const next = Math.max(expectedAfterBump, cached ?? 0);
+  setCachedListViewCount(type, id, next);
+  sendViewCountRequest(type, id);
+}
+
+/** @deprecated 列表点击不再直接上报，保留兼容旧调用 */
+export function recordListViewCount(type: ListViewResourceType, id: number) {
+  sendViewCountRequest(type, id);
 }

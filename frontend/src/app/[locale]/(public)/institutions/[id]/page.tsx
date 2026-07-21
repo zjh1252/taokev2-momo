@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { institutionDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
+import { DetailViewRecorder } from '@/components/detail-view-recorder';
 import { getInstitutionDetail } from '@/features/institution/api/service';
 import { InstitutionHero } from '@/features/institution/components/detail/InstitutionHero';
 import { InstitutionDetailTabs } from '@/features/institution/components/detail/InstitutionDetailTabs';
@@ -44,6 +45,11 @@ export default async function InstitutionDetailPage({ params }: Props) {
 
   return (
     <main className="max-w-7xl w-full mx-auto px-8 pb-12">
+      <DetailViewRecorder
+        resourceType="institution"
+        resourceId={institution.id}
+        viewCount={institution.viewCount}
+      />
       {/* 面包屑导航 — 公共组件：首页 > 培训机构 > 当前机构 */}
       <PageBreadcrumb
         className="py-4"

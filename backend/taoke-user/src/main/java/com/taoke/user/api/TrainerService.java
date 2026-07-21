@@ -36,7 +36,7 @@ public interface TrainerService {
      * @param cityId               城市 ID（可选，匹配专家常驻地）
      * @param keyword              搜索关键词（可选，匹配 name / title / expertiseTags）
      * @param sort                 排序方式：default / score / newly_joined
-     * @param isTrusted            质量承诺过滤：1=仅显示信得过专家，其他/null 不限
+     * @param isTrusted            质量承诺过滤：1=老站优质讲师口径（is_signed=1 或 is_trusted=1），其他/null 不限
      * @param includeCourse        是否回填课程数量与标题
      */
     PageResponse<TrainerListItemResponse> listPublic(int page, int size,

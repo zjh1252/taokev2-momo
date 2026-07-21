@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
-import { resolveImageSrc } from '@/lib/media';
+import { UserAvatar } from '@/components/user-avatar';
 import { useAuth } from '@/lib/auth/auth-context';
 
 /** 当前激活角色 code → 中文展示名（顶部昵称后缀使用） */
@@ -41,7 +39,6 @@ type UserAuthAreaProps = {
 export function UserAuthArea({ variant = 'default' }: UserAuthAreaProps) {
   const t = useTranslations('nav');
   const { user, loading, logout, publicHomeHref, activeRole } = useAuth();
-  const [avatarBroken, setAvatarBroken] = useState(false);
   const roleSuffix = activeRole && ROLE_LABELS[activeRole] ? `（${ROLE_LABELS[activeRole]}）` : '';
 
   if (loading) {
@@ -68,29 +65,25 @@ export function UserAuthArea({ variant = 'default' }: UserAuthAreaProps) {
     );
   }
 
-  const initials = getInitials(user.nickname);
-  const showAvatar = user.avatarUrl && !avatarBroken;
-
-  const avatarNode = showAvatar ? (
-    <Image
-      src={resolveImageSrc(user.avatarUrl)}
-      alt={user.nickname}
-      width={22}
-      height={22}
-      unoptimized
-      className="size-[22px] rounded-full object-cover"
-      onError={() => setAvatarBroken(true)}
-    />
-  ) : (
-    <div className="size-[22px] rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-      {initials}
-    </div>
+  const profileLink = (
+    <Link
+      href={ROUTES.DASHBOARD}
+      className="group flex items-center gap-1.5 min-w-0 hover:text-primary transition-colors"
+    >
+      <UserAvatar src={user.avatarUrl} name={user.nickname} size={22} />
+      {variant === 'default' && (
+        <span className="text-slate-700 font-medium max-w-[160px] truncate group-hover:text-primary">
+          {user.nickname}
+          {roleSuffix && <span className="text-slate-500 ml-1">{roleSuffix}</span>}
+        </span>
+      )}
+    </Link>
   );
 
   if (variant === 'compact') {
     return (
       <div className="flex items-center gap-3 shrink-0">
-        {avatarNode}
+        {profileLink}
         <Separator />
         <Link href={ROUTES.DASHBOARD} className="hover:text-primary transition-colors whitespace-nowrap">
           {t('userCenter')}
@@ -105,13 +98,7 @@ export function UserAuthArea({ variant = 'default' }: UserAuthAreaProps) {
 
   return (
     <div className="flex items-center gap-3">
-      {avatarNode}
-
-      {/* 昵称 + 当前激活角色（如「淘客（专家）」），便于多角色用户辨识当前身份 */}
-      <span className="text-slate-700 font-medium max-w-[160px] truncate">
-        {user.nickname}
-        {roleSuffix && <span className="text-slate-500 ml-1">{roleSuffix}</span>}
-      </span>
+      {profileLink}
 
       <Separator />
 
@@ -149,14 +136,4 @@ export function UserAuthArea({ variant = 'default' }: UserAuthAreaProps) {
 
 function Separator() {
   return <span className="text-slate-300">|</span>;
-}
-
-/** 从昵称中提取最多 2 个字符作为头像 initials */
-function getInitials(name: string): string {
-  if (!name) return '?';
-  const upper = name.toUpperCase();
-  if (/^[A-Z]/.test(upper)) {
-    return upper.slice(0, 2);
-  }
-  return name.slice(0, 1);
 }

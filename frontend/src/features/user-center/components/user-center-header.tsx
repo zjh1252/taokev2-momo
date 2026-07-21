@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
-import { resolveImageSrc } from '@/lib/media';
+import { UserAvatar } from '@/components/user-avatar';
 import { useAuth } from '@/lib/auth/auth-context';
 import { NotificationBell } from '@/features/notification/components/NotificationBell';
 import { CartBadge } from '@/features/cart/components/CartBadge';
@@ -64,8 +63,6 @@ const ROLE_LABELS: Record<string, string> = {
 export function UserCenterHeader() {
   const { user, logout, publicHomeHref, activeRole } = useAuth();
   const roleSuffix = activeRole && ROLE_LABELS[activeRole] ? `（${ROLE_LABELS[activeRole]}）` : '';
-  const [avatarBroken, setAvatarBroken] = useState(false);
-  const showAvatar = user?.avatarUrl && !avatarBroken;
 
   return (
     <>
@@ -95,25 +92,16 @@ export function UserCenterHeader() {
             {/* 用户区域：头像 + 昵称（含角色后缀）+ 用户中心 + 我的主页 + 退出 */}
             {user ? (
               <div className="flex items-center gap-3">
-                {showAvatar ? (
-                  <Image
-                    src={resolveImageSrc(user.avatarUrl)}
-                    alt={user.nickname}
-                    width={22}
-                    height={22}
-                    unoptimized
-                    className="size-[22px] rounded-full object-cover"
-                    onError={() => setAvatarBroken(true)}
-                  />
-                ) : (
-                  <div className="size-[22px] rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                    {(user.nickname || '?').slice(0, 1)}
-                  </div>
-                )}
-                <span className="text-slate-700 font-medium max-w-[160px] truncate">
-                  {user.nickname}
-                  {roleSuffix && <span className="text-slate-500 ml-1">{roleSuffix}</span>}
-                </span>
+                <Link
+                  href={ROUTES.DASHBOARD}
+                  className="group flex items-center gap-1.5 min-w-0 hover:text-primary transition-colors"
+                >
+                  <UserAvatar src={user.avatarUrl} name={user.nickname} size={22} />
+                  <span className="text-slate-700 font-medium max-w-[160px] truncate group-hover:text-primary">
+                    {user.nickname}
+                    {roleSuffix && <span className="text-slate-500 ml-1">{roleSuffix}</span>}
+                  </span>
+                </Link>
                 <span className="text-slate-300">|</span>
                 {/* 当前页是用户中心，链接保留但加粗下划线突显「正在所在」位置 */}
                 <Link

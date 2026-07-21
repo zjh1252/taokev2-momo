@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  recordListViewCount,
+  getCachedListViewCount,
+  optimisticBumpListViewCount,
+  resolveClientListViewCount,
   resolveListViewCount,
-  setCachedListViewCount,
   type ListViewResourceType,
 } from '@/lib/list-view-count';
 
@@ -17,31 +18,38 @@ export function useBumpedViewCount(
     resolveListViewCount(resourceType, resourceId, initial),
   );
 
-  // 分页/筛选后服务端数据更新，或与本地缓存对齐
-  useEffect(() => {
+  const syncFromCache = useCallback(() => {
     setViewCount((current) =>
-      Math.max(current, resolveListViewCount(resourceType, resourceId, initial)),
+      Math.max(current, resolveClientListViewCount(resourceType, resourceId, initial)),
     );
   }, [initial, resourceType, resourceId]);
 
+  // hydration 后与本地缓存对齐（分页/筛选/返回列表页）
+  useEffect(() => {
+    syncFromCache();
+  }, [syncFromCache]);
+
   // 浏览器「返回」恢复页面（bfcache）时重新读取本地缓存
   useEffect(() => {
-    const syncFromCache = () => {
-      setViewCount((current) =>
-        Math.max(current, resolveListViewCount(resourceType, resourceId, initial)),
-      );
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        syncFromCache();
+        return;
+      }
+      // 非 bfcache 返回时，若缓存已更新也同步一次
+      if (getCachedListViewCount(resourceType, resourceId) != null) {
+        syncFromCache();
+      }
     };
-    window.addEventListener('pageshow', syncFromCache);
-    return () => window.removeEventListener('pageshow', syncFromCache);
-  }, [initial, resourceType, resourceId]);
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, [resourceId, resourceType, syncFromCache]);
 
   const onCardClick = useCallback(() => {
     setViewCount((current) => {
-      const next = current + 1;
-      setCachedListViewCount(resourceType, resourceId, next);
+      const next = optimisticBumpListViewCount(resourceType, resourceId, current);
       return next;
     });
-    recordListViewCount(resourceType, resourceId);
   }, [resourceType, resourceId]);
 
   return { viewCount, onCardClick };

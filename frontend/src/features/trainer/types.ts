@@ -26,7 +26,7 @@ export interface TrainerListParams {
   cityId?: number;
   keyword?: string;
   sort?: string;
-  /** 质量承诺：1=仅显示信得过专家 */
+  /** 质量承诺：1=老站优质讲师口径（签约或信得过） */
   isTrusted?: number;
   /** 是否回填课程数量与标题 */
   includeCourse?: boolean;
@@ -242,6 +242,8 @@ export interface RecommendedTrainerItem {
   teachingName?: string;
   title?: string;
   avatar?: string;
+  /** 素材库默认头像；主头像加载失败时回退 */
+  avatarFallback?: string;
   score?: number;
   isRecommended?: number;
   oneLineIntro?: string;

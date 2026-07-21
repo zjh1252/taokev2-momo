@@ -1,4 +1,5 @@
 import type { TrainerDetailPageData } from '../../api/trainer-detail-page-data';
+import { DetailViewRecorder } from '@/components/detail-view-recorder';
 import { getTrainerDisplayName } from '../../utils/displayName';
 import type { TrainerTabId } from '../../utils/routes';
 import { TrainerDetailBreadcrumb } from './TrainerDetailBreadcrumb';
@@ -25,6 +26,11 @@ export function TrainerDetailPageView({
 
   return (
     <>
+      <DetailViewRecorder
+        resourceType="trainer"
+        resourceId={trainer.id}
+        viewCount={trainer.viewCount}
+      />
       <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-6">
         <TrainerDetailBreadcrumb trainerName={displayName || '专家详情'} />
       </div>

@@ -105,21 +105,7 @@ public class TrainerServiceImpl implements TrainerService {
             }
         }
 
-        // 构建排序
-        Sort jpaSort = switch (sort != null ? sort : "") {
-            case "score" -> Sort.by(Sort.Direction.DESC, "score")
-                    .and(Sort.by(Sort.Direction.DESC, "id"));
-            case "score_asc" -> Sort.by(Sort.Direction.ASC, "score")
-                    .and(Sort.by(Sort.Direction.ASC, "id"));
-            case "default_asc" -> Sort.by(Sort.Direction.ASC, "sortOrder")
-                    .and(Sort.by(Sort.Direction.ASC, "score"))
-                    .and(Sort.by(Sort.Direction.ASC, "id"));
-            case "newly_joined" -> Sort.by(Sort.Direction.DESC, "createdAt")
-                    .and(Sort.by(Sort.Direction.DESC, "id"));
-            default -> Sort.by(Sort.Direction.DESC, "sortOrder")
-                    .and(Sort.by(Sort.Direction.DESC, "score"))
-                    .and(Sort.by(Sort.Direction.DESC, "id"));
-        };
+        Sort jpaSort = buildPublicListSort(sort);
 
         PageRequest pageable = PageRequest.of(page - 1, size, jpaSort);
 
@@ -268,6 +254,28 @@ public class TrainerServiceImpl implements TrainerService {
         return ids;
     }
 
+    /**
+     * 公开列表排序。默认综合排序：信得过 → 签约 → sort_order → 评分（信得过标签优先展示）。
+     */
+    private Sort buildPublicListSort(String sort) {
+        return switch (sort != null ? sort : "") {
+            case "score" -> Sort.by(Sort.Direction.DESC, "score")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "score_asc" -> Sort.by(Sort.Direction.ASC, "score")
+                    .and(Sort.by(Sort.Direction.ASC, "id"));
+            case "default_asc" -> Sort.by(Sort.Direction.ASC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.ASC, "score"))
+                    .and(Sort.by(Sort.Direction.ASC, "id"));
+            case "newly_joined" -> Sort.by(Sort.Direction.DESC, "createdAt")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            default -> Sort.by(Sort.Direction.DESC, "isTrusted")
+                    .and(Sort.by(Sort.Direction.DESC, "isSigned"))
+                    .and(Sort.by(Sort.Direction.DESC, "sortOrder"))
+                    .and(Sort.by(Sort.Direction.DESC, "score"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        };
+    }
+
     /** 构建列表查询的动态条件 */
     private Specification<Trainer> buildListSpec(Integer expertiseCategoryId,
                                                  Integer industryCategoryId,
@@ -299,9 +307,11 @@ public class TrainerServiceImpl implements TrainerService {
                 predicates.add(cb.equal(root.get("cityId"), cityId));
             }
 
-            // 质量承诺：仅 isTrusted=1 时筛选「信得过」专家
+            // 质量承诺 / 老站「优质讲师」：issign 或 is_xdg/isqc（迁库后 is_signed / is_trusted）
             if (isTrusted != null && isTrusted == 1) {
-                predicates.add(cb.equal(root.get("isTrusted"), 1));
+                predicates.add(cb.or(
+                        cb.equal(root.get("isTrusted"), 1),
+                        cb.equal(root.get("isSigned"), 1)));
             }
 
             if (hasCopyrightCourse != null && hasCopyrightCourse == 1) {
