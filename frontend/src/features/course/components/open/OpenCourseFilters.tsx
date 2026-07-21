@@ -241,7 +241,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
   const activeMeta = FILTER_ITEMS.find((f) => f.key === activeFilter);
 
   return (
-    <div className="w-64 shrink-0 relative" onMouseLeave={handleMouseLeave}>
+    <div className="w-full shrink-0 relative" onMouseLeave={handleMouseLeave}>
       <aside className="bg-white rounded-xl shadow-sm border border-slate-100">
         {FILTER_ITEMS.map((item, index) => (
           <div

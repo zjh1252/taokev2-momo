@@ -6,6 +6,7 @@ import { ListPagePagination } from '@/components/list-page-pagination';
 import { useListPageUrlSync } from '@/hooks/use-list-page-url';
 import { OpenCourseCard } from './OpenCourseCard';
 import { OpenCourseFilters, type OpenCourseFilterValue } from './OpenCourseFilters';
+import { CourseListPromoSidebar } from '../CourseListPromoSidebar';
 import { getCourseList } from '../../api/service';
 import type { CourseListItem, PageResponse, CategoryTreeNode } from '../../api/types';
 import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-nav';
@@ -393,12 +394,13 @@ function OpenCourseListSectionInner({
   return (
     <div className="flex flex-col gap-6">
     <div className="flex gap-6 items-start">
-      <div className="w-64 shrink-0 sticky top-[120px] self-start z-30">
+      <div className="w-[300px] shrink-0 sticky top-[120px] self-start z-30 flex flex-col gap-10">
         <OpenCourseFilters
           categoryTree={categoryTree}
           value={filters}
           onChange={handleFilterChange}
         />
+        <CourseListPromoSidebar variant="open" />
       </div>
 
       <div className="flex-1 flex flex-col gap-4 min-w-0">

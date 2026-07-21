@@ -6,6 +6,7 @@ import { ListPagePagination } from '@/components/list-page-pagination';
 import { useListPageUrlSync } from '@/hooks/use-list-page-url';
 import { InnerCourseCard } from './InnerCourseCard';
 import { InnerCourseFilters, type InnerCourseFilterValue } from './InnerCourseFilters';
+import { CourseListPromoSidebar } from '../CourseListPromoSidebar';
 import { getCourseList } from '../../api/service';
 import type { CourseListItem, PageResponse, CategoryTreeNode } from '../../api/types';
 import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-nav';
@@ -255,11 +256,14 @@ function InnerCourseListSectionInner({
   return (
     <div className="flex flex-col gap-6">
     <div className="flex gap-6 items-start">
-      <InnerCourseFilters
-        categoryTree={categoryTree}
-        value={filters}
-        onChange={handleFilterChange}
-      />
+      <div className="w-[300px] shrink-0 sticky top-[120px] self-start z-30 flex flex-col gap-10">
+        <InnerCourseFilters
+          categoryTree={categoryTree}
+          value={filters}
+          onChange={handleFilterChange}
+        />
+        <CourseListPromoSidebar variant="inner" />
+      </div>
 
       <div className="flex-1 flex flex-col gap-4">
         {(institutionId && initialInstitutionName) || filterChips.length > 0 ? (
