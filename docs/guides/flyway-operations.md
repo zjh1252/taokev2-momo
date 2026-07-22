@@ -145,6 +145,23 @@ SELECT MAX(CAST(version AS UNSIGNED)) FROM flyway_schema_history WHERE success =
 
 **Agent 约定**：验证脚本返回非 0 时，先修 SQL 再交付；checksum 问题按 §5.2 直接跑 `_fix_flyway_*.py` repair。
 
+### 4.5 本地开发与 test 共用同一数据库时的约定
+
+> 当前实践：本地开发与 test 环境可能连接**同一 MySQL 库**（换库成本高时允许）。此时 Flyway 历史表是公共账本，必须按下列规则操作，否则会出现 checksum 冲突、test 后端起不来、页面 502。
+
+**原则**：谁先跑迁移，库内 `flyway_schema_history` 就以那次脚本内容为准；之后本地与 test **必须使用同一 git 内容的迁移文件**。不要关 Flyway 规避问题。
+
+| 规则 | 说明 |
+|------|------|
+| 只追加、不改旧脚本 | 某版本一旦在该库 `success=1`，禁止再改对应 `Vxx__*.sql`；表结构变更一律新建更高版本 |
+| 先提交再跑 / 再打镜像 | 避免：本地用未提交 SQL 写入库，再构建出「已改过脚本」的镜像上 test |
+| 发 test 前对齐 | 镜像内迁移文件须与库中已执行内容一致；若已改过已执行脚本，要么回滚文件内容再构建，要么确认 DDL 已按新脚本生效后做 checksum repair（§5.2） |
+| 发版窗口内少改库 | 本地猛改 Flyway 时先别发 test；发版窗口内本地也勿再改旧脚本 |
+| 业务镜像版本对齐 | `compose up` 时显式 `VERSION=x.y.z`，backend / frontend / admin / crawler 同版本；勿漏带 VERSION 导致部分服务停在旧标签 |
+| 禁止用关 Flyway 代替治理 | `ddl-auto: validate` 依赖 Flyway 演进表结构；关校验只会掩盖不一致 |
+
+**典型事故链（2026-07-22）**：本地改过已执行的 V87 → 库内 checksum 与 test 镜像不一致 → backend `FlywayValidateException` → nginx 502。处理：按 §5.2 repair，或对齐脚本后重启；长期靠本表约束，而非拆库/关 Flyway。
+
 ---
 
 ## 5. 故障排查与修复
@@ -258,6 +275,12 @@ C 端 `apiClient` 在无法连接后端（`localhost:8080`）时会 toast：
 ## 7. 操作记录（changelog）
 
 > 后续凡涉及 Flyway 脚本的增删改、生产/测试库 repair、与手工 SQL 的联动，在此追加一条。
+
+### 2026-07-22 — 本地与 test 共用库约定（§4.5）
+
+**背景**：test 与本地连同一库；本地改过已执行的 V87 后，test 后端 Flyway validate 失败（checksum 不匹配）导致 502。同时 compose 未对齐 VERSION 时出现 frontend/admin/backend 与 crawler 镜像版本不一致。
+
+**约定**：写入本文 §4.5；不换库时以「不改旧脚本 + 先提交再跑 + 发版写死同一 VERSION + 冲突按 §5.2 repair」约束，不关 Flyway。
 
 ### 2026-07-17 — V150 纠正专家评价 scope 并回填评分
 
