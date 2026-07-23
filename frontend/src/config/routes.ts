@@ -18,6 +18,18 @@ export const ROUTES = {
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',
 
+  // ---- 底部静态页（对齐老站 about 落地页）----
+  ABOUT_TAOKE: '/about/taoke',
+  ABOUT_CONTACT: '/about/contact',
+  ABOUT_CAREERS: '/about/careers',
+  ABOUT_BUSINESS: '/about/business',
+  ABOUT_ADS: '/about/ads',
+  ABOUT_TERMS: '/about/terms',
+  ABOUT_LEGAL: '/about/legal',
+  ABOUT_PRIVACY: '/about/privacy',
+  ABOUT_HELP: '/about/help',
+  ABOUT_SITEMAP: '/about/sitemap',
+
   // ---- 用户中心 ----
   DASHBOARD: '/dashboard',
   UC_MESSAGES: '/dashboard/messages',

@@ -25,7 +25,6 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { uploadImageFile } from '@/features/materials/api/service';
-import { assertApiOk } from '@/lib/api-client';
 import {
   footerQueries,
   updateFooterConfigMutation,
@@ -86,9 +85,8 @@ function LinkEditor({
   });
 
   const uploadQr = async (file: File) => {
-    const res = await uploadImageFile(file);
-    assertApiOk(res);
-    setForm((prev) => ({ ...prev, qrImageUrl: res.data.url }));
+    const url = await uploadImageFile(file);
+    setForm((prev) => ({ ...prev, qrImageUrl: url }));
   };
 
   return (
@@ -253,9 +251,8 @@ function ConfigEditor({
   });
 
   const uploadMainQr = async (file: File) => {
-    const res = await uploadImageFile(file);
-    assertApiOk(res);
-    setForm((prev) => ({ ...prev, mainQrImageUrl: res.data.url }));
+    const url = await uploadImageFile(file);
+    setForm((prev) => ({ ...prev, mainQrImageUrl: url }));
   };
 
   if (section === 'NAV') {

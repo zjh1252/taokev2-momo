@@ -11,10 +11,10 @@ export type UpdateFooterConfigPayload = {
   brandTagline: string;
   companyIntro?: string;
   phone: string;
-  mainQrImageUrl?: string;
+  mainQrImageUrl?: string | null;
   copyrightText: string;
   companyCopyrightText: string;
-  companyCopyrightUrl?: string;
+  companyCopyrightUrl?: string | null;
   icpText: string;
 };
 
