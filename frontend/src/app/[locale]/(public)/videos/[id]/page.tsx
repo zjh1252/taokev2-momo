@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { videoDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
-import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getVideoDetail } from '@/features/video/api/service';
 import { VideoDetailShell } from '@/features/video/components/detail/VideoDetailShell';
 import { VideoHero } from '@/features/video/components/detail/VideoHero';
@@ -36,14 +35,6 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
-      {/* 面包屑导航 — 公共组件：首页 > 录播课 > 当前视频 */}
-      <PageBreadcrumb
-        items={[
-          { label: '录播课', href: '/videos' },
-          { label: video.title || '录播课详情' },
-        ]}
-      />
-
       <VideoDetailShell video={video}>
         {/* Hero：内嵌 Video.js，与目录共用播放源 */}
         <VideoHero video={video} />

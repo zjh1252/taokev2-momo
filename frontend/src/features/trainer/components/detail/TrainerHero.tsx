@@ -101,7 +101,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
   }, [favorited, trainer.userId]);
 
   return (
-    <section className="relative z-10 mx-auto w-full max-w-[1400px] px-6">
+    <section className="relative z-10 mx-auto w-full max-w-[1400px] px-6 pt-6">
       <div className="relative overflow-hidden rounded-t-xl border border-b-0 border-slate-200 bg-white shadow-sm">
         <Image
           src="/statics/images/trainer/hero-taoke-watermark.png"

@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import { innerCourseDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
-import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { DetailViewRecorder } from '@/components/detail-view-recorder';
 import { setRequestLocale } from 'next-intl/server';
 import { getCourseDetail } from '@/features/course/api/service';
@@ -46,13 +45,6 @@ export default async function InnerCourseDetailPage({ params }: Props) {
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-6">
       <DetailViewRecorder resourceType="course" resourceId={course.id} viewCount={course.viewCount} />
-      {/* 面包屑导航 — 首页 > 内训课 > 当前课程 */}
-      <PageBreadcrumb
-        items={[
-          { label: '内训课', href: '/innercourses' },
-          { label: course.title || '内训课详情' },
-        ]}
-      />
 
       <CourseHero course={course} />
 

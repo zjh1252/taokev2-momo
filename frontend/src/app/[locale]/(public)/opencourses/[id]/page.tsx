@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { openCourseDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 import { setRequestLocale } from 'next-intl/server';
-import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { DetailViewRecorder } from '@/components/detail-view-recorder';
 import { getCourseDetail } from '@/features/course/api/service';
 import { CourseHero } from '@/features/course/components/detail/CourseHero';
@@ -47,13 +46,6 @@ export default async function OpenCourseDetailPage({ params }: Props) {
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-6">
       <DetailViewRecorder resourceType="course" resourceId={course.id} viewCount={course.viewCount} />
-      {/* 面包屑导航 — 首页 > 公开课 > 当前课程 */}
-      <PageBreadcrumb
-        items={[
-          { label: '公开课', href: '/opencourses' },
-          { label: course.title || '公开课详情' },
-        ]}
-      />
 
       <ExpiredCourseBanner show={Boolean(course.isOverdue)} />
 

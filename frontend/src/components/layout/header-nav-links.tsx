@@ -24,14 +24,22 @@ export function isNavLinkActive(href: string, pathname: string): boolean {
 
 type HeaderNavLinksProps = {
   className?: string;
+  /** 详情顶栏更紧凑：缩小字号与间距 */
+  dense?: boolean;
 };
 
-export function HeaderNavLinks({ className }: HeaderNavLinksProps) {
+export function HeaderNavLinks({ className, dense = false }: HeaderNavLinksProps) {
   const t = useTranslations('nav');
   const pathname = usePathname();
 
   return (
-    <div className={cn('hidden lg:flex items-stretch gap-8 shrink-0 self-stretch', className)}>
+    <div
+      className={cn(
+        'hidden lg:flex items-stretch shrink-0 self-stretch',
+        dense ? 'gap-5' : 'gap-8',
+        className,
+      )}
+    >
       {NAV_LINKS.map(({ key, href }) => {
         const active = isNavLinkActive(href, pathname);
         return (
@@ -39,7 +47,8 @@ export function HeaderNavLinks({ className }: HeaderNavLinksProps) {
             key={key}
             href={href}
             className={cn(
-              'flex items-center px-0.5 text-[15px] font-medium border-b-4 transition-colors',
+              'flex items-center px-0.5 font-medium transition-colors',
+              dense ? 'text-[13px] border-b-2' : 'text-[15px] border-b-4',
               active
                 ? 'text-primary border-primary font-bold'
                 : 'text-slate-600 border-transparent hover:text-primary hover:border-primary',
