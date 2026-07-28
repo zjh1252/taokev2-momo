@@ -48,7 +48,7 @@ export default async function VideoPlayPage({ params, searchParams }: PageProps)
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-100/80 via-slate-50 to-white">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex flex-col gap-6 md:gap-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex flex-col gap-6 md:gap-8">
         <VideoDetailShell video={video} preferredChapterId={preferredChapterId}>
           <VideoPlayPageContent video={video} />
         </VideoDetailShell>
