@@ -5,6 +5,7 @@ import { BookOpen, Eye, Lock, Share2, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
+import { buildVideoCategoryTags } from '../../utils/category-tags';
 import { SafeImage } from '@/components/safe-image';
 import { resolveImageSrc, getVideoCoverFallback } from '@/lib/media';
 import type { VideoDetail, VideoChapter } from '../../api/types';
@@ -62,29 +63,7 @@ export function VideoPlayPageContent({ video }: VideoPlayPageContentProps) {
     return undefined;
   }, [progressInfo, currentChapterId]);
 
-  const categoryTags = useMemo(() => {
-    const tags: { label: string; href?: string }[] = [];
-    if (video.categoryName) {
-      tags.push({
-        label: video.categoryName,
-        href: `${ROUTES.ONLINE_COURSES}?categoryId=${video.categoryId}`,
-      });
-    }
-    if (video.subCategoryName && video.subCategoryId) {
-      tags.push({
-        label: video.subCategoryName,
-        href: `${ROUTES.ONLINE_COURSES}?categoryId=${video.categoryId}&subCategoryId=${video.subCategoryId}`,
-      });
-    }
-    if (video.keywords) {
-      video.keywords
-        .split(/[,，、\s]+/)
-        .filter(Boolean)
-        .slice(0, 4)
-        .forEach((kw) => tags.push({ label: kw }));
-    }
-    return tags;
-  }, [video]);
+  const categoryTags = useMemo(() => buildVideoCategoryTags(video), [video]);
 
   const handleShare = async () => {
     const url = typeof window !== 'undefined' ? window.location.href : '';
