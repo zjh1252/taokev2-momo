@@ -11,7 +11,7 @@ import {
   getCachedTrainerExpertiseTree,
   getCachedTrainerIndustryTree,
 } from '@/lib/cached-categories';
-import { buildInstitutionCategoryLinks } from '@/lib/institution-category-nav';
+import { buildInstitutionCategoryNavItems } from '@/lib/channel-category-stats';
 import { isPxbEmbedOrigin } from '@/lib/pxb-embed';
 import { institutionListMetadata, institutionListH1 } from '@/lib/seo';
 import { firstStringValue, normalizeNumberIds } from '@/lib/search-params';
@@ -112,7 +112,10 @@ export default async function InstitutionsPage({ searchParams }: Props) {
 
   const initialGoldRecommends = await loadGoldInstitutions(goldPool.list, 4);
 
-  const categoryItems = buildInstitutionCategoryLinks(expertiseTree, '/company');
+  const categoryItems = await buildInstitutionCategoryNavItems(
+    expertiseTree,
+    '/company',
+  );
 
   const listH1 = institutionListH1({
     category: firstStringValue(sp.categoryName),
@@ -121,7 +124,7 @@ export default async function InstitutionsPage({ searchParams }: Props) {
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
       <PageBreadcrumb items={[{ label: '培训机构' }]} />
-      <h1 className="text-2xl font-bold text-slate-900">{listH1}</h1>
+      <h1 className="sr-only">{listH1}</h1>
 
       <InstitutionListSection
         initialData={initialData}

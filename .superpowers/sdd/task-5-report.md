@@ -1,27 +1,57 @@
-# Task 5 Report: `includeCourse` 按需 enrich 与缓存隔离
+# Task 5 Report: 视频分类只保留一级 + 单测（#14）
 
-## Status
-**Complete**
+## 状态
 
-## Changes
-- `TrainerService.listPublic`、实现类与公开 Controller 新增 `includeCourse` 参数，HTTP 默认 `false`。
-- `TrainerServiceImpl` 仅在 `includeCourse=true` 时调用 `TrainerListItemEnricher`。
-- 专家默认列表缓存读写 key 增加 `:c0` / `:c1`，失效时同时清除两类 key。
-- `TrainerListParams` 移至公共 `types.ts` 并新增 `includeCourse?: boolean`。
-- `getTrainerList` 仅在显式传入 `true` 时发送 `includeCourse=true`。
-- PXB 的 `pxbTrainerListParams` 固定传入 `includeCourse: true`。
-- 已搜索全部 Java `listPublic` 调用；专家服务仅由 `TrainerController` 调用并已更新。
+✅ 完成
 
 ## Commit
-`perf: skip trainer list course enrich unless includeCourse`
 
-## Test Summary
-- `cd backend && mvn -pl taoke-user,taoke-app -am compile -q`：通过（exit 0）。
-- IDE scoped lint：无错误。
-- `pnpm exec tsc --noEmit`：未执行成功；该 worktree 未安装 `node_modules`，找不到 `tsc`。
+```
+a984671f fix(frontend): 视频播放页分类标签仅保留一级
+```
 
-## Concerns
-- 前端完整类型检查需在安装依赖后补跑。
+变更文件：
+- `frontend/src/features/video/utils/category-tags.ts`（新建）
+- `frontend/src/features/video/utils/category-tags.test.ts`（新建）
+- `frontend/src/features/video/components/play/VideoPlayPageContent.tsx`（改用 `buildVideoCategoryTags`）
 
-## Report Path
-`.superpowers/sdd/task-5-report.md`
+## TDD 证据
+
+### RED
+
+命令：
+```bash
+cd frontend && pnpm exec vitest run src/features/video/utils/category-tags.test.ts
+```
+
+输出：
+```
+ FAIL  src/features/video/utils/category-tags.test.ts
+Error: Cannot find module './category-tags' imported from .../category-tags.test.ts
+
+ Test Files  1 failed (1)
+      Tests  no tests
+```
+
+### GREEN
+
+命令：
+```bash
+cd frontend && pnpm exec vitest run src/features/video/utils/category-tags.test.ts
+```
+
+输出：
+```
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Duration  216ms
+```
+
+## 实现摘要
+
+- `buildVideoCategoryTags` 仅返回一级 `categoryName`（最多 1 项），忽略 `subCategory*` 与 `keywords`
+- `VideoPlayPageContent` 删除内联拼接逻辑，改为 `useMemo(() => buildVideoCategoryTags(video), [video])`
+
+## 关注点
+
+- 无。单测覆盖「有二级/关键词时只出一级」与「无 categoryName 时为空」两种场景。

@@ -7,7 +7,7 @@ import { resolveCityFilterId } from '@/features/city/lib/filter-city-id';
 import { getInstitutionList } from '@/features/institution/api/service';
 import { loadGoldInstitutions } from '@/features/recommendation/api/loaders';
 import { getCachedTrainerExpertiseTree } from '@/lib/cached-categories';
-import { buildInstitutionCategoryLinks } from '@/lib/institution-category-nav';
+import { buildInstitutionCategoryNavItems } from '@/lib/channel-category-stats';
 import { institutionListMetadata, institutionListH1 } from '@/lib/seo';
 
 interface Props {
@@ -46,7 +46,7 @@ export default async function CityInstitutionListPage({ params }: Props) {
   ]);
 
   const initialGoldRecommends = await loadGoldInstitutions(initialData.list, 4);
-  const categoryItems = buildInstitutionCategoryLinks(expertiseTree, '/company');
+  const categoryItems = await buildInstitutionCategoryNavItems(expertiseTree, '/company');
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
@@ -56,7 +56,7 @@ export default async function CityInstitutionListPage({ params }: Props) {
           { label: '培训机构' },
         ]}
       />
-      <h1 className="text-2xl font-bold text-slate-900">
+      <h1 className="sr-only">
         {institutionListH1({ city: detail.cityName })}
       </h1>
       <InstitutionListSection

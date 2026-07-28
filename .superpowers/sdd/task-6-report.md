@@ -1,38 +1,32 @@
-# Task 6 Report: Trim recent cases and parallelize trainer SSR
+# Task 6 Report: Video.js 中文控件（#12）
 
-## Status
-**Complete**
+## 状态
 
-## Changes
-- Removed `description` population from `TrainerCaseServiceImpl.listRecentApproved`.
-- Made `RecentTrainerCase.description` optional because the home-page mapper still reads it with an empty fallback.
-- Started the unfiltered trainer list request independently of the expertise and industry trees.
-- Kept field/industry-filtered requests dependent on both trees and reused the existing industry-tree promise.
-- Preserved the PXB embed branch and the recommended trainer limit of 12.
+✅ 完成
 
 ## Commit
-`5a93a028 perf: trim trainer page payload and parallelize fetches`
 
-## Test Summary
-- `pnpm exec eslint "src/app/[locale]/(public)/trainers/page.tsx" "src/features/trainer/api/service.ts"` — passed.
-- `pnpm exec tsc --noEmit` — passed.
-- `git diff --check` — passed.
-- IDE diagnostics for all three changed files — no errors.
-- Backend Maven verification was not run because the workspace rules prohibit Java compilation/Maven.
-- DevTools RSC timing comparison was not run in this non-browser task session.
+```
+fix(frontend): Video.js 播放器控件切换为中文
+```
 
-## Concerns
-- None in the requested code scope. Runtime timing still needs the brief's browser comparison.
+变更文件：
+- `frontend/src/features/video/components/player/VideoJsPlayer.tsx`（注册 `zh-CN` 语言包，`language: 'zh-CN'`）
+- `video-player.css` 未改动（默认 controlBar 布局未破坏全屏按钮位置）
 
-## Report Path
-`.superpowers/sdd/task-6-report.md`
+## 实现摘要
 
-## Review Fixes
-- Restored SEO slug pagination precedence with `slugParams.page ?? page` for trainer list requests and fallbacks.
-- Applied region-only slug filters without waiting for category trees.
-- Preserved category-tree resolution for field/industry slugs and passed region through for combined filters.
+- 模块级 `videojs.addLanguage('zh-CN', zhCN)`，自 `video.js/dist/lang/zh-CN.json` 导入
+- 播放器初始化增加 `language: 'zh-CN'`，控制条 tooltip/菜单文案为中文（如「全屏」「播放」「暂停」）
 
-## Review Fix Verification
-- `pnpm exec eslint "src/app/[locale]/(public)/trainers/page.tsx"` — passed.
-- `pnpm exec tsc --noEmit` — passed.
-- `git diff --check` — passed (existing LF-to-CRLF warning for `.superpowers/sdd/progress.md` only).
+## 验证
+
+| 项 | 结果 |
+|---|---|
+| `pnpm exec tsc --noEmit` | ✅ 通过 |
+| ESLint（VideoJsPlayer.tsx） | ✅ 无新增问题 |
+| 手工 `/videos/{id}/play` 中文控件 + 全屏右下 | ⏳ 需本地打开播放页确认 |
+
+## 备注
+
+全屏按钮仍由 Video.js 默认 controlBar 顺序控制，未额外 CSS 兜底。

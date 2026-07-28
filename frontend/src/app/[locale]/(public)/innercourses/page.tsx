@@ -148,7 +148,7 @@ export default async function InnerCoursesPage({ searchParams }: Props) {
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
       <PageBreadcrumb items={[{ label: '内训课' }]} />
-      <h1 className="text-2xl font-bold text-slate-900">{listH1}</h1>
+      <h1 className="sr-only">{listH1}</h1>
 
       <Suspense
         fallback={<div className="min-h-[480px] animate-pulse rounded-xl bg-slate-100" />}

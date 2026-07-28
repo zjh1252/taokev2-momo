@@ -117,11 +117,9 @@ export function TrainerCaseScroller({
                   <span className="flex-1 min-w-0 text-[14px] text-slate-800 line-clamp-1 group-hover/item:text-primary transition-colors">
                     {c.caseTitle}
                   </span>
-                  {formatScore(c) ? (
-                    <span className="shrink-0 text-[13px] font-semibold text-rose-500">
-                      {formatScore(c)}分
-                    </span>
-                  ) : null}
+                  <span className="shrink-0 text-[13px] font-semibold text-rose-500">
+                    {formatScore(c)}分
+                  </span>
                 </Link>
               ) : (
                 <div key={`empty-${colIdx}`} className="flex-1" />
@@ -134,11 +132,11 @@ export function TrainerCaseScroller({
   );
 }
 
-function formatScore(c: RecentTrainerCase): string | null {
-  // 评分按整数展示；无有效评分时不展示，避免推荐位缺字段时刷「0分」
+function formatScore(c: RecentTrainerCase): string {
+  // 评分按整数展示；无有效评分时默认 5 分
   const s = c.trainerScore;
-  if (s == null) return null;
+  if (s == null) return '5';
   const n = typeof s === 'number' ? s : parseFloat(String(s));
-  if (!Number.isFinite(n) || n <= 0) return null;
+  if (!Number.isFinite(n) || n <= 0) return '5';
   return String(Math.round(n));
 }

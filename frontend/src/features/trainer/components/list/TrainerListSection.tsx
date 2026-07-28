@@ -268,7 +268,7 @@ function TrainerListSectionInner({
       ) : null}
 
       <section className="flex gap-5 items-start">
-        <div className="pt-7 shrink-0">
+        <div className="shrink-0">
           <TrainerFilters
             expertiseTree={expertiseTree}
             industryTree={industryTree}
@@ -276,11 +276,9 @@ function TrainerListSectionInner({
             onChange={handleFilterChange}
           />
         </div>
-        <div className="flex-1 min-w-0 flex flex-col gap-2 min-h-0">
-          <h2 className="text-sm font-bold text-slate-700 px-1">热门培训领域</h2>
-          <div className="flex-1 min-h-0">
-            <TrainerRecommendedScroller initialItems={recommendedTrainers} />
-          </div>
+        <div className="flex-1 min-w-0 min-h-0">
+          <h2 className="sr-only">热门培训领域</h2>
+          <TrainerRecommendedScroller initialItems={recommendedTrainers} />
         </div>
       </section>
 

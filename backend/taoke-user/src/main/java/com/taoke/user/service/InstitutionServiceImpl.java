@@ -18,6 +18,7 @@ import com.taoke.user.entity.Institution;
 import com.taoke.user.mapper.InstitutionMapper;
 import com.taoke.user.repository.InstitutionRepository;
 import com.taoke.user.repository.UserRepository;
+import com.taoke.user.support.PublicInstitutionListCache;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -63,6 +64,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     private final OpsMaterialResolver opsMaterialResolver;
     private final UserRepository userRepository;
     private final RoleApplicationChangeLogService changeLogService;
+    private final PublicInstitutionListCache publicInstitutionListCache;
 
     @Override
     public InstitutionResponse getByUserId(Integer userId) {
@@ -73,7 +75,9 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     @Override
     @Transactional
     public InstitutionResponse save(Integer userId, InstitutionRequest request) {
-        return institutionMapper.toResponse(saveOrUpdateExtension(userId, request));
+        InstitutionResponse response = institutionMapper.toResponse(saveOrUpdateExtension(userId, request));
+        publicInstitutionListCache.evictPublicListCaches();
+        return response;
     }
 
     @Override
@@ -95,6 +99,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                         toFieldMap(oldSnapshot), toFieldMap(newSnapshot), INSTITUTION_FIELD_LABELS);
             }
         }
+        publicInstitutionListCache.evictPublicListCaches();
     }
 
     @Override
@@ -110,6 +115,17 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                                                                  Integer industryCategoryId,
                                                                  Integer provinceId,
                                                                  Integer cityId) {
+        boolean cacheable = publicInstitutionListCache.isCacheableDefault(
+                page, size, keyword, sort, expertiseCategoryId, industryCategoryId,
+                provinceId, cityId);
+        if (cacheable) {
+            PageResponse<InstitutionListItemResponse> cached =
+                    publicInstitutionListCache.getDefaultList(association, sort, page, size);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
         Sort jpaSort = switch (sort != null ? sort : "") {
             case "popularity" -> Sort.by(Sort.Direction.DESC, "viewCount")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
@@ -132,7 +148,12 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         Page<Institution> result = institutionRepository.findAll(spec, pageable);
 
         if (result.isEmpty()) {
-            return PageResponse.of(List.of(), 0, page, size);
+            PageResponse<InstitutionListItemResponse> empty =
+                    PageResponse.of(List.of(), 0, page, size);
+            if (cacheable) {
+                publicInstitutionListCache.putDefaultList(association, sort, page, size, empty);
+            }
+            return empty;
         }
 
         List<Institution> institutions = result.getContent();
@@ -160,12 +181,23 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         fillMissingLogos(institutions, items);
         resolveCategoryDisplayNames(items);
 
-        return PageResponse.of(items, result.getTotalElements(), page, size);
+        PageResponse<InstitutionListItemResponse> response =
+                PageResponse.of(items, result.getTotalElements(), page, size);
+        if (cacheable) {
+            publicInstitutionListCache.putDefaultList(association, sort, page, size, response);
+        }
+        return response;
     }
 
     @Override
     public Map<Integer, Long> countPublicByExpertiseL1(Boolean association) {
-        return toCountMap(institutionRepository.countPublicByExpertiseL1(association));
+        Map<Integer, Long> cached = publicInstitutionListCache.getExpertiseL1Counts(association);
+        if (cached != null) {
+            return cached;
+        }
+        Map<Integer, Long> map = toCountMap(institutionRepository.countPublicByExpertiseL1(association));
+        publicInstitutionListCache.putExpertiseL1Counts(association, map);
+        return map;
     }
 
     @Override
@@ -570,6 +602,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
         inst.setAssociation(association);
         institutionRepository.save(inst);
+        publicInstitutionListCache.evictPublicListCaches();
     }
 
     @Override
@@ -579,6 +612,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
         inst.setIsRecommended(value != null && value == 1 ? 1 : 0);
         institutionRepository.save(inst);
+        publicInstitutionListCache.evictPublicListCaches();
     }
 
     @Override
@@ -709,6 +743,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             inst.setScore(nextScore);
             inst.setCommentCount(Math.max(0, commentCount));
             institutionRepository.save(inst);
+            publicInstitutionListCache.evictPublicListCaches();
         });
     }
 

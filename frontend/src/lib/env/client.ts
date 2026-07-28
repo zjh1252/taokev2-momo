@@ -8,8 +8,24 @@ export function normalizeApiBaseUrl(url: string): string {
     .replace('://localhost/', '://127.0.0.1/');
 }
 
-/** 与 {@link @/lib/http/client} 保持一致：本地开发默认 127.0.0.1:8080 */
+/**
+ * 与 {@link @/lib/http/client} 保持一致：本地开发默认 127.0.0.1:8080。
+ * <p>
+ * 服务端（SSR / RSC）优先读 {@code API_BASE_URL} / {@code BACKEND_URL}，
+ * 便于 Docker 内走 {@code http://backend:8080}，避免经公网域名 hairpin 失败后被页面 catch 成空列表。
+ * 浏览器仍使用 {@code NEXT_PUBLIC_API_BASE_URL}。
+ * </p>
+ */
 export function getApiBaseUrl(): string {
+  if (typeof window === 'undefined') {
+    const internal =
+      process.env.API_BASE_URL ||
+      process.env.BACKEND_URL ||
+      process.env.INTERNAL_API_BASE_URL;
+    if (internal) {
+      return normalizeApiBaseUrl(internal);
+    }
+  }
   const raw = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8080';
   return normalizeApiBaseUrl(raw);
 }

@@ -28,8 +28,8 @@ public class PublicTrainerListCache {
 
     private static final String LIST_KEY_PREFIX = "taoke:trainer:public:list:";
     private static final String COUNT_KEY = "taoke:trainer:public:expertise:l1";
-    private static final Duration LIST_TTL_BASE = Duration.ofSeconds(120);
-    private static final Duration COUNT_TTL_BASE = Duration.ofSeconds(300);
+    private static final Duration LIST_TTL_BASE = Duration.ofMinutes(60);
+    private static final Duration COUNT_TTL_BASE = Duration.ofMinutes(60);
 
     private static final Set<Integer> CACHEABLE_SIZES = Set.of(9, 12, 15, 16, 18, 20);
     private static final Set<String> CACHEABLE_SORTS = Set.of(

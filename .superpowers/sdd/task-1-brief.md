@@ -1,62 +1,70 @@
-﻿### Task 1: 鍚庣璇剧▼/褰曟挱璇惧皝闈㈠惈鑽夌蹇呭～
+### Task 1: 专家筛选点选关浮层 + 常驻城市文案（#3、#6）
 
 **Files:**
-- Modify: `backend/taoke-course/src/main/java/com/taoke/course/service/CourseServiceImpl.java`锛坄create` / `update`锛?
-- Modify: `backend/taoke-course/src/main/java/com/taoke/course/service/video/VideoServiceImpl.java`锛坄create` / `update` / `validateForSubmit`锛?
-- Test锛堝彲閫変絾鎺ㄨ崘锛? 鍦?`backend/taoke-course/src/test/java/...` 澧炲姞鑱氱劍鏍￠獙鐨勫崟娴嬶紝鎴栨墜宸ョ敤鎺ュ彛楠岃瘉
+- Modify: `frontend/src/features/trainer/components/list/TrainerFilters.tsx`
+- Modify: `frontend/src/messages/zh-CN/trainer.json`
 
 **Interfaces:**
-- Consumes: `SaveCourseRequest.getCoverUrl()` / `SaveVideoRequest.getCoverUrl()` / `getDraft()`
-- Produces: 绌虹櫧灏侀潰鏃?`BusinessException(ErrorCode.PARAM_INVALID, "璇蜂笂浼犺绋嬪皝闈?)`锛堝綍鎾鍙敤鍚屼竴鏂囨锛?
+- Consumes: 现有 `onChange` / `TrainerFilterValue`
+- Produces: 点选后浮层关闭；label 文案「常驻城市」
 
-- [ ] **Step 1: 鎶藉嚭璇剧▼灏侀潰鏍￠獙骞跺湪 create/update 濮嬬粓璋冪敤**
+- [ ] **Step 1: 改 i18n 文案**
 
-鍦?`CourseServiceImpl` 澧炲姞绉佹湁鏂规硶锛?
+将 `frontend/src/messages/zh-CN/trainer.json` 中：
 
-```java
-/** 灏侀潰蹇呭～锛堝惈鑽夌锛?*/
-private void validateCoverRequired(SaveCourseRequest request) {
-    if (request.getCoverUrl() == null || request.getCoverUrl().isBlank()) {
-        throw new BusinessException(ErrorCode.PARAM_INVALID, "璇蜂笂浼犺绋嬪皝闈?);
-    }
-}
+```json
+"city": "常驻省市"
 ```
 
-鍦?`create` / `update` 涓紝**鏃犺 draft**锛屽厛璋冪敤 `validateCoverRequired(request)`銆? 
-淇濈暀 `validateForSubmit` 鍐呭皝闈㈡鏌ワ紙鎴栨敼涓鸿皟鐢ㄥ悓涓€鏂规硶锛夛紝閬垮厤鎻愪氦璺緞婕忔銆?
+改为：
 
-- [ ] **Step 2: 褰曟挱璇惧悓鏍峰己鍒跺皝闈?*
-
-鍦?`VideoServiceImpl`锛?
-
-```java
-private void validateCoverRequired(SaveVideoRequest request) {
-    if (request.getCoverUrl() == null || request.getCoverUrl().isBlank()) {
-        throw new BusinessException(ErrorCode.PARAM_INVALID, "璇蜂笂浼犺绋嬪皝闈?);
-    }
-}
+```json
+"city": "常驻城市"
 ```
 
-鍦?`create` / `update`锛堝強浠讳綍璧颁繚瀛樼殑鍏ュ彛锛夋棤璁?draft 閮借皟鐢ㄣ€? 
-鍦?`validateForSubmit` 涓篃璋冪敤涓€娆★紙鎴栧悎骞讹級銆?
+- [ ] **Step 2: TrainerFilters 标签与关浮层**
 
-- [ ] **Step 3: 缂栬瘧鑷**
+1. `FILTER_ITEMS` 中 province 的 `label: '长驻省市'` 改为 `label: '常驻城市'`。
+2. 注释/JSDoc 中「长驻省市」同步改为「常驻城市」（参数名不动）。
+3. 在三个 handler 末尾关闭浮层：
 
-Run锛堝湪 `backend/`锛?
+```tsx
+const closeFlyout = () => setActiveFilter(null);
+
+const handleExpertisePick = (parentName?: string, childName?: string, categoryId?: number) => {
+  onChange({
+    ...value,
+    fieldParentName: parentName,
+    fieldChildName: childName,
+    expertiseCategoryId: categoryId,
+  });
+  closeFlyout();
+};
+
+const handleIndustryPick = (name?: string, categoryId?: number) => {
+  onChange({ ...value, industryName: name, industryCategoryId: categoryId });
+  closeFlyout();
+};
+
+const handleProvincePick = (item?: RegionItem) => {
+  onChange({ ...value, regionName: item?.name, provinceId: item?.id });
+  closeFlyout();
+};
+```
+
+- [ ] **Step 3: 手工验收**
+
+Run: `cd frontend && pnpm lint`  
+Expected: 无新增 error  
+
+浏览器：打开专家列表 → hover 擅长领域 → 点任意选项 → 列表更新且浮层立即消失；侧栏文案为「常驻城市」。
+
+- [ ] **Step 4: Commit（仅当用户授权）**
 
 ```bash
-mvn -pl taoke-course -am compile -q
-```
-
-Expected: BUILD SUCCESS
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add backend/taoke-course/src/main/java/com/taoke/course/service/CourseServiceImpl.java \
-  backend/taoke-course/src/main/java/com/taoke/course/service/video/VideoServiceImpl.java
+git add frontend/src/features/trainer/components/list/TrainerFilters.tsx frontend/src/messages/zh-CN/trainer.json
 git commit -m "$(cat <<'EOF'
-fix: require course and video cover on draft save
+fix(frontend): 专家筛选点选关浮层并统一常驻城市文案
 
 EOF
 )"

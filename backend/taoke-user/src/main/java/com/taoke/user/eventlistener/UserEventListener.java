@@ -13,6 +13,7 @@ import com.taoke.common.events.user.TrainerCertificationAuditedEvent;
 import com.taoke.user.api.NotificationService;
 import com.taoke.user.repository.InstitutionRepository;
 import com.taoke.user.repository.TrainerRepository;
+import com.taoke.user.support.PublicInstitutionListCache;
 import com.taoke.user.support.PublicTrainerListCache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class UserEventListener {
     private final InstitutionRepository institutionRepository;
     private final NotificationService notificationService;
     private final PublicTrainerListCache publicTrainerListCache;
+    private final PublicInstitutionListCache publicInstitutionListCache;
 
     /**
      * 角色入驻审核通过 — 同步更新业务主表状态、发送站内信。
@@ -65,6 +67,7 @@ public class UserEventListener {
             institutionRepository.findByUserId(userId).ifPresent(inst -> {
                 inst.setStatus(1);
                 institutionRepository.save(inst);
+                publicInstitutionListCache.evictPublicListCaches();
                 log.info("机构档案状态已更新为已发布: institutionId={}, userId={}", inst.getId(), userId);
             });
         }
@@ -116,6 +119,7 @@ public class UserEventListener {
             institutionRepository.findByUserId(userId).ifPresent(inst -> {
                 inst.setStatus(0);
                 institutionRepository.save(inst);
+                publicInstitutionListCache.evictPublicListCaches();
                 log.info("机构档案状态已更新为待审核: institutionId={}, userId={}", inst.getId(), userId);
             });
         }

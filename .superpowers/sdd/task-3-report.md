@@ -1,53 +1,32 @@
-# Task 3 Report: C 端与 Admin Controllers
+# Task 3 Report: 顶栏产品矩阵外链（#9）
 
-## Status
+**Status:** DONE
 
-DONE_WITH_CONCERNS
+**Commit:** `a978eb76` — fix(frontend): 配置顶栏集团产品外链并移除淘课网入口
 
-## Summary
+## Changes
 
-Implemented the training-partner alliance HTTP layer:
+### TopNavBar — `frontend/src/components/layout/top-nav-bar.tsx`
 
-- Added `AlliancePartnerController` in `taoke-user` with authenticated-user GET/POST self-service routes and no business-role annotation.
-- Added `AdminAlliancePartnerController` with list, detail, approve, and reject routes.
-- Applied `@RequirePermission("alliance:partner:audit")` to every Admin endpoint.
-- Reused `RejectApplicationRequest` for validated rejection bodies.
-- Added thin `AdminAlliancePartnerService`, delegating exclusively to `AlliancePartnerApplicationService` and recording the current admin user ID for approve/reject.
-
-## Routes
-
-- `GET /alliance/partners/me/application`
-- `POST /alliance/partners/me/application`
-- `GET /admin/alliance/partners/applications`
-- `GET /admin/alliance/partners/applications/{id}`
-- `PUT /admin/alliance/partners/applications/{id}/approve`
-- `PUT /admin/alliance/partners/applications/{id}/reject`
+- `GROUP_LINKS` 更新为 6 项真实外链（淘课集团、培训宝、目标通、AI 导师、智能创导、AI 陪练），与 brief 指定 URL 完全一致
+- 移除「淘课网」入口（7 项 → 6 项）
+- 锚点增加 `target="_blank"` 与 `rel="noopener noreferrer"`，新标签安全打开
+- 数组声明为 `as const`
 
 ## Verification
 
-IDE diagnostics reported no linter errors in the three new Java files.
+| Check | Result |
+|-------|--------|
+| `pnpm lint -- src/components/layout/top-nav-bar.tsx` | Pass |
+| 浏览器手工验收 | 未执行（无本地 dev server） |
 
-Requested command:
+## Self-Review
 
-```text
-mvn -pl taoke-app -am compile -DskipTests
-```
-
-Result: `BUILD FAILURE` in a pre-existing, untouched file:
-
-```text
-taoke-user ......................................... SUCCESS
-taoke-course ....................................... SUCCESS
-taoke-admin ........................................ FAILURE
-AdminCrawlService.java:[277,41] String cannot be converted to ErrorCode
-```
-
-The failing line is `throw new BusinessException("内置数据源不可删除");` in
-`AdminCrawlService.deleteSource`. It is outside Task 3 and is not modified by this work.
-
-No new automated tests were required by Task 3; verification was the specified compile.
+- 六项 label 与 href 与 brief 逐字对齐，无占位 `#` 残留。
+- 「淘课网」已从 `GROUP_LINKS` 删除，顶栏仅展示 6 个集团产品入口。
+- 外链均带 `noopener noreferrer`，符合安全最佳实践。
 
 ## Concerns
 
-- The referenced `.superpowers/sdd/task-3-brief.md` was absent from the worktree. Implementation followed Task 3 in `docs/superpowers/plans/2026-07-13-alliance-partner.md`, which contains the same files, routes, permission, and compile requirements.
-- Full reactor compilation cannot pass until the unrelated `AdminCrawlService` constructor mismatch is corrected.
+- 无功能性顾虑。AI 类产品链接含租户 ID `604996`，若环境变更需同步更新。
+- 浏览器点击验收需人工确认六项均可新标签打开且目标页可达。

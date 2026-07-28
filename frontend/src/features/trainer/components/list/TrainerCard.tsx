@@ -19,10 +19,9 @@ function TrainerCardRating({ score }: { score: number }) {
   const normalizedScore = Number.isFinite(Number(score))
     ? Math.max(0, Math.min(5, Number(score)))
     : 0;
-  if (normalizedScore <= 0) {
-    return null;
-  }
-  const filledStars = Math.round(normalizedScore);
+  // 无有效评分时默认展示 5.0，避免列表位空白
+  const displayScore = normalizedScore > 0 ? normalizedScore : 5;
+  const filledStars = Math.round(displayScore);
 
   return (
     <div className="absolute right-5 top-5 flex items-center gap-1">
@@ -39,7 +38,7 @@ function TrainerCardRating({ score }: { score: number }) {
         ))}
       </div>
       <span className="text-xs font-semibold text-[#f5a623]">
-        {normalizedScore.toFixed(1)}
+        {displayScore.toFixed(1)}
       </span>
     </div>
   );

@@ -62,7 +62,7 @@ export default async function CityOpenCourseListPage({ params }: Props) {
           { label: '公开课' },
         ]}
       />
-      <h1 className="text-2xl font-bold text-slate-900">
+      <h1 className="sr-only">
         {openCourseListH1({ city: detail.cityName })}
       </h1>
       <OpenCourseListSection

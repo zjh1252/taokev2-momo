@@ -88,7 +88,7 @@ export default async function CityTrainerListPage({
           { label: '培训专家' },
         ]}
       />
-      <h1 className="text-2xl font-bold text-slate-900">
+      <h1 className="sr-only">
         {trainerListH1({ city: detail.cityName, field: slugParams.field, industry: slugParams.industry })}
       </h1>
       <TrainerListSection

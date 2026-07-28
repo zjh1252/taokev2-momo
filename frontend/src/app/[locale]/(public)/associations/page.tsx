@@ -2,7 +2,7 @@ import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { InstitutionListSection } from '@/features/institution/components/list/InstitutionListSection';
 import { getInstitutionList } from '@/features/institution/api/service';
 import { getCachedTrainerExpertiseTree } from '@/lib/cached-categories';
-import { buildInstitutionCategoryLinks } from '@/lib/institution-category-nav';
+import { buildInstitutionCategoryNavItems } from '@/lib/channel-category-stats';
 import { normalizeNumberIds } from '@/lib/search-params';
 
 interface Props {
@@ -44,7 +44,11 @@ export default async function AssociationsPage({ searchParams }: Props) {
     getCachedTrainerExpertiseTree(),
   ]);
 
-  const categoryItems = buildInstitutionCategoryLinks(expertiseTree, '/association');
+  const categoryItems = await buildInstitutionCategoryNavItems(
+    expertiseTree,
+    '/association',
+    true,
+  );
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">

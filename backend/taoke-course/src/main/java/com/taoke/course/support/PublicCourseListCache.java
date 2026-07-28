@@ -33,8 +33,8 @@ public class PublicCourseListCache {
 
     private static final String LIST_KEY_PREFIX = "taoke:course:public:list:";
     private static final String COUNT_KEY_PREFIX = "taoke:course:public:catcount:";
-    private static final Duration LIST_TTL_BASE = Duration.ofSeconds(120);
-    private static final Duration COUNT_TTL_BASE = Duration.ofSeconds(300);
+    private static final Duration LIST_TTL_BASE = Duration.ofMinutes(60);
+    private static final Duration COUNT_TTL_BASE = Duration.ofMinutes(60);
 
     /** 首页/频道常见 size */
     private static final Set<Integer> CACHEABLE_SIZES = Set.of(15, 30, 36);
