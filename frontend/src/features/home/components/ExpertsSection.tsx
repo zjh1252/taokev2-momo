@@ -155,9 +155,11 @@ function MainExpertCard({ expert }: { expert: Expert }) {
           <p className="text-primary text-sm font-bold mb-3 line-clamp-2">{copy.subtitle}</p>
         ) : null}
         {copy.bio ? (
-          <p className="text-slate-500 text-sm mb-4 leading-relaxed line-clamp-6">{copy.bio}</p>
+          <p className="text-slate-500 text-sm mb-4 leading-relaxed flex-1 min-h-0 overflow-hidden">
+            {copy.bio}
+          </p>
         ) : null}
-        <div className="mt-auto flex flex-col gap-4 pt-2">
+        <div className="mt-auto flex flex-col gap-4 pt-2 shrink-0">
           <ExpertTagList
             tags={expert.tags}
             limit={4}
