@@ -14,7 +14,7 @@ import type { CategoryTreeNode } from '../../types';
  *   <li>「擅长领域」按二级分类展示：选中一级直接传一级名；
  *       选中二级传 {@code "一级_二级"}；后端按叶子节点搜索。</li>
  *   <li>「擅长行业」单选，点击即替换。</li>
- *   <li>「长驻省市」单选，从 {@code GET /regions/children} 拉取省份列表。</li>
+ *   <li>「常驻城市」单选，从 {@code GET /regions/children} 拉取省份列表。</li>
  *   <li>全部参数均可选可清，点「全部/不限」清除。</li>
  * </ul>
  *
@@ -33,9 +33,9 @@ export interface TrainerFilterValue {
   industryName?: string;
   /** 擅长行业分类 ID */
   industryCategoryId?: number;
-  /** 长驻省市 — 省份名称 */
+  /** 常驻城市 — 省份名称 */
   regionName?: string;
-  /** 长驻省市 — 省份 ID（传给后端筛选） */
+  /** 常驻城市 — 省份 ID（传给后端筛选） */
   provinceId?: number;
   /** 质量承诺 */
   trustedOnly?: boolean;
@@ -52,7 +52,7 @@ interface FilterMeta {
 const FILTER_ITEMS: FilterMeta[] = [
   { key: 'expertise', label: '擅长领域', flyoutWidth: 520 },
   { key: 'industry', label: '擅长行业', flyoutWidth: 520 },
-  { key: 'province', label: '长驻省市', flyoutWidth: 520 },
+  { key: 'province', label: '常驻城市', flyoutWidth: 520 },
 ];
 
 interface RegionItem {
@@ -100,6 +100,8 @@ export function TrainerFilters({
     leaveTimer.current = setTimeout(() => setActiveFilter(null), 80);
   }, []);
 
+  const closeFlyout = () => setActiveFilter(null);
+
   // ---- 擅长领域：追踪 parent + child + 分类 ID ----
   const handleExpertisePick = (parentName?: string, childName?: string, categoryId?: number) => {
     onChange({
@@ -108,16 +110,19 @@ export function TrainerFilters({
       fieldChildName: childName,
       expertiseCategoryId: categoryId,
     });
+    closeFlyout();
   };
 
   // ---- 擅长行业：单选 ----
   const handleIndustryPick = (name?: string, categoryId?: number) => {
     onChange({ ...value, industryName: name, industryCategoryId: categoryId });
+    closeFlyout();
   };
 
-  // ---- 长驻省市：单选 ----
+  // ---- 常驻城市：单选 ----
   const handleProvincePick = (item?: RegionItem) => {
     onChange({ ...value, regionName: item?.name, provinceId: item?.id });
+    closeFlyout();
   };
 
   const activeMeta = FILTER_ITEMS.find((f) => f.key === activeFilter);
