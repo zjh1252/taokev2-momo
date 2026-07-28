@@ -9,16 +9,15 @@ import { NotificationBell } from '@/features/notification/components/Notificatio
 import { CartBadge } from '@/features/cart/components/CartBadge';
 import { SearchBar } from '@/components/layout/search-bar';
 
-/** 集团产品矩阵（与 public 顶栏保持一致） */
+/** 集团产品矩阵（与 public TopNavBar 保持一致） */
 const GROUP_LINKS = [
-  { label: '淘课集团', href: '#' },
-  { label: '淘课网', href: '#' },
-  { label: '培训宝', href: '#' },
-  { label: '目标通', href: '#' },
-  { label: 'AI 导师', href: '#' },
-  { label: '智能创导', href: '#' },
-  { label: 'AI 陪练', href: '#' },
-];
+  { label: '淘课集团', href: 'https://www.taoke.com.cn/' },
+  { label: '培训宝', href: 'https://www.91pxb.com/' },
+  { label: '目标通', href: 'https://www.91mbt.com/' },
+  { label: 'AI 导师', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/mentor/604996/list' },
+  { label: '智能创导', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/extraction/604996' },
+  { label: 'AI 陪练', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/training_partner/604996/list' },
+] as const;
 
 /** 主导航链接（与 AppHeader 同步） */
 const NAV_LINKS = [
@@ -73,7 +72,12 @@ export function UserCenterHeader() {
             {GROUP_LINKS.map((link, i) => (
               <span key={link.label} className="flex items-center gap-3">
                 {i > 0 && <span className="text-slate-300">|</span>}
-                <a href={link.href} className="hover:text-primary transition-colors">
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors"
+                >
                   {link.label}
                 </a>
               </span>

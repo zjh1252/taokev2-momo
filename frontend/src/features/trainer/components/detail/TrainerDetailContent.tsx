@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Play, Star, StarHalf } from 'lucide-react';
@@ -144,9 +144,14 @@ export function TrainerDetailContent({
   books,
 }: TrainerDetailContentProps) {
   const displayName = getTrainerDisplayName(trainer);
+  const skipInitialTabScroll = useRef(true);
 
   useEffect(() => {
     if (activeTab === 'comments') return;
+    if (skipInitialTabScroll.current) {
+      skipInitialTabScroll.current = false;
+      return;
+    }
     const el = document.getElementById('trainer-detail-tab-panel');
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });

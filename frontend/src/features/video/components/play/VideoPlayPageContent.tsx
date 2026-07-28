@@ -89,7 +89,7 @@ export function VideoPlayPageContent({ video }: VideoPlayPageContentProps) {
   return (
     <div className="flex flex-col gap-8">
       {/* 播放器 + 评价卡片 */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] gap-6 items-stretch max-w-6xl mx-auto w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] gap-6 items-stretch w-full">
         <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-br from-slate-900/20 via-primary/10 to-slate-900/20 rounded-[1.25rem] blur-sm opacity-70 group-hover:opacity-90 transition-opacity" />
           <div className="relative aspect-video rounded-2xl overflow-hidden bg-[#0f1419] shadow-2xl ring-1 ring-black/10">

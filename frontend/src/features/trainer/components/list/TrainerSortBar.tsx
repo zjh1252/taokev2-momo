@@ -52,7 +52,7 @@ export function TrainerSortBar({
   if (filters.regionName) {
     chips.push({
       key: 'region',
-      label: `长驻：${filters.regionName}`,
+      label: `常驻城市：${filters.regionName}`,
       clear: () => onFilterChange({ ...filters, regionName: undefined }),
     });
   }
