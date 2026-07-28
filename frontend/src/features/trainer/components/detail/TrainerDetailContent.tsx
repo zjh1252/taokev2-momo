@@ -130,6 +130,8 @@ export function TrainerDetailTabs({
   );
 }
 
+const TRAINER_DETAIL_HEADER_OFFSET = 120;
+
 export function TrainerDetailContent({
   activeTab,
   trainer,
@@ -143,10 +145,17 @@ export function TrainerDetailContent({
 }: TrainerDetailContentProps) {
   const displayName = getTrainerDisplayName(trainer);
 
+  useEffect(() => {
+    if (activeTab === 'comments') return;
+    const el = document.getElementById('trainer-detail-tab-panel');
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [activeTab]);
+
   return (
     <>
       {/* Tab 内容区 */}
-      <div className="min-h-[800px]">
+      <div id="trainer-detail-tab-panel" className="min-h-[800px] scroll-mt-[120px]">
         {activeTab === 'home' && (
           <HomeView trainer={trainer} courses={courses} coursesTotal={coursesTotal} cases={cases} />
         )}
@@ -924,6 +933,16 @@ function ReviewsView({
       .catch(() => setLoaded(true));
   }, [trainerUserId]);
 
+  useEffect(() => {
+    const el = document.getElementById('trainer-review-cta');
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const absoluteTop = window.scrollY + rect.top;
+    const target = absoluteTop - window.innerHeight / 2 + rect.height / 2;
+    const y = Math.max(target, absoluteTop - TRAINER_DETAIL_HEADER_OFFSET);
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  }, [trainerUserId]);
+
   const summaryScore =
     trainerScore > 0
       ? trainerScore
@@ -940,6 +959,7 @@ function ReviewsView({
           total={summaryTotal}
           action={
             <button
+              id="trainer-review-cta"
               type="button"
               onClick={handleOpenReview}
               className="shrink-0 px-4 py-2 rounded-md bg-primary text-white text-sm cursor-pointer hover:bg-primary/90 transition-colors"
