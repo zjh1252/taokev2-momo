@@ -88,7 +88,7 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
           <ul className="divide-y divide-slate-100">
             {videos.map((v) => (
               <li key={v.id} className="py-2 first:pt-0 last:pb-0">
-                <Link href={`/vedio/${v.id}.htm`} className="flex items-center gap-3 group">
+                <Link href={`/video/${v.id}.htm`} className="flex items-center gap-3 group">
                   <div className="relative w-14 h-[42px] rounded border border-slate-200 overflow-hidden shrink-0 bg-slate-100">
                     <SafeImage
                       src={v.coverUrl || undefined}

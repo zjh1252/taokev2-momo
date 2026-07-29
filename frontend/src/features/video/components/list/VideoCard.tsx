@@ -16,7 +16,7 @@ export function VideoCard({ video }: VideoCardProps) {
 
   return (
     <Link
-      href={`/vedio/${video.id}.htm`}
+      href={`/video/${video.id}.htm`}
       onClick={onCardClick}
       className="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group flex flex-col"
     >

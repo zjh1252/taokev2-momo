@@ -179,7 +179,7 @@ function IntroContent({ institution }: { institution: InstitutionDetail }) {
             <div>
               <SectionHeader
                 title={institutionSectionH3(orgName, '视频课程')}
-                moreHref={`/videos?institutionId=${institution.id}`}
+                moreHref={`/video?institutionId=${institution.id}`}
               />
               <VideoGrid videos={videos} />
             </div>
@@ -392,7 +392,7 @@ function VideoGrid({ videos }: { videos: VideoListItem[] }) {
       {videos.map((v) => (
         <Link
           key={v.id}
-          href={`/vedio/${v.id}.htm`}
+          href={`/video/${v.id}.htm`}
           className="group rounded-lg overflow-hidden border border-slate-200 hover:shadow-sm transition-shadow"
         >
           <div className="aspect-video relative overflow-hidden bg-slate-100">

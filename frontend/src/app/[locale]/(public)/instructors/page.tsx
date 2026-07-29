@@ -1,8 +1,8 @@
-import { redirect } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 
 /**
- * 旧路由 /instructors → 重定向到 /trainer
+ * 旧路由 /instructors → 永久重定向到 /trainer
  */
 export default function InstructorsPage() {
-  redirect('/trainer');
+  permanentRedirect('/trainer');
 }

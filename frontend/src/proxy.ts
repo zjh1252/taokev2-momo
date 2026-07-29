@@ -2,6 +2,12 @@ import createMiddleware from 'next-intl/middleware';
 import { routing } from '@/i18n/routing';
 import { NextResponse, NextRequest } from 'next/server';
 import { PXB_EMBED_HEADER, PXB_ORIGIN_VALUE } from '@/lib/pxb-embed';
+import {
+  isLegacyNumericTrainerFilterPath,
+  LEGACY_TRAINER_FILTER_FALLBACK,
+  legacyVedioDetailRedirectTarget,
+  legacyVideoChannelRedirectTarget,
+} from '@/lib/seo-legacy-redirects';
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -36,7 +42,28 @@ function runIntlMiddleware(request: NextRequest) {
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const search = request.nextUrl.search;
   const locale = request.cookies.get('NEXT_LOCALE')?.value || 'zh-CN';
+
+  // 老站数字筛选: /trainer/501/0/0/.../1.htm → 301 /trainer（禁止误当 slug）
+  if (isLegacyNumericTrainerFilterPath(pathname)) {
+    return NextResponse.redirect(
+      new URL(`${LEGACY_TRAINER_FILTER_FALLBACK}${search}`, request.url),
+      301,
+    );
+  }
+
+  // 录播频道双入口: /videos|/vedio → 301 /video
+  const videoChannelTarget = legacyVideoChannelRedirectTarget(pathname, search);
+  if (videoChannelTarget) {
+    return NextResponse.redirect(new URL(videoChannelTarget, request.url), 301);
+  }
+
+  // 老拼写详情: /vedio/{id}.htm → 301 /video/{id}.htm
+  const vedioDetailTarget = legacyVedioDetailRedirectTarget(pathname);
+  if (vedioDetailTarget) {
+    return NextResponse.redirect(new URL(`${vedioDetailTarget}${search}`, request.url), 301);
+  }
 
   // 老站录播播放页: /video_play/17946.htm → /videos/17946/play
   const videoPlayMatch = pathname.match(/^\/video_play\/(\d+)(?:\.htm)?$/);
@@ -75,13 +102,12 @@ export function proxy(request: NextRequest) {
     return rewriteKeepingQuery(request, `/${locale}/innercourses/supplier`);
   }
 
-  // 去s → 带s 内部路由映射
+  // 去s → 带s 内部路由映射（/vedio|/videos 频道已在上方 301 到 /video）
   const map: Record<string, string> = {
     '/trainer': '/trainers',
     '/opencourse': '/opencourses',
     '/inhousecourse': '/innercourses',
     '/company': '/institutions',
-    '/vedio': '/videos',
     '/video': '/videos',
     '/association': '/associations',
   };
@@ -118,7 +144,7 @@ export function proxy(request: NextRequest) {
           const newSlug = oldSlugMatch[2] === 'course' ? 'courses' : 'cases';
           return NextResponse.redirect(
             new URL(`/trainer/${oldSlugMatch[1]}/${newSlug}.htm`, request.url),
-            308,
+            301,
           );
         }
       }

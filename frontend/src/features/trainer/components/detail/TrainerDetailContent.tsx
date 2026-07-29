@@ -786,7 +786,7 @@ function VideosView({
             {videos.map((video) => (
               <Link
                 key={video.id}
-                href={`/vedio/${video.id}.htm`}
+                href={`/video/${video.id}.htm`}
                 className="rounded-lg overflow-hidden border border-slate-200 group cursor-pointer hover:shadow-sm transition block"
               >
                 <div className="aspect-video relative overflow-hidden bg-slate-100">

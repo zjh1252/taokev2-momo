@@ -216,7 +216,7 @@ function VideoListSectionInner({
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);
     fetchData(1, selectedCategory, sortKey, keyword, null);
-    navigateToSeoPath('/vedio');
+    navigateToSeoPath('/video');
   }, [fetchData, selectedCategory, sortKey, keyword]);
 
   const handleListModeChange = useCallback(

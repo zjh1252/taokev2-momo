@@ -5,7 +5,7 @@ export const ROUTES = {
   TRAINERS: '/trainer',
   PUBLIC_COURSES: '/opencourse',
   INTERNAL_COURSES: '/inhousecourse',
-  ONLINE_COURSES: '/videos',
+  ONLINE_COURSES: '/video',
   INSTITUTIONS: '/company',
   ASSOCIATIONS: '/association',
   SEARCH: '/search',
@@ -87,13 +87,13 @@ export const ROUTES = {
   UC_HIGHLIGHTS_MANAGE: '/dashboard/highlights/manage',
   UC_HIGHLIGHTS_CREATE: '/dashboard/highlights/create',
 
-  // ---- 我的视频（录播课） ----
-  VIDEOS: '/videos',
+  // ---- 我的视频（录播课）---- SEO 对外 /video（内部 App 仍为 videos/）
+  VIDEOS: '/video',
   /** 录播课播放页 */
   videoPlay: (videoId: number, chapterId?: number) =>
     chapterId
-      ? `/videos/${videoId}/play?chapter=${chapterId}`
-      : `/videos/${videoId}/play`,
+      ? `/video/${videoId}/play?chapter=${chapterId}`
+      : `/video/${videoId}/play`,
   UC_VIDEOS_CREATE: '/dashboard/video/create',
   UC_VIDEOS_MANAGE: '/dashboard/video/manage',
 

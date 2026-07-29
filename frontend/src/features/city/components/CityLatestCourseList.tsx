@@ -30,7 +30,7 @@ function formatPrice(price: number | null | undefined, isFree?: number): string 
 
 function itemHref(entry: CityLatestItem): string {
   if (entry.kind === 'video') {
-    return `/videos/${entry.item.id}.htm`;
+    return `/video/${entry.item.id}.htm`;
   }
   return getCourseDetailPath(entry.item.id, entry.item.type);
 }

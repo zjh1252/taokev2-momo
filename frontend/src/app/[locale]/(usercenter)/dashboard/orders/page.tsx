@@ -211,7 +211,7 @@ export default function OrdersPage() {
                 <>
                   {' '}
                   <Link
-                    href={`/videos/${watchVideoId}/play`}
+                    href={`/video/${watchVideoId}/play`}
                     className="font-medium underline hover:text-green-900"
                   >
                     立即前往观看录播课

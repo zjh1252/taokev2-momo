@@ -10,7 +10,7 @@ const INTERNAL_TO_SEO_BASE: Record<string, string> = {
   institutions: ROUTES.INSTITUTIONS.slice(1),
   associations: ROUTES.ASSOCIATIONS.slice(1),
   videos: 'video',
-  vedio: 'video', // 老站录播课 SEO 拼写（列表卡片仍用 /vedio/{id}.htm）
+  vedio: 'video', // 老站录播课拼写；对外 SEO 已统一 /video/{id}.htm
   cases: 'case',
 };
 

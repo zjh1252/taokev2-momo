@@ -61,7 +61,7 @@ export function OrderCard({
 
   const watchVideoId =
     firstItem?.productType === 'VIDEO_COURSE' ? firstItem.productId : undefined;
-  const watchHref = watchVideoId ? `/videos/${watchVideoId}/play` : '/dashboard/learning';
+  const watchHref = watchVideoId ? `/video/${watchVideoId}/play` : '/dashboard/learning';
 
   const isPending = order.status === 0;
   const isPaid = order.status === 1;

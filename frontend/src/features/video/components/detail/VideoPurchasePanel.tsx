@@ -256,7 +256,7 @@ export function VideoPurchasePanel({ video }: VideoPurchasePanelProps) {
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
                 属于
-                <Link href={`/videos/${video.id}?tab=series`} className="text-sky-600 hover:underline mx-0.5">
+                <Link href={`/video/${video.id}.htm?tab=series`} className="text-sky-600 hover:underline mx-0.5">
                   《{options.seriesPackageName}》
                 </Link>
                 系列共 {options.seriesVideoCount} 门课程
