@@ -85,4 +85,4 @@
 | `mvn -pl taoke-user -am compile` | BUILD SUCCESS |
 | `mvn -pl taoke-user test -Dtest=InstitutionServiceImplTest` | Tests run: 1, Failures: 0 |
 
-**Commit：** `10420f92`
+**Commit：** `e71a7516`
