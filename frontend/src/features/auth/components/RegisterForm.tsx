@@ -13,6 +13,7 @@ import { TOKEN_KEY } from '@/lib/auth/constants';
 import { markNewUserPending } from '@/features/role-apply/hooks/useRoleApplyState';
 import { sendCode, register, getMockCode } from '../api/service';
 import { withCaptcha } from '@/lib/captcha';
+import { LEGAL_PRIVACY_PATH, LEGAL_TERMS_PATH } from '../constants/legal';
 
 const PHONE_LENGTH = 11;
 const CODE_LENGTH = 6;
@@ -235,9 +236,25 @@ export function RegisterForm() {
           </div>
           <label htmlFor="register-agreement" className="text-xs text-muted-foreground leading-relaxed">
             {t('agreement')}
-            <a href="#" className="text-primary font-semibold hover:underline">{t('termsLink')}</a>
+            <Link
+              href={LEGAL_TERMS_PATH}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cursor-pointer text-primary font-semibold hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {t('termsLink')}
+            </Link>
             {t('and')}
-            <a href="#" className="text-primary font-semibold hover:underline">{t('privacyLink')}</a>
+            <Link
+              href={LEGAL_PRIVACY_PATH}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cursor-pointer text-primary font-semibold hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {t('privacyLink')}
+            </Link>
           </label>
         </div>
 
