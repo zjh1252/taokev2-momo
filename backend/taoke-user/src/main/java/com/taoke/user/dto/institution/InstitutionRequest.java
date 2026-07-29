@@ -1,6 +1,5 @@
 package com.taoke.user.dto.institution;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -37,8 +36,7 @@ public class InstitutionRequest {
     /** 机构成立日期（YYYY-MM-DD） */
     private LocalDate establishedAt;
 
-    /** 机构 Logo URL */
-    @NotBlank(message = "请上传机构 Logo")
+    /** 机构 Logo URL（申请路径在 Service 层校验必填；PUT 资料更新可省略以保留原值） */
     @Size(max = 512, message = "Logo URL 不超过512个字符")
     private String logoUrl;
 

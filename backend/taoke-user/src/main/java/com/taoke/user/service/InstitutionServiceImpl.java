@@ -87,6 +87,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             throw new BusinessException(ErrorCode.PARAM_INVALID,
                     "请先勾选并同意《淘课网注册培训机构合作协议》");
         }
+        validateApplyLogo(userId, request);
         // 在写数据前先获取旧快照（用于资料重审变更记录）
         Institution oldSnapshot = institutionRepository.findByUserId(userId).orElse(null);
         boolean isReapply = roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION);
@@ -501,6 +502,17 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             }
         }
         return map;
+    }
+
+    /** 机构入驻/重审：请求未带 Logo 时，若库中亦无有效 Logo 则拒绝。 */
+    private void validateApplyLogo(Integer userId, InstitutionRequest request) {
+        if (!isBlankLogo(request.getLogoUrl())) {
+            return;
+        }
+        Institution existing = institutionRepository.findByUserId(userId).orElse(null);
+        if (existing == null || isBlankLogo(existing.getLogoUrl())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传机构 Logo");
+        }
     }
 
     private static boolean isBlankLogo(String logoUrl) {
