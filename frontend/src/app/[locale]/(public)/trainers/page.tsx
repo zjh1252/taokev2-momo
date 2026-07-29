@@ -1,3 +1,4 @@
+import { permanentRedirect } from 'next/navigation';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { TrainerListSection } from '@/features/trainer/components/list/TrainerListSection';
 import { PxbTrainerListSection } from '@/features/trainer/components/pxb/PxbTrainerListSection';
@@ -6,14 +7,18 @@ import {
   pxbTrainerListParams,
 } from '@/features/trainer/components/pxb/pxb-trainer-list-url';
 import { parseListPageFromSearchParams } from '@/lib/list-page';
-import { parseSlug } from '@/features/trainer/utils/url';
+import { filtersToHtmPath, parseSlug } from '@/features/trainer/utils/url';
 import { getTrainerList } from '@/features/trainer/api/service';
 import {
   loadCategoryExpertTrainers,
   loadTrainerListRecommended,
   loadTrainerPageCases,
 } from '@/features/recommendation/api/loaders';
-import { resolveExpertiseCategoryId } from '@/features/trainer/utils/expertise-categories';
+import {
+  canonicalizeTrainerSlugField,
+  filterStandardTrainerExpertiseTree,
+  resolveExpertiseCategoryId,
+} from '@/features/trainer/utils/expertise-categories';
 import { buildTrainerCategoryNavItems } from '@/lib/channel-category-stats';
 import {
   getCachedTrainerExpertiseTree,
@@ -21,7 +26,6 @@ import {
 } from '@/lib/cached-categories';
 import { isPxbEmbedOrigin } from '@/lib/pxb-embed';
 import { trainerListMetadata, trainerListH1 } from '@/lib/seo';
-import { filterStandardTrainerExpertiseTree } from '@/features/trainer/utils/expertise-categories';
 import { slugParamsToTrainerListParams } from '@/features/trainer/utils/list-params';
 
 function embedSearchParams(
@@ -103,6 +107,20 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
   const slugParams = parseSlug(sp.slug || '');
   // .htm SEO URL 把 page 写在 slug 里（/trainer/page=2.htm），优先于 ?page=
   const listPage = slugParams.page ?? page;
+
+  // 旧 field=一级_二级 且二级名唯一 → 301 到仅二级名
+  if (slugParams.field?.includes('_')) {
+    const expertiseTreeForCanon = await expertiseTreePromise;
+    const canonicalField = canonicalizeTrainerSlugField(expertiseTreeForCanon, slugParams.field);
+    if (canonicalField) {
+      permanentRedirect(
+        filtersToHtmPath({
+          ...slugParams,
+          field: canonicalField,
+        }),
+      );
+    }
+  }
 
   const categoryNavPromise = expertiseTreePromise.then(buildTrainerCategoryNavItems).catch(() => []);
   const needsTreeForFilters = Boolean(slugParams.field || slugParams.industry);

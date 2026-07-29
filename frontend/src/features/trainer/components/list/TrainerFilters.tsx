@@ -12,7 +12,7 @@ import type { CategoryTreeNode } from '../../types';
  * <ul>
  *   <li>左侧只列分类标题，鼠标 hover 弹出右侧浮层选项面板。</li>
  *   <li>「擅长领域」按二级分类展示：选中一级直接传一级名；
- *       选中二级传 {@code "一级_二级"}；后端按叶子节点搜索。</li>
+ *       选中二级时由列表层写入 SEO field（名唯一则仅二级，重名则一级_二级）。</li>
  *   <li>「擅长行业」单选，点击即替换。</li>
  *   <li>「常驻城市」单选，从 {@code GET /regions/children} 拉取省份列表。</li>
  *   <li>全部参数均可选可清，点「全部/不限」清除。</li>

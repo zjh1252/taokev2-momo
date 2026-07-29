@@ -1,20 +1,6 @@
 import type { CategoryTreeNode, TrainerListParams } from '../types';
 import type { TrainerSlugParams } from './url';
-
-function findCategoryId(
-  tree: CategoryTreeNode[],
-  parentName: string,
-  childName?: string,
-): number | undefined {
-  for (const lvl1 of tree) {
-    if (lvl1.name === parentName) {
-      if (!childName) return lvl1.id;
-      const child = lvl1.children?.find((c) => c.name === childName);
-      if (child) return child.id;
-    }
-  }
-  return undefined;
-}
+import { resolveExpertiseCategoryId } from './expertise-categories';
 
 function findCategoryIdByName(tree: CategoryTreeNode[], name: string): number | undefined {
   for (const lvl1 of tree) {
@@ -38,19 +24,13 @@ export function slugParamsToTrainerListParams(
     provinceId?: number;
   },
 ): TrainerListParams {
-  const fieldParts = (slug.field || '').split('_').filter(Boolean);
-  const fieldParent = fieldParts[0];
-  const fieldChild = fieldParts[1];
-
   return {
     page: options?.page ?? 1,
     size: options?.size ?? 16,
     sort: options?.sort ?? 'default',
     cityId: options?.cityId,
     provinceId: options?.provinceId,
-    expertiseCategoryId: fieldParent
-      ? findCategoryId(expertiseTree, fieldParent, fieldChild)
-      : undefined,
+    expertiseCategoryId: resolveExpertiseCategoryId(expertiseTree, slug.field),
     industryCategoryId: slug.industry
       ? findCategoryIdByName(industryTree, slug.industry)
       : undefined,

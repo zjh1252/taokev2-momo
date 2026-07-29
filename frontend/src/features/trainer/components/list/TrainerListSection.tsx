@@ -9,7 +9,8 @@ import { TrainerCaseScroller } from './TrainerCaseScroller';
 import { TrainerCategoryExpertBar } from './TrainerCategoryExpertBar';
 import { TrainerSortBar } from './TrainerSortBar';
 import { getTrainerList, type RecentTrainerCase } from '../../api/service';
-import { filtersToHtmPath, type TrainerSlugParams } from '../../utils/url';
+import { filtersToHtmPath, joinFieldValue, type TrainerSlugParams } from '../../utils/url';
+import { splitFieldForFilter } from '../../utils/expertise-categories';
 import { rememberTrainerListPath } from '../../utils/list-return';
 import type { TrainerListItem, CategoryTreeNode, PageResponse } from '../../types';
 import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-nav';
@@ -43,12 +44,11 @@ export function TrainerListSection(props: TrainerListSectionProps) {
   );
 }
 
-function slugToFilter(p: TrainerSlugParams): TrainerFilterValue {
-  // field 值为 "一级_二级" 或 "一级"
-  const fieldParts = (p.field || '').split('_');
+function slugToFilter(p: TrainerSlugParams, expertiseTree: CategoryTreeNode[]): TrainerFilterValue {
+  const fieldParts = splitFieldForFilter(expertiseTree, p.field);
   return {
-    fieldParentName: fieldParts[0] || undefined,
-    fieldChildName: fieldParts[1] || undefined,
+    fieldParentName: fieldParts.fieldParentName,
+    fieldChildName: fieldParts.fieldChildName,
     industryName: p.industry || undefined,
     regionName: p.region || undefined,
   };
@@ -82,10 +82,13 @@ function resolveExpertiseCategoryId(
   return id ?? -1;
 }
 
-function filterToFieldParam(f: TrainerFilterValue): string | undefined {
-  if (f.fieldParentName && f.fieldChildName) return `${f.fieldParentName}_${f.fieldChildName}`;
-  if (f.fieldParentName) return f.fieldParentName;
-  return undefined;
+function filterToFieldParam(f: TrainerFilterValue, expertiseTree: CategoryTreeNode[]): string | undefined {
+  const joined = joinFieldValue(
+    f.fieldParentName ?? null,
+    f.fieldChildName ?? null,
+    expertiseTree,
+  );
+  return joined || undefined;
 }
 
 /** 从分类树中按一级+二级名称查找分类ID */
@@ -130,7 +133,12 @@ function TrainerListSectionInner({
   bottomCategoryNav,
 }: TrainerListSectionProps) {
   const initialFilters = useMemo(
-    () => enrichFilterFromTree(slugToFilter(initialSlugParams || {}), expertiseTree, industryTree),
+    () =>
+      enrichFilterFromTree(
+        slugToFilter(initialSlugParams || {}, expertiseTree),
+        expertiseTree,
+        industryTree,
+      ),
     [initialSlugParams, expertiseTree, industryTree],
   );
 
@@ -143,7 +151,7 @@ function TrainerListSectionInner({
   /** SSR 刷新/软导航时同步数据与筛选（底部分类栏跳转、浏览器前进后退等） */
   useEffect(() => {
     const nextFilters = enrichFilterFromTree(
-      slugToFilter(initialSlugParams || {}),
+      slugToFilter(initialSlugParams || {}, expertiseTree),
       expertiseTree,
       industryTree,
     );
@@ -203,7 +211,7 @@ function TrainerListSectionInner({
   const syncUrl = useCallback(
     (page: number, f: TrainerFilterValue) => {
       const slugParams: TrainerSlugParams = {
-        field: filterToFieldParam(f),
+        field: filterToFieldParam(f, expertiseTree),
         industry: f.industryName,
         region: f.regionName,
         page: page > 1 ? page : undefined,
@@ -212,7 +220,7 @@ function TrainerListSectionInner({
       window.history.replaceState(null, '', url);
       rememberTrainerListPath(url);
     },
-    [],
+    [expertiseTree],
   );
 
   const handleFilterChange = useCallback(
