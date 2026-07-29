@@ -81,11 +81,15 @@ export function BookCreateForm() {
       onSubmit: formSchema
     },
     onSubmit: async ({ value }) => {
+      if (!coverUrl.trim()) {
+        toast.error('请上传封面图');
+        return;
+      }
       await createMutation.mutateAsync({
         trainerId: Number(value.trainerId),
         title: value.title,
         authorName: value.authorName || undefined,
-        coverUrl: coverUrl || undefined,
+        coverUrl: coverUrl,
         publisher: value.publisher || undefined,
         publishDate: value.publishDate || undefined,
         description: value.description || undefined,
@@ -149,7 +153,7 @@ export function BookCreateForm() {
             <FormTextField name='title' label='书名' required />
             <FormTextField name='authorName' label='作者名' />
             <div className='space-y-2'>
-              <Label>封面</Label>
+              <Label>封面 *</Label>
               <div className='flex items-start gap-3'>
                 <div className='relative h-[100px] w-[72px] overflow-hidden rounded border border-dashed border-muted-foreground/30 bg-muted/30'>
                   <AssetImage

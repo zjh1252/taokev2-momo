@@ -84,12 +84,16 @@ export function HighlightCreateForm() {
       onSubmit: formSchema
     },
     onSubmit: async ({ value }) => {
+      if (!coverUrl.trim()) {
+        toast.error('请上传封面图');
+        return;
+      }
       await mutation.mutateAsync({
         trainerUserId: Number(value.trainerUserId),
         payload: {
           title: value.title || undefined,
           description: value.description || undefined,
-          coverImage: coverUrl || undefined
+          coverImage: coverUrl
         }
       });
     }
@@ -152,7 +156,7 @@ export function HighlightCreateForm() {
             <FormTextareaField name='description' label='描述' rows={4} />
 
             <div className='space-y-2'>
-              <Label>封面</Label>
+              <Label>封面 *</Label>
               <div className='flex items-start gap-3'>
                 <div className='relative h-[100px] w-[160px] overflow-hidden rounded border border-dashed border-muted-foreground/30 bg-muted/30'>
                   <AssetImage
