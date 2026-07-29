@@ -64,6 +64,10 @@ export default function CreateHighlightPage() {
       toast.error('请先在顶部选择要代发精彩瞬间的专家');
       return;
     }
+    if (!form.coverImage?.trim()) {
+      toast.error('请上传封面图');
+      return;
+    }
     setSubmitting(true);
     try {
       const highlight = await createHighlight(form, trainerUserId);
@@ -127,7 +131,7 @@ export default function CreateHighlightPage() {
           />
         </FormField>
 
-        <FormField label="封面图">
+        <FormField label="封面图" required>
           {form.coverImage ? (
             <div className="relative w-[240px] h-[180px] rounded-lg overflow-hidden border border-slate-200">
               <Image

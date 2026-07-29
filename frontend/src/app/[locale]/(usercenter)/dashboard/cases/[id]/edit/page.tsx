@@ -335,7 +335,7 @@ export default function EditCasePage({
           />
         </FormField>
 
-        <FormField label="封面图">
+        <FormField label="封面图" required>
           <div className="flex items-center gap-4">
             {form.coverImage ? (
               <div className="relative w-[160px] h-[100px] rounded-lg overflow-hidden border border-slate-200">

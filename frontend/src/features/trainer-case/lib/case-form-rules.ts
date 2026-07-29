@@ -37,4 +37,6 @@ export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
   trainingDate: {
     validator: Validators.notFutureDate('培训日期不能晚于今天'),
   },
+  description: { required: true, requiredMessage: '请填写案例描述' },
+  coverImage: { required: true, requiredMessage: '请上传封面图' },
 };

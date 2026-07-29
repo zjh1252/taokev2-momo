@@ -141,6 +141,10 @@ export default function EditHighlightPage({
   );
 
   const handleSubmit = async () => {
+    if (!form.coverImage?.trim()) {
+      toast.error('请上传封面图');
+      return;
+    }
     setSubmitting(true);
     try {
       await updateHighlight(highlightId, form);
@@ -208,7 +212,7 @@ export default function EditHighlightPage({
           />
         </FormField>
 
-        <FormField label="封面图">
+        <FormField label="封面图" required>
           {form.coverImage ? (
             <div className="relative w-[240px] h-[180px] rounded-lg overflow-hidden border border-slate-200">
               <Image
