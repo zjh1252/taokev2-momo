@@ -23,7 +23,7 @@ export default async function PublicLayout({ children }: { children: React.React
 
   return (
     <div className="w-full overflow-x-auto">
-      <div className="min-w-[1400px]">
+      <div className="min-w-0">
         <PublicHeader />
         <main className="flex-1 bg-[var(--page-bg)]">{children}</main>
         <AppFooter />

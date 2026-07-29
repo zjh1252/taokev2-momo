@@ -121,7 +121,7 @@ export function CategoryFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="max-w-[min(420px,calc(100vw-2rem))] sm:max-w-[min(420px,calc(100vw-2rem))]">
         <DialogHeader>
           <DialogTitle>{isEdit ? '编辑分类' : '新增分类'}</DialogTitle>
           <DialogDescription>
