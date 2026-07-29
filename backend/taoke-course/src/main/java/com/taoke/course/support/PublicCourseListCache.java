@@ -36,8 +36,8 @@ public class PublicCourseListCache {
     private static final Duration LIST_TTL_BASE = Duration.ofMinutes(60);
     private static final Duration COUNT_TTL_BASE = Duration.ofMinutes(60);
 
-    /** 首页/频道常见 size */
-    private static final Set<Integer> CACHEABLE_SIZES = Set.of(15, 30, 36);
+    /** 首页/频道常见 size（含城市综合页 upcoming 块 size=10） */
+    private static final Set<Integer> CACHEABLE_SIZES = Set.of(10, 15, 30, 36);
     /** 可缓存的 sortBy（空串按 default） */
     private static final Set<String> CACHEABLE_SORTS = Set.of(
             "default", "time", "published", "viewCount", "score");
@@ -63,17 +63,21 @@ public class PublicCourseListCache {
         if (!CACHEABLE_SORTS.contains(sort)) {
             return false;
         }
+        if (!isCacheableCityIds(query.getCityIds())) {
+            return false;
+        }
+        if (!isCacheableEnrollStatus(query.getEnrollStatus())) {
+            return false;
+        }
         return query.getInstitutionId() == null
                 && (query.getCategoryIds() == null || query.getCategoryIds().isEmpty())
                 && (query.getSubCategoryIds() == null || query.getSubCategoryIds().isEmpty())
                 && (query.getKeyword() == null || query.getKeyword().isBlank())
                 && (query.getType() == null || query.getType().isBlank())
                 && (query.getProvinceIds() == null || query.getProvinceIds().isEmpty())
-                && (query.getCityIds() == null || query.getCityIds().isEmpty())
                 && query.getStartTimeFrom() == null
                 && query.getStartTimeTo() == null
                 && (query.getTimeQuick() == null || query.getTimeQuick().isBlank())
-                && (query.getEnrollStatus() == null || query.getEnrollStatus().isBlank())
                 && query.getPriceMin() == null
                 && query.getPriceMax() == null
                 && query.getIsFree() == null
@@ -194,12 +198,55 @@ public class PublicCourseListCache {
     private static String listKey(PublicCourseQuery query) {
         int page = Math.max(1, query.getPage());
         int size = query.getSize() <= 0 ? 15 : query.getSize();
-        return listKey(Boolean.TRUE.equals(query.getIsOpen()), normalizeSort(query.getSortBy()), page, size);
+        return listKey(
+                Boolean.TRUE.equals(query.getIsOpen()),
+                normalizeSort(query.getSortBy()),
+                page,
+                size,
+                cityKeySegment(query.getCityIds()),
+                enrollKeySegment(query.getEnrollStatus()));
     }
 
+    /** evict 无城默认列表时使用，与 {@link #listKey(PublicCourseQuery)} 无城口径一致 */
     private static String listKey(boolean isOpen, String sort, int page, int size) {
+        return listKey(isOpen, sort, page, size, "c0", "e_");
+    }
+
+    private static String listKey(
+            boolean isOpen, String sort, int page, int size, String citySegment, String enrollSegment) {
         String channel = isOpen ? "open" : "internal";
-        return LIST_KEY_PREFIX + channel + ":" + sort + ":p" + page + ":s" + size;
+        return LIST_KEY_PREFIX + channel + ":" + sort + ":p" + page + ":s" + size
+                + ":" + citySegment + ":" + enrollSegment;
+    }
+
+    /** 无城或单城可缓存，多城不缓存 */
+    private static boolean isCacheableCityIds(List<Integer> cityIds) {
+        if (cityIds == null || cityIds.isEmpty()) {
+            return true;
+        }
+        return cityIds.size() == 1;
+    }
+
+    /** 空白或 ENROLLING 可缓存，其它报名状态不缓存 */
+    private static boolean isCacheableEnrollStatus(String enrollStatus) {
+        if (enrollStatus == null || enrollStatus.isBlank()) {
+            return true;
+        }
+        return "ENROLLING".equalsIgnoreCase(enrollStatus.trim());
+    }
+
+    private static String cityKeySegment(List<Integer> cityIds) {
+        if (cityIds == null || cityIds.isEmpty()) {
+            return "c0";
+        }
+        return "c" + cityIds.getFirst();
+    }
+
+    private static String enrollKeySegment(String enrollStatus) {
+        if (enrollStatus == null || enrollStatus.isBlank()) {
+            return "e_";
+        }
+        return "e" + enrollStatus.trim().toUpperCase();
     }
 
     private static String countKey(boolean isOpen) {
