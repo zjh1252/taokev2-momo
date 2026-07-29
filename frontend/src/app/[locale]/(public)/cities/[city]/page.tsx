@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
-import { getCityByEnNameCached } from '@/features/city/api/server';
+import { getCityHomeCached } from '@/features/city/api/server';
 import {
   CityBlockSkeleton,
   CityHotInnerBlock,
@@ -11,7 +11,6 @@ import {
   CityTrainersBlock,
   CityUpcomingOpenBlock,
 } from '@/features/city/components/CityChannelBlocks';
-import { resolveCityFilterId } from '@/features/city/lib/filter-city-id';
 import { buildCityChannelMetadata } from '@/lib/seo';
 
 interface Props {
@@ -20,26 +19,25 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { city } = await params;
-  const detail = await getCityByEnNameCached(city).catch(() => null);
-  if (!detail) return { title: '城市培训频道 - 淘课网' };
-  return buildCityChannelMetadata(detail.cityName);
+  const home = await getCityHomeCached(city).catch(() => null);
+  if (!home?.detail) return { title: '城市培训频道 - 淘课网' };
+  return buildCityChannelMetadata(home.detail.cityName);
 }
 
 /**
  * 城市综合频道页 — /cities/[city]（SEO 别名 /city/{拼音}）
- * <p>各城市共用同一实现；区块 Suspense 流式输出，避免等齐全部列表才结束 RSC。</p>
+ * <p>同请求内 metadata / 页面 / 各 Suspense 块共享一次 GET /cities/{en}/home。</p>
  */
 export default async function CityChannelPage({ params }: Props) {
   const { city } = await params;
-  const detail = await getCityByEnNameCached(city).catch(() => null);
+  const home = await getCityHomeCached(city).catch(() => null);
 
-  if (!detail) {
+  if (!home?.detail) {
     notFound();
   }
 
-  const cityId = resolveCityFilterId(detail);
-  const { cityName } = detail;
-  const blockProps = { detail, cityId };
+  const { cityName, enName } = home.detail;
+  const blockProps = { enName: city };
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
@@ -72,7 +70,7 @@ export default async function CityChannelPage({ params }: Props) {
       </Suspense>
 
       <Suspense fallback={null}>
-        <CityNavBlock currentEnName={detail.enName} />
+        <CityNavBlock currentEnName={enName} />
       </Suspense>
     </main>
   );

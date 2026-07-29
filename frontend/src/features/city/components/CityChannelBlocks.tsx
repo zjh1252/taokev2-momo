@@ -1,9 +1,5 @@
-import { getCourseList } from '@/features/course/api/service';
-import { getInstitutionList } from '@/features/institution/api/service';
-import { getTrainerList } from '@/features/trainer/api/service';
-import { getVideoList } from '@/features/video/api/service';
-import { getActiveCitiesCached } from '@/features/city/api/server';
-import type { CityChannelDetail } from '@/features/city/api/types';
+import { getActiveCitiesCached, getCityHomeCached } from '@/features/city/api/server';
+import type { CityChannelDetail, CityChannelHome, CityHomePage } from '@/features/city/api/types';
 import { CityChannelSection } from '@/features/city/components/CityChannelSection';
 import { CityCourseScheduleList } from '@/features/city/components/CityCourseScheduleList';
 import { CityInnerCourseList } from '@/features/city/components/CityInnerCourseList';
@@ -20,23 +16,32 @@ import {
   cityTrainerListPath,
 } from '@/features/city/lib/paths';
 
-const emptyPage = { list: [], total: 0, page: 1, size: 10, totalPages: 0 };
+const emptyPage = <T,>(): CityHomePage<T> => ({
+  list: [],
+  total: 0,
+  page: 1,
+  size: 10,
+  totalPages: 0,
+});
 
 interface CityBlockProps {
-  detail: CityChannelDetail;
-  cityId: number;
+  enName: string;
+}
+
+async function loadHome(enName: string): Promise<CityChannelHome | null> {
+  return getCityHomeCached(enName).catch(() => null);
+}
+
+function detailOf(home: CityChannelHome | null): CityChannelDetail | null {
+  return home?.detail ?? null;
 }
 
 /** 最近开课公开课（计划时间排序，所有城市共用同一数据口径） */
-export async function CityUpcomingOpenBlock({ detail, cityId }: CityBlockProps) {
-  const upcomingOpen = await getCourseList({
-    page: 1,
-    size: 10,
-    isOpen: true,
-    cityIds: [cityId],
-    enrollStatus: 'ENROLLING',
-    sortBy: 'time',
-  }).catch(() => emptyPage);
+export async function CityUpcomingOpenBlock({ enName }: CityBlockProps) {
+  const home = await loadHome(enName);
+  const detail = detailOf(home);
+  if (!detail) return null;
+  const upcomingOpen = home?.upcomingOpen ?? emptyPage();
 
   return (
     <CityChannelSection
@@ -57,14 +62,11 @@ export async function CityUpcomingOpenBlock({ detail, cityId }: CityBlockProps) 
 }
 
 /** 热门内训 */
-export async function CityHotInnerBlock({ detail, cityId }: CityBlockProps) {
-  const hotInner = await getCourseList({
-    page: 1,
-    size: 10,
-    isOpen: false,
-    trainerCityId: cityId,
-    sortBy: 'viewCount',
-  }).catch(() => emptyPage);
+export async function CityHotInnerBlock({ enName }: CityBlockProps) {
+  const home = await loadHome(enName);
+  const detail = detailOf(home);
+  if (!detail) return null;
+  const hotInner = home?.hotInner ?? emptyPage();
 
   return (
     <CityChannelSection
@@ -78,17 +80,12 @@ export async function CityHotInnerBlock({ detail, cityId }: CityBlockProps) {
 }
 
 /** 最新公开课 + 录播课（published 排序，避开计划维重查询） */
-export async function CityLatestBlock({ detail, cityId }: CityBlockProps) {
-  const [latestOpen, latestVideos] = await Promise.all([
-    getCourseList({
-      page: 1,
-      size: 10,
-      isOpen: true,
-      cityIds: [cityId],
-      sortBy: 'published',
-    }).catch(() => emptyPage),
-    getVideoList({ page: 1, size: 10, sortBy: 'time' }).catch(() => emptyPage),
-  ]);
+export async function CityLatestBlock({ enName }: CityBlockProps) {
+  const home = await loadHome(enName);
+  const detail = detailOf(home);
+  if (!detail) return null;
+  const latestOpen = home?.latestOpen ?? emptyPage();
+  const latestVideos = home?.latestVideos ?? emptyPage();
   const latestItems = mergeLatestCityCourses(latestOpen.list, latestVideos.list, 10);
 
   return (
@@ -103,13 +100,11 @@ export async function CityLatestBlock({ detail, cityId }: CityBlockProps) {
 }
 
 /** 最新机构 */
-export async function CityInstitutionsBlock({ detail, cityId }: CityBlockProps) {
-  const institutions = await getInstitutionList({
-    page: 1,
-    size: 20,
-    cityId,
-    sort: 'newly_joined',
-  }).catch(() => emptyPage);
+export async function CityInstitutionsBlock({ enName }: CityBlockProps) {
+  const home = await loadHome(enName);
+  const detail = detailOf(home);
+  if (!detail) return null;
+  const institutions = home?.institutions ?? emptyPage();
 
   return (
     <CityChannelSection
@@ -125,13 +120,11 @@ export async function CityInstitutionsBlock({ detail, cityId }: CityBlockProps) 
 }
 
 /** 最新专家 */
-export async function CityTrainersBlock({ detail, cityId }: CityBlockProps) {
-  const trainers = await getTrainerList({
-    page: 1,
-    size: 20,
-    cityId,
-    sort: 'newly_joined',
-  }).catch(() => emptyPage);
+export async function CityTrainersBlock({ enName }: CityBlockProps) {
+  const home = await loadHome(enName);
+  const detail = detailOf(home);
+  if (!detail) return null;
+  const trainers = home?.trainers ?? emptyPage();
 
   return (
     <CityChannelSection

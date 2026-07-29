@@ -2,6 +2,11 @@
  * 城市频道相关类型 — 仅供首页城市卡片 + /cities/[pinyin] 详情页使用
  */
 
+import type { CourseListItem } from '@/features/course/api/types';
+import type { InstitutionListItem } from '@/features/institution/types';
+import type { TrainerListItem } from '@/features/trainer/types';
+import type { VideoListItem } from '@/features/video/api/types';
+
 /** 首页城市卡片项 — 来自 GET /cities/active */
 export interface ActiveCityItem {
   /** URL slug（拼音），如 beijing/shanghai/guangzhou */
@@ -24,4 +29,27 @@ export interface CityChannelDetail {
   cityRegionId: number;
   /** 省级 region.id (level=1) */
   provinceRegionId: number | null;
+}
+
+/** 分页切片 — 与后端 PageResponse 对齐 */
+export interface CityHomePage<T> {
+  list: T[];
+  total: number;
+  page: number;
+  size: number;
+  totalPages: number;
+}
+
+/**
+ * 城市综合页聚合 — 来自 GET /cities/{enName}/home
+ * <p>不含底部城市导航（仍走 /cities/active）。</p>
+ */
+export interface CityChannelHome {
+  detail: CityChannelDetail;
+  upcomingOpen: CityHomePage<CourseListItem>;
+  hotInner: CityHomePage<CourseListItem>;
+  latestOpen: CityHomePage<CourseListItem>;
+  latestVideos: CityHomePage<VideoListItem>;
+  institutions: CityHomePage<InstitutionListItem>;
+  trainers: CityHomePage<TrainerListItem>;
 }
