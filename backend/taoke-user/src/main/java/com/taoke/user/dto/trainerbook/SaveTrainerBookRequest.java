@@ -10,7 +10,7 @@ import java.time.LocalDate;
  * 保存（新增/更新）专家著作请求 DTO
  *
  * @author Fangxinxin
- * @date 2026-04-16 15:30
+ * @date 2026-07-29 15:30
  */
 @Data
 public class SaveTrainerBookRequest {
@@ -22,6 +22,7 @@ public class SaveTrainerBookRequest {
     @Size(max = 200, message = "作者名长度不超过 200 字符")
     private String authorName;
 
+    @NotBlank(message = "请上传封面图")
     @Size(max = 500, message = "封面图 URL 长度不超过 500 字符")
     private String coverUrl;
 

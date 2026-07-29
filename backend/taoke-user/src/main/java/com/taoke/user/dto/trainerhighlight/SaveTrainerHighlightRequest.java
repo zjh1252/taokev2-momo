@@ -1,5 +1,6 @@
 package com.taoke.user.dto.trainerhighlight;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -7,7 +8,7 @@ import lombok.Data;
  * 新增/编辑精彩瞬间请求（父记录字段）
  *
  * @author Fangxinxin
- * @date 2026-04-11 16:30
+ * @date 2026-07-29 15:30
  */
 @Data
 public class SaveTrainerHighlightRequest {
@@ -18,6 +19,7 @@ public class SaveTrainerHighlightRequest {
     @Size(max = 500, message = "描述不能超过500字")
     private String description;
 
+    @NotBlank(message = "请上传封面图")
     @Size(max = 500, message = "封面图URL不能超过500字")
     private String coverImage;
 

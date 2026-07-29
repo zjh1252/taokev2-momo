@@ -1,5 +1,6 @@
 package com.taoke.user.dto.institution;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -14,7 +15,7 @@ import java.util.List;
  * （已有）/ 是否有场地 / 是否有专家 / 合作协议签署。</p>
  *
  * @author Fangxinxin
- * @date 2026-03-31 16:00
+ * @date 2026-07-29 15:30
  */
 @Data
 public class InstitutionRequest {
@@ -37,6 +38,7 @@ public class InstitutionRequest {
     private LocalDate establishedAt;
 
     /** 机构 Logo URL */
+    @NotBlank(message = "请上传机构 Logo")
     @Size(max = 512, message = "Logo URL 不超过512个字符")
     private String logoUrl;
 
