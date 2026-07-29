@@ -7,6 +7,7 @@ import {
   LEGACY_TRAINER_FILTER_FALLBACK,
   legacyVedioDetailRedirectTarget,
   legacyVideoChannelRedirectTarget,
+  legacyVideoPlayRedirectTarget,
 } from '@/lib/seo-legacy-redirects';
 
 const intlMiddleware = createMiddleware(routing);
@@ -65,13 +66,10 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(`${vedioDetailTarget}${search}`, request.url), 301);
   }
 
-  // 老站录播播放页: /video_play/17946.htm → /videos/17946/play
-  const videoPlayMatch = pathname.match(/^\/video_play\/(\d+)(?:\.htm)?$/);
-  if (videoPlayMatch) {
-    return rewriteKeepingQuery(
-      request,
-      `/${locale}/videos/${videoPlayMatch[1]}/play`,
-    );
+  // 老站录播播放页: /video_play/17946.htm → 301 /video/17946/play
+  const videoPlayTarget = legacyVideoPlayRedirectTarget(pathname);
+  if (videoPlayTarget) {
+    return NextResponse.redirect(new URL(`${videoPlayTarget}${search}`, request.url), 301);
   }
 
   // 城市频道 SEO: /city/shanghai → /zh-CN/cities/shanghai

@@ -61,3 +61,10 @@ export function legacyVedioDetailRedirectTarget(pathname: string): string | null
   }
   return null;
 }
+
+/** 老站 `/video_play/{id}.htm` → `/video/{id}/play` */
+export function legacyVideoPlayRedirectTarget(pathname: string): string | null {
+  const match = pathname.match(/^\/video_play\/(\d+)(?:\.htm)?$/);
+  if (!match) return null;
+  return `/video/${match[1]}/play`;
+}

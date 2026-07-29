@@ -3,6 +3,7 @@ import {
   isLegacyNumericTrainerFilterPath,
   legacyVideoChannelRedirectTarget,
   legacyVedioDetailRedirectTarget,
+  legacyVideoPlayRedirectTarget,
 } from './seo-legacy-redirects';
 
 describe('isLegacyNumericTrainerFilterPath', () => {
@@ -42,5 +43,13 @@ describe('legacyVedioDetailRedirectTarget', () => {
     expect(legacyVedioDetailRedirectTarget('/vedio/12.htm')).toBe('/video/12.htm');
     expect(legacyVedioDetailRedirectTarget('/vedio/12')).toBe('/video/12.htm');
     expect(legacyVedioDetailRedirectTarget('/vedio/12/play')).toBe('/video/12/play');
+  });
+});
+
+describe('legacyVideoPlayRedirectTarget', () => {
+  it('maps legacy video_play to /video/{id}/play', () => {
+    expect(legacyVideoPlayRedirectTarget('/video_play/17946.htm')).toBe('/video/17946/play');
+    expect(legacyVideoPlayRedirectTarget('/video_play/17946')).toBe('/video/17946/play');
+    expect(legacyVideoPlayRedirectTarget('/video/17946/play')).toBeNull();
   });
 });
