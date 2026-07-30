@@ -98,6 +98,10 @@ export interface CourseListItem {
   nextPlanStartDate?: string;
   /** 最近一场开课城市名称（公开课列表展示用） */
   nextPlanCity?: string;
+  /**
+   * 公开课 SEO 路径数字段：优先最近场次 legacy sortOrder，否则 course.id
+   */
+  seoPathId?: number;
 }
 
 /** 创建/编辑课程请求体（对应后端 SaveCourseRequest） */
@@ -195,6 +199,8 @@ export interface CourseDetail {
   isExpireHide?: number | null;
   /** 是否已过期（线下公开课且结束日期早于今日） */
   isOverdue?: boolean;
+  /** 对外展示课程编号（纯数字，优先 legacy 场次） */
+  displayCourseNo?: number;
 }
 
 /**

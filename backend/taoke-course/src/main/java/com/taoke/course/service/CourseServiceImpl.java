@@ -257,6 +257,7 @@ public class CourseServiceImpl implements CourseService {
                 if (vo != null) {
                     vo.setNextPlanStartDate(e.getValue().getStartTime());
                     vo.setNextPlanCity(formatPlanLocation(e.getValue(), regionNameMap));
+                    vo.setSeoPathId(resolveSeoPathId(e.getKey(), e.getValue()));
                 }
             }
         }
@@ -797,6 +798,9 @@ public class CourseServiceImpl implements CourseService {
             if (nearest != null) {
                 vo.setNextPlanStartDate(nearest.getStartTime());
                 vo.setNextPlanCity(formatPlanLocation(nearest, regionNameMap));
+                vo.setSeoPathId(resolveSeoPathId(c.getId(), nearest));
+            } else if (c.getType() != null && c.getType().isOpen()) {
+                vo.setSeoPathId(c.getId());
             }
             String organizerName = resolveOrganizerName(
                     c, institutionByUserId, legacyOrganizerUserIds, legacyOrganizerFromLecturer, legacyMemberNameMap);
@@ -980,6 +984,35 @@ public class CourseServiceImpl implements CourseService {
             }
         }
         return true;
+    }
+
+    /**
+     * 详情页对外课程编号：即将开课且 sortOrder&gt;0 优先；否则任意 sortOrder&gt;0；再回退 courseId。
+     */
+    private Integer resolveDisplayCourseNo(Integer courseId, List<CoursePlan> plans) {
+        if (plans == null || plans.isEmpty()) {
+            return courseId;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        Optional<CoursePlan> upcoming = plans.stream()
+                .filter(p -> p.getSortOrder() != null && p.getSortOrder() > 0)
+                .filter(p -> p.getStartTime() != null && !p.getStartTime().isBefore(now))
+                .min(Comparator.comparing(CoursePlan::getStartTime));
+        if (upcoming.isPresent()) {
+            return upcoming.get().getSortOrder();
+        }
+        Optional<CoursePlan> anyLegacy = plans.stream()
+                .filter(p -> p.getSortOrder() != null && p.getSortOrder() > 0)
+                .max(Comparator.comparing(CoursePlan::getStartTime,
+                        Comparator.nullsLast(Comparator.naturalOrder())));
+        return anyLegacy.map(CoursePlan::getSortOrder).orElse(courseId);
+    }
+
+    private Integer resolveSeoPathId(Integer courseId, CoursePlan nearest) {
+        if (nearest != null && nearest.getSortOrder() != null && nearest.getSortOrder() > 0) {
+            return nearest.getSortOrder();
+        }
+        return courseId;
     }
 
     private String formatPlanLocation(CoursePlan plan, Map<Integer, String> regionNameMap) {
@@ -1721,12 +1754,14 @@ public class CourseServiceImpl implements CourseService {
         vo.setStatusLabel(CourseStatus.of(course.getStatus()).getLabel());
 
         // 开课计划（附带省市名称，供详情页展示地点）
+        List<CoursePlan> planEntities = List.of();
         if (course.getType().isOpen()) {
-            List<CoursePlan> plans = coursePlanRepository.findByCourseIdOrderBySortOrder(course.getId());
-            vo.setPlans(enrichPlanDTOs(courseMapper.toPlanDTOList(plans)));
+            planEntities = coursePlanRepository.findByCourseIdOrderBySortOrder(course.getId());
+            vo.setPlans(enrichPlanDTOs(courseMapper.toPlanDTOList(planEntities)));
         } else {
             vo.setPlans(List.of());
         }
+        vo.setDisplayCourseNo(resolveDisplayCourseNo(course.getId(), planEntities));
 
         // 批量获取分类名称
         Set<Integer> catIds = new HashSet<>();

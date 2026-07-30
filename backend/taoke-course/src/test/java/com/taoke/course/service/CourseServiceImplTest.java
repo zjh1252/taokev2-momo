@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -105,6 +106,32 @@ class CourseServiceImplTest {
 
         assertEquals(276819, result.getId());
         verify(coursePlanRepository, never()).findFirstBySortOrderOrderByIdAsc(any());
+    }
+
+    @Test
+    void getPublicDetail_setsDisplayCourseNoFromUpcomingPlanSortOrder() {
+        Course course = publishedOpenCourse(276819, "向HW学习流程体系建设与高效运营");
+        when(courseRepository.findById(276819)).thenReturn(Optional.of(course));
+
+        CoursePlan plan = new CoursePlan();
+        plan.setId(10);
+        plan.setCourseId(276819);
+        plan.setSortOrder(438103);
+        plan.setStartTime(LocalDateTime.now().plusDays(3));
+        plan.setEndTime(LocalDateTime.now().plusDays(4));
+        when(coursePlanRepository.findByCourseIdOrderBySortOrder(276819)).thenReturn(List.of(plan));
+
+        CourseDetailVO detail = new CourseDetailVO();
+        detail.setId(276819);
+        when(courseMapper.toDetailVO(course)).thenReturn(detail);
+        when(courseMapper.toPlanDTOList(List.of(plan))).thenReturn(List.of());
+        when(legacyTaokeCourseReader.findCoverUrlsByCourseIds(List.of(276819))).thenReturn(Map.of());
+        when(legacyTaokeCourseReader.findOrganizerUserIds(List.of(276819))).thenReturn(Map.of());
+        when(legacyTaokeCourseReader.findOrganizerNamesFromLecturer(List.of(276819))).thenReturn(Map.of());
+
+        CourseDetailVO result = service.getPublicDetail(276819);
+
+        assertEquals(438103, result.getDisplayCourseNo());
     }
 
     private static Course publishedOpenCourse(int id, String title) {
