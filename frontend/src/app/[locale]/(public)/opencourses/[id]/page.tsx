@@ -49,7 +49,7 @@ export default async function OpenCourseDetailPage({ params }: Props) {
 
       <ExpiredCourseBanner show={Boolean(course.isOverdue)} />
 
-      <CourseHero course={course} />
+      <CourseHero course={course} pathId={courseId} />
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
         <CourseDetailTabs course={course} />

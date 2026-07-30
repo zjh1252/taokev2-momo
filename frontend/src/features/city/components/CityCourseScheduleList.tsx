@@ -1,5 +1,6 @@
 import { Link } from '@/i18n/navigation';
 import type { CourseListItem } from '@/features/course/api/types';
+import { getCourseDetailPath } from '@/features/course/utils/routes';
 
 interface CityCourseScheduleListProps {
   /** 区块标题，如「最近开课的上海培训课程」 */
@@ -77,7 +78,7 @@ function CityScheduleRow({
     <li className="px-5 py-3 grid grid-cols-1 sm:grid-cols-[1fr_120px_140px] sm:items-center gap-1 sm:gap-3 hover:bg-slate-50 transition-colors">
       <h3 className="text-sm font-normal m-0">
         <Link
-          href={`/opencourse/${course.id}.htm`}
+          href={getCourseDetailPath(course.id, course.type, course.seoPathId)}
           className="text-slate-800 hover:text-primary line-clamp-1"
         >
           <span className="text-primary mr-1">[{cityName}]</span>

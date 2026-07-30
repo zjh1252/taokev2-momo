@@ -3,6 +3,7 @@
 import { CourseListCoverThumb } from '@/components/course-list-cover-thumb';
 import { Link } from '@/i18n/navigation';
 import { Flame, Star } from 'lucide-react';
+import { getCourseDetailPath } from '@/features/course/utils/routes';
 import type { SearchResultItem } from '../api/types';
 
 interface CourseResultCardProps {
@@ -20,8 +21,7 @@ function HighlightText({ html }: { html: string }) {
 
 export function CourseResultCard({ item }: CourseResultCardProps) {
   const hl = item._highlight;
-  const isOpen = item.type === 'OPEN_OFFLINE' || item.type === 'OPEN_ONLINE';
-  const detailPath = isOpen ? `/opencourse/${item.id}.htm` : `/inhousecourse/${item.id}.htm`;
+  const detailPath = getCourseDetailPath(item.id, item.type);
 
   return (
     <Link

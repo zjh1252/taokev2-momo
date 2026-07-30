@@ -366,7 +366,7 @@ function HomeView({
           <div className="space-y-4">
             {courses.slice(0, 3).map((course) => {
               const isOpen = isOpenCourseType(course.type);
-              const detailPath = getCourseDetailPath(course.id, course.type);
+              const detailPath = getCourseDetailPath(course.id, course.type, course.seoPathId);
               return (
                 <div
                   key={course.id}
@@ -518,7 +518,7 @@ function CoursesView({
           <div className="space-y-4">
             {courses.map((course) => {
               const isOpen = isOpenCourseType(course.type);
-              const detailPath = getCourseDetailPath(course.id, course.type);
+              const detailPath = getCourseDetailPath(course.id, course.type, course.seoPathId);
               return (
                 <div
                   key={course.id}

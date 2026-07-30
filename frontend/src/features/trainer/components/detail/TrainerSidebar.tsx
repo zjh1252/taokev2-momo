@@ -190,7 +190,7 @@ function SectionTitle({
 function CourseCard({ course }: { course: RecommendedCourseItem }) {
   return (
     <Link
-      href={getCourseDetailPath(course.id, course.type)}
+      href={getCourseDetailPath(course.id, course.type, course.seoPathId)}
       className="flex items-center gap-3 cursor-pointer group"
     >
       <SafeImage

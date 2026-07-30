@@ -57,7 +57,12 @@ export default async function OpenCoursePlanDetailPage({ params }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-6">
-      <OpenCoursePlanHero course={course} plan={plan} planCode={planCode} />
+      <OpenCoursePlanHero
+        course={course}
+        plan={plan}
+        planCode={planCode}
+        planIndex1Based={parsed.planIndex}
+      />
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
         <CourseDetailTabs

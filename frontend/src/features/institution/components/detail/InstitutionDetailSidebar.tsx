@@ -12,6 +12,7 @@ import {
 } from '../../api/service';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
+import { getCourseDetailPath } from '@/features/course/utils/routes';
 import { useAuth } from '@/lib/auth/auth-context';
 import { ROUTES } from '@/config/routes';
 import { useRouter } from '@/i18n/navigation';
@@ -59,7 +60,7 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
             {openCourses.map((c) => (
               <li key={c.id} className="py-2 first:pt-0 last:pb-0">
                 <Link
-                  href={`/opencourse/${c.id}.htm`}
+                  href={getCourseDetailPath(c.id, c.type, c.seoPathId)}
                   className="flex items-center gap-3 group"
                 >
                   <SafeImage
@@ -121,7 +122,7 @@ export function InstitutionDetailSidebar({ institution }: InstitutionDetailSideb
             {hotCourses.map((c) => (
               <li key={c.id} className="py-2 first:pt-0 last:pb-0">
                 <Link
-                  href={`/opencourse/${c.id}.htm`}
+                  href={getCourseDetailPath(c.id, c.type, c.seoPathId)}
                   className="flex items-center gap-3 group"
                 >
                   <SafeImage

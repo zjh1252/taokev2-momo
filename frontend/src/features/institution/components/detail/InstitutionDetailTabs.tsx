@@ -20,6 +20,7 @@ import ReviewDialog from '@/features/interaction/components/ReviewDialog';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
+import { getCourseDetailPath } from '@/features/course/utils/routes';
 import { LegacyRichText } from '@/components/legacy-rich-text';
 import { institutionSectionH3 } from '@/lib/seo/headings';
 
@@ -316,7 +317,7 @@ function OpenCourseTable({ courses }: { courses: CourseListItem[] }) {
             <tr key={c.id} className="border-t border-slate-100 hover:bg-slate-50">
               <td className="px-4 py-3 text-slate-800">
                 <Link
-                  href={`/opencourse/${c.id}.htm`}
+                  href={getCourseDetailPath(c.id, c.type, c.seoPathId)}
                   className="font-medium hover:text-primary line-clamp-1"
                 >
                   {c.title}
@@ -329,7 +330,7 @@ function OpenCourseTable({ courses }: { courses: CourseListItem[] }) {
               <td className="px-4 py-3 text-slate-600">{c.nextPlanCity || '—'}</td>
               <td className="px-4 py-3 text-right">
                 <Link
-                  href={`/opencourse/${c.id}.htm`}
+                  href={getCourseDetailPath(c.id, c.type, c.seoPathId)}
                   className="text-primary hover:underline text-xs"
                 >
                   查看详情

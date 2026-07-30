@@ -4,6 +4,7 @@ import { Link } from '@/i18n/navigation';
 import { SafeImage } from '@/components/safe-image';
 import { SectionHeader } from './SectionHeader';
 import type { PublicCourse } from '../types';
+import { getCourseDetailPath } from '@/features/course/utils/routes';
 
 interface PublicCoursesSectionProps {
   courses: PublicCourse[];
@@ -79,7 +80,7 @@ function PublicCourseItem({ course }: { course: PublicCourse }) {
 
       <div className="shrink-0">
         <Link
-          href={`/opencourse/${course.id}.htm`}
+          href={getCourseDetailPath(course.id, 'OPEN_OFFLINE')}
           className="px-6 py-2 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md inline-block"
         >
           {t('publicCourses.viewDetail')}

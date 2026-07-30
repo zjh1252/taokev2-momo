@@ -10,6 +10,7 @@ import {
   formatPlanStartDate,
   normalizeCourseDurationDays,
 } from '../../utils/display';
+import { getCourseDetailPath } from '../../utils/routes';
 
 interface OpenCourseCardProps {
   course: CourseListItem;
@@ -39,7 +40,7 @@ export function OpenCourseCard({ course }: OpenCourseCardProps) {
 
   return (
     <Link
-      href={`/opencourse/${course.id}.htm`}
+      href={getCourseDetailPath(course.id, course.type, course.seoPathId)}
       onClick={onCardClick}
       className="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group block"
     >

@@ -32,7 +32,7 @@ function itemHref(entry: CityLatestItem): string {
   if (entry.kind === 'video') {
     return `/video/${entry.item.id}.htm`;
   }
-  return getCourseDetailPath(entry.item.id, entry.item.type);
+  return getCourseDetailPath(entry.item.id, entry.item.type, entry.item.seoPathId);
 }
 
 function itemTitle(entry: CityLatestItem): string {

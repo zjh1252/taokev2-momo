@@ -3,18 +3,26 @@
 import { Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { CourseDetail, CoursePlan } from '../../api/types';
+import { getPlanDisplayNo } from '../../utils/open-course-seo';
 
 interface OpenCoursePlanHeroProps {
   course: CourseDetail;
   plan: CoursePlan;
   planCode: string;
+  planIndex1Based: number;
 }
 
-export function OpenCoursePlanHero({ course, plan, planCode }: OpenCoursePlanHeroProps) {
+export function OpenCoursePlanHero({
+  course,
+  plan,
+  planCode: _planCode,
+  planIndex1Based,
+}: OpenCoursePlanHeroProps) {
   const t = useTranslations('course.detail');
   const totalHoursDisplay = course.totalHours
     ? Number(course.totalHours).toFixed(0)
     : null;
+  const displayNo = getPlanDisplayNo(plan, course.id, planIndex1Based);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
@@ -50,7 +58,7 @@ export function OpenCoursePlanHero({ course, plan, planCode }: OpenCoursePlanHer
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-8 text-sm">
         <div className="text-slate-500">
-          {t('courseId')}：<span className="text-slate-800 font-medium">{planCode}</span>
+          {t('courseId')}：<span className="text-slate-800 font-medium">{displayNo}</span>
         </div>
         <div className="text-slate-500">
           {t('duration')}：

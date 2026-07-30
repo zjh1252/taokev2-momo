@@ -4,18 +4,24 @@ import { Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { SafeImage } from '@/components/safe-image';
 import type { CourseDetail } from '../../api/types';
+import { resolveOpenCourseDisplayNo } from '../../utils/open-course-seo';
 
 interface CourseHeroProps {
   course: CourseDetail;
+  /** URL 数字段（可能是 legacy 场次 ID） */
+  pathId?: number;
 }
 
-export function CourseHero({ course }: CourseHeroProps) {
+export function CourseHero({ course, pathId }: CourseHeroProps) {
   const t = useTranslations('course.detail');
   const isOpen = course.type === 'OPEN_OFFLINE' || course.type === 'OPEN_ONLINE';
   const totalHoursDisplay = course.totalHours
     ? Number(course.totalHours).toFixed(0)
     : null;
   const coverSrc = course.coverUrl;
+  const displayNo = isOpen
+    ? resolveOpenCourseDisplayNo(course, pathId)
+    : course.id;
 
   // 公开课：取主排期展示时间/地点
   const primaryPlan = isOpen ? course.plans?.[0] : null;
@@ -77,7 +83,7 @@ export function CourseHero({ course }: CourseHeroProps) {
             <div className="text-slate-500 min-w-0 break-words">
               {t('courseId')}：
               <span className="text-slate-800 font-medium">
-                TK-{String(course.id).padStart(6, '0')}
+                {String(displayNo)}
               </span>
             </div>
             <div className="text-slate-500 min-w-0 break-words">

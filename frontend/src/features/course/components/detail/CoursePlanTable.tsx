@@ -6,12 +6,13 @@ import { Link } from '@/i18n/navigation';
 import type { CoursePlan } from '../../api/types';
 import { getCourseEnrollmentStatus } from '../../api/service';
 import { isPlanEnrolling } from '../../utils/display';
-import { formatPlanCode, getOpenCoursePlanPath } from '../../utils/plan-code';
+import { getOpenCoursePlanSeoPath, getPlanDisplayNo } from '../../utils/open-course-seo';
+import { formatPlanCode } from '../../utils/plan-code';
 
 interface CoursePlanTableProps {
   plans: CoursePlan[];
   courseId: number;
-  /** 当前页面对应的开课计划编号，用于高亮或排除 */
+  /** 当前页面对应的开课计划编号或 legacy 场次号，用于高亮或排除 */
   activePlanCode?: string;
   /** 自定义表格标题 */
   title?: string;
@@ -61,8 +62,16 @@ export function CoursePlanTable({
   };
 
   const allPlans = plans
-    .map((plan, index) => ({ plan, index, planCode: formatPlanCode(courseId, index + 1) }))
-    .filter(({ planCode }) => planCode !== activePlanCode)
+    .map((plan, index) => {
+      const displayNo = getPlanDisplayNo(plan, courseId, index + 1);
+      const href = getOpenCoursePlanSeoPath(plan, courseId, index + 1);
+      const legacyCode = formatPlanCode(courseId, index + 1);
+      return { plan, index, displayNo, href, legacyCode };
+    })
+    .filter(({ displayNo, legacyCode }) => {
+      if (!activePlanCode) return true;
+      return displayNo !== activePlanCode && legacyCode !== activePlanCode;
+    })
     .sort((a, b) => {
       const ta = new Date(a.plan.startTime).getTime();
       const tb = new Date(b.plan.startTime).getTime();
@@ -98,16 +107,16 @@ export function CoursePlanTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {visiblePlans.map(({ plan, index, planCode }) => {
+            {visiblePlans.map(({ plan, index, displayNo, href }) => {
               const enrolling = !courseOverdue && isPlanEnrolling(plan);
               return (
                 <tr key={plan.id || index} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3">
                     <Link
-                      href={getOpenCoursePlanPath(planCode)}
+                      href={href}
                       className="text-primary font-medium hover:underline"
                     >
-                      {planCode}
+                      {displayNo}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-slate-700">{getLocationText(plan)}</td>
