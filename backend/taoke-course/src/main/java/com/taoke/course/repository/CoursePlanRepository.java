@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 公开课开课计划持久化
@@ -20,6 +21,12 @@ public interface CoursePlanRepository extends JpaRepository<CoursePlan, Integer>
     List<CoursePlan> findByCourseIdOrderBySortOrder(Integer courseId);
 
     List<CoursePlan> findByCourseIdInOrderBySortOrder(List<Integer> courseIds);
+
+    /**
+     * 按老站场次 ID（迁移写入 sort_order）反查开课计划。
+     * <p>用于公开课 SEO：{@code /opencourse/{legacyPlanId}.htm}。</p>
+     */
+    Optional<CoursePlan> findFirstBySortOrderOrderByIdAsc(Integer sortOrder);
 
     /**
      * 批量查询给定课程列表中 startTime &gt;= 指定时间的开课计划，按时间升序。

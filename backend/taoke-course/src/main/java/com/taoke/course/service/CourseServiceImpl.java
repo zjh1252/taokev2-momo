@@ -266,11 +266,17 @@ public class CourseServiceImpl implements CourseService {
     // ==================== 公开接口 ====================
 
     @Override
-    public CourseDetailVO getPublicDetail(Integer courseId) {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "课程不存在"));
-        if (course.getStatus() != CourseStatus.PUBLISHED.getValue()) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "课程不存在");
+    public CourseDetailVO getPublicDetail(Integer pathId) {
+        // 先按 courses.id；未命中再按 course_plans.sort_order（老站 tk_course.id）
+        Course course = courseRepository.findById(pathId)
+                .filter(c -> c.getStatus() == CourseStatus.PUBLISHED.getValue())
+                .orElse(null);
+        if (course == null) {
+            course = coursePlanRepository.findFirstBySortOrderOrderByIdAsc(pathId)
+                    .map(CoursePlan::getCourseId)
+                    .flatMap(courseRepository::findById)
+                    .filter(c -> c.getStatus() == CourseStatus.PUBLISHED.getValue())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "课程不存在"));
         }
         return assembleDetail(course);
     }
