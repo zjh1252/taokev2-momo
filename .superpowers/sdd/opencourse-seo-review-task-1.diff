@@ -1,0 +1,211 @@
+# Review package: 73c1e443669b4e35f97ece28ace00f3917416f75..e04221d71d8252a49607eca93a7057c0c7a0e3ba
+
+## Commits
+e04221d7 feat(course): resolve public detail by legacy plan sort_order
+
+## Files changed
+ .../course/repository/CoursePlanRepository.java    |  7 +++
+ .../taoke/course/service/CourseServiceImpl.java    | 16 ++++--
+ .../course/service/CourseServiceImplTest.java      | 58 ++++++++++++++++++++++
+ 3 files changed, 76 insertions(+), 5 deletions(-)
+
+## Diff
+diff --git a/backend/taoke-course/src/main/java/com/taoke/course/repository/CoursePlanRepository.java b/backend/taoke-course/src/main/java/com/taoke/course/repository/CoursePlanRepository.java
+index a71dc02e..434f6f7b 100644
+--- a/backend/taoke-course/src/main/java/com/taoke/course/repository/CoursePlanRepository.java
++++ b/backend/taoke-course/src/main/java/com/taoke/course/repository/CoursePlanRepository.java
+@@ -1,33 +1,40 @@
+ package com.taoke.course.repository;
+ 
+ import com.taoke.course.entity.CoursePlan;
+ import org.springframework.data.jpa.repository.JpaRepository;
+ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+ 
+ import java.time.LocalDateTime;
+ import java.util.Collection;
+ import java.util.List;
++import java.util.Optional;
+ 
+ /**
+  * 公开课开课计划持久化
+  *
+  * @author Fangxinxin
+  * @date 2026-04-02 15:00
+  */
+ public interface CoursePlanRepository extends JpaRepository<CoursePlan, Integer>,
+         JpaSpecificationExecutor<CoursePlan> {
+ 
+     List<CoursePlan> findByCourseIdOrderBySortOrder(Integer courseId);
+ 
+     List<CoursePlan> findByCourseIdInOrderBySortOrder(List<Integer> courseIds);
+ 
++    /**
++     * 按老站场次 ID（迁移写入 sort_order）反查开课计划。
++     * <p>用于公开课 SEO：{@code /opencourse/{legacyPlanId}.htm}。</p>
++     */
++    Optional<CoursePlan> findFirstBySortOrderOrderByIdAsc(Integer sortOrder);
++
+     /**
+      * 批量查询给定课程列表中 startTime &gt;= 指定时间的开课计划，按时间升序。
+      * <p>用于公开课列表展示「最近一场」开课信息（取每课程的第一条即为最近一场）。</p>
+      */
+     List<CoursePlan> findByCourseIdInAndStartTimeGreaterThanEqualOrderByStartTimeAsc(
+             Collection<Integer> courseIds, LocalDateTime threshold);
+ 
+     /** 批量查询开课计划，按开课时间升序（列表展示取每场最近/将开一场） */
+     List<CoursePlan> findByCourseIdInOrderByStartTimeAsc(Collection<Integer> courseIds);
+ 
+diff --git a/backend/taoke-course/src/main/java/com/taoke/course/service/CourseServiceImpl.java b/backend/taoke-course/src/main/java/com/taoke/course/service/CourseServiceImpl.java
+index 3517aedc..63fc339e 100644
+--- a/backend/taoke-course/src/main/java/com/taoke/course/service/CourseServiceImpl.java
++++ b/backend/taoke-course/src/main/java/com/taoke/course/service/CourseServiceImpl.java
+@@ -259,25 +259,31 @@ public class CourseServiceImpl implements CourseService {
+                     vo.setNextPlanCity(formatPlanLocation(e.getValue(), regionNameMap));
+                 }
+             }
+         }
+         return PageResponse.of(items, coursePage.getTotalElements(), page, size);
+     }
+ 
+     // ==================== 公开接口 ====================
+ 
+     @Override
+-    public CourseDetailVO getPublicDetail(Integer courseId) {
+-        Course course = courseRepository.findById(courseId)
+-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "课程不存在"));
+-        if (course.getStatus() != CourseStatus.PUBLISHED.getValue()) {
+-            throw new BusinessException(ErrorCode.NOT_FOUND, "课程不存在");
++    public CourseDetailVO getPublicDetail(Integer pathId) {
++        // 先按 courses.id；未命中再按 course_plans.sort_order（老站 tk_course.id）
++        Course course = courseRepository.findById(pathId)
++                .filter(c -> c.getStatus() == CourseStatus.PUBLISHED.getValue())
++                .orElse(null);
++        if (course == null) {
++            course = coursePlanRepository.findFirstBySortOrderOrderByIdAsc(pathId)
++                    .map(CoursePlan::getCourseId)
++                    .flatMap(courseRepository::findById)
++                    .filter(c -> c.getStatus() == CourseStatus.PUBLISHED.getValue())
++                    .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "课程不存在"));
+         }
+         return assembleDetail(course);
+     }
+ 
+     @Transactional
+     @Override
+     public void incrementViewCount(Integer courseId) {
+         Course course = courseRepository.findById(courseId)
+                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "课程不存在"));
+         if (course.getStatus() != CourseStatus.PUBLISHED.getValue()) {
+diff --git a/backend/taoke-course/src/test/java/com/taoke/course/service/CourseServiceImplTest.java b/backend/taoke-course/src/test/java/com/taoke/course/service/CourseServiceImplTest.java
+index 0b34a849..30111355 100644
+--- a/backend/taoke-course/src/test/java/com/taoke/course/service/CourseServiceImplTest.java
++++ b/backend/taoke-course/src/test/java/com/taoke/course/service/CourseServiceImplTest.java
+@@ -1,38 +1,43 @@
+ package com.taoke.course.service;
+ 
+ import com.taoke.common.exception.BusinessException;
+ import com.taoke.common.repository.CategoryRepository;
+ import com.taoke.common.service.CategoryService;
+ import com.taoke.common.service.OpsMaterialResolver;
+ import com.taoke.common.service.RegionService;
++import com.taoke.course.dto.course.CourseDetailVO;
+ import com.taoke.course.entity.Course;
++import com.taoke.course.entity.CoursePlan;
+ import com.taoke.course.enums.CourseStatus;
+ import com.taoke.course.enums.CourseType;
+ import com.taoke.course.mapper.CourseMapper;
+ import com.taoke.course.repository.CoursePlanRepository;
+ import com.taoke.course.repository.CourseRepository;
+ import com.taoke.course.support.LegacyTaokeCourseReader;
+ import com.taoke.course.support.PublicCourseListCache;
+ import com.taoke.user.api.BindingAuthority;
+ import com.taoke.user.api.InstitutionService;
+ import com.taoke.user.api.TrainerService;
+ import org.junit.jupiter.api.Test;
+ import org.junit.jupiter.api.extension.ExtendWith;
+ import org.mockito.InjectMocks;
+ import org.mockito.Mock;
+ import org.mockito.junit.jupiter.MockitoExtension;
+ 
++import java.util.List;
++import java.util.Map;
+ import java.util.Optional;
+ 
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertThrows;
++import static org.mockito.ArgumentMatchers.any;
+ import static org.mockito.Mockito.never;
+ import static org.mockito.Mockito.verify;
+ import static org.mockito.Mockito.when;
+ 
+ @ExtendWith(MockitoExtension.class)
+ class CourseServiceImplTest {
+ 
+     @Mock private CourseRepository courseRepository;
+     @Mock private CoursePlanRepository coursePlanRepository;
+     @Mock private CourseMapper courseMapper;
+@@ -61,11 +66,64 @@ class CourseServiceImplTest {
+         course.setCoverUrl(" ");
+         when(courseRepository.findById(1)).thenReturn(Optional.of(course));
+ 
+         BusinessException exception = assertThrows(
+                 BusinessException.class,
+                 () -> service.submitForReview(1, 10));
+ 
+         assertEquals("请上传课程封面", exception.getMessage());
+         verify(courseRepository, never()).save(course);
+     }
++
++    @Test
++    void getPublicDetail_resolvesPublishedCourseByLegacyPlanSortOrder() {
++        when(courseRepository.findById(438103)).thenReturn(Optional.empty());
++
++        CoursePlan plan = new CoursePlan();
++        plan.setId(1);
++        plan.setCourseId(276819);
++        plan.setSortOrder(438103);
++        when(coursePlanRepository.findFirstBySortOrderOrderByIdAsc(438103))
++                .thenReturn(Optional.of(plan));
++
++        Course course = publishedOpenCourse(276819, "向HW学习流程体系建设与高效运营");
++        when(courseRepository.findById(276819)).thenReturn(Optional.of(course));
++        stubAssembleDetailMinimal(course);
++
++        CourseDetailVO result = service.getPublicDetail(438103);
++
++        assertEquals(276819, result.getId());
++        verify(coursePlanRepository).findFirstBySortOrderOrderByIdAsc(438103);
++    }
++
++    @Test
++    void getPublicDetail_prefersCourseIdWhenBothMatch() {
++        Course course = publishedOpenCourse(276819, "向HW学习流程体系建设与高效运营");
++        when(courseRepository.findById(276819)).thenReturn(Optional.of(course));
++        stubAssembleDetailMinimal(course);
++
++        CourseDetailVO result = service.getPublicDetail(276819);
++
++        assertEquals(276819, result.getId());
++        verify(coursePlanRepository, never()).findFirstBySortOrderOrderByIdAsc(any());
++    }
++
++    private static Course publishedOpenCourse(int id, String title) {
++        Course course = new Course();
++        course.setId(id);
++        course.setStatus(CourseStatus.PUBLISHED.getValue());
++        course.setType(CourseType.OPEN_OFFLINE);
++        course.setTitle(title);
++        course.setPublisherType("TRAINER");
++        return course;
++    }
++
++    private void stubAssembleDetailMinimal(Course course) {
++        CourseDetailVO detail = new CourseDetailVO();
++        detail.setId(course.getId());
++        when(courseMapper.toDetailVO(course)).thenReturn(detail);
++        when(coursePlanRepository.findByCourseIdOrderBySortOrder(course.getId())).thenReturn(List.of());
++        when(legacyTaokeCourseReader.findCoverUrlsByCourseIds(List.of(course.getId()))).thenReturn(Map.of());
++        when(legacyTaokeCourseReader.findOrganizerUserIds(List.of(course.getId()))).thenReturn(Map.of());
++        when(legacyTaokeCourseReader.findOrganizerNamesFromLecturer(List.of(course.getId()))).thenReturn(Map.of());
++    }
+ }

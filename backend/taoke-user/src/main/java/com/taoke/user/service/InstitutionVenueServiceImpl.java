@@ -113,6 +113,7 @@ public class InstitutionVenueServiceImpl implements InstitutionVenueService {
     }
 
     private void applyRequest(InstitutionVenue v, InstitutionVenueRequest req) {
+        requireVenueImages(req);
         v.setName(req.getName());
         v.setProvinceId(req.getProvinceId());
         v.setCityId(req.getCityId());
@@ -126,6 +127,16 @@ public class InstitutionVenueServiceImpl implements InstitutionVenueService {
         if ((req.getCoverUrl() == null || req.getCoverUrl().isBlank())
                 && req.getImages() != null && !req.getImages().isEmpty()) {
             v.setCoverUrl(req.getImages().get(0));
+        }
+    }
+
+    /** 场地至少 1 张图（images 或 coverUrl） */
+    private void requireVenueImages(InstitutionVenueRequest req) {
+        boolean hasImages = req.getImages() != null
+                && req.getImages().stream().anyMatch(s -> s != null && !s.isBlank());
+        boolean hasCover = req.getCoverUrl() != null && !req.getCoverUrl().isBlank();
+        if (!hasImages && !hasCover) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请至少上传 1 张场地图片");
         }
     }
 

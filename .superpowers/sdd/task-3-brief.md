@@ -1,52 +1,75 @@
-### Task 3: 顶栏产品矩阵外链（#9）
+### Task 3: D2 C 端 — 案例 / 精彩瞬间 / 机构 / 入驻著作
 
 **Files:**
-- Modify: `frontend/src/components/layout/top-nav-bar.tsx`
+- Modify: `frontend/src/features/trainer-case/lib/case-form-rules.ts`
+- Modify: `frontend/src/app/[locale]/(usercenter)/dashboard/cases/create/page.tsx`（封面 FormField `required`）
+- Modify: `frontend/src/app/[locale]/(usercenter)/dashboard/cases/[id]/edit/page.tsx`
+- Modify: `frontend/src/app/[locale]/(usercenter)/dashboard/highlights/create/page.tsx`
+- Modify: `frontend/src/app/[locale]/(usercenter)/dashboard/highlights/[id]/edit/page.tsx`
+- Modify: `frontend/src/features/role-apply/components/role-forms/InstitutionApplyForm.tsx`
+- Modify: `frontend/src/features/role-apply/components/TrainerBooksEditor.tsx`
 
-**Interfaces:**
-- Produces: `GROUP_LINKS` 六项外链，无「淘课网」
+- [ ] **Step 1: 案例规则**
 
-- [ ] **Step 1: 更新 GROUP_LINKS 与锚点属性**
+`CASE_RULES` 增加：
 
-替换为：
-
-```tsx
-const GROUP_LINKS = [
-  { label: '淘课集团', href: 'https://www.taoke.com.cn/' },
-  { label: '培训宝', href: 'https://www.91pxb.com/' },
-  { label: '目标通', href: 'https://www.91mbt.com/' },
-  { label: 'AI 导师', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/mentor/604996/list' },
-  { label: '智能创导', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/extraction/604996' },
-  { label: 'AI 陪练', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/training_partner/604996/list' },
-] as const;
+```ts
+coverImage: { required: true, requiredMessage: '请上传封面图' },
+description: { required: true, requiredMessage: '请填写案例描述' }, // 若 BE 已要求且 FE 缺则补；已有则跳过
 ```
 
-`<a>` 增加：
+create/edit 页封面 `FormField` 加 `required`。
 
-```tsx
-<a
-  href={link.href}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="hover:text-primary transition-colors"
->
-  {link.label}
-</a>
+- [ ] **Step 2: 精彩瞬间 create/edit**
+
+提交前：
+
+```ts
+if (!form.coverImage?.trim()) {
+  toast.error('请上传封面图');
+  return;
+}
 ```
 
-确认已删除「淘课网」项。
+封面 `FormField label="封面图" required`。
 
-- [ ] **Step 2: 手工验收**
+- [ ] **Step 3: 机构入驻**
 
-顶栏六项均可新标签打开；无「淘课网」。
+`InstitutionApplyForm`：
 
-- [ ] **Step 3: Commit（仅当用户授权）**
+```tsx
+<FormField label="公司 Logo" required>
+```
+
+规则对象加：
+
+```ts
+logoUrl: { required: true, requiredMessage: '请上传机构 Logo' },
+```
+
+- [ ] **Step 4: 入驻著作编辑器**
+
+`TrainerBooksEditor`：保存单条时若缺 `coverUrl` toast「请上传封面图」并 return；Label 改为必填样式。
+
+- [ ] **Step 5: 手测 / lint（有测则跑相关）**
 
 ```bash
-git add frontend/src/components/layout/top-nav-bar.tsx
-git commit -m "$(cat <<'EOF'
-fix(frontend): 配置顶栏集团产品外链并移除淘课网入口
+cd frontend
+pnpm lint
+```
 
+- [ ] **Step 6: Commit**
+
+```bash
+git add frontend/src/features/trainer-case/lib/case-form-rules.ts \
+        frontend/src/app/[locale]/(usercenter)/dashboard/cases \
+        frontend/src/app/[locale]/(usercenter)/dashboard/highlights \
+        frontend/src/features/role-apply/components/role-forms/InstitutionApplyForm.tsx \
+        frontend/src/features/role-apply/components/TrainerBooksEditor.tsx
+git commit -m "$(cat <<'EOF'
+fix(frontend): 案例/精彩瞬间/机构Logo/著作封面必填
+
+对齐 Batch D 图片必填尖刀，C 端提交前拦截空图。
 EOF
 )"
 ```

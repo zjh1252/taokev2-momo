@@ -60,6 +60,10 @@ export function TrainerDetailView({ detail, mode, onUpdated }: Props) {
   }, [detail]);
 
   const handleSave = async () => {
+    if (!form.avatar?.trim()) {
+      toast.error('请上传专家头像');
+      return;
+    }
     setSaving(true);
     try {
       const res = await updateTrainerDetail(detail.id, form);
@@ -187,7 +191,7 @@ export function TrainerDetailView({ detail, mode, onUpdated }: Props) {
                 <FieldInput label='身份证号' value={form.idCardNo ?? ''} onChange={(v) => setField(setForm, 'idCardNo', v)} />
                 <FieldInput label='省份 ID' value={String(form.provinceId ?? '')} onChange={(v) => setField(setForm, 'provinceId', v ? Number(v) : null)} />
                 <FieldInput label='城市 ID' value={String(form.cityId ?? '')} onChange={(v) => setField(setForm, 'cityId', v ? Number(v) : null)} />
-                <FieldInput label='头像 URL' value={form.avatar ?? ''} onChange={(v) => setField(setForm, 'avatar', v)} />
+                <FieldInput label='头像 URL *' value={form.avatar ?? ''} onChange={(v) => setField(setForm, 'avatar', v)} />
                 <FieldInput label='简历 URL' value={form.resumeUrl ?? ''} onChange={(v) => setField(setForm, 'resumeUrl', v)} />
               </div>
             ) : (

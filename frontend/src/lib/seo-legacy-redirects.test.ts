@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isLegacyNumericTrainerFilterPath,
+  legacyCitiesHomeRedirectTarget,
   legacyVideoChannelRedirectTarget,
   legacyVedioDetailRedirectTarget,
   legacyVideoPlayRedirectTarget,
@@ -51,5 +52,34 @@ describe('legacyVideoPlayRedirectTarget', () => {
     expect(legacyVideoPlayRedirectTarget('/video_play/17946.htm')).toBe('/video/17946/play');
     expect(legacyVideoPlayRedirectTarget('/video_play/17946')).toBe('/video/17946/play');
     expect(legacyVideoPlayRedirectTarget('/video/17946/play')).toBeNull();
+  });
+});
+
+describe('legacyCitiesHomeRedirectTarget', () => {
+  it('maps /cities/{en} to /city/{en} keeping query', () => {
+    expect(legacyCitiesHomeRedirectTarget('/cities/shanghai', '?x=1')).toBe(
+      '/city/shanghai?x=1',
+    );
+    expect(legacyCitiesHomeRedirectTarget('/cities/beijing', '')).toBe('/city/beijing');
+  });
+
+  it('maps city subchannels to /city/{en}/{sub}', () => {
+    expect(legacyCitiesHomeRedirectTarget('/cities/shanghai/opencourse', '')).toBe(
+      '/city/shanghai/opencourse',
+    );
+    expect(legacyCitiesHomeRedirectTarget('/cities/beijing/institutions', '?p=1')).toBe(
+      '/city/beijing/institutions?p=1',
+    );
+    expect(legacyCitiesHomeRedirectTarget('/cities/suzhou/trainers', '')).toBe(
+      '/city/suzhou/trainers',
+    );
+  });
+
+  it('ignores API-like paths and /city', () => {
+    expect(legacyCitiesHomeRedirectTarget('/cities/active', '')).toBeNull();
+    expect(legacyCitiesHomeRedirectTarget('/cities/shanghai/home', '')).toBeNull();
+    expect(legacyCitiesHomeRedirectTarget('/city/shanghai', '')).toBeNull();
+    expect(legacyCitiesHomeRedirectTarget('/city/shanghai/opencourse', '')).toBeNull();
+    expect(legacyCitiesHomeRedirectTarget('/cities', '')).toBeNull();
   });
 });

@@ -49,11 +49,10 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
     public List<? extends BaseDocument> fetchUpdatedSince(LocalDateTime since) {
         Specification<Course> spec = (root, query, cb) -> cb.and(
                 cb.greaterThan(root.get("updatedAt"), since),
-                cb.equal(root.get("status"), PUBLISHED)
+                cb.equal(root.get("status"), PUBLISHED),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, java.time.LocalDate.now())
         );
-        List<Course> courses = courseRepository.findAll(spec).stream()
-                .filter(course -> !OpenCourseExpireSupport.shouldHideFromPublic(course))
-                .toList();
+        List<Course> courses = courseRepository.findAll(spec);
         return buildDocuments(courses);
     }
 
@@ -77,12 +76,26 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
 
     @Override
     public List<? extends BaseDocument> fetchAll() {
-        Specification<Course> spec = (root, query, cb) ->
-                cb.equal(root.get("status"), PUBLISHED);
-        List<Course> courses = courseRepository.findAll(spec).stream()
-                .filter(course -> !OpenCourseExpireSupport.shouldHideFromPublic(course))
-                .toList();
+        Specification<Course> spec = indexableSpec();
+        List<Course> courses = courseRepository.findAll(spec);
         return buildDocuments(courses);
+    }
+
+    @Override
+    public List<? extends BaseDocument> fetchPage(int page, int size) {
+        Specification<Course> spec = indexableSpec();
+        var pageable = org.springframework.data.domain.PageRequest.of(
+                page, size, org.springframework.data.domain.Sort.by("id").ascending());
+        List<Course> courses = courseRepository.findAll(spec, pageable).getContent();
+        return buildDocuments(courses);
+    }
+
+    /** 已上架且前台可见（排除到期自动隐藏的线下公开课） */
+    private Specification<Course> indexableSpec() {
+        return (root, query, cb) -> cb.and(
+                cb.equal(root.get("status"), PUBLISHED),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, java.time.LocalDate.now())
+        );
     }
 
     private List<CourseDocument> buildDocuments(List<Course> courses) {

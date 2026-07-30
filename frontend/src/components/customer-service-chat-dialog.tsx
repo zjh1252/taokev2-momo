@@ -12,10 +12,11 @@ interface CustomerServiceChatDialogProps {
 }
 
 /**
- * 培训宝智能客服弹窗（iframe 嵌入）
+ * 培训宝智能客服弹窗（iframe 嵌入）。
+ * PC 外壳宽 min(92vw, 560px)、高 620；小于 md 断点保持原 400 宽逻辑。iframe 内部样式不在此改。
  *
  * @author Fangxinxin
- * @date 2026-05-22 10:30
+ * @date 2026-07-29 16:45
  */
 export function CustomerServiceChatDialog({
   open,
@@ -24,7 +25,7 @@ export function CustomerServiceChatDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[min(640px,85vh)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[400px]"
+        className="flex h-[min(640px,85vh)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[400px] md:h-[min(620px,85vh)] md:w-[min(92vw,560px)] md:max-w-[min(92vw,560px)]"
         showCloseButton
       >
         <DialogTitle className="sr-only">培训宝智能客服</DialogTitle>

@@ -277,7 +277,7 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       return;
     }
     if (!coverUrl.trim()) {
-      toast.warning('请上传课程封面');
+      toast.warning('请上传录播封面');
       return;
     }
     if (!draft) {

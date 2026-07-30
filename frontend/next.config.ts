@@ -6,10 +6,14 @@ const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8080'
   .replace(/\/$/, '')
   .replace('://localhost:', '://127.0.0.1:');
 
+/** Next 构建产物 CDN 前缀（/_next/static、public）；未设则同源。构建期生效。 */
+const assetPrefix = (process.env.NEXT_PUBLIC_ASSET_PREFIX || '').replace(/\/$/, '') || undefined;
+
 const nextConfig = {
   output: 'standalone' as const,
   reactCompiler: true,
   transpilePackages: ['video.js'],
+  ...(assetPrefix ? { assetPrefix } : {}),
   async headers() {
     return [
       {

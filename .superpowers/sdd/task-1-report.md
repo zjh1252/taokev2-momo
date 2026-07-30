@@ -1,38 +1,65 @@
-# Task 1 Report: 专家筛选点选关浮层 + 常驻城市文案（#3、#6）
+# Task 1 Report — D1 PublicCourseListCache 城市可缓存
 
-**Status:** DONE
+**Status:** DONE  
+**Date:** 2026-07-29  
+**Commit:** `0c3b146d` — perf(course): 允许单城公开课列表走 Redis 缓存
 
-**Commit:** `6e9e3ddf` — fix(frontend): 专家筛选点选关浮层并统一常驻城市文案
+## 目标
 
-## Changes
+扩展 `PublicCourseListCache`，使城市综合页（沪/京）SSR 使用的单城 + `size=10` + `ENROLLING` + `sortBy=time` 公开课列表查询可命中 Redis，且不改变前端 `CityUpcomingOpenBlock` 查询参数。
 
-### 1. i18n — `frontend/src/messages/zh-CN/trainer.json`
+## TDD 过程
 
-- `"city": "常驻省市"` → `"city": "常驻城市"`
+| 阶段 | 结果 |
+|------|------|
+| RED — 新增 3 个单测后跑测 | 2 failures（`isCacheable` 拒绝单城 ENROLLING；`listKey` 沪京相同） |
+| GREEN — 实现后跑测 | 3/3 PASS |
 
-### 2. TrainerFilters — `frontend/src/features/trainer/components/list/TrainerFilters.tsx`
+```bash
+cd backend
+mvn -pl taoke-course -Dtest=PublicCourseListCacheTest test
+# Tests run: 3, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS
+```
 
-- `FILTER_ITEMS` province label: `'长驻省市'` → `'常驻城市'`
-- JSDoc / interface comments: 「长驻省市」→「常驻城市」（`regionName`、`provinceId` 参数名未改）
-- 新增 `closeFlyout = () => setActiveFilter(null)`
-- 三个 pick handler 末尾调用 `closeFlyout()`：
-  - `handleExpertisePick`
-  - `handleIndustryPick`
-  - `handleProvincePick`
+## 改动摘要
 
-## Verification
+### `PublicCourseListCache.java`
 
-| Check | Result |
-|-------|--------|
-| `pnpm lint` | Exit 1 — 仓库既有 60 errors / 178 warnings；**未涉及**本次修改的两个文件 |
-| 浏览器手工验收 | 未执行（无本地 dev server） |
+1. **`CACHEABLE_SIZES`** 增加 `10`（`Set.of(10, 15, 30, 36)`）。
+2. **`isCacheableDefault`**：
+   - 新增 `isCacheableCityIds`：`null`/空 **或** 恰好 1 个城市 → 可缓存；多城 → false。
+   - 新增 `isCacheableEnrollStatus`：`null`/blank **或** `ENROLLING`（忽略大小写 trim）→ 可缓存；其它 → false。
+   - 移除原先对 `cityIds` / `enrollStatus` 的一刀切拒绝逻辑。
+3. **`listKey`** 格式扩展为含城市与报名维度：
+   - 无城 → `c0`；单城 → `c{id}`
+   - 无 enroll → `e_`；否则 → `e{UPPERCASE}`
+   - 示例：`taoke:course:public:list:open:time:p1:s10:c2:eENROLLING`
+4. **`evictPublicListCaches`** 保持只清无城默认组合（`c0:e_` 后缀），不扫城市维 key；城市 key 依赖 ~60min TTL + jitter。
 
-## Self-Review
+### `PublicCourseListCacheTest.java`（新建）
 
-- 范围符合 brief：仅专家列表筛选侧栏 + zh-CN 文案，未动 OpenCourse 多选、未改后端参数。
-- `closeFlyout` 在 `onChange` 之后调用，筛选值先更新再关浮层，行为与需求一致。
-- 侧栏硬编码 label 与 i18n `trainer.filters.city` 均已统一为「常驻城市」。
+- `isCacheable_singleCityEnrollingSize10`
+- `isCacheable_rejectsMultiCity`
+- `listKey_differsByCity`（反射调用 private `listKey`，断言沪/京 key 不同且含 `:c2:`/`:c1:`/`:eENROLLING`）
 
-## Concerns
+## 自审
 
-- 无功能性顾虑。Lint 全量失败为历史债务，与本次改动无关。
+| 检查项 | 结论 |
+|--------|------|
+| 与设计 §2.2 一致 | ✅ |
+| 多城不缓存、非 ENROLLING 不缓存 | ✅ 单测 + 逻辑 |
+| 不同 cityId 不串缓存 | ✅ key 含 `c{id}` |
+| evict 不扫城市 key | ✅ 未改 evict 范围，仅对齐 `c0:e_` |
+| 前端查询参数未改 | ✅ 无 frontend 改动 |
+| 旧无后缀 Redis key | ⚠️ 无城默认 key 格式变更（加 `:c0:e_`）；evict 已对齐新格式；旧 key 靠 TTL 自然过期，保留 legacy `internal:p1:s15` 清理 |
+
+## 验收建议（部署后）
+
+1. 访问 `/city/shanghai` 或 `/city/beijing`，二次 SSR 观察 Redis hit（key 含 `c2`/`c1` + `eENROLLING`）。
+2. 确认列表口径与改前一致。
+3. 切换城市确认不串数据。
+
+## 文件清单
+
+- Modified: `backend/taoke-course/src/main/java/com/taoke/course/support/PublicCourseListCache.java`
+- Created: `backend/taoke-course/src/test/java/com/taoke/course/support/PublicCourseListCacheTest.java`

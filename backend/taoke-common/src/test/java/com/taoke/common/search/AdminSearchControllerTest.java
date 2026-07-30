@@ -46,7 +46,7 @@ class AdminSearchControllerTest {
     }
 
     @Test
-    void reindexByTypeReturnsTargetIndexAndIndexedCount() {
+    void reindexByTypeReturnsTargetIndexAndAsyncAccepted() {
         SearchIndexService searchIndexService = mock(SearchIndexService.class);
         SearchSyncScheduler syncScheduler = mock(SearchSyncScheduler.class);
         DocumentSyncProvider courseProvider = mock(DocumentSyncProvider.class);
@@ -56,15 +56,15 @@ class AdminSearchControllerTest {
         when(searchIndexService.getDefaultIndexName()).thenReturn("taokev2app");
         when(courseProvider.getDocType()).thenReturn("course");
         when(syncScheduler.getProvider("course")).thenReturn(courseProvider);
-        when(syncScheduler.fullReindex(courseProvider, "taokev2_shadow")).thenReturn(42L);
 
         AdminSearchController controller = new AdminSearchController(searchIndexService, syncScheduler);
 
         ApiResponse<AdminSearchController.ReindexResult> response = controller.reindexByType("course", request);
 
         assertThat(response.getData().getTargetIndex()).isEqualTo("taokev2_shadow");
-        assertThat(response.getData().getIndexedCounts()).containsEntry("course", 42L);
+        assertThat(response.getData().getIndexedCounts()).containsEntry("course", -1L);
         assertThat(response.getData().getDocTypes()).containsExactly("course");
+        assertThat(response.getData().getMessage()).contains("后台启动");
     }
 
     @Test

@@ -1,0 +1,508 @@
+# Review package: d9dd4a6d..HEAD
+
+## Commits
+
+## Files changed
+ .../taoke/course/dto/course/CourseDetailVO.java    |   3 -
+ .../taoke/course/dto/course/CourseListItemVO.java  |   3 -
+ .../course/repository/CoursePlanRepository.java    |   3 -
+ .../taoke/course/service/CourseServiceImpl.java    |  74 +++----------
+ .../course/service/CourseServiceImplTest.java      | 115 ---------------------
+ frontend/src/features/course/api/types.ts          |   4 -
+ 6 files changed, 14 insertions(+), 188 deletions(-)
+
+## Diff
+diff --git a/backend/taoke-course/src/main/java/com/taoke/course/dto/course/CourseDetailVO.java b/backend/taoke-course/src/main/java/com/taoke/course/dto/course/CourseDetailVO.java
+index d7ac62c4..9f70c9fd 100644
+--- a/backend/taoke-course/src/main/java/com/taoke/course/dto/course/CourseDetailVO.java
++++ b/backend/taoke-course/src/main/java/com/taoke/course/dto/course/CourseDetailVO.java
+@@ -68,14 +68,11 @@ public class CourseDetailVO {
+     private List<CoursePlanDTO> plans;
+ 
+     /** 线下公开课结束日期 */
+     private LocalDate courseOpenEndDate;
+ 
+     /** 到期是否前台自动隐藏：1=是 0=否 */
+     private Integer isExpireHide;
+ 
+     /** 是否已过期（线下公开课且结束日期早于今日） */
+     private Boolean isOverdue;
+-
+-    /** 对外纯数字编号（优先最近场次 sortOrder，否则 course.id） */
+-    private Integer displayCourseNo;
+ }
+diff --git a/backend/taoke-course/src/main/java/com/taoke/course/dto/course/CourseListItemVO.java b/backend/taoke-course/src/main/java/com/taoke/course/dto/course/CourseListItemVO.java
+index 1e88c7c7..e47d442b 100644
+--- a/backend/taoke-course/src/main/java/com/taoke/course/dto/course/CourseListItemVO.java
++++ b/backend/taoke-course/src/main/java/com/taoke/course/dto/course/CourseListItemVO.java
+@@ -51,22 +51,19 @@ public class CourseListItemVO {
+ 
+     private LocalDateTime publishedAt;
+     private LocalDateTime createdAt;
+ 
+     /** 最近一场开课时间（公开课列表展示用） */
+     private LocalDateTime nextPlanStartDate;
+ 
+     /** 最近一场开课城市名称（公开课列表展示用） */
+     private String nextPlanCity;
+ 
+-    /** 站内 SEO 路径数字段（优先最近场次 sortOrder>0，否则 course.id） */
+-    private Integer seoPathId;
+-
+     /** 是否已过期（线下公开课且结束日期早于今日，后台列表用） */
+     private Boolean isOverdue;
+ 
+     /** 公开课报名截止日期 */
+     private LocalDate courseOpenEndDate;
+ 
+     /** 过期后是否隐藏（1=隐藏，0=不隐藏） */
+     private Integer isExpireHide;
+ }
+diff --git a/backend/taoke-course/src/main/java/com/taoke/course/repository/CoursePlanRepository.java b/backend/taoke-course/src/main/java/com/taoke/course/repository/CoursePlanRepository.java
+index 7401f084..a71dc02e 100644
+--- a/backend/taoke-course/src/main/java/com/taoke/course/repository/CoursePlanRepository.java
++++ b/backend/taoke-course/src/main/java/com/taoke/course/repository/CoursePlanRepository.java
+@@ -1,34 +1,31 @@
+ package com.taoke.course.repository;
+ 
+ import com.taoke.course.entity.CoursePlan;
+ import org.springframework.data.jpa.repository.JpaRepository;
+ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+ 
+ import java.time.LocalDateTime;
+ import java.util.Collection;
+ import java.util.List;
+-import java.util.Optional;
+ 
+ /**
+  * 公开课开课计划持久化
+  *
+  * @author Fangxinxin
+  * @date 2026-04-02 15:00
+  */
+ public interface CoursePlanRepository extends JpaRepository<CoursePlan, Integer>,
+         JpaSpecificationExecutor<CoursePlan> {
+ 
+     List<CoursePlan> findByCourseIdOrderBySortOrder(Integer courseId);
+ 
+-    Optional<CoursePlan> findFirstBySortOrderOrderByIdAsc(Integer sortOrder);
+-
+     List<CoursePlan> findByCourseIdInOrderBySortOrder(List<Integer> courseIds);
+ 
+     /**
+      * 批量查询给定课程列表中 startTime &gt;= 指定时间的开课计划，按时间升序。
+      * <p>用于公开课列表展示「最近一场」开课信息（取每课程的第一条即为最近一场）。</p>
+      */
+     List<CoursePlan> findByCourseIdInAndStartTimeGreaterThanEqualOrderByStartTimeAsc(
+             Collection<Integer> courseIds, LocalDateTime threshold);
+ 
+     /** 批量查询开课计划，按开课时间升序（列表展示取每场最近/将开一场） */
+diff --git a/backend/taoke-course/src/main/java/com/taoke/course/service/CourseServiceImpl.java b/backend/taoke-course/src/main/java/com/taoke/course/service/CourseServiceImpl.java
+index 52b8f1f5..3517aedc 100644
+--- a/backend/taoke-course/src/main/java/com/taoke/course/service/CourseServiceImpl.java
++++ b/backend/taoke-course/src/main/java/com/taoke/course/service/CourseServiceImpl.java
+@@ -245,49 +245,39 @@ public class CourseServiceImpl implements CourseService {
+             Set<Integer> regionIds = new HashSet<>();
+             for (CoursePlan p : nearestPlanMap.values()) {
+                 if (p.getProvinceId() != null && p.getProvinceId() > 0) regionIds.add(p.getProvinceId());
+                 if (p.getCityId() != null && p.getCityId() > 0) regionIds.add(p.getCityId());
+             }
+             Map<Integer, String> regionNameMap = regionIds.isEmpty()
+                     ? Map.of()
+                     : regionService.getNamesByIds(regionIds);
+             Map<Integer, CourseListItemVO> voById = items.stream()
+                     .collect(Collectors.toMap(CourseListItemVO::getId, v -> v, (a, b) -> a));
+-            for (Integer openCourseId : openCourseIds) {
+-                CourseListItemVO vo = voById.get(openCourseId);
+-                if (vo == null) {
+-                    continue;
+-                }
+-                CoursePlan nearest = nearestPlanMap.get(openCourseId);
+-                if (nearest != null) {
+-                    vo.setNextPlanStartDate(nearest.getStartTime());
+-                    vo.setNextPlanCity(formatPlanLocation(nearest, regionNameMap));
++            for (Map.Entry<Integer, CoursePlan> e : nearestPlanMap.entrySet()) {
++                CourseListItemVO vo = voById.get(e.getKey());
++                if (vo != null) {
++                    vo.setNextPlanStartDate(e.getValue().getStartTime());
++                    vo.setNextPlanCity(formatPlanLocation(e.getValue(), regionNameMap));
+                 }
+-                vo.setSeoPathId(resolveSeoPathId(nearest, openCourseId));
+             }
+         }
+         return PageResponse.of(items, coursePage.getTotalElements(), page, size);
+     }
+ 
+     // ==================== 公开接口 ====================
+ 
+     @Override
+-    public CourseDetailVO getPublicDetail(Integer pathId) {
+-        Course course = courseRepository.findById(pathId)
+-                .filter(c -> c.getStatus() == CourseStatus.PUBLISHED.getValue())
+-                .orElse(null);
+-        if (course == null) {
+-            course = coursePlanRepository.findFirstBySortOrderOrderByIdAsc(pathId)
+-                    .map(CoursePlan::getCourseId)
+-                    .flatMap(courseRepository::findById)
+-                    .filter(c -> c.getStatus() == CourseStatus.PUBLISHED.getValue())
+-                    .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "课程不存在"));
++    public CourseDetailVO getPublicDetail(Integer courseId) {
++        Course course = courseRepository.findById(courseId)
++                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "课程不存在"));
++        if (course.getStatus() != CourseStatus.PUBLISHED.getValue()) {
++            throw new BusinessException(ErrorCode.NOT_FOUND, "课程不存在");
+         }
+         return assembleDetail(course);
+     }
+ 
+     @Transactional
+     @Override
+     public void incrementViewCount(Integer courseId) {
+         Course course = courseRepository.findById(courseId)
+                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "课程不存在"));
+         if (course.getStatus() != CourseStatus.PUBLISHED.getValue()) {
+@@ -791,26 +781,23 @@ public class CourseServiceImpl implements CourseService {
+                     }
+                 }
+             }
+             if (vo.getKeywords() == null || vo.getKeywords().isBlank()) {
+                 String legacyKeywords = legacyKeywordsMap.get(c.getId());
+                 if (legacyKeywords != null && !legacyKeywords.isBlank()) {
+                     vo.setKeywords(legacyKeywords);
+                 }
+             }
+             CoursePlan nearest = nearestPlanMap.get(c.getId());
+-            if (c.getType() != null && c.getType().isOpen()) {
+-                if (nearest != null) {
+-                    vo.setNextPlanStartDate(nearest.getStartTime());
+-                    vo.setNextPlanCity(formatPlanLocation(nearest, regionNameMap));
+-                }
+-                vo.setSeoPathId(resolveSeoPathId(nearest, c.getId()));
++            if (nearest != null) {
++                vo.setNextPlanStartDate(nearest.getStartTime());
++                vo.setNextPlanCity(formatPlanLocation(nearest, regionNameMap));
+             }
+             String organizerName = resolveOrganizerName(
+                     c, institutionByUserId, legacyOrganizerUserIds, legacyOrganizerFromLecturer, legacyMemberNameMap);
+             if (organizerName != null) {
+                 vo.setPublisherName(organizerName);
+             }
+             vo.setDurationDays(normalizeDisplayDurationDays(c.getDurationDays(), c.getTotalHours()));
+             vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(c));
+             return vo;
+         }).toList();
+@@ -963,51 +950,20 @@ public class CourseServiceImpl implements CourseService {
+             if (pick == null) {
+                 pick = latestPick.get(courseId);
+             }
+             if (pick != null) {
+                 result.put(courseId, pick);
+             }
+         }
+         return result;
+     }
+ 
+-    /** 详情页对外纯数字编号：优先未开场次 sortOrder>0，否则最近一场 sortOrder>0，否则 course.id */
+-    private static Integer resolveDisplayCourseNo(Course course, List<CoursePlan> plans) {
+-        if (course == null) {
+-            return null;
+-        }
+-        if (course.getType() == null || !course.getType().isOpen() || plans == null || plans.isEmpty()) {
+-            return course.getId();
+-        }
+-        LocalDateTime now = LocalDateTime.now();
+-        Optional<CoursePlan> upcoming = plans.stream()
+-                .filter(p -> p.getStartTime() != null && !p.getStartTime().isBefore(now))
+-                .filter(p -> p.getSortOrder() != null && p.getSortOrder() > 0)
+-                .min(Comparator.comparing(CoursePlan::getStartTime));
+-        if (upcoming.isPresent()) {
+-            return upcoming.get().getSortOrder();
+-        }
+-        Optional<CoursePlan> latestWithSort = plans.stream()
+-                .filter(p -> p.getSortOrder() != null && p.getSortOrder() > 0)
+-                .max(Comparator.comparing(CoursePlan::getStartTime));
+-        return latestWithSort.map(CoursePlan::getSortOrder).orElse(course.getId());
+-    }
+-
+-    /** 列表 SEO 路径 ID：nearest 有有效 sortOrder 用之，否则 courseId（含 nearest 为空） */
+-    private static Integer resolveSeoPathId(CoursePlan nearest, Integer courseId) {
+-        if (nearest == null) {
+-            return courseId;
+-        }
+-        Integer seo = nearest.getSortOrder();
+-        return seo != null && seo > 0 ? seo : courseId;
+-    }
+-
+     private static boolean planMatchesLocationFilter(CoursePlan plan,
+                                                      List<Integer> provinceIds,
+                                                      List<Integer> cityIds) {
+         if (plan == null) {
+             return false;
+         }
+         if (provinceIds != null && !provinceIds.isEmpty()) {
+             if (plan.getProvinceId() == null || !provinceIds.contains(plan.getProvinceId())) {
+                 return false;
+             }
+@@ -1752,23 +1708,22 @@ public class CourseServiceImpl implements CourseService {
+         }
+     }
+ 
+     /** 组装课程详情（含开课计划 + 分类名 + 讲师名） */
+     private CourseDetailVO assembleDetail(Course course) {
+         CourseDetailVO vo = courseMapper.toDetailVO(course);
+         vo.setTypeLabel(course.getType().getLabel());
+         vo.setStatusLabel(CourseStatus.of(course.getStatus()).getLabel());
+ 
+         // 开课计划（附带省市名称，供详情页展示地点）
+-        List<CoursePlan> plans = List.of();
+         if (course.getType().isOpen()) {
+-            plans = coursePlanRepository.findByCourseIdOrderBySortOrder(course.getId());
++            List<CoursePlan> plans = coursePlanRepository.findByCourseIdOrderBySortOrder(course.getId());
+             vo.setPlans(enrichPlanDTOs(courseMapper.toPlanDTOList(plans)));
+         } else {
+             vo.setPlans(List.of());
+         }
+ 
+         // 批量获取分类名称
+         Set<Integer> catIds = new HashSet<>();
+         if (course.getCategoryId() != null && course.getCategoryId() > 0) catIds.add(course.getCategoryId());
+         if (course.getSubCategoryId() != null && course.getSubCategoryId() > 0) catIds.add(course.getSubCategoryId());
+         if (!catIds.isEmpty()) {
+@@ -1821,21 +1776,20 @@ public class CourseServiceImpl implements CourseService {
+                 : Map.of();
+         String organizerName = resolveOrganizerName(
+                 course, institutionByUserId, legacyOrganizerUserIds, legacyOrganizerFromLecturer, legacyMemberNameMap);
+         if (organizerName != null) {
+             vo.setPublisherName(organizerName);
+         }
+ 
+         vo.setCourseOpenEndDate(course.getCourseOpenEndDate());
+         vo.setIsExpireHide(course.getIsExpireHide());
+         vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(course));
+-        vo.setDisplayCourseNo(resolveDisplayCourseNo(course, plans));
+ 
+         return vo;
+     }
+ 
+     /**
+      * 解析公开课「开课单位」：机构发布者 &gt; 老库 organid 对应机构 &gt; lecturer 竖线后机构名 &gt; tk_member 公司名。
+      */
+     private String resolveOrganizerName(Course course,
+                                         Map<Integer, Institution> institutionByUserId,
+                                         Map<Integer, Integer> legacyOrganizerUserIds,
+diff --git a/backend/taoke-course/src/test/java/com/taoke/course/service/CourseServiceImplTest.java b/backend/taoke-course/src/test/java/com/taoke/course/service/CourseServiceImplTest.java
+index b7eadcc5..0b34a849 100644
+--- a/backend/taoke-course/src/test/java/com/taoke/course/service/CourseServiceImplTest.java
++++ b/backend/taoke-course/src/test/java/com/taoke/course/service/CourseServiceImplTest.java
+@@ -1,39 +1,34 @@
+ package com.taoke.course.service;
+ 
+ import com.taoke.common.exception.BusinessException;
+ import com.taoke.common.repository.CategoryRepository;
+ import com.taoke.common.service.CategoryService;
+ import com.taoke.common.service.OpsMaterialResolver;
+ import com.taoke.common.service.RegionService;
+-import com.taoke.course.dto.course.CourseDetailVO;
+ import com.taoke.course.entity.Course;
+-import com.taoke.course.entity.CoursePlan;
+ import com.taoke.course.enums.CourseStatus;
+ import com.taoke.course.enums.CourseType;
+ import com.taoke.course.mapper.CourseMapper;
+ import com.taoke.course.repository.CoursePlanRepository;
+ import com.taoke.course.repository.CourseRepository;
+ import com.taoke.course.support.LegacyTaokeCourseReader;
+ import com.taoke.course.support.PublicCourseListCache;
+ import com.taoke.user.api.BindingAuthority;
+ import com.taoke.user.api.InstitutionService;
+ import com.taoke.user.api.TrainerService;
+ import org.junit.jupiter.api.Test;
+ import org.junit.jupiter.api.extension.ExtendWith;
+ import org.mockito.InjectMocks;
+ import org.mockito.Mock;
+ import org.mockito.junit.jupiter.MockitoExtension;
+ 
+-import java.time.LocalDateTime;
+-import java.util.List;
+-import java.util.Map;
+ import java.util.Optional;
+ 
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertThrows;
+ import static org.mockito.Mockito.never;
+ import static org.mockito.Mockito.verify;
+ import static org.mockito.Mockito.when;
+ 
+ @ExtendWith(MockitoExtension.class)
+ class CourseServiceImplTest {
+@@ -66,121 +61,11 @@ class CourseServiceImplTest {
+         course.setCoverUrl(" ");
+         when(courseRepository.findById(1)).thenReturn(Optional.of(course));
+ 
+         BusinessException exception = assertThrows(
+                 BusinessException.class,
+                 () -> service.submitForReview(1, 10));
+ 
+         assertEquals("请上传课程封面", exception.getMessage());
+         verify(courseRepository, never()).save(course);
+     }
+-
+-    @Test
+-    void getPublicDetail_resolvesPublishedCourseByLegacyPlanSortOrder() {
+-        when(courseRepository.findById(438103)).thenReturn(Optional.empty());
+-
+-        CoursePlan plan = new CoursePlan();
+-        plan.setId(1);
+-        plan.setCourseId(276819);
+-        plan.setSortOrder(438103);
+-        when(coursePlanRepository.findFirstBySortOrderOrderByIdAsc(438103))
+-                .thenReturn(Optional.of(plan));
+-
+-        Course course = new Course();
+-        course.setId(276819);
+-        course.setStatus(CourseStatus.PUBLISHED.getValue());
+-        course.setType(CourseType.OPEN_OFFLINE);
+-        course.setTitle("向HW学习流程体系建设与高效运营");
+-        when(courseRepository.findById(276819)).thenReturn(Optional.of(course));
+-
+-        CourseDetailVO detail = new CourseDetailVO();
+-        detail.setId(276819);
+-        when(courseMapper.toDetailVO(course)).thenReturn(detail);
+-        when(coursePlanRepository.findByCourseIdOrderBySortOrder(276819)).thenReturn(List.of());
+-        when(legacyTaokeCourseReader.findCoverUrlsByCourseIds(List.of(276819))).thenReturn(Map.of());
+-        when(legacyTaokeCourseReader.findOrganizerUserIds(List.of(276819))).thenReturn(Map.of());
+-        when(legacyTaokeCourseReader.findOrganizerNamesFromLecturer(List.of(276819))).thenReturn(Map.of());
+-
+-        CourseDetailVO result = service.getPublicDetail(438103);
+-
+-        assertEquals(276819, result.getId());
+-        verify(coursePlanRepository).findFirstBySortOrderOrderByIdAsc(438103);
+-    }
+-
+-    @Test
+-    void getPublicDetail_prefersCourseIdWhenBothMatch() {
+-        Course course = new Course();
+-        course.setId(276819);
+-        course.setStatus(CourseStatus.PUBLISHED.getValue());
+-        course.setType(CourseType.OPEN_OFFLINE);
+-        when(courseRepository.findById(276819)).thenReturn(Optional.of(course));
+-
+-        CourseDetailVO detail = new CourseDetailVO();
+-        detail.setId(276819);
+-        when(courseMapper.toDetailVO(course)).thenReturn(detail);
+-        when(coursePlanRepository.findByCourseIdOrderBySortOrder(276819)).thenReturn(List.of());
+-        when(legacyTaokeCourseReader.findCoverUrlsByCourseIds(List.of(276819))).thenReturn(Map.of());
+-        when(legacyTaokeCourseReader.findOrganizerUserIds(List.of(276819))).thenReturn(Map.of());
+-        when(legacyTaokeCourseReader.findOrganizerNamesFromLecturer(List.of(276819))).thenReturn(Map.of());
+-
+-        CourseDetailVO result = service.getPublicDetail(276819);
+-
+-        assertEquals(276819, result.getId());
+-        verify(coursePlanRepository, never()).findFirstBySortOrderOrderByIdAsc(org.mockito.ArgumentMatchers.any());
+-    }
+-
+-    @Test
+-    void getPublicDetail_setsDisplayCourseNoFromUpcomingPlanSortOrder() {
+-        Course course = new Course();
+-        course.setId(276819);
+-        course.setStatus(CourseStatus.PUBLISHED.getValue());
+-        course.setType(CourseType.OPEN_OFFLINE);
+-        when(courseRepository.findById(276819)).thenReturn(Optional.of(course));
+-
+-        CoursePlan plan = new CoursePlan();
+-        plan.setId(10);
+-        plan.setCourseId(276819);
+-        plan.setSortOrder(438103);
+-        plan.setStartTime(LocalDateTime.now().plusDays(3));
+-        when(coursePlanRepository.findByCourseIdOrderBySortOrder(276819)).thenReturn(List.of(plan));
+-
+-        CourseDetailVO detail = new CourseDetailVO();
+-        detail.setId(276819);
+-        when(courseMapper.toDetailVO(course)).thenReturn(detail);
+-        when(courseMapper.toPlanDTOList(List.of(plan))).thenReturn(List.of());
+-        when(legacyTaokeCourseReader.findCoverUrlsByCourseIds(List.of(276819))).thenReturn(Map.of());
+-        when(legacyTaokeCourseReader.findOrganizerUserIds(List.of(276819))).thenReturn(Map.of());
+-        when(legacyTaokeCourseReader.findOrganizerNamesFromLecturer(List.of(276819))).thenReturn(Map.of());
+-
+-        CourseDetailVO result = service.getPublicDetail(276819);
+-
+-        assertEquals(438103, result.getDisplayCourseNo());
+-    }
+-
+-    @Test
+-    void getPublicDetail_fallsBackDisplayCourseNoToCourseIdWhenNoValidSortOrder() {
+-        Course course = new Course();
+-        course.setId(276819);
+-        course.setStatus(CourseStatus.PUBLISHED.getValue());
+-        course.setType(CourseType.OPEN_OFFLINE);
+-        when(courseRepository.findById(276819)).thenReturn(Optional.of(course));
+-
+-        CoursePlan plan = new CoursePlan();
+-        plan.setId(10);
+-        plan.setCourseId(276819);
+-        plan.setSortOrder(0);
+-        plan.setStartTime(LocalDateTime.now().plusDays(3));
+-        when(coursePlanRepository.findByCourseIdOrderBySortOrder(276819)).thenReturn(List.of(plan));
+-
+-        CourseDetailVO detail = new CourseDetailVO();
+-        detail.setId(276819);
+-        when(courseMapper.toDetailVO(course)).thenReturn(detail);
+-        when(courseMapper.toPlanDTOList(List.of(plan))).thenReturn(List.of());
+-        when(legacyTaokeCourseReader.findCoverUrlsByCourseIds(List.of(276819))).thenReturn(Map.of());
+-        when(legacyTaokeCourseReader.findOrganizerUserIds(List.of(276819))).thenReturn(Map.of());
+-        when(legacyTaokeCourseReader.findOrganizerNamesFromLecturer(List.of(276819))).thenReturn(Map.of());
+-
+-        CourseDetailVO result = service.getPublicDetail(276819);
+-
+-        assertEquals(276819, result.getDisplayCourseNo());
+-    }
+ }
+diff --git a/frontend/src/features/course/api/types.ts b/frontend/src/features/course/api/types.ts
+index dc9f1da1..b34d987a 100644
+--- a/frontend/src/features/course/api/types.ts
++++ b/frontend/src/features/course/api/types.ts
+@@ -91,22 +91,20 @@ export interface CourseListItem {
+   trainerProvinceName?: string;
+   /** 主讲专家城市（内训课「讲师常驻地」） */
+   trainerCityName?: string;
+   keywords: string;
+   publishedAt: string;
+   createdAt: string;
+   /** 最近一场开课时间（公开课列表展示用） */
+   nextPlanStartDate?: string;
+   /** 最近一场开课城市名称（公开课列表展示用） */
+   nextPlanCity?: string;
+-  /** 站内 SEO 路径数字段（优先最近场次 sortOrder>0，否则 course.id） */
+-  seoPathId?: number;
+ }
+ 
+ /** 创建/编辑课程请求体（对应后端 SaveCourseRequest） */
+ export interface SaveCourseRequest {
+   title: string;
+   /** hasPlan=1 时传 OPEN_OFFLINE/OPEN_ONLINE，否则可不传（后端默认 INTERNAL） */
+   type?: CourseType;
+   categoryId?: number;
+   subCategoryId?: number;
+   coverUrl?: string;
+@@ -190,22 +188,20 @@ export interface CourseDetail {
+   publishedAt: string;
+   createdAt: string;
+   updatedAt: string;
+   plans: CoursePlan[];
+   /** 线下公开课结束日期 */
+   courseOpenEndDate?: string | null;
+   /** 到期是否前台自动隐藏：1=是 0=否 */
+   isExpireHide?: number | null;
+   /** 是否已过期（线下公开课且结束日期早于今日） */
+   isOverdue?: boolean;
+-  /** 对外纯数字编号（优先最近场次 sortOrder，否则 course.id） */
+-  displayCourseNo?: number;
+ }
+ 
+ /**
+  * AI 解析返回的可回填字段集合（对应后端 AiParseMaterialResultVO.ParsedFields）。
+  *
+  * <p>课程简介（summary）与课程大纲（syllabus）不在 AI 提取范围内，由用户自行撰写。</p>
+  */
+ export interface AiParsedFields {
+   title?: string;
+   durationDays?: number;

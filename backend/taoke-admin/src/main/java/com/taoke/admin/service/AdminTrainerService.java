@@ -6,6 +6,8 @@ import com.taoke.common.dto.PageResult;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.common.service.RegionService;
+import com.taoke.common.util.LegacyAvatarUrls;
 import com.taoke.course.api.CourseService;
 import com.taoke.course.api.VideoService;
 import com.taoke.user.api.RoleApplyService;
@@ -15,7 +17,6 @@ import com.taoke.user.api.TrainerCertificationAdminService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.api.UserRoleService;
 import com.taoke.user.api.UserService;
-import com.taoke.common.service.RegionService;
 import com.taoke.course.dto.course.CourseListItemVO;
 import com.taoke.course.entity.Course;
 import com.taoke.course.enums.CourseStatus;
@@ -338,6 +339,8 @@ public class AdminTrainerService {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "专家未关联用户，无法编辑");
         }
 
+        validateAdminAvatarRequired(userId, req);
+
         TrainerRequest request = toTrainerRequest(req);
         trainerService.save(userId, request);
 
@@ -560,6 +563,23 @@ public class AdminTrainerService {
         r.setExpertiseCategoryIds(req.getExpertiseCategoryIds());
         r.setBooks(req.getBooks());
         return r;
+    }
+
+    /**
+     * 运营保存专家档案时头像必填：请求带有效头像，或未改头像且用户表已有有效头像。
+     */
+    private void validateAdminAvatarRequired(Integer userId, AdminTrainerUpdateRequest req) {
+        if (LegacyAvatarUrls.isUsableAvatar(req.getAvatar())) {
+            return;
+        }
+        // 显式清空（空串）直接拒绝；null 视为未改，需依赖存量头像
+        if (req.getAvatar() != null) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传专家头像");
+        }
+        User user = userService.findAllByIds(List.of(userId)).stream().findFirst().orElse(null);
+        if (user == null || !LegacyAvatarUrls.isUsableAvatar(user.getAvatarUrl())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传专家头像");
+        }
     }
 
     private static String caseStatusLabel(Integer status) {

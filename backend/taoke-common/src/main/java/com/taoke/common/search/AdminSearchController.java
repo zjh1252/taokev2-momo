@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -22,6 +23,7 @@ import java.util.Set;
  * @author Fangxinxin
  * @date 2026-04-14 19:00
  */
+@Slf4j
 @Tag(name = "搜索索引管理", description = "后台管理：索引管理与全量重建")
 @RestController
 @RequireRole(BusinessRole.Code.SUPER_ADMIN)
@@ -79,24 +81,31 @@ public class AdminSearchController {
 
     // ==================== 全量重建 ====================
 
-    @Operation(summary = "全量重建所有文档类型")
+    @Operation(summary = "全量重建所有文档类型（后台异步执行，避免 nginx/网关超时）")
     @PostMapping("/admin/search/reindex")
     public ApiResponse<ReindexResult> reindexAll(@RequestBody(required = false) ReindexRequest request) {
         String targetIndex = resolveTargetIndex(request);
+        List<DocumentSyncProvider> providers = List.copyOf(syncScheduler.getProviders());
+        List<String> docTypes = providers.stream().map(DocumentSyncProvider::getDocType).toList();
+
+        Thread.startVirtualThread(() -> {
+            try {
+                for (DocumentSyncProvider provider : providers) {
+                    syncScheduler.fullReindex(provider, targetIndex);
+                }
+                log.info("异步全量重建完成: targetIndex={}, docTypes={}", targetIndex, docTypes);
+            } catch (Exception e) {
+                log.error("异步全量重建失败: targetIndex={}", targetIndex, e);
+            }
+        });
+
         Map<String, Long> indexedCounts = new LinkedHashMap<>();
-
-        List<String> docTypes = syncScheduler.getProviders().stream()
-                .map(provider -> {
-                    String docType = provider.getDocType();
-                    indexedCounts.put(docType, syncScheduler.fullReindex(provider, targetIndex));
-                    return docType;
-                })
-                .toList();
-
-        return ApiResponse.ok(new ReindexResult(docTypes, "全量重建完成", targetIndex, indexedCounts));
+        docTypes.forEach(t -> indexedCounts.put(t, -1L));
+        return ApiResponse.ok(new ReindexResult(docTypes, "重建任务已在后台启动，请稍后刷新索引文档数查看结果",
+                targetIndex, indexedCounts));
     }
 
-    @Operation(summary = "按文档类型全量重建")
+    @Operation(summary = "按文档类型全量重建（后台异步执行，避免 nginx/网关超时）")
     @PostMapping("/admin/search/reindex/{docType}")
     public ApiResponse<ReindexResult> reindexByType(
             @Parameter(description = "文档类型：course / trainer") @PathVariable String docType,
@@ -108,13 +117,20 @@ public class AdminSearchController {
         }
 
         String targetIndex = resolveTargetIndex(request);
-        long indexedCount = syncScheduler.fullReindex(provider, targetIndex);
+        Thread.startVirtualThread(() -> {
+            try {
+                long count = syncScheduler.fullReindex(provider, targetIndex);
+                log.info("异步重建完成: docType={}, count={}, targetIndex={}", docType, count, targetIndex);
+            } catch (Exception e) {
+                log.error("异步重建失败: docType={}, targetIndex={}", docType, targetIndex, e);
+            }
+        });
 
         return ApiResponse.ok(new ReindexResult(
                 List.of(docType),
-                "重建完成",
+                "重建任务已在后台启动，请稍后刷新索引文档数查看结果",
                 targetIndex,
-                Map.of(docType, indexedCount)
+                Map.of(docType, -1L)
         ));
     }
 

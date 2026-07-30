@@ -1,57 +1,32 @@
-# Task 5 Report: 视频分类只保留一级 + 单测（#14）
+# Task 5 Report: D8 — C 端去掉 min-w-1400 + Admin 分类适配
 
-## 状态
+**日期**: 2026-07-29  
+**状态**: ✅ 完成
 
-✅ 完成
+## 改动摘要
+
+| 文件 | 改动 |
+|------|------|
+| `frontend/src/app/[locale]/(public)/layout.tsx` | `min-w-[1400px]` → `min-w-0`，保留外层 `overflow-x-auto` |
+| `admin-frontend/.../category-tree-table.tsx` | 表格外包 `w-full overflow-x-auto`，`Table` 加 `min-w-[720px]` |
+| `admin-frontend/.../category-form-dialog.tsx` | `DialogContent` 限宽 `min(420px, calc(100vw-2rem))` |
+
+## Lint
+
+- 本任务相关文件：无新增 lint 问题
 
 ## Commit
 
 ```
-a984671f fix(frontend): 视频播放页分类标签仅保留一级
+fix(ui): Win11 缩放下取消强制 1400 宽并适配分类树
+
+去掉 C 端 public layout 的 min-w-1400；Admin 分类表可横滚、弹窗限视口宽。
 ```
 
-变更文件：
-- `frontend/src/features/video/utils/category-tags.ts`（新建）
-- `frontend/src/features/video/utils/category-tags.test.ts`（新建）
-- `frontend/src/features/video/components/play/VideoPlayPageContent.tsx`（改用 `buildVideoCategoryTags`）
+**Hash**: `af40dac6`
 
-## TDD 证据
+## 手测建议
 
-### RED
-
-命令：
-```bash
-cd frontend && pnpm exec vitest run src/features/video/utils/category-tags.test.ts
-```
-
-输出：
-```
- FAIL  src/features/video/utils/category-tags.test.ts
-Error: Cannot find module './category-tags' imported from .../category-tags.test.ts
-
- Test Files  1 failed (1)
-      Tests  no tests
-```
-
-### GREEN
-
-命令：
-```bash
-cd frontend && pnpm exec vitest run src/features/video/utils/category-tags.test.ts
-```
-
-输出：
-```
- Test Files  1 passed (1)
-      Tests  2 passed (2)
-   Duration  216ms
-```
-
-## 实现摘要
-
-- `buildVideoCategoryTags` 仅返回一级 `categoryName`（最多 1 项），忽略 `subCategory*` 与 `keywords`
-- `VideoPlayPageContent` 删除内联拼接逻辑，改为 `useMemo(() => buildVideoCategoryTags(video), [video])`
-
-## 关注点
-
-- 无。单测覆盖「有二级/关键词时只出一级」与「无 categoryName 时为空」两种场景。
+1. C 端任意 public 页：Win11 125%/150% 下无强制 1400px 横向溢出
+2. Admin 分类管理：窄视口下表格可横滚
+3. Admin 分类新增/编辑弹窗：窄视口下不超出视口宽度

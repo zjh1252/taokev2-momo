@@ -136,7 +136,7 @@ public class VideoServiceImpl implements VideoService {
     public void submitForReview(Integer videoId, Integer publisherId) {
         Video video = getOwnedVideo(videoId, publisherId);
         if (video.getCoverUrl() == null || video.getCoverUrl().isBlank()) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传课程封面");
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传录播封面");
         }
         int status = video.getStatus();
         if (status != VideoStatus.DRAFT.getValue() && status != VideoStatus.REJECTED.getValue()) {
@@ -1031,7 +1031,7 @@ public class VideoServiceImpl implements VideoService {
      */
     private void validateCoverRequired(SaveVideoRequest request) {
         if (request.getCoverUrl() == null || request.getCoverUrl().isBlank()) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传课程封面");
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传录播封面");
         }
     }
 

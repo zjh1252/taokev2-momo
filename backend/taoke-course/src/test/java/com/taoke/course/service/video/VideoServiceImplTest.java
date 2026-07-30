@@ -66,7 +66,7 @@ class VideoServiceImplTest {
                 BusinessException.class,
                 () -> service.submitForReview(1, 10));
 
-        assertEquals("请上传课程封面", exception.getMessage());
+        assertEquals("请上传录播封面", exception.getMessage());
         verify(videoRepository, never()).save(video);
     }
 }

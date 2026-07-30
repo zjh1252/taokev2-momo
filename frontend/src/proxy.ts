@@ -5,6 +5,7 @@ import { PXB_EMBED_HEADER, PXB_ORIGIN_VALUE } from '@/lib/pxb-embed';
 import {
   isLegacyNumericTrainerFilterPath,
   LEGACY_TRAINER_FILTER_FALLBACK,
+  legacyCitiesHomeRedirectTarget,
   legacyVedioDetailRedirectTarget,
   legacyVideoChannelRedirectTarget,
   legacyVideoPlayRedirectTarget,
@@ -58,6 +59,12 @@ export function proxy(request: NextRequest) {
   const videoChannelTarget = legacyVideoChannelRedirectTarget(pathname, search);
   if (videoChannelTarget) {
     return NextResponse.redirect(new URL(videoChannelTarget, request.url), 301);
+  }
+
+  // 内部城市综合页路径: /cities/{en} → 301 /city/{en}（API /cities/active 除外）
+  const citiesHomeTarget = legacyCitiesHomeRedirectTarget(pathname, search);
+  if (citiesHomeTarget) {
+    return NextResponse.redirect(new URL(citiesHomeTarget, request.url), 301);
   }
 
   // 老拼写详情: /vedio/{id}.htm → 301 /video/{id}.htm

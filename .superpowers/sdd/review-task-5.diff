@@ -1,0 +1,116 @@
+# Review package: 060e745808acfadf6ca981ff291728783dd1ae02..HEAD
+
+## Commits
+af40dac6 fix(ui): Win11 缩放下取消强制 1400 宽并适配分类树
+
+## Files changed
+ .../src/features/categories/components/category-form-dialog.tsx     | 2 +-
+ .../src/features/categories/components/category-tree-table.tsx      | 6 ++++--
+ frontend/src/app/[locale]/(public)/layout.tsx                       | 2 +-
+ 3 files changed, 6 insertions(+), 4 deletions(-)
+
+## Diff
+diff --git a/admin-frontend/src/features/categories/components/category-form-dialog.tsx b/admin-frontend/src/features/categories/components/category-form-dialog.tsx
+index 57f84721..59569832 100644
+--- a/admin-frontend/src/features/categories/components/category-form-dialog.tsx
++++ b/admin-frontend/src/features/categories/components/category-form-dialog.tsx
+@@ -114,21 +114,21 @@ export function CategoryFormDialog({
+         sortOrder: form.sortOrder,
+         isVisible: form.isVisible,
+         description: form.description || undefined
+       };
+       createMut.mutate(payload);
+     }
+   };
+ 
+   return (
+     <Dialog open={open} onOpenChange={onOpenChange}>
+-      <DialogContent className="sm:max-w-[420px]">
++      <DialogContent className="max-w-[min(420px,calc(100vw-2rem))] sm:max-w-[min(420px,calc(100vw-2rem))]">
+         <DialogHeader>
+           <DialogTitle>{isEdit ? '编辑分类' : '新增分类'}</DialogTitle>
+           <DialogDescription>
+             {isEdit ? '修改分类信息' : defaultParentId > 0 ? '添加子分类' : '添加顶级分类'}
+           </DialogDescription>
+         </DialogHeader>
+         <form onSubmit={handleSubmit} className="space-y-4">
+           <div className="space-y-2">
+             <Label>分类名称 *</Label>
+             <Input
+diff --git a/admin-frontend/src/features/categories/components/category-tree-table.tsx b/admin-frontend/src/features/categories/components/category-tree-table.tsx
+index 27e8bd51..9c2f46ba 100644
+--- a/admin-frontend/src/features/categories/components/category-tree-table.tsx
++++ b/admin-frontend/src/features/categories/components/category-tree-table.tsx
+@@ -91,21 +91,22 @@ export function CategoryTreeTable({ categoryType }: Props) {
+             setParentForCreate(0);
+             setCreateOpen(true);
+           }}
+         >
+           <Icons.add className="mr-2 h-4 w-4" />
+           新增分类
+         </Button>
+       </div>
+ 
+       <div className="rounded-lg border">
+-        <Table>
++        <div className="w-full overflow-x-auto">
++          <Table className="min-w-[720px]">
+           <TableHeader>
+             <TableRow>
+               <TableHead className="w-[280px]">分类名称</TableHead>
+               <TableHead className="w-[60px]">层级</TableHead>
+               <TableHead className="w-[60px]">排序</TableHead>
+               <TableHead className="w-[80px]">可见</TableHead>
+               <TableHead>描述</TableHead>
+               <TableHead className="w-[120px]">操作</TableHead>
+             </TableRow>
+           </TableHeader>
+@@ -128,21 +129,22 @@ export function CategoryTreeTable({ categoryType }: Props) {
+                     setParentForCreate(parentId);
+                     setCreateOpen(true);
+                   }}
+                   onToggleVisibility={(id, visible) => {
+                     toggleVisibility.mutate({ id, data: { isVisible: visible ? 1 : 0 } });
+                   }}
+                 />
+               ))
+             )}
+           </TableBody>
+-        </Table>
++          </Table>
++        </div>
+       </div>
+     </>
+   );
+ }
+ 
+ function CategoryRow({
+   node,
+   depth,
+   onEdit,
+   onDelete,
+diff --git a/frontend/src/app/[locale]/(public)/layout.tsx b/frontend/src/app/[locale]/(public)/layout.tsx
+index 667a473d..4a1cea7c 100644
+--- a/frontend/src/app/[locale]/(public)/layout.tsx
++++ b/frontend/src/app/[locale]/(public)/layout.tsx
+@@ -16,19 +16,19 @@ export default async function PublicLayout({ children }: { children: React.React
+   if (isPxbEmbed) {
+     return (
+       <PxbEmbedProvider enabled>
+         <main className="pxb-embed-main">{children}</main>
+       </PxbEmbedProvider>
+     );
+   }
+ 
+   return (
+     <div className="w-full overflow-x-auto">
+-      <div className="min-w-[1400px]">
++      <div className="min-w-0">
+         <PublicHeader />
+         <main className="flex-1 bg-[var(--page-bg)]">{children}</main>
+         <AppFooter />
+       </div>
+       <FloatingActions />
+     </div>
+   );
+ }

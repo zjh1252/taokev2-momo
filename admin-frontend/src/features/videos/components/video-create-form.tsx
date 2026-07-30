@@ -30,7 +30,7 @@ const formSchema = z.object({
   videoType: z.enum(['SERIES', 'SINGLE', 'EXTERNAL']),
   videoUrl: z.string().optional(),
   externalUrl: z.string().optional(),
-  coverUrl: z.string().min(1, '请上传课程封面'),
+  coverUrl: z.string().min(1, '请上传录播封面'),
   publishMode: z.enum(['review', 'publish']),
   intro: z.string().optional(),
   publisherType: z.enum(['TRAINER', 'INSTITUTION']),

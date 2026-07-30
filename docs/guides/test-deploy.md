@@ -209,6 +209,12 @@ VERSION=<版本> docker compose -f docker-compose.test.yml up -d --force-recreat
    - 构建含该改动的 frontend 镜像；
    - 服务器 compose 同步该环境变量后 `up -d --force-recreate frontend nginx`。
 
+### 5.3.1 C 端静态资源走 CDN（可选）
+
+构建前设置 `NEXT_PUBLIC_ASSET_PREFIX`（无尾斜杠），例如 `https://cdn.test.taoke.com`，则 `/_next/static` 与 `public` 资源会带此前缀。  
+未设置时保持与站点同源（当前 nginx 已对 `/_next/static/`、`/statics/` 长缓存）。  
+启用前确认 CDN 已回源/同步对应路径；本地开发不要设该变量。
+
 验证 SSR 公网路径是否失败：
 
 ```bash

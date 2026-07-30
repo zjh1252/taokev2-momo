@@ -68,3 +68,38 @@ export function legacyVideoPlayRedirectTarget(pathname: string): string | null {
   if (!match) return null;
   return `/video/${match[1]}/play`;
 }
+
+/** 允许 301 的城市子频道段 */
+const CITY_SEO_SUBPATHS = new Set(['opencourse', 'institutions', 'trainers']);
+
+/**
+ * 浏览器可见的内部路径 → SEO `/city/...`：
+ * <ul>
+ *   <li>{@code /cities/{en}} → {@code /city/{en}}</li>
+ *   <li>{@code /cities/{en}/opencourse|institutions|trainers} → 对应 {@code /city/...}</li>
+ * </ul>
+ * 排除 API {@code /cities/active}、{@code /cities/{en}/home} 等。
+ */
+export function legacyCitiesHomeRedirectTarget(
+  pathname: string,
+  search: string,
+): string | null {
+  const homeMatch = pathname.match(/^\/cities\/([a-z0-9-]+)$/);
+  if (homeMatch) {
+    const enName = homeMatch[1];
+    if (enName === 'active') return null;
+    const q = search.startsWith('?') ? search : search ? `?${search}` : '';
+    return `/city/${enName}${q}`;
+  }
+
+  const subMatch = pathname.match(/^\/cities\/([a-z0-9-]+)\/([a-z0-9-]+)$/);
+  if (subMatch) {
+    const enName = subMatch[1];
+    const sub = subMatch[2];
+    if (enName === 'active' || !CITY_SEO_SUBPATHS.has(sub)) return null;
+    const q = search.startsWith('?') ? search : search ? `?${search}` : '';
+    return `/city/${enName}/${sub}${q}`;
+  }
+
+  return null;
+}

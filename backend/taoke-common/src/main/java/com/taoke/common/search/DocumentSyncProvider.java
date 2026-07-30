@@ -39,4 +39,22 @@ public interface DocumentSyncProvider {
      * 查询所有可索引的记录，用于全量重建
      */
     List<? extends BaseDocument> fetchAll();
+
+    /**
+     * 分页拉取可索引文档（page 从 0 开始）。
+     * <p>
+     * 全量重建应优先走本方法，避免 {@link #fetchAll()} 一次加载过大结果集导致 OOM。
+     * 默认实现基于 {@link #fetchAll()} 切片，仅适用于小数据量；大数据量 provider 必须覆盖。
+     */
+    default List<? extends BaseDocument> fetchPage(int page, int size) {
+        if (page < 0 || size <= 0) {
+            return List.of();
+        }
+        List<? extends BaseDocument> all = fetchAll();
+        int from = page * size;
+        if (from >= all.size()) {
+            return List.of();
+        }
+        return all.subList(from, Math.min(from + size, all.size()));
+    }
 }

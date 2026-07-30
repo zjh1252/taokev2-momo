@@ -118,7 +118,10 @@ public class SearchSyncScheduler {
     }
 
     /**
-     * 全量重建指定 docType 到指定索引，完成后写 Redis 同步时间戳
+     * 全量重建指定 docType 到指定索引，完成后写 Redis 同步时间戳。
+     * <p>
+     * 按 {@link ElasticsearchProperties#getReindexBatchSize()} 分页拉取并分批写入，
+     * 避免迁移后海量课程一次加载/一次 bulk 失败，只留下增量水位覆盖的少量文档。
      *
      * @param provider    文档提供者
      * @param targetIndex 目标索引（null 则使用默认索引）
@@ -129,20 +132,33 @@ public class SearchSyncScheduler {
         String docType = provider.getDocType();
         indexService.validateManagedIndexName(index);
 
-        log.info("开始全量重建: docType={}, targetIndex={}", docType, index);
+        int batchSize = Math.max(1, properties.getReindexBatchSize());
+        log.info("开始全量重建: docType={}, targetIndex={}, batchSize={}", docType, index, batchSize);
         LocalDateTime now = LocalDateTime.now();
 
-        List<? extends BaseDocument> all = provider.fetchAll();
-        if (!all.isEmpty()) {
-            indexService.bulkIndex(index, all);
+        long total = 0;
+        int page = 0;
+        while (true) {
+            List<? extends BaseDocument> batch = provider.fetchPage(page, batchSize);
+            if (batch.isEmpty()) {
+                break;
+            }
+            indexService.bulkIndex(index, batch);
+            total += batch.size();
+            log.info("全量重建进度: docType={}, page={}, batch={}, total={}",
+                    docType, page, batch.size(), total);
+            if (batch.size() < batchSize) {
+                break;
+            }
+            page++;
         }
 
         // 写入同步时间，后续定时任务自动接管增量
         String redisKey = SYNC_KEY_PREFIX + docType;
         stringRedisTemplate.opsForValue().set(redisKey, now.format(FORMATTER));
 
-        log.info("全量重建完成: docType={}, count={}, targetIndex={}", docType, all.size(), index);
-        return all.size();
+        log.info("全量重建完成: docType={}, count={}, targetIndex={}", docType, total, index);
+        return total;
     }
 
     /**

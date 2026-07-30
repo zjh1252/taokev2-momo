@@ -142,6 +142,8 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
 
         validateResourceType(slot, request.getResourceType());
 
+        requireHomeBannerCover(slot, request.getCoverUrl());
+
 
 
         String roleType = normalizeRoleType(request.getRoleType());
@@ -287,6 +289,10 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
 
         }
 
+        requireHomeBannerCover(
+                RecommendationSlot.fromCode(entity.getSlotCode()),
+                entity.getCoverUrl());
+
 
 
         recommendedResourceRepository.save(entity);
@@ -383,6 +389,26 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
                         slotCode);
 
         return existing.stream().map(RecommendedResource::getSortOrder).max(Integer::compareTo).orElse(0) + 1;
+
+    }
+
+
+
+    /** HOME_BANNER 轮播大图必填，避免仅前端拦截被绕过 */
+
+    private void requireHomeBannerCover(RecommendationSlot slot, String coverUrl) {
+
+        if (slot != RecommendationSlot.HOME_BANNER) {
+
+            return;
+
+        }
+
+        if (coverUrl == null || coverUrl.isBlank()) {
+
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传或填写轮播图大图");
+
+        }
 
     }
 

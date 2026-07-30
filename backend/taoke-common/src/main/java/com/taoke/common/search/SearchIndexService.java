@@ -181,6 +181,15 @@ public class SearchIndexService {
             return;
         }
 
+        int batchSize = Math.max(1, properties.getReindexBatchSize());
+        for (int from = 0; from < documents.size(); from += batchSize) {
+            int to = Math.min(from + batchSize, documents.size());
+            bulkIndexChunk(indexName, documents.subList(from, to));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void bulkIndexChunk(String indexName, List<? extends BaseDocument> documents) {
         try {
             BulkRequest.Builder bulkBuilder = new BulkRequest.Builder();
             for (BaseDocument doc : documents) {

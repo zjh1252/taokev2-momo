@@ -9,6 +9,7 @@ import com.taoke.common.response.PageResponse;
 import com.taoke.common.service.CategoryService;
 import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.common.service.RegionService;
+import com.taoke.common.util.LegacyAvatarUrls;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.api.TrainerListItemEnricher;
 import com.taoke.user.api.TrainerService;
@@ -649,6 +650,7 @@ public class TrainerServiceImpl implements TrainerService {
             throw new BusinessException(ErrorCode.PARAM_INVALID,
                     "请先勾选并同意《淘课网注册专家合作协议》");
         }
+        validateApplyAvatar(userId, request);
         // 在写数据前先获取旧快照（用于资料重审变更记录）
         Trainer oldSnapshot = trainerRepository.findByUserId(userId).orElse(null);
         boolean isReapply = roleApplyService.apply(userId, BusinessRole.Code.TRAINER);
@@ -884,6 +886,19 @@ public class TrainerServiceImpl implements TrainerService {
         }
 
         return trainerRepository.save(trainer);
+    }
+
+    /** 专家入驻/重审：请求未带头像时，若用户表亦无有效头像则拒绝。 */
+    private void validateApplyAvatar(Integer userId, TrainerRequest request) {
+        if (LegacyAvatarUrls.isUsableAvatar(request.getAvatar())) {
+            return;
+        }
+        String existing = userRepository.findById(userId)
+                .map(User::getAvatarUrl)
+                .orElse(null);
+        if (!LegacyAvatarUrls.isUsableAvatar(existing)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传专家头像");
+        }
     }
 
     /**
