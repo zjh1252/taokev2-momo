@@ -45,11 +45,31 @@ frontend/public/uploads
 AGENTS.md
 *.log
 
-### 数据迁移工具（本地脚本与产出，不入库） ###
+### 数据迁移工具（核心脚本入库，本地产出不入库） ###
 data-trans/*
 !data-trans/scripts/
+!data-trans/tests/
+
 data-trans/scripts/*
+!data-trans/scripts/data_trans_lib/
+!data-trans/scripts/data_trans_lib/**
 !data-trans/scripts/_validate_flyway_migration.py
+!data-trans/scripts/run_trainer_fields_backfill.py
+!data-trans/scripts/_audit_video_migration_gaps.py
+!data-trans/scripts/run_video_package_migrate.py
+!data-trans/scripts/run_video_supplier_migrate.py
+!data-trans/scripts/run_video_order_migrate.py
+!data-trans/scripts/run_video_comment_migrate.py
+!data-trans/scripts/_audit_video_migration_verify.py
+!data-trans/scripts/_rollback_video_migration.py
+
+data-trans/tests/*
+!data-trans/tests/test_*.py
+
+data-trans/output/
+data-trans/logs/
+data-trans/backup/
+data-trans/docs/
 
 ### 本地工具脚本（不入库） ###
 scripts/vision.py
