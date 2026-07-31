@@ -18,6 +18,36 @@ def load_script():
 
 
 class TrainerFieldsBackfillTest(unittest.TestCase):
+    def test_category_lookup_excludes_ambiguous_names(self):
+        module = load_script()
+        rows = [
+            {"id": 501, "name": " Leadership "},
+            {"id": 501, "name": "Leadership"},
+            {"id": 502, "name": "Finance"},
+            {"id": 503, "name": "Finance"},
+            {"id": 504, "name": ""},
+            {"id": 505, "name": None},
+        ]
+
+        category_by_name, ambiguous = module.build_category_lookup(rows)
+
+        self.assertEqual(category_by_name, {"Leadership": 501})
+        self.assertEqual(ambiguous, {"Finance"})
+
+    def test_relation_rows_skip_ambiguous_category_names(self):
+        module = load_script()
+        trainers = {101}
+        source_rows = [
+            {"uid": 101, "priority": 2, "name": "Finance"},
+            {"uid": 101, "priority": 1, "name": "Leadership"},
+        ]
+        category_by_name = {"Leadership": 501}
+
+        rows, skipped = module.build_category_relation_rows(source_rows, trainers, category_by_name, {"Finance"})
+
+        self.assertEqual(rows, [{"trainer_id": 101, "category_id": 501, "sort_order": 1}])
+        self.assertEqual(skipped, {"ambiguous_category": 1})
+
     def test_relation_rows_map_old_names_to_target_categories(self):
         module = load_script()
         trainers = {101, 102}

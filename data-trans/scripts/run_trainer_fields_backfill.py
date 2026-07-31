@@ -20,7 +20,34 @@ EXPERTISE_TYPE = "TRAINER_EXPERTISE"
 INDUSTRY_TYPE = "TRAINER_INDUSTRY"
 
 
-def build_category_relation_rows(source_rows: list[dict], trainer_ids: set[int], category_by_name: dict[str, int]):
+def build_category_lookup(rows: list[dict]) -> tuple[dict[str, int], set[str]]:
+    category_by_name: dict[str, int] = {}
+    seen_ids_by_name: dict[str, set[int]] = {}
+    ambiguous: set[str] = set()
+    for row in rows:
+        name = str(row.get("name") or "").strip()
+        if not name:
+            continue
+        category_id = int(row.get("id") or 0)
+        if not category_id:
+            continue
+        seen_ids = seen_ids_by_name.setdefault(name, set())
+        seen_ids.add(category_id)
+        if len(seen_ids) > 1:
+            ambiguous.add(name)
+            category_by_name.pop(name, None)
+        elif name not in ambiguous:
+            category_by_name[name] = category_id
+    return category_by_name, ambiguous
+
+
+def build_category_relation_rows(
+    source_rows: list[dict],
+    trainer_ids: set[int],
+    category_by_name: dict[str, int],
+    ambiguous_category_names: set[str] | None = None,
+):
+    ambiguous_category_names = ambiguous_category_names or set()
     rows = []
     skipped = {}
     for row in source_rows:
@@ -29,6 +56,9 @@ def build_category_relation_rows(source_rows: list[dict], trainer_ids: set[int],
             skipped["missing_trainer"] = skipped.get("missing_trainer", 0) + 1
             continue
         name = str(row.get("name") or "").strip()
+        if name in ambiguous_category_names:
+            skipped["ambiguous_category"] = skipped.get("ambiguous_category", 0) + 1
+            continue
         category_id = category_by_name.get(name)
         if not category_id:
             skipped["missing_category"] = skipped.get("missing_category", 0) + 1
@@ -109,7 +139,7 @@ def fetch_trainer_ids(conn, table: str) -> set[int]:
         return {int(row["id"]) for row in cur.fetchall()}
 
 
-def fetch_category_by_name(conn, table: str, category_type: str) -> dict[str, int]:
+def fetch_category_lookup(conn, table: str, category_type: str) -> tuple[dict[str, int], set[str]]:
     sql = f"""
         SELECT id, name
         FROM {quote_ident(table)}
@@ -122,12 +152,7 @@ def fetch_category_by_name(conn, table: str, category_type: str) -> dict[str, in
         cur.execute(sql, (category_type,))
         rows = cur.fetchall()
 
-    result: dict[str, int] = {}
-    for row in rows:
-        name = str(row.get("name") or "").strip()
-        if name and name not in result:
-            result[name] = int(row["id"])
-    return result
+    return build_category_lookup(list(rows))
 
 
 def fetch_source_relation_rows(conn, relation_table: str, taxonomy_table: str) -> list[dict]:
@@ -187,11 +212,17 @@ def run_relation_backfill(
     target_relation_table: str,
     trainer_ids: set[int],
     category_by_name: dict[str, int],
+    ambiguous_category_names: set[str],
     apply: bool,
     batch_size: int,
 ) -> RunStats:
     source_rows = fetch_source_relation_rows(source_conn, source_relation_table, source_taxonomy_table)
-    relation_rows, skipped = build_category_relation_rows(source_rows, trainer_ids, category_by_name)
+    relation_rows, skipped = build_category_relation_rows(
+        source_rows,
+        trainer_ids,
+        category_by_name,
+        ambiguous_category_names,
+    )
     inserted = (
         insert_relation_rows(target_conn, target_relation_table, relation_rows, batch_size)
         if apply
@@ -213,8 +244,16 @@ def main(argv: list[str] | None = None) -> None:
         source_conn = connect_mysql(args.source_dsn)
         target_conn = connect_mysql(args.target_dsn)
         trainer_ids = fetch_trainer_ids(target_conn, args.target_trainer_table)
-        expertise_categories = fetch_category_by_name(target_conn, args.target_category_table, EXPERTISE_TYPE)
-        industry_categories = fetch_category_by_name(target_conn, args.target_category_table, INDUSTRY_TYPE)
+        expertise_categories, ambiguous_expertise = fetch_category_lookup(
+            target_conn,
+            args.target_category_table,
+            EXPERTISE_TYPE,
+        )
+        industry_categories, ambiguous_industry = fetch_category_lookup(
+            target_conn,
+            args.target_category_table,
+            INDUSTRY_TYPE,
+        )
 
         expertise_stats = run_relation_backfill(
             source_conn,
@@ -224,6 +263,7 @@ def main(argv: list[str] | None = None) -> None:
             args.target_expertise_table,
             trainer_ids,
             expertise_categories,
+            ambiguous_expertise,
             apply,
             args.batch_size,
         )
@@ -235,6 +275,7 @@ def main(argv: list[str] | None = None) -> None:
             args.target_industry_table,
             trainer_ids,
             industry_categories,
+            ambiguous_industry,
             apply,
             args.batch_size,
         )
@@ -257,7 +298,9 @@ def main(argv: list[str] | None = None) -> None:
     print(
         f"[{mode}] trainers={len(trainer_ids)} "
         f"expertise_categories={len(expertise_categories)} "
-        f"industry_categories={len(industry_categories)}"
+        f"expertise_ambiguous={len(ambiguous_expertise)} "
+        f"industry_categories={len(industry_categories)} "
+        f"industry_ambiguous={len(ambiguous_industry)}"
     )
     print_summary("expertise", expertise_stats)
     print_summary("industry", industry_stats)
