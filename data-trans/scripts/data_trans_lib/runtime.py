@@ -30,10 +30,14 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
 
 
 def ensure_write_mode(args: argparse.Namespace) -> bool:
-    return bool(getattr(args, "apply", False))
+    apply = bool(getattr(args, "apply", False))
+    args.dry_run = not apply
+    return apply
 
 
 def chunks(items: list, size: int) -> Iterable[list]:
+    if size <= 0:
+        raise ValueError("chunk size must be positive")
     for index in range(0, len(items), size):
         yield items[index : index + size]
 

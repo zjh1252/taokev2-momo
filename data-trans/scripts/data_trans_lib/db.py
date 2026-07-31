@@ -16,7 +16,7 @@ def parse_mysql_dsn(dsn: str) -> dict[str, object]:
         "port": parsed.port or 3306,
         "user": unquote(parsed.username or ""),
         "password": unquote(parsed.password or ""),
-        "database": (parsed.path or "/").lstrip("/") or None,
+        "database": unquote((parsed.path or "/").lstrip("/")) or None,
         "charset": query.get("charset", ["utf8mb4"])[0],
     }
 

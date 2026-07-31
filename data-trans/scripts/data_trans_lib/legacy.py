@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from urllib.parse import urljoin
 
 
@@ -35,10 +35,16 @@ def normalize_money(value: object, *, cents: bool = False) -> Decimal:
     if value is None or value == "":
         amount = Decimal("0")
     else:
-        amount = Decimal(str(value))
+        try:
+            amount = Decimal(str(value))
+        except (InvalidOperation, ValueError):
+            amount = Decimal("0")
     if cents:
         amount = amount / Decimal("100")
-    return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    try:
+        return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    except InvalidOperation:
+        return Decimal("0.00")
 
 
 def normalize_datetime(value: object) -> datetime | None:
