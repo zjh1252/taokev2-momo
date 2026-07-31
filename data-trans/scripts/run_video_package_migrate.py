@@ -175,9 +175,25 @@ def fetch_target_video_ids(conn, table: str) -> set[int]:
         return {normalize_int(row.get("id")) for row in cur.fetchall()}
 
 
+def build_group_keys(topic_rows: list[dict], item_rows: list[dict]) -> set[tuple[int, int, int]]:
+    keys: set[tuple[int, int, int]] = set()
+    for topic in topic_rows:
+        package_id = normalize_int(topic.get("id"))
+        if package_id > 0:
+            keys.add((package_id, 0, 0))
+    for item in item_rows:
+        package_id = normalize_int(item.get("topic_id"))
+        topic_id = normalize_int(item.get("id"))
+        parent_id = normalize_int(item.get("item_parent"))
+        if package_id > 0 and topic_id > 0:
+            keys.add((package_id, topic_id, parent_id))
+    return keys
+
+
 def build_relation_rows(
     source_rows: list[dict],
     target_video_ids: set[int],
+    valid_group_keys: set[tuple[int, int, int]] | None = None,
 ) -> tuple[list[dict], dict[str, int]]:
     rows = []
     skipped: dict[str, int] = {}
@@ -188,6 +204,10 @@ def build_relation_rows(
             continue
         if row["video_id"] not in target_video_ids:
             skipped["missing_target_video"] = skipped.get("missing_target_video", 0) + 1
+            continue
+        group_key = (row["package_id"], row["topic_id"], row["parent_id"])
+        if valid_group_keys is not None and group_key not in valid_group_keys:
+            skipped["missing_package_group"] = skipped.get("missing_package_group", 0) + 1
             continue
         rows.append(row)
     return rows, skipped
@@ -238,10 +258,8 @@ def row_values(row: dict, columns: tuple[str, ...]) -> tuple:
     return tuple(row[column] for column in columns)
 
 
-def insert_label_rows(conn, table: str, rows: list[dict], batch_size: int) -> int:
-    if not rows:
-        return 0
-    sql = f"""
+def label_upsert_sql(table: str) -> str:
+    return f"""
         INSERT INTO {quote_ident(table)}
           (id, name, topic_id, item_parent, item_index, type, serial_index, price, company_price,
            disabled, topic_name, package_code, descr, cover, created_at, updated_at)
@@ -249,8 +267,65 @@ def insert_label_rows(conn, table: str, rows: list[dict], batch_size: int) -> in
           (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
         ON DUPLICATE KEY UPDATE
           name = VALUES(name),
+          topic_id = VALUES(topic_id),
+          item_parent = VALUES(item_parent),
+          item_index = VALUES(item_index),
+          type = VALUES(type),
+          serial_index = VALUES(serial_index),
+          price = VALUES(price),
+          company_price = VALUES(company_price),
+          disabled = VALUES(disabled),
+          topic_name = VALUES(topic_name),
+          package_code = VALUES(package_code),
+          descr = VALUES(descr),
+          cover = VALUES(cover),
           updated_at = NOW()
     """
+
+
+def group_upsert_sql(table: str) -> str:
+    return f"""
+        INSERT INTO {quote_ident(table)}
+          (package_id, topic_id, parent_id, name, price, company_price, max_purchase_qty,
+           video_count, type, serial_index, item_index, package_code, descr, cover, is_open,
+           created_at, updated_at)
+        VALUES
+          (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+          name = VALUES(name),
+          price = VALUES(price),
+          company_price = VALUES(company_price),
+          max_purchase_qty = VALUES(max_purchase_qty),
+          video_count = VALUES(video_count),
+          type = VALUES(type),
+          serial_index = VALUES(serial_index),
+          item_index = VALUES(item_index),
+          package_code = VALUES(package_code),
+          descr = VALUES(descr),
+          cover = VALUES(cover),
+          is_open = VALUES(is_open),
+          updated_at = NOW()
+    """
+
+
+def relation_upsert_sql(table: str) -> str:
+    return f"""
+        INSERT INTO {quote_ident(table)}
+          (video_id, package_id, topic_id, parent_id, is_primary, sort_order, created_at, updated_at)
+        VALUES
+          (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+          parent_id = VALUES(parent_id),
+          is_primary = VALUES(is_primary),
+          sort_order = VALUES(sort_order),
+          updated_at = NOW()
+    """
+
+
+def insert_label_rows(conn, table: str, rows: list[dict], batch_size: int) -> int:
+    if not rows:
+        return 0
+    sql = label_upsert_sql(table)
     affected = 0
     with conn.cursor() as cur:
         for batch in chunks(rows, batch_size):
@@ -262,20 +337,7 @@ def insert_label_rows(conn, table: str, rows: list[dict], batch_size: int) -> in
 def insert_group_rows(conn, table: str, rows: list[dict], batch_size: int) -> int:
     if not rows:
         return 0
-    sql = f"""
-        INSERT INTO {quote_ident(table)}
-          (package_id, topic_id, parent_id, name, price, company_price, max_purchase_qty,
-           video_count, type, serial_index, item_index, package_code, descr, cover, is_open,
-           created_at, updated_at)
-        VALUES
-          (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-        ON DUPLICATE KEY UPDATE
-          name = VALUES(name),
-          price = VALUES(price),
-          company_price = VALUES(company_price),
-          video_count = VALUES(video_count),
-          updated_at = NOW()
-    """
+    sql = group_upsert_sql(table)
     affected = 0
     with conn.cursor() as cur:
         for batch in chunks(rows, batch_size):
@@ -287,16 +349,7 @@ def insert_group_rows(conn, table: str, rows: list[dict], batch_size: int) -> in
 def insert_relation_rows(conn, table: str, rows: list[dict], batch_size: int) -> int:
     if not rows:
         return 0
-    sql = f"""
-        INSERT INTO {quote_ident(table)}
-          (video_id, package_id, topic_id, parent_id, is_primary, sort_order, created_at, updated_at)
-        VALUES
-          (%s, %s, %s, %s, %s, %s, NOW(), NOW())
-        ON DUPLICATE KEY UPDATE
-          is_primary = VALUES(is_primary),
-          sort_order = VALUES(sort_order),
-          updated_at = NOW()
-    """
+    sql = relation_upsert_sql(table)
     affected = 0
     with conn.cursor() as cur:
         for batch in chunks(rows, batch_size):
@@ -335,7 +388,12 @@ def migrate(source_conn, target_conn, args: argparse.Namespace, apply: bool) -> 
         order_by=("packageId", "topicId", "parentId", "serial", "videoId"),
     )
 
-    relation_rows, relation_skipped = build_relation_rows(source_relation_rows, target_video_ids)
+    valid_group_keys = build_group_keys(topic_rows, item_rows)
+    relation_rows, relation_skipped = build_relation_rows(
+        source_relation_rows,
+        target_video_ids,
+        valid_group_keys=valid_group_keys,
+    )
     label_rows = [build_label_row(item, args.asset_base_url) for item in item_rows]
     group_rows = build_group_rows(topic_rows, item_rows, relation_rows, args.asset_base_url)
 
