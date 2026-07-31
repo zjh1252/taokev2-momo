@@ -1,6 +1,8 @@
 import argparse
+import io
 import sys
 import unittest
+from contextlib import redirect_stderr
 from decimal import Decimal
 from pathlib import Path
 
@@ -54,6 +56,13 @@ class DataTransLibTest(unittest.TestCase):
 
         self.assertEqual(normalize_money("abc"), Decimal("0.00"))
 
+    def test_non_finite_money_defaults_to_zero(self):
+        from data_trans_lib.legacy import normalize_money
+
+        for value in ("NaN", "Infinity", "-Infinity"):
+            with self.subTest(value=value):
+                self.assertEqual(normalize_money(value), Decimal("0.00"))
+
     def test_legacy_asset_urls(self):
         from data_trans_lib.legacy import normalize_asset_url
 
@@ -97,6 +106,15 @@ class DataTransLibTest(unittest.TestCase):
         apply_args = parser.parse_args(["--apply"])
         self.assertTrue(ensure_write_mode(apply_args))
         self.assertFalse(apply_args.dry_run)
+
+    def test_common_args_rejects_conflicting_mode_flags(self):
+        from data_trans_lib.runtime import add_common_args
+
+        parser = argparse.ArgumentParser()
+        add_common_args(parser)
+
+        with self.assertRaises(SystemExit), redirect_stderr(io.StringIO()):
+            parser.parse_args(["--dry-run", "--apply"])
 
     def test_chunks_rejects_non_positive_sizes(self):
         from data_trans_lib.runtime import chunks

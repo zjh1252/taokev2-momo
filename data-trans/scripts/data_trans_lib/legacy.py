@@ -41,6 +41,8 @@ def normalize_money(value: object, *, cents: bool = False) -> Decimal:
             amount = Decimal("0")
     if cents:
         amount = amount / Decimal("100")
+    if not amount.is_finite():
+        return Decimal("0.00")
     try:
         return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     except InvalidOperation:

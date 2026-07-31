@@ -25,8 +25,9 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--legacy-db", default=os.getenv("LEGACY_MYSQL_DATABASE", "taoke"))
     parser.add_argument("--asset-base-url", default=os.getenv("LEGACY_ASSET_BASE_URL", "https://www.taoke.com"))
     parser.add_argument("--batch-size", type=int, default=500)
-    parser.add_argument("--dry-run", action="store_true", default=True)
-    parser.add_argument("--apply", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true", default=True)
+    mode.add_argument("--apply", action="store_true", default=False)
 
 
 def ensure_write_mode(args: argparse.Namespace) -> bool:
