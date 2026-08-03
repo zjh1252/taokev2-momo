@@ -54,21 +54,64 @@ class VideoOrderMigrateTest(unittest.TestCase):
 
         self.assertIsNone(module.build_paid_order_bundle({"status": 0}, []))
 
-    def test_payment_no_is_truncated_to_thirty_characters(self):
+    def test_payment_no_is_collision_resistant_for_long_order_numbers(self):
+        module = load_script()
+
+        first = "P" * 28 + "AAAA"
+        second = "P" * 28 + "BBBB"
+
+        self.assertEqual(len(module.payment_no_for_order(first)), 30)
+        self.assertEqual(len(module.payment_no_for_order(second)), 30)
+        self.assertNotEqual(module.payment_no_for_order(first), module.payment_no_for_order(second))
+
+    def test_package_details_are_skipped_until_group_mapping_is_available(self):
         module = load_script()
         order = {
-            "order_code": "O" * 40,
+            "id": 1,
+            "order_code": "O100",
             "uid": 88,
-            "total": "1.00",
+            "total": "120.00",
             "status": 3,
             "createtime": 1700000000,
             "paytime": 1700000100,
         }
+        details_by_order = {
+            1: [
+                {
+                    "video_id": 2001,
+                    "video_title": "Package A",
+                    "video_price": "120.00",
+                    "v_type": 2,
+                }
+            ]
+        }
 
-        bundle = module.build_paid_order_bundle(order, [])
+        bundles, order_skipped, detail_skipped = module.build_migration_bundles(
+            [order],
+            details_by_order,
+            target_user_ids={88},
+            target_video_ids={2001},
+        )
 
-        self.assertEqual(len(bundle.payment["payment_no"]), 30)
-        self.assertEqual(bundle.payment["payment_no"], ("LV" + ("O" * 40))[0:30])
+        self.assertEqual(bundles, [])
+        self.assertEqual(order_skipped, {"no_valid_detail": 1})
+        self.assertEqual(detail_skipped, {"unsupported_package_detail": 1})
+
+    def test_validity_fields_are_mapped_from_legacy_times(self):
+        module = load_script()
+        order = {
+            "order_code": "O100",
+            "uid": 88,
+            "total": "1.00",
+            "status": 3,
+            "starttime": 1700000000,
+            "endtime": 1700086400,
+        }
+
+        bundle = module.build_paid_order_bundle(order, [{"video_id": 2001}])
+
+        self.assertEqual(bundle.order["valid_from"], module.normalize_datetime(1700000000))
+        self.assertEqual(bundle.order["valid_until"], module.normalize_datetime(1700086400))
 
 
 if __name__ == "__main__":

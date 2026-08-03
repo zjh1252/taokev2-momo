@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
@@ -38,6 +39,8 @@ ORDER_COLUMNS = (
     "remark",
     "paid_at",
     "expired_at",
+    "valid_from",
+    "valid_until",
     "legacy_status",
     "created_at",
     "updated_at",
@@ -140,6 +143,14 @@ def product_type_for_detail(detail: dict) -> str:
     return "VIDEO_PACKAGE" if str(detail.get("v_type") or "").upper() in {"2", "PACKAGE"} else "VIDEO_COURSE"
 
 
+def payment_no_for_order(order_no: str) -> str:
+    raw = "LV" + str(order_no or "").strip()
+    if len(raw) <= 30:
+        return raw
+    digest = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:8]
+    return f"{raw[:21]}-{digest}"
+
+
 def build_paid_order_bundle(order: dict, details: list[dict]) -> OrderBundle | None:
     status = first_present(order, ("status", "legacy_status"))
     mapping = map_video_order_status(status)
@@ -149,6 +160,7 @@ def build_paid_order_bundle(order: dict, details: list[dict]) -> OrderBundle | N
     total = normalize_money(first_present(order, ("total", "pay_amount", "amount")))
     paid_at = normalize_datetime(first_present(order, ("paytime", "paid_at", "pay_at", "paidAt")))
     created_at = normalize_datetime(first_present(order, ("createtime", "created_at", "create_time", "createdAt"))) or datetime.now()
+    valid_from = normalize_datetime(first_present(order, ("starttime", "valid_from", "validFrom")))
     expired_at = normalize_datetime(first_present(order, ("endtime", "expired_at", "valid_until", "validUntil")))
     legacy_status = normalize_int(status)
     user_id = normalize_int(first_present(order, ("uid", "user_id", "userId")))
@@ -161,6 +173,8 @@ def build_paid_order_bundle(order: dict, details: list[dict]) -> OrderBundle | N
         "remark": legacy_import_remark("video-order", {"order_code": order_no, "status": status}),
         "paid_at": paid_at,
         "expired_at": expired_at,
+        "valid_from": valid_from,
+        "valid_until": expired_at,
         "legacy_status": legacy_status,
         "created_at": created_at,
         "updated_at": created_at,
@@ -181,7 +195,7 @@ def build_paid_order_bundle(order: dict, details: list[dict]) -> OrderBundle | N
     ]
     payment_row = (
         {
-            "payment_no": ("LV" + order_no)[0:30],
+            "payment_no": payment_no_for_order(order_no),
             "order_no": order_no,
             "user_id": order_row["user_id"],
             "amount": total,
@@ -431,6 +445,9 @@ def build_migration_bundles(
         details = []
         for raw_detail in raw_details:
             detail = normalize_detail_row(raw_detail)
+            if product_type_for_detail(detail) == "VIDEO_PACKAGE":
+                add_skip(detail_skipped, "unsupported_package_detail")
+                continue
             video_id = normalize_int(detail.get("video_id"))
             if video_id <= 0:
                 add_skip(detail_skipped, "invalid_video_id")
@@ -493,9 +510,9 @@ def order_upsert_sql(table: str) -> str:
     return f"""
         INSERT INTO {quote_ident(table)}
           (order_no, user_id, total_amount, pay_amount, status, remark, paid_at, expired_at,
-           legacy_status, created_at, updated_at)
+           valid_from, valid_until, legacy_status, created_at, updated_at)
         VALUES
-          (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+          (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
           user_id = VALUES(user_id),
           total_amount = VALUES(total_amount),
@@ -504,6 +521,8 @@ def order_upsert_sql(table: str) -> str:
           remark = VALUES(remark),
           paid_at = VALUES(paid_at),
           expired_at = VALUES(expired_at),
+          valid_from = VALUES(valid_from),
+          valid_until = VALUES(valid_until),
           legacy_status = VALUES(legacy_status),
           updated_at = VALUES(updated_at)
     """
