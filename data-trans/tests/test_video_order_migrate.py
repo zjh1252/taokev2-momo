@@ -54,6 +54,22 @@ class VideoOrderMigrateTest(unittest.TestCase):
 
         self.assertIsNone(module.build_paid_order_bundle({"status": 0}, []))
 
+    def test_payment_no_is_truncated_to_thirty_characters(self):
+        module = load_script()
+        order = {
+            "order_code": "O" * 40,
+            "uid": 88,
+            "total": "1.00",
+            "status": 3,
+            "createtime": 1700000000,
+            "paytime": 1700000100,
+        }
+
+        bundle = module.build_paid_order_bundle(order, [])
+
+        self.assertEqual(len(bundle.payment["payment_no"]), 30)
+        self.assertEqual(bundle.payment["payment_no"], ("LV" + ("O" * 40))[0:30])
+
 
 if __name__ == "__main__":
     unittest.main()

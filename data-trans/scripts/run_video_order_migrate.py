@@ -181,7 +181,7 @@ def build_paid_order_bundle(order: dict, details: list[dict]) -> OrderBundle | N
     ]
     payment_row = (
         {
-            "payment_no": ("LV" + order_no)[0:32],
+            "payment_no": ("LV" + order_no)[0:30],
             "order_no": order_no,
             "user_id": order_row["user_id"],
             "amount": total,
