@@ -48,5 +48,25 @@ class VideoAuditScriptTest(unittest.TestCase):
         self.assertIn("[legacy-import]", sections["orders_legacy_imported"])
 
 
+class VideoRollbackScriptTest(unittest.TestCase):
+    def test_order_rollback_sql_deletes_children_before_orders(self):
+        module = load_script("_rollback_video_migration.py")
+
+        statements = module.build_order_rollback_sql()
+
+        self.assertEqual(
+            [statement.split()[2] for statement in statements],
+            ["video_enrollments", "payments", "order_items", "orders"],
+        )
+        self.assertIn("[legacy-import][video-order]", statements[-1])
+
+    def test_packages_domain_requires_explicit_domain(self):
+        module = load_script("_rollback_video_migration.py")
+
+        self.assertEqual(module.parse_domains("orders,comments"), {"orders", "comments"})
+        with self.assertRaises(ValueError):
+            module.parse_domains("")
+
+
 if __name__ == "__main__":
     unittest.main()
