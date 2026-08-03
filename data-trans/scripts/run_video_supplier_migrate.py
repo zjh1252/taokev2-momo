@@ -100,7 +100,7 @@ def fetch_all(conn, table: str, order_by: Iterable[str], where: str = "") -> lis
         return list(cur.fetchall())
 
 
-def fetch_members_by_uid(conn, table: str, user_ids: list[int], batch_size: int) -> dict[int, dict]:
+def fetch_members_by_user_id(conn, table: str, user_ids: list[int], batch_size: int) -> dict[int, dict]:
     if not user_ids:
         return {}
     table_name = quote_ident(table)
@@ -108,11 +108,11 @@ def fetch_members_by_uid(conn, table: str, user_ids: list[int], batch_size: int)
     with conn.cursor() as cur:
         for batch in chunks(user_ids, batch_size):
             placeholders = ", ".join(["%s"] * len(batch))
-            cur.execute(f"SELECT * FROM {table_name} WHERE `uid` IN ({placeholders})", batch)
+            cur.execute(f"SELECT * FROM {table_name} WHERE `id` IN ({placeholders})", batch)
             for row in cur.fetchall():
-                uid = normalize_int(row.get("uid"))
-                if uid > 0:
-                    members[uid] = row
+                user_id = normalize_int(row.get("id"))
+                if user_id > 0:
+                    members[user_id] = row
     return members
 
 
@@ -133,7 +133,7 @@ def fetch_supplier_ids_by_user_id(conn, table: str, user_ids: list[int], batch_s
     return supplier_ids
 
 
-def build_supplier_rows(topic_rows: list[dict], members_by_uid: dict[int, dict]) -> tuple[list[dict], dict[str, int]]:
+def build_supplier_rows(topic_rows: list[dict], members_by_user_id: dict[int, dict]) -> tuple[list[dict], dict[str, int]]:
     rows_by_user_id: dict[int, dict] = {}
     skipped: dict[str, int] = {}
     for topic in topic_rows:
@@ -141,7 +141,7 @@ def build_supplier_rows(topic_rows: list[dict], members_by_uid: dict[int, dict])
         if user_id <= 0:
             skipped["invalid_user_id"] = skipped.get("invalid_user_id", 0) + 1
             continue
-        row = build_supplier_row(topic, members_by_uid.get(user_id, {}))
+        row = build_supplier_row(topic, members_by_user_id.get(user_id, {}))
         existing = rows_by_user_id.get(user_id)
         if existing is None:
             rows_by_user_id[user_id] = row
@@ -319,8 +319,8 @@ def migrate(source_conn, target_conn, args: argparse.Namespace, apply: bool) -> 
     )
 
     user_ids = sorted({normalize_int(topic.get("uid")) for topic in topic_rows if normalize_int(topic.get("uid")) > 0})
-    members_by_uid = fetch_members_by_uid(source_conn, args.source_member_table, user_ids, args.batch_size)
-    supplier_rows, supplier_skipped = build_supplier_rows(topic_rows, members_by_uid)
+    members_by_user_id = fetch_members_by_user_id(source_conn, args.source_member_table, user_ids, args.batch_size)
+    supplier_rows, supplier_skipped = build_supplier_rows(topic_rows, members_by_user_id)
 
     supplier_affected = None
     if apply:
