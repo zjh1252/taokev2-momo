@@ -1197,6 +1197,14 @@ public class VideoServiceImpl implements VideoService {
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             case "studentCount" -> Sort.by(Sort.Direction.DESC, "studentCount")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "smartcs", "smart_recommend" -> Sort.by(Sort.Direction.DESC, "score")
+                    .and(Sort.by(Sort.Direction.DESC, "isFeatured"))
+                    .and(Sort.by(Sort.Direction.DESC, "viewCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "studentCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "enrollmentCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "sortOrder"))
+                    .and(Sort.by(Sort.Direction.DESC, "publishedAt"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
             default -> Sort.by(Sort.Direction.DESC, "stickyPriority")
                     .and(Sort.by(Sort.Direction.DESC, "sortOrder"))
                     .and(Sort.by(Sort.Direction.DESC, "publishedAt"))

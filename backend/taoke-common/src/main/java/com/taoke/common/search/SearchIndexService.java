@@ -3,12 +3,17 @@ package com.taoke.common.search;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
+import co.elastic.clients.elasticsearch._types.query_dsl.FieldValueFactorModifier;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionBoostMode;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionScoreMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.GetIndexResponse;
@@ -410,7 +415,23 @@ public class SearchIndexService {
                     ));
                 }
 
-                s.query(q -> q.bool(boolQuery.build()));
+                BoolQuery builtQuery = boolQuery.build();
+                if (isSmartRecommendRank(request)) {
+                    s.query(q -> q.functionScore(fs -> fs
+                            .query(inner -> inner.bool(builtQuery))
+                            .functions(buildSmartRankFunctions(request.getDocType()))
+                            .scoreMode(FunctionScoreMode.Sum)
+                            .boostMode(resolveSmartBoostMode(request))
+                    ));
+                } else {
+                    s.query(q -> q.bool(builtQuery));
+                    String sortField = resolveExplicitSortField(request);
+                    if (sortField != null) {
+                        s.sort(sort -> sort.field(f -> f.field(sortField).order(SortOrder.Desc).missing("_last")));
+                        s.sort(sort -> sort.score(sc -> sc.order(SortOrder.Desc)));
+                        s.sort(sort -> sort.field(f -> f.field("id").order(SortOrder.Desc).missing("_last")));
+                    }
+                }
 
                 // 高亮：对主要文本字段加 highlight，标签用 <em>
                 if (keyword != null && !keyword.isBlank()) {
@@ -470,6 +491,80 @@ public class SearchIndexService {
         }
     }
 
+    private boolean isSmartRecommendRank(SearchRequest request) {
+        String rankMode = normalizeSearchOption(request.getRankMode());
+        String sortBy = normalizeSearchOption(request.getSortBy());
+        return "smartcs".equals(rankMode)
+                || "smartcs".equals(sortBy)
+                || "smartrecommend".equals(sortBy);
+    }
+
+    private FunctionBoostMode resolveSmartBoostMode(SearchRequest request) {
+        return hasStructuredRecommendationFilter(request)
+                ? FunctionBoostMode.Replace
+                : FunctionBoostMode.Sum;
+    }
+
+    private boolean hasStructuredRecommendationFilter(SearchRequest request) {
+        return request.getCategoryId() != null
+                || request.getSubCategoryId() != null
+                || request.getExpertiseCategoryId() != null;
+    }
+
+    private String resolveExplicitSortField(SearchRequest request) {
+        String sortBy = normalizeSearchOption(request.getSortBy());
+        return switch (sortBy) {
+            case "score", "rating", "star" -> "score";
+            case "viewcount", "popular", "popularity", "hot" -> "viewCount";
+            case "enrollmentcount", "enrollment", "enroll", "sales" -> "enrollmentCount";
+            default -> null;
+        };
+    }
+
+    private String normalizeSearchOption(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toLowerCase().replace("_", "").replace("-", "");
+    }
+
+    private List<FunctionScore> buildSmartRankFunctions(String docType) {
+        boolean trainerOnly = "trainer".equalsIgnoreCase(docType);
+        boolean courseOnly = "course".equalsIgnoreCase(docType);
+        List<FunctionScore> functions = new java.util.ArrayList<>();
+
+        functions.add(fieldValueFactor("score", 3.0, FieldValueFactorModifier.None));
+        functions.add(fieldValueFactor("sortOrder", 0.001, FieldValueFactorModifier.None));
+
+        if (trainerOnly) {
+            functions.add(fieldValueFactor("viewCount", 0.6, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("isRecommended", 3.0, FieldValueFactorModifier.None));
+            functions.add(fieldValueFactor("isSigned", 2.0, FieldValueFactorModifier.None));
+            functions.add(fieldValueFactor("experienceYears", 0.2, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("teachingYears", 0.2, FieldValueFactorModifier.Log1p));
+        } else if (courseOnly) {
+            functions.add(fieldValueFactor("viewCount", 0.6, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("enrollmentCount", 1.0, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("isFeatured", 3.0, FieldValueFactorModifier.None));
+        } else {
+            functions.add(fieldValueFactor("viewCount", 0.6, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("enrollmentCount", 1.0, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("isFeatured", 3.0, FieldValueFactorModifier.None));
+            functions.add(fieldValueFactor("isRecommended", 3.0, FieldValueFactorModifier.None));
+            functions.add(fieldValueFactor("isSigned", 2.0, FieldValueFactorModifier.None));
+        }
+
+        return functions;
+    }
+
+    private FunctionScore fieldValueFactor(String field, double factor, FieldValueFactorModifier modifier) {
+        return FunctionScore.of(fn -> fn.fieldValueFactor(fvf -> fvf
+                .field(field)
+                .factor(factor)
+                .modifier(modifier)
+                .missing(0.0)
+        ));
+    }
     private boolean isIndexNotFound(Throwable e) {
         for (Throwable t = e; t != null; t = t.getCause()) {
             if (t instanceof ElasticsearchException ee
@@ -542,11 +637,19 @@ public class SearchIndexService {
                 .properties("durationDays", p -> p.integer(i -> i))
                 .properties("courseOpenEndDate", p -> p.date(d -> d.format("yyyy-MM-dd||strict_date_optional_time||epoch_millis")))
                 .properties("isExpireHide", p -> p.integer(i -> i))
+                .properties("isFeatured", p -> p.long_(l -> l))
+                .properties("isFree", p -> p.long_(l -> l))
+                .properties("sortOrder", p -> p.long_(l -> l))
+                .properties("viewCount", p -> p.long_(l -> l))
+                .properties("enrollmentCount", p -> p.long_(l -> l))
+                .properties("score", p -> p.float_(f -> f))
                 // 专家过滤字段
                 .properties("provinceId", p -> p.integer(i -> i))
                 .properties("cityId", p -> p.integer(i -> i))
                 .properties("experienceYears", p -> p.integer(i -> i))
                 .properties("teachingYears", p -> p.integer(i -> i))
+                .properties("isSigned", p -> p.long_(l -> l))
+                .properties("isRecommended", p -> p.long_(l -> l))
                 .properties("expertiseCategoryIds", p -> p.integer(i -> i))
         );
     }
