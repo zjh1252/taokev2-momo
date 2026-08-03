@@ -80,7 +80,7 @@ def build_label_row(item: dict, asset_base_url: str) -> dict:
     }
 
 
-def build_topic_group_row(topic: dict) -> dict:
+def build_topic_group_row(topic: dict, asset_base_url: str = "https://www.taoke.com") -> dict:
     return {
         "package_id": normalize_int(topic.get("id")),
         "topic_id": 0,
@@ -95,7 +95,7 @@ def build_topic_group_row(topic: dict) -> dict:
         "item_index": 0,
         "package_code": str(topic.get("package") or "").strip(),
         "descr": topic.get("descr"),
-        "cover": normalize_asset_url(topic.get("cover"), "https://www.taoke.com"),
+        "cover": normalize_asset_url(topic.get("cover"), asset_base_url),
         "is_open": normalize_int(topic.get("is_open"), 1),
     }
 
@@ -237,7 +237,7 @@ def build_group_rows(
     group_counts, package_counts = build_video_count_maps(relation_rows)
     rows = []
     for topic in topic_rows:
-        row = build_topic_group_row(topic)
+        row = build_topic_group_row(topic, asset_base_url)
         row["video_count"] = package_counts.get(row["package_id"], 0)
         rows.append(row)
     for item in item_rows:

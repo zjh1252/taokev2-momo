@@ -103,6 +103,14 @@ class VideoPackageMigrateTest(unittest.TestCase):
 
         self.assertEqual(keys, {(7, 0, 0), (8, 0, 0), (7, 42, 0), (7, 43, 42)})
 
+    def test_topic_group_cover_uses_asset_base_url(self):
+        module = load_script()
+        topic = {"id": 7, "topic_name": "Package A", "cover": "attachments/video/topic.jpg"}
+
+        row = module.build_topic_group_row(topic, asset_base_url="https://assets.example.com")
+
+        self.assertEqual(row["cover"], "https://assets.example.com/attachments/video/topic.jpg")
+
 
 if __name__ == "__main__":
     unittest.main()
