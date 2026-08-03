@@ -233,7 +233,31 @@ def build_category_rows(
         user_id = topic_user_ids.get(topic_id)
         supplier_id = supplier_ids_by_user_id.get(user_id or 0)
         if category_id > 0 and topic_id > 0 and supplier_id:
-            active_item_meta[category_id] = {"topic_id": topic_id, "supplier_id": supplier_id}
+            active_item_meta[category_id] = {
+                "topic_id": topic_id,
+                "supplier_id": supplier_id,
+                "parent_id": normalize_int(item.get("item_parent")),
+            }
+
+    def has_active_parent_chain(category_id: int) -> bool:
+        current = active_item_meta.get(category_id)
+        if not current:
+            return False
+        parent_id = current["parent_id"]
+        visited = {category_id}
+        while parent_id > 0:
+            if parent_id in visited:
+                return False
+            visited.add(parent_id)
+            parent = active_item_meta.get(parent_id)
+            if (
+                not parent
+                or parent["topic_id"] != current["topic_id"]
+                or parent["supplier_id"] != current["supplier_id"]
+            ):
+                return False
+            parent_id = parent["parent_id"]
+        return True
 
     for item in item_rows:
         category_id = normalize_int(item.get("id"))
@@ -247,15 +271,9 @@ def build_category_rows(
             skipped["missing_supplier"] = skipped.get("missing_supplier", 0) + 1
             continue
         parent_id = normalize_int(item.get("item_parent"))
-        if parent_id > 0:
-            parent_meta = active_item_meta.get(parent_id)
-            if (
-                not parent_meta
-                or parent_meta["topic_id"] != topic_id
-                or parent_meta["supplier_id"] != supplier_id
-            ):
-                skipped["missing_parent_category"] = skipped.get("missing_parent_category", 0) + 1
-                continue
+        if parent_id > 0 and not has_active_parent_chain(category_id):
+            skipped["missing_parent_category"] = skipped.get("missing_parent_category", 0) + 1
+            continue
         row = build_supplier_category_row(supplier_id, item, asset_base_url)
         row["id"] = category_id
         rows.append(row)
