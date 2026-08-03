@@ -29,7 +29,7 @@ export function buildHomeMetadata(): SeoFields {
   return {
     title: '淘课网-领先的企业培训采购平台',
     description:
-      '淘课网联合全国数万优秀培训师和培训机构,给企业提供有针对性的、互动的、积聚人脉的管理培训服务.包括提供培训需求诊断、培训课程采购、培训资料下载等服务.',
+      '淘课网是一站式企业培训采购平台，汇聚2万+实战讲师、海量内训/公开课、企业培训案例，覆盖人力、营销、生产、领导力等全领域，快速匹配适配您的企业培训方案。',
     keywords: joinKeywords(
       '企业培训',
       '企业培训采购',
@@ -86,7 +86,10 @@ export function buildTrainerDetailMetadata(trainer: TrainerDetail): SeoFields {
 
   return {
     title: `${name}_${positioning}_淘课网`,
-    description: descParts.length > 0 ? descParts.join('、') : positioning,
+    description:
+      descParts.length > 0
+        ? `${name}，${positioning}，擅长${descParts.join('、')}，可提供企业管理线下内训、高管专题培训与定制化课程服务。`
+        : `${name}，${positioning}，淘课网认证企业培训讲师，可为企业提供内训课程、公开课授课与培训需求匹配服务。`,
     keywords: joinKeywords(...expertiseNames, ...industryNames),
   };
 }
@@ -149,7 +152,10 @@ export function buildOpenCourseDetailMetadata(
 
   return {
     title: `${course.title}${titleSuffix}_公开课_淘课网`,
-    description: descParts.join('、') || course.title,
+    description:
+      descParts.length > 0
+        ? `《${course.title}》公开课面向企业培训与管理提升场景，涵盖${descParts.join('、')}，支持查看开课安排、费用与报名咨询。`
+        : `《${course.title}》公开课提供企业培训主题内容、开课计划、费用与报名信息，帮助企业培训负责人快速评估课程适配度。`,
     keywords: joinKeywords(course.title, course.categoryName, '公开课', '企业培训课程'),
   };
 }
@@ -196,7 +202,10 @@ export function buildInnerCourseDetailMetadata(course: CourseDetail): SeoFields 
 
   return {
     title: `${course.title}_内训课_淘课网`,
-    description: descParts.join('、') || course.title,
+    description:
+      descParts.length > 0
+        ? `《${course.title}》企业内训课围绕${descParts.join('、')}，适合企业按团队现状定制培训方案并匹配实战讲师。`
+        : `《${course.title}》企业内训课提供课程介绍、适用对象与讲师信息，帮助企业按培训目标定制落地方案。`,
     keywords: joinKeywords(course.title, course.categoryName, '企业内训', '内训课程'),
   };
 }
@@ -232,7 +241,10 @@ export function buildVideoDetailMetadata(video: VideoDetail): SeoFields {
 
   return {
     title: `${video.title}_录播课_在线学习_淘课网`,
-    description: descParts.join('、') || video.title,
+    description:
+      descParts.length > 0
+        ? `《${video.title}》录播课覆盖${descParts.join('、')}，支持在线学习企业培训知识，适合员工自主提升与企业统一采购。`
+        : `《${video.title}》录播课提供在线学习内容、课程目录与购买信息，适合企业员工按需学习管理与岗位技能课程。`,
     keywords: joinKeywords(video.title, video.categoryName, '录播课', '在线课程'),
   };
 }
@@ -279,55 +291,94 @@ export function buildInstitutionDetailMetadata(institution: InstitutionDetail): 
 
   return {
     title: `${institution.orgName}_培训机构_淘课网`,
-    description: descParts.join('、') || institution.orgName,
+    description:
+      descParts.length > 0
+        ? `${institution.orgName}是淘课网入驻培训机构，服务方向包含${descParts.join('、')}，可对接企业内训、公开课与长期培训项目。`
+        : `${institution.orgName}是淘课网入驻培训机构，提供企业培训课程、师资团队与定制服务信息，便于企业采购方筛选合作伙伴。`,
     keywords: joinKeywords(institution.orgName, '培训机构', '企业培训服务商'),
   };
 }
 
 // ─── 导出 Metadata 便捷方法 ─────────────────────────────
 
-export function homeMetadata() {
-  return toMetadata(buildHomeMetadata());
+export function homeMetadata(canonical = '/') {
+  return toMetadata({ ...buildHomeMetadata(), canonical });
 }
 
-export function trainerListMetadata(filter?: FilterContext) {
-  return toMetadata(buildTrainerListMetadata(filter));
+export function trainerListMetadata(filter?: FilterContext, canonical = '/trainer') {
+  return toMetadata({ ...buildTrainerListMetadata(filter), canonical });
 }
 
-export function trainerDetailMetadata(trainer: TrainerDetail) {
-  return toMetadata(buildTrainerDetailMetadata(trainer));
+export function trainerDetailMetadata(trainer: TrainerDetail, canonical?: string) {
+  return toMetadata({ ...buildTrainerDetailMetadata(trainer), canonical });
 }
 
-export function openCourseListMetadata(filter?: FilterContext) {
-  return toMetadata(buildOpenCourseListMetadata(filter));
+export function openCourseListMetadata(
+  filter?: FilterContext,
+  canonical = '/opencourse',
+  canonicalParams?: URLSearchParams,
+) {
+  return toMetadata({
+    ...buildOpenCourseListMetadata(filter),
+    canonical,
+    canonicalParams,
+    canonicalQueryKeys: ['categoryName', 'cityName', 'page'],
+  });
 }
 
-export function openCourseDetailMetadata(course: CourseDetail, planIndex = 0) {
-  return toMetadata(buildOpenCourseDetailMetadata(course, planIndex));
+export function openCourseDetailMetadata(course: CourseDetail, planIndex = 0, canonical?: string) {
+  return toMetadata({ ...buildOpenCourseDetailMetadata(course, planIndex), canonical });
 }
 
-export function innerCourseListMetadata(filter?: FilterContext) {
-  return toMetadata(buildInnerCourseListMetadata(filter));
+export function innerCourseListMetadata(
+  filter?: FilterContext,
+  canonical = '/inhousecourse',
+  canonicalParams?: URLSearchParams,
+) {
+  return toMetadata({
+    ...buildInnerCourseListMetadata(filter),
+    canonical,
+    canonicalParams,
+    canonicalQueryKeys: ['categoryName', 'page'],
+  });
 }
 
-export function innerCourseDetailMetadata(course: CourseDetail) {
-  return toMetadata(buildInnerCourseDetailMetadata(course));
+export function innerCourseDetailMetadata(course: CourseDetail, canonical?: string) {
+  return toMetadata({ ...buildInnerCourseDetailMetadata(course), canonical });
 }
 
-export function videoListMetadata(filter?: FilterContext) {
-  return toMetadata(buildVideoListMetadata(filter));
+export function videoListMetadata(
+  filter?: FilterContext,
+  canonical = '/video',
+  canonicalParams?: URLSearchParams,
+) {
+  return toMetadata({
+    ...buildVideoListMetadata(filter),
+    canonical,
+    canonicalParams,
+    canonicalQueryKeys: ['categoryName', 'page'],
+  });
 }
 
-export function videoDetailMetadata(video: VideoDetail) {
-  return toMetadata(buildVideoDetailMetadata(video));
+export function videoDetailMetadata(video: VideoDetail, canonical?: string) {
+  return toMetadata({ ...buildVideoDetailMetadata(video), canonical });
 }
 
-export function institutionListMetadata(filter?: FilterContext) {
-  return toMetadata(buildInstitutionListMetadata(filter));
+export function institutionListMetadata(
+  filter?: FilterContext,
+  canonical = '/company',
+  canonicalParams?: URLSearchParams,
+) {
+  return toMetadata({
+    ...buildInstitutionListMetadata(filter),
+    canonical,
+    canonicalParams,
+    canonicalQueryKeys: ['categoryName', 'page'],
+  });
 }
 
-export function institutionDetailMetadata(institution: InstitutionDetail) {
-  return toMetadata(buildInstitutionDetailMetadata(institution));
+export function institutionDetailMetadata(institution: InstitutionDetail, canonical?: string) {
+  return toMetadata({ ...buildInstitutionDetailMetadata(institution), canonical });
 }
 
 // ─── 案例详情 ─────────────────────────────────────────────
@@ -347,7 +398,10 @@ export function buildCaseDetailMetadata(
 
   return {
     title: `${caseData.caseTitle}_${name}_淘课网`,
-    description: descParts.join('、') || caseData.caseTitle,
+    description:
+      descParts.length > 0
+        ? `《${caseData.caseTitle}》展示${name}服务企业培训的真实案例，包含${descParts.join('、')}，可参考同类项目落地效果。`
+        : `《${caseData.caseTitle}》是淘课网企业培训案例，展示客户背景、培训主题、实施过程与效果数据，便于企业参考选型。`,
     keywords: joinKeywords(
       name,
       caseData.trainingDate,
@@ -358,20 +412,21 @@ export function buildCaseDetailMetadata(
   };
 }
 
-export function caseDetailMetadata(caseData: TrainerCase, trainerName?: string) {
-  return toMetadata(buildCaseDetailMetadata(caseData, trainerName));
+export function caseDetailMetadata(caseData: TrainerCase, trainerName?: string, canonical?: string) {
+  return toMetadata({ ...buildCaseDetailMetadata(caseData, trainerName), canonical });
 }
 
 /** 兜底详情页 metadata */
-export function fallbackDetailMetadata(label: string) {
+export function fallbackDetailMetadata(label: string, canonical?: string) {
   return toMetadata({
     title: `${label} - 淘课网`,
-    description: label,
+    description: `${label}提供淘课网企业培训资源信息，帮助企业培训负责人了解课程、讲师、机构与案例内容，快速筛选适合的企业培训方案。`,
+    canonical,
   });
 }
 
 /** 城市综合频道页 TDK */
-export function buildCityChannelMetadata(cityName: string) {
+export function buildCityChannelMetadata(cityName: string, canonical?: string) {
   return toMetadata({
     title: `${cityName}企业培训_${cityName}公开课_内训课_培训讲师_培训机构 - 新淘课网`,
     keywords: joinKeywords(
@@ -382,6 +437,7 @@ export function buildCityChannelMetadata(cityName: string) {
       `${cityName}培训机构`,
     ),
     description: `汇集${cityName}地区优质公开课、企业内训课程、资深培训讲师与正规培训机构，覆盖多行业实战培训，提供一站式企业培训服务。`,
+    canonical,
   });
 }
 

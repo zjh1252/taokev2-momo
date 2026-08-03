@@ -228,6 +228,7 @@ function WorkForm({ record, onCancel, onSaved }: FormProps) {
         <Field label="起始时间" required>
           <input
             type="date"
+            placeholder="年 / 月 / 日"
             className="form-input"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
@@ -236,10 +237,10 @@ function WorkForm({ record, onCancel, onSaved }: FormProps) {
         <Field label="结束时间">
           <input
             type="date"
+            placeholder="年 / 月 / 日"
             className="form-input"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            placeholder="至今可留空"
           />
         </Field>
         <label className="text-sm md:col-span-2 block">

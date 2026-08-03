@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { buildCanonicalUrl } from './canonical';
 
 /** 剥离 HTML 并压缩空白 */
 export function stripHtml(text: string): string {
@@ -60,13 +61,30 @@ export interface SeoFields {
   title: string;
   description: string;
   keywords?: string;
+  canonical?: string;
+  canonicalParams?: URLSearchParams;
+  canonicalQueryKeys?: string[];
 }
 
 /** 转为 Next.js Metadata */
-export function toMetadata({ title, description, keywords }: SeoFields): Metadata {
+export function toMetadata({
+  title,
+  description,
+  keywords,
+  canonical,
+  canonicalParams,
+  canonicalQueryKeys,
+}: SeoFields): Metadata {
   return {
     title,
     description: truncateDescription(description),
     ...(keywords ? { keywords } : {}),
+    ...(canonical
+      ? {
+          alternates: {
+            canonical: buildCanonicalUrl(canonical, canonicalParams, canonicalQueryKeys),
+          },
+        }
+      : {}),
   };
 }

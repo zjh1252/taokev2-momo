@@ -9,6 +9,7 @@ export async function generateMetadata() {
     title: `${t('title')} - 淘课网`,
     description: '搜索淘课网培训课程、专家讲师、培训机构，快速找到适合您企业需求的培训资源。',
     keywords: '培训课程搜索, 专家讲师搜索, 企业培训资源',
+    robots: { index: false, follow: true },
   };
 }
 

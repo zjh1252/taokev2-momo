@@ -156,9 +156,9 @@ export function proxy(request: NextRequest) {
       // /trainer/123/courses.htm → rewrite → /zh-CN/trainers/123/courses
       if (
         oldBase === '/trainer'
-        && /^\/\d+\/(courses|cases|video|comment|book)\.htm$/.test(suffix)
+        && /^\/\d+\/(courses|cases|highlight|video|comment|book)\.htm$/.test(suffix)
       ) {
-        const match = suffix.match(/^\/(\d+)\/(courses|cases|video|comment|book)\.htm$/);
+        const match = suffix.match(/^\/(\d+)\/(courses|cases|highlight|video|comment|book)\.htm$/);
         if (match) {
           return NextResponse.rewrite(
             new URL(`/${locale}${newBase}/${match[1]}/${match[2]}`, request.url),

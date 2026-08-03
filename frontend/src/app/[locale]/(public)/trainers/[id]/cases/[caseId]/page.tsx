@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { DEFAULT_COURSE_COVER } from '@/lib/media';
 import { getApprovedCaseDetail } from '@/features/trainer/api/service';
 import type { TrainerCase, TrainerCaseFile } from '@/features/trainer-case/api/types';
+import { caseDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,9 +17,9 @@ export async function generateMetadata({ params }: Props) {
   const { caseId } = await params;
   try {
     const c = await getApprovedCaseDetail(Number(caseId));
-    return { title: `${c.caseTitle} - 成功案例 - 淘课网` };
+    return caseDetailMetadata(c, c.trainerName, `/case/${caseId}.htm`);
   } catch {
-    return { title: '成功案例 - 淘课网' };
+    return fallbackDetailMetadata('成功案例', `/case/${caseId}.htm`);
   }
 }
 

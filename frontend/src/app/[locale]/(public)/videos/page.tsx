@@ -4,12 +4,15 @@ import { getVideoList } from '@/features/video/api/service';
 import { getInstitutionDetail } from '@/features/institution/api/service';
 import { buildVideoCategoryNavItems } from '@/lib/channel-category-stats';
 import { getCachedVideoCategoryTree } from '@/lib/cached-categories';
-import { videoListMetadata, videoListH1 } from '@/lib/seo';
+import { parseListPageFromSearchParams } from '@/lib/list-page';
+import { videoListMetadata, pickCanonicalSearchParams, videoListH1 } from '@/lib/seo';
 import { firstStringValue, normalizeNumberIds } from '@/lib/search-params';
 import type { CategoryTreeNode } from '@/features/video/api/types';
 
 interface Props {
   searchParams: Promise<{
+    page?: string;
+    keyword?: string;
     institutionId?: string;
     categoryId?: string;
     categoryName?: string;
@@ -29,7 +32,7 @@ export async function generateMetadata({ searchParams }: Props) {
   const sp = await searchParams;
   return videoListMetadata({
     category: firstStringValue(sp.categoryName),
-  });
+  }, '/video', pickCanonicalSearchParams(sp, ['categoryName', 'page']));
 }
 
 export default async function VideosPage({ searchParams }: Props) {
@@ -38,7 +41,11 @@ export default async function VideosPage({ searchParams }: Props) {
   const validInstitutionId = institutionId && !isNaN(institutionId) ? institutionId : undefined;
   const requestedCategoryId = normalizeNumberIds(sp.categoryId ? [sp.categoryId] : undefined)[0];
   const requestedCategoryName = firstStringValue(sp.categoryName);
+  const keyword = firstStringValue(sp.keyword);
   const sortBy = firstStringValue(sp.sortBy);
+  const page = parseListPageFromSearchParams(
+    new URLSearchParams(sp.page != null ? `page=${sp.page}` : ''),
+  );
 
   const categoryTreePromise = getCachedVideoCategoryTree();
   const categoryTree = await categoryTreePromise;
@@ -51,15 +58,16 @@ export default async function VideosPage({ searchParams }: Props) {
 
   const [initialData, institution] = await Promise.all([
     getVideoList({
-      page: 1,
+      page,
       size: 15,
       institutionId: validInstitutionId,
       categoryId,
+      keyword: keyword || undefined,
       sortBy: sortBy || undefined,
     }).catch(() => ({
       list: [],
       total: 0,
-      page: 1,
+      page,
       size: 15,
       totalPages: 0,
     })),

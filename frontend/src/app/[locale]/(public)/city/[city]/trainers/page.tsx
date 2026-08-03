@@ -27,8 +27,13 @@ interface Props {
 export async function generateMetadata({ params }: Props) {
   const { city } = await params;
   const detail = await getCityByEnNameCached(city).catch(() => null);
-  if (!detail) return { title: '城市培训专家 - 淘课网' };
-  return trainerListMetadata({ city: detail.cityName });
+  if (!detail) {
+    return {
+      title: '城市培训专家 - 淘课网',
+      robots: { index: false, follow: false },
+    };
+  }
+  return trainerListMetadata({ city: detail.cityName }, `/city/${city}/trainers`);
 }
 
 export default async function CityTrainerListPage({

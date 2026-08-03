@@ -212,7 +212,7 @@ export function BookCreateForm() {
               </div>
             </div>
             <FormTextField name='publisher' label='出版社' />
-            <FormTextField name='publishDate' label='出版日期' placeholder='YYYY-MM-DD' />
+            <FormTextField name='publishDate' label='出版日期' placeholder='年 / 月 / 日' />
             <FormTextareaField name='description' label='简介' rows={4} />
             <FormTextField name='buyUrl' label='购买链接' />
             <div className='flex gap-2'>

@@ -138,7 +138,7 @@ export function VideoEmbedPlayer({
     <iframe
       src={playbackUrl}
       title={title ?? '视频播放'}
-      className={className ?? 'h-full w-full border-0 bg-black'}
+      className={className ?? 'h-full w-full min-w-0 max-w-full border-0 bg-black'}
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
       allowFullScreen
       referrerPolicy="origin"

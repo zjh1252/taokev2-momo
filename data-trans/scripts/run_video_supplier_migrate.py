@@ -16,6 +16,7 @@ DEFAULT_SOURCE_MEMBER_TABLE = "taoke.tk_member"
 DEFAULT_TARGET_SUPPLIER_TABLE = "video_suppliers"
 DEFAULT_TARGET_CATEGORY_TABLE = "video_supplier_categories"
 DEFAULT_TARGET_CATEGORY_VIDEO_TABLE = "video_supplier_category_videos"
+DEFAULT_TARGET_VIDEO_TABLE = "videos"
 
 SUPPLIER_COLUMNS = ("user_id", "company_name", "member_type", "enabled")
 CATEGORY_COLUMNS = (
@@ -29,6 +30,7 @@ CATEGORY_COLUMNS = (
     "enabled",
 )
 CATEGORY_VIDEO_COLUMNS = ("supplier_id", "category_id", "video_id", "sort_order")
+CATEGORY_COLLISION_COLUMNS = CATEGORY_COLUMNS
 
 
 def build_supplier_row(topic: dict, member: dict) -> dict:
@@ -77,6 +79,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--target-supplier-table", default=DEFAULT_TARGET_SUPPLIER_TABLE)
     parser.add_argument("--target-category-table", default=DEFAULT_TARGET_CATEGORY_TABLE)
     parser.add_argument("--target-category-video-table", default=DEFAULT_TARGET_CATEGORY_VIDEO_TABLE)
+    parser.add_argument("--target-video-table", default=DEFAULT_TARGET_VIDEO_TABLE)
     return parser.parse_args(argv)
 
 
@@ -133,6 +136,59 @@ def fetch_supplier_ids_by_user_id(conn, table: str, user_ids: list[int], batch_s
     return supplier_ids
 
 
+def fetch_target_video_ids(conn, table: str) -> set[int]:
+    sql = f"SELECT id FROM {quote_ident(table)}"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+        return {normalize_int(row.get("id")) for row in cur.fetchall() if normalize_int(row.get("id")) > 0}
+
+
+def fetch_existing_category_rows_by_id(conn, table: str, ids: list[int], batch_size: int) -> list[dict]:
+    category_ids = sorted({normalize_int(category_id) for category_id in ids if normalize_int(category_id) > 0})
+    if not category_ids:
+        return []
+    table_name = quote_ident(table)
+    rows = []
+    with conn.cursor() as cur:
+        for batch in chunks(category_ids, batch_size):
+            placeholders = ", ".join(["%s"] * len(batch))
+            cur.execute(
+                f"""
+                SELECT id, supplier_id, parent_id, name, sort_order, total_price, discount_rate, enabled
+                FROM {table_name}
+                WHERE id IN ({placeholders})
+                """,
+                batch,
+            )
+            rows.extend(cur.fetchall())
+    return list(rows)
+
+
+def category_collision_value(row: dict, column: str):
+    if column in {"id", "supplier_id", "parent_id", "sort_order", "enabled"}:
+        return normalize_int(row.get(column))
+    if column in {"total_price", "discount_rate"}:
+        return normalize_money(row.get(column))
+    if column == "name":
+        return str(row.get(column) or "").strip()
+    return row.get(column)
+
+
+def detect_category_id_collisions(existing_rows: list[dict], desired_rows: list[dict]) -> list[int]:
+    desired_by_id = {normalize_int(row.get("id")): row for row in desired_rows if normalize_int(row.get("id")) > 0}
+    collisions = []
+    for existing in existing_rows:
+        category_id = normalize_int(existing.get("id"))
+        desired = desired_by_id.get(category_id)
+        if desired is None:
+            continue
+        existing_key = tuple(category_collision_value(existing, column) for column in CATEGORY_COLLISION_COLUMNS)
+        desired_key = tuple(category_collision_value(desired, column) for column in CATEGORY_COLLISION_COLUMNS)
+        if existing_key != desired_key:
+            collisions.append(category_id)
+    return sorted(set(collisions))
+
+
 def build_supplier_rows(topic_rows: list[dict], members_by_user_id: dict[int, dict]) -> tuple[list[dict], dict[str, int]]:
     rows_by_user_id: dict[int, dict] = {}
     skipped: dict[str, int] = {}
@@ -170,6 +226,15 @@ def build_category_rows(
 ) -> tuple[list[dict], dict[str, int]]:
     rows = []
     skipped: dict[str, int] = {}
+    active_item_meta = {}
+    for item in item_rows:
+        category_id = normalize_int(item.get("id"))
+        topic_id = normalize_int(item.get("topic_id"))
+        user_id = topic_user_ids.get(topic_id)
+        supplier_id = supplier_ids_by_user_id.get(user_id or 0)
+        if category_id > 0 and topic_id > 0 and supplier_id:
+            active_item_meta[category_id] = {"topic_id": topic_id, "supplier_id": supplier_id}
+
     for item in item_rows:
         category_id = normalize_int(item.get("id"))
         if category_id <= 0:
@@ -181,10 +246,37 @@ def build_category_rows(
         if not supplier_id:
             skipped["missing_supplier"] = skipped.get("missing_supplier", 0) + 1
             continue
+        parent_id = normalize_int(item.get("item_parent"))
+        if parent_id > 0:
+            parent_meta = active_item_meta.get(parent_id)
+            if (
+                not parent_meta
+                or parent_meta["topic_id"] != topic_id
+                or parent_meta["supplier_id"] != supplier_id
+            ):
+                skipped["missing_parent_category"] = skipped.get("missing_parent_category", 0) + 1
+                continue
         row = build_supplier_category_row(supplier_id, item, asset_base_url)
         row["id"] = category_id
         rows.append(row)
     return rows, skipped
+
+
+def build_category_meta_by_id(category_rows: list[dict], item_rows: list[dict]) -> dict[int, dict]:
+    item_by_id = {normalize_int(item.get("id")): item for item in item_rows if normalize_int(item.get("id")) > 0}
+    meta_by_id = {}
+    for row in category_rows:
+        category_id = normalize_int(row.get("id"))
+        if category_id <= 0:
+            continue
+        item = item_by_id.get(category_id, {})
+        meta_by_id[category_id] = {
+            "supplier_id": normalize_int(row.get("supplier_id")),
+            "package_id": normalize_int(item.get("topic_id")),
+            "parent_id": normalize_int(row.get("parent_id")),
+            "enabled": normalize_int(row.get("enabled"), 1),
+        }
+    return meta_by_id
 
 
 def resolve_relation_category_id(relation: dict) -> int:
@@ -197,7 +289,8 @@ def resolve_relation_category_id(relation: dict) -> int:
 
 def build_category_video_rows(
     relation_rows: list[dict],
-    category_supplier_ids: dict[int, int],
+    category_meta_by_id: dict[int, dict],
+    target_video_ids: set[int] | None = None,
 ) -> tuple[list[dict], dict[str, int]]:
     rows = []
     skipped: dict[str, int] = {}
@@ -206,13 +299,25 @@ def build_category_video_rows(
         if category_id <= 0:
             skipped["invalid_category_id"] = skipped.get("invalid_category_id", 0) + 1
             continue
-        supplier_id = category_supplier_ids.get(category_id)
-        if not supplier_id:
+        category_meta = category_meta_by_id.get(category_id)
+        if not category_meta or normalize_int(category_meta.get("enabled"), 1) != 1:
             skipped["missing_category"] = skipped.get("missing_category", 0) + 1
             continue
+        package_id = normalize_int(relation.get("packageId"))
+        parent_id = normalize_int(relation.get("parentId"))
+        if (
+            package_id != normalize_int(category_meta.get("package_id"))
+            or parent_id != normalize_int(category_meta.get("parent_id"))
+        ):
+            skipped["package_group_mismatch"] = skipped.get("package_group_mismatch", 0) + 1
+            continue
+        supplier_id = normalize_int(category_meta.get("supplier_id"))
         row = build_category_video_row(supplier_id, category_id, relation)
         if row["video_id"] <= 0:
             skipped["invalid_video_id"] = skipped.get("invalid_video_id", 0) + 1
+            continue
+        if target_video_ids is not None and row["video_id"] not in target_video_ids:
+            skipped["missing_target_video"] = skipped.get("missing_target_video", 0) + 1
             continue
         rows.append(row)
     return rows, skipped
@@ -310,13 +415,24 @@ def make_stats(scanned: int, rows: list[dict], skipped: dict[str, int] | None = 
 
 
 def migrate(source_conn, target_conn, args: argparse.Namespace, apply: bool) -> dict[str, RunStats]:
-    topic_rows = fetch_all(source_conn, args.source_topic_table, order_by=("id",))
-    item_rows = fetch_all(source_conn, args.source_item_table, order_by=("topic_id", "item_parent", "item_index", "id"))
+    topic_rows = fetch_all(
+        source_conn,
+        args.source_topic_table,
+        order_by=("id",),
+        where="COALESCE(`disabled`, 0) = 0",
+    )
+    item_rows = fetch_all(
+        source_conn,
+        args.source_item_table,
+        order_by=("topic_id", "item_parent", "item_index", "id"),
+        where="COALESCE(`disabled`, 0) = 0",
+    )
     source_relation_rows = fetch_all(
         source_conn,
         args.source_relation_table,
         order_by=("packageId", "topicId", "parentId", "serial", "videoId"),
     )
+    target_video_ids = fetch_target_video_ids(target_conn, args.target_video_table)
 
     user_ids = sorted({normalize_int(topic.get("uid")) for topic in topic_rows if normalize_int(topic.get("uid")) > 0})
     members_by_user_id = fetch_members_by_user_id(source_conn, args.source_member_table, user_ids, args.batch_size)
@@ -341,10 +457,25 @@ def migrate(source_conn, target_conn, args: argparse.Namespace, apply: bool) -> 
         supplier_ids_by_user_id,
         args.asset_base_url,
     )
-    category_supplier_ids = {row["id"]: row["supplier_id"] for row in category_rows}
-    category_video_rows, category_video_skipped = build_category_video_rows(source_relation_rows, category_supplier_ids)
+    category_meta_by_id = build_category_meta_by_id(category_rows, item_rows)
+    category_video_rows, category_video_skipped = build_category_video_rows(
+        source_relation_rows,
+        category_meta_by_id,
+        target_video_ids=target_video_ids,
+    )
 
     if apply:
+        existing_category_rows = fetch_existing_category_rows_by_id(
+            target_conn,
+            args.target_category_table,
+            [row["id"] for row in category_rows],
+            args.batch_size,
+        )
+        category_collisions = detect_category_id_collisions(existing_category_rows, category_rows)
+        if category_collisions:
+            preview = ", ".join(str(category_id) for category_id in category_collisions[:20])
+            suffix = "" if len(category_collisions) <= 20 else f" ... ({len(category_collisions)} total)"
+            raise RuntimeError(f"video supplier category id collision detected: {preview}{suffix}")
         category_affected = insert_category_rows(target_conn, args.target_category_table, category_rows, args.batch_size)
         category_video_affected = insert_category_video_rows(
             target_conn,

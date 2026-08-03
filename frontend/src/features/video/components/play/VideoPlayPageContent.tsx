@@ -87,12 +87,12 @@ export function VideoPlayPageContent({ video }: VideoPlayPageContentProps) {
     playbackMode !== 'unsupported';
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex w-full max-w-full flex-col gap-8 overflow-x-auto pb-2">
       {/* 播放器 + 评价卡片 */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] gap-6 items-stretch w-full">
-        <div className="relative group">
+      <div className="grid w-full max-w-none grid-cols-1 items-stretch gap-6 lg:min-w-[920px] lg:grid-cols-[minmax(560px,1fr)_280px]">
+        <div className="relative min-w-0 max-w-full lg:min-w-[560px] group">
           <div className="absolute -inset-1 bg-gradient-to-br from-slate-900/20 via-primary/10 to-slate-900/20 rounded-[1.25rem] blur-sm opacity-70 group-hover:opacity-90 transition-opacity" />
-          <div className="relative aspect-video rounded-2xl overflow-hidden bg-[#0f1419] shadow-2xl ring-1 ring-black/10">
+          <div className="relative aspect-video min-w-0 max-w-full rounded-2xl overflow-hidden bg-[#0f1419] shadow-2xl ring-1 ring-black/10">
             {accessLoading ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="size-10 rounded-full border-2 border-white/20 border-t-white animate-spin" />
@@ -104,7 +104,7 @@ export function VideoPlayPageContent({ video }: VideoPlayPageContentProps) {
                 src={playbackSrc}
                 title={currentTitle}
                 poster={poster}
-                className="h-full w-full video-play-skin"
+                className="h-full w-full min-w-0 max-w-full video-play-skin"
                 autoplay
                 initialTime={initialTime}
                 videoId={video.id}
@@ -145,7 +145,7 @@ export function VideoPlayPageContent({ video }: VideoPlayPageContentProps) {
           ) : null}
         </div>
 
-        <div className="hidden lg:block min-h-[280px]">
+        <div className="hidden min-w-0 lg:block min-h-[280px]">
           <VideoPlayRatingCard video={video} />
         </div>
       </div>

@@ -236,7 +236,7 @@ export function RegisterForm() {
           </div>
           <label htmlFor="register-agreement" className="text-xs text-muted-foreground leading-relaxed">
             {t('agreement')}
-            <Link
+            <a
               href={LEGAL_TERMS_PATH}
               target="_blank"
               rel="noopener noreferrer"
@@ -244,9 +244,9 @@ export function RegisterForm() {
               onClick={(e) => e.stopPropagation()}
             >
               {t('termsLink')}
-            </Link>
+            </a>
             {t('and')}
-            <Link
+            <a
               href={LEGAL_PRIVACY_PATH}
               target="_blank"
               rel="noopener noreferrer"
@@ -254,7 +254,7 @@ export function RegisterForm() {
               onClick={(e) => e.stopPropagation()}
             >
               {t('privacyLink')}
-            </Link>
+            </a>
           </label>
         </div>
 

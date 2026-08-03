@@ -4,6 +4,7 @@ import com.taoke.common.response.ApiResponse;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.course.dto.order.CreateOrderRequest;
+import com.taoke.course.dto.order.OrderUnviewedCountVO;
 import com.taoke.course.dto.order.OrderVO;
 import com.taoke.course.service.OrderPurchaseNotifyService;
 import com.taoke.course.service.order.OrderServiceImpl;
@@ -38,10 +39,26 @@ public class OrderController {
     @GetMapping("/orders")
     public ApiResponse<PageResponse<OrderVO>> listOrders(
             @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String displayStatus,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "15") int size) {
         Integer userId = SecurityUtils.getRequiredUserId();
-        return ApiResponse.ok(orderService.listOrders(userId, status, page, size));
+        return ApiResponse.ok(orderService.listOrders(userId, status, displayStatus, page, size));
+    }
+
+    @Operation(summary = "我的订单未查看数量")
+    @GetMapping("/orders/unviewed-counts")
+    public ApiResponse<OrderUnviewedCountVO> getUnviewedCounts() {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        return ApiResponse.ok(orderService.getUnviewedCounts(userId));
+    }
+
+    @Operation(summary = "标记指定订单分类已查看")
+    @PutMapping("/orders/viewed")
+    public ApiResponse<Void> markViewed(@RequestParam String displayStatus) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        orderService.markDisplayStatusViewed(userId, displayStatus);
+        return ApiResponse.ok();
     }
 
     @Operation(summary = "订单详情")

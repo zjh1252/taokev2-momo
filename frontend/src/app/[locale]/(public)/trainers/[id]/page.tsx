@@ -20,9 +20,9 @@ export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   try {
     const trainer = await getTrainerDetailCached(Number(id));
-    return trainerDetailMetadata(trainer);
+    return trainerDetailMetadata(trainer, `/trainer/${id}.htm`);
   } catch {
-    return fallbackDetailMetadata('专家详情');
+    return fallbackDetailMetadata('专家详情', `/trainer/${id}.htm`);
   }
 }
 

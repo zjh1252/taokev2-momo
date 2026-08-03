@@ -11,7 +11,7 @@ import { getInstitutionDetail } from '@/features/institution/api/service';
 import { buildCourseCategoryNavItems } from '@/lib/channel-category-stats';
 import { getCachedCourseCategoryTree } from '@/lib/cached-categories';
 import { isPxbEmbedOrigin } from '@/lib/pxb-embed';
-import { innerCourseListMetadata, innerCourseListH1 } from '@/lib/seo';
+import { innerCourseListMetadata, pickCanonicalSearchParams, innerCourseListH1 } from '@/lib/seo';
 import { firstStringValue, normalizeNumberIds } from '@/lib/search-params';
 import type { ChannelCategoryNavItem } from '@/components/layout/channel-category-nav';
 import type { CategoryTreeNode } from '@/features/course/api/types';
@@ -58,7 +58,7 @@ export async function generateMetadata({ searchParams }: Props) {
   }
   return innerCourseListMetadata({
     category: firstStringValue(sp.categoryName),
-  });
+  }, '/inhousecourse', pickCanonicalSearchParams(sp, ['categoryName', 'page']));
 }
 
 async function InnerCourseListBody({

@@ -139,7 +139,7 @@ export function CoursePlanTable({
                       <span className="text-slate-500 text-sm font-medium">{t('purchased')}</span>
                     ) : enrolling ? (
                       <Link
-                        href={getOpenCoursePlanPath(planCode)}
+                        href={href}
                         className="text-primary hover:underline text-sm font-medium"
                       >
                         {t('enroll')}

@@ -1,6 +1,5 @@
 package com.taoke.user.dto.trainerhighlight;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -19,7 +18,6 @@ public class SaveTrainerHighlightRequest {
     @Size(max = 500, message = "描述不能超过500字")
     private String description;
 
-    @NotBlank(message = "请上传封面图")
     @Size(max = 500, message = "封面图URL不能超过500字")
     private String coverImage;
 

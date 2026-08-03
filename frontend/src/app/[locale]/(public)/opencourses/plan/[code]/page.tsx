@@ -17,13 +17,13 @@ export async function generateMetadata({ params }: Props) {
   const { code } = await params;
   const parsed = parsePlanCode(decodeURIComponent(code));
   if (!parsed) {
-    return fallbackDetailMetadata('公开课详情');
+    return fallbackDetailMetadata('公开课详情', `/opencourse/${code}.htm`);
   }
   try {
     const course = await getCourseDetail(parsed.courseId);
-    return openCourseDetailMetadata(course, parsed.planIndex);
+    return openCourseDetailMetadata(course, parsed.planIndex, `/opencourse/${code}.htm`);
   } catch {
-    return fallbackDetailMetadata('公开课详情');
+    return fallbackDetailMetadata('公开课详情', `/opencourse/${code}.htm`);
   }
 }
 

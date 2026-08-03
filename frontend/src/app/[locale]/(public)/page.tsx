@@ -19,7 +19,7 @@ import { getActiveCitiesCached } from '@/features/city/api/server';
 import { CityChannelCard } from '@/features/city/components/CityChannelCard';
 
 export async function generateMetadata() {
-  return homeMetadata();
+  return homeMetadata('/');
 }
 
 /**

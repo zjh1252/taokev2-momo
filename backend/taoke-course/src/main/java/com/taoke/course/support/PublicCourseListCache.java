@@ -254,8 +254,8 @@ public class PublicCourseListCache {
     }
 
     private static String normalizeSort(String sortBy) {
-        if (sortBy == null || sortBy.isBlank()) {
-            return "default";
+        if (sortBy == null || sortBy.isBlank() || "default".equals(sortBy.trim())) {
+            return "score";
         }
         return sortBy.trim();
     }

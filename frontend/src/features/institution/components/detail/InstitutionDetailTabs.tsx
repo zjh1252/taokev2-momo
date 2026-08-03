@@ -301,15 +301,15 @@ function formatPrice(price: number, isFree: number) {
 
 function OpenCourseTable({ courses }: { courses: CourseListItem[] }) {
   return (
-    <div className="rounded-lg border border-slate-200 overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="rounded-lg border border-slate-200 overflow-x-auto">
+      <table className="w-full min-w-[720px] text-sm">
         <thead className="bg-slate-50 text-slate-500">
           <tr>
             <th className="text-left font-medium px-4 py-2.5 w-[40%]">课程名称</th>
             <th className="text-left font-medium px-4 py-2.5">价格</th>
             <th className="text-left font-medium px-4 py-2.5">开课时间</th>
             <th className="text-left font-medium px-4 py-2.5">开课城市</th>
-            <th className="text-right font-medium px-4 py-2.5">操作</th>
+            <th className="text-right font-medium px-4 py-2.5 w-[96px] whitespace-nowrap">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -328,10 +328,10 @@ function OpenCourseTable({ courses }: { courses: CourseListItem[] }) {
               </td>
               <td className="px-4 py-3 text-slate-600">{formatDate(c.nextPlanStartDate)}</td>
               <td className="px-4 py-3 text-slate-600">{c.nextPlanCity || '—'}</td>
-              <td className="px-4 py-3 text-right">
+              <td className="px-4 py-3 text-right w-[96px] whitespace-nowrap">
                 <Link
                   href={getCourseDetailPath(c.id, c.type, c.seoPathId)}
-                  className="text-primary hover:underline text-xs"
+                  className="text-primary hover:underline text-xs whitespace-nowrap"
                 >
                   查看详情
                 </Link>
@@ -346,14 +346,14 @@ function OpenCourseTable({ courses }: { courses: CourseListItem[] }) {
 
 function InnerCourseTable({ courses }: { courses: CourseListItem[] }) {
   return (
-    <div className="rounded-lg border border-slate-200 overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="rounded-lg border border-slate-200 overflow-x-auto">
+      <table className="w-full min-w-[640px] text-sm">
         <thead className="bg-slate-50 text-slate-500">
           <tr>
             <th className="text-left font-medium px-4 py-2.5 w-[50%]">课程名称</th>
             <th className="text-left font-medium px-4 py-2.5">专家</th>
-            <th className="text-left font-medium px-4 py-2.5">课程天数</th>
-            <th className="text-right font-medium px-4 py-2.5">操作</th>
+            <th className="text-left font-medium px-4 py-2.5 w-[96px] whitespace-nowrap">课程天数</th>
+            <th className="text-right font-medium px-4 py-2.5 w-[96px] whitespace-nowrap">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -368,13 +368,13 @@ function InnerCourseTable({ courses }: { courses: CourseListItem[] }) {
                 </Link>
               </td>
               <td className="px-4 py-3 text-slate-600">{c.trainerName || '—'}</td>
-              <td className="px-4 py-3 text-slate-600">
+              <td className="px-4 py-3 text-slate-600 w-[96px] whitespace-nowrap">
                 {c.durationDays ? `${c.durationDays} 天` : '—'}
               </td>
-              <td className="px-4 py-3 text-right">
+              <td className="px-4 py-3 text-right w-[96px] whitespace-nowrap">
                 <Link
                   href={`/inhousecourse/${c.id}.htm`}
-                  className="text-primary hover:underline text-xs"
+                  className="text-primary hover:underline text-xs whitespace-nowrap"
                 >
                   查看详情
                 </Link>

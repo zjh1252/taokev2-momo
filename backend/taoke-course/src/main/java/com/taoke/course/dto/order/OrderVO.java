@@ -32,6 +32,15 @@ public class OrderVO {
     /** 订单状态标签 */
     private String statusLabel;
 
+    /** 前台订单展示分类 */
+    private String displayStatus;
+
+    /** 前台订单展示分类标签 */
+    private String displayStatusLabel;
+
+    /** 买家是否已查看该订单提醒 */
+    private Boolean viewed;
+
     /** 用户备注 */
     private String remark;
 
@@ -40,6 +49,9 @@ public class OrderVO {
 
     /** 过期时间 */
     private LocalDateTime expiredAt;
+
+    /** 课程/服务有效期 */
+    private LocalDateTime validUntil;
 
     private LocalDateTime createdAt;
 

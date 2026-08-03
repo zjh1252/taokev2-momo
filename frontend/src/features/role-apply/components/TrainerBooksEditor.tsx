@@ -210,6 +210,7 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
                 <Input
                   id="book-date"
                   type="date"
+                  placeholder="年 / 月 / 日"
                   value={draft.publishDate || ''}
                   onChange={(e) => setDraft({ ...draft, publishDate: e.target.value })}
                 />

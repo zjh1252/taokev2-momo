@@ -4,5 +4,5 @@ export const siteConfig = {
   description:
     '淘课网联合全国数万优秀培训师和培训机构,给企业提供有针对性的、互动的、积聚人脉的管理培训服务.包括提供培训需求诊断、培训课程采购、培训资料下载等服务.',
   keywords: '企业培训, 企业培训采购, 企业内训, 公开课, 培训机构, 企业培训平台',
-  url: 'https://taoke.com',
+  url: 'https://v2.taoke.com',
 };

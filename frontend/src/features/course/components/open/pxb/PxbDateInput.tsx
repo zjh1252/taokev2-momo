@@ -29,7 +29,7 @@ interface Props {
   placeholder?: string;
 }
 
-export function PxbDateInput({ id, value, onChange, min, max, placeholder = '请选择时间' }: Props) {
+export function PxbDateInput({ id, value, onChange, min, max, placeholder = '年 / 月 / 日' }: Props) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Date | undefined>(() => parseDateValue(value));
   const rootRef = useRef<HTMLDivElement>(null);

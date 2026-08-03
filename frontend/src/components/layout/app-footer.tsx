@@ -1,4 +1,5 @@
 import { Link } from '@/i18n/navigation';
+import { ShieldCheck } from 'lucide-react';
 import {
   FOOTER_ABOUT_LINKS,
   FOOTER_BRAND,
@@ -93,10 +94,30 @@ export function AppFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-center gap-4 border-t border-[#333] pt-6 text-center text-[12px] text-[#888] md:flex-row">
-          <span>{FOOTER_BRAND.copyright}</span>
-          <span>{FOOTER_BRAND.company}</span>
-          <span>{FOOTER_BRAND.icp}</span>
+        <div className="mt-12 flex flex-col items-center justify-center gap-2 border-t border-[#333] pt-6 text-center text-[12px] text-[#888]">
+          <div className="flex flex-col items-center justify-center gap-3 md:flex-row">
+            <span>{FOOTER_BRAND.copyright}</span>
+            <span>{FOOTER_BRAND.company}</span>
+          </div>
+          <div className="flex flex-col items-center justify-center gap-2 md:flex-row md:gap-4">
+            <a
+              href={FOOTER_BRAND.publicSecurityUrl}
+              target="_blank"
+              rel="nofollow noopener noreferrer"
+              className={`${linkClass} inline-flex items-center gap-1.5`}
+            >
+              <ShieldCheck className="size-3.5" aria-hidden />
+              {FOOTER_BRAND.publicSecurity}
+            </a>
+            <a
+              href={FOOTER_BRAND.icpUrl}
+              target="_blank"
+              rel="nofollow noopener noreferrer"
+              className={linkClass}
+            >
+              {FOOTER_BRAND.icp}
+            </a>
+          </div>
         </div>
       </div>
     </footer>

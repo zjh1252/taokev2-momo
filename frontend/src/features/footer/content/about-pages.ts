@@ -50,10 +50,10 @@ export const ABOUT_PAGES: Record<string, AboutPageContent> = {
     title: '使用帮助',
     html: LEGACY_ABOUT_HTML.help,
   },
-  /** 站点地图：先占位，正文后续再补 */
+  /** 站点地图走独立组件渲染，保留标题供静态参数/兜底使用 */
   sitemap: {
     title: '站点地图',
-    html: '<p>站点地图内容建设中。</p>',
+    html: '',
   },
 };
 

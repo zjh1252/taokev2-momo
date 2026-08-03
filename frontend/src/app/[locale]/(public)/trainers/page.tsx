@@ -64,11 +64,14 @@ export async function generateMetadata({ searchParams }: TrainersPageProps) {
     return { title: '讲师列表' };
   }
   const slugParams = parseSlug(sp.slug || '');
+  const page = parseListPageFromSearchParams(
+    new URLSearchParams(sp.page != null ? `page=${sp.page}` : ''),
+  );
   return trainerListMetadata({
     city: slugParams.region,
     industry: slugParams.industry,
     field: slugParams.field,
-  });
+  }, filtersToHtmPath({ ...slugParams, page: slugParams.page ?? page }));
 }
 
 export default async function TrainersPage({ searchParams }: TrainersPageProps) {

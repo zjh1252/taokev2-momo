@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
   getFirstError,
   type FormValidationRules,
 } from '@/lib/validation';
+import { useAuth } from '@/lib/auth/auth-context';
 import { submitTrainerMessage } from '../api/service';
 
 interface TrainerMessageDialogProps {
@@ -81,6 +82,7 @@ export default function TrainerMessageDialog({
   trainerName,
   onSuccess,
 }: TrainerMessageDialogProps) {
+  const { user } = useAuth();
   const [form, setForm] = useState<MessageFormData>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -91,6 +93,11 @@ export default function TrainerMessageDialog({
     setForm(INITIAL_FORM);
     setError('');
   }, []);
+
+  useEffect(() => {
+    if (!open || !user?.phone) return;
+    setForm((prev) => (prev.contactMobile ? prev : { ...prev, contactMobile: user.phone }));
+  }, [open, user?.phone]);
 
   const handleSubmit = async () => {
     const result = validateForm(form, MESSAGE_RULES);

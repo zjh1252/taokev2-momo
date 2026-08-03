@@ -7,6 +7,7 @@ import { Play, Star, StarHalf } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { LegacyRichText } from '@/components/legacy-rich-text';
+import { MediaGallery } from '@/components/media-gallery';
 import { SafeImage } from '@/components/safe-image';
 import type { TrainerDetail, TrainerBook } from '../../types';
 import type { CourseListItem } from '@/features/course/api/types';
@@ -22,6 +23,7 @@ import { getTrainerDetailTabHref, type TrainerTabId } from '../../utils/routes';
 import { getTrainerCourses, getTrainerVideos } from '../../api/service';
 import { getTrainerHighlights } from '@/features/trainer-highlight/api/service';
 import type { TrainerHighlight } from '@/features/trainer-highlight/api/types';
+import { buildHighlightGalleryItems } from '@/features/trainer-highlight/lib/highlight-gallery';
 import { decodeHtmlEntities } from '@/lib/html-entities';
 import { legacyRichTextToPlain } from '@/lib/legacy-rich-text';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
@@ -655,31 +657,40 @@ function HighlightsView({
   trainerId: number;
   initialHighlights: TrainerHighlight[];
 }) {
-  const [items, setItems] = useState(initialHighlights);
-  const [loading, setLoading] = useState(initialHighlights.length === 0);
+  const [fetchState, setFetchState] = useState<{
+    trainerId: number | null;
+    items: TrainerHighlight[];
+  }>({ trainerId: initialHighlights.length > 0 ? trainerId : null, items: [] });
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryFiles, setGalleryFiles] = useState<ReturnType<typeof buildHighlightGalleryItems>>([]);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const hasInitialHighlights = initialHighlights.length > 0;
+  const hasFetchedHighlights = fetchState.trainerId === trainerId;
+  const items = hasInitialHighlights ? initialHighlights : hasFetchedHighlights ? fetchState.items : [];
+  const loading = !hasInitialHighlights && !hasFetchedHighlights;
 
   useEffect(() => {
-    if (initialHighlights.length > 0) {
-      setItems(initialHighlights);
-      setLoading(false);
-      return;
-    }
+    if (hasInitialHighlights) return;
     let cancelled = false;
-    setLoading(true);
     getTrainerHighlights(trainerId)
       .then((list) => {
-        if (!cancelled) setItems(list);
+        if (!cancelled) setFetchState({ trainerId, items: list });
       })
       .catch(() => {
-        if (!cancelled) setItems([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setFetchState({ trainerId, items: [] });
       });
     return () => {
       cancelled = true;
     };
-  }, [trainerId, initialHighlights]);
+  }, [trainerId, hasInitialHighlights]);
+
+  const openGallery = (item: TrainerHighlight, index = 0) => {
+    const files = buildHighlightGalleryItems(item.files);
+    if (files.length === 0) return;
+    setGalleryFiles(files);
+    setGalleryIndex(index);
+    setGalleryOpen(true);
+  };
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
@@ -697,25 +708,42 @@ function HighlightsView({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {items.map((item) => {
             const cover = item.coverImage || item.files?.[0]?.thumbnailUrl || item.files?.[0]?.fileUrl;
+            const galleryItems = buildHighlightGalleryItems(item.files);
+            const canPreview = galleryItems.length > 0;
+            const coverNode = (
+              <>
+                {cover ? (
+                  <SafeImage
+                    src={cover}
+                    alt={item.title || '精彩瞬间'}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+                    暂无封面
+                  </div>
+                )}
+              </>
+            );
             return (
               <div
                 key={item.id}
                 className="group rounded-lg border border-slate-200 overflow-hidden bg-slate-50"
               >
-                <div className="aspect-video relative bg-slate-100">
-                  {cover ? (
-                    <SafeImage
-                      src={cover}
-                      alt={item.title || '精彩瞬间'}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
-                      暂无封面
-                    </div>
-                  )}
-                </div>
+                {canPreview ? (
+                  <button
+                    type="button"
+                    onClick={() => openGallery(item, 0)}
+                    className="aspect-video relative block w-full bg-slate-100 cursor-zoom-in overflow-hidden text-left"
+                  >
+                    {coverNode}
+                  </button>
+                ) : (
+                  <div className="aspect-video relative bg-slate-100 overflow-hidden">
+                    {coverNode}
+                  </div>
+                )}
                 {item.title ? (
                   <p className="px-3 py-2 text-sm text-slate-800 line-clamp-2">{item.title}</p>
                 ) : null}
@@ -724,6 +752,12 @@ function HighlightsView({
           })}
         </div>
       )}
+      <MediaGallery
+        files={galleryFiles}
+        initialIndex={galleryIndex}
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+      />
     </div>
   );
 }

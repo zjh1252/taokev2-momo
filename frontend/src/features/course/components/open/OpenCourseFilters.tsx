@@ -355,6 +355,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
                   <div className="flex items-center gap-2">
                     <input
                       type="date"
+                      placeholder="年 / 月 / 日"
                       value={customStart}
                       onChange={(e) => setCustomStart(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 px-3 focus:ring-primary focus:border-primary outline-none transition-all text-slate-600 cursor-pointer"
@@ -362,6 +363,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
                     <span className="text-slate-400 shrink-0">-</span>
                     <input
                       type="date"
+                      placeholder="年 / 月 / 日"
                       value={customEnd}
                       onChange={(e) => setCustomEnd(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 px-3 focus:ring-primary focus:border-primary outline-none transition-all text-slate-600 cursor-pointer"

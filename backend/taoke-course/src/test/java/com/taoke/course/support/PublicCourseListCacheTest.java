@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import java.lang.reflect.Method;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -60,6 +61,23 @@ class PublicCourseListCacheTest {
         assertTrue(beijingKey.contains(":c1:"));
         assertTrue(shanghaiKey.contains(":eENROLLING"));
         assertTrue(beijingKey.contains(":eENROLLING"));
+    }
+
+    @Test
+    void listKey_normalizesDefaultSortToScore() throws Exception {
+        PublicCourseQuery q = new PublicCourseQuery();
+        q.setIsOpen(true);
+        q.setPage(1);
+        q.setSize(15);
+
+        assertEquals(
+                "taoke:course:public:list:open:score:p1:s15:c0:e_",
+                invokeListKey(q));
+
+        q.setSortBy("default");
+        assertEquals(
+                "taoke:course:public:list:open:score:p1:s15:c0:e_",
+                invokeListKey(q));
     }
 
     private String invokeListKey(PublicCourseQuery query) throws Exception {

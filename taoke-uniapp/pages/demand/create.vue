@@ -87,7 +87,7 @@
           <view class="field">
             <text class="field__label">期望开始时间</text>
             <picker mode="date" :value="form.expectedStartDate || ''" @change="onDateChange">
-              <view class="field__picker">{{ form.expectedStartDate || '请选择日期' }}</view>
+              <view class="field__picker">{{ form.expectedStartDate || '年 / 月 / 日' }}</view>
             </picker>
           </view>
 

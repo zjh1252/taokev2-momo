@@ -233,6 +233,7 @@ export interface RecommendedCourseItem {
   coverUrl?: string;
   viewCount?: number;
   type?: string;
+  seoPathId?: number | null;
 }
 
 /** 推荐相关专家项（专家详情页右侧栏） */

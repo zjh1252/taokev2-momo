@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getBrowserPathname, replaceBrowserUrl, setPageParam } from '@/lib/sync-list-filter-url';
+import {
+  currentBrowserSearchParams,
+  getBrowserPathname,
+  mergeListUrlParams,
+  replaceBrowserUrl,
+} from '@/lib/sync-list-filter-url';
 import { parseListPageFromSearchParams } from '@/lib/list-page';
 
 type UseListPageUrlSyncOptions = {
@@ -19,12 +24,14 @@ export function useListPageUrlSync({ currentPage, onPageFromUrl }: UseListPageUr
   const pageFromUrl = parseListPageFromSearchParams(searchParams);
   const skipNextSyncRef = useRef(false);
   const onPageFromUrlRef = useRef(onPageFromUrl);
-  onPageFromUrlRef.current = onPageFromUrl;
+
+  useEffect(() => {
+    onPageFromUrlRef.current = onPageFromUrl;
+  }, [onPageFromUrl]);
 
   const writePageToUrl = useCallback(
     (page: number) => {
-      const params = new URLSearchParams(searchParams.toString());
-      setPageParam(params, page);
+      const params = mergeListUrlParams(currentBrowserSearchParams(searchParams), {}, page);
       replaceBrowserUrl(getBrowserPathname(), params);
     },
     [searchParams],

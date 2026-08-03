@@ -1226,8 +1226,7 @@ public class CourseServiceImpl implements CourseService {
 
     private Sort resolvePublicSort(String sortBy) {
         if (sortBy == null || sortBy.isBlank() || "default".equals(sortBy)) {
-            return Sort.by(Sort.Direction.DESC, "sortOrder")
-                    .and(Sort.by(Sort.Direction.DESC, "publishedAt"))
+            return Sort.by(Sort.Direction.DESC, "score")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
         }
         return switch (sortBy) {
@@ -1246,13 +1245,11 @@ public class CourseServiceImpl implements CourseService {
             // 仅按上架时间（城市频道「最新」等，避开计划维开课时间排序）
             case "published" -> Sort.by(Sort.Direction.DESC, "publishedAt")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
-            case "default_asc" -> Sort.by(Sort.Direction.ASC, "sortOrder")
-                    .and(Sort.by(Sort.Direction.ASC, "publishedAt"))
-                    .and(Sort.by(Sort.Direction.ASC, "id"));
+            case "default_asc" -> Sort.by(Sort.Direction.ASC, "score")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
             case "viewCount" -> Sort.by(Sort.Direction.DESC, "viewCount")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
-            default -> Sort.by(Sort.Direction.DESC, "sortOrder")
-                    .and(Sort.by(Sort.Direction.DESC, "publishedAt"))
+            default -> Sort.by(Sort.Direction.DESC, "score")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
         };
     }

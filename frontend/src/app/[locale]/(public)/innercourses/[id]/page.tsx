@@ -17,9 +17,9 @@ export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   try {
     const course = await getCourseDetail(Number(id));
-    return innerCourseDetailMetadata(course);
+    return innerCourseDetailMetadata(course, `/inhousecourse/${id}.htm`);
   } catch {
-    return fallbackDetailMetadata('内训课详情');
+    return fallbackDetailMetadata('内训课详情', `/inhousecourse/${id}.htm`);
   }
 }
 

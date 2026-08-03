@@ -3,6 +3,7 @@ import { getInstitutionDetail } from '@/features/institution/api/service';
 import { InstitutionHero } from '@/features/institution/components/detail/InstitutionHero';
 import { InstitutionDetailTabs } from '@/features/institution/components/detail/InstitutionDetailTabs';
 import { InstitutionDetailSidebar } from '@/features/institution/components/detail/InstitutionDetailSidebar';
+import { institutionDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -12,12 +13,9 @@ export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   try {
     const institution = await getInstitutionDetail(Number(id));
-    return {
-      title: `${institution.orgName} - 培训协会 - 淘课网`,
-      description: institution.bio || institution.orgName,
-    };
+    return institutionDetailMetadata(institution, `/association/${id}.htm`);
   } catch {
-    return { title: '培训协会详情 - 淘课网' };
+    return fallbackDetailMetadata('培训协会详情', `/association/${id}.htm`);
   }
 }
 

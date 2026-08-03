@@ -8,9 +8,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   try {
     const video = await getVideoDetail(Number(id));
-    return videoDetailMetadata(video);
+    return {
+      ...videoDetailMetadata(video, `/video/${id}.htm`),
+      robots: { index: false, follow: true },
+    };
   } catch {
-    return fallbackDetailMetadata('视频播放');
+    return {
+      ...fallbackDetailMetadata('视频播放', `/video/${id}.htm`),
+      robots: { index: false, follow: true },
+    };
   }
 }
 

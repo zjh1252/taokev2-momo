@@ -213,6 +213,7 @@ export default function CreateCasePage() {
           <FormField label="培训日期">
             <input
               type="date"
+              placeholder="年 / 月 / 日"
               value={form.trainingDate || ''}
               max={getTodayDateValue()}
               onChange={(e) => handleTrainingDateChange(e.target.value)}

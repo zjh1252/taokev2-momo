@@ -4,7 +4,7 @@ export function getBrowserPathname(): string {
   return window.location.pathname;
 }
 
-/** 更新地址栏查询参数，不触发 Next.js RSC 软导航（避免列表筛选被 SSR 重置） */
+/** 更新地址栏查询参数，不触发 Next.js RSC 软导航，避免列表筛选被 SSR 重置 */
 export function replaceBrowserUrl(path: string, params: URLSearchParams) {
   if (typeof window === 'undefined') return;
   const qs = params.toString();
@@ -13,6 +13,42 @@ export function replaceBrowserUrl(path: string, params: URLSearchParams) {
   if (current !== target) {
     window.history.replaceState(null, '', target);
   }
+}
+
+type ListUrlParamValue = string | number | null | undefined;
+
+export function currentBrowserSearchParams(fallback?: URLSearchParams): URLSearchParams {
+  if (typeof window !== 'undefined') {
+    return new URLSearchParams(window.location.search);
+  }
+  return new URLSearchParams(fallback?.toString() ?? '');
+}
+
+export function mergeListUrlParams(
+  current: string | URLSearchParams,
+  updates: Record<string, ListUrlParamValue>,
+  page?: number,
+): URLSearchParams {
+  const params = new URLSearchParams(
+    typeof current === 'string' && current.startsWith('?')
+      ? current.slice(1)
+      : current.toString(),
+  );
+
+  for (const [key, value] of Object.entries(updates)) {
+    const next = value == null ? '' : String(value).trim();
+    if (next) {
+      params.set(key, next);
+    } else {
+      params.delete(key);
+    }
+  }
+
+  if (page !== undefined) {
+    setPageParam(params, page);
+  }
+
+  return params;
 }
 
 /** 跳转到 SEO 频道页（整页刷新，清除 query 上下文） */

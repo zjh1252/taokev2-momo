@@ -12,9 +12,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   try {
     const video = await getVideoDetail(Number(id));
-    return videoDetailMetadata(video);
+    return videoDetailMetadata(video, `/video/${id}.htm`);
   } catch {
-    return fallbackDetailMetadata('录播课详情');
+    return fallbackDetailMetadata('录播课详情', `/video/${id}.htm`);
   }
 }
 

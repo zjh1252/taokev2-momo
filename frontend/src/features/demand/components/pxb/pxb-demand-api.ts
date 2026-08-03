@@ -112,5 +112,5 @@ export async function fetchCities(provinceCode: string): Promise<RegionItem[]> {
 /** Hook-free auth check helper for components */
 export function usePxbDemandAuth() {
   const { user } = useAuth();
-  return { isLoggedIn: !!user };
+  return { isLoggedIn: !!user, phone: user?.phone || '' };
 }

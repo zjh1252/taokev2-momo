@@ -385,6 +385,7 @@ export default function ReviewDialog({
             <RequiredLabel>开课时间</RequiredLabel>
             <Input
               type="date"
+              placeholder="年 / 月 / 日"
               max={todayStr()}
               value={trainingDate}
               onChange={(e) => setTrainingDate(e.target.value)}

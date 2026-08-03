@@ -32,13 +32,13 @@
           <view class="field">
             <text class="field__label">入学日期 <text class="req">*</text></text>
             <picker mode="date" :value="form.startDate" @change="form.startDate = $event.detail.value">
-              <view class="field__picker">{{ form.startDate || '请选择入学日期' }}</view>
+              <view class="field__picker">{{ form.startDate || '年 / 月 / 日' }}</view>
             </picker>
           </view>
           <view class="field">
             <text class="field__label">结束日期</text>
             <picker mode="date" :value="form.endDate" @change="form.endDate = $event.detail.value">
-              <view class="field__picker">{{ form.endDate || '至今可留空' }}</view>
+              <view class="field__picker">{{ form.endDate || '年 / 月 / 日' }}</view>
             </picker>
           </view>
           <view class="field field--upload">

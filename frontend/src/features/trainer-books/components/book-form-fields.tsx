@@ -213,6 +213,7 @@ export function BookFormFields({
         <FormField label="出版日期">
           <input
             type="date"
+            placeholder="年 / 月 / 日"
             value={form.publishDate || ''}
             max={getTodayDateValue()}
             onChange={(e) => handlePublishDateChange(e.target.value)}

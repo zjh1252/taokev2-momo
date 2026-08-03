@@ -39,21 +39,37 @@ export function TrainerSortBar({
     chips.push({
       key: 'field',
       label,
-      clear: () => onFilterChange({ ...filters, fieldParentName: undefined, fieldChildName: undefined }),
+      clear: () =>
+        onFilterChange({
+          ...filters,
+          fieldParentName: undefined,
+          fieldChildName: undefined,
+          expertiseCategoryId: undefined,
+        }),
     });
   }
   if (filters.industryName) {
     chips.push({
       key: 'industry',
       label: `擅长行业：${filters.industryName}`,
-      clear: () => onFilterChange({ ...filters, industryName: undefined }),
+      clear: () =>
+        onFilterChange({
+          ...filters,
+          industryName: undefined,
+          industryCategoryId: undefined,
+        }),
     });
   }
   if (filters.regionName) {
     chips.push({
       key: 'region',
       label: `常驻城市：${filters.regionName}`,
-      clear: () => onFilterChange({ ...filters, regionName: undefined }),
+      clear: () =>
+        onFilterChange({
+          ...filters,
+          regionName: undefined,
+          provinceId: undefined,
+        }),
     });
   }
   if (filters.trustedOnly) {

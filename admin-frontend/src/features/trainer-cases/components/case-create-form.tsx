@@ -207,7 +207,7 @@ export function CaseCreateForm() {
 
             <FormTextField name='trainingAddress' label='详细地址' />
             <div className='grid gap-4 sm:grid-cols-2'>
-              <FormTextField name='trainingDate' label='培训日期' placeholder='YYYY-MM-DD' />
+              <FormTextField name='trainingDate' label='培训日期' placeholder='年 / 月 / 日' />
               <FormTextField name='traineeCount' label='受训人数' />
             </div>
             <FormTextareaField name='trainingEffect' label='培训效果' rows={3} />

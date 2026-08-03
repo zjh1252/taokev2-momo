@@ -20,14 +20,14 @@ interface Props {
 export async function generateMetadata({ params }: Props) {
   const { id, section } = await params;
   if (!isTrainerTabSlug(section)) {
-    return fallbackDetailMetadata('专家详情');
+    return fallbackDetailMetadata('专家详情', `/trainer/${id}/${section}.htm`);
   }
 
   try {
     const trainer = await getTrainerDetailCached(Number(id));
-    return trainerDetailMetadata(trainer);
+    return trainerDetailMetadata(trainer, `/trainer/${id}/${section}.htm`);
   } catch {
-    return fallbackDetailMetadata('专家详情');
+    return fallbackDetailMetadata('专家详情', `/trainer/${id}/${section}.htm`);
   }
 }
 

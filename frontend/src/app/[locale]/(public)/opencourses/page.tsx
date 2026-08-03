@@ -10,7 +10,7 @@ import { getInstitutionDetail } from '@/features/institution/api/service';
 import { buildCourseCategoryNavItems } from '@/lib/channel-category-stats';
 import { getCachedCourseCategoryTree } from '@/lib/cached-categories';
 import { isPxbEmbedOrigin } from '@/lib/pxb-embed';
-import { openCourseListMetadata, openCourseListH1 } from '@/lib/seo';
+import { openCourseListMetadata, pickCanonicalSearchParams, openCourseListH1 } from '@/lib/seo';
 import { normalizeNumberIds, normalizeStringValues } from '@/lib/search-params';
 
 function embedSearchParams(
@@ -68,7 +68,7 @@ export async function generateMetadata({ searchParams }: Props) {
   return openCourseListMetadata({
     city: cityNames[0],
     category: categoryNames[0],
-  });
+  }, '/opencourse', pickCanonicalSearchParams(sp, ['categoryName', 'cityName', 'page']));
 }
 
 export default async function OpenCoursesPage({ searchParams }: Props) {

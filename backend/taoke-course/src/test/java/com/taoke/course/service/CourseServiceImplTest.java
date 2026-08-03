@@ -23,7 +23,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -132,6 +135,35 @@ class CourseServiceImplTest {
         CourseDetailVO result = service.getPublicDetail(276819);
 
         assertEquals(438103, result.getDisplayCourseNo());
+    }
+
+    @Test
+    void resolvePublicSortDefaultsToScoreDesc() {
+        assertDefaultScoreDesc(ReflectionTestUtils.invokeMethod(service, "resolvePublicSort", (String) null));
+        assertDefaultScoreDesc(ReflectionTestUtils.invokeMethod(service, "resolvePublicSort", "default"));
+        assertDefaultScoreDesc(ReflectionTestUtils.invokeMethod(service, "resolvePublicSort", "unknown"));
+    }
+
+    @Test
+    void resolvePublicSortDefaultAscUsesScoreAsc() {
+        Sort sort = ReflectionTestUtils.invokeMethod(service, "resolvePublicSort", "default_asc");
+        List<Sort.Order> orders = new ArrayList<>();
+        sort.forEach(orders::add);
+        assertEquals(2, orders.size());
+        assertEquals("score", orders.get(0).getProperty());
+        assertEquals(Sort.Direction.ASC, orders.get(0).getDirection());
+        assertEquals("id", orders.get(1).getProperty());
+        assertEquals(Sort.Direction.DESC, orders.get(1).getDirection());
+    }
+
+    private static void assertDefaultScoreDesc(Sort sort) {
+        List<Sort.Order> orders = new ArrayList<>();
+        sort.forEach(orders::add);
+        assertEquals(2, orders.size());
+        assertEquals("score", orders.get(0).getProperty());
+        assertEquals(Sort.Direction.DESC, orders.get(0).getDirection());
+        assertEquals("id", orders.get(1).getProperty());
+        assertEquals(Sort.Direction.DESC, orders.get(1).getDirection());
     }
 
     private static Course publishedOpenCourse(int id, String title) {

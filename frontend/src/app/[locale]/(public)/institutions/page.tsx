@@ -13,7 +13,8 @@ import {
 } from '@/lib/cached-categories';
 import { buildInstitutionCategoryNavItems } from '@/lib/channel-category-stats';
 import { isPxbEmbedOrigin } from '@/lib/pxb-embed';
-import { institutionListMetadata, institutionListH1 } from '@/lib/seo';
+import { parseListPageFromSearchParams } from '@/lib/list-page';
+import { institutionListMetadata, pickCanonicalSearchParams, institutionListH1 } from '@/lib/seo';
 import { firstStringValue, normalizeNumberIds } from '@/lib/search-params';
 
 function embedSearchParams(
@@ -52,7 +53,7 @@ export async function generateMetadata({ searchParams }: Props) {
   }
   return institutionListMetadata({
     category: firstStringValue(sp.categoryName),
-  });
+  }, '/company', pickCanonicalSearchParams(sp, ['categoryName', 'page']));
 }
 
 /**
@@ -87,16 +88,21 @@ export default async function InstitutionsPage({ searchParams }: Props) {
   const expertiseCategoryId = normalizeNumberIds(
     sp.expertiseCategoryId ? [sp.expertiseCategoryId] : undefined,
   )[0];
+  const keyword = firstStringValue(sp.keyword);
+  const page = parseListPageFromSearchParams(
+    new URLSearchParams(sp.page != null ? `page=${sp.page}` : ''),
+  );
 
   const [initialData, goldPool, expertiseTree] = await Promise.all([
     getInstitutionList({
-      page: 1,
+      page,
       size: 15,
+      keyword: keyword || undefined,
       expertiseCategoryId,
     }).catch(() => ({
       list: [],
       total: 0,
-      page: 1,
+      page,
       size: 15,
       totalPages: 0,
     })),

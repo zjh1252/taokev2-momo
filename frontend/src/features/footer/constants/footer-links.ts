@@ -76,5 +76,8 @@ export const FOOTER_BRAND = {
   phone: '400-169-7929',
   copyright: 'Copyright(C) 2006-2024 TAOKE.com All Rights Reserved.',
   company: '上海淘课企业管理咨询有限公司 版权所有',
+  publicSecurity: '沪公网安备 31010402000651号',
+  publicSecurityUrl: 'http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=31010402000651',
   icp: '沪ICP备05034964号',
+  icpUrl: 'https://beian.miit.gov.cn/#/Integrated/index',
 } as const;

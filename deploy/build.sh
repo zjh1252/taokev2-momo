@@ -34,6 +34,7 @@ IMAGE_PREFIX="taokev2"
 BUILDER_NAME="taokev2-multiarch"
 PLATFORMS="${BUILD_PLATFORMS:-linux/amd64,linux/arm64}"
 DOCKER_HUB_MIRROR="${DOCKER_HUB_MIRROR:-docker.m.daocloud.io}"
+BUILDX_CMD=()
 
 KNOWN_TARGETS="backend frontend admin crawler nacos all"
 
@@ -95,8 +96,12 @@ BUILDKIT_CONFIG="${SCRIPT_DIR}/buildkitd.toml"
 cd "$REPO_ROOT"
 
 ensure_buildx() {
-  if ! docker buildx version >/dev/null 2>&1; then
-    echo "错误：未检测到 docker buildx，请升级 Docker Desktop 并启用 buildx"
+  detect_buildx
+
+  if [ "${#BUILDX_CMD[@]}" -eq 0 ]; then
+    echo "错误：未检测到 docker buildx。"
+    echo "已检查 docker buildx 子命令、PATH 中的 docker-buildx，以及 Docker Desktop 常见插件目录。"
+    echo "请确认 Docker Desktop 已安装 Buildx 插件，或手动复制 docker-buildx 到 ~/.docker/cli-plugins/。"
     exit 1
   fi
 
@@ -104,24 +109,76 @@ ensure_buildx() {
   # 不读 buildkitd.toml 的 mirrors，需通过 --driver-opt image= 指定加速源。
   BUILDKIT_IMAGE="$(hub_image 'moby/buildkit:buildx-stable-1')"
 
-  if ! docker buildx inspect "${BUILDER_NAME}" >/dev/null 2>&1; then
+  if ! run_buildx inspect "${BUILDER_NAME}" >/dev/null 2>&1; then
     echo "创建 buildx builder: ${BUILDER_NAME}"
     echo "BuildKit 镜像: ${BUILDKIT_IMAGE}"
     PROXY_OPTS=()
     [ -n "${HTTP_PROXY:-}" ]  && PROXY_OPTS+=(--driver-opt "env.HTTP_PROXY=${HTTP_PROXY}")
     [ -n "${HTTPS_PROXY:-}" ] && PROXY_OPTS+=(--driver-opt "env.HTTPS_PROXY=${HTTPS_PROXY}")
     [ -n "${NO_PROXY:-}" ]    && PROXY_OPTS+=(--driver-opt "env.NO_PROXY=${NO_PROXY}")
-    docker buildx create \
+    run_buildx create \
       --name "${BUILDER_NAME}" \
       --driver docker-container \
       --driver-opt "image=${BUILDKIT_IMAGE}" \
       --config "${BUILDKIT_CONFIG}" \
       "${PROXY_OPTS[@]}" \
       --use
-    docker buildx inspect --bootstrap
+    run_buildx inspect --bootstrap
   else
-    docker buildx use "${BUILDER_NAME}"
+    run_buildx use "${BUILDER_NAME}"
   fi
+}
+
+detect_buildx() {
+  if docker buildx version >/dev/null 2>&1; then
+    BUILDX_CMD=(docker buildx)
+    return
+  fi
+
+  local candidates=()
+  if command -v docker-buildx >/dev/null 2>&1; then
+    candidates+=("$(command -v docker-buildx)")
+  fi
+
+  candidates+=(
+    "${HOME}/.docker/cli-plugins/docker-buildx"
+    "${HOME}/.docker/cli-plugins/docker-buildx.exe"
+    "/c/Program Files/Docker/Docker/resources/cli-plugins/docker-buildx.exe"
+    "/mnt/c/Program Files/Docker/Docker/resources/cli-plugins/docker-buildx.exe"
+  )
+
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if [ -x "$candidate" ] && "$candidate" version >/dev/null 2>&1; then
+      install_user_buildx_plugin "$candidate"
+      if docker buildx version >/dev/null 2>&1; then
+        BUILDX_CMD=(docker buildx)
+        echo "Buildx 插件: docker buildx"
+        return
+      fi
+      BUILDX_CMD=("$candidate")
+      echo "Buildx 插件: ${candidate}"
+      return
+    fi
+  done
+}
+
+install_user_buildx_plugin() {
+  local source_plugin="$1"
+  local target_dir="${HOME}/.docker/cli-plugins"
+  local target_plugin="${target_dir}/docker-buildx.exe"
+
+  if [[ "$source_plugin" == "$target_plugin" ]] || [ -x "$target_plugin" ]; then
+    return
+  fi
+
+  mkdir -p "$target_dir" 2>/dev/null || return
+  cp "$source_plugin" "$target_plugin" 2>/dev/null || return
+  chmod +x "$target_plugin" 2>/dev/null || true
+}
+
+run_buildx() {
+  "${BUILDX_CMD[@]}" "$@"
 }
 
 parse_image() {
@@ -150,7 +207,7 @@ build_and_push() {
     esac
   fi
 
-  docker buildx build \
+  run_buildx build \
     --platform "${PLATFORMS}" \
     -f "${dockerfile}" \
     --build-arg BUILD_ENV="${BUILD_ENV}" \

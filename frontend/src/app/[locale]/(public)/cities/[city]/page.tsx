@@ -20,8 +20,13 @@ interface Props {
 export async function generateMetadata({ params }: Props) {
   const { city } = await params;
   const home = await getCityHomeCached(city).catch(() => null);
-  if (!home?.detail) return { title: '城市培训频道 - 淘课网' };
-  return buildCityChannelMetadata(home.detail.cityName);
+  if (!home?.detail) {
+    return {
+      title: '城市培训频道 - 淘课网',
+      robots: { index: false, follow: false },
+    };
+  }
+  return buildCityChannelMetadata(home.detail.cityName, `/city/${city}`);
 }
 
 /**
