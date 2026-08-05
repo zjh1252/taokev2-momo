@@ -1,104 +1,48 @@
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
-import { getActiveCities, getCityByEnName } from '@/features/city/api/service';
-import { CityChannelSection } from '@/features/city/components/CityChannelSection';
-import { CityCourseScheduleList } from '@/features/city/components/CityCourseScheduleList';
-import { CityInnerCourseList } from '@/features/city/components/CityInnerCourseList';
+import { getCityHomeCached } from '@/features/city/api/server';
 import {
-  CityLatestCourseList,
-  mergeLatestCityCourses,
-} from '@/features/city/components/CityLatestCourseList';
-import { CityInstitutionFlowList } from '@/features/city/components/CityInstitutionFlowList';
-import { CityTrainerFlowList } from '@/features/city/components/CityTrainerFlowList';
-import { CityNavGrid } from '@/features/city/components/CityNavGrid';
-import {
-  cityInstitutionListPath,
-  cityOpenCourseListPath,
-  cityTrainerListPath,
-} from '@/features/city/lib/paths';
-import { resolveCityFilterId } from '@/features/city/lib/filter-city-id';
-import { getCourseList } from '@/features/course/api/service';
-import { getInstitutionList } from '@/features/institution/api/service';
-import { getTrainerList } from '@/features/trainer/api/service';
-import { getVideoList } from '@/features/video/api/service';
+  CityBlockSkeleton,
+  CityHotInnerBlock,
+  CityInstitutionsBlock,
+  CityLatestBlock,
+  CityNavBlock,
+  CityTrainersBlock,
+  CityUpcomingOpenBlock,
+} from '@/features/city/components/CityChannelBlocks';
 import { buildCityChannelMetadata } from '@/lib/seo';
 
 interface Props {
   params: Promise<{ city: string }>;
 }
 
-const emptyPage = { list: [], total: 0, page: 1, size: 10, totalPages: 0 };
-
 export async function generateMetadata({ params }: Props) {
   const { city } = await params;
-  const detail = await getCityByEnName(city).catch(() => null);
-  if (!detail) return { title: '城市培训频道 - 淘课网' };
-  return buildCityChannelMetadata(detail.cityName);
+  const home = await getCityHomeCached(city).catch(() => null);
+  if (!home?.detail) {
+    return {
+      title: '城市培训频道 - 淘课网',
+      robots: { index: false, follow: false },
+    };
+  }
+  return buildCityChannelMetadata(home.detail.cityName, `/city/${city}`);
 }
 
 /**
  * 城市综合频道页 — /cities/[city]（SEO 别名 /city/{拼音}）
+ * <p>同请求内 metadata / 页面 / 各 Suspense 块共享一次 GET /cities/{en}/home。</p>
  */
 export default async function CityChannelPage({ params }: Props) {
   const { city } = await params;
-  const detail = await getCityByEnName(city).catch(() => null);
+  const home = await getCityHomeCached(city).catch(() => null);
 
-  if (!detail) {
+  if (!home?.detail) {
     notFound();
   }
 
-  const cityId = resolveCityFilterId(detail);
-  const cityIds = [cityId];
-  const { cityName } = detail;
-
-  const [
-    upcomingOpen,
-    hotInner,
-    latestOpen,
-    latestVideos,
-    institutions,
-    trainers,
-    allCities,
-  ] = await Promise.all([
-    getCourseList({
-      page: 1,
-      size: 10,
-      isOpen: true,
-      cityIds,
-      enrollStatus: 'ENROLLING',
-      sortBy: 'time',
-    }).catch(() => emptyPage),
-    getCourseList({
-      page: 1,
-      size: 10,
-      isOpen: false,
-      trainerCityId: cityId,
-      sortBy: 'viewCount',
-    }).catch(() => emptyPage),
-    getCourseList({
-      page: 1,
-      size: 10,
-      isOpen: true,
-      cityIds,
-      sortBy: 'time',
-    }).catch(() => emptyPage),
-    getVideoList({ page: 1, size: 10, sortBy: 'time' }).catch(() => emptyPage),
-    getInstitutionList({
-      page: 1,
-      size: 20,
-      cityId,
-      sort: 'newly_joined',
-    }).catch(() => emptyPage),
-    getTrainerList({
-      page: 1,
-      size: 20,
-      cityId,
-      sort: 'newly_joined',
-    }).catch(() => emptyPage),
-    getActiveCities(50).catch(() => []),
-  ]);
-
-  const latestItems = mergeLatestCityCourses(latestOpen.list, latestVideos.list, 10);
+  const { cityName, enName } = home.detail;
+  const blockProps = { enName: city };
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
@@ -110,62 +54,29 @@ export default async function CityChannelPage({ params }: Props) {
         </h1>
       </section>
 
-      <CityChannelSection
-        title={`最近开课${cityName}公开课`}
-        isEmpty={upcomingOpen.list.length === 0}
-        emptyText={`暂无${cityName}公开课排期`}
-        viewMoreHref={cityOpenCourseListPath(detail.enName)}
-        viewMoreLabel="查看更多公开课"
-      >
-        <CityCourseScheduleList
-          title=""
-          cityName={cityName}
-          courses={upcomingOpen.list}
-          emptyText=""
-        />
-      </CityChannelSection>
+      <Suspense fallback={<CityBlockSkeleton title={`最近开课${cityName}公开课`} />}>
+        <CityUpcomingOpenBlock {...blockProps} />
+      </Suspense>
 
-      <CityChannelSection
-        title={`${cityName}本月热门内训课`}
-        isEmpty={hotInner.list.length === 0}
-        emptyText={`暂无${cityName}热门内训课`}
-      >
-        <CityInnerCourseList cityName={cityName} courses={hotInner.list} />
-      </CityChannelSection>
+      <Suspense fallback={<CityBlockSkeleton title={`${cityName}本月热门内训课`} />}>
+        <CityHotInnerBlock {...blockProps} />
+      </Suspense>
 
-      <CityChannelSection
-        title={`最新${cityName}培训课程`}
-        isEmpty={latestItems.length === 0}
-        emptyText={`暂无${cityName}最新课程`}
-      >
-        <CityLatestCourseList cityName={cityName} items={latestItems} />
-      </CityChannelSection>
+      <Suspense fallback={<CityBlockSkeleton title={`最新${cityName}培训课程`} />}>
+        <CityLatestBlock {...blockProps} />
+      </Suspense>
 
-      <CityChannelSection
-        title={`最新${cityName}培训机构`}
-        isEmpty={institutions.list.length === 0}
-        emptyText={`暂无${cityName}入驻机构`}
-        viewMoreHref={cityInstitutionListPath(detail.enName)}
-        viewMoreLabel="查看更多机构"
-      >
-        <CityInstitutionFlowList cityName={cityName} institutions={institutions.list} />
-      </CityChannelSection>
+      <Suspense fallback={<CityBlockSkeleton title={`最新${cityName}培训机构`} />}>
+        <CityInstitutionsBlock {...blockProps} />
+      </Suspense>
 
-      <CityChannelSection
-        title={`最新${cityName}授课专家`}
-        isEmpty={trainers.list.length === 0}
-        emptyText={`暂无${cityName}授课专家`}
-        viewMoreHref={cityTrainerListPath(detail.enName)}
-        viewMoreLabel="查看更多专家"
-      >
-        <CityTrainerFlowList
-          cityName={cityName}
-          cityEnName={detail.enName}
-          trainers={trainers.list}
-        />
-      </CityChannelSection>
+      <Suspense fallback={<CityBlockSkeleton title={`最新${cityName}授课专家`} />}>
+        <CityTrainersBlock {...blockProps} />
+      </Suspense>
 
-      <CityNavGrid cities={allCities} currentEnName={detail.enName} />
+      <Suspense fallback={null}>
+        <CityNavBlock currentEnName={enName} />
+      </Suspense>
     </main>
   );
 }

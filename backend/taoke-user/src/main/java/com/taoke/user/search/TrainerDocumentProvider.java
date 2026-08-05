@@ -81,6 +81,16 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         return buildDocuments(trainers);
     }
 
+    @Override
+    public List<? extends BaseDocument> fetchPage(int page, int size) {
+        Specification<Trainer> spec = (root, query, cb) ->
+                cb.equal(root.get("status"), APPROVED);
+        var pageable = org.springframework.data.domain.PageRequest.of(
+                page, size, org.springframework.data.domain.Sort.by("id").ascending());
+        List<Trainer> trainers = trainerRepository.findAll(spec, pageable).getContent();
+        return buildDocuments(trainers);
+    }
+
     private List<TrainerDocument> buildDocuments(List<Trainer> trainers) {
         if (trainers.isEmpty()) {
             return List.of();

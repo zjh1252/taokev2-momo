@@ -114,6 +114,7 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
           <FormField label="成立时间">
             <input
               type="date"
+              placeholder="年 / 月 / 日"
               value={data.establishedAt || ''}
               onChange={(e) => update({ establishedAt: e.target.value })}
               className="form-input"
@@ -121,7 +122,7 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
           </FormField>
 
           <div className="md:col-span-2">
-            <FormField label="公司 Logo">
+            <FormField label="公司 Logo" required>
               <SingleImageUploader
                 label="机构 Logo"
                 value={data.logoUrl || ''}
@@ -310,6 +311,7 @@ export const INSTITUTION_RULES: FormValidationRules<InstitutionFormData> = {
     requiredMessage: '请输入营业执照号',
     validator: Validators.businessLicenseNo,
   },
+  logoUrl: { required: true, requiredMessage: '请上传机构 Logo' },
   bio: { required: true, requiredMessage: '请输入机构简介' },
   industryCategoryIds: { required: true, requiredMessage: '请至少选择一个擅长行业' },
   expertiseCategoryIds: { required: true, requiredMessage: '请至少选择一个擅长领域' },

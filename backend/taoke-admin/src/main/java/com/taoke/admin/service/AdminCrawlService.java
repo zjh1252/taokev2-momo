@@ -5,15 +5,18 @@ import com.taoke.admin.entity.CrawlSource;
 import com.taoke.admin.entity.CrawledCourse;
 import com.taoke.admin.entity.CrawledTrainer;
 import com.taoke.admin.entity.CrawlJob;
+import com.taoke.admin.repository.CrawlSourceRepository;
 import com.taoke.admin.repository.CrawledCourseRepository;
 import com.taoke.admin.repository.CrawledTrainerRepository;
 import com.taoke.admin.repository.CrawlJobRepository;
-import com.taoke.admin.repository.CrawlSourceRepository;
+import com.taoke.common.dto.CategoryTreeVO;
 import com.taoke.common.dto.PageResult;
 import com.taoke.common.dto.RegionVO;
+import com.taoke.common.entity.Category;
 import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.common.service.CategoryService;
 import com.taoke.common.service.RegionService;
 import com.taoke.course.api.CourseService;
 import com.taoke.course.dto.course.CoursePlanDTO;
@@ -34,16 +37,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 后台数据爬取管理编排服务。
@@ -61,144 +72,240 @@ import java.util.*;
 @RequiredArgsConstructor
 public class AdminCrawlService {
 
+    private final CrawlSourceRepository crawlSourceRepository;
     private final CrawledTrainerRepository crawledTrainerRepository;
     private final CrawledCourseRepository crawledCourseRepository;
     private final CrawlJobRepository crawlJobRepository;
-    private final CrawlSourceRepository crawlSourceRepository;
     private final CrawlerClientService crawlerClientService;
+    private final CourseDuplicateService courseDuplicateService;
     private final TrainerService trainerService;
     private final UserService userService;
     private final RoleApplyService roleApplyService;
     private final CourseService courseService;
     private final TrainerCaseService trainerCaseService;
     private final RegionService regionService;
+    private final CategoryService categoryService;
     private final ObjectMapper objectMapper;
+    private final JdbcTemplate jdbcTemplate;
 
     @Value("${crawler.callback-token:}")
     private String callbackToken;
 
+    @Value("${app.site-base-url:http://localhost:3000}")
+    private String siteBaseUrl;
+
     // ==================== 数据源 ====================
 
     /**
-     * 获取全部数据源配置（含禁用项，供后台管理）。
+     * 获取可用数据源列表（硬编码，后续可扩展为数据库配置）
      */
     public List<CrawlSourceVO> listSources() {
-        return crawlSourceRepository.findAllByOrderBySortOrderAscIdAsc().stream()
-                .map(this::toSourceVO)
-                .toList();
+        List<CrawlSourceVO> dbSources = listSourcesFromDatabase();
+        if (dbSources != null) {
+            return dbSources;
+        }
+        return defaultCrawlSources();
+    }
+
+    private List<CrawlSourceVO> listSourcesFromDatabase() {
+        try {
+            return jdbcTemplate.query("select * from crawl_sources", rs -> {
+                List<CrawlSourceRow> rows = new ArrayList<>();
+                Map<String, String> columns = crawlSourceColumns(rs.getMetaData());
+                while (rs.next()) {
+                    if (!isCrawlSourceVisible(rs, columns)) {
+                        continue;
+                    }
+
+                    String code = crawlSourceString(rs, columns, "code", "source_code", "source");
+                    String name = crawlSourceString(rs, columns, "name", "source_name", "display_name", "title");
+                    String url = crawlSourceString(rs, columns, "url", "source_url", "base_url", "domain", "website");
+                    String dataType = crawlSourceString(rs, columns, "data_type", "dataType", "source_type", "type");
+                    if (!hasText(code) || !hasText(name) || !hasText(url) || !hasText(dataType)) {
+                        log.warn("crawl_sources 存在字段不完整的数据源配置，已跳过: code={}, name={}, url={}, dataType={}",
+                                code, name, url, dataType);
+                        continue;
+                    }
+
+                    CrawlSourceVO source = crawlSource(code, name, url, normalizeCrawlDataType(dataType));
+                    int sort = crawlSourceInteger(rs, columns, Integer.MAX_VALUE, "sort_order", "sort", "order_no", "id");
+                    rows.add(new CrawlSourceRow(source, sort));
+                }
+
+                rows.sort(Comparator
+                        .comparingInt(CrawlSourceRow::sort)
+                        .thenComparing(row -> defaultText(row.source().getDataType()))
+                        .thenComparing(row -> defaultText(row.source().getCode())));
+                return rows.stream().map(CrawlSourceRow::source).toList();
+            });
+        } catch (DataAccessException ex) {
+            log.warn("查询 crawl_sources 失败，使用默认数据源列表: {}", ex.getMessage());
+            return null;
+        }
+    }
+
+    private List<CrawlSourceVO> defaultCrawlSources() {
+        List<CrawlSourceVO> sources = new ArrayList<>();
+
+        sources.add(crawlSource("jiangshibao", "讲师宝", "https://www.jiangshi99.com", "TRAINER"));
+        sources.add(crawlSource("jiangshibao", "讲师宝", "https://www.jiangshi99.com", "COURSE"));
+        sources.add(crawlSource("lmschina", "企学宝", "https://www.lmschina.net", "TRAINER"));
+        sources.add(crawlSource("lmschina", "企学宝", "https://www.lmschina.net", "COURSE"));
+        sources.add(crawlSource("huashijingji", "华师经纪", "https://www.huashijingji.com", "TRAINER"));
+        sources.add(crawlSource("huashijingji", "华师经纪", "https://www.huashijingji.com", "COURSE"));
+        sources.add(crawlSource("nlypx", "哪里有培训网", "https://www.nlypx.com", "TRAINER"));
+        sources.add(crawlSource("nlypx", "哪里有培训网", "https://www.nlypx.com", "COURSE"));
+        sources.add(crawlSource("zpedu", "中培伟业", "https://www.zpedu.com", "TRAINER"));
+        sources.add(crawlSource("zpedu", "中培伟业", "https://www.zpedu.com", "COURSE"));
+        sources.add(crawlSource("jiangshitai", "讲师台", "https://www.jiangshitai.com", "TRAINER"));
+        sources.add(crawlSource("jiangshitai", "讲师台", "https://www.jiangshitai.com", "COURSE"));
+
+        return sources;
+    }
+
+    private CrawlSourceVO crawlSource(String code, String name, String url, String dataType) {
+        CrawlSourceVO source = new CrawlSourceVO();
+        source.setCode(code);
+        source.setName(name);
+        source.setUrl(url);
+        source.setDataType(dataType);
+        source.setStatus("AVAILABLE");
+        return source;
+    }
+
+    private record CrawlSourceRow(CrawlSourceVO source, int sort) {
+    }
+
+    private Map<String, String> crawlSourceColumns(ResultSetMetaData metaData) throws SQLException {
+        Map<String, String> columns = new HashMap<>();
+        for (int i = 1; i <= metaData.getColumnCount(); i++) {
+            String label = metaData.getColumnLabel(i);
+            columns.put(normalizeCrawlSourceColumn(label), label);
+        }
+        return columns;
+    }
+
+    private boolean isCrawlSourceVisible(ResultSet rs, Map<String, String> columns) throws SQLException {
+        String enabled = crawlSourceString(rs, columns, "enabled", "is_enabled", "enable_flag", "available");
+        if (hasText(enabled) && !isTruthyCrawlSourceValue(enabled)) {
+            return false;
+        }
+
+        String deleted = crawlSourceString(rs, columns, "deleted", "is_deleted", "delete_flag", "del_flag");
+        return !hasText(deleted) || !isTruthyCrawlSourceValue(deleted);
+    }
+
+    private String crawlSourceString(ResultSet rs, Map<String, String> columns, String... names) throws SQLException {
+        for (String name : names) {
+            String column = columns.get(normalizeCrawlSourceColumn(name));
+            if (column == null) {
+                continue;
+            }
+            String value = rs.getString(column);
+            if (hasText(value)) {
+                return value.trim();
+            }
+        }
+        return null;
+    }
+
+    private int crawlSourceInteger(ResultSet rs, Map<String, String> columns, int defaultValue, String... names) throws SQLException {
+        for (String name : names) {
+            String column = columns.get(normalizeCrawlSourceColumn(name));
+            if (column == null) {
+                continue;
+            }
+            int value = rs.getInt(column);
+            if (!rs.wasNull()) {
+                return value;
+            }
+        }
+        return defaultValue;
+    }
+
+    private String normalizeCrawlDataType(String dataType) {
+        String normalized = defaultText(dataType, "").toUpperCase(Locale.ROOT);
+        if ("1".equals(normalized) || "TRAINER".equals(normalized) || "TEACHER".equals(normalized)) {
+            return "TRAINER";
+        }
+        if ("2".equals(normalized) || "COURSE".equals(normalized)) {
+            return "COURSE";
+        }
+        return normalized;
+    }
+
+    private String normalizeCrawlSourceColumn(String column) {
+        return defaultText(column, "").replace("_", "").replace("-", "").toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isTruthyCrawlSourceValue(String value) {
+        String normalized = defaultText(value, "").toUpperCase(Locale.ROOT);
+        return Set.of("1", "TRUE", "Y", "YES", "ENABLE", "ENABLED", "AVAILABLE").contains(normalized);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     /**
-     * 新增自定义数据源。
+     * 新增数据源
      */
     @Transactional
     public CrawlSourceVO createSource(SaveCrawlSourceRequest request) {
-        String code = normalizeSourceCode(request.getCode());
-        String dataType = request.getDataType().trim().toUpperCase();
-        if (crawlSourceRepository.existsByCodeAndDataType(code, dataType)) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "该标识与数据类型组合已存在");
-        }
-
-        CrawlSource source = new CrawlSource();
-        applySourceFields(source, request, code, dataType);
-        source.setBuiltIn(false);
-        if (source.getSortOrder() == null) {
-            source.setSortOrder(nextSortOrder());
-        }
-        return toSourceVO(crawlSourceRepository.save(source));
+        CrawlSource entity = toEntity(request, new CrawlSource());
+        crawlSourceRepository.save(entity);
+        return toVO(entity);
     }
 
     /**
-     * 更新数据源（内置项不可改 code / dataType）。
+     * 更新数据源
      */
     @Transactional
     public CrawlSourceVO updateSource(Integer id, SaveCrawlSourceRequest request) {
-        CrawlSource source = crawlSourceRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "数据源不存在"));
-
-        String code = normalizeSourceCode(request.getCode());
-        String dataType = request.getDataType().trim().toUpperCase();
-        if (Boolean.TRUE.equals(source.getBuiltIn())) {
-            if (!source.getCode().equals(code) || !source.getDataType().equals(dataType)) {
-                throw new BusinessException(ErrorCode.PARAM_INVALID, "内置数据源不可修改标识与类型");
-            }
-        } else if (crawlSourceRepository.existsByCodeAndDataTypeAndIdNot(code, dataType, id)) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "该标识与数据类型组合已存在");
-        }
-
-        applySourceFields(source, request, code, dataType);
-        return toSourceVO(crawlSourceRepository.save(source));
+        CrawlSource entity = crawlSourceRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("数据源不存在"));
+        toEntity(request, entity);
+        crawlSourceRepository.save(entity);
+        return toVO(entity);
     }
 
     /**
-     * 删除自定义数据源（内置种子不可删）。
+     * 删除数据源（内置种子不可删除）
      */
     @Transactional
     public void deleteSource(Integer id) {
-        CrawlSource source = crawlSourceRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "数据源不存在"));
-        if (Boolean.TRUE.equals(source.getBuiltIn())) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "内置数据源不可删除，可改为禁用");
+        CrawlSource entity = crawlSourceRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("数据源不存在"));
+        if (Boolean.TRUE.equals(entity.getBuiltIn())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "内置数据源不可删除");
         }
-        crawlSourceRepository.delete(source);
+        crawlSourceRepository.delete(entity);
     }
 
-    private void applySourceFields(CrawlSource source, SaveCrawlSourceRequest request,
-                                   String code, String dataType) {
-        source.setCode(code);
-        source.setName(request.getName().trim());
-        source.setUrl(request.getUrl().trim());
-        source.setDataType(dataType);
-        if (request.getEnabled() != null) {
-            source.setEnabled(request.getEnabled());
-        } else if (source.getEnabled() == null) {
-            source.setEnabled(true);
-        }
-        if (request.getSortOrder() != null) {
-            source.setSortOrder(request.getSortOrder());
-        }
-        source.setRemark(trimToNull(request.getRemark()));
+    private CrawlSource toEntity(SaveCrawlSourceRequest request, CrawlSource entity) {
+        entity.setCode(request.getCode());
+        entity.setName(request.getName());
+        entity.setUrl(request.getUrl());
+        entity.setDataType(request.getDataType());
+        entity.setEnabled(request.getEnabled() != null ? request.getEnabled() : true);
+        entity.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
+        entity.setRemark(request.getRemark());
+        return entity;
     }
 
-    private String normalizeSourceCode(String code) {
-        return code.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private int nextSortOrder() {
-        return crawlSourceRepository.findAllByOrderBySortOrderAscIdAsc().stream()
-                .map(CrawlSource::getSortOrder)
-                .filter(Objects::nonNull)
-                .max(Integer::compareTo)
-                .orElse(0) + 10;
-    }
-
-    private CrawlSourceVO toSourceVO(CrawlSource source) {
+    private CrawlSourceVO toVO(CrawlSource entity) {
         CrawlSourceVO vo = new CrawlSourceVO();
-        vo.setId(source.getId());
-        vo.setCode(source.getCode());
-        vo.setName(source.getName());
-        vo.setUrl(source.getUrl());
-        vo.setDataType(source.getDataType());
-        vo.setEnabled(source.getEnabled());
-        vo.setBuiltIn(source.getBuiltIn());
-        vo.setSortOrder(source.getSortOrder());
-        vo.setRemark(source.getRemark());
-        vo.setStatus(Boolean.TRUE.equals(source.getEnabled()) ? "AVAILABLE" : "DISABLED");
+        vo.setId(entity.getId());
+        vo.setCode(entity.getCode());
+        vo.setName(entity.getName());
+        vo.setUrl(entity.getUrl());
+        vo.setDataType(entity.getDataType());
+        vo.setEnabled(entity.getEnabled());
+        vo.setBuiltIn(entity.getBuiltIn());
+        vo.setSortOrder(entity.getSortOrder());
+        vo.setRemark(entity.getRemark());
+        vo.setStatus(Boolean.TRUE.equals(entity.getEnabled()) ? "AVAILABLE" : "DISABLED");
         return vo;
-    }
-
-    private CrawlSource requireEnabledSource(String code, String dataType) {
-        return crawlSourceRepository.findByCodeAndDataType(code, dataType)
-                .filter(source -> Boolean.TRUE.equals(source.getEnabled()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.PARAM_INVALID, "数据源不存在或未启用"));
     }
 
     // ==================== 爬虫任务 ====================
@@ -207,18 +314,14 @@ public class AdminCrawlService {
      * 触发爬取任务
      */
     public CrawlJobVO triggerJob(TriggerCrawlRequest request) {
-        String sourceCode = request.getSource().trim().toLowerCase(Locale.ROOT);
-        String dataType = request.getDataType().trim().toUpperCase(Locale.ROOT);
-        requireEnabledSource(sourceCode, dataType);
-
         // 1. 调用 Python 爬虫服务创建任务
         String crawlerJobId = crawlerClientService.triggerCrawl(
-                sourceCode, dataType, request.getMaxItems(), request.getStartUrl());
+                request.getSource(), request.getDataType(), request.getMaxItems(), request.getStartUrl());
 
         // 2. 记录任务到数据库
         CrawlJob job = new CrawlJob();
-        job.setSource(sourceCode);
-        job.setDataType(dataType);
+        job.setSource(request.getSource());
+        job.setDataType(request.getDataType());
         job.setStatus(1); // 运行中
         job.setCrawlerJobId(crawlerJobId);
         job.setTotalCount(defaultInt(request.getMaxItems()));
@@ -248,8 +351,6 @@ public class AdminCrawlService {
             page = crawlJobRepository.findAll(pageable);
         }
 
-        page.getContent().forEach(this::syncRunningJobFromCrawler);
-
         List<CrawlJobVO> voList = page.getContent().stream().map(this::toJobVO).toList();
         return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), voList);
     }
@@ -272,12 +373,7 @@ public class AdminCrawlService {
         if (job.getStatus() != 1) {
             throw new IllegalStateException("只能取消运行中的任务");
         }
-        try {
-            crawlerClientService.cancelCrawl(job.getCrawlerJobId());
-        } catch (Exception e) {
-            log.warn("取消爬取任务失败（Python 爬虫服务可能未响应）: jobId={}, crawlerJobId={}, error={}",
-                    id, job.getCrawlerJobId(), e.getMessage());
-        }
+        crawlerClientService.cancelCrawl(job.getCrawlerJobId());
         job.setStatus(4); // 已取消
         job.setFinishedAt(LocalDateTime.now());
         crawlJobRepository.save(job);
@@ -420,29 +516,51 @@ public class AdminCrawlService {
     public PageResult<CrawledCourseVO> listCrawledCourses(CrawledCourseQuery query) {
         PageRequest pageable = PageRequest.of(
                 query.getPage() - 1, query.getSize(),
-                Sort.by(Sort.Direction.DESC, "id")
+                buildCrawledCourseSort(query)
         );
 
-        Page<CrawledCourse> page;
-        if (query.getSource() != null && query.getReviewStatus() != null) {
-            page = crawledCourseRepository.findBySourceAndReviewStatus(query.getSource(), query.getReviewStatus(), pageable);
-        } else if (query.getReviewStatus() != null) {
-            page = crawledCourseRepository.findByReviewStatus(query.getReviewStatus(), pageable);
-        } else if (query.getSource() != null) {
-            page = crawledCourseRepository.findBySource(query.getSource(), pageable);
-        } else {
-            page = crawledCourseRepository.findAll(pageable);
-        }
+        Page<CrawledCourse> page = crawledCourseRepository.searchCourses(
+                blankToNull(query.getSource()),
+                query.getReviewStatus(),
+                query.getDedupStatus(),
+                normalizedCourseTypeFilter(query.getType()),
+                blankToNull(query.getKeyword()),
+                pageable
+        );
 
-        List<CrawledCourse> content = page.getContent();
-        if (query.getDedupStatus() != null) {
-            content = content.stream()
-                    .filter(c -> Objects.equals(c.getDedupStatus(), query.getDedupStatus()))
-                    .toList();
-        }
-
-        List<CrawledCourseVO> voList = content.stream().map(this::toCourseVO).toList();
+        List<CrawledCourseVO> voList = page.getContent().stream().map(this::toCourseVO).toList();
         return PageResult.of(page.getTotalElements(), query.getPage(), query.getSize(), voList);
+    }
+
+    private Sort buildCrawledCourseSort(CrawledCourseQuery query) {
+        Sort.Direction direction = "ASC".equalsIgnoreCase(query.getSortDirection())
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        String sortBy = normalizeCrawledCourseSortBy(query.getSortBy());
+        return Sort.by(direction, sortBy).and(Sort.by(Sort.Direction.DESC, "id"));
+    }
+
+    private String normalizeCrawledCourseSortBy(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "updatedAt";
+        }
+        String normalized = sortBy.trim().replace("_", "").replace("-", "").toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "createdat", "createtime" -> "createdAt";
+            case "id" -> "id";
+            default -> "updatedAt";
+        };
+    }
+
+    private String normalizedCourseTypeFilter(String type) {
+        if (type == null || type.isBlank()) {
+            return null;
+        }
+        String normalized = type.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "OPEN_OFFLINE", "OPEN_ONLINE", "INTERNAL" -> normalized;
+            default -> null;
+        };
     }
 
     /**
@@ -460,29 +578,31 @@ public class AdminCrawlService {
     @Transactional
     public Integer importCourse(Integer crawledId, ImportCourseRequest edits) {
         CrawledCourse cc = crawledCourseRepository.findById(crawledId)
-                .orElseThrow(() -> new NoSuchElementException("记录不存在"));
+                .orElseThrow(() -> new NoSuchElementException("Crawled course not found"));
         if (cc.getReviewStatus() != 0) {
-            throw new IllegalStateException("该记录已处理");
+            throw new IllegalStateException(importBlockedMessage(cc.getReviewStatus()));
         }
 
-        // 合并管理员编辑
-        if (edits != null) {
-            if (edits.getCategoryId() != null) cc.setCategoryId(edits.getCategoryId());
-            if (edits.getSubCategoryId() != null) cc.setSubCategoryId(edits.getSubCategoryId());
-            if (edits.getTitle() != null) cc.setTitle(edits.getTitle());
-        }
+        applyCourseEdits(cc, edits);
+        autoMapCourseCategory(cc);
+        normalizeCourseTiming(cc);
 
-        if (cc.getDedupStatus() != null && cc.getDedupStatus() >= 2
-                && (edits == null || !edits.isForceImport())) {
-            throw new IllegalStateException("该课程疑似重复，请确认后使用 forceImport 强制导入");
+        ensureAllowedCourseType(cc.getType());
+        String courseType = normalizeCourseType(cc.getType());
+        cc.setType(courseType);
+        validateCourseBeforeImport(cc);
+        CourseDuplicateService.DuplicateCheckResult duplicateResult = courseDuplicateService.checkAndApply(
+                cc, CourseDuplicateService.CheckScene.BEFORE_IMPORT);
+        if (duplicateResult.blocking() && (edits == null || !edits.isForceImport())) {
+            throw new BusinessException(ErrorCode.DUPLICATE_REQUEST, duplicateResult.reason());
         }
         Trainer publisher = resolveCoursePublisher(cc, edits);
 
         SaveCourseRequest request = new SaveCourseRequest();
         request.setTitle(limit(defaultText(cc.getTitle()), 200));
-        request.setType("INTERNAL");
-        request.setCategoryId(edits.getCategoryId() != null ? edits.getCategoryId() : (cc.getCategoryId() != null ? cc.getCategoryId() : 0));
-        request.setSubCategoryId(edits.getSubCategoryId() != null ? edits.getSubCategoryId() : (cc.getSubCategoryId() != null ? cc.getSubCategoryId() : 0));
+        request.setType(courseType);
+        request.setCategoryId(cc.getCategoryId() != null ? cc.getCategoryId() : 0);
+        request.setSubCategoryId(cc.getSubCategoryId() != null ? cc.getSubCategoryId() : 0);
         request.setCoverUrl(defaultText(cc.getCoverUrl(), ""));
         request.setIntro(defaultText(cc.getIntro(), defaultText(cc.getSummary())));
         request.setSummary(limit(defaultText(cc.getSummary(), defaultText(cc.getIntro())), 500));
@@ -497,30 +617,104 @@ public class AdminCrawlService {
         request.setOriginalPrice(cc.getOriginalPrice() != null ? cc.getOriginalPrice() : BigDecimal.ZERO);
         request.setKeywords(defaultText(cc.getKeywords()));
         request.setIsFeatured(0);
-        request.setIsFree(request.getPrice().compareTo(BigDecimal.ZERO) <= 0 ? 1 : 0);
-        List<CoursePlanDTO> plans = toCoursePlans(cc.getPlansJson(), cc.getDurationDays(), cc.getType());
-        request.setHasPlan(plans.isEmpty() ? 0 : 1);
-        request.setType(plans.isEmpty() ? "INTERNAL" : normalizeCourseType(cc.getType()));
+        request.setIsFree(isExplicitFreePrice(cc, request.getPrice()) ? 1 : 0);
+        List<CoursePlanDTO> plans = toCoursePlans(cc.getPlansJson(), cc.getDurationDays(), courseType);
+        if (isOpenCourse(courseType) && plans.isEmpty()) {
+            throw new IllegalStateException("Open course requires at least one importable plan");
+        }
+        request.setHasPlan(isOpenCourse(courseType) ? 1 : 0);
         request.setPlans(plans);
 
         CourseDetailVO course = courseService.create(publisher.getUserId(), BusinessRole.Code.TRAINER, request);
 
-        // 更新中间表状态
-        cc.setReviewStatus(3); // 已入库
+        cc.setReviewStatus(3);
         cc.setReviewedAt(LocalDateTime.now());
         cc.setImportedCourseId(course.getId());
         crawledCourseRepository.save(cc);
 
-        log.info("导入爬取课程成功: crawledId={}, courseId={}, title={}", crawledId, course.getId(), cc.getTitle());
+        log.info("Imported crawled course: crawledId={}, courseId={}, title={}", crawledId, course.getId(), cc.getTitle());
         return course.getId();
     }
 
-    /**
-     * 确定爬取课程入库时使用的正式专家。
-     * <p>
-     * 管理员可手动传入 trainerId；未传时按爬取讲师名自动匹配正式专家，匹配不到则自动创建一个外部导入专家。
-     * </p>
-     */
+    @Transactional
+    public CrawledCourseDetailVO updateCrawledCourse(Integer crawledId, ImportCourseRequest edits) {
+        CrawledCourse cc = crawledCourseRepository.findById(crawledId)
+                .orElseThrow(() -> new NoSuchElementException("Crawled course not found"));
+        if (cc.getReviewStatus() != 0) {
+            throw new IllegalStateException(updateBlockedMessage(cc.getReviewStatus()));
+        }
+        applyCourseEdits(cc, edits);
+        autoMapCourseCategory(cc);
+        validateSelectedCourseCategory(cc, false);
+        cc.setType(normalizeCourseType(cc.getType()));
+        courseDuplicateService.checkAndApply(cc, CourseDuplicateService.CheckScene.REVIEW_SAVE);
+        crawledCourseRepository.save(cc);
+        return toCourseDetailVO(cc);
+    }
+
+    private void applyCourseEdits(CrawledCourse cc, ImportCourseRequest edits) {
+        if (edits == null) {
+            return;
+        }
+        if (edits.getCategoryId() != null) cc.setCategoryId(edits.getCategoryId());
+        if (edits.getSubCategoryId() != null) cc.setSubCategoryId(edits.getSubCategoryId());
+        if (edits.getTitle() != null) cc.setTitle(edits.getTitle());
+        if (edits.getType() != null) {
+            ensureAllowedCourseType(edits.getType());
+            cc.setType(normalizeCourseType(edits.getType()));
+        }
+        if (edits.getCategoryNameRaw() != null) cc.setCategoryNameRaw(edits.getCategoryNameRaw());
+        if (edits.getCoverUrl() != null) cc.setCoverUrl(edits.getCoverUrl());
+        if (edits.getIntro() != null) cc.setIntro(edits.getIntro());
+        if (edits.getSummary() != null) cc.setSummary(edits.getSummary());
+        if (edits.getSyllabus() != null) cc.setSyllabus(edits.getSyllabus());
+        if (edits.getAudience() != null) cc.setAudience(edits.getAudience());
+        if (edits.getHighlights() != null) cc.setHighlights(edits.getHighlights());
+        if (edits.getDurationDays() != null) cc.setDurationDays(edits.getDurationDays());
+        if (edits.getTotalHours() != null) cc.setTotalHours(edits.getTotalHours());
+        if (edits.getPrice() != null) cc.setPrice(edits.getPrice());
+        if (edits.getOriginalPrice() != null) cc.setOriginalPrice(edits.getOriginalPrice());
+        if (edits.getKeywords() != null) cc.setKeywords(edits.getKeywords());
+        if (edits.getTrainerNameRaw() != null) cc.setTrainerNameRaw(edits.getTrainerNameRaw());
+        if (edits.getTargetAudience() != null) cc.setTargetAudience(edits.getTargetAudience());
+        if (edits.getLearningOutcomes() != null) cc.setLearningOutcomes(edits.getLearningOutcomes());
+        if (edits.getPlansJson() != null) cc.setPlansJson(toJson(edits.getPlansJson()));
+        normalizeCourseTiming(cc);
+    }
+
+    private void validateCourseBeforeImport(CrawledCourse cc) {
+        if (cc.getTitle() == null || cc.getTitle().isBlank()) {
+            throw new IllegalStateException("课程标题必填");
+        }
+        ensureAllowedCourseType(cc.getType());
+        validateSelectedCourseCategory(cc, true);
+        String contentType = rawJsonString(parseRawJson(cc), "content_type");
+        if (contentType != null && Set.of("RECORDED_VIDEO", "DOCUMENT", "AUDIO").contains(contentType)) {
+            throw new IllegalStateException("非课程内容不能导入 courses: " + contentType);
+        }
+    }
+
+    private void validateSelectedCourseCategory(CrawledCourse cc, boolean required) {
+        Integer categoryId = cc.getCategoryId();
+        if (categoryId == null || categoryId <= 0) {
+            if (required) {
+                throw new IllegalStateException("导入前必须选择有效的平台课程分类");
+            }
+            return;
+        }
+        Category category = categoryService.getById(categoryId);
+        if (category == null || !"COURSE_CATEGORY".equals(category.getType())) {
+            throw new IllegalStateException("选择的平台分类不是课程分类");
+        }
+        Integer subCategoryId = cc.getSubCategoryId();
+        if (subCategoryId != null && subCategoryId > 0) {
+            Category subCategory = categoryService.getById(subCategoryId);
+            if (subCategory == null || !"COURSE_CATEGORY".equals(subCategory.getType()) || !Objects.equals(subCategory.getParentId(), categoryId)) {
+                throw new IllegalStateException("选择的二级分类不属于当前平台分类");
+            }
+        }
+    }
+
     private Trainer resolveCoursePublisher(CrawledCourse course, ImportCourseRequest edits) {
         if (edits != null && edits.getTrainerId() != null && edits.getTrainerId() > 0) {
             return trainerService.findByIds(List.of(edits.getTrainerId())).stream()
@@ -672,7 +866,8 @@ public class AdminCrawlService {
     }
 
     private List<CoursePlanDTO> toCoursePlans(String plansJson, Integer durationDays, String rawType) {
-        if (!isOpenCourse(rawType)) {
+        String courseType = normalizeCourseType(rawType);
+        if (!isOpenCourse(courseType)) {
             return List.of();
         }
 
@@ -684,15 +879,9 @@ public class AdminCrawlService {
         List<CoursePlanDTO> plans = new ArrayList<>();
         int sortOrder = 0;
         for (Map<String, Object> raw : rawPlans) {
-            String startDate = mapString(raw, "start_date", "startDate", "date");
+            String startDate = mapString(raw, "start_date", "start_time", "startTime", "startDate", "date");
             LocalDate date = parseLocalDate(startDate);
             if (date == null) {
-                continue;
-            }
-
-            String location = defaultText(mapString(raw, "location", "city", "address"), "");
-            RegionMatch region = resolveRegion(location);
-            if (region.cityId == 0) {
                 continue;
             }
 
@@ -700,11 +889,30 @@ public class AdminCrawlService {
             plan.setStartTime(LocalDateTime.of(date, LocalTime.of(9, 0)));
             int days = durationDays != null && durationDays > 0 ? durationDays : 1;
             plan.setEndTime(LocalDateTime.of(date.plusDays(days - 1L), LocalTime.of(18, 0)));
-            plan.setProvinceId(region.provinceId);
-            plan.setCityId(region.cityId);
-            plan.setDistrictId(0);
-            plan.setAddress(location.isBlank() ? region.cityName : location);
+            plan.setDistrictId(defaultInt(mapInteger(raw, "districtId", "district_id")));
             plan.setSortOrder(sortOrder++);
+
+            if ("OPEN_ONLINE".equals(courseType)) {
+                plan.setProvinceId(0);
+                plan.setCityId(0);
+                plan.setAddress("");
+                plan.setOnlineUrl(defaultText(mapString(raw, "online_url", "onlineUrl", "url"), "\u5728\u7ebf\u8bfe\u7a0b"));
+            } else {
+                String location = defaultText(mapString(raw, "location", "city", "address"), "");
+                String address = defaultText(mapString(raw, "address", "location", "city"), "");
+                Integer provinceId = defaultInt(mapInteger(raw, "provinceId", "province_id"));
+                Integer cityId = defaultInt(mapInteger(raw, "cityId", "city_id"));
+                RegionMatch region = provinceId > 0 && cityId > 0 ? RegionMatch.empty() : resolveRegion(location + " " + address);
+                Integer resolvedProvinceId = provinceId > 0 ? provinceId : region.provinceId;
+                Integer resolvedCityId = cityId > 0 ? cityId : region.cityId;
+                if (resolvedProvinceId == null || resolvedProvinceId <= 0 || resolvedCityId == null || resolvedCityId <= 0) {
+                    throw new BusinessException(ErrorCode.PARAM_INVALID, "无法根据线下开课地址解析省市，请检查地址或选择省市：" + defaultText(address, location));
+                }
+                plan.setProvinceId(resolvedProvinceId);
+                plan.setCityId(resolvedCityId);
+                plan.setAddress(address.isBlank() ? region.cityName : address);
+                plan.setOnlineUrl("");
+            }
             plans.add(plan);
         }
         return plans;
@@ -719,42 +927,165 @@ public class AdminCrawlService {
         if (rawType == null || rawType.isBlank()) {
             return "OPEN_OFFLINE";
         }
-        return switch (rawType.trim().toUpperCase(Locale.ROOT)) {
-            case "OPEN_ONLINE", "OPEN_OFFLINE", "INTERNAL" -> rawType.trim().toUpperCase(Locale.ROOT);
+        String normalized = rawType.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "OPEN_ONLINE", "OPEN_OFFLINE", "INTERNAL" -> normalized;
+            case "ONLINE" -> "OPEN_ONLINE";
+            case "OFFLINE" -> "OPEN_OFFLINE";
             default -> "OPEN_OFFLINE";
         };
     }
 
+    private void ensureAllowedCourseType(String rawType) {
+        if (rawType == null || rawType.isBlank()) {
+            throw new IllegalStateException("课程类型必填");
+        }
+        String normalized = rawType.trim().toUpperCase(Locale.ROOT);
+        if (!Set.of("OPEN_ONLINE", "OPEN_OFFLINE", "INTERNAL", "ONLINE", "OFFLINE").contains(normalized)) {
+            throw new IllegalStateException("课程类型非法: " + rawType);
+        }
+    }
+
     private RegionMatch resolveRegion(String rawLocation) {
-        String location = defaultText(rawLocation, "").replace("市", "").trim();
-        if (location.isBlank()) {
+        String location = defaultText(rawLocation, "").trim();
+        if (location.isBlank() || "暂无".equals(location)) {
             return RegionMatch.empty();
         }
 
-        List<RegionVO> matches = regionService.search(location, 2);
+        for (String keyword : regionKeywords(location)) {
+            RegionMatch matched = resolveRegionByKeyword(keyword, location);
+            if (!matched.isEmpty()) {
+                return matched;
+            }
+        }
+        return RegionMatch.empty();
+    }
+
+    private List<String> regionKeywords(String location) {
+        LinkedHashSet<String> keywords = new LinkedHashSet<>();
+        String text = location
+                .replaceAll("[,，、/|]+", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+
+        for (String municipality : List.of("北京", "上海", "天津", "重庆")) {
+            if (text.contains(municipality)) {
+                keywords.add(municipality);
+                keywords.add(municipality + "市");
+            }
+        }
+
+        for (String city : List.of("广州", "深圳", "杭州", "苏州", "南京", "成都", "武汉", "西安", "长沙", "郑州", "青岛", "厦门", "宁波", "无锡", "佛山", "东莞", "合肥", "福州", "济南", "昆明", "南昌", "南宁", "贵阳", "太原", "石家庄", "沈阳", "大连", "长春", "哈尔滨", "兰州", "银川", "西宁", "乌鲁木齐", "海口", "三亚")) {
+            if (text.contains(city)) {
+                keywords.add(city);
+                keywords.add(city + "市");
+            }
+        }
+
+        Matcher cityMatcher = Pattern.compile("([\\u4e00-\\u9fa5]{2,12}?市)").matcher(text);
+        while (cityMatcher.find()) {
+            String city = cityMatcher.group(1);
+            keywords.add(city);
+            keywords.add(city.replace("市", ""));
+        }
+
+        Matcher districtMatcher = Pattern.compile("([\\u4e00-\\u9fa5]{2,10}?(?:区|县|旗))").matcher(text);
+        while (districtMatcher.find()) {
+            keywords.add(districtMatcher.group(1));
+        }
+
+        keywords.add(text);
+        return keywords.stream()
+                .map(String::trim)
+                .filter(s -> !s.isBlank() && !"暂无".equals(s) && !"待定".equals(s))
+                .toList();
+    }
+
+    private RegionMatch resolveRegionByKeyword(String keyword, String originalLocation) {
+        List<String> candidates = new ArrayList<>();
+        candidates.add(keyword);
+        if (keyword.endsWith("市")) {
+            candidates.add(keyword.substring(0, keyword.length() - 1));
+        }
+
+        for (String candidate : candidates) {
+            RegionMatch region = resolveRegionFromMatches(regionService.search(candidate, 2), originalLocation, candidate);
+            if (region.isEmpty()) {
+                region = resolveRegionFromMatches(regionService.search(candidate, null), originalLocation, candidate);
+            }
+            if (!region.isEmpty()) {
+                return region;
+            }
+        }
+        return RegionMatch.empty();
+    }
+
+    private RegionMatch resolveRegionFromMatches(List<RegionVO> matches, String originalLocation, String candidate) {
         if (matches == null || matches.isEmpty()) {
             return RegionMatch.empty();
         }
-
-        RegionVO city = matches.stream()
-                .filter(r -> location.contains(r.getName()) || r.getName().contains(location))
+        RegionVO region = matches.stream()
+                .filter(r -> regionNameMatches(originalLocation, candidate, r.getName()))
                 .findFirst()
                 .orElse(matches.get(0));
-        if (city == null || city.getId() == null) {
+        return toRegionMatch(region);
+    }
+
+    private boolean regionNameMatches(String originalLocation, String keyword, String regionName) {
+        if (regionName == null || regionName.isBlank()) {
+            return false;
+        }
+        String normalizedOriginal = originalLocation.replace("市", "");
+        String normalizedKeyword = keyword.replace("市", "");
+        String normalizedRegion = regionName.replace("市", "");
+        return normalizedOriginal.contains(normalizedRegion)
+                || normalizedKeyword.contains(normalizedRegion)
+                || normalizedRegion.contains(normalizedKeyword);
+    }
+
+    private RegionMatch toRegionMatch(RegionVO region) {
+        if (region == null || region.getId() == null) {
             return RegionMatch.empty();
         }
-
-        Integer provinceId = 0;
-        if (city.getCode() != null) {
+        if (Objects.equals(region.getLevel(), 1) && isMunicipality(region.getName())) {
+            return new RegionMatch(region.getId(), region.getId(), region.getName());
+        }
+        if (region.getCode() != null) {
             try {
-                var detail = regionService.getDetail(city.getCode());
+                var detail = regionService.getDetail(region.getCode());
                 if (detail != null && detail.getPath() != null && !detail.getPath().isEmpty()) {
-                    provinceId = detail.getPath().get(0).getId();
+                    Integer provinceId = 0;
+                    Integer cityId = 0;
+                    String cityName = "";
+                    for (RegionVO item : detail.getPath()) {
+                        if (item.getLevel() != null && item.getLevel() == 1) {
+                            provinceId = item.getId();
+                        } else if (item.getLevel() != null && item.getLevel() == 2) {
+                            cityId = item.getId();
+                            cityName = item.getName();
+                        }
+                    }
+                    if (cityId == 0 && Objects.equals(region.getLevel(), 2)) {
+                        cityId = region.getId();
+                        cityName = region.getName();
+                    }
+                    return new RegionMatch(provinceId, cityId, defaultText(cityName, region.getName()));
                 }
             } catch (Exception ignored) {
             }
         }
-        return new RegionMatch(provinceId != null ? provinceId : 0, city.getId(), city.getName());
+        if (Objects.equals(region.getLevel(), 2)) {
+            return new RegionMatch(0, region.getId(), region.getName());
+        }
+        return RegionMatch.empty();
+    }
+
+    private boolean isMunicipality(String name) {
+        if (name == null) {
+            return false;
+        }
+        String normalized = name.replace("市", "");
+        return Set.of("北京", "上海", "天津", "重庆").contains(normalized);
     }
 
     /**
@@ -764,11 +1095,30 @@ public class AdminCrawlService {
         CrawledCourse cc = crawledCourseRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("记录不存在"));
         if (cc.getReviewStatus() != 0) {
-            throw new IllegalStateException("该记录已处理");
+            throw new IllegalStateException("只有待审核课程可以驳回");
         }
         cc.setReviewStatus(2); // 已驳回
         cc.setReviewRejectReason(reason);
         cc.setReviewedAt(LocalDateTime.now());
+        crawledCourseRepository.save(cc);
+    }
+
+    /**
+     * 恢复已驳回爬取课程为待审核
+     */
+    @Transactional
+    public void restoreCrawledCourse(Integer id) {
+        CrawledCourse cc = crawledCourseRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("记录不存在"));
+        if (!Objects.equals(cc.getReviewStatus(), 2)) {
+            throw new IllegalStateException("只有已驳回课程可以恢复待审核");
+        }
+        if (cc.getImportedCourseId() != null && cc.getImportedCourseId() > 0) {
+            throw new IllegalStateException("该记录已关联正式课程，不能恢复为待审核");
+        }
+        cc.setReviewStatus(0);
+        cc.setReviewRejectReason(null);
+        cc.setReviewedAt(null);
         crawledCourseRepository.save(cc);
     }
 
@@ -854,43 +1204,6 @@ public class AdminCrawlService {
         }
     }
 
-    /**
-     * 将仍显示运行中的任务与 Python 爬虫服务状态对齐（处理回调丢失等场景）
-     */
-    private void syncRunningJobFromCrawler(CrawlJob job) {
-        if (job.getStatus() == null || job.getStatus() != 1) {
-            return;
-        }
-        if (job.getCrawlerJobId() == null || job.getCrawlerJobId().isBlank()) {
-            return;
-        }
-        try {
-            Map<String, Object> remote = crawlerClientService.getStatus(job.getCrawlerJobId());
-            String remoteStatus = String.valueOf(remote.get("status"));
-            if ("failed".equals(remoteStatus)) {
-                job.setStatus(3);
-                Object err = remote.get("error");
-                job.setErrorMessage(err != null ? err.toString() : "爬取失败");
-                job.setProgressMessage("爬取失败");
-                job.setFinishedAt(LocalDateTime.now());
-                crawlJobRepository.save(job);
-            } else if ("completed".equals(remoteStatus)) {
-                job.setStatus(2);
-                job.setProgressMessage("爬取完成");
-                Object totalItems = remote.get("total_items");
-                if (totalItems instanceof Number number) {
-                    int count = number.intValue();
-                    job.setProcessedCount(maxInt(job.getProcessedCount(), count));
-                    job.setTotalCount(maxInt(job.getTotalCount(), count));
-                }
-                job.setFinishedAt(LocalDateTime.now());
-                crawlJobRepository.save(job);
-            }
-        } catch (Exception e) {
-            log.debug("同步爬虫任务状态跳过: jobId={}, reason={}", job.getId(), e.getMessage());
-        }
-    }
-
     // ==================== 内部方法 ====================
 
     /**
@@ -961,7 +1274,13 @@ public class AdminCrawlService {
                 .findBySourceAndSourceCourseId(source, sourceCourseId);
         if (existing.isPresent()) {
             CrawledCourse cc = existing.get();
+            if (Objects.equals(cc.getReviewStatus(), 3)) {
+                log.info("跳过已入库爬取课程的同源覆盖更新: crawledId={}, source={}, sourceCourseId={}",
+                        cc.getId(), source, sourceCourseId);
+                return;
+            }
             updateCrawledCourseFields(cc, item);
+            checkCourseDuplicate(cc);
             crawledCourseRepository.save(cc);
             return;
         }
@@ -980,12 +1299,42 @@ public class AdminCrawlService {
 
     private void updateCrawledCourseFields(CrawledCourse cc, Map<String, Object> item) {
         cc.setTitle(getString(item, "title"));
-        cc.setType(getString(item, "type") != null ? getString(item, "type") : "OPEN_OFFLINE");
+        cc.setType(normalizeCourseType(getString(item, "type")));
         cc.setCategoryNameRaw(getString(item, "category_name_raw"));
+        Integer categoryId = getInt(item, "category_id", null);
+        if (categoryId != null && categoryId > 0) {
+            cc.setCategoryId(categoryId);
+        }
+        Integer subCategoryId = getInt(item, "sub_category_id", null);
+        if (subCategoryId != null && subCategoryId > 0) {
+            cc.setSubCategoryId(subCategoryId);
+        }
         cc.setCoverUrl(getString(item, "cover_url"));
         cc.setIntro(getString(item, "intro"));
         cc.setSummary(getString(item, "summary"));
-        cc.setSyllabus(getString(item, "syllabus"));
+        String syllabus = getStringAny(item, "syllabus");
+        String syllabusHtml = getStringAny(item, "syllabus_html", "syllabusHtml");
+        String syllabusPlainText = getStringAny(item, "syllabus_plain_text", "syllabusPlainText", "syllabus_text", "syllabusText");
+        String syllabusImagesJson = getJsonAny(item, "syllabus_images_json", "syllabusImagesJson", "syllabus_images", "syllabusImages");
+        cc.setSyllabus(defaultText(syllabus, ""));
+        cc.setSyllabusPlainText(defaultText(syllabusPlainText, defaultText(syllabus, "")));
+        cc.setSyllabusHtml(defaultText(syllabusHtml, ""));
+        cc.setSyllabusImagesJson(defaultJsonArray(syllabusImagesJson));
+        cc.setSyllabusContentType(normalizeContentType(
+                getStringAny(item, "syllabus_content_type", "syllabusContentType"),
+                inferContentType(cc.getSyllabusPlainText(), cc.getSyllabusHtml(), cc.getSyllabusImagesJson())));
+        cc.setSitePhotosPlainText(defaultText(getStringAny(item, "site_photos_plain_text", "sitePhotosPlainText"), ""));
+        cc.setSitePhotosHtml(defaultText(getStringAny(item, "site_photos_html", "sitePhotosHtml"), ""));
+        cc.setSitePhotosImagesJson(defaultJsonArray(getJsonAny(item, "site_photos_images_json", "sitePhotosImagesJson", "site_photos", "sitePhotos", "site_photos_images", "sitePhotosImages")));
+        cc.setSitePhotosContentType(normalizeContentType(
+                getStringAny(item, "site_photos_content_type", "sitePhotosContentType"),
+                inferContentType(cc.getSitePhotosPlainText(), cc.getSitePhotosHtml(), cc.getSitePhotosImagesJson())));
+        cc.setHonorCertificatesPlainText(defaultText(getStringAny(item, "honor_certificates_plain_text", "honorCertificatesPlainText"), ""));
+        cc.setHonorCertificatesHtml(defaultText(getStringAny(item, "honor_certificates_html", "honorCertificatesHtml"), ""));
+        cc.setHonorCertificatesImagesJson(defaultJsonArray(getJsonAny(item, "honor_certificates_images_json", "honorCertificatesImagesJson", "honor_certificates", "honorCertificates", "honor_certificates_images", "honorCertificatesImages")));
+        cc.setHonorCertificatesContentType(normalizeContentType(
+                getStringAny(item, "honor_certificates_content_type", "honorCertificatesContentType"),
+                inferContentType(cc.getHonorCertificatesPlainText(), cc.getHonorCertificatesHtml(), cc.getHonorCertificatesImagesJson())));
         cc.setAudience(getString(item, "audience"));
         cc.setHighlights(getString(item, "highlights"));
         cc.setDurationDays(getInt(item, "duration_days", 0));
@@ -1000,6 +1349,155 @@ public class AdminCrawlService {
         cc.setLearningOutcomes(getString(item, "learning_outcomes"));
         cc.setServicesJson(toJson(item.get("services_json")));
         cc.setRawJson(toJson(item.getOrDefault("raw_json", item)));
+        autoMapCourseCategory(cc);
+        normalizeCourseTiming(cc);
+    }
+
+    private void normalizeCourseTiming(CrawledCourse cc) {
+        Integer durationDays = cc.getDurationDays();
+        BigDecimal totalHours = cc.getTotalHours();
+        if (durationDays != null && durationDays > 0 && (totalHours == null || totalHours.compareTo(BigDecimal.ZERO) <= 0)) {
+            cc.setTotalHours(BigDecimal.valueOf(durationDays).multiply(BigDecimal.valueOf(6)));
+        }
+    }
+
+    private void autoMapCourseCategory(CrawledCourse cc) {
+        if (cc.getCategoryId() != null && cc.getCategoryId() > 0) {
+            return;
+        }
+        CategoryTreeVO matched = matchCourseCategory(cc.getCategoryNameRaw());
+        if (matched == null) {
+            matched = matchCourseCategory(String.join(" ",
+                    defaultText(cc.getTitle(), ""),
+                    defaultText(cc.getKeywords(), ""),
+                    defaultText(cc.getSummary(), "")));
+        }
+        if (matched != null && matched.getId() != null) {
+            cc.setCategoryId(matched.getId());
+            cc.setSubCategoryId(0);
+        }
+    }
+
+    private CategoryTreeVO matchCourseCategory(String text) {
+        String normalizedText = normalizeCategoryText(text);
+        if (normalizedText.isBlank() || normalizeCategoryText("\u6682\u65e0").equals(normalizedText)) {
+            return null;
+        }
+        List<CategoryTreeVO> categories = categoryService.getTree("COURSE_CATEGORY");
+        for (CategoryTreeVO category : categories) {
+            String name = normalizeCategoryText(category.getName());
+            if (!name.isBlank() && (normalizedText.equals(name) || normalizedText.contains(name) || name.contains(normalizedText))) {
+                return category;
+            }
+        }
+        for (CategoryTreeVO category : categories) {
+            for (String alias : courseCategoryAliases(category.getName())) {
+                String normalizedAlias = normalizeCategoryText(alias);
+                if (!normalizedAlias.isBlank() && normalizedText.contains(normalizedAlias)) {
+                    return category;
+                }
+            }
+        }
+        return null;
+    }
+
+    private String normalizeCategoryText(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.toLowerCase(Locale.ROOT)
+                .replaceAll("[\\s\\p{Punct}\uff0c\u3001\uff1a\uff1b\uff08\uff09\u3010\u3011\u300a\u300b]+", "")
+                .replace("\u8bfe\u7a0b", "")
+                .replace("\u57f9\u8bad\u73ed", "")
+                .replace("\u57f9\u8bad", "")
+                .replace("\u516c\u5f00\u8bfe", "")
+                .trim();
+    }
+
+    private List<String> courseCategoryAliases(String categoryName) {
+        String name = normalizeCategoryText(categoryName);
+        if (name.equals(normalizeCategoryText("\u7ecf\u8425\u6218\u7565"))) {
+            return List.of("\u6218\u7565", "\u6218\u7565\u7ba1\u7406", "\u7ecf\u8425", "\u5546\u4e1a\u6a21\u5f0f", "\u4f01\u4e1a\u6218\u7565");
+        }
+        if (name.equals(normalizeCategoryText("\u5e02\u573a\u8425\u9500"))) {
+            return List.of("\u8425\u9500", "\u8425\u9500\u7ba1\u7406", "\u5e02\u573a", "\u54c1\u724c", "\u7f51\u7edc\u8425\u9500");
+        }
+        if (name.equals(normalizeCategoryText("\u7814\u53d1\u7ba1\u7406"))) {
+            return List.of("\u7814\u53d1", "\u751f\u4ea7\u7814\u53d1", "\u4ea7\u54c1\u7814\u53d1", "\u6280\u672f\u7814\u53d1");
+        }
+        if (name.equals(normalizeCategoryText("\u9500\u552e\u7ba1\u7406"))) {
+            return List.of("\u9500\u552e", "\u5927\u5ba2\u6237", "\u6e20\u9053", "\u8c08\u5224", "\u95e8\u5e97", "\u7ec8\u7aef");
+        }
+        if (name.equals(normalizeCategoryText("\u91c7\u8d2d\u7ba1\u7406"))) {
+            return List.of("\u91c7\u8d2d", "\u91c7\u8d2d\u7269\u6d41", "\u62db\u6807", "\u4f9b\u5e94\u5546");
+        }
+        if (name.equals(normalizeCategoryText("\u751f\u4ea7\u7ba1\u7406"))) {
+            return List.of("\u751f\u4ea7", "\u5de5\u5382", "\u7cbe\u76ca", "\u73b0\u573a", "\u73ed\u7ec4", "\u8bbe\u5907", "\u5b89\u5168\u751f\u4ea7");
+        }
+        if (name.equals(normalizeCategoryText("\u7269\u6d41\u7ba1\u7406"))) {
+            return List.of("\u7269\u6d41", "\u4f9b\u5e94\u94fe", "\u4ed3\u50a8", "\u5e93\u5b58");
+        }
+        if (name.equals(normalizeCategoryText("\u5ba2\u6237\u670d\u52a1"))) {
+            return List.of("\u5ba2\u6237", "\u5ba2\u670d", "\u670d\u52a1", "\u5ba2\u6237\u4f53\u9a8c");
+        }
+        if (name.equals(normalizeCategoryText("\u8d22\u52a1\u7a0e\u52a1"))) {
+            return List.of("\u8d22\u52a1", "\u8d22\u52a1\u7ba1\u7406", "\u7a0e\u52a1", "\u4f1a\u8ba1", "\u6210\u672c", "\u9884\u7b97");
+        }
+        if (name.equals(normalizeCategoryText("\u4eba\u529b\u8d44\u6e90"))) {
+            return List.of("\u4eba\u529b", "\u4eba\u8d44", "\u4eba\u529b\u8d44\u6e90", "\u62db\u8058", "\u7ee9\u6548", "\u85aa\u916c", "\u52b3\u52a8\u5173\u7cfb");
+        }
+        if (name.equals(normalizeCategoryText("\u57f9\u8bad\u53d1\u5c55"))) {
+            return List.of("\u57f9\u8bad\u53d1\u5c55", "\u5185\u8bad\u5e08", "\u8bfe\u7a0b\u5f00\u53d1", "\u4eba\u624d\u53d1\u5c55", "\u5b66\u4e60\u53d1\u5c55");
+        }
+        if (name.equals(normalizeCategoryText("\u8d28\u91cf\u7ba1\u7406"))) {
+            return List.of("\u8d28\u91cf", "\u54c1\u8d28", "iso", "\u516d\u897f\u683c\u739b");
+        }
+        if (name.equals(normalizeCategoryText("\u9879\u76ee\u7ba1\u7406"))) {
+            return List.of("\u9879\u76ee", "pmp", "\u654f\u6377");
+        }
+        if (name.equals(normalizeCategoryText("\u9886\u5bfc\u529b"))) {
+            return List.of("\u9886\u5bfc", "\u9886\u5bfc\u827a\u672f", "\u7ba1\u7406\u827a\u672f", "\u7ba1\u7406\u6280\u80fd", "\u4e2d\u9ad8\u5c42", "\u6267\u884c\u529b");
+        }
+        if (name.equals(normalizeCategoryText("\u804c\u4e1a\u7d20\u517b"))) {
+            return List.of("\u804c\u4e1a\u7d20\u517b", "\u6c9f\u901a", "\u65f6\u95f4\u7ba1\u7406", "\u5546\u52a1\u793c\u4eea", "\u538b\u529b", "\u60c5\u7eea");
+        }
+        if (name.equals(normalizeCategoryText("\u804c\u4e1a\u6280\u80fd"))) {
+            return List.of("\u804c\u4e1a\u6280\u80fd", "\u7efc\u5408\u6280\u80fd", "\u529e\u516c", "excel", "ppt", "\u6f14\u8bb2", "\u6c47\u62a5");
+        }
+        if (name.equals(normalizeCategoryText("MBA/\u603b\u88c1\u73ed"))) {
+            return List.of("mba", "\u603b\u88c1", "\u9ad8\u7ba1", "\u8463\u4e8b\u957f");
+        }
+        if (name.equals(normalizeCategoryText("\u56fd\u5b66/\u5fc3\u7406\u5b66"))) {
+            return List.of("\u56fd\u5b66", "\u5fc3\u7406", "\u6613\u7ecf");
+        }
+        if (name.equals(normalizeCategoryText("\u8bed\u8a00"))) {
+            return List.of("\u8bed\u8a00", "\u82f1\u8bed");
+        }
+        if (name.equals(normalizeCategoryText("\u884c\u653f/\u6cd5\u89c4"))) {
+            return List.of("\u884c\u653f", "\u6cd5\u5f8b", "\u6cd5\u52a1", "\u6cd5\u89c4", "\u5408\u89c4");
+        }
+        if (name.equals(normalizeCategoryText("\u515a\u653f\u7231\u56fd"))) {
+            return List.of("\u515a\u5efa", "\u515a\u653f", "\u7ea2\u8272", "\u7231\u56fd");
+        }
+        if (name.equals(normalizeCategoryText("\u5bb6\u5ead\u4eb2\u5b50"))) {
+            return List.of("\u5bb6\u5ead", "\u4eb2\u5b50", "\u6559\u80b2\u5b69\u5b50");
+        }
+        if (name.equals(normalizeCategoryText("\u5065\u5eb7\u517b\u751f"))) {
+            return List.of("\u5065\u5eb7", "\u517b\u751f", "\u4e2d\u533b");
+        }
+        if (name.equals(normalizeCategoryText("\u653f\u7ecf"))) {
+            return List.of("\u653f\u7ecf", "\u5b8f\u89c2\u7ecf\u6d4e", "\u7ecf\u6d4e", "\u653f\u7b56");
+        }
+        if (name.equals(normalizeCategoryText("\u65b0\u5a92\u4f53"))) {
+            return List.of("\u65b0\u5a92\u4f53", "\u77ed\u89c6\u9891", "\u76f4\u64ad", "\u79c1\u57df", "\u6296\u97f3");
+        }
+        if (name.equals(normalizeCategoryText("\u65b0\u6280\u672f"))) {
+            return List.of("\u65b0\u6280\u672f", "\u4eba\u5de5\u667a\u80fd", "\u6570\u5b57\u5316", "\u5927\u6570\u636e", "\u4e92\u8054\u7f51", "ai", "chatgpt");
+        }
+        if (name.equals(normalizeCategoryText("\u5176\u5b83"))) {
+            return List.of("\u5176\u4ed6", "\u5176\u5b83", "\u7ebf\u4e0a");
+        }
+        return List.of();
     }
 
     /**
@@ -1029,8 +1527,7 @@ public class AdminCrawlService {
      * 课程去重检查
      */
     private void checkCourseDuplicate(CrawledCourse cc) {
-        // source_url 已由唯一约束处理，这里做标题模糊匹配
-        cc.setDedupStatus(1); // 默认无重复
+        courseDuplicateService.checkAndApply(cc, CourseDuplicateService.CheckScene.CALLBACK_SAVE);
     }
 
     // ==================== VO 转换 ====================
@@ -1102,23 +1599,62 @@ public class AdminCrawlService {
         return vo;
     }
 
+    private Map<Integer, String> courseCategoryNames(CrawledCourse cc) {
+        Set<Integer> ids = new HashSet<>();
+        if (cc.getCategoryId() != null && cc.getCategoryId() > 0) {
+            ids.add(cc.getCategoryId());
+        }
+        if (cc.getSubCategoryId() != null && cc.getSubCategoryId() > 0) {
+            ids.add(cc.getSubCategoryId());
+        }
+        return ids.isEmpty() ? Collections.emptyMap() : categoryService.getNameMap(ids);
+    }
+
+    private String courseTypeLabel(String type) {
+        return switch (normalizeCourseType(type)) {
+            case "OPEN_ONLINE" -> "\u7ebf\u4e0a\u516c\u5f00\u8bfe";
+            case "OPEN_OFFLINE" -> "\u7ebf\u4e0b\u516c\u5f00\u8bfe";
+            case "INTERNAL" -> "\u5185\u8bad\u8bfe";
+            default -> "\u672a\u77e5";
+        };
+    }
+
     private CrawledCourseVO toCourseVO(CrawledCourse cc) {
         CrawledCourseVO vo = new CrawledCourseVO();
         vo.setId(cc.getId());
         vo.setSource(cc.getSource());
         vo.setSourceUrl(cc.getSourceUrl());
         vo.setTitle(cc.getTitle());
-        vo.setType(cc.getType());
+        vo.setType(normalizeCourseType(cc.getType()));
+        vo.setTypeLabel(courseTypeLabel(cc.getType()));
+        vo.setCategoryId(cc.getCategoryId());
+        vo.setSubCategoryId(cc.getSubCategoryId());
+        Map<Integer, String> categoryNames = courseCategoryNames(cc);
+        vo.setCategoryName(categoryNames.get(cc.getCategoryId()));
+        vo.setSubCategoryName(categoryNames.get(cc.getSubCategoryId()));
         vo.setCategoryNameRaw(cc.getCategoryNameRaw());
         vo.setCoverUrl(cc.getCoverUrl());
         vo.setPrice(cc.getPrice());
+        Map<String, Object> rawJson = parseRawJson(cc);
+        vo.setPriceRaw(rawJsonString(rawJson, "price_raw"));
+        vo.setPriceParseStatus(rawJsonString(rawJson, "price_parse_status"));
+        vo.setContentType(rawJsonString(rawJson, "content_type"));
         vo.setDurationDays(cc.getDurationDays());
         vo.setTrainerNameRaw(cc.getTrainerNameRaw());
         vo.setDedupStatus(cc.getDedupStatus());
         vo.setDedupStatusText(dedupStatusText(cc.getDedupStatus()));
+        vo.setDedupTargetType(cc.getDedupTargetType());
+        vo.setDedupTargetId(cc.getDedupTargetId());
+        vo.setDedupTargetFrontendUrl(dedupTargetFrontendUrl(cc));
+        vo.setDedupMatchType(cc.getDedupMatchType());
+        vo.setDedupScore(cc.getDedupScore());
+        vo.setDedupCheckedAt(cc.getDedupCheckedAt());
         vo.setDedupReason(cc.getDedupReason());
         vo.setReviewStatus(cc.getReviewStatus());
         vo.setReviewStatusText(reviewStatusText(cc.getReviewStatus()));
+        vo.setReviewRejectReason(cc.getReviewRejectReason());
+        vo.setReviewedAt(cc.getReviewedAt());
+        vo.setImportedCourseId(cc.getImportedCourseId());
         vo.setCreatedAt(cc.getCreatedAt());
         return vo;
     }
@@ -1130,19 +1666,39 @@ public class AdminCrawlService {
         vo.setSourceUrl(cc.getSourceUrl());
         vo.setSourceCourseId(cc.getSourceCourseId());
         vo.setTitle(cc.getTitle());
-        vo.setType(cc.getType());
+        vo.setType(normalizeCourseType(cc.getType()));
+        vo.setTypeLabel(courseTypeLabel(cc.getType()));
         vo.setCategoryId(cc.getCategoryId());
         vo.setSubCategoryId(cc.getSubCategoryId());
+        Map<Integer, String> categoryNames = courseCategoryNames(cc);
+        vo.setCategoryName(categoryNames.get(cc.getCategoryId()));
+        vo.setSubCategoryName(categoryNames.get(cc.getSubCategoryId()));
         vo.setCategoryNameRaw(cc.getCategoryNameRaw());
         vo.setCoverUrl(cc.getCoverUrl());
         vo.setIntro(cc.getIntro());
         vo.setSummary(cc.getSummary());
         vo.setSyllabus(cc.getSyllabus());
+        vo.setSyllabusPlainText(cc.getSyllabusPlainText());
+        vo.setSyllabusHtml(cc.getSyllabusHtml());
+        vo.setSyllabusContentType(cc.getSyllabusContentType());
+        vo.setSyllabusImages(parseJson(cc.getSyllabusImagesJson(), new TypeReference<>() {}));
+        vo.setSitePhotosPlainText(cc.getSitePhotosPlainText());
+        vo.setSitePhotosHtml(cc.getSitePhotosHtml());
+        vo.setSitePhotosContentType(cc.getSitePhotosContentType());
+        vo.setSitePhotosImages(parseJson(cc.getSitePhotosImagesJson(), new TypeReference<>() {}));
+        vo.setHonorCertificatesPlainText(cc.getHonorCertificatesPlainText());
+        vo.setHonorCertificatesHtml(cc.getHonorCertificatesHtml());
+        vo.setHonorCertificatesContentType(cc.getHonorCertificatesContentType());
+        vo.setHonorCertificatesImages(parseJson(cc.getHonorCertificatesImagesJson(), new TypeReference<>() {}));
         vo.setAudience(cc.getAudience());
         vo.setHighlights(cc.getHighlights());
         vo.setDurationDays(cc.getDurationDays());
         vo.setTotalHours(cc.getTotalHours());
         vo.setPrice(cc.getPrice());
+        Map<String, Object> rawJson = parseRawJson(cc);
+        vo.setPriceRaw(rawJsonString(rawJson, "price_raw"));
+        vo.setPriceParseStatus(rawJsonString(rawJson, "price_parse_status"));
+        vo.setContentType(rawJsonString(rawJson, "content_type"));
         vo.setOriginalPrice(cc.getOriginalPrice());
         vo.setKeywords(cc.getKeywords());
         vo.setTrainerNameRaw(cc.getTrainerNameRaw());
@@ -1151,6 +1707,12 @@ public class AdminCrawlService {
         vo.setDedupStatus(cc.getDedupStatus());
         vo.setDedupStatusText(dedupStatusText(cc.getDedupStatus()));
         vo.setDedupCourseId(cc.getDedupCourseId());
+        vo.setDedupTargetType(cc.getDedupTargetType());
+        vo.setDedupTargetId(cc.getDedupTargetId());
+        vo.setDedupTargetFrontendUrl(dedupTargetFrontendUrl(cc));
+        vo.setDedupMatchType(cc.getDedupMatchType());
+        vo.setDedupScore(cc.getDedupScore());
+        vo.setDedupCheckedAt(cc.getDedupCheckedAt());
         vo.setDedupReason(cc.getDedupReason());
         vo.setReviewStatus(cc.getReviewStatus());
         vo.setReviewStatusText(reviewStatusText(cc.getReviewStatus()));
@@ -1161,9 +1723,79 @@ public class AdminCrawlService {
 
         vo.setPlansList(toPlanItems(cc.getPlansJson()));
         vo.setServicesList(parseJson(cc.getServicesJson(), new TypeReference<>() {}));
-        vo.setRawJson(parseJson(cc.getRawJson(), new TypeReference<>() {}));
+        vo.setDiagnostics(rawJsonList(rawJson, "diagnostics"));
+        vo.setRawJson(rawJson);
 
         return vo;
+    }
+
+    private boolean isExplicitFreePrice(CrawledCourse cc, BigDecimal price) {
+        if (price == null || price.compareTo(BigDecimal.ZERO) > 0) {
+            return false;
+        }
+        Map<String, Object> rawJson = parseRawJson(cc);
+        String status = rawJsonString(rawJson, "price_parse_status");
+        if ("NEGOTIABLE".equalsIgnoreCase(status) || "MISSING".equalsIgnoreCase(status) || "INVALID".equalsIgnoreCase(status)) {
+            return false;
+        }
+        if ("FREE".equalsIgnoreCase(status)) {
+            return true;
+        }
+        if ("NUMERIC".equalsIgnoreCase(status)) {
+            return true;
+        }
+        String raw = rawJsonString(rawJson, "price_raw");
+        if (raw != null) {
+            String normalized = raw.toLowerCase(Locale.ROOT);
+            if (normalized.contains("面议") || normalized.contains("待商") || normalized.contains("咨询") || normalized.contains("洽谈")) {
+                return false;
+            }
+            if (normalized.contains("免费") || normalized.matches(".*(^|[^0-9])0\\s*(元|rmb|￥)?.*")) {
+                return true;
+            }
+        }
+        return price.compareTo(BigDecimal.ZERO) <= 0;
+    }
+
+    private Map<String, Object> parseRawJson(CrawledCourse cc) {
+        Map<String, Object> rawJson = parseJson(cc.getRawJson(), new TypeReference<>() {});
+        return rawJson == null ? Collections.emptyMap() : rawJson;
+    }
+
+    private String rawJsonString(Map<String, Object> rawJson, String key) {
+        if (rawJson == null) {
+            return null;
+        }
+        Object value = rawJson.get(key);
+        if (value == null) {
+            return null;
+        }
+        String text = value.toString().trim();
+        return text.isBlank() ? null : text;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> rawJsonList(Map<String, Object> rawJson, String key) {
+        if (rawJson == null) {
+            return List.of();
+        }
+        Object value = rawJson.get(key);
+        if (!(value instanceof List<?> rawList)) {
+            return List.of();
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object item : rawList) {
+            if (item instanceof Map<?, ?> map) {
+                Map<String, Object> normalized = new LinkedHashMap<>();
+                for (Map.Entry<?, ?> entry : map.entrySet()) {
+                    if (entry.getKey() != null) {
+                        normalized.put(entry.getKey().toString(), entry.getValue());
+                    }
+                }
+                result.add(normalized);
+            }
+        }
+        return result;
     }
 
     private List<CrawledCourseDetailVO.PlanItem> toPlanItems(String plansJson) {
@@ -1182,8 +1814,13 @@ public class AdminCrawlService {
             String location = mapString(raw, "location", "city", "address");
             item.setStartTime(defaultText(start, ""));
             item.setEndTime(defaultText(end, ""));
+            item.setStartDate(defaultText(mapString(raw, "start_date", "start_time", "startDate", "startTime", "date"), ""));
+            item.setProvinceId(defaultInt(mapInteger(raw, "provinceId", "province_id")));
+            item.setCityId(defaultInt(mapInteger(raw, "cityId", "city_id")));
+            item.setDistrictId(defaultInt(mapInteger(raw, "districtId", "district_id")));
             item.setCity(defaultText(mapString(raw, "city"), defaultText(location, "")));
             item.setAddress(defaultText(mapString(raw, "address"), defaultText(location, "")));
+            item.setOnlineUrl(defaultText(mapString(raw, "online_url", "onlineUrl", "url"), ""));
             items.add(item);
         }
         return items;
@@ -1213,6 +1850,20 @@ public class AdminCrawlService {
 
     // ==================== 工具方法 ====================
 
+    private String dedupTargetFrontendUrl(CrawledCourse cc) {
+        if (cc == null
+                || cc.getDedupTargetId() == null
+                || !CourseDuplicateService.TARGET_COURSE.equals(cc.getDedupTargetType())) {
+            return null;
+        }
+        String normalizedType = normalizeCourseType(cc.getType());
+        String segment = ("OPEN_ONLINE".equals(normalizedType) || "OPEN_OFFLINE".equals(normalizedType))
+                ? "opencourse"
+                : "inhousecourse";
+        String base = siteBaseUrl == null ? "" : siteBaseUrl.replaceAll("/+$", "");
+        return base + "/zh-CN/" + segment + "/" + cc.getDedupTargetId() + ".htm";
+    }
+
     private String dedupStatusText(Integer status) {
         if (status == null) return "未检查";
         return switch (status) {
@@ -1235,6 +1886,32 @@ public class AdminCrawlService {
         };
     }
 
+    private String importBlockedMessage(Integer status) {
+        if (Objects.equals(status, 2)) {
+            return "已驳回课程不能直接导入，请先恢复为待审核";
+        }
+        if (Objects.equals(status, 3)) {
+            return "已入库课程不能重复导入";
+        }
+        if (Objects.equals(status, 1)) {
+            return "已通过课程不能通过该入口重复导入";
+        }
+        return "只有待审核课程可以导入";
+    }
+
+    private String updateBlockedMessage(Integer status) {
+        if (Objects.equals(status, 2)) {
+            return "已驳回课程不能直接保存审核修改，请先恢复为待审核";
+        }
+        if (Objects.equals(status, 3)) {
+            return "已入库课程不能保存审核草稿，请到正式课程管理中修改";
+        }
+        if (Objects.equals(status, 1)) {
+            return "已通过课程不能通过该入口保存审核草稿";
+        }
+        return "只有待审核课程可以保存审核修改";
+    }
+
     private String jobStatusText(Integer status) {
         if (status == null) return "待执行";
         return switch (status) {
@@ -1250,6 +1927,64 @@ public class AdminCrawlService {
     private String getString(Map<String, Object> item, String key) {
         Object val = item.get(key);
         return val != null ? val.toString() : null;
+    }
+
+    private String getStringAny(Map<String, Object> item, String... keys) {
+        for (String key : keys) {
+            String value = getString(item, key);
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private String getJsonAny(Map<String, Object> item, String... keys) {
+        for (String key : keys) {
+            Object value = item.get(key);
+            if (value == null) {
+                continue;
+            }
+            if (value instanceof String text) {
+                if (!text.isBlank()) {
+                    return text;
+                }
+                continue;
+            }
+            return toJson(value);
+        }
+        return null;
+    }
+
+    private String normalizeContentType(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        if (Set.of("TEXT", "IMAGE", "MIXED").contains(normalized)) {
+            return normalized;
+        }
+        return fallback;
+    }
+
+    private String inferContentType(String plainText, String html, String imagesJson) {
+        boolean hasText = (plainText != null && !plainText.isBlank()) || (html != null && !html.isBlank());
+        boolean hasImages = hasJsonItems(imagesJson);
+        if (hasText && hasImages) {
+            return "MIXED";
+        }
+        if (hasImages) {
+            return "IMAGE";
+        }
+        return "TEXT";
+    }
+
+    private boolean hasJsonItems(String json) {
+        if (json == null || json.isBlank()) {
+            return false;
+        }
+        List<?> items = parseJson(json, new TypeReference<>() {});
+        return items != null && !items.isEmpty();
     }
 
     private Integer getInt(Map<String, Object> item, String key, Integer defaultVal) {
@@ -1320,6 +2055,13 @@ public class AdminCrawlService {
         return Math.max(defaultInt(left), defaultInt(right));
     }
 
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
     private String defaultText(String value) {
         return defaultText(value, "暂无");
     }
@@ -1365,11 +2107,23 @@ public class AdminCrawlService {
         return null;
     }
 
+    private Integer mapInteger(Map<String, Object> raw, String... keys) {
+        String text = mapString(raw, keys);
+        if (text == null) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     private LocalDate parseLocalDate(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
-        String text = value.trim();
+        String text = value.trim().replace('T', ' ');
         for (String part : text.split("\\s+")) {
             try {
                 return LocalDate.parse(part);
@@ -1382,6 +2136,10 @@ public class AdminCrawlService {
     private record RegionMatch(Integer provinceId, Integer cityId, String cityName) {
         private static RegionMatch empty() {
             return new RegionMatch(0, 0, "");
+        }
+
+        private boolean isEmpty() {
+            return cityId == null || cityId <= 0 || provinceId == null || provinceId <= 0;
         }
     }
 }

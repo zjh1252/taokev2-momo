@@ -24,6 +24,10 @@ export function getWatchVideoIdFromOrder(order: OrderVO): number | undefined {
 
 /** 课程有效期截止时间（录播课有效期一年，自支付时间起算；未支付返回 null） */
 export function getOrderAccessExpiry(order: OrderVO): Date | null {
+  if (order.validUntil) {
+    const expiry = new Date(order.validUntil);
+    return Number.isNaN(expiry.getTime()) ? null : expiry;
+  }
   if (!order.paidAt) return null;
   const expiry = new Date(order.paidAt);
   expiry.setFullYear(expiry.getFullYear() + 1);

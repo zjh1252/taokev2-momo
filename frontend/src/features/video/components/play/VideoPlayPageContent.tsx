@@ -5,6 +5,7 @@ import { BookOpen, Eye, Lock, Share2, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
+import { buildVideoCategoryTags } from '../../utils/category-tags';
 import { SafeImage } from '@/components/safe-image';
 import { resolveImageSrc, getVideoCoverFallback } from '@/lib/media';
 import type { VideoDetail, VideoChapter } from '../../api/types';
@@ -62,29 +63,7 @@ export function VideoPlayPageContent({ video }: VideoPlayPageContentProps) {
     return undefined;
   }, [progressInfo, currentChapterId]);
 
-  const categoryTags = useMemo(() => {
-    const tags: { label: string; href?: string }[] = [];
-    if (video.categoryName) {
-      tags.push({
-        label: video.categoryName,
-        href: `${ROUTES.ONLINE_COURSES}?categoryId=${video.categoryId}`,
-      });
-    }
-    if (video.subCategoryName && video.subCategoryId) {
-      tags.push({
-        label: video.subCategoryName,
-        href: `${ROUTES.ONLINE_COURSES}?categoryId=${video.categoryId}&subCategoryId=${video.subCategoryId}`,
-      });
-    }
-    if (video.keywords) {
-      video.keywords
-        .split(/[,，、\s]+/)
-        .filter(Boolean)
-        .slice(0, 4)
-        .forEach((kw) => tags.push({ label: kw }));
-    }
-    return tags;
-  }, [video]);
+  const categoryTags = useMemo(() => buildVideoCategoryTags(video), [video]);
 
   const handleShare = async () => {
     const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -108,12 +87,12 @@ export function VideoPlayPageContent({ video }: VideoPlayPageContentProps) {
     playbackMode !== 'unsupported';
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex w-full max-w-full flex-col gap-8 overflow-x-auto pb-2">
       {/* 播放器 + 评价卡片 */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6 items-stretch">
-        <div className="relative group">
+      <div className="grid w-full max-w-none grid-cols-1 items-stretch gap-6 lg:min-w-[920px] lg:grid-cols-[minmax(560px,1fr)_280px]">
+        <div className="relative min-w-0 max-w-full lg:min-w-[560px] group">
           <div className="absolute -inset-1 bg-gradient-to-br from-slate-900/20 via-primary/10 to-slate-900/20 rounded-[1.25rem] blur-sm opacity-70 group-hover:opacity-90 transition-opacity" />
-          <div className="relative aspect-video rounded-2xl overflow-hidden bg-[#0f1419] shadow-2xl ring-1 ring-black/10">
+          <div className="relative aspect-video min-w-0 max-w-full rounded-2xl overflow-hidden bg-[#0f1419] shadow-2xl ring-1 ring-black/10">
             {accessLoading ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="size-10 rounded-full border-2 border-white/20 border-t-white animate-spin" />
@@ -125,12 +104,11 @@ export function VideoPlayPageContent({ video }: VideoPlayPageContentProps) {
                 src={playbackSrc}
                 title={currentTitle}
                 poster={poster}
-                className="h-full w-full video-play-skin"
+                className="h-full w-full min-w-0 max-w-full video-play-skin"
                 autoplay
                 initialTime={initialTime}
                 videoId={video.id}
                 chapterId={currentChapterId ?? undefined}
-                externalUrl={video.externalUrl}
               />
             ) : (
               <>
@@ -167,13 +145,13 @@ export function VideoPlayPageContent({ video }: VideoPlayPageContentProps) {
           ) : null}
         </div>
 
-        <div className="hidden xl:block min-h-[280px]">
+        <div className="hidden min-w-0 lg:block min-h-[280px]">
           <VideoPlayRatingCard video={video} />
         </div>
       </div>
 
       {/* 移动端评价卡片 */}
-      <div className="xl:hidden">
+      <div className="lg:hidden">
         <VideoPlayRatingCard video={video} />
       </div>
 

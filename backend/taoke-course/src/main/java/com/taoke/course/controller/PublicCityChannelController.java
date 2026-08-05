@@ -5,6 +5,7 @@ import com.taoke.common.security.Public;
 import com.taoke.course.api.CityChannelService;
 import com.taoke.course.dto.city.ActiveCityVO;
 import com.taoke.course.dto.city.CityChannelDetailVO;
+import com.taoke.course.dto.city.CityChannelHomeVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -42,5 +43,12 @@ public class PublicCityChannelController {
     @GetMapping("/cities/{enName}")
     public ApiResponse<CityChannelDetailVO> detail(@PathVariable String enName) {
         return ApiResponse.ok(cityChannelService.resolveByEnName(enName));
+    }
+
+    @Public
+    @Operation(summary = "城市综合页聚合（详情 + 公开课/内训/录播/机构/专家块）")
+    @GetMapping("/cities/{enName}/home")
+    public ApiResponse<CityChannelHomeVO> home(@PathVariable String enName) {
+        return ApiResponse.ok(cityChannelService.loadHome(enName));
     }
 }

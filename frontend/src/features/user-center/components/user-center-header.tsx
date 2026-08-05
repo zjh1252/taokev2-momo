@@ -1,25 +1,23 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
-import { resolveImageSrc } from '@/lib/media';
+import { UserAvatar } from '@/components/user-avatar';
 import { useAuth } from '@/lib/auth/auth-context';
 import { NotificationBell } from '@/features/notification/components/NotificationBell';
 import { CartBadge } from '@/features/cart/components/CartBadge';
 import { SearchBar } from '@/components/layout/search-bar';
 
-/** 集团产品矩阵（与 public 顶栏保持一致） */
+/** 集团产品矩阵（与 public TopNavBar 保持一致） */
 const GROUP_LINKS = [
-  { label: '淘课集团', href: '#' },
-  { label: '淘课网', href: '#' },
-  { label: '培训宝', href: '#' },
-  { label: '目标通', href: '#' },
-  { label: 'AI 导师', href: '#' },
-  { label: '智能创导', href: '#' },
-  { label: 'AI 陪练', href: '#' },
-];
+  { label: '淘课集团', href: 'https://www.taoke.com.cn/' },
+  { label: '培训宝', href: 'https://www.91pxb.com/' },
+  { label: '目标通', href: 'https://www.91mbt.com/' },
+  { label: 'AI 导师', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/mentor/604996/list' },
+  { label: '智能创导', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/extraction/604996' },
+  { label: 'AI 陪练', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/training_partner/604996/list' },
+] as const;
 
 /** 主导航链接（与 AppHeader 同步） */
 const NAV_LINKS = [
@@ -64,8 +62,6 @@ const ROLE_LABELS: Record<string, string> = {
 export function UserCenterHeader() {
   const { user, logout, publicHomeHref, activeRole } = useAuth();
   const roleSuffix = activeRole && ROLE_LABELS[activeRole] ? `（${ROLE_LABELS[activeRole]}）` : '';
-  const [avatarBroken, setAvatarBroken] = useState(false);
-  const showAvatar = user?.avatarUrl && !avatarBroken;
 
   return (
     <>
@@ -76,7 +72,12 @@ export function UserCenterHeader() {
             {GROUP_LINKS.map((link, i) => (
               <span key={link.label} className="flex items-center gap-3">
                 {i > 0 && <span className="text-slate-300">|</span>}
-                <a href={link.href} className="hover:text-primary transition-colors">
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors"
+                >
                   {link.label}
                 </a>
               </span>
@@ -95,25 +96,16 @@ export function UserCenterHeader() {
             {/* 用户区域：头像 + 昵称（含角色后缀）+ 用户中心 + 我的主页 + 退出 */}
             {user ? (
               <div className="flex items-center gap-3">
-                {showAvatar ? (
-                  <Image
-                    src={resolveImageSrc(user.avatarUrl)}
-                    alt={user.nickname}
-                    width={22}
-                    height={22}
-                    unoptimized
-                    className="size-[22px] rounded-full object-cover"
-                    onError={() => setAvatarBroken(true)}
-                  />
-                ) : (
-                  <div className="size-[22px] rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                    {(user.nickname || '?').slice(0, 1)}
-                  </div>
-                )}
-                <span className="text-slate-700 font-medium max-w-[160px] truncate">
-                  {user.nickname}
-                  {roleSuffix && <span className="text-slate-500 ml-1">{roleSuffix}</span>}
-                </span>
+                <Link
+                  href={ROUTES.DASHBOARD}
+                  className="group flex items-center gap-1.5 min-w-0 hover:text-primary transition-colors"
+                >
+                  <UserAvatar src={user.avatarUrl} name={user.nickname} size={22} />
+                  <span className="text-slate-700 font-medium max-w-[160px] truncate group-hover:text-primary">
+                    {user.nickname}
+                    {roleSuffix && <span className="text-slate-500 ml-1">{roleSuffix}</span>}
+                  </span>
+                </Link>
                 <span className="text-slate-300">|</span>
                 {/* 当前页是用户中心，链接保留但加粗下划线突显「正在所在」位置 */}
                 <Link

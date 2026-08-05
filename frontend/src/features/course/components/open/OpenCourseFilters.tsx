@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
 import { ChevronRight, Check } from 'lucide-react';
 import { apiGet } from '@/lib/http/client';
 import type { CategoryTreeNode } from '../../api/types';
@@ -45,9 +45,6 @@ export interface OpenCourseFilterValue {
   priceMin?: number;
   priceMax?: number;
   isFree?: number;
-
-  enrollStatus?: string;
-  enrollStatusLabel?: string;
 }
 
 interface OpenCourseFiltersProps {
@@ -56,7 +53,7 @@ interface OpenCourseFiltersProps {
   onChange: (value: OpenCourseFilterValue) => void;
 }
 
-type FilterKey = 'category' | 'openCity' | 'openTime' | 'priceRange' | 'enrollStatus';
+type FilterKey = 'category' | 'openCity' | 'openTime' | 'priceRange';
 
 interface FilterMeta {
   key: FilterKey;
@@ -69,7 +66,6 @@ const FILTER_ITEMS: FilterMeta[] = [
   { key: 'openCity', label: '开课省市', flyoutWidth: 540 },
   { key: 'openTime', label: '开课时间', flyoutWidth: 360 },
   { key: 'priceRange', label: '价格范围', flyoutWidth: 340 },
-  { key: 'enrollStatus', label: '报名状态', flyoutWidth: 240 },
 ];
 
 /** 时间快捷段：与后端 PublicCourseQuery.timeQuick 解析对齐 */
@@ -91,12 +87,6 @@ const PRICE_PRESETS: {
   { label: '1000-3000', priceMin: 1000, priceMax: 3000 },
   { label: '3000-5000', priceMin: 3000, priceMax: 5000 },
   { label: '5000以上', priceMin: 5000 },
-];
-
-/** 报名状态预设 — 仅保留可由开课计划判定的两类 */
-const ENROLL_STATUS_OPTIONS: { label: string; key: string; color: string }[] = [
-  { label: '正在报名中', key: 'ENROLLING', color: 'bg-emerald-500' },
-  { label: '报名已结束', key: 'ENDED', color: 'bg-slate-300' },
 ];
 
 interface RegionItem {
@@ -233,15 +223,10 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
     closeFlyout();
   };
 
-  const handleEnrollStatus = (key: string, label: string) => {
-    patch({ enrollStatus: key, enrollStatusLabel: label });
-    closeFlyout();
-  };
-
   const activeMeta = FILTER_ITEMS.find((f) => f.key === activeFilter);
 
   return (
-    <div className="w-64 shrink-0 relative" onMouseLeave={handleMouseLeave}>
+    <div className="w-full shrink-0 relative" onMouseLeave={handleMouseLeave}>
       <aside className="bg-white rounded-xl shadow-sm border border-slate-100">
         {FILTER_ITEMS.map((item, index) => (
           <div
@@ -251,6 +236,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
           >
             <button
               type="button"
+              onClick={() => setActiveFilter(activeFilter === item.key ? null : item.key)}
               className={`w-full flex items-center justify-between p-4 text-left cursor-pointer transition-colors ${
                 activeFilter === item.key ? 'bg-slate-50' : 'hover:bg-slate-50'
               }`}
@@ -270,7 +256,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
 
       {activeFilter && activeMeta && (
         <div
-          className="absolute left-full top-0 min-h-full pl-2 z-50"
+          className="absolute left-0 top-full z-50 w-full pt-2 lg:left-full lg:top-0 lg:min-h-full lg:w-auto lg:pl-2 lg:pt-0"
           onMouseEnter={() => {
             if (leaveTimer.current) {
               clearTimeout(leaveTimer.current);
@@ -279,11 +265,11 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
           }}
         >
           <div
-            className="bg-white rounded-xl shadow-xl border border-slate-100 p-6 max-h-[70vh] overflow-y-auto"
-            style={{ width: activeMeta.flyoutWidth }}
+            className="max-h-[70vh] w-full overflow-y-auto rounded-xl border border-slate-100 bg-white p-4 shadow-xl lg:w-[var(--flyout-width)] lg:p-6"
+            style={{ '--flyout-width': `${activeMeta.flyoutWidth}px` } as CSSProperties}
           >
             {activeFilter === 'category' && (
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
                 {categoryTree.map((cat) => {
                   const checked = (value.categoryIds ?? []).includes(cat.id);
                   return (
@@ -314,7 +300,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
             )}
 
             {activeFilter === 'openCity' && (
-              <div className="grid grid-cols-4 gap-x-3 gap-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-3 text-sm sm:grid-cols-4">
                 {provinces.map((p) => {
                   const checked = (value.provinceIds ?? []).includes(p.id);
                   return (
@@ -367,9 +353,10 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-800 mb-3">自定义时间段</h4>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <input
                       type="date"
+                      placeholder="年 / 月 / 日"
                       value={customStart}
                       onChange={(e) => setCustomStart(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 px-3 focus:ring-primary focus:border-primary outline-none transition-all text-slate-600 cursor-pointer"
@@ -377,6 +364,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
                     <span className="text-slate-400 shrink-0">-</span>
                     <input
                       type="date"
+                      placeholder="年 / 月 / 日"
                       value={customEnd}
                       onChange={(e) => setCustomEnd(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 px-3 focus:ring-primary focus:border-primary outline-none transition-all text-slate-600 cursor-pointer"
@@ -419,7 +407,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-800 mb-3">自定义价格</h4>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <div className="relative w-full">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
                         ¥
@@ -457,28 +445,6 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
               </>
             )}
 
-            {activeFilter === 'enrollStatus' && (
-              <div className="flex flex-col gap-1 text-sm">
-                {ENROLL_STATUS_OPTIONS.map((s) => {
-                  const active = value.enrollStatus === s.key;
-                  return (
-                    <button
-                      key={s.key}
-                      type="button"
-                      onClick={() => handleEnrollStatus(s.key, s.label)}
-                      className={`px-3 py-2 rounded cursor-pointer transition-colors flex items-center gap-2 text-left ${
-                        active
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-primary'
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${s.color}`} />
-                      {s.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
       )}

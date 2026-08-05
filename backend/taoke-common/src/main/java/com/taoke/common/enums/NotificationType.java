@@ -26,7 +26,8 @@ public enum NotificationType {
     REVIEW_AUDIT("评价审核结果"),
     DEMAND_STATUS("需求状态变更"),
     BINDING_REQUEST("绑定关系请求"),
-    BINDING_RESULT("绑定关系结果");
+    BINDING_RESULT("绑定关系结果"),
+    COURSE_RESERVE("课程预约通知");
 
     private final String label;
 }

@@ -118,7 +118,7 @@ export function InnerCourseFilters({
 
   return (
     <div
-      className="w-64 shrink-0 relative"
+      className="w-full shrink-0 relative"
       onMouseLeave={handleMouseLeave}
     >
       <aside className="bg-white rounded-xl shadow-sm border border-slate-100">

@@ -1,5 +1,5 @@
 import type { SaveTrainerCaseRequest } from '../api/types';
-import type { FormValidationRules } from '@/lib/validation';
+import { Validators, type FormValidationRules } from '@/lib/validation';
 
 const positiveIdValidator = (msg: string) => (v: unknown) => {
   const n = typeof v === 'number' ? v : Number(v);
@@ -34,4 +34,9 @@ export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
   traineeCount: {
     validator: traineeCountValidator,
   },
+  trainingDate: {
+    validator: Validators.notFutureDate('培训日期不能晚于今天'),
+  },
+  description: { required: true, requiredMessage: '请填写案例描述' },
+  coverImage: { required: true, requiredMessage: '请上传封面图' },
 };

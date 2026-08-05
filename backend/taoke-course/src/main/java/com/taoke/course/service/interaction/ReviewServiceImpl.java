@@ -172,6 +172,7 @@ public class ReviewServiceImpl {
         ReviewScope reviewScope = ReviewScope.valueOf(scope);
         return switch (reviewScope) {
             case COURSE -> reviewRepository.countByCourseIdAndStatus(targetId, approved);
+            case VIDEO -> reviewRepository.countByCourseIdAndStatus(targetId, approved);
             case TRAINER -> reviewRepository.countByTrainerUserIdAndStatus(targetId, approved);
             case INSTITUTION -> reviewRepository.countByInstitutionIdAndStatus(targetId, approved);
             case CASE -> reviewRepository.countByCaseIdAndStatus(targetId, approved);
@@ -180,22 +181,19 @@ public class ReviewServiceImpl {
 
     /**
      * 审核通过
-     * <p>状态变化时同步累计评论数：原状态非 APPROVED → APPROVED 则 +1。</p>
+     * <p>状态变化后按已通过评价全量重算目标对象的 score / comment_count。</p>
      */
     @Transactional
     public void approveReview(Integer reviewId, Integer reviewerUserId) {
         TrainingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
-        int prev = review.getStatus() == null ? -1 : review.getStatus();
         review.setStatus(ReviewStatus.APPROVED.getValue());
         if (reviewerUserId != null) {
             review.setReviewedBy(reviewerUserId);
             review.setReviewedAt(java.time.LocalDateTime.now());
         }
         reviewRepository.save(review);
-        if (prev != ReviewStatus.APPROVED.getValue()) {
-            adjustTargetCommentCount(review, +1);
-        }
+        syncTargetReviewStats(review);
         eventPublisher.publish(new ReviewApprovedEvent(
                 review.getId(),
                 review.getUserId(),
@@ -207,13 +205,12 @@ public class ReviewServiceImpl {
 
     /**
      * 审核驳回
-     * <p>若原状态是 APPROVED → REJECTED，需 -1 同步累计评论数。</p>
+     * <p>状态变化后按已通过评价全量重算目标对象的 score / comment_count。</p>
      */
     @Transactional
     public void rejectReview(Integer reviewId, String reason, Integer reviewerUserId) {
         TrainingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
-        int prev = review.getStatus() == null ? -1 : review.getStatus();
         review.setStatus(ReviewStatus.REJECTED.getValue());
         review.setRejectReason(reason);
         if (reviewerUserId != null) {
@@ -221,9 +218,7 @@ public class ReviewServiceImpl {
             review.setReviewedAt(java.time.LocalDateTime.now());
         }
         reviewRepository.save(review);
-        if (prev == ReviewStatus.APPROVED.getValue()) {
-            adjustTargetCommentCount(review, -1);
-        }
+        syncTargetReviewStats(review);
         eventPublisher.publish(new ReviewRejectedEvent(
                 review.getId(),
                 review.getUserId(),
@@ -236,18 +231,15 @@ public class ReviewServiceImpl {
 
     /**
      * 隐藏评价
-     * <p>若原状态是 APPROVED → HIDDEN，需 -1 同步累计评论数。</p>
+     * <p>状态变化后按已通过评价全量重算目标对象的 score / comment_count。</p>
      */
     @Transactional
     public void hideReview(Integer reviewId) {
         TrainingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
-        int prev = review.getStatus() == null ? -1 : review.getStatus();
         review.setStatus(ReviewStatus.HIDDEN.getValue());
         reviewRepository.save(review);
-        if (prev == ReviewStatus.APPROVED.getValue()) {
-            adjustTargetCommentCount(review, -1);
-        }
+        syncTargetReviewStats(review);
         eventPublisher.publish(new ReviewHiddenEvent(
                 review.getId(),
                 review.getUserId(),
@@ -263,7 +255,7 @@ public class ReviewServiceImpl {
     private Integer resolveTargetId(TrainingReview review) {
         if (review == null || review.getReviewScope() == null) return null;
         return switch (ReviewScope.valueOf(review.getReviewScope())) {
-            case COURSE -> review.getCourseId();
+            case COURSE, VIDEO -> review.getCourseId();
             case TRAINER -> review.getTrainerUserId();
             case INSTITUTION -> review.getInstitutionId();
             case CASE -> review.getCaseId();
@@ -278,7 +270,7 @@ public class ReviewServiceImpl {
     private String resolveTargetTitle(TrainingReview review) {
         if (review == null || review.getReviewScope() == null) return "";
         return switch (ReviewScope.valueOf(review.getReviewScope())) {
-            case COURSE -> review.getCourseTitle() != null ? review.getCourseTitle() : "";
+            case COURSE, VIDEO -> review.getCourseTitle() != null ? review.getCourseTitle() : "";
             case TRAINER -> review.getExpertName() != null ? review.getExpertName() : "";
             case INSTITUTION -> review.getClientCompany() != null ? review.getClientCompany() : "";
             case CASE -> review.getCourseTitle() != null ? review.getCourseTitle() : "";
@@ -286,27 +278,41 @@ public class ReviewServiceImpl {
     }
 
     /**
-     * 按 review.scope 同步对应被评对象的 comment_count。
-     * <p>COURSE 暂未维护该字段，仅处理 TRAINER 与 INSTITUTION。</p>
+     * 按 review.scope 全量重算目标对象的 score / comment_count。
+     * <p>仅 TRAINER / INSTITUTION 维护这两个字段；其余 scope 跳过。</p>
      */
-    private void adjustTargetCommentCount(TrainingReview review, int delta) {
-        if (review == null || delta == 0) return;
+    private void syncTargetReviewStats(TrainingReview review) {
+        if (review == null || review.getReviewScope() == null) return;
         ReviewScope scope = ReviewScope.valueOf(review.getReviewScope());
+        int approved = ReviewStatus.APPROVED.getValue();
         switch (scope) {
             case TRAINER -> {
-                if (review.getTrainerUserId() != null) {
-                    trainerService.adjustCommentCountByUserId(review.getTrainerUserId(), delta);
-                }
+                if (review.getTrainerUserId() == null) return;
+                Integer trainerUserId = review.getTrainerUserId();
+                long count = reviewRepository.countByTrainerUserIdAndStatus(trainerUserId, approved);
+                BigDecimal avg = normalizeScore(
+                        reviewRepository.averageAvgScoreByTrainerUserIdAndStatus(trainerUserId, approved));
+                trainerService.updateReviewStatsByUserId(trainerUserId, avg, (int) count);
             }
             case INSTITUTION -> {
-                if (review.getInstitutionId() != null) {
-                    institutionService.adjustCommentCount(review.getInstitutionId(), delta);
-                }
+                if (review.getInstitutionId() == null) return;
+                Integer institutionId = review.getInstitutionId();
+                long count = reviewRepository.countByInstitutionIdAndStatus(institutionId, approved);
+                BigDecimal avg = normalizeScore(
+                        reviewRepository.averageAvgScoreByInstitutionIdAndStatus(institutionId, approved));
+                institutionService.updateReviewStats(institutionId, avg, (int) count);
             }
-            case COURSE -> {
-                // courses 表暂未维护 comment_count，跳过
+            case COURSE, VIDEO, CASE -> {
+                // 暂未维护 score / comment_count
             }
         }
+    }
+
+    private BigDecimal normalizeScore(Double avg) {
+        if (avg == null) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        return BigDecimal.valueOf(avg).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -326,6 +332,7 @@ public class ReviewServiceImpl {
      */
     public Page<TrainingReview> adminListReviews(Integer status, String reviewScope,
                                                  String reviewerKeyword, Integer reviewedBy,
+                                                 List<Integer> reviewedByUserIds,
                                                  int page, int size) {
         int pageOneBased = page < 1 ? 1 : page;
 
@@ -348,6 +355,12 @@ public class ReviewServiceImpl {
             }
             if (reviewedBy != null) {
                 predicates.add(cb.equal(root.get("reviewedBy"), reviewedBy));
+            } else if (reviewedByUserIds != null) {
+                if (reviewedByUserIds.isEmpty()) {
+                    predicates.add(cb.disjunction());
+                } else {
+                    predicates.add(root.get("reviewedBy").in(reviewedByUserIds));
+                }
             }
             if (reviewerKeyword != null && !reviewerKeyword.isBlank()) {
                 String like = "%" + reviewerKeyword.trim() + "%";

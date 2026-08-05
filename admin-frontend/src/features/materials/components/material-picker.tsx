@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
@@ -83,13 +83,16 @@ export function MaterialPicker({
                       : 'h-20 w-full rounded'
                   }`}
                 >
-                  <Image
-                    src={resolveAssetUrl(item.url)}
+                  <AssetImage
+                    src={item.url}
                     alt={item.name}
                     fill
-                    sizes='64px'
+                    wrapperClassName={
+                      materialType === 'AVATAR'
+                        ? 'mx-auto h-20 w-20 rounded-full'
+                        : 'h-20 w-full rounded'
+                    }
                     className='object-cover'
-                    unoptimized
                   />
                 </div>
                 <p className='truncate text-xs'>{item.name}</p>

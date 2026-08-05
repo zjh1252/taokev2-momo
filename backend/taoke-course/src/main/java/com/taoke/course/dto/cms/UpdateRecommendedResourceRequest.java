@@ -12,6 +12,9 @@ import lombok.Data;
 public class UpdateRecommendedResourceRequest {
 
     private String coverUrl;
+    private String consultButtonImageUrl;
+    private String topicButtonImageUrl;
+    private String topicButtonLinkUrl;
     private String title;
     private String description;
     private String chiefIntro;

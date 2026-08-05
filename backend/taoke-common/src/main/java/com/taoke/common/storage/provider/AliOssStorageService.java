@@ -27,11 +27,20 @@ public class AliOssStorageService implements StorageService {
 
     public AliOssStorageService(StorageProperties properties) {
         StorageProperties.Oss oss = properties.getOss();
+        String endpoint = normalizeEndpoint(oss.getEndpoint());
         this.ossClient = new OSSClientBuilder().build(
-                oss.getEndpoint(), oss.getAccessKeyId(), oss.getAccessKeySecret());
+                endpoint, oss.getAccessKeyId(), oss.getAccessKeySecret());
         this.bucket = oss.getBucket();
         this.publicDomain = trimTrailingSlash(properties.getPublicDomain());
-        log.info("阿里云 OSS 存储初始化完成，bucket: {}", bucket);
+        if (!StringUtils.hasText(this.publicDomain)) {
+            throw new IllegalStateException(
+                    "taoke.storage.public-domain 未配置：OSS 上传必须返回 CDN 绝对 URL");
+        }
+        if (!StringUtils.hasText(oss.getAccessKeyId()) || !StringUtils.hasText(oss.getAccessKeySecret())) {
+            throw new IllegalStateException(
+                    "OSS 凭据未配置：请设置 OSS_ACCESS_KEY_ID / OSS_ACCESS_KEY_SECRET");
+        }
+        log.info("阿里云 OSS 存储初始化完成，bucket: {}, cdn: {}", bucket, publicDomain);
     }
 
     @Override
@@ -44,7 +53,10 @@ public class AliOssStorageService implements StorageService {
                 metadata.setContentType(contentType);
             }
             ossClient.putObject(bucket, key, data, metadata);
-            log.debug("OSS 上传成功: {}", key);
+            if (!ossClient.doesObjectExist(bucket, key)) {
+                throw new StorageException("aliyun-oss", key, "OSS 上传后对象不存在，请检查 bucket 权限与 CDN 配置");
+            }
+            log.info("OSS 上传成功: bucket={}, key={}", bucket, key);
             return key;
         } catch (Exception e) {
             throw new StorageException("aliyun-oss", path, "OSS 上传失败", e);
@@ -107,5 +119,23 @@ public class AliOssStorageService implements StorageService {
             return null;
         }
         return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
+    }
+
+    /** 兼容老站配置：支持 https://bucket.oss-cn-xxx.aliyuncs.com 或纯 endpoint */
+    private static String normalizeEndpoint(String endpoint) {
+        if (!StringUtils.hasText(endpoint)) {
+            return endpoint;
+        }
+        String normalized = endpoint.trim();
+        if (normalized.startsWith("https://")) {
+            normalized = normalized.substring(8);
+        } else if (normalized.startsWith("http://")) {
+            normalized = normalized.substring(7);
+        }
+        int ossIndex = normalized.indexOf(".oss-");
+        if (ossIndex > 0 && normalized.contains(".aliyuncs.com")) {
+            normalized = normalized.substring(ossIndex + 1);
+        }
+        return normalized;
     }
 }

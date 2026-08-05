@@ -6,6 +6,14 @@ export interface HeroCategory {
   slug: string;
 }
 
+export interface HomeBanner {
+  id: string;
+  imageUrl: string;
+  consultButtonImageUrl: string;
+  topicButtonImageUrl: string;
+  topicButtonLinkUrl: string;
+}
+
 export interface Expert {
   id: number;
   name: string;

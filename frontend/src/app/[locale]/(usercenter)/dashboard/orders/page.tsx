@@ -5,32 +5,28 @@ import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Search, ShoppingBag } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
-import { getOrders, cancelOrder, createOrder, getPendingOrderByProduct } from '@/features/order/api/service';
+import {
+  getOrders,
+  cancelOrder,
+  createOrder,
+  getPendingOrderByProduct,
+  getOrderUnviewedCounts,
+  markOrderTabViewed,
+} from '@/features/order/api/service';
+import { notifyOrderPurchase } from '@/features/course/api/service';
 import { OrderCard } from '@/features/order/components/OrderCard';
 import { PaymentModal } from '@/features/order/components/PaymentModal';
 import { PendingOrderReminderDialog } from '@/features/order/components/PendingOrderReminderDialog';
 import { getOrderProductTitle } from '@/features/order/utils/order-helpers';
+import {
+  EMPTY_ORDER_UNVIEWED_COUNTS,
+  ORDER_TABS,
+  getOrderTabRequestParams,
+  parseOrderTab,
+  type OrderTabKey,
+} from '@/features/order/utils/order-display-status';
 import { toast } from 'sonner';
-import type { OrderVO, PayResultVO } from '@/features/order/api/types';
-
-type OrderTab = 'all' | 'pending' | 'paid' | 'cancelled' | 'expired';
-
-const VALID_TABS = new Set<OrderTab>(['all', 'pending', 'paid', 'cancelled', 'expired']);
-
-function parseOrderTab(value: string | null): OrderTab {
-  if (value && VALID_TABS.has(value as OrderTab)) {
-    return value as OrderTab;
-  }
-  return 'all';
-}
-
-const TABS: { key: OrderTab; label: string; status?: number }[] = [
-  { key: 'all', label: '全部订单' },
-  { key: 'pending', label: '待支付', status: 0 },
-  { key: 'paid', label: '已完成', status: 1 },
-  { key: 'cancelled', label: '已取消', status: 2 },
-  { key: 'expired', label: '已过期', status: 4 },
-];
+import type { OrderVO } from '@/features/order/api/types';
 
 /**
  * 我的订单页 — 对接真实订单 API
@@ -45,8 +41,9 @@ export default function OrdersPage() {
   const watchVideoId = searchParams.get('watchVideo');
   const tabFromUrl = searchParams.get('tab');
 
-  const [tab, setTab] = useState<OrderTab>(() => parseOrderTab(tabFromUrl));
+  const [tab, setTab] = useState<OrderTabKey>(() => parseOrderTab(tabFromUrl));
   const [orders, setOrders] = useState<OrderVO[]>([]);
+  const [unviewedCounts, setUnviewedCounts] = useState(EMPTY_ORDER_UNVIEWED_COUNTS);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -61,13 +58,11 @@ export default function OrdersPage() {
     quantity: number;
   } | null>(null);
 
-  const currentStatus = TABS.find((t) => t.key === tab)?.status;
-
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getOrders({
-        status: currentStatus,
+        ...getOrderTabRequestParams(tab),
         page,
         size: 15,
       });
@@ -78,11 +73,23 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentStatus, page]);
+  }, [tab, page]);
+
+  const fetchUnviewedCounts = useCallback(async () => {
+    try {
+      setUnviewedCounts(await getOrderUnviewedCounts());
+    } catch {
+      // 角标统计失败不影响订单列表展示
+    }
+  }, []);
 
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  useEffect(() => {
+    fetchUnviewedCounts();
+  }, [fetchUnviewedCounts]);
 
   useEffect(() => {
     setPage(1);
@@ -100,6 +107,31 @@ export default function OrdersPage() {
       setTab(parseOrderTab(tabFromUrl));
     }
   }, [tabFromUrl]);
+
+  useEffect(() => {
+    const displayStatus = getOrderTabRequestParams(tab).displayStatus;
+    const countKey = ORDER_TABS.find((item) => item.key === tab)?.countKey;
+    if (!displayStatus || !countKey) return;
+    setUnviewedCounts((prev) => ({ ...prev, [countKey]: 0 }));
+    markOrderTabViewed(displayStatus)
+      .then(fetchUnviewedCounts)
+      .catch(() => {
+        // 清零失败时下次进入会重新拉取真实角标
+      });
+  }, [fetchUnviewedCounts, tab]);
+
+  const handleTabChange = (nextTab: OrderTabKey) => {
+    setTab(nextTab);
+    setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextTab === 'all') {
+      params.delete('tab');
+    } else {
+      params.set('tab', nextTab);
+    }
+    const query = params.toString();
+    router.replace(query ? `${ROUTES.UC_ORDERS}?${query}` : ROUTES.UC_ORDERS);
+  };
 
   const handleCancel = async (orderNo: string) => {
     try {
@@ -165,9 +197,17 @@ export default function OrdersPage() {
     router.push(`${ROUTES.UC_ORDERS_INVOICE}?orderNo=${order.orderNo}`);
   };
 
-  const handlePaySuccess = (_result: PayResultVO) => {
+  const handlePaySuccess = async () => {
+    const order = payingOrder;
     setPayingOrder(null);
     toast.success('支付成功');
+    if (order?.orderNo) {
+      try {
+        await notifyOrderPurchase(order.orderNo);
+      } catch {
+        // 错误已弹出；后端支付回调也会补发
+      }
+    }
     fetchOrders();
   };
 
@@ -181,8 +221,6 @@ export default function OrdersPage() {
       )
     : orders;
 
-  const pendingCount = orders.filter((o) => o.status === 0).length;
-
   return (
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
       {showPaidBanner && (
@@ -191,12 +229,18 @@ export default function OrdersPage() {
           <div className="flex-1 min-w-0">
             <p className="font-medium text-green-800">支付成功</p>
             <p className="text-sm text-green-700 mt-0.5">
-              您已成功购买录播课，可在下方订单中查看详情。
+              您已成功完成支付，可在下方订单中查看详情。
+              线上公开课的开课通知已发送至
+              {' '}
+              <Link href={ROUTES.UC_MESSAGES} className="font-medium underline hover:text-green-900">
+                消息中心
+              </Link>
+              。
               {watchVideoId && (
                 <>
                   {' '}
                   <Link
-                    href={`/videos/${watchVideoId}/play`}
+                    href={`/video/${watchVideoId}/play`}
                     className="font-medium underline hover:text-green-900"
                   >
                     立即前往观看录播课
@@ -218,23 +262,28 @@ export default function OrdersPage() {
       {/* Tab 栏 */}
       <div className="px-6 border-b border-slate-200 flex justify-between items-center">
         <div className="flex gap-8">
-          {TABS.map((t) => (
+          {ORDER_TABS.map((t) => {
+            const badgeCount = t.countKey ? unviewedCounts[t.countKey] : 0;
+            return (
             <button
               key={t.key}
               type="button"
-              onClick={() => setTab(t.key)}
-              className={`py-4 text-[15px] ${
+              onClick={() => handleTabChange(t.key)}
+              className={`relative inline-flex items-center gap-1 py-4 text-[15px] ${
                 tab === t.key
                   ? 'text-primary font-bold border-b-2 border-primary'
                   : 'text-gray-500 font-medium'
               }`}
             >
-              {t.label}
-              {t.key === 'pending' && pendingCount > 0 && (
-                <span className="text-primary text-xs ml-1">{pendingCount}</span>
+              {badgeCount > 0 && (
+                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-white">
+                  {badgeCount > 99 ? '99+' : badgeCount}
+                </span>
               )}
+              {t.label}
             </button>
-          ))}
+            );
+          })}
         </div>
         <div className="relative">
           <input

@@ -14,7 +14,7 @@ import java.util.List;
  * （已有）/ 是否有场地 / 是否有专家 / 合作协议签署。</p>
  *
  * @author Fangxinxin
- * @date 2026-03-31 16:00
+ * @date 2026-07-29 15:30
  */
 @Data
 public class InstitutionRequest {
@@ -36,7 +36,7 @@ public class InstitutionRequest {
     /** 机构成立日期（YYYY-MM-DD） */
     private LocalDate establishedAt;
 
-    /** 机构 Logo URL */
+    /** 机构 Logo URL（申请路径在 Service 层校验必填；PUT 资料更新可省略以保留原值） */
     @Size(max = 512, message = "Logo URL 不超过512个字符")
     private String logoUrl;
 
@@ -46,6 +46,10 @@ public class InstitutionRequest {
 
     /** 机构简介（支持富文本） */
     private String bio;
+
+    /** SEO 自定义描述 */
+    @Size(max = 255, message = "SEO 描述不超过255个字符")
+    private String seoDescription;
 
     /** 擅长行业 — 一级分类 ID 多选（复用 TRAINER_INDUSTRY 分类树） */
     private List<Integer> industryCategoryIds;

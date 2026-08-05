@@ -3,30 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiGet } from '@/lib/http/client';
 import { ChevronDown } from 'lucide-react';
-
-interface RegionItem {
-  id: number;
-  code: string;
-  name: string;
-  level: number;
-  hasChildren: boolean;
-}
+import { hydrateRegionSelection, type RegionItem, type RegionValue } from './region-selection';
 
 interface ApiResponse<T> {
   code: number;
   message: string;
   data: T;
-}
-
-interface RegionValue {
-  provinceId?: number;
-  provinceName?: string;
-  cityId?: number;
-  cityName?: string;
-  districtId?: number;
-  districtName?: string;
-  townId?: number;
-  townName?: string;
 }
 
 interface RegionCascaderProps {
@@ -72,6 +54,19 @@ export default function RegionCascader({
   const [selectedCity, setSelectedCity] = useState<RegionItem | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState<RegionItem | null>(null);
   const [selectedTown, setSelectedTown] = useState<RegionItem | null>(null);
+  const targetProvinceId = value?.provinceId;
+  const targetCityId = value?.cityId;
+  const targetDistrictId = maxLevel >= 3 ? value?.districtId : undefined;
+  const targetTownId = maxLevel >= 4 ? value?.townId : undefined;
+  const hasValue = Boolean(targetProvinceId || targetCityId || targetDistrictId || targetTownId);
+  const controlledEmptyValue = value !== undefined && !hasValue;
+  const effectiveCities = controlledEmptyValue ? [] : cities;
+  const effectiveDistricts = controlledEmptyValue ? [] : districts;
+  const effectiveTowns = controlledEmptyValue ? [] : towns;
+  const effectiveSelectedProvince = controlledEmptyValue ? null : selectedProvince;
+  const effectiveSelectedCity = controlledEmptyValue ? null : selectedCity;
+  const effectiveSelectedDistrict = controlledEmptyValue ? null : selectedDistrict;
+  const effectiveSelectedTown = controlledEmptyValue ? null : selectedTown;
 
   useEffect(() => {
     fetchRegionChildren().then(setProvinces).catch(() => {});
@@ -98,6 +93,60 @@ export default function RegionCascader({
     [onChange],
   );
 
+  useEffect(() => {
+    if (!hasValue) {
+      return;
+    }
+
+    if (provinces.length === 0) {
+      return;
+    }
+
+    const matchesCurrent =
+      (selectedProvince?.id ?? undefined) === targetProvinceId &&
+      (selectedCity?.id ?? undefined) === targetCityId &&
+      (selectedDistrict?.id ?? undefined) === targetDistrictId &&
+      (selectedTown?.id ?? undefined) === targetTownId;
+
+    if (matchesCurrent) {
+      return;
+    }
+
+    let cancelled = false;
+
+    hydrateRegionSelection(value, provinces, fetchRegionChildren, maxLevel)
+      .then((selection) => {
+        if (cancelled) {
+          return;
+        }
+        setCities(selection.cities);
+        setDistricts(selection.districts);
+        setTowns(selection.towns);
+        setSelectedProvince(selection.selectedProvince);
+        setSelectedCity(selection.selectedCity);
+        setSelectedDistrict(selection.selectedDistrict);
+        setSelectedTown(selection.selectedTown);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    value,
+    targetProvinceId,
+    targetCityId,
+    targetDistrictId,
+    targetTownId,
+    hasValue,
+    maxLevel,
+    provinces,
+    selectedProvince?.id,
+    selectedCity?.id,
+    selectedDistrict?.id,
+    selectedTown?.id,
+  ]);
+
   const handleProvinceChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const code = e.target.value;
     const item = provinces.find((p) => p.code === code) || null;
@@ -123,7 +172,7 @@ export default function RegionCascader({
     setSelectedTown(null);
     setDistricts([]);
     setTowns([]);
-    if (item && item.hasChildren && maxLevel >= 3) {
+    if (item && maxLevel >= 3) {
       const list = await fetchRegionChildren(item.code);
       setDistricts(list);
     }
@@ -158,7 +207,7 @@ export default function RegionCascader({
       {/* 省 */}
       <div className="relative">
         <select
-          value={selectedProvince?.code || ''}
+          value={effectiveSelectedProvince?.code || ''}
           onChange={handleProvinceChange}
           disabled={disabled}
           className={selectClass}
@@ -172,16 +221,16 @@ export default function RegionCascader({
       </div>
 
       {/* 市 */}
-      {cities.length > 0 && (
+      {effectiveCities.length > 0 && (
         <div className="relative">
           <select
-            value={selectedCity?.code || ''}
+            value={effectiveSelectedCity?.code || ''}
             onChange={handleCityChange}
             disabled={disabled}
             className={selectClass}
           >
             <option value="">请选择城市</option>
-            {cities.map((c) => (
+            {effectiveCities.map((c) => (
               <option key={c.code} value={c.code}>{c.name}</option>
             ))}
           </select>
@@ -190,16 +239,16 @@ export default function RegionCascader({
       )}
 
       {/* 区/县 */}
-      {maxLevel >= 3 && districts.length > 0 && (
+      {maxLevel >= 3 && effectiveDistricts.length > 0 && (
         <div className="relative">
           <select
-            value={selectedDistrict?.code || ''}
+            value={effectiveSelectedDistrict?.code || ''}
             onChange={handleDistrictChange}
             disabled={disabled}
             className={selectClass}
           >
             <option value="">{requireDistrict ? '请选择区/县' : '区/县（可选）'}</option>
-            {districts.map((d) => (
+            {effectiveDistricts.map((d) => (
               <option key={d.code} value={d.code}>{d.name}</option>
             ))}
           </select>
@@ -208,16 +257,16 @@ export default function RegionCascader({
       )}
 
       {/* 镇/街道 */}
-      {maxLevel >= 4 && towns.length > 0 && (
+      {maxLevel >= 4 && effectiveTowns.length > 0 && (
         <div className="relative">
           <select
-            value={selectedTown?.code || ''}
+            value={effectiveSelectedTown?.code || ''}
             onChange={handleTownChange}
             disabled={disabled}
             className={selectClass}
           >
             <option value="">镇/街道（可选）</option>
-            {towns.map((t) => (
+            {effectiveTowns.map((t) => (
               <option key={t.code} value={t.code}>{t.name}</option>
             ))}
           </select>
@@ -228,4 +277,4 @@ export default function RegionCascader({
   );
 }
 
-export type { RegionValue };
+export type { RegionValue } from './region-selection';

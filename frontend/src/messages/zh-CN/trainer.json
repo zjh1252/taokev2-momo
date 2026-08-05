@@ -7,7 +7,7 @@
   "filters": {
     "expertise": "擅长领域",
     "industry": "擅长行业",
-    "city": "常驻省市",
+    "city": "常驻城市",
     "sort": "排序",
     "all": "不限",
     "sortDefault": "综合排序",

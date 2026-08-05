@@ -21,17 +21,28 @@ export function getPaymentClientType() {
   return 'H5';
 }
 
+/** 真实支付未接通前统一使用 MOCK，点击即成功 */
+const FORCE_MOCK_PAYMENT = true;
+
 /** 当前端默认支付方式 */
 export function getDefaultPaymentMethod() {
+  if (FORCE_MOCK_PAYMENT) {
+    return 'MOCK';
+  }
   // #ifdef MP-WEIXIN
   return 'WECHAT';
   // #endif
   return 'WECHAT';
 }
 
-/** 是否展示开发环境模拟支付 */
+/** 是否展示模拟支付（当前阶段强制开启） */
 export function canUseMockPayment() {
-  return config.isDev;
+  return FORCE_MOCK_PAYMENT || config.isDev;
+}
+
+/** 是否强制 MOCK 支付 */
+export function isForceMockPayment() {
+  return FORCE_MOCK_PAYMENT;
 }
 
 /** 微信小程序 login code 换 openId */
@@ -131,7 +142,7 @@ export function pollPaymentUntilPaid(paymentNo, onTick) {
 export async function checkoutPay({ orderNo, method, openId }) {
   const payload = {
     orderNo,
-    method,
+    method: FORCE_MOCK_PAYMENT ? 'MOCK' : method,
     clientType: getPaymentClientType(),
   };
 

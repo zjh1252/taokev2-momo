@@ -45,6 +45,8 @@ public class TrainerResponse {
     private String bio;
     /** 一句话介绍 */
     private String oneLineIntro;
+    /** SEO 自定义描述 */
+    private String seoDescription;
     private String intro;
     private String background;
     /** 部分客户（长文本） */

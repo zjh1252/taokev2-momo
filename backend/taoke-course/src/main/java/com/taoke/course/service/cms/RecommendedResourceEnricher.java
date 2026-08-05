@@ -116,6 +116,9 @@ public class RecommendedResourceEnricher {
         vo.setRoleType(row.getRoleType());
         vo.setSortOrder(row.getSortOrder());
         vo.setCoverUrl(row.getCoverUrl());
+        vo.setConsultButtonImageUrl(row.getConsultButtonImageUrl());
+        vo.setTopicButtonImageUrl(row.getTopicButtonImageUrl());
+        vo.setTopicButtonLinkUrl(row.getTopicButtonLinkUrl());
         vo.setTitle(row.getTitle());
         vo.setDescription(row.getDescription());
         vo.setChiefIntro(row.getChiefIntro());

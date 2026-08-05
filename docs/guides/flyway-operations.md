@@ -56,6 +56,7 @@ V{版本号}__{英文描述}.sql
 3. 每个脚本应**可重复执行或幂等**（推荐：`IF NOT EXISTS`、列存在性检查、临时表 + 条件 DELETE）。
 4. 注释语言：**中文**（与项目规范一致）。
 5. 新脚本只追加，**不要修改已上线/已执行的旧脚本**（checksum 变更会导致校验失败）。
+6. **Agent 交付前**必须按 [§4.4 Agent 交付自检清单](#44-agent-交付自检清单防后端启动失败) 执行，避免后端无法启动。
 
 ---
 
@@ -119,6 +120,47 @@ SELECT MAX(CAST(version AS UNSIGNED)) FROM flyway_schema_history WHERE success =
 
 - 示例：`V66__purge_obvious_test_courses.sql`（删除明显测试公开课/内训课）。
 - 注意：若同时存在 **Python 手工脚本** 与 **Flyway 脚本** 做同一件事，必须先统一 SQL 逻辑，避免「手工已执行 + Flyway 再次执行」或「Flyway 失败导致后端无法启动」。
+
+### 4.4 Agent 交付自检清单（防后端启动失败）
+
+**每次新增或修改** `db/migration/V*.sql` 后，Agent 在交付前必须完成以下检查（禁止仅「写完脚本」即结束）：
+
+| 检查项 | 说明 |
+|--------|------|
+| 版本号唯一 | 目录内无重复 `V{n}__`；新号大于当前库 `MAX(version)` |
+| 不改已执行脚本 | 已 `success=1` 的文件禁止改内容；应追加更高版本 |
+| 跨库 `taoke.*` | 引用老库时必须 `information_schema.SCHEMATA` / `TABLES` 防御，无 `taoke` 时跳过（纯新库/CI 可启动） |
+| 禁用 `DELIMITER` | 存储过程式脚本 Flyway 拆分易失败；用 `PREPARE` + `information_schema` 或改放 `data-trans/` |
+| 列/表存在 | DDL 用 `IF NOT EXISTS` / `information_schema.COLUMNS`（参考 V128） |
+| 幂等 DML | 大批量 UPDATE/DELETE 可重复执行或影响面可预期 |
+| 自动化验证 | 运行 `uv run python data-trans/scripts/_validate_flyway_migration.py --version <N>`（需先 `uv sync`） |
+| 历史冲突 | 库内 `flyway_schema_history` 同版本 `script` 名与仓库一致；孤儿版本用 `_fix_flyway_*.py` 清理，**勿删已入库脚本对应记录** |
+
+**典型启动失败信号**（日志 / 现象）：
+
+- `FlywayValidateException`：checksum 不匹配、失败迁移未 repair
+- `SQLException: Unknown database 'taoke'`：跨库脚本无防御
+- `success=0` 残留在 `flyway_schema_history`：后续启动被阻断
+- 8080 未监听 → 前端「网络连接失败」
+
+**Agent 约定**：验证脚本返回非 0 时，先修 SQL 再交付；checksum 问题按 §5.2 直接跑 `_fix_flyway_*.py` repair。
+
+### 4.5 本地开发与 test 共用同一数据库时的约定
+
+> 当前实践：本地开发与 test 环境可能连接**同一 MySQL 库**（换库成本高时允许）。此时 Flyway 历史表是公共账本，必须按下列规则操作，否则会出现 checksum 冲突、test 后端起不来、页面 502。
+
+**原则**：谁先跑迁移，库内 `flyway_schema_history` 就以那次脚本内容为准；之后本地与 test **必须使用同一 git 内容的迁移文件**。不要关 Flyway 规避问题。
+
+| 规则 | 说明 |
+|------|------|
+| 只追加、不改旧脚本 | 某版本一旦在该库 `success=1`，禁止再改对应 `Vxx__*.sql`；表结构变更一律新建更高版本 |
+| 先提交再跑 / 再打镜像 | 避免：本地用未提交 SQL 写入库，再构建出「已改过脚本」的镜像上 test |
+| 发 test 前对齐 | 镜像内迁移文件须与库中已执行内容一致；若已改过已执行脚本，要么回滚文件内容再构建，要么确认 DDL 已按新脚本生效后做 checksum repair（§5.2） |
+| 发版窗口内少改库 | 本地猛改 Flyway 时先别发 test；发版窗口内本地也勿再改旧脚本 |
+| 业务镜像版本对齐 | `compose up` 时显式 `VERSION=x.y.z`，backend / frontend / admin / crawler 同版本；勿漏带 VERSION 导致部分服务停在旧标签 |
+| 禁止用关 Flyway 代替治理 | `ddl-auto: validate` 依赖 Flyway 演进表结构；关校验只会掩盖不一致 |
+
+**典型事故链（2026-07-22）**：本地改过已执行的 V87 → 库内 checksum 与 test 镜像不一致 → backend `FlywayValidateException` → nginx 502。处理：按 §5.2 repair，或对齐脚本后重启；长期靠本表约束，而非拆库/关 Flyway。
 
 ---
 
@@ -233,6 +275,25 @@ C 端 `apiClient` 在无法连接后端（`localhost:8080`）时会 toast：
 ## 7. 操作记录（changelog）
 
 > 后续凡涉及 Flyway 脚本的增删改、生产/测试库 repair、与手工 SQL 的联动，在此追加一条。
+
+### 2026-07-22 — 本地与 test 共用库约定（§4.5）
+
+**背景**：test 与本地连同一库；本地改过已执行的 V87 后，test 后端 Flyway validate 失败（checksum 不匹配）导致 502。同时 compose 未对齐 VERSION 时出现 frontend/admin/backend 与 crawler 镜像版本不一致。
+
+**约定**：写入本文 §4.5；不换库时以「不改旧脚本 + 先提交再跑 + 发版写死同一 VERSION + 冲突按 §5.2 repair」约束，不关 Flyway。
+
+### 2026-07-17 — V150 纠正专家评价 scope 并回填评分
+
+- **问题**：迁库评价多为 `COURSE` + `course_id IS NULL` + `trainer_user_id`；V149 只按 `TRAINER` 回填，导致几乎全部专家 `score=0`。
+- **修复**：V150 将上述记录归并为 `TRAINER`，再按已通过评价重算 `user_trainers.score` / `comment_count`。
+- **校验**：`uv run python data-trans/scripts/_validate_flyway_migration.py --version 150`。
+
+### 2026-07-17 — V149 回填专家/机构综合评分
+
+- **问题**：评价审核只同步 `comment_count`，未重算 `score`，列表出现「有 N 条评价但评分 0.0」。
+- **修复**：`ReviewServiceImpl` 审核通过/驳回/隐藏后按已通过评价 `AVG(avg_score)` 全量回写；Flyway V149 对存量 `user_trainers` / `user_institutions` 做同口径回填（并同步 `comment_count`）。
+- **校验**：`uv run python data-trans/scripts/_validate_flyway_migration.py --version 149`。
+- **后续**：V149 回填口径过窄，由 V150 纠正。
 
 ### 2026-06-23 — V111/V112 checksum repair
 
@@ -499,6 +560,10 @@ python data-trans/scripts/_repair_flyway_v73.py
 # Checksum repair（版本已 success=1 但本地 SQL 被改过）
 python data-trans/scripts/_fix_flyway_v67_checksum.py   # → -524896563
 python data-trans/scripts/_fix_flyway_v68_checksum.py   # → -100945177
+
+# 新增/修改迁移脚本后的启动风险自检（见 §4.4）
+python data-trans/scripts/_validate_flyway_migration.py --version 131
+python data-trans/scripts/_validate_flyway_migration.py   # 检查全部脚本
 
 # 与 Flyway 配套的老站数据补数（非 Flyway 历史表）
 python data-trans/scripts/run_video_cover_normalize.py      # V67 逻辑预览/统计

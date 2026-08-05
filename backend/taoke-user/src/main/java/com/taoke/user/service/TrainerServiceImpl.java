@@ -9,6 +9,7 @@ import com.taoke.common.response.PageResponse;
 import com.taoke.common.service.CategoryService;
 import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.common.service.RegionService;
+import com.taoke.common.util.LegacyAvatarUrls;
 import com.taoke.user.api.RoleApplyService;
 import com.taoke.user.api.TrainerListItemEnricher;
 import com.taoke.user.api.TrainerService;
@@ -17,6 +18,7 @@ import com.taoke.user.dto.user.RoleApplicationStatusResponse;
 import com.taoke.user.entity.*;
 import com.taoke.user.mapper.TrainerMapper;
 import com.taoke.user.repository.*;
+import com.taoke.user.support.PublicTrainerListCache;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
@@ -32,6 +34,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -70,6 +74,7 @@ public class TrainerServiceImpl implements TrainerService {
     private final OpsMaterialResolver opsMaterialResolver;
     private final RoleApplicationChangeLogService changeLogService;
     private final Optional<TrainerListItemEnricher> trainerListItemEnricher;
+    private final PublicTrainerListCache publicTrainerListCache;
 
     @Override
     public TrainerResponse getByUserId(Integer userId) {
@@ -88,22 +93,20 @@ public class TrainerServiceImpl implements TrainerService {
                                                             Integer cityId,
                                                             String keyword,
                                                             String sort,
-                                                            Integer isTrusted) {
-        // 构建排序
-        Sort jpaSort = switch (sort != null ? sort : "") {
-            case "score" -> Sort.by(Sort.Direction.DESC, "score")
-                    .and(Sort.by(Sort.Direction.DESC, "id"));
-            case "score_asc" -> Sort.by(Sort.Direction.ASC, "score")
-                    .and(Sort.by(Sort.Direction.ASC, "id"));
-            case "default_asc" -> Sort.by(Sort.Direction.ASC, "sortOrder")
-                    .and(Sort.by(Sort.Direction.ASC, "score"))
-                    .and(Sort.by(Sort.Direction.ASC, "id"));
-            case "newly_joined" -> Sort.by(Sort.Direction.DESC, "createdAt")
-                    .and(Sort.by(Sort.Direction.DESC, "id"));
-            default -> Sort.by(Sort.Direction.DESC, "sortOrder")
-                    .and(Sort.by(Sort.Direction.DESC, "score"))
-                    .and(Sort.by(Sort.Direction.DESC, "id"));
-        };
+                                                            Integer isTrusted,
+                                                            boolean includeCourse) {
+        boolean cacheable = publicTrainerListCache.isCacheableDefault(
+                page, size, expertiseCategoryId, industryCategoryId, provinceId, cityId,
+                keyword, sort, isTrusted);
+        if (cacheable) {
+            PageResponse<TrainerListItemResponse> cached =
+                    publicTrainerListCache.getDefaultList(sort, page, size, includeCourse);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
+        Sort jpaSort = buildPublicListSort(sort);
 
         PageRequest pageable = PageRequest.of(page - 1, size, jpaSort);
 
@@ -158,7 +161,7 @@ public class TrainerServiceImpl implements TrainerService {
         List<TrainerListItemResponse> items = trainerIds.stream().map(id -> {
             Trainer t = trainerMap.get(id);
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
-            applyUserAvatar(item, t, userAvatarMap);
+            applyDisplayAvatar(item, t, userAvatarMap);
 
             List<CategoryRefDTO> catRefs = expertiseMap.getOrDefault(id, List.of()).stream().map(ec -> {
                 CategoryRefDTO dto = new CategoryRefDTO();
@@ -187,13 +190,24 @@ public class TrainerServiceImpl implements TrainerService {
             return item;
         }).toList();
 
-        trainerListItemEnricher.ifPresent(enricher -> enricher.enrich(items));
+        if (includeCourse) {
+            trainerListItemEnricher.ifPresent(enricher -> enricher.enrich(items));
+        }
 
-        return PageResponse.of(items, trainerPage.getTotalElements(), page, size);
+        PageResponse<TrainerListItemResponse> response =
+                PageResponse.of(items, trainerPage.getTotalElements(), page, size);
+        if (cacheable) {
+            publicTrainerListCache.putDefaultList(sort, page, size, includeCourse, response);
+        }
+        return response;
     }
 
     @Override
     public Map<Integer, Long> countPublicByExpertiseL1() {
+        Map<Integer, Long> cached = publicTrainerListCache.getExpertiseL1Counts();
+        if (cached != null) {
+            return cached;
+        }
         Map<Integer, Long> map = new HashMap<>();
         for (Object[] row : expertiseCategoryRepository.countPublishedTrainersByExpertiseL1()) {
             if (row[0] == null) {
@@ -202,6 +216,7 @@ public class TrainerServiceImpl implements TrainerService {
             long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
             map.put(((Number) row[0]).intValue(), count);
         }
+        publicTrainerListCache.putExpertiseL1Counts(map);
         return map;
     }
 
@@ -240,6 +255,28 @@ public class TrainerServiceImpl implements TrainerService {
         return ids;
     }
 
+    /**
+     * 公开列表排序。默认综合排序：信得过 → 签约 → sort_order → 评分（信得过标签优先展示）。
+     */
+    private Sort buildPublicListSort(String sort) {
+        return switch (sort != null ? sort : "") {
+            case "score" -> Sort.by(Sort.Direction.DESC, "score")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "score_asc" -> Sort.by(Sort.Direction.ASC, "score")
+                    .and(Sort.by(Sort.Direction.ASC, "id"));
+            case "default_asc" -> Sort.by(Sort.Direction.ASC, "sortOrder")
+                    .and(Sort.by(Sort.Direction.ASC, "score"))
+                    .and(Sort.by(Sort.Direction.ASC, "id"));
+            case "newly_joined" -> Sort.by(Sort.Direction.DESC, "createdAt")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            default -> Sort.by(Sort.Direction.DESC, "isTrusted")
+                    .and(Sort.by(Sort.Direction.DESC, "isSigned"))
+                    .and(Sort.by(Sort.Direction.DESC, "sortOrder"))
+                    .and(Sort.by(Sort.Direction.DESC, "score"))
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        };
+    }
+
     /** 构建列表查询的动态条件 */
     private Specification<Trainer> buildListSpec(Integer expertiseCategoryId,
                                                  Integer industryCategoryId,
@@ -271,9 +308,11 @@ public class TrainerServiceImpl implements TrainerService {
                 predicates.add(cb.equal(root.get("cityId"), cityId));
             }
 
-            // 质量承诺：仅 isTrusted=1 时筛选「信得过」专家
+            // 质量承诺 / 老站「优质讲师」：issign 或 is_xdg/isqc（迁库后 is_signed / is_trusted）
             if (isTrusted != null && isTrusted == 1) {
-                predicates.add(cb.equal(root.get("isTrusted"), 1));
+                predicates.add(cb.or(
+                        cb.equal(root.get("isTrusted"), 1),
+                        cb.equal(root.get("isSigned"), 1)));
             }
 
             if (hasCopyrightCourse != null && hasCopyrightCourse == 1) {
@@ -429,8 +468,8 @@ public class TrainerServiceImpl implements TrainerService {
         }
 
         TrainerPublicResponse response = trainerMapper.toPublicResponse(trainer);
-        response.setAvatar(resolveTrainerDisplayAvatar(trainer, loadUserAvatarMap(
-                trainer.getUserId() != null ? List.of(trainer.getUserId()) : List.of())));
+        applyDisplayAvatar(response, trainer, loadUserAvatarMap(
+                trainer.getUserId() != null ? List.of(trainer.getUserId()) : List.of()));
         fillSubTableData(response, trainerId);
 
         // 填充省市名称
@@ -465,6 +504,7 @@ public class TrainerServiceImpl implements TrainerService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "专家不存在"));
         trainer.setIsRecommended(value != null && value == 1 ? 1 : 0);
         trainerRepository.save(trainer);
+        publicTrainerListCache.evictPublicListCaches();
     }
 
     @Override
@@ -525,7 +565,7 @@ public class TrainerServiceImpl implements TrainerService {
 
         return picked.stream().map(t -> {
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
-            applyUserAvatar(item, t, userAvatarMap);
+            applyDisplayAvatar(item, t, userAvatarMap);
             item.setExpertiseCategories(List.of());
             return item;
         }).toList();
@@ -590,7 +630,7 @@ public class TrainerServiceImpl implements TrainerService {
         // 组装列表项（不需要分类、地区名称，留空即可，前端只展示头像/姓名/头衔/评分）
         return trainers.stream().map(t -> {
             TrainerListItemResponse item = trainerMapper.toListItemResponse(t);
-            applyUserAvatar(item, t, userAvatarMap);
+            applyDisplayAvatar(item, t, userAvatarMap);
             item.setExpertiseCategories(List.of());
             return item;
         }).toList();
@@ -610,6 +650,7 @@ public class TrainerServiceImpl implements TrainerService {
             throw new BusinessException(ErrorCode.PARAM_INVALID,
                     "请先勾选并同意《淘课网注册专家合作协议》");
         }
+        validateApplyAvatar(userId, request);
         // 在写数据前先获取旧快照（用于资料重审变更记录）
         Trainer oldSnapshot = trainerRepository.findByUserId(userId).orElse(null);
         boolean isReapply = roleApplyService.apply(userId, BusinessRole.Code.TRAINER);
@@ -813,6 +854,7 @@ public class TrainerServiceImpl implements TrainerService {
         if (req.getIdCardNo() != null) trainer.setIdCardNo(req.getIdCardNo());
         if (req.getBio() != null) trainer.setBio(req.getBio());
         if (req.getOneLineIntro() != null) trainer.setOneLineIntro(req.getOneLineIntro());
+        if (req.getSeoDescription() != null) trainer.setSeoDescription(req.getSeoDescription());
         if (req.getIntro() != null) trainer.setIntro(req.getIntro());
         if (req.getBackground() != null) trainer.setBackground(req.getBackground());
         if (req.getPartialClients() != null) trainer.setPartialClients(req.getPartialClients());
@@ -845,6 +887,19 @@ public class TrainerServiceImpl implements TrainerService {
         }
 
         return trainerRepository.save(trainer);
+    }
+
+    /** 专家入驻/重审：请求未带头像时，若用户表亦无有效头像则拒绝。 */
+    private void validateApplyAvatar(Integer userId, TrainerRequest request) {
+        if (LegacyAvatarUrls.isUsableAvatar(request.getAvatar())) {
+            return;
+        }
+        String existing = userRepository.findById(userId)
+                .map(User::getAvatarUrl)
+                .orElse(null);
+        if (!LegacyAvatarUrls.isUsableAvatar(existing)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传专家头像");
+        }
     }
 
     /**
@@ -974,6 +1029,20 @@ public class TrainerServiceImpl implements TrainerService {
         });
     }
 
+    @Override
+    @Transactional
+    public void updateReviewStatsByUserId(Integer trainerUserId, BigDecimal score, int commentCount) {
+        if (trainerUserId == null) return;
+        trainerRepository.findByUserId(trainerUserId).ifPresent(t -> {
+            BigDecimal nextScore = (score == null ? BigDecimal.ZERO : score)
+                    .setScale(2, RoundingMode.HALF_UP);
+            t.setScore(nextScore);
+            t.setCommentCount(Math.max(0, commentCount));
+            trainerRepository.save(t);
+            publicTrainerListCache.evictPublicListCaches();
+        });
+    }
+
     /** 列表/推荐位头像与详情一致：优先 sys_users.avatar_url */
     private Map<Integer, String> loadUserAvatarMap(Collection<Integer> userIds) {
         if (userIds == null || userIds.isEmpty()) {
@@ -984,23 +1053,49 @@ public class TrainerServiceImpl implements TrainerService {
                 .collect(Collectors.toMap(User::getId, User::getAvatarUrl, (a, b) -> a));
     }
 
-    private void applyUserAvatar(TrainerListItemResponse item, Trainer trainer, Map<Integer, String> userAvatarMap) {
-        item.setAvatar(resolveTrainerDisplayAvatar(trainer, userAvatarMap));
-    }
-
     /**
      * 专家展示头像：用户表优先，跳过旧站占位图，回退 trainer.avatar，再回退默认头像素材池。
+     * <p>同时写入 {@code avatarFallback}（素材库默认），供前端在自定义头像 404 时回退。</p>
      */
-    private String resolveTrainerDisplayAvatar(Trainer trainer, Map<Integer, String> userAvatarMap) {
+    private void applyDisplayAvatar(TrainerListItemResponse item, Trainer trainer,
+                                    Map<Integer, String> userAvatarMap) {
+        AvatarResolve resolved = resolveTrainerDisplayAvatarPair(trainer, userAvatarMap);
+        item.setAvatar(resolved.avatar());
+        item.setAvatarFallback(resolved.fallback());
+    }
+
+    private void applyDisplayAvatar(TrainerPublicResponse response, Trainer trainer,
+                                    Map<Integer, String> userAvatarMap) {
+        AvatarResolve resolved = resolveTrainerDisplayAvatarPair(trainer, userAvatarMap);
+        response.setAvatar(resolved.avatar());
+        response.setAvatarFallback(resolved.fallback());
+    }
+
+    private record AvatarResolve(String avatar, String fallback) {}
+
+    private AvatarResolve resolveTrainerDisplayAvatarPair(Trainer trainer,
+                                                          Map<Integer, String> userAvatarMap) {
         if (trainer == null) {
-            return "";
+            return new AvatarResolve("", "");
         }
         String userUrl = trainer.getUserId() != null && userAvatarMap != null
                 ? userAvatarMap.get(trainer.getUserId())
                 : null;
         String raw = firstNonBlankAvatar(userUrl, trainer.getAvatar());
         int seed = trainer.getId() != null ? trainer.getId() : 0;
-        return opsMaterialResolver.resolveAvatarUrl(raw, "TRAINER", true, seed);
+        String material = opsMaterialResolver.pickDefaultMaterialUrl("AVATAR", null, "TRAINER", seed);
+        if (material == null) {
+            material = "";
+        }
+        String avatar = opsMaterialResolver.resolveAvatarUrl(raw, "TRAINER", true, seed);
+        if (avatar == null || avatar.isBlank()) {
+            avatar = material;
+        }
+        return new AvatarResolve(avatar, material);
+    }
+
+    private String resolveTrainerDisplayAvatar(Trainer trainer, Map<Integer, String> userAvatarMap) {
+        return resolveTrainerDisplayAvatarPair(trainer, userAvatarMap).avatar();
     }
 
     private static String firstNonBlankAvatar(String... candidates) {

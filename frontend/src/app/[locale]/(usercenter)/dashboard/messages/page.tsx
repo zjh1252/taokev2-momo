@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
@@ -12,6 +13,7 @@ import {
 } from '@/features/user-center/api/service';
 import { Trash2, Eye, X, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import { CourseReserveNotificationDetail } from '@/features/course/components/detail/CourseReserveNotificationDetail';
 
 /** 绑定 / 申请审核类通知的 type 集合 — 在消息列表里展示「前往处理」链接 */
 const BINDING_NOTIFICATION_TYPES = new Set<string>([
@@ -53,12 +55,14 @@ const SENT_MOCK: NotificationItem[] = [
  */
 export default function MessagesPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<'received' | 'sent'>('received');
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [detailItem, setDetailItem] = useState<NotificationItem | null>(null);
+  const openedNotificationIdRef = useRef<number | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
@@ -78,14 +82,14 @@ export default function MessagesPage() {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  const handleMarkRead = async (id: number) => {
+  const handleMarkRead = useCallback(async (id: number) => {
     const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
     if (!tokenData?.accessToken) return;
     await markNotificationRead(tokenData.accessToken, id);
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: 1 } : n)),
     );
-  };
+  }, []);
 
   const handleMarkAllRead = async () => {
     const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
@@ -94,12 +98,29 @@ export default function MessagesPage() {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: 1 })));
   };
 
-  const handleViewDetail = (item: NotificationItem) => {
+  const handleViewDetail = useCallback((item: NotificationItem) => {
     setDetailItem(item);
     if (tab === 'received' && item.isRead === 0) {
-      handleMarkRead(item.id);
+      void handleMarkRead(item.id);
     }
-  };
+  }, [handleMarkRead, tab]);
+
+  useEffect(() => {
+    const rawId = searchParams.get('notificationId') ?? searchParams.get('messageId');
+    const notificationId = rawId ? Number(rawId) : NaN;
+    if (!Number.isInteger(notificationId) || notificationId <= 0) return;
+    if (openedNotificationIdRef.current === notificationId) return;
+
+    const target = notifications.find((item) => item.id === notificationId);
+    if (!target) return;
+
+    openedNotificationIdRef.current = notificationId;
+    setTab('received');
+    setDetailItem(target.isRead === 0 ? { ...target, isRead: 1 } : target);
+    if (target.isRead === 0) {
+      void handleMarkRead(target.id);
+    }
+  }, [handleMarkRead, notifications, searchParams]);
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => {
@@ -276,7 +297,13 @@ export default function MessagesPage() {
       </section>
 
       {/* 消息详情弹窗 */}
-      {detailItem && (
+      {detailItem && detailItem.type === 'COURSE_RESERVE' && (
+        <CourseReserveNotificationDetail
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+        />
+      )}
+      {detailItem && detailItem.type !== 'COURSE_RESERVE' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/40"

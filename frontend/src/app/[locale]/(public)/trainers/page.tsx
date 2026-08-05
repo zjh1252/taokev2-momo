@@ -1,3 +1,4 @@
+import { permanentRedirect } from 'next/navigation';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { TrainerListSection } from '@/features/trainer/components/list/TrainerListSection';
 import { PxbTrainerListSection } from '@/features/trainer/components/pxb/PxbTrainerListSection';
@@ -6,14 +7,18 @@ import {
   pxbTrainerListParams,
 } from '@/features/trainer/components/pxb/pxb-trainer-list-url';
 import { parseListPageFromSearchParams } from '@/lib/list-page';
-import { parseSlug } from '@/features/trainer/utils/url';
+import { filtersToHtmPath, parseSlug } from '@/features/trainer/utils/url';
 import { getTrainerList } from '@/features/trainer/api/service';
 import {
   loadCategoryExpertTrainers,
   loadTrainerListRecommended,
   loadTrainerPageCases,
 } from '@/features/recommendation/api/loaders';
-import { resolveExpertiseCategoryId } from '@/features/trainer/utils/expertise-categories';
+import {
+  canonicalizeTrainerSlugField,
+  filterStandardTrainerExpertiseTree,
+  resolveExpertiseCategoryId,
+} from '@/features/trainer/utils/expertise-categories';
 import { buildTrainerCategoryNavItems } from '@/lib/channel-category-stats';
 import {
   getCachedTrainerExpertiseTree,
@@ -21,7 +26,6 @@ import {
 } from '@/lib/cached-categories';
 import { isPxbEmbedOrigin } from '@/lib/pxb-embed';
 import { trainerListMetadata, trainerListH1 } from '@/lib/seo';
-import { filterStandardTrainerExpertiseTree } from '@/features/trainer/utils/expertise-categories';
 import { slugParamsToTrainerListParams } from '@/features/trainer/utils/list-params';
 
 function embedSearchParams(
@@ -60,11 +64,14 @@ export async function generateMetadata({ searchParams }: TrainersPageProps) {
     return { title: '讲师列表' };
   }
   const slugParams = parseSlug(sp.slug || '');
+  const page = parseListPageFromSearchParams(
+    new URLSearchParams(sp.page != null ? `page=${sp.page}` : ''),
+  );
   return trainerListMetadata({
     city: slugParams.region,
     industry: slugParams.industry,
     field: slugParams.field,
-  });
+  }, filtersToHtmPath({ ...slugParams, page: slugParams.page ?? page }));
 }
 
 export default async function TrainersPage({ searchParams }: TrainersPageProps) {
@@ -101,33 +108,62 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
   );
 
   const slugParams = parseSlug(sp.slug || '');
+  // .htm SEO URL 把 page 写在 slug 里（/trainer/page=2.htm），优先于 ?page=
+  const listPage = slugParams.page ?? page;
+
+  // 旧 field=一级_二级 且二级名唯一 → 301 到仅二级名
+  if (slugParams.field?.includes('_')) {
+    const expertiseTreeForCanon = await expertiseTreePromise;
+    const canonicalField = canonicalizeTrainerSlugField(expertiseTreeForCanon, slugParams.field);
+    if (canonicalField) {
+      permanentRedirect(
+        filtersToHtmPath({
+          ...slugParams,
+          field: canonicalField,
+        }),
+      );
+    }
+  }
 
   const categoryNavPromise = expertiseTreePromise.then(buildTrainerCategoryNavItems).catch(() => []);
+  const needsTreeForFilters = Boolean(slugParams.field || slugParams.industry);
 
-  const listPromise = Promise.all([
-    expertiseTreePromise,
-    getCachedTrainerIndustryTree(),
-  ]).then(([expertiseTree, industryTree]) =>
-    getTrainerList(
-      slugParamsToTrainerListParams(slugParams, expertiseTree, industryTree, {
-        page,
+  const listPromise = needsTreeForFilters
+    ? Promise.all([expertiseTreePromise, industryTreePromise]).then(
+        ([expertiseTree, industryTree]) => {
+          const params = slugParamsToTrainerListParams(slugParams, expertiseTree, industryTree, {
+            page: listPage,
+            size: 16,
+            sort: 'default',
+          });
+          if (slugParams.region) params.region = slugParams.region;
+          return getTrainerList(params).catch(() => ({
+            list: [],
+            total: 0,
+            page: listPage,
+            size: 16,
+            totalPages: 0,
+          }));
+        },
+      )
+    : getTrainerList({
+        page: listPage,
         size: 16,
         sort: 'default',
-      }),
-    ).catch(() => ({
-      list: [],
-      total: 0,
-      page,
-      size: 16,
-      totalPages: 0,
-    })),
-  );
+        ...(slugParams.region ? { region: slugParams.region } : {}),
+      }).catch(() => ({
+        list: [],
+        total: 0,
+        page: listPage,
+        size: 16,
+        totalPages: 0,
+      }));
 
   const [expertiseTree, industryTree, recommendedTrainers, recentCases, initialData, categoryExpertTrainers] =
     await Promise.all([
       expertiseTreePromise,
       industryTreePromise,
-      loadTrainerListRecommended(9),
+      loadTrainerListRecommended(12),
       loadTrainerPageCases(10),
       listPromise,
       expertiseTreePromise.then((tree) => {
@@ -143,9 +179,9 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
   });
 
   return (
-    <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
+    <main className="max-w-7xl mx-auto px-4 py-6 min-h-screen flex flex-col gap-6 sm:px-8">
       <PageBreadcrumb items={[{ label: '培训专家' }]} />
-      <h1 className="text-2xl font-bold text-slate-900">{listH1}</h1>
+      <h1 className="sr-only">{listH1}</h1>
 
       <TrainerListSection
         initialData={initialData}

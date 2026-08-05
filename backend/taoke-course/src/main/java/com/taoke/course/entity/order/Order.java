@@ -5,6 +5,8 @@ import com.taoke.course.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -18,6 +20,8 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
+@DynamicInsert
+@DynamicUpdate
 @Table(name = "orders")
 public class Order extends BaseEntity {
 
@@ -81,4 +85,12 @@ public class Order extends BaseEntity {
     /** 过期时间 */
     @Column(name = "expired_at")
     private LocalDateTime expiredAt;
+
+    /** 买家最后查看订单分类提醒时间 */
+    @Column(name = "buyer_viewed_at")
+    private LocalDateTime buyerViewedAt;
+
+    /** 买家最后查看时的前台展示分类 */
+    @Column(name = "buyer_viewed_status", length = 32)
+    private String buyerViewedStatus;
 }

@@ -110,6 +110,8 @@ export function normalizeOpenCourseListItem(v) {
 
     price: v.price ?? v.salePrice ?? '',
 
+    coverUrl: v.coverUrl || v.cover || v.resourceCoverUrl || v.thumbnail || '',
+
     planTime: formatPlanStartDate(nextPlanStartDate),
 
     planCity: nextPlanCity || '-',

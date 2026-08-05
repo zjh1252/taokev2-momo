@@ -2,6 +2,7 @@
  * 三角色身份信息认证 API 服务
  *
  * <ul>
+ *   <li>ENTERPRISE_BUYER — 实名认证 + 工作认证</li>
  *   <li>AGENT — 工作认证（多记录）</li>
  *   <li>ENTERPRISE_AGENT — 资质认证（公司Logo + 营业执照）</li>
  *   <li>INSTITUTION — 公司资料（单条整体审核）</li>
@@ -14,7 +15,7 @@ import { apiDelete, apiGet, apiPost, apiPut } from '@/lib/http/client';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import type { ApiResult } from '@/features/user/api/types';
-import type { CertStatus } from '@/features/user-center/api/cert-service';
+import type { CertStatus, RealNameCert, RealNameCertRequest } from '@/features/user-center/api/cert-service';
 
 function authHeaders(): Record<string, string> {
   const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
@@ -67,6 +68,51 @@ export function updateAgentWorkCert(id: number, data: AgentWorkCertRequest) {
 
 export function deleteAgentWorkCert(id: number) {
   return apiDelete<ApiResult>(`/agents/me/certification/work-experiences/${id}`, {
+    headers: authHeaders(),
+  });
+}
+
+// ============================ 企业采购方 — 实名认证 ============================
+
+export function getBuyerRealNameCert() {
+  return apiGet<ApiResult<RealNameCert>>('/enterprise-buyers/me/certification/real-name', {
+    headers: authHeaders(),
+  });
+}
+
+export function submitBuyerRealNameCert(data: RealNameCertRequest) {
+  return apiPut<ApiResult>('/enterprise-buyers/me/certification/real-name', data, {
+    headers: authHeaders(),
+  });
+}
+
+// ============================ 企业采购方 — 工作认证 ============================
+
+export type BuyerWorkCert = AgentWorkCert;
+export type BuyerWorkCertRequest = AgentWorkCertRequest;
+
+export function listBuyerWorkCerts() {
+  return apiGet<ApiResult<BuyerWorkCert[]>>('/enterprise-buyers/me/certification/work-experiences', {
+    headers: authHeaders(),
+  });
+}
+
+export function createBuyerWorkCert(data: BuyerWorkCertRequest) {
+  return apiPost<ApiResult<BuyerWorkCert>>('/enterprise-buyers/me/certification/work-experiences', data, {
+    headers: authHeaders(),
+  });
+}
+
+export function updateBuyerWorkCert(id: number, data: BuyerWorkCertRequest) {
+  return apiPut<ApiResult<BuyerWorkCert>>(
+    `/enterprise-buyers/me/certification/work-experiences/${id}`,
+    data,
+    { headers: authHeaders() },
+  );
+}
+
+export function deleteBuyerWorkCert(id: number) {
+  return apiDelete<ApiResult>(`/enterprise-buyers/me/certification/work-experiences/${id}`, {
     headers: authHeaders(),
   });
 }

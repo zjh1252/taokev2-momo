@@ -51,3 +51,14 @@ export async function rejectTrainerHighlight(id: number, reason: string) {
     { method: 'PUT', body: JSON.stringify({ reason }) }
   );
 }
+
+/** 运营代发精彩瞬间 */
+export async function createTrainerHighlight(
+  trainerUserId: number,
+  payload: import('./types').SaveTrainerHighlightPayload
+) {
+  return apiClient<{ code: number; message: string; data: { id: number } }>(
+    `/trainer-highlights?trainerUserId=${trainerUserId}`,
+    { method: 'POST', body: JSON.stringify(payload) }
+  );
+}

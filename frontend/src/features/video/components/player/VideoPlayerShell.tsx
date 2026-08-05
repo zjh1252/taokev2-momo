@@ -27,7 +27,6 @@ type VideoPlayerShellProps = {
   videoId?: number;
   chapterId?: number;
   title?: string | null;
-  externalUrl?: string | null;
 };
 
 /**
@@ -43,7 +42,6 @@ export function VideoPlayerShell({
   videoId,
   chapterId,
   title,
-  externalUrl,
 }: VideoPlayerShellProps) {
   if (mode === 'embed') {
     return (
@@ -57,7 +55,6 @@ export function VideoPlayerShell({
         className={className ?? 'h-full w-full'}
         videoId={videoId}
         chapterId={chapterId}
-        externalUrl={externalUrl}
       />
     );
   }

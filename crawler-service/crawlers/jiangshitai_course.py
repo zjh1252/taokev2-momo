@@ -11,6 +11,8 @@ from html import unescape
 from typing import Any, AsyncGenerator, Dict
 from urllib.parse import urljoin
 
+from crawlers.course_utils import enrich_course_record, set_price_fields
+
 
 BASE_URL = "https://www.jiangshitai.com"
 ASSET_BASE_URL = "https://to.jiangshitai.com"
@@ -83,11 +85,14 @@ def json_ld_objects(html: str) -> list[dict]:
 
 
 def discover_course_links(limit: int = 50) -> list[str]:
-    html = fetch_text(f"{BASE_URL}/c_3_0_0_0_0_0_0.html")
+    html = fetch_text(f"{BASE_URL}/course/")
     links: list[str] = []
     seen: set[str] = set()
-    for href in re.findall(r'https://www\.jiangshitai\.com/course/\d+\.html', html):
-        if href in seen:
+    candidates = re.findall(r'https://www\.jiangshitai\.com/(?:course|training)/[^"\']+', html)
+    candidates.extend(absolute_url(href) for href in re.findall(r'href=["\'](/(?:course|training)/[^"\']+)["\']', html))
+    for href in candidates:
+        href = href.split("#", 1)[0].split("?", 1)[0]
+        if "/training/" not in href or href in seen:
             continue
         seen.add(href)
         links.append(href)
@@ -97,8 +102,8 @@ def discover_course_links(limit: int = 50) -> list[str]:
 
 
 def source_id_from_url(url: str) -> str:
-    match = re.search(r"/course/(\d+)\.html", url)
-    return match.group(1) if match else url.rstrip("/").rsplit("/", 1)[-1]
+    match = re.search(r"/(?:course|training)/([^/]+)", url)
+    return match.group(1).replace(".html", "") if match else url.rstrip("/").rsplit("/", 1)[-1]
 
 
 def extract_section_after_heading(html: str, heading: str, max_len: int = 3000) -> str:
@@ -125,46 +130,120 @@ def parse_price(text: str) -> float:
     return float(match.group(1)) if match else 0.0
 
 
+def extract_price_raw(text: str) -> str:
+    for pattern in (
+        r"(?:课程价格|课程费用|培训费用|费用|价格)[：:\s]*(?:￥|¥)?\s*\d{1,8}(?:\.\d+)?\s*元?",
+        r"(?:课程价格|课程费用|培训费用|费用|价格)[：:\s]*(?:面议|待商量|待议|电话咨询|咨询|详询)",
+        r"(?:￥|¥)\s*\d{1,8}(?:\.\d+)?\s*元?",
+    ):
+        match = re.search(pattern, text.replace(",", ""))
+        if match:
+            return match.group(0)
+    return extract_section_after_heading(text, "课程价格", 200)
+
+
+def clean_teaches(items: list[Any]) -> list[str]:
+    cleaned: list[str] = []
+    noisy_keywords = (
+        "授课时间",
+        "课程时间",
+        "课程大纲",
+        "培训大纲",
+        "讲师介绍",
+        "讲师简介",
+        "报名咨询",
+        "课程价格",
+        "培训费用",
+    )
+    for item in items:
+        text = clean_html(item, "")
+        text = text.strip(" -•·、:：")
+        if not text:
+            continue
+        if text.startswith(("【", "[", "（", "(")) and text.endswith(("】", "]", "）", ")")):
+            continue
+        if any(keyword in text for keyword in noisy_keywords):
+            continue
+        if text not in cleaned:
+            cleaned.append(text)
+    return cleaned
+
+
+def clean_audience(text: str) -> str:
+    if text == MISSING:
+        return text
+    for marker in ("【培训课时】", "培训课时", "【授课时间】", "授课时间", "课程时间", "培训时间"):
+        idx = text.find(marker)
+        if idx > 0:
+            text = text[:idx]
+    return text.strip(" ：:;；、") or MISSING
+
+
 def extract_category(html: str) -> str:
     match = re.search(r"课程分类\s*:\s*</span>\s*<a[^>]*>(.*?)</a>", html, re.S | re.I)
     return clean_html(match.group(1)) if match else MISSING
 
 
-def parse_course_detail(url: str) -> Dict[str, Any]:
-    html = fetch_text(url)
+def parse_course_detail_html(url: str, html: str) -> Dict[str, Any]:
     course_json = next((item for item in json_ld_objects(html) if item.get("@type") == "Course"), {})
     title = clean_html(course_json.get("name")) if course_json else meta_content(html, "og:title")
     description = clean_html(course_json.get("description")) if course_json else meta_content(html, "description")
     instructor = course_json.get("instructor") if isinstance(course_json.get("instructor"), dict) else {}
     image = course_json.get("image") if isinstance(course_json.get("image"), str) else meta_content(html, "og:image")
+    about = course_json.get("about") if isinstance(course_json.get("about"), dict) else {}
+    teaches = clean_teaches(course_json.get("teaches") if isinstance(course_json.get("teaches"), list) else [])
+    audience_obj = course_json.get("audience") if isinstance(course_json.get("audience"), dict) else {}
+    audience = clean_html(audience_obj.get("audienceType")) if audience_obj else extract_section_after_heading(html, "适用对象", 1500)
+    audience = clean_audience(audience)
+    learning_outcomes = "\n".join(f"- {item}" for item in teaches)
     overview = extract_section_after_heading(html, "课程概要", 1200)
     detail = extract_section_after_heading(html, "课程介绍", 8000)
-    audience = extract_section_after_heading(html, "适用对象", 1500)
-    return {
+    syllabus = learning_outcomes or (detail if detail != MISSING else description)
+    price_raw = "培训咨询"
+    item = {
         "source_course_id": source_id_from_url(url),
         "source_url": url,
         "title": title,
         "type": "INTERNAL",
-        "category_name_raw": extract_category(html),
+        "category_name_raw": clean_html(about.get("name")) if about else extract_category(html),
         "cover_url": absolute_url(image),
         "intro": description[:800],
         "summary": description[:500],
-        "syllabus": detail if detail != MISSING else description,
+        "syllabus": syllabus,
         "audience": audience,
-        "highlights": extract_section_after_heading(html, "课程收益", 1200),
-        "duration_days": parse_duration_days(overview + " " + description),
-        "price": parse_price(overview + " " + detail),
+        "highlights": learning_outcomes[:1200] if learning_outcomes else extract_section_after_heading(html, "课程收益", 1200),
+        "learning_outcomes": learning_outcomes or MISSING,
+        "duration_days": parse_duration_days(str(course_json.get("timeRequired") or "") + " " + overview + " " + description),
+        "price": 0,
+        "price_raw": price_raw,
         "trainer_name_raw": clean_html(instructor.get("name")) if instructor else MISSING,
         "trainer_source_url": instructor.get("url", "") if instructor else "",
         "plans_json": [],
         "raw_json": {
             "json_ld": course_json,
             "overview": overview,
+            "source_entry": "training",
+            "source_entry_name": "内训课程",
             "media_assets": [{"type": "cover", "url": absolute_url(image), "label": "课程图片"}] if image else [],
             "detail_text_len": len(detail),
+            "field_sources": {
+                "category_name_raw": "json_ld.about/html category",
+                "audience": "json_ld.audience/html 适用对象",
+                "learning_outcomes": "json_ld.teaches",
+                "trainer_name_raw": "json_ld.instructor",
+            },
             "crawled_at": datetime.now().isoformat(),
         },
     }
+    set_price_fields(item, price_raw)
+    enrich_course_record(item, fallback_type="INTERNAL")
+    item["type"] = "INTERNAL"
+    item["raw_json"]["type_evidence"] = "jiangshitai_training_entry_internal"
+    return item
+
+
+def parse_course_detail(url: str) -> Dict[str, Any]:
+    return parse_course_detail_html(url, fetch_text(url))
 
 
 def iter_jiangshitai_courses(max_items: int | None = None):
@@ -191,6 +270,8 @@ class JiangshitaiCourseSpider:
     source = "jiangshitai"
     data_type = "COURSE"
     max_items = None
+    supported_course_types = ("INTERNAL",)
+    coverage_note = "企业培训讲师平台，当前以内训课程抓取为主。"
 
     def pause(self) -> None:
         return None

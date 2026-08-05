@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taoke.admin.dto.cert.*;
 import com.taoke.common.dto.PageResult;
+import com.taoke.common.util.LegacyAvatarUrls;
 import com.taoke.user.api.TrainerCertificationAdminService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.api.UserService;
@@ -60,9 +61,9 @@ public class AdminTrainerCertificationService {
             vo.setTrainerId(t.getId());
             vo.setUserId(t.getUserId());
             vo.setRealName(t.getName());
-            vo.setIdCardNo(t.getIdCardNo());
-            vo.setIdCardFront(t.getIdCardFront());
-            vo.setIdCardBack(t.getIdCardBack());
+            vo.setIdCardNo(blankToNull(t.getIdCardNo()));
+            vo.setIdCardFront(normalizeCertUrl(t.getIdCardFront()));
+            vo.setIdCardBack(normalizeCertUrl(t.getIdCardBack()));
             vo.setStatus(t.getRealNameStatus());
             vo.setRejectReason(t.getRealNameRejectReason());
             vo.setSubmittedAt(t.getRealNameSubmittedAt());
@@ -106,7 +107,10 @@ public class AdminTrainerCertificationService {
             vo.setTrainerId(t.getId());
             vo.setUserId(t.getUserId());
             vo.setRealName(t.getName());
-            vo.setFiles(parseFiles(t.getCertificationFiles()));
+            vo.setFiles(parseFiles(t.getCertificationFiles()).stream()
+                    .map(AdminTrainerCertificationService::normalizeCertUrl)
+                    .filter(s -> s != null && !s.isBlank())
+                    .toList());
             vo.setStatus(t.getProfessionalStatus());
             vo.setRejectReason(t.getProfessionalRejectReason());
             vo.setSubmittedAt(t.getProfessionalSubmittedAt());
@@ -159,7 +163,7 @@ public class AdminTrainerCertificationService {
             vo.setStartDate(e.getStartDate());
             vo.setEndDate(e.getEndDate());
             vo.setIsGraduated(e.getIsGraduated());
-            vo.setProofFile(e.getProofFile());
+            vo.setProofFile(normalizeCertUrl(e.getProofFile()));
             vo.setStatus(e.getStatus());
             vo.setRejectReason(e.getRejectReason());
             vo.setSubmittedAt(e.getCreatedAt());
@@ -212,7 +216,7 @@ public class AdminTrainerCertificationService {
             vo.setStartDate(w.getStartDate());
             vo.setEndDate(w.getEndDate());
             vo.setJobDescription(w.getJobDescription());
-            vo.setProofFile(w.getProofFile());
+            vo.setProofFile(normalizeCertUrl(w.getProofFile()));
             vo.setStatus(w.getStatus());
             vo.setRejectReason(w.getRejectReason());
             vo.setSubmittedAt(w.getCreatedAt());
@@ -259,6 +263,22 @@ public class AdminTrainerCertificationService {
 
     private static String safe(String s) {
         return s == null ? "" : s;
+    }
+
+    private static String blankToNull(String s) {
+        if (s == null || s.isBlank()) {
+            return null;
+        }
+        return s.trim();
+    }
+
+    /** 资质证明文件 URL 规范化（老站 attachments/u 路径等） */
+    private static String normalizeCertUrl(String url) {
+        if (!LegacyAvatarUrls.isUsable(url)) {
+            return null;
+        }
+        String normalized = LegacyAvatarUrls.normalize(url.trim());
+        return normalized.isBlank() ? null : normalized;
     }
 
     private static <T> List<T> applySearch(List<T> list, String search, Function<T, List<String>> fields) {

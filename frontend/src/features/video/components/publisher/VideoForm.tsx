@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
+import { SafeImage } from '@/components/safe-image';
+import { DEFAULT_VIDEO_COVER } from '@/lib/media';
 import RichTextEditor from '@/components/rich-text-editor';
 import { getVideoCategoryTree } from '@/features/video/api/service';
 import {
@@ -85,6 +86,19 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   const [teacherName, setTeacherName] = useState(initialData?.teacherName || '');
   const [price, setPrice] = useState(initialData?.price || 0);
   const [isFree, setIsFree] = useState(initialData?.isFree || 0);
+  const [capEnabled, setCapEnabled] = useState(
+    () => (initialData?.companyPrice ?? 0) > 0 || (initialData?.maxPurchaseQty ?? 0) > 0,
+  );
+  const [companyPrice, setCompanyPrice] = useState(initialData?.companyPrice || 0);
+  const [maxPurchaseQty, setMaxPurchaseQty] = useState(initialData?.maxPurchaseQty || 20);
+  const [capPreset, setCapPreset] = useState<string>(() => {
+    const qty = initialData?.maxPurchaseQty;
+    if (!qty || qty <= 0) return 'unlimited';
+    if (qty === 20) return '20';
+    if (qty === 40) return '40';
+    if (qty === 100) return '100';
+    return 'custom';
+  });
   const [keywords, setKeywords] = useState(initialData?.keywords || '');
 
   const [categories, setCategories] = useState<CategoryTreeNode[]>([]);
@@ -255,11 +269,15 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
   /**
    * 组装并提交表单。
    *
-   * @param draft true=保存草稿（仅校验标题），false=提交发布（完整校验）
+   * @param draft true=保存草稿（校验标题与封面），false=提交发布（完整校验）
    */
   const submitForm = async (draft: boolean) => {
     if (!title.trim()) {
       toast.warning('请输入视频标题');
+      return;
+    }
+    if (!coverUrl.trim()) {
+      toast.warning('请上传录播封面');
       return;
     }
     if (!draft) {
@@ -291,6 +309,8 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
       price: isFree === 1 ? 0 : price,
       isFree,
       keywords: keywords || undefined,
+      companyPrice: isFree === 1 || !capEnabled ? 0 : companyPrice,
+      maxPurchaseQty: isFree === 1 || !capEnabled ? 0 : maxPurchaseQty,
     };
 
     // SERIES 类型时，将新上传的视频列表传给父组件，由父组件调用批量创建章节
@@ -561,11 +581,19 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
 
       {/* 封面图片 */}
       <div className="flex items-start gap-4">
-        <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">封面图片</label>
+        <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">
+          封面图片 <span className="text-red-500">*</span>
+        </label>
         <div className="flex-1">
           {coverUrl ? (
-            <div className="relative inline-block">
-              <Image src={coverUrl} alt="封面" width={200} height={150} className="rounded-lg object-cover border border-slate-200" />
+            <div className="relative inline-block w-[200px] h-[150px]">
+              <SafeImage
+                src={coverUrl}
+                alt="封面"
+                fill
+                className="rounded-lg object-cover border border-slate-200"
+                fallback={DEFAULT_VIDEO_COVER}
+              />
               <button
                 type="button"
                 onClick={() => {
@@ -638,27 +666,117 @@ export default function VideoForm({ initialData, onSubmit, submitting }: VideoFo
         <label className="w-24 text-sm text-gray-700 pt-2 text-right shrink-0">
           视频价格 <span className="text-red-500">*</span>
         </label>
-        <div className="flex-1 flex items-center gap-3">
+        <div className="flex-1 space-y-3">
           <label className="flex items-center gap-1.5 text-sm cursor-pointer">
             <input
               type="checkbox"
               checked={isFree === 1}
-              onChange={(e) => setIsFree(e.target.checked ? 1 : 0)}
+              onChange={(e) => {
+                const free = e.target.checked ? 1 : 0;
+                setIsFree(free);
+                if (free === 1) setCapEnabled(false);
+              }}
               className="accent-primary"
             />
             免费
           </label>
           {isFree === 0 && (
             <>
-              <input
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(Number(e.target.value))}
-                min={0}
-                step={0.01}
-                className="w-32 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              />
-              <span className="text-sm text-slate-500">元/人/年</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-slate-600">单价：</span>
+                <input
+                  type="number"
+                  value={price || ''}
+                  onChange={(e) => {
+                    const next = Number(e.target.value);
+                    setPrice(next);
+                    if (capEnabled && capPreset !== 'custom' && capPreset !== 'unlimited') {
+                      const qty = Number(capPreset);
+                      setMaxPurchaseQty(qty);
+                      setCompanyPrice(Number((next * qty).toFixed(2)));
+                    }
+                  }}
+                  min={0}
+                  step={0.01}
+                  placeholder="请输入单价"
+                  className="w-32 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+                <span className="text-sm text-slate-500">元/人/年</span>
+              </div>
+              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={capEnabled}
+                  onChange={(e) => setCapEnabled(e.target.checked)}
+                  className="accent-primary"
+                />
+                封顶价设置
+              </label>
+              {capEnabled && (
+                <div className="space-y-2 pl-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-slate-600">封顶人数：</span>
+                    <select
+                      value={capPreset}
+                      onChange={(e) => {
+                        const preset = e.target.value;
+                        setCapPreset(preset);
+                        if (preset === 'unlimited') {
+                          setMaxPurchaseQty(0);
+                          setCompanyPrice(0);
+                        } else if (preset === 'custom') {
+                          // 保留当前自定义值
+                        } else {
+                          const qty = Number(preset);
+                          setMaxPurchaseQty(qty);
+                          setCompanyPrice(Number((price * qty).toFixed(2)));
+                        }
+                      }}
+                      className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    >
+                      <option value="unlimited">不限</option>
+                      <option value="20">20人封顶</option>
+                      <option value="40">40人封顶</option>
+                      <option value="100">100人封顶</option>
+                      <option value="custom">自定义</option>
+                    </select>
+                    {capPreset === 'custom' && (
+                      <input
+                        type="number"
+                        min={1}
+                        value={maxPurchaseQty || ''}
+                        onChange={(e) => {
+                          const qty = Number(e.target.value);
+                          setMaxPurchaseQty(qty);
+                          setCompanyPrice(Number((price * qty).toFixed(2)));
+                        }}
+                        placeholder="人数"
+                        className="w-24 border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <span>封顶价：</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={companyPrice || ''}
+                      onChange={(e) => setCompanyPrice(Number(e.target.value))}
+                      className="w-32 border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                    />
+                    <span>元</span>
+                    {capPreset !== 'unlimited' && price > 0 && maxPurchaseQty > 0 && (
+                      <span className="text-xs text-slate-400">
+                        （单价 × {maxPurchaseQty} = {Number((price * maxPurchaseQty).toFixed(2))} 元）
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    封顶价是为批量采购设置的优惠价格；批量采购时总价不超过封顶价，超过封顶人数后也不再额外收费。
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>

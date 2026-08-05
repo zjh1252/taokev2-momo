@@ -79,7 +79,10 @@ export function useProfilePrefill<T extends object>({
     const hasActive = user.roles.some(
       (r) => r.role === role && r.status === 1,
     );
-    if (!hasActive) return;
+    const hasPendingOrRejected = user.roles.some(
+      (r) => r.role === role && (r.status === 2 || r.status === 3),
+    );
+    if (!hasActive && !hasPendingOrRejected) return;
     if (!isEmpty(dataRef.current)) return;
 
     loadedRef.current = true;

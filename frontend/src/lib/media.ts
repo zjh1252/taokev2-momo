@@ -106,16 +106,18 @@ function normalizeHttpCoverUrl(value: string): string {
   return url;
 }
 
-/** 旧录播封面特殊路径（FSM key、OSS 相对路径） */
+/** OSS 上传对象路径（avatars/images/courses 等，存于 PXB CDN /taoke/upload/） */
+function isPxbUploadPath(value: string): boolean {
+  return value.startsWith('/taoke/upload/') || value.startsWith('taoke/upload/');
+}
+
+/** 旧录播封面特殊路径（FSM key、taoke/covers） */
 function resolveLegacyVideoCoverPath(value: string): string | null {
   if (FSM_STORAGE_KEY_RE.test(value)) {
     return `${FSM_PREVIEW_BASE.replace(/\/$/, '')}/fsm/${value}`;
   }
   if (value.startsWith('taoke/covers/')) {
     return joinBase(PXB_VIDEO_CDN, value);
-  }
-  if (value.startsWith('taoke/upload/')) {
-    return `${FSM_PREVIEW_BASE.replace(/\/$/, '')}/fsm/${value}`;
   }
   return null;
 }
@@ -199,12 +201,28 @@ function resolveImageSrcRaw(
         /^localhost|127\.0\.0\.1$/i.test(parsed.hostname)
         && parsed.pathname.startsWith('/uploads/')
       ) {
+        if (parsed.pathname.startsWith('/uploads/taoke/upload/')) {
+          return resolvePxbUploadPath(parsed.pathname.slice('/uploads'.length));
+        }
         return parsed.pathname;
       }
+      if (isPxbUploadPath(parsed.pathname)) {
+        return resolvePxbUploadPath(parsed.pathname);
+      }
+      // 图片直连 OSS CDN（img 设 no-referrer）；勿走 /pxb-videos 反代，便于 DevTools 识别 OSS 域名
       return normalizeHttpCoverUrl(value);
     } catch {
       return fallback;
     }
+  }
+
+  if (isPxbUploadPath(value)) {
+    return resolvePxbUploadPath(value);
+  }
+
+  // 历史 dev 反代路径 → 还原为 OSS CDN 绝对地址
+  if (value.startsWith(`${PXB_VIDEO_PROXY_PREFIX}/`)) {
+    return joinBase(PXB_VIDEO_CDN, value.slice(PXB_VIDEO_PROXY_PREFIX.length));
   }
 
   const legacyVideoCover = resolveLegacyVideoCoverPath(value);
@@ -222,8 +240,17 @@ function resolveImageSrcRaw(
   }
 
   // v2 本地上传目录（storage.base-dir → frontend/public）
+  // 旧站绝对路径：/attachments/、/u/ 拼旧站域名直连
+  if (value.startsWith('/attachments/') || value.startsWith('/u/')) {
+    return joinBase(LEGACY_ASSET_BASE, value);
+  }
+
+  // v2 本地上传目录（storage.base-dir → frontend/public）；OSS 模式新上传应已是 CDN 绝对地址
+  if (value.startsWith('/uploads/taoke/upload/')) {
+    return resolvePxbUploadPath(value.slice('/uploads'.length));
+  }
   if (value.startsWith('/uploads/')) {
-    // 本地 dev 保持 /uploads 相对路径，走 next.config rewrite；避免 next/image 直连 :8080 触发 private IP 拦截
+    // emergency local 模式遗留路径
     if (isLocalDevApi()) return value;
     try {
       const base = (getCdnBaseUrl() || getApiBaseUrl()).replace(/\/$/, '');
@@ -317,7 +344,13 @@ export function toAbsoluteMediaUrl(url: string): string {
   return `${window.location.origin}${url.startsWith('/') ? url : `/${url}`}`;
 }
 
-/** localhost 开发时将 PXB CDN 转为同源路径，配合 next.config rewrites */
+/** OSS 对象路径 → PXB CDN 绝对 URL（图片直连，录播见 resolveVideoPlaybackSrc） */
+function resolvePxbUploadPath(value: string): string {
+  const path = value.startsWith('/') ? value : `/${value}`;
+  return joinBase(PXB_VIDEO_CDN, path);
+}
+
+/** localhost 开发时将 PXB CDN 转为同源路径，配合 pxb-videos Route Handler */
 function applyLocalDevVideoProxy(url: string): string {
   if (!shouldUseLocalVideoProxy()) {
     return url;

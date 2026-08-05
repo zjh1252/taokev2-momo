@@ -1,0 +1,35 @@
+/** 专家列表页返回路径（详情页面包屑 / 返回时恢复筛选与页码） */
+export const TRAINER_LIST_RETURN_KEY = 'taoke:trainer:list:return';
+
+/** 仅允许本站专家列表路径，防止脏数据跳转 */
+export function isSafeTrainerListPath(path: string): boolean {
+  if (!path.startsWith('/')) return false;
+  // /trainer 或 /trainer/....htm（筛选/分页），排除详情 /trainer/123.htm
+  if (path === '/trainer' || path.startsWith('/trainer?')) return true;
+  if (/^\/trainer\/\d+(\/|\.htm|$)/.test(path)) return false;
+  if (path.startsWith('/trainer/') && path.includes('.htm')) return true;
+  if (path.startsWith('/city/') && path.includes('/trainers')) return true;
+  return false;
+}
+
+export function rememberTrainerListPath(path?: string): void {
+  if (typeof window === 'undefined') return;
+  const value = path ?? `${window.location.pathname}${window.location.search}`;
+  if (!isSafeTrainerListPath(value)) return;
+  try {
+    sessionStorage.setItem(TRAINER_LIST_RETURN_KEY, value);
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+export function readTrainerListReturnPath(fallback = '/trainer'): string {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const saved = sessionStorage.getItem(TRAINER_LIST_RETURN_KEY);
+    if (saved && isSafeTrainerListPath(saved)) return saved;
+  } catch {
+    // ignore
+  }
+  return fallback;
+}

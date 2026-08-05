@@ -143,7 +143,7 @@ public class PxbLegacyTrainerQueryServiceImpl implements PxbLegacyTrainerQuerySe
 
     private List<Trainer> queryListCandidates(Integer industryId, String keyword, int limit) {
         Specification<Trainer> spec = listSpec(industryId, keyword);
-        Sort sort = Sort.by(Sort.Order.desc("isSigned"), Sort.Order.desc("isTrusted"),
+        Sort sort = Sort.by(Sort.Order.desc("isTrusted"), Sort.Order.desc("isSigned"),
                 Sort.Order.desc("score"), Sort.Order.desc("sortOrder"), Sort.Order.desc("id"));
         return trainerRepository.findAll(spec, PageRequest.of(0, limit, sort)).getContent();
     }

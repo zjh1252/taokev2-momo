@@ -190,8 +190,6 @@ import { useUserStore } from '@/stores/user';
 
 import { normalizeOpenCourseListItem, flattenTopCategories } from '@/utils/normalize';
 
-import { MOCK_VIDEO_CATEGORIES } from '@/utils/mock';
-
 import { getNavBarHeight } from '@/utils/system';
 
 const navBarH = getNavBarHeight();
@@ -258,7 +256,7 @@ async function loadCategories() {
 
     const tree = await categoryApi.getCategoryTree('COURSE_CATEGORY');
 
-    const flat = flattenTopCategories(tree).slice(0, 7).map((c) => ({
+    const flat = flattenTopCategories(tree).map((c) => ({
 
       id: c.id,
 
@@ -272,13 +270,13 @@ async function loadCategories() {
 
     categories.value = flat;
 
-    return;
+  } catch (_) {
 
-  } catch (_) { /* 静默 */ }
+    uni.showToast({ title: '分类加载失败，请下拉刷新', icon: 'none' });
 
-  categories.value = MOCK_VIDEO_CATEGORIES;
+    categories.value = [{ id: null, name: '全部分类', icon: 'list' }];
 
-}
+  }
 
 
 

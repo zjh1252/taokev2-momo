@@ -73,14 +73,16 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
 
   if (!hasAnyRecommendation) {
     return (
-      <aside className="space-y-3 lg:sticky lg:top-[96px] max-h-[calc(100vh-120px)] overflow-y-auto overflow-x-hidden h-fit scrollbar-hide">
+      <aside className="h-fit space-y-4 overflow-x-hidden overflow-y-auto scrollbar-hide lg:sticky lg:top-[96px] lg:max-h-[calc(100vh-120px)]">
         <AiMatchingCard />
       </aside>
     );
   }
 
   return (
-    <aside className="space-y-3 lg:sticky lg:top-[96px] max-h-[calc(100vh-120px)] overflow-y-auto overflow-x-hidden h-fit scrollbar-hide">
+    <aside className="h-fit space-y-4 overflow-x-hidden overflow-y-auto scrollbar-hide lg:sticky lg:top-[96px] lg:max-h-[calc(100vh-120px)]">
+      <AiMatchingCard />
+
       {/* ── 相关专家 ── */}
       {limitedTrainers.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-4">
@@ -101,6 +103,7 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
                 >
                   <SafeImage
                     src={t.avatar}
+                    fallback={t.avatarFallback || undefined}
                     alt={relatedName}
                     width={40}
                     height={40}
@@ -160,8 +163,6 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
         </div>
       )}
 
-      {/* ── AI 智能匹配 ── */}
-      <AiMatchingCard />
     </aside>
   );
 }
@@ -189,7 +190,7 @@ function SectionTitle({
 function CourseCard({ course }: { course: RecommendedCourseItem }) {
   return (
     <Link
-      href={getCourseDetailPath(course.id, course.type)}
+      href={getCourseDetailPath(course.id, course.type, course.seoPathId)}
       className="flex items-center gap-3 cursor-pointer group"
     >
       <SafeImage
@@ -215,7 +216,7 @@ function CourseCard({ course }: { course: RecommendedCourseItem }) {
 /** AI 智能匹配引导卡片 */
 function AiMatchingCard() {
   return (
-    <div className="bg-primary rounded-xl p-4 text-white">
+    <div className="rounded-[14px] bg-[#d00000] p-5 text-white shadow-sm">
       <div className="flex items-center gap-2 mb-2">
         <Bot className="size-5" />
         <h3 className="font-bold text-lg">AI 智能匹配</h3>
@@ -225,7 +226,7 @@ function AiMatchingCard() {
       </p>
       <button
         type="button"
-        className="w-full mt-3 py-2 rounded-lg bg-white text-primary text-[14px] font-semibold hover:bg-white/90 transition-colors flex items-center justify-center gap-1.5"
+        className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-white py-2 text-[14px] font-semibold text-primary transition-colors hover:bg-white/90"
       >
         立即体验
       </button>

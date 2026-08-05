@@ -1,7 +1,8 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
-import { BookOpen, Flame, Star } from 'lucide-react';
+import { CourseListCoverThumb } from '@/components/course-list-cover-thumb';
+import { Flame, Star } from 'lucide-react';
 import { useBumpedViewCount } from '@/hooks/use-bumped-view-count';
 import type { CourseListItem } from '../../api/types';
 import { decodeHtmlEntities } from '@/lib/html-entities';
@@ -47,9 +48,7 @@ export function InnerCourseCard({ course }: InnerCourseCardProps) {
       className="bg-white rounded-lg shadow-sm border border-slate-100 p-4 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group block"
     >
       <div className="flex flex-col md:flex-row gap-4">
-        <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-          <BookOpen className="size-6 text-slate-300" strokeWidth={1.5} />
-        </div>
+        <CourseListCoverThumb coverUrl={course.coverUrl} alt={course.title} />
 
         <div className="flex-1 min-w-0">
           <div className="flex flex-col md:flex-row md:items-start justify-between mb-2 gap-2">
@@ -64,17 +63,22 @@ export function InnerCourseCard({ course }: InnerCourseCardProps) {
               </span>
               <span className="flex items-center gap-1 text-slate-500">
                 课程评分：
+                <span className="text-primary font-semibold tabular-nums">
+                  {(course.score ?? 0).toFixed(1)}
+                </span>
                 <span className="flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`size-3.5 ${
-                        i < Math.round(course.score)
-                          ? 'fill-amber-400 text-amber-400'
-                          : 'fill-none text-slate-200'
-                      }`}
-                    />
-                  ))}
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const score = course.score ?? 0;
+                    const filled = i < Math.floor(score) || (i === Math.floor(score) && score - Math.floor(score) >= 0.5);
+                    return (
+                      <Star
+                        key={i}
+                        className={`size-3.5 ${
+                          filled ? 'fill-amber-400 text-amber-400' : 'fill-none text-slate-200'
+                        }`}
+                      />
+                    );
+                  })}
                 </span>
               </span>
             </div>

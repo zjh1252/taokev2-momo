@@ -2,8 +2,8 @@ import { Link } from '@/i18n/navigation';
 import { ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { resolveApiImageSrc } from '@/lib/media';
-import { toPlainIntroText } from '@/features/trainer/utils/displayTitle';
 import { SectionHeader } from './SectionHeader';
+import { getExpertCardCopy } from '../utils/expertDisplay';
 import type { Expert } from '../types';
 
 interface ExpertsSectionProps {
@@ -108,10 +108,11 @@ function ExpertTagList({
   className?: string;
   tagClassName: string;
 }) {
-  if (tags.length === 0) return null;
+  const visible = tags.filter((tag) => tag.trim().length > 0).slice(0, limit);
+  if (visible.length === 0) return null;
   return (
     <div className={['flex flex-wrap gap-2', className].filter(Boolean).join(' ')}>
-      {tags.slice(0, limit).map((tag, index) => (
+      {visible.map((tag, index) => (
         <span key={`${index}-${tag}`} className={tagClassName}>
           {tag}
         </span>
@@ -122,6 +123,8 @@ function ExpertTagList({
 
 /** 左侧首席专家大卡 */
 function MainExpertCard({ expert }: { expert: Expert }) {
+  const copy = getExpertCardCopy(expert);
+
   return (
     <Link
       href={`/trainer/${expert.id}.htm`}
@@ -141,30 +144,28 @@ function MainExpertCard({ expert }: { expert: Expert }) {
           </span>
         )}
       </div>
-      <div className="md:w-[55%] p-6 lg:p-8 flex flex-col flex-1 relative z-20">
-        <h3 className="text-3xl font-black mb-2 text-slate-800">
+      <div className="md:w-[55%] p-6 lg:p-8 flex flex-col flex-1 relative z-20 min-h-0">
+        <h3 className="text-3xl font-black mb-2 text-slate-800 truncate">
           {expert.name}
-          {expert.title && (
-            <span className="text-lg font-normal text-slate-500 ml-2">
-              {expert.title}
-            </span>
-          )}
+          {copy.title ? (
+            <span className="text-lg font-normal text-slate-500 ml-2">{copy.title}</span>
+          ) : null}
         </h3>
-        {expert.subtitle ? (
-          <p className="text-primary text-sm font-bold mb-6">
-            {toPlainIntroText(expert.subtitle)}
+        {copy.subtitle ? (
+          <p className="text-primary text-sm font-bold mb-3 line-clamp-2">{copy.subtitle}</p>
+        ) : null}
+        {copy.bio ? (
+          <p className="text-slate-500 text-sm mb-4 leading-relaxed flex-1 min-h-0 overflow-hidden">
+            {copy.bio}
           </p>
         ) : null}
-        <p className="text-slate-500 text-sm mb-8 leading-relaxed line-clamp-4">
-          {toPlainIntroText(expert.bio)}
-        </p>
-        <div className="mt-auto flex flex-col gap-4">
+        <div className="mt-auto flex flex-col gap-4 pt-2 shrink-0">
           <ExpertTagList
             tags={expert.tags}
             limit={4}
             tagClassName="bg-slate-100 text-slate-600 px-3 py-1 rounded text-xs font-medium"
           />
-          <span className="bg-primary text-white px-6 py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 w-full mt-2 shadow-sm">
+          <span className="bg-primary text-white px-6 py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 w-full shadow-sm">
             查看专家详情
           </span>
         </div>
@@ -175,6 +176,9 @@ function MainExpertCard({ expert }: { expert: Expert }) {
 
 /** 中间深色卡片 */
 function MiddleExpertCard({ expert }: { expert: Expert }) {
+  const copy = getExpertCardCopy(expert);
+  const body = copy.bio || copy.subtitle || copy.underName;
+
   return (
     <Link
       href={`/trainer/${expert.id}.htm`}
@@ -189,10 +193,12 @@ function MiddleExpertCard({ expert }: { expert: Expert }) {
           className="w-full h-full object-cover"
         />
       </div>
-      <h3 className="text-3xl font-bold mb-3 tracking-wide">{expert.name}</h3>
-      <p className="text-white/80 text-base text-center mb-6 leading-relaxed line-clamp-3">
-        {toPlainIntroText(expert.bio)}
-      </p>
+      <h3 className="text-3xl font-bold mb-3 tracking-wide truncate">{expert.name}</h3>
+      {body ? (
+        <p className="text-white/80 text-base text-center mb-6 leading-relaxed line-clamp-4">
+          {body}
+        </p>
+      ) : null}
       <ExpertTagList
         tags={expert.tags}
         limit={3}
@@ -208,6 +214,8 @@ function MiddleExpertCard({ expert }: { expert: Expert }) {
 
 /** 右侧小卡片 */
 function SideExpertCard({ expert }: { expert: Expert }) {
+  const copy = getExpertCardCopy(expert);
+
   return (
     <Link
       href={`/trainer/${expert.id}.htm`}
@@ -223,20 +231,22 @@ function SideExpertCard({ expert }: { expert: Expert }) {
             className="w-full h-full object-cover"
           />
         </div>
-        <div>
-          <h3 className="text-xl font-bold text-slate-800 group-hover:text-primary transition-colors">
+        <div className="min-w-0">
+          <h3 className="text-xl font-bold text-slate-800 group-hover:text-primary transition-colors truncate">
             {expert.name}
           </h3>
-          <p className="text-slate-500 text-sm mt-1">{expert.title}</p>
+          {copy.underName ? (
+            <p className="text-slate-500 text-sm mt-1 line-clamp-2">{copy.underName}</p>
+          ) : null}
         </div>
       </div>
-      <p className="text-slate-500 text-sm leading-relaxed mb-4 line-clamp-2">
-        {toPlainIntroText(expert.bio)}
-      </p>
+      {copy.bio ? (
+        <p className="text-slate-500 text-sm leading-relaxed mb-4 line-clamp-3">{copy.bio}</p>
+      ) : null}
       <ExpertTagList
         tags={expert.tags}
         limit={3}
-        className="mt-auto gap-2"
+        className="mt-auto gap-2 pr-8"
         tagClassName="bg-slate-50 text-slate-600 px-2.5 py-1 rounded text-xs"
       />
       <span className="absolute bottom-6 right-6 text-primary hover:text-primary/80 transition-colors">

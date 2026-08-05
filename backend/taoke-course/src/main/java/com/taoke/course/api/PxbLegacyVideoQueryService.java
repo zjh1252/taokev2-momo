@@ -1,6 +1,7 @@
 package com.taoke.course.api;
 
 import com.taoke.common.response.PageResponse;
+import com.taoke.course.dto.pxb.PxbLegacyMobilePlaybackResult;
 import com.taoke.course.dto.pxb.PxbLegacyPurchaseInfo;
 import com.taoke.course.dto.pxb.PxbLegacyVideoRow;
 
@@ -44,6 +45,11 @@ public interface PxbLegacyVideoQueryService {
                                                                     Collection<Integer> videoIds,
                                                                     Integer pxbRootId);
 
+    /**
+     * 批量查询录播课分集（对齐老站 coursesPrehandle 的 series 数组，types=1 可播放小节）。
+     */
+    Map<Integer, List<Map<String, Object>>> findLegacySeriesByVideoIds(Collection<Integer> videoIds);
+
     /** adsList：推荐录播课，以 id 为 key 的映射在 legacy 层组装 */
     List<PxbLegacyVideoRow> listVideoAds(int limit);
 
@@ -53,12 +59,12 @@ public interface PxbLegacyVideoQueryService {
     /** VideoDetail opt 的 msg 载荷（含 buy_status、video） */
     Map<String, Object> buildVideoDetailMessage(Integer userId, Integer videoId, Integer pxbRootId);
 
-    /** taokevideo pxbmobile 播放数据 */
-    Map<String, Object> resolveMobilePlayback(Integer userId,
-                                                Integer videoId,
-                                                Integer chapterId,
-                                                Integer pxbRootId);
+    /** taokevideo pxbmobile 播放数据（含拒绝原因） */
+    PxbLegacyMobilePlaybackResult resolveMobilePlayback(Integer userId,
+                                                        Integer videoId,
+                                                        Integer chapterId,
+                                                        Integer pxbRootId);
 
     /** 并发观看上限（0 表示不限） */
-    int resolvePlaybackConcurrencyLimit(Integer userId, Integer videoId);
+    int resolvePlaybackConcurrencyLimit(Integer userId, Integer videoId, Integer pxbRootId);
 }

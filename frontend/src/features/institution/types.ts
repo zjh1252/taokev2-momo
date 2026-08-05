@@ -30,6 +30,8 @@ export interface InstitutionDetail {
   orgName: string;
   orgType: number;
   bio?: string;
+  /** SEO 自定义描述 */
+  seoDescription?: string;
   specialties?: string;
   industries?: string;
   logoUrl?: string;

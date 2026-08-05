@@ -52,6 +52,8 @@ public interface DemandService {
      */
     DemandDetailResponse getDetail(Integer demandId, Integer userId);
 
+    DemandDetailResponse update(Integer demandId, Integer userId, CreateDemandRequest req);
+
     /**
      * 取消需求（企业采购者操作）
      */

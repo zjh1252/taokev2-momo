@@ -45,7 +45,7 @@ export function PxbTrainerListItem({ trainer }: Props) {
   return (
     <div className="pxb-trainer-item">
       <div className="pxb-trainer-photo">
-        <a href={href} target="_blank" rel="noopener noreferrer">
+        <a href={href}>
           <SafeImage
             src={trainer.avatar}
             fallback={getTrainerAvatarFallback(displayName)}
@@ -58,7 +58,7 @@ export function PxbTrainerListItem({ trainer }: Props) {
       </div>
       <div className="pxb-trainer-body">
         <div className="pxb-trainer-head">
-          <a className="pxb-trainer-name" href={href} target="_blank" rel="noopener noreferrer">
+          <a className="pxb-trainer-name" href={href}>
             {displayName}
           </a>
           {trainer.isTrusted === 1 ? (

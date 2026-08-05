@@ -11,9 +11,10 @@ import {
   getCachedTrainerExpertiseTree,
   getCachedTrainerIndustryTree,
 } from '@/lib/cached-categories';
-import { buildInstitutionCategoryLinks } from '@/lib/institution-category-nav';
+import { buildInstitutionCategoryNavItems } from '@/lib/channel-category-stats';
 import { isPxbEmbedOrigin } from '@/lib/pxb-embed';
-import { institutionListMetadata, institutionListH1 } from '@/lib/seo';
+import { parseListPageFromSearchParams } from '@/lib/list-page';
+import { institutionListMetadata, pickCanonicalSearchParams, institutionListH1 } from '@/lib/seo';
 import { firstStringValue, normalizeNumberIds } from '@/lib/search-params';
 
 function embedSearchParams(
@@ -52,7 +53,7 @@ export async function generateMetadata({ searchParams }: Props) {
   }
   return institutionListMetadata({
     category: firstStringValue(sp.categoryName),
-  });
+  }, '/company', pickCanonicalSearchParams(sp, ['categoryName', 'page']));
 }
 
 /**
@@ -87,16 +88,21 @@ export default async function InstitutionsPage({ searchParams }: Props) {
   const expertiseCategoryId = normalizeNumberIds(
     sp.expertiseCategoryId ? [sp.expertiseCategoryId] : undefined,
   )[0];
+  const keyword = firstStringValue(sp.keyword);
+  const page = parseListPageFromSearchParams(
+    new URLSearchParams(sp.page != null ? `page=${sp.page}` : ''),
+  );
 
   const [initialData, goldPool, expertiseTree] = await Promise.all([
     getInstitutionList({
-      page: 1,
+      page,
       size: 15,
+      keyword: keyword || undefined,
       expertiseCategoryId,
     }).catch(() => ({
       list: [],
       total: 0,
-      page: 1,
+      page,
       size: 15,
       totalPages: 0,
     })),
@@ -112,7 +118,10 @@ export default async function InstitutionsPage({ searchParams }: Props) {
 
   const initialGoldRecommends = await loadGoldInstitutions(goldPool.list, 4);
 
-  const categoryItems = buildInstitutionCategoryLinks(expertiseTree, '/company');
+  const categoryItems = await buildInstitutionCategoryNavItems(
+    expertiseTree,
+    '/company',
+  );
 
   const listH1 = institutionListH1({
     category: firstStringValue(sp.categoryName),
@@ -121,7 +130,7 @@ export default async function InstitutionsPage({ searchParams }: Props) {
   return (
     <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
       <PageBreadcrumb items={[{ label: '培训机构' }]} />
-      <h1 className="text-2xl font-bold text-slate-900">{listH1}</h1>
+      <h1 className="sr-only">{listH1}</h1>
 
       <InstitutionListSection
         initialData={initialData}

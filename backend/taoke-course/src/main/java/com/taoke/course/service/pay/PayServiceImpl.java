@@ -4,6 +4,7 @@ import com.taoke.common.eventbus.EventPublisher;
 import com.taoke.common.events.video.VideoPurchasedEvent;
 import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
+import com.taoke.course.config.PaymentProperties;
 import com.taoke.course.dto.pay.PayRequest;
 import com.taoke.course.dto.pay.PayResultVO;
 import com.taoke.course.dto.pay.PaymentPrepayResult;
@@ -30,6 +31,7 @@ import com.taoke.course.repository.video.VideoEnrollmentRepository;
 import com.taoke.course.repository.video.VideoPackageGroupRepository;
 import com.taoke.course.repository.video.VideoPackageRelationRepository;
 import com.taoke.course.repository.video.VideoRepository;
+import com.taoke.course.service.OrderPurchaseNotifyService;
 import com.taoke.course.service.order.OrderServiceImpl;
 import com.taoke.course.service.pay.channel.PaymentChannel;
 import com.taoke.course.service.pay.channel.PaymentChannelRegistry;
@@ -71,6 +73,8 @@ public class PayServiceImpl {
     private final EventPublisher eventPublisher;
     private final UserService userService;
     private final PaymentChannelRegistry paymentChannelRegistry;
+    private final PaymentProperties paymentProperties;
+    private final OrderPurchaseNotifyService orderPurchaseNotifyService;
 
     private static final DateTimeFormatter PAY_NO_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final Random RANDOM = new Random();
@@ -96,6 +100,12 @@ public class PayServiceImpl {
         }
 
         PaymentMethod method = PaymentMethod.valueOf(request.getMethod());
+        // 真实支付未启用时统一走 MOCK，直接成功（当前阶段联调）
+        if (!paymentProperties.isEnabled() && method != PaymentMethod.MOCK) {
+            log.info("真实支付未启用，降级为 MOCK: orderNo={}, requested={}",
+                    order.getOrderNo(), method);
+            method = PaymentMethod.MOCK;
+        }
         PaymentClientType clientType = PaymentClientType.from(request.getClientType());
 
         Payment payment = new Payment();
@@ -153,32 +163,37 @@ public class PayServiceImpl {
             createEnrollment(order.getUserId(), order.getId(), item);
         }
 
+        try {
+            orderPurchaseNotifyService.notifyPaidOrder(order.getUserId(), order.getId(), items);
+        } catch (Exception e) {
+            log.error("订单购买通知发送失败: orderNo={}, userId={}", order.getOrderNo(), order.getUserId(), e);
+        }
+
         log.info("订单 {} 支付成功，已生成 {} 条报名记录", order.getOrderNo(), items.size());
     }
 
     private void createEnrollment(Integer userId, Integer orderId, OrderItem item) {
         if (item.getProductType() == ProductType.OPEN_COURSE) {
-            // 避免重复报名
-            if (courseEnrollmentRepository.existsByCourseIdAndUserIdAndStatus(
-                    item.getProductId(), userId, 1)) {
-                return;
-            }
-            LocalDateTime now = LocalDateTime.now();
-            CourseEnrollment enrollment = new CourseEnrollment();
-            enrollment.setCourseId(item.getProductId());
-            enrollment.setUserId(userId);
-            enrollment.setOrderId(orderId);
-            enrollment.setPricePaid(item.getSubtotal());
-            enrollment.setEnrolledAt(now);
-            enrollment.setStatus(1);
-            courseEnrollmentRepository.save(enrollment);
+            boolean alreadyEnrolled = courseEnrollmentRepository.existsByCourseIdAndUserIdAndStatus(
+                    item.getProductId(), userId, 1);
+            if (!alreadyEnrolled) {
+                LocalDateTime now = LocalDateTime.now();
+                CourseEnrollment enrollment = new CourseEnrollment();
+                enrollment.setCourseId(item.getProductId());
+                enrollment.setUserId(userId);
+                enrollment.setOrderId(orderId);
+                enrollment.setPricePaid(item.getSubtotal());
+                enrollment.setEnrolledAt(now);
+                enrollment.setStatus(1);
+                courseEnrollmentRepository.save(enrollment);
 
-            // 更新课程报名人数与最近报名时间（近期热度排序使用）
-            courseRepository.findById(item.getProductId()).ifPresent(course -> {
-                course.setEnrollmentCount(course.getEnrollmentCount() + item.getQuantity());
-                course.setLastEnrolledAt(now);
-                courseRepository.save(course);
-            });
+                // 更新课程报名人数与最近报名时间（近期热度排序使用）
+                courseRepository.findById(item.getProductId()).ifPresent(course -> {
+                    course.setEnrollmentCount(course.getEnrollmentCount() + item.getQuantity());
+                    course.setLastEnrolledAt(now);
+                    courseRepository.save(course);
+                });
+            }
 
         } else if (item.getProductType() == ProductType.VIDEO_COURSE) {
             createVideoEnrollment(userId, orderId, item.getProductId(), item);

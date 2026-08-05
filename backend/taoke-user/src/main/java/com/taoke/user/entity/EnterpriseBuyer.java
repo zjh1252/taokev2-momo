@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 /**
  * 企业培训采购方扩展信息实体 — ENTERPRISE_BUYER 角色扩展信息。
  *
@@ -56,4 +58,28 @@ public class EnterpriseBuyer extends BaseEntity {
     /** 培训需求标签，JSON 数组 */
     @Column(name = "training_tags", length = 512)
     private String trainingTags;
+
+    // ==================== 实名认证 ====================
+
+    @Column(name = "id_card_no", length = 32)
+    private String idCardNo;
+
+    @Column(name = "id_card_front", length = 500)
+    private String idCardFront;
+
+    @Column(name = "id_card_back", length = 500)
+    private String idCardBack;
+
+    /** 实名认证状态：NULL=未提交 1=待审核 2=已通过 3=已驳回 */
+    @Column(name = "real_name_status", columnDefinition = "tinyint")
+    private Integer realNameStatus;
+
+    @Column(name = "real_name_reject_reason", length = 255)
+    private String realNameRejectReason;
+
+    @Column(name = "real_name_submitted_at")
+    private LocalDateTime realNameSubmittedAt;
+
+    @Column(name = "real_name_audited_at")
+    private LocalDateTime realNameAuditedAt;
 }

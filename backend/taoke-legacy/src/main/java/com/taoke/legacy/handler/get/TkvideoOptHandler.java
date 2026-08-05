@@ -39,7 +39,7 @@ public class TkvideoOptHandler implements GetOptHandler {
                     ? (Map<String, Object>) map
                     : Map.of();
             int pxbUid = intVal(video.get("uid"));
-            int publisherUserId = pxbUserResolver.resolveUserId(pxbUid);
+            int publisherUserId = pxbUserResolver.resolveUserId(request, pxbUid);
             return videoSyncService.handle(payload, publisherUserId);
         } catch (Exception e) {
             return Map.of("isok", false, "msg", "数据不能为空。");

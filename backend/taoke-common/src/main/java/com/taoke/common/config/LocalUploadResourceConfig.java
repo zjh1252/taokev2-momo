@@ -20,7 +20,7 @@ import java.nio.file.Path;
  * @date 2026-06-11 16:30
  */
 @Configuration
-@ConditionalOnProperty(name = "taoke.storage.provider", havingValue = "local", matchIfMissing = true)
+@ConditionalOnProperty(name = "taoke.storage.provider", havingValue = "local", matchIfMissing = false)
 @RequiredArgsConstructor
 public class LocalUploadResourceConfig implements WebMvcConfigurer {
 

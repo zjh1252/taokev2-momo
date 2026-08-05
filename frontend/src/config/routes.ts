@@ -5,7 +5,7 @@ export const ROUTES = {
   TRAINERS: '/trainer',
   PUBLIC_COURSES: '/opencourse',
   INTERNAL_COURSES: '/inhousecourse',
-  ONLINE_COURSES: '/videos',
+  ONLINE_COURSES: '/video',
   INSTITUTIONS: '/company',
   ASSOCIATIONS: '/association',
   SEARCH: '/search',
@@ -17,6 +17,18 @@ export const ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',
+
+  // ---- 底部静态页（对齐老站 about 落地页）----
+  ABOUT_TAOKE: '/about/taoke',
+  ABOUT_CONTACT: '/about/contact',
+  ABOUT_CAREERS: '/about/careers',
+  ABOUT_BUSINESS: '/about/business',
+  ABOUT_ADS: '/about/ads',
+  ABOUT_TERMS: '/about/terms',
+  ABOUT_LEGAL: '/about/legal',
+  ABOUT_PRIVACY: '/about/privacy',
+  ABOUT_HELP: '/about/help',
+  ABOUT_SITEMAP: '/about/sitemap',
 
   // ---- 用户中心 ----
   DASHBOARD: '/dashboard',
@@ -30,8 +42,12 @@ export const ROUTES = {
   UC_FAVORITES: '/dashboard/favorites',
   UC_REVIEWS: '/dashboard/reviews',
   UC_ALLIANCE_AMBASSADOR: '/dashboard/alliance/ambassador',
+  UC_ALLIANCE_AMBASSADOR_PENDING: '/dashboard/alliance/ambassador/pending',
   UC_ALLIANCE_PARTNER: '/dashboard/alliance/partner',
+  UC_ALLIANCE_PARTNER_PENDING: '/dashboard/alliance/partner/pending',
+  UC_ALLIANCE_PARTNER_PREVIEW: '/dashboard/alliance/partner/preview',
   UC_ALLIANCE_721: '/dashboard/alliance/721',
+  UC_ALLIANCE_721_PENDING: '/dashboard/alliance/721/pending',
   UC_ACCOUNT_INFO: '/dashboard/account/info',
   UC_ACCOUNT_BASE: '/dashboard/account/base',
   UC_ACCOUNT_MORE: '/dashboard/account/more',
@@ -49,6 +65,8 @@ export const ROUTES = {
   UC_ACCOUNT_CERT_WORK: '/dashboard/account/certification/work',
   // 三角色身份信息认证
   UC_ACCOUNT_AGENT_WORK_CERT: '/dashboard/account/certification/agent/work',
+  UC_ACCOUNT_BUYER_CERT_REAL_NAME: '/dashboard/account/certification/buyer/real-name',
+  UC_ACCOUNT_BUYER_CERT_WORK: '/dashboard/account/certification/buyer/work',
   UC_ACCOUNT_AGENCY_QUALIFICATION: '/dashboard/account/certification/agency/qualification',
   UC_ACCOUNT_INSTITUTION_COMPANY_INFO: '/dashboard/account/certification/institution/company-info',
 
@@ -69,13 +87,13 @@ export const ROUTES = {
   UC_HIGHLIGHTS_MANAGE: '/dashboard/highlights/manage',
   UC_HIGHLIGHTS_CREATE: '/dashboard/highlights/create',
 
-  // ---- 我的视频（录播课） ----
-  VIDEOS: '/videos',
+  // ---- 我的视频（录播课）---- SEO 对外 /video（内部 App 仍为 videos/）
+  VIDEOS: '/video',
   /** 录播课播放页 */
   videoPlay: (videoId: number, chapterId?: number) =>
     chapterId
-      ? `/videos/${videoId}/play?chapter=${chapterId}`
-      : `/videos/${videoId}/play`,
+      ? `/video/${videoId}/play?chapter=${chapterId}`
+      : `/video/${videoId}/play`,
   UC_VIDEOS_CREATE: '/dashboard/video/create',
   UC_VIDEOS_MANAGE: '/dashboard/video/manage',
 

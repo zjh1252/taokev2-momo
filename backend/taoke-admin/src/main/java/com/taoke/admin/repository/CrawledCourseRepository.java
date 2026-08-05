@@ -4,7 +4,11 @@ import com.taoke.admin.entity.CrawledCourse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -21,7 +25,34 @@ public interface CrawledCourseRepository extends JpaRepository<CrawledCourse, In
 
     Page<CrawledCourse> findBySource(String source, Pageable pageable);
 
+    @Query("""
+            select c from CrawledCourse c
+            where (:source is null or c.source = :source)
+              and (:reviewStatus is null or c.reviewStatus = :reviewStatus)
+              and (:dedupStatus is null or c.dedupStatus = :dedupStatus)
+              and (:type is null or c.type = :type)
+              and (:keyword is null or :keyword = '' or lower(c.title) like lower(concat('%', :keyword, '%')))
+            """)
+    Page<CrawledCourse> searchCourses(@Param("source") String source,
+                                      @Param("reviewStatus") Integer reviewStatus,
+                                      @Param("dedupStatus") Integer dedupStatus,
+                                      @Param("type") String type,
+                                      @Param("keyword") String keyword,
+                                      Pageable pageable);
+
     Optional<CrawledCourse> findBySourceAndSourceCourseId(String source, String sourceCourseId);
+
+    @Query("""
+            select c from CrawledCourse c
+            where (:type is null or c.type = :type)
+              and c.reviewStatus in :reviewStatuses
+              and (:excludeId is null or c.id <> :excludeId)
+            order by c.id desc
+            """)
+    List<CrawledCourse> findDedupCandidates(@Param("type") String type,
+                                            @Param("reviewStatuses") Collection<Integer> reviewStatuses,
+                                            @Param("excludeId") Integer excludeId,
+                                            Pageable pageable);
 
     long countByReviewStatus(Integer reviewStatus);
 

@@ -28,6 +28,11 @@ public interface NotificationService {
               String relatedId, String relatedUrl);
 
     /**
+     * 是否已存在同用户、同类型、同关联 ID 的通知
+     */
+    boolean exists(Integer userId, NotificationType type, String relatedId);
+
+    /**
      * 批量发送通知（系统公告场景）
      *
      * @param userIds    接收用户 ID 列表

@@ -1,6 +1,6 @@
 import { apiGet } from '@/lib/http/client';
 import type { ApiResponse } from '@/features/trainer/types';
-import type { ActiveCityItem, CityChannelDetail } from './types';
+import type { ActiveCityItem, CityChannelDetail, CityChannelHome } from './types';
 
 /**
  * 拉取「有有效公开课」的城市，按课程数倒序。
@@ -18,6 +18,17 @@ export async function getActiveCities(limit = 18): Promise<ActiveCityItem[]> {
 export async function getCityByEnName(enName: string): Promise<CityChannelDetail | null> {
   const res = await apiGet<ApiResponse<CityChannelDetail | null>>(
     `/cities/${encodeURIComponent(enName)}`,
+  );
+  return res.data ?? null;
+}
+
+/**
+ * 城市综合页聚合（详情 + 五业务块）。
+ * <p>失败或城市不存在时返回 null；调用方负责 notFound / 空态。</p>
+ */
+export async function getCityHome(enName: string): Promise<CityChannelHome | null> {
+  const res = await apiGet<ApiResponse<CityChannelHome | null>>(
+    `/cities/${encodeURIComponent(enName)}/home`,
   );
   return res.data ?? null;
 }

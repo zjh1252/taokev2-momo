@@ -54,4 +54,9 @@ public class ElasticsearchProperties {
      * 启动时若 Redis 无同步水位且索引为空，是否自动全量重建（建议仅 dev 开启）
      */
     private boolean autoReindexOnStartup = false;
+
+    /**
+     * 全量重建 / 批量写入时每批文档数，避免单次 bulk 过大被 ES 拒绝或撑爆内存
+     */
+    private int reindexBatchSize = 500;
 }

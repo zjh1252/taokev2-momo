@@ -3,6 +3,14 @@ import type { ProductType } from '@/features/cart/api/types';
 /** 订单状态 */
 export type OrderStatusValue = 0 | 1 | 2 | 3 | 4;
 
+/** 订单前台展示分类 */
+export type OrderDisplayStatusValue =
+  | 'PENDING'
+  | 'PAYMENT_EXPIRED'
+  | 'COURSE_EXPIRED'
+  | 'PAID'
+  | 'CANCELLED';
+
 /** 订单明细 */
 export interface OrderItemVO {
   id: number;
@@ -26,11 +34,24 @@ export interface OrderVO {
   payAmount: number;
   status: OrderStatusValue;
   statusLabel: string;
+  displayStatus?: OrderDisplayStatusValue;
+  displayStatusLabel?: string;
+  viewed?: boolean;
   remark: string;
   paidAt: string | null;
   expiredAt: string | null;
+  validUntil?: string | null;
   createdAt: string;
   items: OrderItemVO[];
+}
+
+/** 我的订单未查看分类数量 */
+export interface OrderUnviewedCountVO {
+  pending: number;
+  paymentExpired: number;
+  courseExpired: number;
+  paid: number;
+  cancelled: number;
 }
 
 /** 创建订单（从购物车） */

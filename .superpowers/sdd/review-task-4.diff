@@ -1,0 +1,199 @@
+# Review package: fa6bcdead5b3a560792c7034352e80e836372ce5..HEAD
+
+## Commits
+060e7458 fix(admin): 案例/精彩瞬间/著作创建封面必填
+
+## Files changed
+ admin-frontend/src/features/books/components/book-create-form.tsx | 8 ++++++--
+ .../src/features/trainer-cases/components/case-create-form.tsx    | 8 ++++++--
+ .../trainer-highlights/components/highlight-create-form.tsx       | 8 ++++++--
+ 3 files changed, 18 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/admin-frontend/src/features/books/components/book-create-form.tsx b/admin-frontend/src/features/books/components/book-create-form.tsx
+index a13e7c8a..0df86c44 100644
+--- a/admin-frontend/src/features/books/components/book-create-form.tsx
++++ b/admin-frontend/src/features/books/components/book-create-form.tsx
+@@ -74,25 +74,29 @@ export function BookCreateForm() {
+       authorName: '',
+       publisher: '',
+       publishDate: '',
+       description: '',
+       buyUrl: ''
+     } as FormValues,
+     validators: {
+       onSubmit: formSchema
+     },
+     onSubmit: async ({ value }) => {
++      if (!coverUrl.trim()) {
++        toast.error('请上传封面图');
++        return;
++      }
+       await createMutation.mutateAsync({
+         trainerId: Number(value.trainerId),
+         title: value.title,
+         authorName: value.authorName || undefined,
+-        coverUrl: coverUrl || undefined,
++        coverUrl: coverUrl,
+         publisher: value.publisher || undefined,
+         publishDate: value.publishDate || undefined,
+         description: value.description || undefined,
+         buyUrl: value.buyUrl || undefined
+       });
+     }
+   });
+ 
+   const { FormTextField, FormTextareaField } = useFormFields<FormValues>();
+ 
+@@ -142,21 +146,21 @@ export function BookCreateForm() {
+                         </SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                 </div>
+               )}
+             </form.AppField>
+             <FormTextField name='title' label='书名' required />
+             <FormTextField name='authorName' label='作者名' />
+             <div className='space-y-2'>
+-              <Label>封面</Label>
++              <Label>封面 *</Label>
+               <div className='flex items-start gap-3'>
+                 <div className='relative h-[100px] w-[72px] overflow-hidden rounded border border-dashed border-muted-foreground/30 bg-muted/30'>
+                   <AssetImage
+                     src={coverUrl}
+                     alt='著作封面'
+                     fill
+                     wrapperClassName='h-full w-full'
+                     className='object-cover'
+                     fallback={
+                       <div className='flex h-full w-full items-center justify-center text-muted-foreground text-xs'>
+diff --git a/admin-frontend/src/features/trainer-cases/components/case-create-form.tsx b/admin-frontend/src/features/trainer-cases/components/case-create-form.tsx
+index 3c43a90f..386019a4 100644
+--- a/admin-frontend/src/features/trainer-cases/components/case-create-form.tsx
++++ b/admin-frontend/src/features/trainer-cases/components/case-create-form.tsx
+@@ -102,37 +102,41 @@ export function CaseCreateForm() {
+     validators: {
+       onSubmit: ({ value }) => {
+         const parsed = formSchema.safeParse(value);
+         if (!parsed.success) return parsed.error;
+         if (!region.provinceId || !region.cityId || !region.districtId) {
+           return '请选择完整的培训地点（省/市/区）';
+         }
+       }
+     },
+     onSubmit: async ({ value }) => {
++      if (!coverUrl.trim()) {
++        toast.error('请上传封面图');
++        return;
++      }
+       await mutation.mutateAsync({
+         trainerUserId: Number(value.trainerUserId),
+         payload: {
+           caseTitle: value.caseTitle,
+           enterpriseName: value.enterpriseName,
+           industry: value.industry || undefined,
+           trainingTopic: value.trainingTopic || undefined,
+           trainingEffect: value.trainingEffect || undefined,
+           traineeCount: value.traineeCount ? Number(value.traineeCount) : undefined,
+           provinceId: region.provinceId!,
+           cityId: region.cityId!,
+           districtId: region.districtId!,
+           townId: region.townId,
+           trainingAddress: value.trainingAddress || undefined,
+           trainingDate: value.trainingDate || undefined,
+           description: value.description || undefined,
+-          coverImage: coverUrl || undefined
++          coverImage: coverUrl
+         }
+       });
+     }
+   });
+ 
+   const { FormTextField, FormTextareaField } = useFormFields<FormValues>();
+ 
+   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     e.target.value = '';
+@@ -203,21 +207,21 @@ export function CaseCreateForm() {
+ 
+             <FormTextField name='trainingAddress' label='详细地址' />
+             <div className='grid gap-4 sm:grid-cols-2'>
+               <FormTextField name='trainingDate' label='培训日期' placeholder='YYYY-MM-DD' />
+               <FormTextField name='traineeCount' label='受训人数' />
+             </div>
+             <FormTextareaField name='trainingEffect' label='培训效果' rows={3} />
+             <FormTextareaField name='description' label='描述' rows={4} />
+ 
+             <div className='space-y-2'>
+-              <Label>封面</Label>
++              <Label>封面 *</Label>
+               <div className='flex items-start gap-3'>
+                 <div className='relative h-[100px] w-[160px] overflow-hidden rounded border border-dashed border-muted-foreground/30 bg-muted/30'>
+                   <AssetImage
+                     src={coverUrl}
+                     alt='案例封面'
+                     fill
+                     wrapperClassName='h-full w-full'
+                     className='object-cover'
+                     fallback={
+                       <div className='flex h-full w-full items-center justify-center text-muted-foreground text-xs'>
+diff --git a/admin-frontend/src/features/trainer-highlights/components/highlight-create-form.tsx b/admin-frontend/src/features/trainer-highlights/components/highlight-create-form.tsx
+index 263855bb..a2aff0e9 100644
+--- a/admin-frontend/src/features/trainer-highlights/components/highlight-create-form.tsx
++++ b/admin-frontend/src/features/trainer-highlights/components/highlight-create-form.tsx
+@@ -77,26 +77,30 @@ export function HighlightCreateForm() {
+   const form = useAppForm({
+     defaultValues: {
+       trainerUserId: '',
+       title: '',
+       description: ''
+     } as FormValues,
+     validators: {
+       onSubmit: formSchema
+     },
+     onSubmit: async ({ value }) => {
++      if (!coverUrl.trim()) {
++        toast.error('请上传封面图');
++        return;
++      }
+       await mutation.mutateAsync({
+         trainerUserId: Number(value.trainerUserId),
+         payload: {
+           title: value.title || undefined,
+           description: value.description || undefined,
+-          coverImage: coverUrl || undefined
++          coverImage: coverUrl
+         }
+       });
+     }
+   });
+ 
+   const { FormTextField, FormTextareaField } = useFormFields<FormValues>();
+ 
+   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     e.target.value = '';
+@@ -145,21 +149,21 @@ export function HighlightCreateForm() {
+                     </SelectContent>
+                   </Select>
+                 </div>
+               )}
+             </form.AppField>
+ 
+             <FormTextField name='title' label='标题' />
+             <FormTextareaField name='description' label='描述' rows={4} />
+ 
+             <div className='space-y-2'>
+-              <Label>封面</Label>
++              <Label>封面 *</Label>
+               <div className='flex items-start gap-3'>
+                 <div className='relative h-[100px] w-[160px] overflow-hidden rounded border border-dashed border-muted-foreground/30 bg-muted/30'>
+                   <AssetImage
+                     src={coverUrl}
+                     alt='精彩瞬间封面'
+                     fill
+                     wrapperClassName='h-full w-full'
+                     className='object-cover'
+                     fallback={
+                       <div className='flex h-full w-full items-center justify-center text-muted-foreground text-xs'>

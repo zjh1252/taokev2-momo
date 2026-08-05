@@ -66,4 +66,10 @@ public class CourseListItemVO {
 
     /** 过期后是否隐藏（1=隐藏，0=不隐藏） */
     private Integer isExpireHide;
+
+    /**
+     * 公开课 SEO 路径数字段：优先最近开课场次的 {@code course_plans.sort_order}（老站 tk_course.id），
+     * 否则回退 {@code courses.id}。
+     */
+    private Integer seoPathId;
 }

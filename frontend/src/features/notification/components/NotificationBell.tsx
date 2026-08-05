@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell } from 'lucide-react';
+import { useRouter } from '@/i18n/navigation';
+import { ROUTES } from '@/config/routes';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -21,6 +23,7 @@ import type { NotificationItem } from '../api/types';
  */
 export function NotificationBell() {
   const { user } = useAuth();
+  const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -95,6 +98,14 @@ export function NotificationBell() {
     }
   };
 
+  const handleNotificationClick = async (item: NotificationItem) => {
+    if (item.isRead === 0) {
+      await handleMarkRead(item.id);
+    }
+    setOpen(false);
+    router.push(`${ROUTES.UC_MESSAGES}?notificationId=${item.id}`);
+  };
+
   const handleMarkAllRead = async () => {
     const token = getToken();
     if (!token) return;
@@ -160,9 +171,7 @@ export function NotificationBell() {
                   className={`px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer ${
                     n.isRead === 0 ? 'bg-blue-50/40' : ''
                   }`}
-                  onClick={() => {
-                    if (n.isRead === 0) handleMarkRead(n.id);
-                  }}
+                  onClick={() => void handleNotificationClick(n)}
                 >
                   <div className="flex items-start gap-2">
                     {n.isRead === 0 && (

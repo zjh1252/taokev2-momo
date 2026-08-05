@@ -1,31 +1,19 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
+import { Menu } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/navigation';
-import { GraduationCap } from 'lucide-react';
-import Image from 'next/image';
-import { ROUTES } from '@/config/routes';
-import { cn } from '@/lib/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { HeaderLogo } from './header-logo';
+import { HeaderNavLinks, NAV_LINKS, isNavLinkActive } from './header-nav-links';
 import { SearchBar } from './search-bar';
-
-/** 主导航链接配置 */
-const NAV_LINKS = [
-  { key: 'home', href: ROUTES.HOME },
-  { key: 'trainers', href: ROUTES.TRAINERS },
-  { key: 'publicCourses', href: ROUTES.PUBLIC_COURSES },
-  { key: 'internalCourses', href: ROUTES.INTERNAL_COURSES },
-  { key: 'onlineCourses', href: ROUTES.ONLINE_COURSES },
-  { key: 'institutions', href: ROUTES.INSTITUTIONS },
-  { key: 'associations', href: ROUTES.ASSOCIATIONS },
-] as const;
-
-function isNavLinkActive(href: string, pathname: string): boolean {
-  if (href === ROUTES.HOME) {
-    return pathname === '/' || pathname === '';
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+import { cn } from '@/lib/utils';
 
 /**
  * 主导航栏 — 毛玻璃背景、Logo 图标 + 文字、导航链接、搜索栏
@@ -35,54 +23,15 @@ function isNavLinkActive(href: string, pathname: string): boolean {
  * @date 2026-04-01 17:00
  */
 export function AppHeader() {
-  const t = useTranslations('nav');
-  const pathname = usePathname();
-
   return (
-    <nav className="h-[80px] w-full bg-white/90 backdrop-blur-md sticky top-[29px] z-40 shadow-sm px-8 flex flex-col justify-center transition-all duration-300">
-      <div className="max-w-7xl w-full mx-auto flex items-center justify-between h-full">
-        {/* 左侧：Logo（新版品牌 logo + 文字标题） */}
-        <div className="flex items-center gap-6 shrink-0">
-          <Link href={ROUTES.HOME} className="flex items-center gap-2">
-            <Image
-              src="/statics/images/taoke-new-logo.jpg"
-              alt="淘课网 Logo"
-              width={40}
-              height={40}
-              className="size-10 rounded-md object-contain"
-              priority
-            />
-            <span className="text-2xl font-black tracking-tighter text-slate-900">
-              淘课网
-            </span>
-          </Link>
-        </div>
-
-        {/* 中间：主导航链接 */}
-        <div className="hidden lg:flex items-stretch gap-8 shrink-0 self-stretch">
-          {NAV_LINKS.map(({ key, href }) => {
-            const active = isNavLinkActive(href, pathname);
-            return (
-              <Link
-                key={key}
-                href={href}
-                className={cn(
-                  'flex items-center px-0.5 text-[15px] font-medium border-b-4 transition-colors',
-                  active
-                    ? 'text-primary border-primary font-bold'
-                    : 'text-slate-600 border-transparent hover:text-primary hover:border-primary',
-                )}
-              >
-                {t(key)}
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* 右侧：搜索栏 */}
-        <div className="flex items-center ml-4 flex-1 max-w-md justify-end">
+    <nav className="min-h-[64px] w-full bg-white/90 backdrop-blur-md sticky top-[29px] z-40 shadow-sm px-3 py-2 flex flex-col justify-center transition-all duration-300 sm:px-6 lg:h-[80px] lg:px-8 lg:py-0">
+      <div className="max-w-7xl w-full mx-auto flex items-center gap-2 h-full sm:gap-4">
+        <MobileNavDrawer />
+        <HeaderLogo />
+        <HeaderNavLinks />
+        <div className="ml-auto flex min-w-0 flex-1 items-center justify-end lg:max-w-md">
           <Suspense fallback={<SearchBarFallback />}>
-            <SearchBar />
+            <SearchBar className="w-full max-w-[min(100%,420px)]" />
           </Suspense>
         </div>
       </div>
@@ -92,6 +41,50 @@ export function AppHeader() {
 
 function SearchBarFallback() {
   return (
-    <div className="min-w-[360px] h-[38px] rounded-md bg-slate-100 border border-slate-200 animate-pulse" />
+    <div className="h-[38px] w-full max-w-[420px] rounded-md bg-slate-100 border border-slate-200 animate-pulse" />
+  );
+}
+
+function MobileNavDrawer() {
+  const [open, setOpen] = useState(false);
+  const t = useTranslations('nav');
+  const pathname = usePathname();
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <button
+        type="button"
+        className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100 hover:text-primary lg:hidden"
+        aria-label="打开导航菜单"
+        onClick={() => setOpen(true)}
+      >
+        <Menu className="size-5" />
+      </button>
+      <SheetContent side="left" className="w-[86vw] max-w-[320px] gap-0 p-0">
+        <SheetHeader className="border-b border-slate-100 px-5 py-4">
+          <SheetTitle>导航</SheetTitle>
+        </SheetHeader>
+        <div className="flex flex-col py-2">
+          {NAV_LINKS.map(({ key, href }) => {
+            const active = isNavLinkActive(href, pathname);
+            return (
+              <Link
+                key={key}
+                href={href}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  'flex h-12 items-center px-5 text-[15px] font-medium transition-colors',
+                  active
+                    ? 'bg-primary/5 text-primary'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-primary',
+                )}
+              >
+                {t(key)}
+              </Link>
+            );
+          })}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

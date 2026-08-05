@@ -38,6 +38,7 @@ import java.util.Objects;
 public class TrainerCaseServiceImpl implements TrainerCaseService {
 
     private static final int BINDING_ACTIVE = 1;
+    private static final int RECENT_DESCRIPTION_PREVIEW_LENGTH = 120;
     /** 草稿状态（不进入后台审核列表） */
     private static final int STATUS_DRAFT = 3;
 
@@ -242,7 +243,7 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
             r.setCaseTitle(c.getCaseTitle());
             r.setCoverImage(c.getCoverImage());
             r.setIndustry(c.getIndustry());
-            r.setDescription(c.getDescription());
+            r.setDescription(truncateRecentDescription(c.getDescription()));
             r.setTrainingDate(c.getTrainingDate());
             Trainer t = trainerMap.get(c.getTrainerId());
             if (t != null) {
@@ -253,6 +254,13 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
             }
             return r;
         }).toList();
+    }
+
+    private String truncateRecentDescription(String description) {
+        if (description == null || description.length() <= RECENT_DESCRIPTION_PREVIEW_LENGTH) {
+            return description;
+        }
+        return description.substring(0, RECENT_DESCRIPTION_PREVIEW_LENGTH);
     }
 
     // ==================== 后台管理 ====================

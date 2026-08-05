@@ -2,6 +2,7 @@ package com.taoke.course.api;
 
 import com.taoke.course.dto.city.ActiveCityVO;
 import com.taoke.course.dto.city.CityChannelDetailVO;
+import com.taoke.course.dto.city.CityChannelHomeVO;
 
 import java.util.List;
 
@@ -31,4 +32,12 @@ public interface CityChannelService {
      * @return 城市详情；未匹配到时返回 null
      */
     CityChannelDetailVO resolveByEnName(String enName);
+
+    /**
+     * 城市综合页聚合：解析城市详情并并行拉取各业务块列表（口径与前端 CityChannelBlocks 一致）。
+     *
+     * @param enName URL slug 拼音
+     * @return 聚合结果；城市未匹配时返回 null
+     */
+    CityChannelHomeVO loadHome(String enName);
 }

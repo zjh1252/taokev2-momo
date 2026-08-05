@@ -38,19 +38,20 @@ export function TrainerCaseScroller({
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (initialItems && initialItems.length > 0) return;
     let mounted = true;
     getRecentTrainerCases(10)
       .then((list) => {
         if (!mounted) return;
-        setItems(list);
+        if (list.length > 0) {
+          setItems(list);
+        }
         setLoaded(true);
       })
       .catch(() => mounted && setLoaded(true));
     return () => {
       mounted = false;
     };
-  }, [initialItems]);
+  }, []);
 
   // 把 items 切成 [[a,b],[c,d],...] 的二维行；不足 COLS 的最后一行用 null 占位
   const rows: (RecentTrainerCase | null)[][] = [];
@@ -132,9 +133,10 @@ export function TrainerCaseScroller({
 }
 
 function formatScore(c: RecentTrainerCase): string {
-  // 评分按整数展示（与列表页风格一致）
+  // 评分按整数展示；无有效评分时默认 5 分
   const s = c.trainerScore;
-  if (s == null) return '0';
+  if (s == null) return '5';
   const n = typeof s === 'number' ? s : parseFloat(String(s));
-  return Number.isFinite(n) ? String(Math.round(n)) : '0';
+  if (!Number.isFinite(n) || n <= 0) return '5';
+  return String(Math.round(n));
 }

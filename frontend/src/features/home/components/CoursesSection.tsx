@@ -9,7 +9,7 @@ interface CoursesSectionProps {
 }
 
 /**
- * 热门内训课 — 2 列横向图文卡片（左图右文），共 6 张
+ * 热门内训课 - 2 列横向图文卡片，共 6 张
  */
 export function CoursesSection({ courses }: CoursesSectionProps) {
   const t = useTranslations('home');
@@ -22,7 +22,7 @@ export function CoursesSection({ courses }: CoursesSectionProps) {
         viewMoreText={t('experts.viewMore')}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {courses.map((course) => (
           <CourseCard key={course.id} course={course} />
         ))}
@@ -35,28 +35,26 @@ function CourseCard({ course }: { course: InternalCourse }) {
   return (
     <Link
       href={`/inhousecourse/${course.id}.htm`}
-      className="bg-white rounded-lg overflow-hidden flex group border border-slate-100 hover:border-primary transition-all shadow-sm h-40"
+      className="group flex min-h-40 flex-col overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm transition-all hover:border-slate-200 hover:shadow-md sm:min-h-0 sm:flex-row md:h-40"
     >
-      <div className="w-1/3 overflow-hidden relative shrink-0 bg-slate-100">
+      <div className="relative h-40 w-full shrink-0 overflow-hidden bg-slate-100 sm:h-auto sm:w-[198px] md:w-[198px]">
         <SafeImage
           src={course.coverUrl}
           alt={course.title}
           fill
           apiResolved
-          className="object-cover transition-transform group-hover:scale-105"
+          className="object-cover object-top transition-transform group-hover:scale-105"
         />
       </div>
 
-      <div className="p-5 flex flex-col flex-1 min-w-0">
-        <h4 className="font-bold text-base mb-2 line-clamp-2 text-slate-800 group-hover:text-primary transition-colors">
+      <div className="flex min-w-0 flex-1 flex-col px-5 py-6">
+        <h4 className="mb-3 line-clamp-1 text-[17px] font-bold leading-6 text-slate-950 transition-colors group-hover:text-primary">
           {course.title}
         </h4>
-        <p className="text-[13px] text-slate-500 mb-4">{course.subtitle}</p>
-        <div className="mt-auto">
-          <span className="text-[13px] text-slate-500">
-            {course.instructorName} • {course.instructorDesc}
-          </span>
-        </div>
+        <p className="text-sm leading-5 text-slate-500">{course.subtitle}</p>
+        <p className="mt-auto line-clamp-2 text-sm leading-6 text-slate-500">
+          {course.instructorName} · {course.instructorDesc}
+        </p>
       </div>
     </Link>
   );

@@ -1,4 +1,4 @@
-import { AddComingSoonButton } from '@/components/admin/add-coming-soon-button';
+import { AddLinkButton } from '@/components/admin/add-link-button';
 import PageContainer from '@/components/layout/page-container';
 import CaseListingPage from '@/features/trainer-cases/components/case-listing';
 import { searchParamsCache } from '@/lib/searchparams';
@@ -21,7 +21,7 @@ export default async function TrainerCasesPage(props: PageProps) {
       scrollable={false}
       pageTitle='案例列表'
       pageDescription='管理专家培训案例，审核案例内容'
-      pageHeaderAction={<AddComingSoonButton label='添加案例' />}
+      pageHeaderAction={<AddLinkButton href='/dashboard/trainers/cases/new' label='添加案例' />}
     >
       <CaseListingPage />
     </PageContainer>

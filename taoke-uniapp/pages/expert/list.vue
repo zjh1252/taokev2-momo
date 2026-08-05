@@ -134,7 +134,7 @@ import { useSearchStore } from '@/stores/search';
 
 import { useUserStore } from '@/stores/user';
 
-import { normalizeExpert, flattenTopCategories } from '@/utils/normalize';
+import { normalizeExpert, flattenLeafCategories } from '@/utils/normalize';
 
 import { MOCK_TRAINER_LIST } from '@/utils/mock';
 
@@ -250,8 +250,8 @@ async function loadFilterOptions() {
 
     ]);
 
-    filters[0].options = flattenTopCategories(expertise).map((c) => ({ label: c.name, value: c.id }));
-    filters[1].options = flattenTopCategories(industry).map((c) => ({ label: c.name, value: c.id }));
+    filters[0].options = flattenLeafCategories(expertise).map((c) => ({ label: c.name, value: c.id }));
+    filters[1].options = flattenLeafCategories(industry).map((c) => ({ label: c.name, value: c.id }));
 
     filters[2].options = (provinces || [])
 
@@ -259,7 +259,11 @@ async function loadFilterOptions() {
 
       .map((p) => ({ label: p.name, value: p.id }));
 
-  } catch (_) { /* 静默 */ }
+  } catch (_) {
+
+    uni.showToast({ title: '筛选选项加载失败，请下拉刷新', icon: 'none' });
+
+  }
 
 }
 

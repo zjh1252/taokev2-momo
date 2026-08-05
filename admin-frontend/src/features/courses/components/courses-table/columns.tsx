@@ -3,10 +3,9 @@ import { FrontendLink } from '@/components/admin/frontend-link';
 import { Badge } from '@/components/ui/badge';
 import { getCoursePublicUrl } from '@/lib/frontend-links';
 import Link from 'next/link';
-import Image from 'next/image';
-import { resolveAssetUrl, isLikelyImageAssetUrl } from '@/lib/resolve-asset-url';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { AdminCourse } from '../../api/types';
+import { CourseCoverThumb } from '../course-cover-thumb';
 import {
   COURSE_STATUS_MAP,
   COURSE_STATUS_OPTIONS,
@@ -39,25 +38,9 @@ export const columns: ColumnDef<AdminCourse>[] = [
   {
     id: 'cover',
     header: '封面',
-    cell: ({ row }) => {
-      const raw = row.original.coverUrl;
-      if (!isLikelyImageAssetUrl(raw)) {
-        return <span className='text-muted-foreground text-xs'>-</span>;
-      }
-      const cover = resolveAssetUrl(raw);
-      return (
-        <div className='relative h-10 w-16 overflow-hidden rounded bg-muted'>
-          <Image
-            src={cover}
-            alt={row.original.title}
-            fill
-            className='object-cover'
-            sizes='64px'
-            unoptimized
-          />
-        </div>
-      );
-    }
+    cell: ({ row }) => (
+      <CourseCoverThumb coverUrl={row.original.coverUrl} title={row.original.title} />
+    )
   },
   {
     id: 'name',

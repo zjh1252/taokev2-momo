@@ -1,0 +1,13 @@
+[project]
+name = "taokev2-tools"
+version = "0.1.0"
+description = "淘课网 v2 monorepo Python 工具环境（data-trans、Flyway 校验、本地脚本等）"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pymysql>=1.1.0",
+    "pyyaml>=6.0",
+]
+
+[tool.uv.workspace]
+members = ["crawler-service"]

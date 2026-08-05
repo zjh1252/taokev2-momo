@@ -4,7 +4,7 @@ import { Link } from '@/i18n/navigation';
 import { SafeImage } from '@/components/safe-image';
 import type { TrainerListItem } from '../../types';
 import { getTrainerDisplayName } from '../../utils/displayName';
-import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
+import { pickRecommendedTrainerSubtitle } from '../../utils/displayTitle';
 
 /** 擅长领域筛选时的领域推荐专家（运营配置 3 名 PRIMARY） */
 export function TrainerCategoryExpertBar({ items }: { items: TrainerListItem[] }) {
@@ -16,8 +16,7 @@ export function TrainerCategoryExpertBar({ items }: { items: TrainerListItem[] }
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {items.map((t) => {
           const displayName = getTrainerDisplayName(t);
-          const subtitle = pickDisplayTitle(t.title, displayName)
-            || plainIntroOrUndefined(t.oneLineIntro);
+          const subtitle = pickRecommendedTrainerSubtitle(t.title, t.oneLineIntro, displayName);
           return (
             <Link
               key={t.id}
@@ -27,6 +26,7 @@ export function TrainerCategoryExpertBar({ items }: { items: TrainerListItem[] }
               <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-slate-100">
                 <SafeImage
                   src={t.avatar}
+                  fallback={t.avatarFallback || undefined}
                   alt={displayName}
                   fill
                   apiResolved

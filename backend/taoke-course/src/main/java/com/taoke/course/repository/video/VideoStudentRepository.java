@@ -24,4 +24,7 @@ public interface VideoStudentRepository extends JpaRepository<VideoStudent, Inte
 
     /** 查该用户未完成的最近一条学习记录 */
     Optional<VideoStudent> findFirstByUserIdAndIsCompletedOrderByLastWatchedAtDesc(Integer userId, Integer isCompleted);
+
+    Optional<VideoStudent> findFirstByUserIdAndIsCompletedAndLastWatchedAtIsNotNullOrderByLastWatchedAtDesc(
+            Integer userId, Integer isCompleted);
 }

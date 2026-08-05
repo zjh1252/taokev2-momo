@@ -48,6 +48,9 @@ spring:
       max-request-size: 500MB
 
 taoke:
+  legacy-api:
+    pxb-outbound:
+      base-url: ${PXB_SITE_URL:http://dev.91pxb.com}
   # 本地开发：mock 短信 + 关闭滑块，与前端 NEXT_PUBLIC_MOCK_SMS=true 对齐
   sms:
     provider: mock
@@ -64,10 +67,20 @@ taoke:
   jwt:
     secret: taoke-v2-jwt-secret-key-must-be-at-least-256-bits-long!!
   storage:
-    provider: local
-    # 相对路径在 dev 下由 StorageDirectoryResolver 自动定位 monorepo 内 frontend/public
-    base-dir: ../../frontend/public
-    public-domain:
+    # 开发环境与生产一致，上传走阿里云 OSS（peixunbao-videos）；仅本地磁盘调试时设 STORAGE_PROVIDER=local
+    provider: ${STORAGE_PROVIDER:aliyun-oss}
+    oss:
+      # 凭据与老站 AliOssUploader / config.video.inc.php 一致，生产请改用环境变量注入
+      access-key-id: ${OSS_ACCESS_KEY_ID:trnzwn5eNnrr4gVM}
+      access-key-secret: ${OSS_ACCESS_KEY_SECRET:fR1lAIEH3kgoPmMlUeTAtVIEgO1r2b}
+  ocr:
+    aliyun:
+      enabled: true
+      endpoint: ${ALIYUN_OCR_ENDPOINT:ocr-api.cn-hangzhou.aliyuncs.com}
+      # 开发环境默认复用老站 AccessKey；生产建议改成只授予 OCR 权限的 RAM 子账号
+      access-key-id: ${ALIYUN_OCR_ACCESS_KEY_ID:${OSS_ACCESS_KEY_ID:trnzwn5eNnrr4gVM}}
+      access-key-secret: ${ALIYUN_OCR_ACCESS_KEY_SECRET:${OSS_ACCESS_KEY_SECRET:fR1lAIEH3kgoPmMlUeTAtVIEgO1r2b}}
+      timeout-ms: 60000
   cors:
     allowed-origins:
       - http://localhost:3000
@@ -75,12 +88,12 @@ taoke:
       - http://localhost:3001
       - http://127.0.0.1:3001
     allow-credentials: true
-  # AI 能力（开发环境默认禁用，将 enabled 改为 true 并填入真实 base-url + api-key 后启用）
+  # AI 能力（开发环境从本地环境变量 NEWAPI_API_KEY 读取）
   ai:
     enabled: true
-    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    api-key: 'sk-4b2e518d30534adcb6c5f7ea6239c591'
-    model: qwen3.6-plus
+    base-url: ${NEWAPI_BASE_URL:http://10.0.0.118:43000/v1}
+    api-key: ${NEWAPI_API_KEY:}
+    model: ${NEWAPI_MODEL:gpt-5.5}
     temperature: 0.2
     timeout-ms: 1200000
     max-input-chars: 50000
@@ -90,7 +103,7 @@ taoke:
 # 若改为本机直接 uvicorn 启动爬虫，可改回 http://localhost:18080/internal/crawl/callback
 crawler:
   base-url: http://localhost:8100
-  callback-url: http://host.docker.internal:8080/internal/crawl/callback
+  callback-url: ${CRAWLER_CALLBACK_URL:http://localhost:8080/internal/crawl/callback}
   callback-token: local-crawler-token
 
 logging:

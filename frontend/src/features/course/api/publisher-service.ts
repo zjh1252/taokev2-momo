@@ -184,7 +184,7 @@ export async function parseCourseMaterial(file: File): Promise<AiParseMaterialRe
     try {
       const errJson = (await resp.json()) as { code?: number; message?: string };
       if (errJson?.message) message = errJson.message;
-      if (resp.status === 503 || errJson?.code === 90030) {
+      if (errJson?.code === 90030) {
         const e = new Error(errJson?.message || 'AI 能力暂未启用');
         (e as Error & { code?: string }).code = 'AI_NOT_ENABLED';
         throw e;

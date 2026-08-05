@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { AssetImage } from '@/components/admin/asset-image';
 import { Badge } from '@/components/ui/badge';
 import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 import {
@@ -40,7 +40,6 @@ export function HighlightDetailView({
 }: {
   detail: AdminTrainerHighlight;
 }) {
-  const cover = resolveAssetUrl(detail.coverImage);
   return (
     <div className='space-y-6'>
       <div className='rounded-lg border p-6'>
@@ -52,18 +51,13 @@ export function HighlightDetailView({
         </div>
 
         <div className='flex gap-6'>
-          {cover && (
-            <div className='relative w-48 h-28 shrink-0 rounded-md overflow-hidden bg-muted'>
-              <Image
-                src={cover}
-                alt={detail.title || ''}
-                fill
-                className='object-cover'
-                sizes='192px'
-                unoptimized
-              />
-            </div>
-          )}
+          <AssetImage
+            src={detail.coverImage}
+            alt={detail.title || ''}
+            fill
+            wrapperClassName='h-28 w-48 shrink-0 rounded-md'
+            className='object-cover'
+          />
           <div className='grid grid-cols-2 gap-4 text-sm flex-1'>
             <div>
               <span className='text-muted-foreground'>瞬间 ID：</span>
@@ -136,14 +130,26 @@ function FileCard({ file }: { file: TrainerHighlightFile }) {
       <div className='relative w-full h-32 bg-muted'>
         {isVideo ? (
           thumb ? (
-            <Image src={thumb} alt={file.title || ''} fill className='object-cover' unoptimized />
+            <AssetImage
+              src={file.thumbnailUrl}
+              alt={file.title || ''}
+              fill
+              wrapperClassName='h-full w-full'
+              className='object-cover'
+            />
           ) : (
             <div className='absolute inset-0 flex items-center justify-center text-xs text-muted-foreground'>
               视频文件
             </div>
           )
         ) : url ? (
-          <Image src={url} alt={file.title || ''} fill className='object-cover' unoptimized />
+          <AssetImage
+            src={file.fileUrl}
+            alt={file.title || ''}
+            fill
+            wrapperClassName='h-full w-full'
+            className='object-cover'
+          />
         ) : (
           <div className='absolute inset-0 flex items-center justify-center text-xs text-muted-foreground'>
             无预览

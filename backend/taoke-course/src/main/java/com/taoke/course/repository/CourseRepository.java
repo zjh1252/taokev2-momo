@@ -24,6 +24,26 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
 
     long countByPublisherId(Integer publisherId);
 
+    /**
+     * 列表回表：只取展示所需列，避免 intro/syllabus/material_text 等 LONGTEXT。
+     */
+    @Query("""
+            SELECT c.id AS id, c.title AS title, c.type AS type, c.coverUrl AS coverUrl,
+                   c.categoryId AS categoryId, c.subCategoryId AS subCategoryId,
+                   c.durationDays AS durationDays, c.totalHours AS totalHours,
+                   c.price AS price, c.originalPrice AS originalPrice,
+                   c.isFeatured AS isFeatured, c.isFree AS isFree, c.status AS status,
+                   c.viewCount AS viewCount, c.enrollmentCount AS enrollmentCount, c.score AS score,
+                   c.publisherType AS publisherType, c.publisherId AS publisherId,
+                   c.trainerId AS trainerId, c.keywords AS keywords,
+                   c.publishedAt AS publishedAt, c.createdAt AS createdAt,
+                   c.courseOpenEndDate AS courseOpenEndDate, c.isExpireHide AS isExpireHide,
+                   c.sortOrder AS sortOrder
+            FROM Course c
+            WHERE c.id IN :ids
+            """)
+    List<CourseListCoreProjection> findListCoreByIdIn(@Param("ids") Collection<Integer> ids);
+
     @Query("SELECT c.publisherId, COUNT(c) FROM Course c WHERE c.publisherId IN :ids GROUP BY c.publisherId")
     List<Object[]> countGroupByPublisherIds(@Param("ids") Collection<Integer> ids);
 

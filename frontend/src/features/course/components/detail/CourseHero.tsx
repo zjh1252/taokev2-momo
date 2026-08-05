@@ -3,20 +3,25 @@
 import { Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { SafeImage } from '@/components/safe-image';
-import { resolveImageSrc } from '@/lib/media';
 import type { CourseDetail } from '../../api/types';
+import { resolveOpenCourseDisplayNo } from '../../utils/open-course-seo';
 
 interface CourseHeroProps {
   course: CourseDetail;
+  /** URL 数字段（可能是 legacy 场次 ID） */
+  pathId?: number;
 }
 
-export function CourseHero({ course }: CourseHeroProps) {
+export function CourseHero({ course, pathId }: CourseHeroProps) {
   const t = useTranslations('course.detail');
   const isOpen = course.type === 'OPEN_OFFLINE' || course.type === 'OPEN_ONLINE';
   const totalHoursDisplay = course.totalHours
     ? Number(course.totalHours).toFixed(0)
     : null;
-  const coverSrc = resolveImageSrc(course.coverUrl);
+  const coverSrc = course.coverUrl;
+  const displayNo = isOpen
+    ? resolveOpenCourseDisplayNo(course, pathId)
+    : course.id;
 
   // 公开课：取主排期展示时间/地点
   const primaryPlan = isOpen ? course.plans?.[0] : null;
@@ -42,14 +47,13 @@ export function CourseHero({ course }: CourseHeroProps) {
     <div className="bg-white rounded-xl p-8 shadow-sm border border-slate-100">
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="w-full lg:w-[280px] h-[180px] rounded-lg overflow-hidden shrink-0 relative bg-slate-100">
-          {coverSrc ? (
-            <SafeImage
-              src={coverSrc}
-              alt={course.title}
-              fill
-              className="object-cover"
-            />
-          ) : null}
+          <SafeImage
+            src={coverSrc}
+            alt={course.title}
+            fill
+            apiResolved
+            className="object-cover"
+          />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -76,42 +80,32 @@ export function CourseHero({ course }: CourseHeroProps) {
           <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-6">{course.title}</h1>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-8 text-sm">
-            <div className="text-slate-500">
+            <div className="text-slate-500 min-w-0 break-words">
               {t('courseId')}：
               <span className="text-slate-800 font-medium">
-                TK-{String(course.id).padStart(6, '0')}
+                {String(displayNo)}
               </span>
             </div>
-            <div className="text-slate-500">
+            <div className="text-slate-500 min-w-0 break-words">
               {t('duration')}：
               <span className="text-slate-800 font-medium">
                 {course.durationDays || '-'} {t('daysUnit')}
                 {totalHoursDisplay ? ` / ${totalHoursDisplay} ${t('hoursUnit')}` : null}
               </span>
             </div>
-            <div className="text-slate-500">
-              {t('audience')}：
-              <span className="text-slate-800 font-medium">{course.audience || '-'}</span>
-            </div>
-            <div className="text-slate-500">
+            <div className="text-slate-500 min-w-0 break-words">
               {t('trainer')}：
               <span className="text-primary font-medium">{course.trainerName || '-'}</span>
             </div>
-            <div className="text-slate-500">
+            <div className="text-slate-500 min-w-0 break-words">
               {t('category')}：
               <span className="text-primary font-medium">{course.categoryName || '-'}</span>
             </div>
-            <div className="text-slate-500 flex items-center gap-1">
+            <div className="text-slate-500 flex items-center gap-1 min-w-0">
               {t('rating')}：
               <span className="text-slate-800 font-bold">{course.score || '0.0'}</span>
               <Star className="size-4 fill-yellow-400 text-yellow-400" />
             </div>
-            {isOpen && course.publisherName ? (
-              <div className="text-slate-500">
-                {t('publisher')}：
-                <span className="text-primary font-medium">{course.publisherName}</span>
-              </div>
-            ) : null}
             {isOpen && planStartDate ? (
               <div className="text-slate-500">
                 {t('planTime')}：

@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { TrainerListSection } from '@/features/trainer/components/list/TrainerListSection';
-import { getCityByEnName } from '@/features/city/api/service';
+import { getCityByEnNameCached } from '@/features/city/api/server';
 import { cityChannelPath } from '@/features/city/lib/paths';
 import { resolveCityFilterId } from '@/features/city/lib/filter-city-id';
 import { getTrainerList } from '@/features/trainer/api/service';
@@ -26,9 +26,14 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { city } = await params;
-  const detail = await getCityByEnName(city).catch(() => null);
-  if (!detail) return { title: '城市培训专家 - 淘课网' };
-  return trainerListMetadata({ city: detail.cityName });
+  const detail = await getCityByEnNameCached(city).catch(() => null);
+  if (!detail) {
+    return {
+      title: '城市培训专家 - 淘课网',
+      robots: { index: false, follow: false },
+    };
+  }
+  return trainerListMetadata({ city: detail.cityName }, `/city/${city}/trainers`);
 }
 
 export default async function CityTrainerListPage({
@@ -37,7 +42,7 @@ export default async function CityTrainerListPage({
 }: Props) {
   const { city } = await params;
   const sp = await searchParams;
-  const detail = await getCityByEnName(city).catch(() => null);
+  const detail = await getCityByEnNameCached(city).catch(() => null);
   if (!detail) notFound();
 
   const rawExpertiseTreePromise = getCachedTrainerExpertiseTree();
@@ -75,7 +80,7 @@ export default async function CityTrainerListPage({
     await Promise.all([
       expertiseTreePromise,
       getCachedTrainerIndustryTree(),
-      loadTrainerListRecommended(9),
+      loadTrainerListRecommended(12),
       loadTrainerPageCases(10),
       listPromise,
     ]);
@@ -88,7 +93,7 @@ export default async function CityTrainerListPage({
           { label: '培训专家' },
         ]}
       />
-      <h1 className="text-2xl font-bold text-slate-900">
+      <h1 className="sr-only">
         {trainerListH1({ city: detail.cityName, field: slugParams.field, industry: slugParams.industry })}
       </h1>
       <TrainerListSection

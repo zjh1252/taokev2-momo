@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
-import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { getInstitutionDetail } from '@/features/institution/api/service';
 import { InstitutionHero } from '@/features/institution/components/detail/InstitutionHero';
 import { InstitutionDetailTabs } from '@/features/institution/components/detail/InstitutionDetailTabs';
 import { InstitutionDetailSidebar } from '@/features/institution/components/detail/InstitutionDetailSidebar';
+import { institutionDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -13,12 +13,9 @@ export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   try {
     const institution = await getInstitutionDetail(Number(id));
-    return {
-      title: `${institution.orgName} - 培训协会 - 淘课网`,
-      description: institution.bio || institution.orgName,
-    };
+    return institutionDetailMetadata(institution, `/association/${id}.htm`);
   } catch {
-    return { title: '培训协会详情 - 淘课网' };
+    return fallbackDetailMetadata('培训协会详情', `/association/${id}.htm`);
   }
 }
 
@@ -41,16 +38,7 @@ export default async function AssociationDetailPage({ params }: Props) {
   }
 
   return (
-    <main className="max-w-7xl w-full mx-auto px-8 pb-12">
-      {/* 面包屑导航 — 公共组件：首页 > 培训协会 > 当前协会 */}
-      <PageBreadcrumb
-        className="py-4"
-        items={[
-          { label: '培训协会', href: '/associations' },
-          { label: institution.orgName || '协会详情' },
-        ]}
-      />
-
+    <main className="max-w-7xl w-full mx-auto px-8 pt-6 pb-12">
       <div className="flex flex-col gap-6">
         <InstitutionHero institution={institution} />
 

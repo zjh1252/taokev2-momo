@@ -98,7 +98,8 @@ export function CategoryTreeTable({ categoryType }: Props) {
       </div>
 
       <div className="rounded-lg border">
-        <Table>
+        <div className="w-full overflow-x-auto">
+          <Table className="min-w-[720px]">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[280px]">分类名称</TableHead>
@@ -135,7 +136,8 @@ export function CategoryTreeTable({ categoryType }: Props) {
               ))
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
     </>
   );

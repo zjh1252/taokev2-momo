@@ -7,7 +7,7 @@ import lombok.Data;
  * 新增/编辑精彩瞬间请求（父记录字段）
  *
  * @author Fangxinxin
- * @date 2026-04-11 16:30
+ * @date 2026-07-29 15:30
  */
 @Data
 public class SaveTrainerHighlightRequest {

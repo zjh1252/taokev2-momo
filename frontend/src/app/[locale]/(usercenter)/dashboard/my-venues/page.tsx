@@ -245,6 +245,10 @@ function VenueDialog({
       toast.error('请填写场地名称');
       return;
     }
+    if (images.length === 0) {
+      toast.error('请至少上传 1 张场地图片');
+      return;
+    }
     const payload: VenuePayload = {
       name: name.trim(),
       provinceId: region.provinceId,
@@ -328,7 +332,7 @@ function VenueDialog({
               />
             </Field>
           </div>
-          <Field label={`场地图片（最多 ${MAX_IMAGES} 张，第 1 张作为封面）`}>
+          <Field label={`场地图片 *（最多 ${MAX_IMAGES} 张，第 1 张作为封面）`}>
             <VenueImageUploader value={images} onChange={setImages} max={MAX_IMAGES} />
           </Field>
           <Field label="简介">

@@ -150,6 +150,18 @@ public class CartServiceImpl {
             return;
         }
 
+        if (productType == ProductType.INTERNAL_COURSE) {
+            Course course = courseRepository.findById(productId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+            if (course.getStatus() != 2 || course.getType() == null || !"INTERNAL".equals(course.getType().name())) {
+                throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
+            }
+            cart.setProductTitle(course.getTitle());
+            cart.setProductCover(course.getCoverUrl());
+            cart.setPrice(course.getPrice());
+            return;
+        }
+
         if (productType == ProductType.VIDEO_PACKAGE) {
             VideoPackageGroup group = packageGroupRepository.findById(productId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -177,6 +189,11 @@ public class CartServiceImpl {
 
     private java.math.BigDecimal getCurrentPrice(ProductType productType, Integer productId) {
         if (productType == ProductType.OPEN_COURSE) {
+            return courseRepository.findById(productId)
+                    .map(Course::getPrice)
+                    .orElse(java.math.BigDecimal.ZERO);
+        }
+        if (productType == ProductType.INTERNAL_COURSE) {
             return courseRepository.findById(productId)
                     .map(Course::getPrice)
                     .orElse(java.math.BigDecimal.ZERO);

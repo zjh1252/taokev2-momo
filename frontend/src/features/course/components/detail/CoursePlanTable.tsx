@@ -1,15 +1,18 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import type { CoursePlan } from '../../api/types';
+import { getCourseEnrollmentStatus } from '../../api/service';
 import { isPlanEnrolling } from '../../utils/display';
-import { formatPlanCode, getOpenCoursePlanPath } from '../../utils/plan-code';
+import { getOpenCoursePlanSeoPath, getPlanDisplayNo } from '../../utils/open-course-seo';
+import { formatPlanCode } from '../../utils/plan-code';
 
 interface CoursePlanTableProps {
   plans: CoursePlan[];
   courseId: number;
-  /** 当前页面对应的开课计划编号，用于高亮或排除 */
+  /** 当前页面对应的开课计划编号或 legacy 场次号，用于高亮或排除 */
   activePlanCode?: string;
   /** 自定义表格标题 */
   title?: string;
@@ -17,6 +20,8 @@ interface CoursePlanTableProps {
   upcomingOnly?: boolean;
   /** 课程整体已过期时，场次状态一律展示为已结束 */
   courseOverdue?: boolean;
+  /** 外部传入已购买状态；不传则自行查询 */
+  purchased?: boolean;
 }
 
 export function CoursePlanTable({
@@ -26,8 +31,18 @@ export function CoursePlanTable({
   title,
   upcomingOnly = false,
   courseOverdue = false,
+  purchased: purchasedProp,
 }: CoursePlanTableProps) {
   const t = useTranslations('course.plan');
+  const [purchasedInner, setPurchasedInner] = useState(false);
+  const purchased = purchasedProp ?? purchasedInner;
+
+  useEffect(() => {
+    if (purchasedProp !== undefined) return;
+    getCourseEnrollmentStatus(courseId)
+      .then(setPurchasedInner)
+      .catch(() => setPurchasedInner(false));
+  }, [courseId, purchasedProp]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
@@ -47,8 +62,16 @@ export function CoursePlanTable({
   };
 
   const allPlans = plans
-    .map((plan, index) => ({ plan, index, planCode: formatPlanCode(courseId, index + 1) }))
-    .filter(({ planCode }) => planCode !== activePlanCode)
+    .map((plan, index) => {
+      const displayNo = getPlanDisplayNo(plan, courseId, index + 1);
+      const href = getOpenCoursePlanSeoPath(plan, courseId, index + 1);
+      const legacyCode = formatPlanCode(courseId, index + 1);
+      return { plan, index, displayNo, href, legacyCode };
+    })
+    .filter(({ displayNo, legacyCode }) => {
+      if (!activePlanCode) return true;
+      return displayNo !== activePlanCode && legacyCode !== activePlanCode;
+    })
     .sort((a, b) => {
       const ta = new Date(a.plan.startTime).getTime();
       const tb = new Date(b.plan.startTime).getTime();
@@ -84,16 +107,16 @@ export function CoursePlanTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {visiblePlans.map(({ plan, index, planCode }) => {
+            {visiblePlans.map(({ plan, index, displayNo, href }) => {
               const enrolling = !courseOverdue && isPlanEnrolling(plan);
               return (
                 <tr key={plan.id || index} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3">
                     <Link
-                      href={getOpenCoursePlanPath(planCode)}
+                      href={href}
                       className="text-primary font-medium hover:underline"
                     >
-                      {planCode}
+                      {displayNo}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-slate-700">{getLocationText(plan)}</td>
@@ -112,9 +135,11 @@ export function CoursePlanTable({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    {enrolling ? (
+                    {purchased ? (
+                      <span className="text-slate-500 text-sm font-medium">{t('purchased')}</span>
+                    ) : enrolling ? (
                       <Link
-                        href={getOpenCoursePlanPath(planCode)}
+                        href={href}
                         className="text-primary hover:underline text-sm font-medium"
                       >
                         {t('enroll')}

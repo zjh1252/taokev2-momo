@@ -10,6 +10,8 @@ import type {
   InvoiceRequestVO,
   PayRequest,
   PayResultVO,
+  OrderDisplayStatusValue,
+  OrderUnviewedCountVO,
 } from './types';
 
 function authHeaders() {
@@ -28,11 +30,13 @@ export async function createOrder(data: CreateOrderRequest): Promise<OrderVO> {
 /** 我的订单列表 */
 export async function getOrders(params: {
   status?: number;
+  displayStatus?: OrderDisplayStatusValue;
   page?: number;
   size?: number;
 }): Promise<PageResponse<OrderVO>> {
   const query = new URLSearchParams();
   if (params.status !== undefined) query.set('status', String(params.status));
+  if (params.displayStatus) query.set('displayStatus', params.displayStatus);
   if (params.page) query.set('page', String(params.page));
   if (params.size) query.set('size', String(params.size));
   const qs = query.toString();
@@ -41,6 +45,23 @@ export async function getOrders(params: {
     { headers: authHeaders() },
   );
   return res.data;
+}
+
+/** 我的订单未查看分类数量 */
+export async function getOrderUnviewedCounts(): Promise<OrderUnviewedCountVO> {
+  const res = await apiGet<ApiResponse<OrderUnviewedCountVO>>(
+    '/orders/unviewed-counts',
+    { headers: authHeaders() },
+  );
+  return res.data;
+}
+
+/** 标记指定订单分类已查看 */
+export async function markOrderTabViewed(displayStatus: OrderDisplayStatusValue): Promise<void> {
+  const params = new URLSearchParams({ displayStatus });
+  await apiPut<ApiResponse<void>>(`/orders/viewed?${params}`, undefined, {
+    headers: authHeaders(),
+  });
 }
 
 /** 订单详情 */

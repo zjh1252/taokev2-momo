@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
+import { DeferredSearchInput } from '@/components/ui/deferred-search-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -155,12 +156,10 @@ function MaterialTabPanel({ materialType }: MaterialTabPanelProps) {
         <div className={`grid flex-1 gap-3 ${filterCols}`}>
           <div className='space-y-1'>
             <Label>素材名称</Label>
-            <Input
+            <DeferredSearchInput
               placeholder='搜索素材名称'
               value={params.name ?? ''}
-              onChange={(e) =>
-                void setParams({ name: e.target.value || null, page: 1 })
-              }
+              onSearch={(value) => void setParams({ name: value || null, page: 1 })}
             />
           </div>
 

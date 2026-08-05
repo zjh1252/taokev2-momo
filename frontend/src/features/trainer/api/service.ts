@@ -6,6 +6,7 @@ import type {
   ApiResponse,
   TrainerDetail,
   TrainerListItem,
+  TrainerListParams,
   PageResponse,
   CategoryTreeNode,
   RecommendedCourseItem,
@@ -17,6 +18,8 @@ import { isPresentableRecommendedTrainer } from '../utils/recommended';
 import type { VideoListItem } from '@/features/video/api/types';
 import type { TrainerCase } from '@/features/trainer-case/api/types';
 import type { TrainerHighlight } from '@/features/trainer-highlight/api/types';
+
+export type { TrainerListParams } from '../types';
 
 function authHeaders(): Record<string, string> {
   const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
@@ -44,32 +47,11 @@ export async function getTrainerDetail(id: number): Promise<TrainerDetail> {
 }
 
 /**
- * 专家列表查询参数
- */
-export interface TrainerListParams {
-  page?: number;
-  size?: number;
-  expertiseCategoryId?: number;
-  industryCategoryId?: number;
-  provinceId?: number;
-  cityId?: number;
-  keyword?: string;
-  sort?: string;
-  /** 质量承诺：1=仅显示信得过专家 */
-  isTrusted?: number;
-  /** 擅长领域名称（多选用下划线连接，如 "经营战略_战略规划"） */
-  field?: string;
-  /** 擅长行业名称（多选用下划线连接） */
-  industry?: string;
-  /** 长驻省市名称 */
-  region?: string;
-}
-
-/**
  * 获取专家公开列表（分页 + 筛选）
  */
 export async function getTrainerList(
   params: TrainerListParams = {},
+  init?: { silent?: boolean },
 ): Promise<PageResponse<TrainerListItem>> {
   const query = new URLSearchParams();
   if (params.page) query.set('page', String(params.page));
@@ -81,6 +63,7 @@ export async function getTrainerList(
   if (params.keyword) query.set('keyword', params.keyword);
   if (params.sort) query.set('sort', params.sort);
   if (params.isTrusted) query.set('isTrusted', String(params.isTrusted));
+  if (params.includeCourse === true) query.set('includeCourse', 'true');
   // SEO 名称参数（后端按名称匹配）
   if (params.field) query.set('field', params.field);
   if (params.industry) query.set('industry', params.industry);
@@ -89,6 +72,7 @@ export async function getTrainerList(
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<TrainerListItem>>>(
     `/trainers${qs ? `?${qs}` : ''}`,
+    init,
   );
   return res.data;
 }
@@ -127,7 +111,7 @@ export async function getRecommendedTrainers(
 /**
  * 获取首页/列表页推荐专家（仅后台 isRecommended=1，过滤测试占位数据）
  */
-export async function getTopRecommendedTrainers(limit = 9): Promise<TrainerListItem[]> {
+export async function getTopRecommendedTrainers(limit = 12): Promise<TrainerListItem[]> {
   const fetchLimit = Math.max(limit * 3, 12);
   const res = await apiGet<ApiResponse<TrainerListItem[]>>(
     `/trainers/recommended?limit=${fetchLimit}`,
@@ -149,7 +133,7 @@ export interface RecentTrainerCase {
   caseTitle: string;
   coverImage: string | null;
   industry: string | null;
-  description: string | null;
+  description?: string | null;
   /** 培训日期，首页案例卡片展示「案例时间」 */
   trainingDate?: string | null;
 }

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import type { VideoDetail } from '../../api/types';
+import { useRecordDetailView } from '@/hooks/use-record-detail-view';
 import { VideoPlaybackProvider } from '../../context/video-playback-context';
 
 type VideoDetailShellProps = {
@@ -22,6 +23,8 @@ export function VideoDetailShell({
   children,
   preferredChapterId,
 }: VideoDetailShellProps) {
+  useRecordDetailView('video', video.id, video.viewCount);
+
   return (
     <VideoPlaybackProvider video={video} preferredChapterId={preferredChapterId}>
       {children}

@@ -3,7 +3,7 @@ import { LoginForm } from '@/features/auth/components/LoginForm';
 
 export async function generateMetadata() {
   const t = await getTranslations('auth');
-  return { title: t('login.title') };
+  return { title: t('login.title'), robots: { index: false, follow: false } };
 }
 
 export default function LoginPage() {

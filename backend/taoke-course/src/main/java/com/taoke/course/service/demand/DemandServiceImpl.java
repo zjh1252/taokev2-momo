@@ -207,6 +207,28 @@ public class DemandServiceImpl implements DemandService {
 
     @Override
     @Transactional
+    public DemandDetailResponse update(Integer demandId, Integer userId, CreateDemandRequest req) {
+        Demand demand = findDemandOrThrow(demandId);
+        if (demand.getUserId() == null || !demand.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.DEMAND_NO_PERMISSION);
+        }
+        DemandStatus currentStatus = DemandStatus.of(demand.getStatus());
+        if (currentStatus.isTerminal()) {
+            throw new BusinessException(ErrorCode.DEMAND_STATUS_INVALID,
+                    "需求已" + currentStatus.getLabel() + "，无法修改");
+        }
+
+        applyEditableFields(demand, req);
+        demandRepository.save(demand);
+        createFollowUp(demandId, userId, FollowUpAction.STATUS_CHANGE,
+                "用户修改需求内容", demand.getStatus(), demand.getStatus());
+
+        log.info("用户 {} 修改了需求 {}", userId, demandId);
+        return buildDetail(demand);
+    }
+
+    @Override
+    @Transactional
     public void cancel(Integer demandId, Integer userId) {
         Demand demand = findDemandOrThrow(demandId);
         if (demand.getUserId() == null || !demand.getUserId().equals(userId)) {
@@ -227,6 +249,25 @@ public class DemandServiceImpl implements DemandService {
 
         publishStatusChanged(demand, oldStatus, DemandStatus.CANCELLED.getValue());
         log.info("用户 {} 取消了需求 {}", userId, demandId);
+    }
+
+    private void applyEditableFields(Demand demand, CreateDemandRequest req) {
+        demand.setDemandType(req.getDemandType());
+        demand.setTitle(req.getTitle());
+        demand.setTrainingTopic(req.getTrainingTopic());
+        demand.setTraineeCount(req.getTraineeCount());
+        demand.setBudgetMin(req.getBudgetMin());
+        demand.setBudgetMax(req.getBudgetMax());
+        demand.setExpectedStartDate(req.getExpectedStartDate());
+        demand.setFormat(req.getFormat());
+        demand.setDescription(req.getDescription());
+        demand.setSourceCaseId(req.getSourceCaseId());
+        demand.setSourceCourseId(req.getSourceCourseId());
+        demand.setContactName(req.getContactName());
+        demand.setContactPhone(req.getContactPhone());
+        demand.setProvinceId(req.getProvinceId());
+        demand.setCityId(req.getCityId());
+        demand.setDistrictId(req.getDistrictId());
     }
 
     // ==================== 后台管理 ====================

@@ -15,6 +15,7 @@ export type AdminTrainer = {
   phone: string | null;
   status: number;
   score: number;
+  trustedLabels: string[];
   certLevel: number;
   isSigned: number;
   isRecommended: number;

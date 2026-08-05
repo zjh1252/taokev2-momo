@@ -11,12 +11,12 @@ type BreadcrumbItem = {
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   overview: '总览',
-  users: '平台所有用户管理',
+  users: '个人学员',
   courses: '课程管理',
   plans: '排课管理',
   'training-reviews': '评价管理',
   videos: '视频列表',
-  new: '添加视频',
+  new: '添加',
   'video-orders': '订单管理',
   'video-comments': '评论管理',
   'video-invoices': '发票管理',
@@ -24,7 +24,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   trainers: '专家',
   cases: '案例管理',
   highlights: '精彩瞬间管理',
-  works: '著作管理',
+  books: '著作管理',
+  list: '著作列表',
   institutions: '机构',
   employees: '机构员工',
   agents: '专家经纪人',
@@ -43,6 +44,9 @@ const SEGMENT_LABELS: Record<string, string> = {
   'sensitive-words': '敏感词管理',
   search: '全文搜索管理',
   contracts: '合约管理',
+  ambassador: '推广大使',
+  partners: '培训合伙人',
+  '721': '721讲师合作',
   applications: '申请管理',
   categories: '分类管理',
   'course-category': '课程分类',
@@ -61,12 +65,18 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
   '/dashboard/users': [
     { title: 'Dashboard', link: '/dashboard' },
     { title: '用户管理', link: '#' },
-    { title: '平台所有用户管理', link: '/dashboard/users' }
+    { title: '个人学员', link: '/dashboard/users' }
   ],
   '/dashboard/trainers': [
     { title: 'Dashboard', link: '/dashboard' },
     { title: '用户管理', link: '#' },
     { title: '专家', link: '/dashboard/trainers' }
+  ],
+  '/dashboard/trainers/new': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '用户管理', link: '#' },
+    { title: '专家', link: '/dashboard/trainers' },
+    { title: '添加专家', link: '/dashboard/trainers/new' }
   ],
   '/dashboard/trainers/applications': [
     { title: 'Dashboard', link: '/dashboard' },
@@ -124,6 +134,12 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
     { title: '内容资源运营', link: '#' },
     { title: '课程管理', link: '/dashboard/courses' }
   ],
+  '/dashboard/courses/new': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '内容资源运营', link: '#' },
+    { title: '课程管理', link: '/dashboard/courses' },
+    { title: '添加课程', link: '/dashboard/courses/new' }
+  ],
   '/dashboard/courses/plans': [
     { title: 'Dashboard', link: '/dashboard' },
     { title: '内容资源运营', link: '#' },
@@ -171,10 +187,34 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
     { title: '内容资源运营', link: '#' },
     { title: '案例管理', link: '/dashboard/trainers/cases' }
   ],
+  '/dashboard/trainers/cases/new': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '内容资源运营', link: '#' },
+    { title: '案例管理', link: '/dashboard/trainers/cases' },
+    { title: '添加案例', link: '/dashboard/trainers/cases/new' }
+  ],
   '/dashboard/trainers/highlights': [
     { title: 'Dashboard', link: '/dashboard' },
     { title: '内容资源运营', link: '#' },
     { title: '精彩瞬间管理', link: '/dashboard/trainers/highlights' }
+  ],
+  '/dashboard/trainers/highlights/new': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '内容资源运营', link: '#' },
+    { title: '精彩瞬间管理', link: '/dashboard/trainers/highlights' },
+    { title: '添加精彩瞬间', link: '/dashboard/trainers/highlights/new' }
+  ],
+  '/dashboard/books/list': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '内容资源运营', link: '#' },
+    { title: '著作管理', link: '/dashboard/books/list' },
+    { title: '著作列表', link: '/dashboard/books/list' }
+  ],
+  '/dashboard/books/list/new': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '内容资源运营', link: '#' },
+    { title: '著作管理', link: '/dashboard/books/list' },
+    { title: '添加著作', link: '/dashboard/books/list/new' }
   ],
   '/dashboard/works': [
     { title: 'Dashboard', link: '/dashboard' },
@@ -248,6 +288,24 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
     { title: 'Dashboard', link: '/dashboard' },
     { title: '系统管理', link: '#' },
     { title: '合约管理', link: '/dashboard/contracts' }
+  ],
+  '/dashboard/contracts/partners': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '系统管理', link: '#' },
+    { title: '合约管理', link: '/dashboard/contracts/partners' },
+    { title: '培训合伙人', link: '/dashboard/contracts/partners' }
+  ],
+  '/dashboard/contracts/ambassador': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '系统管理', link: '#' },
+    { title: '合约管理', link: '/dashboard/contracts/partners' },
+    { title: '推广大使', link: '/dashboard/contracts/ambassador' }
+  ],
+  '/dashboard/contracts/721': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '系统管理', link: '#' },
+    { title: '合约管理', link: '/dashboard/contracts/partners' },
+    { title: '721讲师合作', link: '/dashboard/contracts/721' }
   ]
 };
 

@@ -30,7 +30,7 @@ const formSchema = z.object({
   videoType: z.enum(['SERIES', 'SINGLE', 'EXTERNAL']),
   videoUrl: z.string().optional(),
   externalUrl: z.string().optional(),
-  coverUrl: z.string().optional(),
+  coverUrl: z.string().min(1, '请上传录播封面'),
   publishMode: z.enum(['review', 'publish']),
   intro: z.string().optional(),
   publisherType: z.enum(['TRAINER', 'INSTITUTION']),
@@ -127,7 +127,7 @@ export function VideoCreateForm() {
         videoType: value.videoType,
         categoryId,
         subCategoryId,
-        coverUrl: value.coverUrl || undefined,
+        coverUrl: value.coverUrl,
         videoUrl: value.videoType === 'SINGLE' ? value.videoUrl : undefined,
         externalUrl: value.videoType === 'EXTERNAL' ? value.externalUrl : undefined,
         intro: value.intro,
@@ -268,6 +268,7 @@ export function VideoCreateForm() {
             <FormTextField
               name='coverUrl'
               label='封面图 URL'
+              required
               placeholder='粘贴封面图地址'
             />
 

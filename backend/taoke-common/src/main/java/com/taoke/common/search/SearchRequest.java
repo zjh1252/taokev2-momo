@@ -98,6 +98,16 @@ public class SearchRequest {
     private Integer expertiseCategoryId;
 
     @Parameter(
+            description = "Sort option: smart_recommend/smartcs for blended recommendation, score for rating, viewCount for popularity, enrollmentCount for enrollments, default or empty for ES relevance.",
+            schema = @Schema(allowableValues = {"default", "smart_recommend", "smartcs", "score", "viewCount", "enrollmentCount"}, example = "smartcs"))
+    private String sortBy;
+
+    @Parameter(
+            description = "Ranking scenario. SmartCS recommendation cards pass smartcs to blend relevance with rating, popularity and recommendation signals; empty keeps default C-side search behavior.",
+            schema = @Schema(allowableValues = {"smartcs"}, example = "smartcs"))
+    private String rankMode;
+
+    @Parameter(
             description = "页码，从 1 开始；缺省 1。",
             example = "1")
     private Integer page = 1;

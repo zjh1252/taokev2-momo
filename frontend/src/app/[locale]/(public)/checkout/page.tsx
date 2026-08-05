@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlarmClock, ShieldCheck, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,11 +12,14 @@ import {
   formatCountdown,
 } from '@/features/order/hooks/useOrderCountdown';
 import { useRouter } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import {
   getOrderProductTitle,
   getWatchVideoIdFromOrder,
 } from '@/features/order/utils/order-helpers';
+import { notifyOrderPurchase } from '@/features/course/api/service';
+import { CourseReserveSuccessDialog } from '@/features/course/components/detail/CourseReserveSuccessDialog';
 import type { OrderVO, PayResultVO } from '@/features/order/api/types';
 
 /**
@@ -35,22 +38,72 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [showPayModal, setShowPayModal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [reserveSuccessOpen, setReserveSuccessOpen] = useState(false);
+  const [notifyState, setNotifyState] = useState<'idle' | 'sending' | 'ok' | 'fail'>('idle');
+  const syncedNotifyRef = useRef<string | null>(null);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const syncPurchaseNotify = useCallback(async (current: OrderVO): Promise<boolean> => {
+    if (!current.items?.length) return false;
+    // 等一拍，避免 Suspense/首屏未 commit 时更新 state
+    await Promise.resolve();
+    if (!mountedRef.current) return false;
+    setNotifyState('sending');
+    try {
+      await notifyOrderPurchase(current.orderNo);
+      if (!mountedRef.current) return false;
+      setNotifyState('ok');
+      return true;
+    } catch {
+      if (!mountedRef.current) return false;
+      setNotifyState('fail');
+      toast.error('购买通知发送失败，请点击重试或刷新本页');
+      return false;
+    }
+  }, []);
 
   const refreshOrder = useCallback(() => {
-    if (!orderNo) return;
+    if (!orderNo || !mountedRef.current) return;
     getOrderDetail(orderNo)
-      .then(setOrder)
+      .then((data) => {
+        if (mountedRef.current) setOrder(data);
+      })
       .catch(() => {});
   }, [orderNo]);
 
   useEffect(() => {
     if (!orderNo) return;
+    let cancelled = false;
     setLoading(true);
     getOrderDetail(orderNo)
-      .then(setOrder)
+      .then((data) => {
+        if (!cancelled) setOrder(data);
+      })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [orderNo]);
+
+  // 已支付订单：页面加载完成后再补发购买通知（避免未挂载 setState）
+  useEffect(() => {
+    if (loading) return;
+    if (!order || order.status !== 1) return;
+    if (syncedNotifyRef.current === order.orderNo) return;
+    if (!order.items?.length) return;
+    syncedNotifyRef.current = order.orderNo;
+    void syncPurchaseNotify(order);
+  }, [order, loading, syncPurchaseNotify]);
 
   // 待支付订单倒计时；归零后重新拉取订单状态（后端定时任务会关闭超时订单）
   const isPending = order?.status === 0;
@@ -61,12 +114,21 @@ export default function CheckoutPage() {
   const timedOut = isPending && remaining <= 0;
   const urgent = remaining > 0 && remaining <= 60_000;
 
-  const handlePaySuccess = (_result: PayResultVO) => {
+  const handlePaySuccess = async (_result: PayResultVO) => {
     setShowPayModal(false);
     if (!order) {
       router.push(ROUTES.UC_ORDERS);
       return;
     }
+
+    syncedNotifyRef.current = order.orderNo;
+    const notified = await syncPurchaseNotify(order);
+    const hasOpenCourse = order.items.some((item) => item.productType === 'OPEN_COURSE');
+    if (notified && hasOpenCourse) {
+      setReserveSuccessOpen(true);
+      return;
+    }
+
     const watchVideoId =
       getWatchVideoIdFromOrder(order) ??
       (watchVideoParam ? Number(watchVideoParam) : undefined);
@@ -186,8 +248,35 @@ export default function CheckoutPage() {
       )}
 
       {order.status === 1 && (
-        <div className="mt-6 text-center text-green-600 font-medium text-lg">
-          该订单已支付
+        <div className="mt-6 text-center space-y-2">
+          <p className="text-green-600 font-medium text-lg">该订单已支付</p>
+          <div className="text-sm text-slate-600 space-y-1">
+            {notifyState === 'sending' && <p>正在发送购买通知...</p>}
+            {notifyState === 'ok' && (
+              <p>
+                购买通知已发送至
+                {' '}
+                <Link href={ROUTES.UC_MESSAGES} className="text-primary underline">
+                  消息中心
+                </Link>
+              </p>
+            )}
+            {notifyState === 'fail' && (
+              <p>
+                购买通知发送失败，
+                <button
+                  type="button"
+                  className="text-primary underline"
+                  onClick={() => {
+                    syncedNotifyRef.current = null;
+                    void syncPurchaseNotify(order);
+                  }}
+                >
+                  点击重试
+                </button>
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -206,6 +295,15 @@ export default function CheckoutPage() {
           onSuccess={handlePaySuccess}
         />
       )}
+
+      <CourseReserveSuccessDialog
+        open={reserveSuccessOpen}
+        paid
+        onClose={() => {
+          setReserveSuccessOpen(false);
+          router.push(ROUTES.UC_MESSAGES);
+        }}
+      />
     </div>
   );
 }

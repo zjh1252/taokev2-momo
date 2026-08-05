@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { openCourseDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 import { setRequestLocale } from 'next-intl/server';
-import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
+import { DetailViewRecorder } from '@/components/detail-view-recorder';
 import { getCourseDetail } from '@/features/course/api/service';
 import { CourseHero } from '@/features/course/components/detail/CourseHero';
 import { ExpiredCourseBanner } from '@/features/course/components/detail/ExpiredCourseBanner';
@@ -18,9 +18,9 @@ export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   try {
     const course = await getCourseDetail(Number(id));
-    return openCourseDetailMetadata(course);
+    return openCourseDetailMetadata(course, 0, `/opencourse/${id}.htm`);
   } catch {
-    return fallbackDetailMetadata('公开课详情');
+    return fallbackDetailMetadata('公开课详情', `/opencourse/${id}.htm`);
   }
 }
 
@@ -45,17 +45,11 @@ export default async function OpenCourseDetailPage({ params }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-6">
-      {/* 面包屑导航 — 首页 > 公开课 > 当前课程 */}
-      <PageBreadcrumb
-        items={[
-          { label: '公开课', href: '/opencourses' },
-          { label: course.title || '公开课详情' },
-        ]}
-      />
+      <DetailViewRecorder resourceType="course" resourceId={course.id} viewCount={course.viewCount} />
 
       <ExpiredCourseBanner show={Boolean(course.isOverdue)} />
 
-      <CourseHero course={course} />
+      <CourseHero course={course} pathId={courseId} />
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
         <CourseDetailTabs course={course} />

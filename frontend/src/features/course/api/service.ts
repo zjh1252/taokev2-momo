@@ -1,4 +1,4 @@
-import { apiGet } from '@/lib/http/client';
+import { apiGet, apiPost } from '@/lib/http/client';
 import { fetchCategoryCountMap } from '@/lib/category-counts';
 import type {
   ApiResponse,
@@ -137,6 +137,48 @@ export async function getCourseCategoryCounts(
 export async function getCourseDetail(id: number): Promise<CourseDetail> {
   const res = await apiGet<ApiResponse<CourseDetail>>(`/courses/${id}`);
   return res.data;
+}
+
+/** 查询当前用户是否已预约该课程 */
+export async function getCourseReserveStatus(courseId: number): Promise<boolean> {
+  const res = await apiGet<ApiResponse<{ reserved: boolean }>>(
+    `/courses/${courseId}/reserve-status`,
+  );
+  return Boolean(res.data?.reserved);
+}
+
+/** 查询当前用户是否已购买/报名该课程 */
+export async function getCourseEnrollmentStatus(courseId: number): Promise<boolean> {
+  const res = await apiGet<ApiResponse<{ enrolled: boolean }>>(
+    `/courses/${courseId}/enrollment-status`,
+  );
+  return Boolean(res.data?.enrolled);
+}
+
+/** 免费线上公开课预约 */
+export async function reserveCourse(courseId: number): Promise<void> {
+  await apiPost<ApiResponse<null>>(`/courses/${courseId}/reserves`);
+}
+
+/** 支付成功后触发整单购买通知（公开课/录播课等，与后端回调双保险） */
+export async function reserveCourseAfterPay(
+  courseId: number,
+  orderNo: string,
+): Promise<void> {
+  await apiPost<ApiResponse<null>>('/courses/reserves/pay', { courseId, orderNo });
+}
+
+/**
+ * 已支付订单补发全部商品购买站内信。
+ * 优先走已稳定注册的 /courses/reserves/pay（整单补发）；
+ * 若环境尚未部署该逻辑，再回退 /orders/{orderNo}/purchase-notify。
+ */
+export async function notifyOrderPurchase(orderNo: string): Promise<void> {
+  try {
+    await apiPost<ApiResponse<null>>('/courses/reserves/pay', { orderNo, courseId: 0 });
+  } catch {
+    await apiPost<ApiResponse<null>>(`/orders/${orderNo}/purchase-notify`);
+  }
 }
 
 /**

@@ -108,12 +108,38 @@ taoke:
   legacy-api:
     enabled: true
     signature-keys:
-      pxb: fn234gyty4542
-      taoke: adfdsrve34243
+      pxb: ${LEGACY_SIGNATURE_KEY_PXB:fn234gyty4542}
+      taoke: ${LEGACY_SIGNATURE_KEY_TAOKE:adfdsrve34243}
+      shequ: ${LEGACY_SIGNATURE_KEY_SHEQU:}
+      wittrain: ${LEGACY_SIGNATURE_KEY_WITTRAIN:}
+      qa_wittrain: ${LEGACY_SIGNATURE_KEY_QA_WITTRAIN:}
+      ihr_wittrain: ${LEGACY_SIGNATURE_KEY_IHR_WITTRAIN:}
+    signature-urls:
+      wittrain: ${LEGACY_SIGNATURE_URL_WITTRAIN:}
+      qa_wittrain: ${LEGACY_SIGNATURE_URL_QA_WITTRAIN:}
+      ihr_wittrain: ${LEGACY_SIGNATURE_URL_IHR_WITTRAIN:}
+    pxb-outbound:
+      enabled: ${PXB_OUTBOUND_ENABLED:true}
+      base-url: ${PXB_SITE_URL:}
+      app-id: ${PXB_OUTBOUND_APP_ID:taoke}
+      api-path: /api/tt_course/add_tt_course.php
+      connect-timeout-ms: 10000
+      read-timeout-ms: 30000
     search-course-timestamp-skew-seconds: 7200
     default-timestamp-skew-seconds: 864000
+  # 文件存储 — 图片/视频等均走 OSS（配置对齐老站 tkw/includes/config.video.inc.php）
+  storage:
+    provider: ${STORAGE_PROVIDER:aliyun-oss}
+    base-dir: ${STORAGE_BASE_DIR:taoke/upload}
+    public-domain: ${STORAGE_PUBLIC_DOMAIN:https://cdn5-pxb-videos.taoke.com}
+    oss:
+      endpoint: ${OSS_ENDPOINT:oss-cn-hangzhou.aliyuncs.com}
+      bucket: ${OSS_BUCKET:peixunbao-videos}
+      access-key-id: ${OSS_ACCESS_KEY_ID:}
+      access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+      region: ${OSS_REGION:oss-cn-hangzhou}
   upload:
-    base-dir: uploads
+    base-dir: taoke/upload
     max-file-size: 10485760
     allowed-image-types:
       - image/jpeg
@@ -122,12 +148,20 @@ taoke:
       - image/webp
     allowed-image-extensions: [jpg, jpeg, png, gif, webp]
     allowed-file-extensions: [pdf, doc, docx, xls, xlsx, ppt, pptx, txt, zip, rar]
-  # AI 基础能力（OpenAI 兼容协议）— 默认禁用，按 profile 在 application-{profile}.yml 中开启
+  # 阿里云 OCR（图片 / 扫描 PDF 文字识别），默认从环境变量读取
+  ocr:
+    aliyun:
+      enabled: true
+      endpoint: ${ALIYUN_OCR_ENDPOINT:ocr-api.cn-hangzhou.aliyuncs.com}
+      access-key-id: ${ALIYUN_OCR_ACCESS_KEY_ID:${OSS_ACCESS_KEY_ID:}}
+      access-key-secret: ${ALIYUN_OCR_ACCESS_KEY_SECRET:${OSS_ACCESS_KEY_SECRET:}}
+      timeout-ms: 60000
+  # AI 基础能力（OpenAI 兼容协议）— API Key 从本地环境变量 NEWAPI_API_KEY 读取
   ai:
-    enabled: false
-    base-url: ''
-    api-key: ''
-    model: gpt-4o-mini
+    enabled: true
+    base-url: ${NEWAPI_BASE_URL:http://10.0.0.118:43000/v1}
+    api-key: ${NEWAPI_API_KEY:}
+    model: ${NEWAPI_MODEL:gpt-5.5}
     temperature: 0.2
     timeout-ms: 60000
     max-input-chars: 50000
@@ -152,6 +186,12 @@ taoke:
       enabled: true
       api-url: http://test.scho.com.cn
       secret-key: 1E904D6E91A01D4A5C86EDE8B13370BE
+    zgx:
+      enabled: true
+      cdn-url: https://cdn5-pxb-videos.taoke.com
+      path-prefix: zgx
+      ali-auth-key: xiangdongtest
+      h5-site-url: https://m.taoke.com/
   # 在线支付（支付宝 PC 网站支付 + 微信 Native 扫码）。enabled=false 时仅 MOCK 可用
   payment:
     enabled: false

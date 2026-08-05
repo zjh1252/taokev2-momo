@@ -24,7 +24,7 @@ export const navGroups: NavGroup[] = [
     label: '用户管理',
     items: [
       {
-        title: '平台所有用户管理',
+        title: '个人学员',
         url: '/dashboard/users',
         icon: 'teams',
         isActive: false,
@@ -63,6 +63,10 @@ export const navGroups: NavGroup[] = [
           {
             title: '采购方列表',
             url: '/dashboard/enterprise-buyers'
+          },
+          {
+            title: '资质认证',
+            url: '/dashboard/enterprise-buyers/certifications'
           }
         ]
       },
@@ -90,7 +94,7 @@ export const navGroups: NavGroup[] = [
           },
           {
             title: '资质认证',
-            url: '/dashboard/agents/certifications/work'
+            url: '/dashboard/agents/certifications'
           }
         ]
       },
@@ -166,10 +170,6 @@ export const navGroups: NavGroup[] = [
         isActive: false,
         items: [
           {
-            title: '添加课程',
-            url: '/dashboard/courses/new'
-          },
-          {
             title: '课程列表',
             url: '/dashboard/courses'
           },
@@ -185,10 +185,6 @@ export const navGroups: NavGroup[] = [
         icon: 'video',
         isActive: false,
         items: [
-          {
-            title: '添加视频',
-            url: '/dashboard/videos/new'
-          },
           {
             title: '视频列表',
             url: '/dashboard/videos'
@@ -241,10 +237,6 @@ export const navGroups: NavGroup[] = [
         isActive: false,
         items: [
           {
-            title: '添加著作',
-            url: '/dashboard/books/list/new'
-          },
-          {
             title: '著作列表',
             url: '/dashboard/books/list'
           }
@@ -285,11 +277,15 @@ export const navGroups: NavGroup[] = [
         isActive: false,
         items: [
           {
-            title: '爬取课程',
+            title: '审核专家',
+            url: '/dashboard/crawl/trainers'
+          },
+          {
+            title: '审核课程',
             url: '/dashboard/crawl/courses'
           },
           {
-            title: '爬取任务',
+            title: '任务进程',
             url: '/dashboard/crawl/jobs'
           },
           {
@@ -337,6 +333,41 @@ export const navGroups: NavGroup[] = [
         icon: 'ad',
         isActive: false,
         items: []
+      },
+      {
+        title: '轮播图管理',
+        url: '/dashboard/banners',
+        icon: 'media',
+        isActive: false,
+        items: []
+      },
+      {
+        title: '底部管理',
+        url: '#',
+        icon: 'page',
+        isActive: false,
+        items: [
+          {
+            title: '网站导航',
+            url: '/dashboard/footer/nav'
+          },
+          {
+            title: '关于我们',
+            url: '/dashboard/footer/about'
+          },
+          {
+            title: '商务服务',
+            url: '/dashboard/footer/business'
+          },
+          {
+            title: '法律声明',
+            url: '/dashboard/footer/legal'
+          },
+          {
+            title: '联系我们',
+            url: '/dashboard/footer/contact'
+          }
+        ]
       }
     ]
   },
@@ -366,10 +397,23 @@ export const navGroups: NavGroup[] = [
       },
       {
         title: '合约管理',
-        url: '/dashboard/contracts',
+        url: '#',
         icon: 'contract',
         isActive: false,
-        items: []
+        items: [
+          {
+            title: '推广大使',
+            url: '/dashboard/contracts/ambassador'
+          },
+          {
+            title: '培训合伙人',
+            url: '/dashboard/contracts/partners'
+          },
+          {
+            title: '721讲师合作',
+            url: '/dashboard/contracts/721'
+          }
+        ]
       }
     ]
   }

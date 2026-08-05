@@ -62,6 +62,9 @@ export const uploadAvatar = (filePath) => uploadFile('/uploads/avatars', filePat
 /** 上传通用图片 → POST /uploads/images */
 export const uploadImage = (filePath) => uploadFile('/uploads/images', filePath);
 
+/** 上传录播视频 → POST /uploads/videos */
+export const uploadVideo = (filePath) => uploadFile('/uploads/videos', filePath);
+
 /** 上传通用文件（PDF/Word 等）→ POST /uploads/files */
 export const uploadDoc = (filePath) => uploadFile('/uploads/files', filePath);
 

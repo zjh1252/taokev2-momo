@@ -3,7 +3,7 @@ import { ForgotPasswordForm } from '@/features/auth/components/ForgotPasswordFor
 
 export async function generateMetadata() {
   const t = await getTranslations('auth');
-  return { title: t('forgot.title') };
+  return { title: t('forgot.title'), robots: { index: false, follow: false } };
 }
 
 export default function ForgotPasswordPage() {

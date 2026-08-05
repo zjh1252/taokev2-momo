@@ -3,7 +3,7 @@ import type { Expert, CaseStudy, InternalCourse, PublicCourse } from '@/features
 import type { InstitutionListItem } from '@/features/institution/types';
 import type { RecentTrainerCase } from '@/features/trainer/api/service';
 import type { TrainerListItem } from '@/features/trainer/types';
-import { toPlainIntroText } from '@/features/trainer/utils/displayTitle';
+import { pickDisplayTitle, toPlainIntroText } from '@/features/trainer/utils/displayTitle';
 import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recommended';
 import { resolveApiImageSrc, resolveImageSrc } from '@/lib/media';
 import { parseDelimitedTags } from '@/lib/tags';
@@ -20,14 +20,14 @@ export function mapSlotTrainerToListItem(item: PublicRecommendedItem): TrainerLi
   const displayName = item.teachingName || item.resourceName || '';
   const avatar = resolveApiImageSrc(item.avatar || item.resourceCoverUrl || '');
   const intro = toPlainIntroText(
-    item.description || item.oneLineIntro || item.resourceDescription || ''
+    item.oneLineIntro || item.resourceDescription || item.description || ''
   );
   return {
     id: item.resourceId,
     name: displayName,
     teachingName: displayName,
     avatar,
-    title: toPlainIntroText(item.title || item.trainerTitle || ''),
+    title: toPlainIntroText(item.trainerTitle || item.title || ''),
     oneLineIntro: intro,
     score: 0,
     isRecommended: 1,
@@ -62,13 +62,14 @@ export function mapSlotTrainersToExperts(items: PublicRecommendedItem[]): Expert
       item.description ?? item.oneLineIntro ?? item.resourceDescription ?? ''
     );
     const chiefIntro = toPlainIntroText(item.chiefIntro ?? '');
-    const positionTitle = toPlainIntroText(item.title ?? item.trainerTitle ?? '');
+    const positionTitle = pickDisplayTitle(item.title ?? item.trainerTitle ?? '', displayName) || '';
     return {
       id: item.resourceId,
       name: displayName,
       title: positionTitle,
       avatar,
       coverImage: cover,
+      // 长文案优先；若仅有一句话则先填 bio，由详情 enrichment 再补 intro
       bio: chiefIntro || oneLineIntro,
       subtitle: oneLineIntro,
       tags,
@@ -97,6 +98,7 @@ export function mapSlotCasesToRecentCases(items: PublicRecommendedItem[]): Recen
     trainerUserId: 0,
     trainerName: item.trainerNameForCase || '',
     trainerAvatar: item.trainerAvatar || null,
+    trainerScore: item.trainerScore ?? null,
     caseTitle: item.caseTitle || item.resourceName || '',
     coverImage: item.coverUrl || item.resourceCoverUrl || null,
     industry: item.industry || item.resourceMeta || null,

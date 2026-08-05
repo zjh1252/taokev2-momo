@@ -46,3 +46,14 @@ export async function rejectTrainerCase(id: number, reason: string) {
     { method: 'PUT', body: JSON.stringify({ reason }) }
   );
 }
+
+/** 运营代发案例 */
+export async function createTrainerCase(
+  trainerUserId: number,
+  payload: import('./types').SaveTrainerCasePayload
+) {
+  return apiClient<{ code: number; message: string; data: { id: number } }>(
+    `/trainer-cases?trainerUserId=${trainerUserId}`,
+    { method: 'POST', body: JSON.stringify(payload) }
+  );
+}

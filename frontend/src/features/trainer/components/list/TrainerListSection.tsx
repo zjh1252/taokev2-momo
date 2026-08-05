@@ -1,7 +1,14 @@
 'use client';
 
 import { Suspense, useState, useCallback, useTransition, useEffect, useMemo } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import { ListPagePagination } from '@/components/list-page-pagination';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { TrainerFilters, type TrainerFilterValue } from './TrainerFilters';
 import { TrainerCard } from './TrainerCard';
 import { TrainerRecommendedScroller } from './TrainerRecommendedScroller';
@@ -9,7 +16,9 @@ import { TrainerCaseScroller } from './TrainerCaseScroller';
 import { TrainerCategoryExpertBar } from './TrainerCategoryExpertBar';
 import { TrainerSortBar } from './TrainerSortBar';
 import { getTrainerList, type RecentTrainerCase } from '../../api/service';
-import { filtersToHtmPath, type TrainerSlugParams } from '../../utils/url';
+import { filtersToHtmPath, joinFieldValue, type TrainerSlugParams } from '../../utils/url';
+import { splitFieldForFilter } from '../../utils/expertise-categories';
+import { rememberTrainerListPath } from '../../utils/list-return';
 import type { TrainerListItem, CategoryTreeNode, PageResponse } from '../../types';
 import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-nav';
 import type { ChannelCategoryNavItem } from '@/components/layout/channel-category-nav';
@@ -42,12 +51,11 @@ export function TrainerListSection(props: TrainerListSectionProps) {
   );
 }
 
-function slugToFilter(p: TrainerSlugParams): TrainerFilterValue {
-  // field 值为 "一级_二级" 或 "一级"
-  const fieldParts = (p.field || '').split('_');
+function slugToFilter(p: TrainerSlugParams, expertiseTree: CategoryTreeNode[]): TrainerFilterValue {
+  const fieldParts = splitFieldForFilter(expertiseTree, p.field);
   return {
-    fieldParentName: fieldParts[0] || undefined,
-    fieldChildName: fieldParts[1] || undefined,
+    fieldParentName: fieldParts.fieldParentName,
+    fieldChildName: fieldParts.fieldChildName,
     industryName: p.industry || undefined,
     regionName: p.region || undefined,
   };
@@ -81,10 +89,13 @@ function resolveExpertiseCategoryId(
   return id ?? -1;
 }
 
-function filterToFieldParam(f: TrainerFilterValue): string | undefined {
-  if (f.fieldParentName && f.fieldChildName) return `${f.fieldParentName}_${f.fieldChildName}`;
-  if (f.fieldParentName) return f.fieldParentName;
-  return undefined;
+function filterToFieldParam(f: TrainerFilterValue, expertiseTree: CategoryTreeNode[]): string | undefined {
+  const joined = joinFieldValue(
+    f.fieldParentName ?? null,
+    f.fieldChildName ?? null,
+    expertiseTree,
+  );
+  return joined || undefined;
 }
 
 /** 从分类树中按一级+二级名称查找分类ID */
@@ -129,7 +140,12 @@ function TrainerListSectionInner({
   bottomCategoryNav,
 }: TrainerListSectionProps) {
   const initialFilters = useMemo(
-    () => enrichFilterFromTree(slugToFilter(initialSlugParams || {}), expertiseTree, industryTree),
+    () =>
+      enrichFilterFromTree(
+        slugToFilter(initialSlugParams || {}, expertiseTree),
+        expertiseTree,
+        industryTree,
+      ),
     [initialSlugParams, expertiseTree, industryTree],
   );
 
@@ -137,12 +153,13 @@ function TrainerListSectionInner({
   const [filters, setFilters] = useState<TrainerFilterValue>(initialFilters);
   const [sort, setSort] = useState<string>('default');
   const [currentPage, setCurrentPage] = useState(initialData.page ?? 1);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   /** SSR 刷新/软导航时同步数据与筛选（底部分类栏跳转、浏览器前进后退等） */
   useEffect(() => {
     const nextFilters = enrichFilterFromTree(
-      slugToFilter(initialSlugParams || {}),
+      slugToFilter(initialSlugParams || {}, expertiseTree),
       expertiseTree,
       industryTree,
     );
@@ -157,7 +174,11 @@ function TrainerListSectionInner({
   useEffect(() => {
     if (initialSlugParams && Object.keys(initialSlugParams).length > 0) {
       syncUrl(initialData.page ?? 1, initialFilters);
+    } else {
+      rememberTrainerListPath();
     }
+    // 评分回填等后端变更后，客户端再拉一次避免 SSR/软导航残留旧分
+    fetchData(initialData.page ?? 1, initialFilters, 'default');
     // 仅执行一次（mount 时）
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -165,25 +186,30 @@ function TrainerListSectionInner({
   /** 拉取数据 */
   const fetchData = useCallback(
     (page: number, f: TrainerFilterValue, s: string) => {
-      startTransition(async () => {
-        try {
-          const result = await getTrainerList({
-            page,
-            size: 16,
-            expertiseCategoryId: resolveExpertiseCategoryId(f, expertiseTree),
-            industryCategoryId: f.industryCategoryId ?? (
-              f.industryName ? findCategoryIdByName(industryTree, f.industryName) : undefined
-            ),
-            provinceId: f.provinceId,
-            cityId: lockedCityId,
-            sort: s,
-            isTrusted: f.trustedOnly ? 1 : undefined,
-          });
-          setData(result);
-          setCurrentPage(page);
-        } catch (e) {
-          console.error('加载专家列表失败:', e);
-        }
+      startTransition(() => {
+        void (async () => {
+          try {
+            const result = await getTrainerList(
+              {
+                page,
+                size: 16,
+                expertiseCategoryId: resolveExpertiseCategoryId(f, expertiseTree),
+                industryCategoryId: f.industryCategoryId ?? (
+                  f.industryName ? findCategoryIdByName(industryTree, f.industryName) : undefined
+                ),
+                provinceId: f.provinceId,
+                cityId: lockedCityId,
+                sort: s,
+                isTrusted: f.trustedOnly ? 1 : undefined,
+              },
+              { silent: true },
+            );
+            setData(result);
+            setCurrentPage(page);
+          } catch (e) {
+            console.error('加载专家列表失败:', e);
+          }
+        })();
       });
     },
     [expertiseTree, industryTree, lockedCityId],
@@ -193,15 +219,16 @@ function TrainerListSectionInner({
   const syncUrl = useCallback(
     (page: number, f: TrainerFilterValue) => {
       const slugParams: TrainerSlugParams = {
-        field: filterToFieldParam(f),
+        field: filterToFieldParam(f, expertiseTree),
         industry: f.industryName,
         region: f.regionName,
         page: page > 1 ? page : undefined,
       };
       const url = filtersToHtmPath(slugParams);
       window.history.replaceState(null, '', url);
+      rememberTrainerListPath(url);
     },
-    [],
+    [expertiseTree],
   );
 
   const handleFilterChange = useCallback(
@@ -251,23 +278,52 @@ function TrainerListSectionInner({
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex max-w-full flex-col gap-4">
       {categoryExpertTrainers.length > 0 ? (
         <TrainerCategoryExpertBar items={categoryExpertTrainers} />
       ) : null}
 
-      <section className="flex gap-6 items-stretch">
-        <TrainerFilters
-          expertiseTree={expertiseTree}
-          industryTree={industryTree}
-          value={filters}
-          onChange={handleFilterChange}
-        />
-        <div className="flex-1 min-w-0 flex flex-col gap-2 min-h-0">
-          <h2 className="text-sm font-bold text-slate-700 px-1">热门培训领域</h2>
-          <div className="flex-1 min-h-0">
-            <TrainerRecommendedScroller initialItems={recommendedTrainers} />
-          </div>
+      <section className="flex flex-col gap-4 lg:flex-row lg:gap-5 lg:items-start">
+        <div className="lg:hidden">
+          <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
+            <button
+              type="button"
+              onClick={() => setMobileFilterOpen(true)}
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm"
+            >
+              <SlidersHorizontal className="size-4" />
+              筛选讲师
+            </button>
+            <SheetContent side="bottom" className="max-h-[82vh] gap-0 overflow-y-auto rounded-t-xl p-0">
+              <SheetHeader className="border-b border-slate-100 px-4 py-3">
+                <SheetTitle>筛选讲师</SheetTitle>
+              </SheetHeader>
+              <div className="p-4">
+                <TrainerFilters
+                  expertiseTree={expertiseTree}
+                  industryTree={industryTree}
+                  value={filters}
+                  onChange={(next) => {
+                    handleFilterChange(next);
+                    setMobileFilterOpen(false);
+                  }}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        <div className="hidden shrink-0 lg:block">
+          <TrainerFilters
+            expertiseTree={expertiseTree}
+            industryTree={industryTree}
+            value={filters}
+            onChange={handleFilterChange}
+          />
+        </div>
+        <div className="flex-1 min-w-0 min-h-0">
+          <h2 className="sr-only">热门培训领域</h2>
+          <TrainerRecommendedScroller initialItems={recommendedTrainers} />
         </div>
       </section>
 

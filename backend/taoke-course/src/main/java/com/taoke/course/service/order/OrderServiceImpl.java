@@ -5,6 +5,7 @@ import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
 import com.taoke.course.dto.order.CreateOrderRequest;
 import com.taoke.course.dto.order.OrderItemVO;
+import com.taoke.course.dto.order.OrderUnviewedCountVO;
 import com.taoke.course.dto.order.OrderVO;
 import com.taoke.course.entity.Course;
 import com.taoke.course.entity.cart.Cart;
@@ -12,6 +13,7 @@ import com.taoke.course.entity.order.Order;
 import com.taoke.course.entity.order.OrderItem;
 import com.taoke.course.entity.video.Video;
 import com.taoke.course.entity.video.VideoPackageGroup;
+import com.taoke.course.enums.OrderDisplayStatus;
 import com.taoke.course.enums.OrderStatus;
 import com.taoke.course.enums.ProductType;
 import com.taoke.course.mapper.OrderMapper;
@@ -26,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -121,11 +124,15 @@ public class OrderServiceImpl {
     /**
      * 我的订单列表（分页）
      */
-    public PageResponse<OrderVO> listOrders(Integer userId, Integer status, int page, int size) {
+    public PageResponse<OrderVO> listOrders(Integer userId, Integer status, String displayStatus, int page, int size) {
         PageRequest pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        LocalDateTime now = LocalDateTime.now();
 
         Page<Order> orderPage;
-        if (status != null) {
+        if (displayStatus != null && !displayStatus.isBlank()) {
+            OrderDisplayStatus parsedStatus = OrderDisplayStatus.of(displayStatus);
+            orderPage = orderRepository.findAll(buildDisplayStatusSpec(userId, parsedStatus, now), pageable);
+        } else if (status != null) {
             orderPage = orderRepository.findByUserIdAndStatus(userId, status, pageable);
         } else {
             orderPage = orderRepository.findByUserId(userId, pageable);
@@ -144,12 +151,39 @@ public class OrderServiceImpl {
 
         List<OrderVO> voList = orders.stream().map(o -> {
             List<OrderItem> orderItems = itemMap.getOrDefault(o.getId(), List.of());
-            return orderMapper.toVO(o, orderItems);
+            return orderMapper.toVO(o, orderItems, now);
         }).toList();
 
         enrichVideoEpisodes(voList);
 
         return PageResponse.of(voList, orderPage.getTotalElements(), page, size);
+    }
+
+    public OrderUnviewedCountVO getUnviewedCounts(Integer userId) {
+        LocalDateTime now = LocalDateTime.now();
+        OrderUnviewedCountVO vo = new OrderUnviewedCountVO();
+        vo.setPending(countUnviewed(userId, OrderDisplayStatus.PENDING, now));
+        vo.setPaymentExpired(countUnviewed(userId, OrderDisplayStatus.PAYMENT_EXPIRED, now));
+        vo.setCourseExpired(countUnviewed(userId, OrderDisplayStatus.COURSE_EXPIRED, now));
+        vo.setPaid(countUnviewed(userId, OrderDisplayStatus.PAID, now));
+        vo.setCancelled(countUnviewed(userId, OrderDisplayStatus.CANCELLED, now));
+        return vo;
+    }
+
+    @Transactional
+    public void markDisplayStatusViewed(Integer userId, String displayStatus) {
+        OrderDisplayStatus parsedStatus = OrderDisplayStatus.of(displayStatus);
+        LocalDateTime now = LocalDateTime.now();
+        List<Order> orders = orderRepository.findAll(
+                buildDisplayStatusSpec(userId, parsedStatus, now)
+                        .and(unviewedSpec(parsedStatus)));
+        orders.forEach(order -> {
+            order.setBuyerViewedAt(now);
+            order.setBuyerViewedStatus(parsedStatus.name());
+        });
+        if (!orders.isEmpty()) {
+            orderRepository.saveAll(orders);
+        }
     }
 
     /**
@@ -260,6 +294,79 @@ public class OrderServiceImpl {
         orderRepository.save(order);
     }
 
+    private long countUnviewed(Integer userId, OrderDisplayStatus displayStatus, LocalDateTime now) {
+        return orderRepository.count(
+                buildDisplayStatusSpec(userId, displayStatus, now)
+                        .and(unviewedSpec(displayStatus)));
+    }
+
+    private Specification<Order> unviewedSpec(OrderDisplayStatus displayStatus) {
+        return (root, cq, cb) -> cb.or(
+                cb.isNull(root.get("buyerViewedAt")),
+                cb.isNull(root.get("buyerViewedStatus")),
+                cb.notEqual(root.get("buyerViewedStatus"), displayStatus.name())
+        );
+    }
+
+    private Specification<Order> buildDisplayStatusSpec(Integer userId, OrderDisplayStatus displayStatus, LocalDateTime now) {
+        return (root, cq, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("userId"), userId));
+            switch (displayStatus) {
+                case PENDING -> predicates.add(cb.and(
+                        cb.equal(root.get("status"), OrderStatus.PENDING.getValue()),
+                        cb.or(
+                                cb.isNull(root.get("expiredAt")),
+                                cb.greaterThan(root.get("expiredAt"), now)
+                        )
+                ));
+                case PAYMENT_EXPIRED -> predicates.add(cb.or(
+                        cb.equal(root.get("status"), OrderStatus.EXPIRED.getValue()),
+                        cb.and(
+                                cb.equal(root.get("status"), OrderStatus.PENDING.getValue()),
+                                cb.isNotNull(root.get("expiredAt")),
+                                cb.lessThanOrEqualTo(root.get("expiredAt"), now)
+                        )
+                ));
+                case COURSE_EXPIRED -> predicates.add(cb.and(
+                        cb.equal(root.get("status"), OrderStatus.PAID.getValue()),
+                        cb.or(
+                                cb.and(
+                                        cb.isNotNull(root.get("validUntil")),
+                                        cb.lessThanOrEqualTo(root.get("validUntil"), now)
+                                ),
+                                cb.and(
+                                        cb.isNull(root.get("validUntil")),
+                                        cb.isNotNull(root.get("paidAt")),
+                                        cb.lessThanOrEqualTo(root.get("paidAt"), now.minusYears(1))
+                                )
+                        )
+                ));
+                case PAID -> predicates.add(cb.and(
+                        cb.equal(root.get("status"), OrderStatus.PAID.getValue()),
+                        cb.or(
+                                cb.and(
+                                        cb.isNotNull(root.get("validUntil")),
+                                        cb.greaterThan(root.get("validUntil"), now)
+                                ),
+                                cb.and(
+                                        cb.isNull(root.get("validUntil")),
+                                        cb.or(
+                                                cb.isNull(root.get("paidAt")),
+                                                cb.greaterThan(root.get("paidAt"), now.minusYears(1))
+                                        )
+                                )
+                        )
+                ));
+                case CANCELLED -> predicates.add(root.get("status").in(
+                        OrderStatus.CANCELLED.getValue(),
+                        OrderStatus.REFUNDED.getValue()
+                ));
+            }
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+    }
+
     /**
      * 查询订单明细（内部方法，供 PayService 生成报名记录使用）
      */
@@ -306,6 +413,10 @@ public class OrderServiceImpl {
                     group.getPrice(), safeQty,
                     VideoPurchasePricing.resolveCompanyCap(group.getPrice(), group.getCompanyPrice())));
             return item;
+        }
+
+        if (productType == ProductType.INTERNAL_COURSE) {
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_PURCHASABLE);
         }
 
         Video video = videoRepository.findById(productId)

@@ -3,6 +3,9 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
+import zhCN from 'video.js/dist/lang/zh-CN.json';
+
+videojs.addLanguage('zh-CN', zhCN);
 import 'video.js/dist/video-js.css';
 import './video-player.css';
 import { inferVideoMimeType } from '../../lib/playback-sources';
@@ -82,6 +85,7 @@ export function VideoJsPlayer({
     const player = videojs(videoEl, {
       controls: true,
       fill: true,
+      language: 'zh-CN',
       autoplay: autoplay ?? false,
       preload: 'metadata',
       poster: poster ?? undefined,

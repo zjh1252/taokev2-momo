@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import SingleImageUploader from '@/features/role-apply/components/SingleImageUploader';
 import { resolveImageSrc } from '@/lib/media';
 import type { TrainerBookFormItem } from '../api/types';
@@ -66,6 +67,10 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
 
   const submit = () => {
     if (!draft.title?.trim()) return;
+    if (!draft.coverUrl?.trim()) {
+      toast.error('请上传封面图');
+      return;
+    }
     const item: TrainerBookFormItem = {
       title: draft.title.trim(),
       authorName: draft.authorName?.trim() || '',
@@ -205,13 +210,14 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
                 <Input
                   id="book-date"
                   type="date"
+                  placeholder="年 / 月 / 日"
                   value={draft.publishDate || ''}
                   onChange={(e) => setDraft({ ...draft, publishDate: e.target.value })}
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <Label>封面图</Label>
+              <Label>封面图 *</Label>
               <SingleImageUploader
                 label="著作封面"
                 value={draft.coverUrl || ''}

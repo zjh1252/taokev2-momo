@@ -254,6 +254,7 @@ function EducationForm({ record, onCancel, onSaved }: FormProps) {
         <Field label="入学日期" required>
           <input
             type="date"
+            placeholder="年 / 月 / 日"
             className="form-input"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
@@ -262,10 +263,10 @@ function EducationForm({ record, onCancel, onSaved }: FormProps) {
         <Field label="结束日期">
           <input
             type="date"
+            placeholder="年 / 月 / 日"
             className="form-input"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            placeholder="至今可留空"
           />
         </Field>
       </div>

@@ -253,9 +253,9 @@ function PxbTrainerListSectionInner({ initialData, expertiseTree, industryTree }
           </div>
 
           <div className="pxb-reset-link">
-            <a href="/trainer?origin=91pxb" onClick={(e) => { e.preventDefault(); resetAll(); }}>
+            <button type="button" onClick={resetAll}>
               全部撤销
-            </a>
+            </button>
           </div>
         </div>
       </div>

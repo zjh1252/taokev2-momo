@@ -13,7 +13,10 @@ class LegacySignatureServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new LegacySignatureService(new LegacyApiProperties());
+        LegacyApiProperties properties = new LegacyApiProperties();
+        properties.getSignatureKeys().put("pxb", "fn234gyty4542");
+        properties.getSignatureKeys().put("taoke", "adfdsrve34243");
+        service = new LegacySignatureService(properties);
     }
 
     @Test

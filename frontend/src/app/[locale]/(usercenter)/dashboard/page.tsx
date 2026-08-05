@@ -1,9 +1,9 @@
 'use client';
 
 import Image from 'next/image';
-import { SafeImage } from '@/components/safe-image';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
+import { UserAvatar } from '@/components/user-avatar';
 import { useAuth } from '@/lib/auth/auth-context';
 import {
   PlayCircle,
@@ -17,12 +17,15 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
+import type { MouseEvent } from 'react';
 import { getContinueLearning, getMyVideoLearnings } from '@/features/learning/api/service';
 import { getUnreadCount } from '@/features/notification/api/service';
 import type { ContinueLearning, MyVideoLearning } from '@/features/learning/api/types';
+import { getVideoDetail } from '@/features/video/api/service';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import { cn } from '@/lib/utils';
+import { CustomerServiceChatDialog } from '@/components/customer-service-chat-dialog';
 
 const ROLE_LABELS: Record<string, string> = {
   BUYER: '学员',
@@ -38,6 +41,23 @@ const ROLE_LABELS: Record<string, string> = {
 
 const PLATFORM_ROLES = new Set(['SUPER_ADMIN', 'ADMIN']);
 
+interface VideoCategoryLinkSource {
+  categoryId?: number | null;
+  categoryName?: string | null;
+}
+
+function buildIndustryHotVideoHref(video?: VideoCategoryLinkSource | null) {
+  const params = new URLSearchParams();
+  if (video?.categoryId) {
+    params.set('categoryId', String(video.categoryId));
+  }
+  if (video?.categoryName) {
+    params.set('categoryName', video.categoryName);
+  }
+  params.set('sortBy', 'viewCount');
+  return `${ROUTES.ONLINE_COURSES}?${params.toString()}`;
+}
+
 /**
  * 用户中心 — 个人主页
  *
@@ -45,9 +65,12 @@ const PLATFORM_ROLES = new Set(['SUPER_ADMIN', 'ADMIN']);
  * @date 2026-04-03 10:30
  */
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, activeRole, setActiveRole, trainerCode } = useAuth();
   const [activeTab, setActiveTab] = useState<'recent' | 'recommend'>('recent');
   const [switchTarget, setSwitchTarget] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [hotVideoCategory, setHotVideoCategory] = useState<VideoCategoryLinkSource | null>(null);
 
   const [continueLearning, setContinueLearning] = useState<ContinueLearning | null>(null);
   const [continueLoading, setContinueLoading] = useState(true);
@@ -68,12 +91,15 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchUnreadCount();
+    void Promise.resolve().then(fetchUnreadCount);
   }, [fetchUnreadCount]);
 
   useEffect(() => {
     getContinueLearning()
-      .then(setContinueLearning)
+      .then((video) => {
+        setContinueLearning(video);
+        setHotVideoCategory(video);
+      })
       .catch(() => setContinueLearning(null))
       .finally(() => setContinueLoading(false));
 
@@ -83,8 +109,48 @@ export default function DashboardPage() {
       .finally(() => setRecentLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!continueLearning || hotVideoCategory?.categoryId || hotVideoCategory?.categoryName) {
+      return;
+    }
+    let cancelled = false;
+    getVideoDetail(continueLearning.videoId)
+      .then((detail) => {
+        if (cancelled) return;
+        setHotVideoCategory({
+          categoryId: detail.categoryId,
+          categoryName: detail.categoryName,
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [continueLearning, hotVideoCategory]);
+
   const nickname = user?.nickname || '用户';
-  const initials = nickname.slice(0, 2).toUpperCase();
+  const industryHotVideoHref = buildIndustryHotVideoHref(hotVideoCategory);
+
+  const handleIndustryHotVideoClick = useCallback(
+    async (event: MouseEvent<HTMLAnchorElement>) => {
+      if (!continueLearning || hotVideoCategory?.categoryId || hotVideoCategory?.categoryName) {
+        return;
+      }
+      event.preventDefault();
+      try {
+        const detail = await getVideoDetail(continueLearning.videoId);
+        const category = {
+          categoryId: detail.categoryId,
+          categoryName: detail.categoryName,
+        };
+        setHotVideoCategory(category);
+        router.push(buildIndustryHotVideoHref(category));
+      } catch {
+        router.push(buildIndustryHotVideoHref(null));
+      }
+    },
+    [continueLearning, hotVideoCategory, router],
+  );
 
   return (
     <>
@@ -94,23 +160,16 @@ export default function DashboardPage() {
           {/* 头像 — 点击进入「个人资料」编辑页 */}
           <Link
             href="/dashboard/account/base"
-            className="relative group cursor-pointer block shrink-0"
+            className="relative group cursor-pointer flex size-20 shrink-0 overflow-hidden rounded-full border-4 border-slate-50 shadow-sm"
             title="编辑个人资料"
           >
-            {user?.avatarUrl ? (
-              <SafeImage
-                src={user.avatarUrl}
-                alt={nickname}
-                width={80}
-                height={80}
-                className="w-20 h-20 rounded-full object-cover border-4 border-slate-50 shadow-sm"
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-white text-2xl font-bold border-4 border-slate-50 shadow-sm">
-                {initials}
-              </div>
-            )}
-            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <UserAvatar
+              src={user?.avatarUrl}
+              name={nickname}
+              size={80}
+              className="size-full border-0 shadow-none"
+            />
+            <div className="absolute inset-0 z-20 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <Camera className="size-5 text-white" />
             </div>
           </Link>
@@ -243,16 +302,21 @@ export default function DashboardPage() {
               <div className="flex-1 flex gap-3">
                 <a
                   href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setChatOpen(true);
+                  }}
                   className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
                 >
                   <Brain className="size-[18px]" /> AI智能选课
                 </a>
-                <a
-                  href="#"
+                <Link
+                  href={industryHotVideoHref}
+                  onClick={handleIndustryHotVideoClick}
                   className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
                 >
                   <Flame className="size-[18px]" /> 行业热点课
-                </a>
+                </Link>
               </div>
             </div>
             <div className="w-full h-[1px] bg-slate-100" />
@@ -262,13 +326,17 @@ export default function DashboardPage() {
               </div>
               <div className="flex-1 flex gap-3">
                 <a
-                  href="#"
+                  href="https://www.91pxb.com/?mod=marketing&do=intro"
+                  target="_blank"
+                  rel="noreferrer"
                   className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
                 >
                   <Wrench className="size-[18px]" /> 培训宝
                 </a>
                 <a
-                  href="#"
+                  href="https://www.91mbt.com/home/#/download"
+                  target="_blank"
+                  rel="noreferrer"
                   className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
                 >
                   <Target className="size-[18px]" /> 目标通
@@ -393,6 +461,8 @@ export default function DashboardPage() {
       </section>
 
       {/* 切换角色确认对话框 */}
+      <CustomerServiceChatDialog open={chatOpen} onOpenChange={setChatOpen} />
+
       {switchTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="w-full max-w-sm mx-4 rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200 p-6">

@@ -16,6 +16,7 @@ from html import unescape
 from urllib.parse import urljoin
 from typing import Any, AsyncGenerator, Dict, List
 
+from crawlers.course_utils import enrich_course_record, safe_update, set_price_fields
 from crawlers.media import extract_image_urls, media_asset
 
 
@@ -26,7 +27,21 @@ MAX_SUMMARY_LEN = 500
 MAX_CATEGORY_LEN = 100
 MAX_KEYWORDS_LEN = 500
 MAX_TRAINER_LEN = 100
+MAX_LONG_FIELD_LEN = 1500
 logger = logging.getLogger(__name__)
+
+CATEGORY_NAMES = {
+    101: "营销管理",
+    102: "人力资源",
+    103: "生产研发",
+    104: "采购物流",
+    105: "财务管理",
+    106: "战略管理",
+    107: "领导艺术",
+    108: "综合技能",
+    109: "其它课程",
+    110: "线上课程",
+}
 
 SSL_CTX = ssl.create_default_context()
 SSL_CTX.check_hostname = False
@@ -81,6 +96,28 @@ def extract_meta_description(html: str) -> str:
     return clean_html(match.group(1)) if match else MISSING
 
 
+def extract_breadcrumb_category(html: str) -> str:
+    location = re.search(r'<div class="location[^"]*">([\s\S]*?)</div>', html, re.DOTALL | re.IGNORECASE)
+    if not location:
+        return MISSING
+    links = [clean_html(text, "") for text in re.findall(r"<a[^>]*>([\s\S]*?)</a>", location.group(1), re.DOTALL)]
+    links = [item for item in links if item and item not in ("哪里有培训网", "企业培训公开课", "公开课程培训")]
+    if not links:
+        return MISSING
+    category = links[-1]
+    category = re.sub(r"(培训)?(课程|公开课|培训班)$", "", category).strip()
+    return category or links[-1]
+
+
+def infer_course_type(plans: List[Dict[str, str]] | None, fallback: str = "OPEN_OFFLINE") -> str:
+    if not plans:
+        return fallback
+    locations = [clean_html(plan.get("location"), "") for plan in plans]
+    if locations and all(location in ("在线课程", "线上课程", "线上", "在线") for location in locations if location):
+        return "OPEN_ONLINE"
+    return "OPEN_OFFLINE"
+
+
 def extract_between(html: str, start: str, end: str | None = None) -> str:
     start_pos = html.find(start)
     if start_pos < 0:
@@ -104,11 +141,94 @@ def derive_intro_from_syllabus(syllabus_text: str) -> str:
     return text[:300] or MISSING
 
 
+def extract_labeled_text(text: str, aliases: tuple[str, ...], stop_aliases: tuple[str, ...], limit: int = MAX_LONG_FIELD_LEN) -> str:
+    source = clean_html(text, "")
+    if not source:
+        return MISSING
+    positions = []
+    for alias in aliases:
+        positions.extend((match.start(), alias) for match in re.finditer(re.escape(alias), source))
+    if not positions:
+        return MISSING
+    for start, alias in sorted(positions, key=lambda item: item[0]):
+        segment = source[start + len(alias):].lstrip(" ：:;；、，,.-—】]）)\n\t")
+        stops = [
+            segment.find(stop)
+            for stop in stop_aliases
+            if stop not in aliases and segment.find(stop) > 0
+        ]
+        if stops:
+            segment = segment[: min(stops)]
+        candidate = clean_html(segment[:limit], "")
+        candidate = re.sub(r"[一二三四五六七八九十]+[、.．]\s*[【\[]?$", "", candidate).strip()
+        if candidate and len(candidate) >= 8:
+            return candidate
+    return MISSING
+
+
+def is_noisy_section(value: str) -> bool:
+    if value == MISSING:
+        return False
+    noisy_markers = (
+        "在线报名", "付款信息", "上一篇", "下一篇", "师资介绍", "讲师介绍", "参会对象",
+        "已开课时间", "转载：http", "输入验证", "开户名",
+    )
+    if any(marker in value for marker in noisy_markers):
+        return True
+    if len(value) > 1000 and re.search(r"第[一二三四五六七八九十]+[篇部分章]", value):
+        return True
+    return False
+
+
+def extract_detail_sections(detail_text: str, meta_description: str) -> Dict[str, str]:
+    stop_aliases = (
+        "课程收益", "培训收益", "学习收益", "学习收获", "课程目标", "培训目标", "您将获得",
+        "课程亮点", "课程特色", "课程优势", "核心价值",
+        "适用对象", "培训对象", "目标学员", "适宜人群", "参加对象", "课程对象", "参训对象",
+        "授课形式", "课程大纲", "培训大纲", "内容大纲", "日程安排", "已开课时间", "授课讲师",
+        "讲师介绍", "讲师简介", "师资介绍", "师资简介", "参会对象", "转载", "上一篇", "下一篇", "在线报名", "付款信息",
+    )
+    sources = [detail_text, meta_description if meta_description != MISSING else ""]
+    outcomes = MISSING
+    highlights = MISSING
+    audience = MISSING
+    for source in sources:
+        if outcomes == MISSING:
+            outcomes = extract_labeled_text(
+                source,
+                ("课程收益", "培训收益", "学习收益", "学习收获", "课程目标", "培训目标", "您将获得"),
+                stop_aliases,
+                1200,
+            )
+        if highlights == MISSING:
+            highlights = extract_labeled_text(
+                source,
+                ("课程亮点", "课程特色", "课程优势"),
+                stop_aliases,
+                1000,
+            )
+        if audience == MISSING:
+            audience = extract_labeled_text(
+                source,
+                ("适用对象", "培训对象", "目标学员", "适宜人群", "参加对象", "课程对象", "参训对象"),
+                stop_aliases,
+                800,
+            )
+    return {
+        "learning_outcomes": MISSING if is_noisy_section(outcomes) else outcomes,
+        "highlights": MISSING if is_noisy_section(highlights) else highlights,
+        "audience": MISSING if is_noisy_section(audience) else audience,
+    }
+
+
 def parse_detail(html: str) -> Dict[str, Any]:
     """从课程详情页补充课程介绍、日程和大纲。"""
     detail: Dict[str, Any] = {}
     detail_images: List[str] = []
     meta_description = extract_meta_description(html)
+    category = extract_breadcrumb_category(html)
+    if category != MISSING:
+        detail["category_name_raw"] = category
 
     title = re.search(r'<div[^>]*font-size:\s*20px[^>]*>(.*?)</div>', html, re.DOTALL)
     if title:
@@ -127,11 +247,12 @@ def parse_detail(html: str) -> Dict[str, Any]:
     meta_block = re.search(r'<div style="margin-left:55px ">(.*?)</div>', html, re.DOTALL)
     if meta_block:
         meta_text = clean_html(meta_block.group(1), "")
-        price = re.search(r"课程价格[：:]￥?\s*([0-9.]+)", meta_text)
+        price = re.search(r"课程价格[：:]\s*([^ ]+)", meta_text)
         duration = re.search(r"培训天数[：:]\s*([0-9.]+)", meta_text)
         trainer = re.search(r"培训讲师[：:]\s*([^ ]+)", meta_text)
         if price:
-            detail["price"] = parse_price(price.group(1))
+            detail["price_raw"] = clean_html(price.group(1), "")
+            set_price_fields(detail, detail["price_raw"])
         if duration:
             detail["duration_days"] = parse_price(duration.group(1))
         if trainer:
@@ -165,12 +286,23 @@ def parse_detail(html: str) -> Dict[str, Any]:
         )
     if plans:
         detail["plans_json"] = plans
+        detail["type"] = infer_course_type(plans)
 
     syllabus = re.search(r'<div class="kc_dg">(.*?)</div>\s*<div class="h20">', html, re.DOTALL)
+    syllabus_text = ""
     if syllabus:
         syllabus_text = clean_html(syllabus.group(1))
         detail["syllabus"] = syllabus_text
         detail_images.extend(extract_image_urls(syllabus.group(1), BASE_URL))
+
+    sections = extract_detail_sections(syllabus_text, meta_description)
+    if sections["learning_outcomes"] != MISSING:
+        detail["learning_outcomes"] = sections["learning_outcomes"]
+    if sections["highlights"] != MISSING:
+        detail["highlights"] = sections["highlights"]
+    if sections["audience"] != MISSING:
+        detail["audience"] = sections["audience"]
+        detail["target_audience"] = sections["audience"]
 
     intro_text = clean_html(detail.get("intro"), "")
     if len(intro_text) < 20 and meta_description != MISSING:
@@ -200,7 +332,7 @@ def total_pages(html: str) -> int:
     return max(int(page) for page in pages) if pages else 1
 
 
-def parse_list(html: str) -> List[Dict[str, Any]]:
+def parse_list(html: str, category_name: str = MISSING, default_type: str = "OPEN_OFFLINE") -> List[Dict[str, Any]]:
     courses: List[Dict[str, Any]] = []
     rows = re.findall(
         r'<tr>\s*<td><a href="/gkk_detail/(\d+)\.html"[^>]*>([^<]+(?:<[^>]+>[^<]*</[^>]+)?)</a></td>\s*'
@@ -213,14 +345,23 @@ def parse_list(html: str) -> List[Dict[str, Any]]:
         html,
         re.DOTALL,
     )
+    page_category = category_name if category_name != MISSING else extract_breadcrumb_category(html)
     for cid, title_html, location, train_date, trainer, price, duration, popularity in rows:
-        courses.append(
+        location_text = clean_html(location)
+        train_date_text = clean_html(train_date)
+        plans = [
             {
+                "location": location_text,
+                "start_date": train_date_text,
+                "status": "待确认",
+            }
+        ]
+        item = {
                 "source_course_id": cid,
                 "source_url": f"{BASE_URL}/gkk_detail/{cid}.html",
                 "title": clip_text(title_html, MAX_TITLE_LEN),
-                "type": "OPEN_OFFLINE",
-                "category_name_raw": MISSING,
+                "type": infer_course_type(plans, default_type),
+                "category_name_raw": page_category,
                 "cover_url": "",
                 "intro": MISSING,
                 "summary": MISSING,
@@ -231,27 +372,22 @@ def parse_list(html: str) -> List[Dict[str, Any]]:
                 "keywords": MISSING,
                 "trainer_name_raw": clip_text(trainer, MAX_TRAINER_LEN),
                 "price": parse_price(price),
-                "plans_json": [
-                    {
-                        "location": clean_html(location),
-                        "start_date": clean_html(train_date),
-                        "status": "待确认",
-                    }
-                ],
+                "plans_json": plans,
                 "evaluation_json": [],
                 "target_audience": MISSING,
                 "learning_outcomes": MISSING,
                 "services_json": [],
                 "view_count": parse_int(popularity),
                 "raw_json": {
-                    "location": clean_html(location),
-                    "train_date": clean_html(train_date),
+                    "location": location_text,
+                    "train_date": train_date_text,
                     "price_raw": clean_html(price),
                     "duration_raw": clean_html(duration),
                     "popularity_raw": clean_html(popularity, "0"),
                 },
             }
-        )
+        set_price_fields(item, price)
+        courses.append(item)
     return courses
 
 
@@ -260,6 +396,8 @@ def iter_nlypx_courses(max_items: int | None = None):
     emitted = 0
 
     for category in range(101, 111):
+        category_name = CATEGORY_NAMES.get(category, MISSING)
+        default_type = "OPEN_ONLINE" if category == 110 else "OPEN_OFFLINE"
         first_url = f"{BASE_URL}/gongkaike/{category}_0_0_0_0_0_0.html"
         try:
             first_html = fetch_text(first_url)
@@ -274,7 +412,7 @@ def iter_nlypx_courses(max_items: int | None = None):
             except Exception as exc:
                 logger.warning("nlypx course 列表页抓取失败，跳过 category=%s page=%s url=%s error=%s", category, page, page_url, exc)
                 continue
-            rows = parse_list(html)
+            rows = parse_list(html, category_name, default_type)
             if not rows:
                 break
             for item in rows:
@@ -285,14 +423,21 @@ def iter_nlypx_courses(max_items: int | None = None):
                 detail_error = ""
                 try:
                     detail = parse_detail(fetch_text(item["source_url"]))
-                    item.update({k: v for k, v in detail.items() if v not in ("", None)})
+                    safe_update(item, detail)
+                    if isinstance(detail.get("raw_json"), dict):
+                        item.setdefault("raw_json", {}).update(detail["raw_json"])
                 except Exception as exc:
                     detail_error = str(exc)
                 item["title"] = clip_text(item.get("title"), MAX_TITLE_LEN)
                 item["summary"] = clip_text(item.get("summary"), MAX_SUMMARY_LEN)
+                item["learning_outcomes"] = clip_text(item.get("learning_outcomes"), MAX_LONG_FIELD_LEN)
+                item["highlights"] = clip_text(item.get("highlights"), 1000)
+                item["audience"] = clip_text(item.get("audience"), 800)
                 item["category_name_raw"] = clip_text(item.get("category_name_raw"), MAX_CATEGORY_LEN)
+                item["type"] = infer_course_type(item.get("plans_json"), item.get("type") or default_type)
                 item["keywords"] = clip_text(item.get("keywords"), MAX_KEYWORDS_LEN)
                 item["trainer_name_raw"] = clip_text(item.get("trainer_name_raw"), MAX_TRAINER_LEN)
+                enrich_course_record(item, fallback_type=default_type)
                 item["raw_json"] = {
                     **item["raw_json"],
                     "category": category,
@@ -328,6 +473,8 @@ class NlypxCourseSpider:
     source = "nlypx"
     data_type = "COURSE"
     max_items = None
+    supported_course_types = ("OPEN_ONLINE", "OPEN_OFFLINE")
+    coverage_note = "公开课源，按在线/线下排期区分线上公开课和线下公开课。"
 
     def pause(self) -> None:
         """兼容 JobManager 的取消流程。"""

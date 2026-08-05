@@ -25,11 +25,9 @@ import java.nio.file.StandardCopyOption;
 public class LocalStorageService implements StorageService {
 
     private final Path baseDir;
-    private final String publicDomain;
 
     public LocalStorageService(StorageProperties properties) {
         this.baseDir = StorageDirectoryResolver.resolve(properties.getBaseDir());
-        this.publicDomain = trimTrailingSlash(properties.getPublicDomain());
         try {
             Files.createDirectories(this.baseDir);
         } catch (IOException e) {
@@ -77,11 +75,8 @@ public class LocalStorageService implements StorageService {
         if (path == null) {
             return "";
         }
-        String normalized = "/" + trimSlashes(path);
-        if (StringUtils.hasText(publicDomain)) {
-            return publicDomain + normalized;
-        }
-        return normalized;
+        // 本地文件不在 CDN；走 /uploads/** 由 LocalUploadResourceConfig + Next rewrite 提供访问
+        return "/uploads/" + trimSlashes(path);
     }
 
     @Override
@@ -100,10 +95,4 @@ public class LocalStorageService implements StorageService {
         return value.replaceAll("^/+", "").replaceAll("/+$", "");
     }
 
-    private static String trimTrailingSlash(String value) {
-        if (value == null) {
-            return null;
-        }
-        return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
-    }
 }

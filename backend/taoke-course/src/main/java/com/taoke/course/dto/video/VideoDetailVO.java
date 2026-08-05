@@ -48,6 +48,12 @@ public class VideoDetailVO {
     /** 封顶价（批量采购优惠价），null=不设置 */
     private BigDecimal capPrice;
     private String keywords;
+    private String seoDescription;
+
+    /** 企业采购封顶价 */
+    private BigDecimal companyPrice;
+    /** 单次最多购买人数 */
+    private Integer maxPurchaseQty;
 
     private Integer duration;
     private Integer totalEpisodes;

@@ -7,8 +7,8 @@
   "java.settings.url": ".vscode/jdt.prefs",
   "java.compile.nullAnalysis.mode": "disabled",
   "java.maven.downloadSources": true,
-  "java.configuration.maven.globalSettings": "",
-  "maven.executable.path": "E:\\JAVA\\apache-maven-3.9.14-bin\\apache-maven-3.9.14\\bin\\mvn.cmd",
+  "java.configuration.maven.globalSettings": "D:/develop/java/apache-maven-3.9.16/conf/settings.xml",
+  "maven.executable.path": "D:/develop/java/apache-maven-3.9.16/bin/mvn.cmd",
   "java.import.exclusions": [
     "**/node_modules/**",
     "**/target/**",

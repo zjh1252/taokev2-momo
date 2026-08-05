@@ -6,6 +6,8 @@ export type AdminTrainingReview = {
   institutionId: number | null;
   caseId: number | null;
   reviewedBy: number | null;
+  /** 审核人展示名（昵称 / 真名 / 手机号） */
+  reviewedByName: string | null;
   expertName: string | null;
   trainingDate: string | null;
   courseDays: string | null;
@@ -68,12 +70,14 @@ export const REVIEW_SCOPE_MAP: Record<string, string> = {
   COURSE: '课程',
   TRAINER: '专家',
   INSTITUTION: '机构',
-  CASE: '案例'
+  CASE: '案例',
+  VIDEO: '录播课'
 };
 
 export const REVIEW_SCOPE_OPTIONS = [
   { value: 'COURSE', label: '课程' },
   { value: 'TRAINER', label: '专家' },
   { value: 'INSTITUTION', label: '机构' },
-  { value: 'CASE', label: '案例' }
+  { value: 'CASE', label: '案例' },
+  { value: 'VIDEO', label: '录播课' }
 ];

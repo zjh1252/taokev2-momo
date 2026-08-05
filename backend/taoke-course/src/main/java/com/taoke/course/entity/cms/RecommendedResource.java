@@ -46,6 +46,15 @@ public class RecommendedResource extends BaseEntity {
     @Column(name = "cover_url", length = 512)
     private String coverUrl;
 
+    @Column(name = "consult_button_image_url", length = 512)
+    private String consultButtonImageUrl;
+
+    @Column(name = "topic_button_image_url", length = 512)
+    private String topicButtonImageUrl;
+
+    @Column(name = "topic_button_link_url", length = 512)
+    private String topicButtonLinkUrl;
+
     @Column(name = "title", length = 200)
     private String title;
 

@@ -34,13 +34,15 @@ function needsNoReferrer(url: string): boolean {
   return url.startsWith('http://') || url.startsWith('https://');
 }
 
-/** 旧站 middle 头像常见 jpg/png 互斥，失败时尝试另一扩展名 */
+/** 旧站 middle 头像常见扩展名互斥，失败时尝试另一扩展名 */
 function alternateMiddleAvatarUrl(url: string): string | null {
-  const m = url.match(/^(.*\/attachments\/user\/middle\/\d+\/\d+)\.(jpe?g|png)$/i);
+  const m = url.match(/^(.*\/attachments\/user\/middle\/\d+\/\d+)\.(jpe?g|png|webp)$/i);
   if (!m) return null;
   const base = m[1];
   const ext = m[2].toLowerCase();
-  return ext === 'png' ? `${base}.jpg` : `${base}.png`;
+  // 优先尝试 jpg（存量最多），再 png
+  if (ext === 'webp' || ext === 'png') return `${base}.jpg`;
+  return `${base}.png`;
 }
 
 /**
@@ -109,6 +111,17 @@ export function SafeImage({
         setDisplaySrc(altUrl);
         return;
       }
+    }
+
+    // 旧站 middle 头像文件常已 404；有素材库回退时跳过重试，尽快降级
+    if (
+      fallback
+      && fallback !== EMPTY_IMAGE_SRC
+      && /\/attachments\/user\/middle\//i.test(displaySrc)
+    ) {
+      onFallbackRef.current = true;
+      setDisplaySrc(fallback);
+      return;
     }
 
     // 91pxb 等源站大面积失效，跳过重试直接降级占位图

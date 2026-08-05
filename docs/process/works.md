@@ -1,5 +1,14 @@
 # 工作进度记录
 
+## 2026-07-28
+
+- 新增 `docs/guides/test-deploy.md`：test 环境发版完整步骤（本机构建 / 服务器 pull&up / 强制重建 nginx / 验证 / Docker 卡死与前后台串台等排障）
+
+## 2026-07-22
+
+- 在 `docs/guides/flyway-operations.md` 新增 **§4.5 本地开发与 test 共用同一数据库时的约定**，并追加 changelog
+- 要点：共用库时不改已执行迁移、先提交再跑/打镜像、发版显式同一 `VERSION`、冲突走 checksum repair；不关 Flyway、暂不强制换库
+
 ## 2026-03-19 17:30
 
 - 将 Service 层的 `checkRole()` 手动角色校验逻辑移除，改由 Controller 层 `@RequireRole` 注解统一鉴权，涉及 8 个 Service 和 7 个 Controller

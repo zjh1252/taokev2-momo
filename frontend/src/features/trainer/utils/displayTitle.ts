@@ -62,3 +62,12 @@ export function pickDisplayTitle(title: string | undefined, name: string): strin
   const t = toPlainIntroText(title);
   return isDisplayTitle(t, name) ? t : undefined;
 }
+
+/** 推荐专家大卡副文案：与老站一致，优先一句话介绍，短头衔仅兜底 */
+export function pickRecommendedTrainerSubtitle(
+  title: string | undefined,
+  oneLineIntro: string | undefined,
+  name: string,
+): string | undefined {
+  return plainIntroOrUndefined(oneLineIntro) || pickDisplayTitle(title, name);
+}

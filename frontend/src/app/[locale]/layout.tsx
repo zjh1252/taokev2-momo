@@ -9,6 +9,7 @@ import '@/styles/globals.css';
 
 export async function generateMetadata() {
   return {
+    metadataBase: new URL(siteConfig.url),
     title: siteConfig.title,
     description: siteConfig.description,
     keywords: siteConfig.keywords,

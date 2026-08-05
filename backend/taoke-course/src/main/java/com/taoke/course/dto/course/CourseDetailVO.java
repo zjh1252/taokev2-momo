@@ -44,6 +44,7 @@ public class CourseDetailVO {
     private BigDecimal price;
     private BigDecimal originalPrice;
     private String keywords;
+    private String seoDescription;
 
     private Integer trainerId;
     private String trainerName;
@@ -75,4 +76,9 @@ public class CourseDetailVO {
 
     /** 是否已过期（线下公开课且结束日期早于今日） */
     private Boolean isOverdue;
+
+    /**
+     * 对外展示的课程编号（纯数字）：优先开课场次 legacy {@code sort_order}，否则 {@code courses.id}。
+     */
+    private Integer displayCourseNo;
 }

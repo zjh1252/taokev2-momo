@@ -11,6 +11,7 @@ import com.taoke.course.entity.Course;
 import com.taoke.course.entity.cms.RecommendedResource;
 import com.taoke.course.repository.RecommendedResourceRepository;
 import com.taoke.course.support.OpenCourseExpireSupport;
+import com.taoke.course.support.PublicRecommendationCache;
 import com.taoke.user.api.TrainerCaseService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.dto.trainercase.TrainerCaseResponse;
@@ -47,6 +48,7 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
     private final CourseService courseService;
     private final TrainerCaseService trainerCaseService;
     private final TrainerService trainerService;
+    private final PublicRecommendationCache publicRecommendationCache;
 
     public PublicRecommendationServiceImpl(
             RecommendedResourceRepository recommendedResourceRepository,
@@ -54,19 +56,27 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
             RecommendationSlotConfigService recommendationSlotConfigService,
             CourseService courseService,
             TrainerCaseService trainerCaseService,
-            TrainerService trainerService) {
+            TrainerService trainerService,
+            PublicRecommendationCache publicRecommendationCache) {
         this.recommendedResourceRepository = recommendedResourceRepository;
         this.enricher = enricher;
         this.recommendationSlotConfigService = recommendationSlotConfigService;
         this.courseService = courseService;
         this.trainerCaseService = trainerCaseService;
         this.trainerService = trainerService;
+        this.publicRecommendationCache = publicRecommendationCache;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<PublicRecommendedItemVO> listPublic(
             String slotCode, Integer categoryId, int limit, boolean includeBackup) {
+        List<PublicRecommendedItemVO> cached =
+                publicRecommendationCache.get(slotCode, categoryId, limit, includeBackup);
+        if (cached != null) {
+            return cached;
+        }
+
         List<RecommendedResource> rows = categoryId != null
                 ? recommendedResourceRepository.findBySlotCodeAndCategoryIdOrderBySortOrderDescIdDesc(
                         slotCode, categoryId)
@@ -74,6 +84,7 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
                         slotCode);
 
         if (rows.isEmpty()) {
+            publicRecommendationCache.put(slotCode, categoryId, limit, includeBackup, List.of());
             return List.of();
         }
 
@@ -87,13 +98,15 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
         Map<Integer, Trainer> trainerById = loadTrainersForCases(caseById.values());
         Map<Integer, String> trainerAvatarById = loadTrainerDisplayAvatars(enriched);
 
-        return enriched.stream()
+        List<PublicRecommendedItemVO> result = enriched.stream()
                 .filter(this::isPublished)
                 .filter(item -> !"COURSE".equals(item.getResourceType())
                         || courseById.containsKey(item.getResourceId()))
                 .map(item -> toPublicVO(item, courseById, caseById, trainerById, trainerAvatarById))
                 .limit(limit > 0 ? limit : Integer.MAX_VALUE)
                 .toList();
+        publicRecommendationCache.put(slotCode, categoryId, limit, includeBackup, result);
+        return result;
     }
 
     @Override
@@ -156,6 +169,9 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
     }
 
     private boolean isPublished(RecommendedResourceItemVO item) {
+        if ("BANNER".equals(item.getResourceType())) {
+            return true;
+        }
         Integer status = item.getResourceStatus();
         if (status == null) {
             return false;
@@ -182,6 +198,9 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
         vo.setRoleType(item.getRoleType());
         vo.setSortOrder(item.getSortOrder());
         vo.setCoverUrl(firstNonBlank(item.getCoverUrl(), item.getResourceCoverUrl()));
+        vo.setConsultButtonImageUrl(item.getConsultButtonImageUrl());
+        vo.setTopicButtonImageUrl(item.getTopicButtonImageUrl());
+        vo.setTopicButtonLinkUrl(item.getTopicButtonLinkUrl());
         vo.setTitle(item.getTitle());
         vo.setDescription(item.getDescription());
         vo.setChiefIntro(item.getChiefIntro());
@@ -259,6 +278,7 @@ public class PublicRecommendationServiceImpl implements PublicRecommendationServ
                                 && !trainer.getTeachingName().isBlank()
                                 ? trainer.getTeachingName() : trainer.getName());
                         vo.setTrainerAvatar(trainer.getAvatar());
+                        vo.setTrainerScore(trainer.getScore());
                     }
                 }
             }

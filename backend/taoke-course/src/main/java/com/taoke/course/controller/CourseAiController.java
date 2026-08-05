@@ -28,7 +28,7 @@ public class CourseAiController {
     private final CourseAiService courseAiService;
 
     @Operation(summary = "AI 解析课程资料",
-            description = "上传课程相关的 docx / pdf 文件，后端抽取全文并调用 LLM 提取课程标题、时长、分类、关键词、目标受众、简介、大纲等字段。")
+            description = "上传课程相关的 docx / pdf / 图片文件；普通文档先抽取文本，扫描 PDF 和图片走视觉模型识别并提取课程字段。")
     @PostMapping(value = "/courses/ai/parse-material", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<AiParseMaterialResultVO> parseMaterial(@RequestParam("file") MultipartFile file) {
         return ApiResponse.ok(courseAiService.parseMaterial(file));

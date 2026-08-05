@@ -69,7 +69,7 @@ export function VideoRelatedCourses({ videoId }: VideoRelatedCoursesProps) {
                 <tr key={course.id} className="border-b border-slate-100 last:border-b-0">
                   <td className="px-4 py-4 text-slate-800">
                     <Link
-                      href={getCourseDetailPath(course.id, course.type)}
+                      href={getCourseDetailPath(course.id, course.type, course.seoPathId)}
                       className="hover:text-[#d71318] transition-colors"
                     >
                       {course.title}

@@ -39,6 +39,8 @@ export interface MyCourseEnrollment {
 /** 继续学习（在 MyVideoLearning 基础上追加章节标题） */
 export interface ContinueLearning extends MyVideoLearning {
   lastChapterTitle: string;
+  categoryId?: number;
+  categoryName?: string;
 }
 
 /** 通用分页响应 */

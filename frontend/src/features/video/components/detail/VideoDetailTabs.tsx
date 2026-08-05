@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { usePathname, useRouter } from '@/i18n/navigation';
+import { MaterialLinkSection } from '@/components/material-link-section';
 import { resolveRichTextHtml } from '@/lib/rich-text';
 import { VideoRelatedCourses } from './VideoRelatedCourses';
 import { VideoCommentsSection } from './VideoCommentsSection';
@@ -35,7 +36,7 @@ export function VideoDetailTabs({ video }: VideoDetailTabsProps) {
     router.replace(pathname, { scroll: false });
   };
 
-  const resolvedIntroHtml = resolveRichTextHtml(video.intro ?? '');
+  const resolvedIntroHtml = resolveRichTextHtml(video.intro ?? '', `${video.title}课程介绍`);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
@@ -77,6 +78,12 @@ export function VideoDetailTabs({ video }: VideoDetailTabsProps) {
                 <p className="text-slate-400 text-center py-8 text-sm">暂无视频介绍</p>
               )}
             </section>
+
+            <MaterialLinkSection
+              courseTitle={video.title}
+              materialUrl={video.materialUrl}
+              sourceTexts={[video.materialText, video.intro]}
+            />
 
             <VideoRelatedCourses videoId={video.id} />
 

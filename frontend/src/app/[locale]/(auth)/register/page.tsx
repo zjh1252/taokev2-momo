@@ -3,7 +3,7 @@ import { RegisterForm } from '@/features/auth/components/RegisterForm';
 
 export async function generateMetadata() {
   const t = await getTranslations('auth');
-  return { title: t('register.title') };
+  return { title: t('register.title'), robots: { index: false, follow: false } };
 }
 
 export default function RegisterPage() {

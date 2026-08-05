@@ -6,6 +6,7 @@ import { usePathname, useRouter } from '@/i18n/navigation';
 import { Search, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { ROUTES } from '@/config/routes';
+import { cn } from '@/lib/utils';
 import {
   HEADER_SEARCH_CATEGORIES,
   buildSearchTarget,
@@ -19,7 +20,11 @@ import {
  *
  * <p>专家/公开课/内训课走 ES 全文搜索页；录播课/机构/培协跳转对应列表页并带 {@code keyword}。</p>
  */
-export function SearchBar() {
+type SearchBarProps = {
+  className?: string;
+};
+
+export function SearchBar({ className }: SearchBarProps) {
   const t = useTranslations('nav.search');
   const router = useRouter();
   const pathname = usePathname();
@@ -40,18 +45,21 @@ export function SearchBar() {
   const [keyword, setKeyword] = useState(() => searchParams.get('keyword') ?? '');
   const [categoryKey, setCategoryKey] = useState<HeaderSearchCategoryKey>(resolveCategoryKey);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [suggestionOpen, setSuggestionOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     setKeyword(searchParams.get('keyword') ?? '');
     setCategoryKey(resolveCategoryKey());
+    setSuggestionOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, pathname]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (formRef.current && !formRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
+        setSuggestionOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -63,19 +71,33 @@ export function SearchBar() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setSuggestionOpen(false);
     router.push(buildSearchTarget(categoryKey, keyword));
+  };
+
+  const handleSuggestionSelect = (key: HeaderSearchCategoryKey) => {
+    setCategoryKey(key);
+    setSuggestionOpen(false);
+    router.push(buildSearchTarget(key, keyword));
   };
 
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit}
-      className="flex items-center bg-slate-100 rounded-md overflow-visible p-0.5 border border-slate-200 relative min-w-[360px]"
+      className={cn(
+        'flex min-w-0 items-center bg-slate-100 rounded-md overflow-visible p-0.5 border border-slate-200 relative w-full sm:min-w-[360px]',
+        className,
+      )}
     >
-      <div ref={dropdownRef} className="relative shrink-0">
+      <div className="relative shrink-0">
         <button
           type="button"
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm text-slate-500 border-r border-slate-200 hover:bg-slate-200 hover:text-slate-700 transition-colors rounded-l-md"
+          onClick={() => {
+            setDropdownOpen(!dropdownOpen);
+            setSuggestionOpen(false);
+          }}
+          className="flex items-center gap-1 px-2.5 py-2 text-xs text-slate-500 border-r border-slate-200 hover:bg-slate-200 hover:text-slate-700 transition-colors rounded-l-md sm:gap-1.5 sm:px-4 sm:text-sm"
         >
           {t(currentCategory.i18nKey)}
           <ChevronDown
@@ -89,6 +111,7 @@ export function SearchBar() {
             onSelect={(key) => {
               setCategoryKey(key);
               setDropdownOpen(false);
+              if (keyword.trim()) setSuggestionOpen(true);
             }}
             t={t}
           />
@@ -97,8 +120,16 @@ export function SearchBar() {
 
       <input
         value={keyword}
-        onChange={(e) => setKeyword(e.target.value)}
-        className="bg-transparent border-none focus:ring-0 focus:outline-none text-sm w-full min-w-[180px] px-3 py-1"
+        onChange={(e) => {
+          setKeyword(e.target.value);
+          setSuggestionOpen(Boolean(e.target.value.trim()));
+          setDropdownOpen(false);
+        }}
+        onFocus={() => {
+          setSuggestionOpen(Boolean(keyword.trim()));
+          setDropdownOpen(false);
+        }}
+        className="min-w-0 bg-transparent border-none focus:ring-0 focus:outline-none text-sm w-full px-2 py-1 sm:px-3"
         placeholder={t('placeholder')}
         type="search"
         enterKeyHint="search"
@@ -112,7 +143,42 @@ export function SearchBar() {
       >
         <Search className="size-[18px]" />
       </button>
+
+      {suggestionOpen && keyword.trim() && (
+        <SearchSuggestionMenu
+          keyword={keyword.trim()}
+          onSelect={handleSuggestionSelect}
+          t={t}
+        />
+      )}
     </form>
+  );
+}
+
+function SearchSuggestionMenu({
+  keyword,
+  onSelect,
+  t,
+}: {
+  keyword: string;
+  onSelect: (key: HeaderSearchCategoryKey) => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md shadow-lg border border-slate-200 overflow-hidden z-50">
+      {HEADER_SEARCH_CATEGORIES.map((cat) => (
+        <button
+          key={cat.key}
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSelect(cat.key)}
+          className="w-full text-left px-4 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100"
+        >
+          <span>搜 “{keyword}” 相关</span>
+          <span className="font-bold text-[#0066cc]">{t(cat.i18nKey)}&gt;&gt;</span>
+        </button>
+      ))}
+    </div>
   );
 }
 

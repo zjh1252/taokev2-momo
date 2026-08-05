@@ -16,6 +16,28 @@ export interface CategoryTreeNode {
   children?: CategoryTreeNode[];
 }
 
+/** 专家公开列表查询参数 */
+export interface TrainerListParams {
+  page?: number;
+  size?: number;
+  expertiseCategoryId?: number;
+  industryCategoryId?: number;
+  provinceId?: number;
+  cityId?: number;
+  keyword?: string;
+  sort?: string;
+  /** 质量承诺：1=老站优质讲师口径（签约或信得过） */
+  isTrusted?: number;
+  /** 是否回填课程数量与标题 */
+  includeCourse?: boolean;
+  /** 擅长领域名称（多选用下划线连接，如 "经营战略_战略规划"） */
+  field?: string;
+  /** 擅长行业名称（多选用下划线连接） */
+  industry?: string;
+  /** 长驻省市名称 */
+  region?: string;
+}
+
 export interface TrainerEducation {
   id?: number;
   schoolName: string;
@@ -57,6 +79,8 @@ export interface TrainerDetail {
   /** 授课姓名（对外展示，可与 name 不同） */
   teachingName?: string;
   avatar: string;
+  /** 素材库默认头像；主头像加载失败时回退 */
+  avatarFallback?: string;
   title: string;
   gender: number;
   provinceId?: number;
@@ -65,6 +89,8 @@ export interface TrainerDetail {
   cityName?: string;
   /** 一句话介绍 */
   oneLineIntro?: string;
+  /** SEO 自定义描述 */
+  seoDescription?: string;
   bio?: string;
   intro?: string;
   background?: string;
@@ -100,6 +126,8 @@ export interface TrainerListItem {
   name: string;
   teachingName?: string;
   avatar: string;
+  /** 素材库默认头像；主头像加载失败时回退 */
+  avatarFallback?: string;
   title: string;
   oneLineIntro?: string;
   score: number;
@@ -207,6 +235,7 @@ export interface RecommendedCourseItem {
   coverUrl?: string;
   viewCount?: number;
   type?: string;
+  seoPathId?: number | null;
 }
 
 /** 推荐相关专家项（专家详情页右侧栏） */
@@ -216,6 +245,8 @@ export interface RecommendedTrainerItem {
   teachingName?: string;
   title?: string;
   avatar?: string;
+  /** 素材库默认头像；主头像加载失败时回退 */
+  avatarFallback?: string;
   score?: number;
   isRecommended?: number;
   oneLineIntro?: string;

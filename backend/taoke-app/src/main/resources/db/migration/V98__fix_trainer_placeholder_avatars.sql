@@ -1,6 +1,5 @@
--- V98：专家头像 — 占位图 middle/00/1、空值、相对路径修复；从 user_trainers.avatar / tk_member.icon 回填
+-- V98: normalize trainer avatars; legacy member lookup runs only when source table exists.
 
--- 1) 相对路径 → https 绝对 URL
 UPDATE sys_users u
 INNER JOIN user_trainers t ON t.user_id = u.id
 SET u.avatar_url = CONCAT('https://www.taoke.com/', TRIM(LEADING '/' FROM u.avatar_url))
@@ -23,7 +22,6 @@ SET u.avatar_url = REPLACE(REPLACE(u.avatar_url, 'http://www.taoke.com/', 'https
 WHERE u.avatar_url LIKE 'http://www.taoke.com/%'
    OR u.avatar_url LIKE 'http://taoke.com/%';
 
--- 2) 用户头像为空：迁自 user_trainers.avatar
 UPDATE sys_users u
 INNER JOIN user_trainers t ON t.user_id = u.id
 SET u.avatar_url = t.avatar
@@ -31,19 +29,26 @@ WHERE (u.avatar_url IS NULL OR TRIM(u.avatar_url) = '')
   AND t.avatar IS NOT NULL
   AND TRIM(t.avatar) != '';
 
--- 3) 仍为占位或空：从老库 tk_member.icon 回填
-UPDATE sys_users u
+SET @legacy_member_ok := (
+    SELECT COUNT(*) FROM information_schema.tables
+    WHERE table_schema = 'taoke' AND table_name = 'tk_member'
+);
+
+SET @sql := IF(@legacy_member_ok > 0,
+'UPDATE sys_users u
 INNER JOIN user_trainers t ON t.user_id = u.id
 INNER JOIN taoke.tk_member m ON m.id = u.id
 SET u.avatar_url = CASE
-    WHEN m.icon LIKE 'http%' THEN REPLACE(REPLACE(m.icon, 'http://www.taoke.com/', 'https://www.taoke.com/'), 'http://taoke.com/', 'https://www.taoke.com/')
-    ELSE CONCAT('https://www.taoke.com/', TRIM(LEADING '/' FROM TRIM(m.icon)))
+    WHEN m.icon LIKE ''http%'' THEN REPLACE(REPLACE(m.icon, ''http://www.taoke.com/'', ''https://www.taoke.com/''), ''http://taoke.com/'', ''https://www.taoke.com/'')
+    ELSE CONCAT(''https://www.taoke.com/'', TRIM(LEADING ''/'' FROM TRIM(m.icon)))
 END
 WHERE (
         u.avatar_url IS NULL
-        OR TRIM(u.avatar_url) = ''
-        OR u.avatar_url LIKE '%/middle/00/1.%'
-        OR u.avatar_url LIKE '%/middle/00/1'
+        OR TRIM(u.avatar_url) = ''''
+        OR u.avatar_url LIKE ''%/middle/00/1.%''
+        OR u.avatar_url LIKE ''%/middle/00/1''
     )
-  AND TRIM(COALESCE(m.icon, '')) != ''
-  AND m.icon NOT LIKE '%/middle/00/1%';
+  AND TRIM(COALESCE(m.icon, '''')) != ''''
+  AND m.icon NOT LIKE ''%/middle/00/1%''',
+'SELECT 1 AS flyway_v98_skip_legacy_avatar_fix');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

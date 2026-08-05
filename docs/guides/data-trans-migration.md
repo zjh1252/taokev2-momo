@@ -2,6 +2,22 @@
 
 本文档约定 **老站 `taoke` → 新库** 的数据迁移脚本放置与执行规则。Flyway 运维见 [flyway-operations.md](./flyway-operations.md)。
 
+## Python 环境
+
+项目使用 [uv](https://docs.astral.sh/uv/) 管理 Python 依赖（替代原 `conda activate common-ai`）。
+
+```bash
+# 仓库根目录，首次或依赖变更后
+uv sync --all-packages
+
+# 执行脚本（无需手动 activate）
+uv run python data-trans/scripts/_validate_flyway_migration.py --version 139
+```
+
+- 根目录 `pyproject.toml`：data-trans / Flyway 校验等工具依赖（`pymysql`、`pyyaml`）。
+- `crawler-service/pyproject.toml`：爬虫微服务依赖（workspace 成员）。
+- 锁文件：`uv.lock`（提交到 Git）；虚拟环境：`.venv/`（本地生成，已 gitignore）。
+
 ## 目录约定
 
 **所有老站数据迁移相关脚本、产出、排查文档一律放在 `data-trans/` 下**，禁止散落在 `backend/`、`scripts/` 仓库根目录或其它位置。
@@ -38,7 +54,7 @@ data-trans/
 - 命名：`run_<场景>.py`（正式管道）、`_audit_<主题>.py`（审计）、`_fix_<主题>.py`（一次性修复）。
 - 必须支持 `--dry-run`（新脚本强制，旧脚本逐步补齐）。
 - 注释与日志：中文；敏感信息不写进仓库。
-- 执行环境：`conda activate common-ai`（与仓库约定一致）。
+- 执行环境：根目录 `uv sync` 后，用 `uv run python data-trans/scripts/<脚本>.py`（与仓库约定一致）。
 
 ## 典型执行顺序（专家擅长领域示例）
 

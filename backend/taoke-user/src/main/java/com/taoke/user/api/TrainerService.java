@@ -7,6 +7,7 @@ import com.taoke.user.entity.Trainer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,8 @@ public interface TrainerService {
      * @param cityId               城市 ID（可选，匹配专家常驻地）
      * @param keyword              搜索关键词（可选，匹配 name / title / expertiseTags）
      * @param sort                 排序方式：default / score / newly_joined
-     * @param isTrusted            质量承诺过滤：1=仅显示信得过专家，其他/null 不限
+     * @param isTrusted            质量承诺过滤：1=老站优质讲师口径（is_signed=1 或 is_trusted=1），其他/null 不限
+     * @param includeCourse        是否回填课程数量与标题
      */
     PageResponse<TrainerListItemResponse> listPublic(int page, int size,
                                                      Integer expertiseCategoryId,
@@ -44,7 +46,8 @@ public interface TrainerService {
                                                      Integer cityId,
                                                      String keyword,
                                                      String sort,
-                                                     Integer isTrusted);
+                                                     Integer isTrusted,
+                                                     boolean includeCourse);
 
     /**
      * 已发布专家按擅长领域一级分类批量计数（含二级展开，与 listPublic 筛选口径一致）。
@@ -197,4 +200,14 @@ public interface TrainerService {
      * @param delta         增量（+1 表示新增一条已通过、-1 表示撤销/驳回）
      */
     void adjustCommentCountByUserId(Integer trainerUserId, int delta);
+
+    /**
+     * 覆盖写入专家评价统计（综合评分 + 已通过评价数）。
+     * <p>由评价模块按已通过评价全量重算后调用；score 为空时按 0 处理。</p>
+     *
+     * @param trainerUserId 专家所属 user_id
+     * @param score         综合评分（通常为已通过评价 avg_score 的算术平均）
+     * @param commentCount  已通过评价数（不会小于 0）
+     */
+    void updateReviewStatsByUserId(Integer trainerUserId, BigDecimal score, int commentCount);
 }

@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Play, Star, StarHalf } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { LegacyRichText } from '@/components/legacy-rich-text';
+import { MediaGallery } from '@/components/media-gallery';
 import { SafeImage } from '@/components/safe-image';
-import { resolveImageSrc } from '@/lib/media';
 import type { TrainerDetail, TrainerBook } from '../../types';
 import type { CourseListItem } from '@/features/course/api/types';
 import type { VideoListItem } from '@/features/video/api/types';
@@ -23,6 +23,7 @@ import { getTrainerDetailTabHref, type TrainerTabId } from '../../utils/routes';
 import { getTrainerCourses, getTrainerVideos } from '../../api/service';
 import { getTrainerHighlights } from '@/features/trainer-highlight/api/service';
 import type { TrainerHighlight } from '@/features/trainer-highlight/api/types';
+import { buildHighlightGalleryItems } from '@/features/trainer-highlight/lib/highlight-gallery';
 import { decodeHtmlEntities } from '@/lib/html-entities';
 import { legacyRichTextToPlain } from '@/lib/legacy-rich-text';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
@@ -57,6 +58,16 @@ const TABS: TabConfig[] = [
   { id: 'books', label: '著作', countKey: 'books' },
 ];
 
+interface TrainerDetailTabsProps {
+  activeTab: TrainerTabId;
+  trainer: TrainerDetail;
+  coursesTotal: number;
+  casesCount: number;
+  highlightsCount: number;
+  videosTotal: number;
+  booksCount: number;
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-4">
@@ -65,6 +76,63 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+export function TrainerDetailTabs({
+  activeTab,
+  trainer,
+  coursesTotal,
+  casesCount,
+  highlightsCount,
+  videosTotal,
+  booksCount,
+}: TrainerDetailTabsProps) {
+  const counts = {
+    courses: coursesTotal,
+    cases: casesCount,
+    highlights: highlightsCount,
+    videos: videosTotal,
+    reviews: trainer.commentCount ?? 0,
+    books: booksCount,
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-[1400px] px-6">
+      <nav className="rounded-b-xl border border-t border-slate-200 bg-white px-6 lg:px-8">
+        <div className="flex h-[60px] items-center gap-8 overflow-x-auto text-[15px]">
+          {TABS.map((tab) => {
+            const count = tab.countKey ? counts[tab.countKey] : 0;
+            const isActive = activeTab === tab.id;
+            return (
+              <Link
+                key={tab.id}
+                href={getTrainerDetailTabHref(trainer.id, tab.id)}
+                className={`flex h-full cursor-pointer items-center gap-1.5 whitespace-nowrap border-b-2 transition-colors ${
+                  isActive
+                    ? 'border-primary text-primary font-bold'
+                    : 'border-transparent text-slate-600 hover:text-primary'
+                }`}
+              >
+                <span>{tab.label}</span>
+                {tab.countKey && count > 0 && (
+                  <span
+                    className={cn(
+                      'inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-bold',
+                      isActive ? 'bg-primary text-white' : 'bg-slate-200 text-slate-600',
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+const TRAINER_DETAIL_HEADER_OFFSET = 120;
 
 export function TrainerDetailContent({
   activeTab,
@@ -77,54 +145,24 @@ export function TrainerDetailContent({
   videosTotal,
   books,
 }: TrainerDetailContentProps) {
-  // 学员评价角标：以专家累计已通过评论数为准（后端在评价审核通过时同步 +1）
-  const counts = {
-    courses: coursesTotal,
-    cases: cases.length,
-    highlights: highlights.length,
-    videos: videosTotal,
-    reviews: trainer.commentCount ?? 0,
-    books: books.length,
-  };
   const displayName = getTrainerDisplayName(trainer);
+  const skipInitialTabScroll = useRef(true);
+
+  useEffect(() => {
+    if (activeTab === 'comments') return;
+    if (skipInitialTabScroll.current) {
+      skipInitialTabScroll.current = false;
+      return;
+    }
+    const el = document.getElementById('trainer-detail-tab-panel');
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [activeTab]);
 
   return (
     <>
-      {/* Tab 导航 */}
-      <div className="px-6 lg:px-8 border-t border-slate-200 bg-white rounded-b-xl -mt-6 mb-6">
-        <div className="flex items-center gap-8 overflow-x-auto text-[15px]">
-          {TABS.map((tab) => {
-            const count = tab.countKey ? counts[tab.countKey] : 0;
-            const isActive = activeTab === tab.id;
-            return (
-              <Link
-                key={tab.id}
-                href={getTrainerDetailTabHref(trainer.id, tab.id)}
-                className={`py-4 whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1.5 ${
-                  isActive
-                    ? 'text-primary border-b-2 border-primary font-bold'
-                    : 'text-slate-600 hover:text-primary'
-                }`}
-              >
-                <span>{tab.label}</span>
-                {tab.countKey && count > 0 && (
-                  <span className={cn(
-                    'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold',
-                    isActive
-                      ? 'bg-primary text-white'
-                      : 'bg-slate-200 text-slate-600'
-                  )}>
-                    {count}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Tab 内容区 */}
-      <div className="min-h-[800px]">
+      <div id="trainer-detail-tab-panel" className="min-h-[800px] scroll-mt-[120px]">
         {activeTab === 'home' && (
           <HomeView trainer={trainer} courses={courses} coursesTotal={coursesTotal} cases={cases} />
         )}
@@ -330,7 +368,7 @@ function HomeView({
           <div className="space-y-4">
             {courses.slice(0, 3).map((course) => {
               const isOpen = isOpenCourseType(course.type);
-              const detailPath = getCourseDetailPath(course.id, course.type);
+              const detailPath = getCourseDetailPath(course.id, course.type, course.seoPathId);
               return (
                 <div
                   key={course.id}
@@ -482,7 +520,7 @@ function CoursesView({
           <div className="space-y-4">
             {courses.map((course) => {
               const isOpen = isOpenCourseType(course.type);
-              const detailPath = getCourseDetailPath(course.id, course.type);
+              const detailPath = getCourseDetailPath(course.id, course.type, course.seoPathId);
               return (
                 <div
                   key={course.id}
@@ -619,31 +657,40 @@ function HighlightsView({
   trainerId: number;
   initialHighlights: TrainerHighlight[];
 }) {
-  const [items, setItems] = useState(initialHighlights);
-  const [loading, setLoading] = useState(initialHighlights.length === 0);
+  const [fetchState, setFetchState] = useState<{
+    trainerId: number | null;
+    items: TrainerHighlight[];
+  }>({ trainerId: initialHighlights.length > 0 ? trainerId : null, items: [] });
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryFiles, setGalleryFiles] = useState<ReturnType<typeof buildHighlightGalleryItems>>([]);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const hasInitialHighlights = initialHighlights.length > 0;
+  const hasFetchedHighlights = fetchState.trainerId === trainerId;
+  const items = hasInitialHighlights ? initialHighlights : hasFetchedHighlights ? fetchState.items : [];
+  const loading = !hasInitialHighlights && !hasFetchedHighlights;
 
   useEffect(() => {
-    if (initialHighlights.length > 0) {
-      setItems(initialHighlights);
-      setLoading(false);
-      return;
-    }
+    if (hasInitialHighlights) return;
     let cancelled = false;
-    setLoading(true);
     getTrainerHighlights(trainerId)
       .then((list) => {
-        if (!cancelled) setItems(list);
+        if (!cancelled) setFetchState({ trainerId, items: list });
       })
       .catch(() => {
-        if (!cancelled) setItems([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setFetchState({ trainerId, items: [] });
       });
     return () => {
       cancelled = true;
     };
-  }, [trainerId, initialHighlights]);
+  }, [trainerId, hasInitialHighlights]);
+
+  const openGallery = (item: TrainerHighlight, index = 0) => {
+    const files = buildHighlightGalleryItems(item.files);
+    if (files.length === 0) return;
+    setGalleryFiles(files);
+    setGalleryIndex(index);
+    setGalleryOpen(true);
+  };
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
@@ -661,25 +708,42 @@ function HighlightsView({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {items.map((item) => {
             const cover = item.coverImage || item.files?.[0]?.thumbnailUrl || item.files?.[0]?.fileUrl;
+            const galleryItems = buildHighlightGalleryItems(item.files);
+            const canPreview = galleryItems.length > 0;
+            const coverNode = (
+              <>
+                {cover ? (
+                  <SafeImage
+                    src={cover}
+                    alt={item.title || '精彩瞬间'}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+                    暂无封面
+                  </div>
+                )}
+              </>
+            );
             return (
               <div
                 key={item.id}
                 className="group rounded-lg border border-slate-200 overflow-hidden bg-slate-50"
               >
-                <div className="aspect-video relative bg-slate-100">
-                  {cover ? (
-                    <SafeImage
-                      src={cover}
-                      alt={item.title || '精彩瞬间'}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
-                      暂无封面
-                    </div>
-                  )}
-                </div>
+                {canPreview ? (
+                  <button
+                    type="button"
+                    onClick={() => openGallery(item, 0)}
+                    className="aspect-video relative block w-full bg-slate-100 cursor-zoom-in overflow-hidden text-left"
+                  >
+                    {coverNode}
+                  </button>
+                ) : (
+                  <div className="aspect-video relative bg-slate-100 overflow-hidden">
+                    {coverNode}
+                  </div>
+                )}
                 {item.title ? (
                   <p className="px-3 py-2 text-sm text-slate-800 line-clamp-2">{item.title}</p>
                 ) : null}
@@ -688,6 +752,12 @@ function HighlightsView({
           })}
         </div>
       )}
+      <MediaGallery
+        files={galleryFiles}
+        initialIndex={galleryIndex}
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+      />
     </div>
   );
 }
@@ -750,7 +820,7 @@ function VideosView({
             {videos.map((video) => (
               <Link
                 key={video.id}
-                href={`/vedio/${video.id}.htm`}
+                href={`/video/${video.id}.htm`}
                 className="rounded-lg overflow-hidden border border-slate-200 group cursor-pointer hover:shadow-sm transition block"
               >
                 <div className="aspect-video relative overflow-hidden bg-slate-100">
@@ -902,6 +972,16 @@ function ReviewsView({
       .catch(() => setLoaded(true));
   }, [trainerUserId]);
 
+  useEffect(() => {
+    const el = document.getElementById('trainer-review-cta');
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const absoluteTop = window.scrollY + rect.top;
+    const target = absoluteTop - window.innerHeight / 2 + rect.height / 2;
+    const y = Math.max(target, absoluteTop - TRAINER_DETAIL_HEADER_OFFSET);
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  }, [trainerUserId]);
+
   const summaryScore =
     trainerScore > 0
       ? trainerScore
@@ -918,6 +998,7 @@ function ReviewsView({
           total={summaryTotal}
           action={
             <button
+              id="trainer-review-cta"
               type="button"
               onClick={handleOpenReview}
               className="shrink-0 px-4 py-2 rounded-md bg-primary text-white text-sm cursor-pointer hover:bg-primary/90 transition-colors"

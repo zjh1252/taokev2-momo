@@ -15,6 +15,7 @@ import { withCaptcha, verifyCaptcha, CAPTCHA_REQUIRED_CODE } from '@/lib/captcha
 import { ApiException } from '@/lib/http/client';
 import { showError } from '@/lib/toast';
 import { markNewUserPending } from '@/features/role-apply/hooks/useRoleApplyState';
+import { LEGAL_PRIVACY_PATH, LEGAL_TERMS_PATH } from '../constants/legal';
 
 /** 密码错误业务码（ErrorCode.PASSWORD_INCORRECT） */
 const PASSWORD_INCORRECT_CODE = '10006';
@@ -436,11 +437,23 @@ function AgreementCheckbox({
       </div>
       <label htmlFor={id} className="text-xs text-muted-foreground leading-relaxed">
         {t('agreement')}
-        <a href="#" className="text-primary font-semibold hover:underline">
+        <a
+          href={LEGAL_TERMS_PATH}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cursor-pointer text-primary font-semibold hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
           {t('termsLink')}
         </a>
         {t('and')}
-        <a href="#" className="text-primary font-semibold hover:underline">
+        <a
+          href={LEGAL_PRIVACY_PATH}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cursor-pointer text-primary font-semibold hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
           {t('privacyLink')}
         </a>
       </label>

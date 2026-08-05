@@ -2,13 +2,27 @@ package com.taoke.course.service.city;
 
 import com.taoke.common.entity.Region;
 import com.taoke.common.repository.RegionRepository;
+import com.taoke.common.response.PageResponse;
 import com.taoke.course.api.CityChannelService;
+import com.taoke.course.api.CourseService;
+import com.taoke.course.api.VideoService;
 import com.taoke.course.dto.city.ActiveCityVO;
 import com.taoke.course.dto.city.CityChannelDetailVO;
+import com.taoke.course.dto.city.CityChannelHomeVO;
+import com.taoke.course.dto.course.CourseListItemVO;
+import com.taoke.course.dto.course.PublicCourseQuery;
+import com.taoke.course.dto.video.VideoListItemVO;
+import com.taoke.user.api.InstitutionService;
+import com.taoke.user.api.TrainerService;
+import com.taoke.user.dto.institution.InstitutionListItemResponse;
+import com.taoke.user.dto.trainer.TrainerListItemResponse;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -19,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 /**
  * 城市频道服务实现 — 聚合 course_plans + regions 输出「有效公开课的城市」。
@@ -38,6 +54,8 @@ import java.util.Set;
 @Transactional(readOnly = true)
 public class CityChannelServiceImpl implements CityChannelService {
 
+    private static final Logger log = LoggerFactory.getLogger(CityChannelServiceImpl.class);
+
     /** 4 个直辖市的省级 region.code（V9 行政区划数据），用于 enName 处理与 fallback */
     private static final Set<String> MUNICIPALITY_PROVINCE_CODES = Set.of(
             "110000000000", // 北京
@@ -52,14 +70,27 @@ public class CityChannelServiceImpl implements CityChannelService {
             "自治区", "自治州", "自治县", "地区", "盟", "市", "省"
     };
 
-    /** EntityManager 通过 @PersistenceContext 字段注入，不参与 @RequiredArgsConstructor */
+    /** EntityManager 通过 @PersistenceContext 字段注入，不参与构造器 */
     @PersistenceContext
     private EntityManager entityManager;
 
     private final RegionRepository regionRepository;
+    private final CourseService courseService;
+    private final VideoService videoService;
+    private final InstitutionService institutionService;
+    private final TrainerService trainerService;
 
-    public CityChannelServiceImpl(RegionRepository regionRepository) {
+    public CityChannelServiceImpl(
+            RegionRepository regionRepository,
+            CourseService courseService,
+            VideoService videoService,
+            InstitutionService institutionService,
+            TrainerService trainerService) {
         this.regionRepository = regionRepository;
+        this.courseService = courseService;
+        this.videoService = videoService;
+        this.institutionService = institutionService;
+        this.trainerService = trainerService;
     }
 
     @Override
@@ -175,6 +206,118 @@ public class CityChannelServiceImpl implements CityChannelService {
                 .cityRegionId(filterCityId)
                 .provinceRegionId(province != null ? province.getId() : null)
                 .build();
+    }
+
+    /**
+     * 综合页聚合：挂起类级只读事务，并行调用各列表服务（各自短事务 / Redis），避免串行拉长 TTFB。
+     */
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public CityChannelHomeVO loadHome(String enName) {
+        CityChannelDetailVO detail = resolveByEnName(enName);
+        if (detail == null || detail.getCityRegionId() == null) {
+            return null;
+        }
+        int cityId = detail.getCityRegionId();
+
+        CompletableFuture<PageResponse<CourseListItemVO>> upcomingF =
+                CompletableFuture.supplyAsync(() -> safeCourse(() -> courseService.listPublic(upcomingQuery(cityId)), 10));
+        CompletableFuture<PageResponse<CourseListItemVO>> hotInnerF =
+                CompletableFuture.supplyAsync(() -> safeCourse(() -> courseService.listPublic(hotInnerQuery(cityId)), 10));
+        CompletableFuture<PageResponse<CourseListItemVO>> latestOpenF =
+                CompletableFuture.supplyAsync(() -> safeCourse(() -> courseService.listPublic(latestOpenQuery(cityId)), 10));
+        CompletableFuture<PageResponse<VideoListItemVO>> videosF =
+                CompletableFuture.supplyAsync(() -> safeVideo(() ->
+                        videoService.listPublic(null, null, null, "time", null, null, 1, 10, null), 10));
+        CompletableFuture<PageResponse<InstitutionListItemResponse>> institutionsF =
+                CompletableFuture.supplyAsync(() -> safeInstitution(() ->
+                        institutionService.listPublic(
+                                1, 20, null, "newly_joined", null, null, null, null, cityId), 20));
+        CompletableFuture<PageResponse<TrainerListItemResponse>> trainersF =
+                CompletableFuture.supplyAsync(() -> safeTrainer(() ->
+                        trainerService.listPublic(
+                                1, 20, null, null, null, cityId, null, "newly_joined", null, false), 20));
+
+        CompletableFuture.allOf(upcomingF, hotInnerF, latestOpenF, videosF, institutionsF, trainersF).join();
+
+        return CityChannelHomeVO.builder()
+                .detail(detail)
+                .upcomingOpen(upcomingF.join())
+                .hotInner(hotInnerF.join())
+                .latestOpen(latestOpenF.join())
+                .latestVideos(videosF.join())
+                .institutions(institutionsF.join())
+                .trainers(trainersF.join())
+                .build();
+    }
+
+    private static PublicCourseQuery upcomingQuery(int cityId) {
+        PublicCourseQuery q = new PublicCourseQuery();
+        q.setPage(1);
+        q.setSize(10);
+        q.setIsOpen(true);
+        q.setCityIds(List.of(cityId));
+        q.setEnrollStatus("ENROLLING");
+        q.setSortBy("time");
+        return q;
+    }
+
+    private static PublicCourseQuery hotInnerQuery(int cityId) {
+        PublicCourseQuery q = new PublicCourseQuery();
+        q.setPage(1);
+        q.setSize(10);
+        q.setIsOpen(false);
+        q.setTrainerCityId(cityId);
+        q.setSortBy("viewCount");
+        return q;
+    }
+
+    private static PublicCourseQuery latestOpenQuery(int cityId) {
+        PublicCourseQuery q = new PublicCourseQuery();
+        q.setPage(1);
+        q.setSize(10);
+        q.setIsOpen(true);
+        q.setCityIds(List.of(cityId));
+        q.setSortBy("published");
+        return q;
+    }
+
+    private PageResponse<CourseListItemVO> safeCourse(Supplier<PageResponse<CourseListItemVO>> supplier, int size) {
+        try {
+            return supplier.get();
+        } catch (Exception e) {
+            log.warn("城市频道公开课块查询失败: {}", e.getMessage());
+            return PageResponse.of(List.of(), 0, 1, size);
+        }
+    }
+
+    private PageResponse<VideoListItemVO> safeVideo(Supplier<PageResponse<VideoListItemVO>> supplier, int size) {
+        try {
+            return supplier.get();
+        } catch (Exception e) {
+            log.warn("城市频道录播块查询失败: {}", e.getMessage());
+            return PageResponse.of(List.of(), 0, 1, size);
+        }
+    }
+
+    private PageResponse<InstitutionListItemResponse> safeInstitution(
+            Supplier<PageResponse<InstitutionListItemResponse>> supplier, int size) {
+        try {
+            return supplier.get();
+        } catch (Exception e) {
+            log.warn("城市频道机构块查询失败: {}", e.getMessage());
+            return PageResponse.of(List.of(), 0, 1, size);
+        }
+    }
+
+    private PageResponse<TrainerListItemResponse> safeTrainer(
+            Supplier<PageResponse<TrainerListItemResponse>> supplier, int size) {
+        try {
+            return supplier.get();
+        } catch (Exception e) {
+            log.warn("城市频道专家块查询失败: {}", e.getMessage());
+            return PageResponse.of(List.of(), 0, 1, size);
+        }
     }
 
     /** 批量取 regions 对应的 parent（直辖市拼装用） */

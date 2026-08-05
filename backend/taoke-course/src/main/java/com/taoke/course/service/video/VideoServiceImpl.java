@@ -20,6 +20,7 @@ import com.taoke.course.repository.video.VideoChapterRepository;
 import com.taoke.course.repository.video.VideoEnrollmentRepository;
 import com.taoke.course.repository.video.VideoRepository;
 import com.taoke.course.repository.video.VideoSeriesRepository;
+import com.taoke.course.support.PublicVideoListCache;
 import com.taoke.user.api.BindingAuthority;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.TrainerService;
@@ -27,7 +28,7 @@ import com.taoke.user.api.UserService;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.Trainer;
 import com.taoke.user.entity.User;
-import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -63,6 +64,7 @@ public class VideoServiceImpl implements VideoService {
     private final InteractionQueryService interactionQueryService;
     private final VideoPackageService videoPackageService;
     private final OpsMaterialResolver opsMaterialResolver;
+    private final PublicVideoListCache publicVideoListCache;
 
     // ==================== C 端发布者操作 ====================
 
@@ -70,6 +72,7 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public VideoDetailVO create(Integer publisherId, String publisherType, SaveVideoRequest request) {
         boolean draft = Boolean.TRUE.equals(request.getDraft());
+        validateCoverRequired(request);
         if (!draft) {
             validateForSubmit(request);
         }
@@ -114,6 +117,7 @@ public class VideoServiceImpl implements VideoService {
                 && video.getStatus() != VideoStatus.REJECTED.getValue()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的录播课可保存为草稿");
         }
+        validateCoverRequired(request);
         if (!draft) {
             validateForSubmit(request);
         }
@@ -131,6 +135,9 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public void submitForReview(Integer videoId, Integer publisherId) {
         Video video = getOwnedVideo(videoId, publisherId);
+        if (video.getCoverUrl() == null || video.getCoverUrl().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传录播封面");
+        }
         int status = video.getStatus();
         if (status != VideoStatus.DRAFT.getValue() && status != VideoStatus.REJECTED.getValue()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "仅草稿或驳回状态的录播课可提交审核");
@@ -152,6 +159,7 @@ public class VideoServiceImpl implements VideoService {
         }
         video.setStatus(VideoStatus.UNPUBLISHED.getValue());
         videoRepository.save(video);
+        publicVideoListCache.evictPublicListCaches();
     }
 
     @Transactional
@@ -277,6 +285,16 @@ public class VideoServiceImpl implements VideoService {
                                                      Integer institutionId,
                                                      Integer isFeatured,
                                                      int page, int size, Integer viewerUserId) {
+        boolean cacheable = publicVideoListCache.isCacheableDefault(
+                categoryId, subCategoryId, keyword, sortBy, institutionId, isFeatured,
+                page, size, viewerUserId);
+        if (cacheable) {
+            PageResponse<VideoListItemVO> cached = publicVideoListCache.getDefaultList(sortBy, page, size);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
         // 机构过滤：先反查机构 user_id，机构不存在直接返回空页
         final Integer institutionUserId;
         if (institutionId != null) {
@@ -292,6 +310,7 @@ public class VideoServiceImpl implements VideoService {
         Specification<Video> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()));
+            predicates.add(playableVideoPredicate(root, cq, cb));
 
             if (categoryId != null || subCategoryId != null) {
                 Set<Integer> categoryFilterIds = new HashSet<>();
@@ -341,11 +360,19 @@ public class VideoServiceImpl implements VideoService {
                 .toList();
         enrichPublisherNames(items);
         enrichUnlockedStatus(items, viewerUserId);
-        return PageResponse.of(items, videoPage.getTotalElements(), page, size);
+        PageResponse<VideoListItemVO> response = PageResponse.of(items, videoPage.getTotalElements(), page, size);
+        if (cacheable) {
+            publicVideoListCache.putDefaultList(sortBy, page, size, response);
+        }
+        return response;
     }
 
     @Override
     public Map<Integer, Long> countPublicByCategoryL1() {
+        Map<Integer, Long> cached = publicVideoListCache.getCategoryL1Counts();
+        if (cached != null) {
+            return cached;
+        }
         Map<Integer, Long> map = new HashMap<>();
         for (Object[] row : videoRepository.countPublishedByCategoryL1()) {
             if (row[0] == null) {
@@ -354,6 +381,7 @@ public class VideoServiceImpl implements VideoService {
             long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
             map.put(((Number) row[0]).intValue(), count);
         }
+        publicVideoListCache.putCategoryL1Counts(map);
         return map;
     }
 
@@ -366,6 +394,7 @@ public class VideoServiceImpl implements VideoService {
 
         Specification<Video> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()),
+                playableVideoPredicate(root, cq, cb),
                 cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION),
                 cb.equal(root.get("publisherId"), institutionUserId)
         );
@@ -390,6 +419,7 @@ public class VideoServiceImpl implements VideoService {
         }
         Specification<Video> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()),
+                playableVideoPredicate(root, cq, cb),
                 cb.equal(root.get("publisherType"), BusinessRole.Code.INSTITUTION),
                 cb.equal(root.get("publisherId"), institutionUserId)
         );
@@ -407,6 +437,7 @@ public class VideoServiceImpl implements VideoService {
         }
         Specification<Video> spec = (root, cq, cb) -> cb.and(
                 cb.equal(root.get("status"), VideoStatus.PUBLISHED.getValue()),
+                playableVideoPredicate(root, cq, cb),
                 cb.equal(root.get("publisherType"), BusinessRole.Code.TRAINER),
                 cb.equal(root.get("publisherId"), trainerUserId)
         );
@@ -433,6 +464,45 @@ public class VideoServiceImpl implements VideoService {
         } catch (BusinessException ex) {
             return null;
         }
+    }
+
+    /** 公开列表仅展示现代浏览器可在本站稳定播放的录播课。 */
+    private Predicate playableVideoPredicate(Root<Video> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+        Subquery<Long> chapterSubquery = query.subquery(Long.class);
+        Root<VideoChapter> chapter = chapterSubquery.from(VideoChapter.class);
+        chapterSubquery.select(cb.literal(1L));
+        chapterSubquery.where(
+                cb.equal(chapter.get("videoId"), root.get("id")),
+                playableUrlPredicate(chapter.get("videoUrl"), cb)
+        );
+
+        return cb.or(
+                playableUrlPredicate(root.get("videoUrl"), cb),
+                cb.exists(chapterSubquery)
+        );
+    }
+
+    private Predicate playableUrlPredicate(Expression<String> rawUrl, CriteriaBuilder cb) {
+        Expression<String> url = cb.lower(cb.coalesce(rawUrl, ""));
+        return cb.or(
+                cb.like(url, "%.mp4%"),
+                cb.like(url, "%.m3u8%"),
+                cb.like(url, "%.webm%"),
+                cb.like(url, "%.mov%"),
+                cb.like(url, "%.m4v%"),
+                cb.like(url, "%.mpd%"),
+                cb.like(url, "%pxb-videos.taoke.com%"),
+                cb.like(url, "%sc.cdn.kuanxue.com%"),
+                cb.like(url, "%preview.kuanxue.com/fsm/%"),
+                cb.like(url, "/uploads/%"),
+                cb.like(url, "eceibs:%"),
+                cb.like(url, "kuaike:%"),
+                cb.like(url, "kuanxue:%"),
+                cb.like(url, "scho:%"),
+                cb.like(url, "%@@%"),
+                cb.like(url, "courseid=%"),
+                cb.like(url, "/lease/%")
+        );
     }
 
     // ==================== 后台管理 ====================
@@ -591,6 +661,7 @@ public class VideoServiceImpl implements VideoService {
         video.setPublishedAt(LocalDateTime.now());
         video.setRejectReason("");
         videoRepository.save(video);
+        publicVideoListCache.evictPublicListCaches();
     }
 
     @Transactional
@@ -616,6 +687,7 @@ public class VideoServiceImpl implements VideoService {
         }
         video.setStatus(VideoStatus.UNPUBLISHED.getValue());
         videoRepository.save(video);
+        publicVideoListCache.evictPublicListCaches();
     }
 
     @Transactional
@@ -629,6 +701,7 @@ public class VideoServiceImpl implements VideoService {
         video.setStatus(VideoStatus.PUBLISHED.getValue());
         video.setPublishedAt(LocalDateTime.now());
         videoRepository.save(video);
+        publicVideoListCache.evictPublicListCaches();
     }
 
     @Override
@@ -887,6 +960,9 @@ public class VideoServiceImpl implements VideoService {
         }
         if (req.getDuration() != null) video.setDuration(req.getDuration());
         if (req.getKeywords() != null) video.setKeywords(req.getKeywords());
+        if (req.getSeoDescription() != null) video.setSeoDescription(req.getSeoDescription());
+        if (req.getCompanyPrice() != null) video.setCompanyPrice(req.getCompanyPrice());
+        if (req.getMaxPurchaseQty() != null) video.setMaxPurchaseQty(req.getMaxPurchaseQty());
     }
 
     private void applyChapterRequest(VideoChapter chapter, SaveVideoChapterRequest req) {
@@ -948,8 +1024,21 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    /** 提交审核时的内容完整性校验（草稿不做此校验，仅要求标题） */
+    /**
+     * 封面必填（含草稿）
+     *
+     * @author Fangxinxin
+     * @date 2026-07-17 16:14
+     */
+    private void validateCoverRequired(SaveVideoRequest request) {
+        if (request.getCoverUrl() == null || request.getCoverUrl().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传录播封面");
+        }
+    }
+
+    /** 提交审核时的内容完整性校验（草稿不做此校验，封面由 validateCoverRequired 单独校验） */
     private void validateForSubmit(SaveVideoRequest request) {
+        validateCoverRequired(request);
         if (request.getIntro() == null || request.getIntro().isBlank()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "课程介绍不能为空");
         }
@@ -1108,6 +1197,14 @@ public class VideoServiceImpl implements VideoService {
             case "viewCount" -> Sort.by(Sort.Direction.DESC, "viewCount")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             case "studentCount" -> Sort.by(Sort.Direction.DESC, "studentCount")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+            case "smartcs", "smart_recommend" -> Sort.by(Sort.Direction.DESC, "score")
+                    .and(Sort.by(Sort.Direction.DESC, "isFeatured"))
+                    .and(Sort.by(Sort.Direction.DESC, "viewCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "studentCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "enrollmentCount"))
+                    .and(Sort.by(Sort.Direction.DESC, "sortOrder"))
+                    .and(Sort.by(Sort.Direction.DESC, "publishedAt"))
                     .and(Sort.by(Sort.Direction.DESC, "id"));
             default -> Sort.by(Sort.Direction.DESC, "stickyPriority")
                     .and(Sort.by(Sort.Direction.DESC, "sortOrder"))

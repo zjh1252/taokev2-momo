@@ -27,6 +27,8 @@ import com.taoke.course.enums.RecommendationSlot;
 
 import com.taoke.course.repository.RecommendedResourceRepository;
 
+import com.taoke.course.support.PublicRecommendationCache;
+
 import com.taoke.user.api.InstitutionService;
 
 import com.taoke.user.api.TrainerService;
@@ -91,17 +93,21 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
 
     private final InstitutionService institutionService;
 
+    private final PublicRecommendationCache publicRecommendationCache;
+
     public RecommendedResourceServiceImpl(
             RecommendedResourceRepository recommendedResourceRepository,
             RecommendationSlotConfigService recommendationSlotConfigService,
             RecommendedResourceEnricher enricher,
             TrainerService trainerService,
-            InstitutionService institutionService) {
+            InstitutionService institutionService,
+            PublicRecommendationCache publicRecommendationCache) {
         this.recommendedResourceRepository = recommendedResourceRepository;
         this.recommendationSlotConfigService = recommendationSlotConfigService;
         this.enricher = enricher;
         this.trainerService = trainerService;
         this.institutionService = institutionService;
+        this.publicRecommendationCache = publicRecommendationCache;
     }
 
     @Override
@@ -135,6 +141,8 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
         RecommendationSlot slot = RecommendationSlot.fromCode(request.getSlotCode());
 
         validateResourceType(slot, request.getResourceType());
+
+        requireHomeBannerCover(slot, request.getCoverUrl());
 
 
 
@@ -170,6 +178,12 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
 
         entity.setCoverUrl(request.getCoverUrl());
 
+        entity.setConsultButtonImageUrl(request.getConsultButtonImageUrl());
+
+        entity.setTopicButtonImageUrl(request.getTopicButtonImageUrl());
+
+        entity.setTopicButtonLinkUrl(request.getTopicButtonLinkUrl());
+
         entity.setTitle(request.getTitle());
 
         entity.setDescription(request.getDescription());
@@ -187,6 +201,7 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
         RecommendedResource saved = recommendedResourceRepository.save(entity);
 
         syncLegacyFlags(saved, true);
+        publicRecommendationCache.evictSlot(saved.getSlotCode());
 
 
 
@@ -217,6 +232,24 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
         if (request.getCoverUrl() != null) {
 
             entity.setCoverUrl(request.getCoverUrl());
+
+        }
+
+        if (request.getConsultButtonImageUrl() != null) {
+
+            entity.setConsultButtonImageUrl(request.getConsultButtonImageUrl());
+
+        }
+
+        if (request.getTopicButtonImageUrl() != null) {
+
+            entity.setTopicButtonImageUrl(request.getTopicButtonImageUrl());
+
+        }
+
+        if (request.getTopicButtonLinkUrl() != null) {
+
+            entity.setTopicButtonLinkUrl(request.getTopicButtonLinkUrl());
 
         }
 
@@ -256,9 +289,14 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
 
         }
 
+        requireHomeBannerCover(
+                RecommendationSlot.fromCode(entity.getSlotCode()),
+                entity.getCoverUrl());
+
 
 
         recommendedResourceRepository.save(entity);
+        publicRecommendationCache.evictSlot(entity.getSlotCode());
 
         return listBySlot(entity.getSlotCode(), entity.getCategoryId()).stream()
 
@@ -285,6 +323,7 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
         recommendedResourceRepository.delete(entity);
 
         syncLegacyFlags(entity, false);
+        publicRecommendationCache.evictSlot(entity.getSlotCode());
 
     }
 
@@ -331,6 +370,7 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
             recommendedResourceRepository.save(row);
 
         }
+        publicRecommendationCache.evictSlot(request.getSlotCode());
 
     }
 
@@ -349,6 +389,26 @@ public class RecommendedResourceServiceImpl implements RecommendedResourceServic
                         slotCode);
 
         return existing.stream().map(RecommendedResource::getSortOrder).max(Integer::compareTo).orElse(0) + 1;
+
+    }
+
+
+
+    /** HOME_BANNER 轮播大图必填，避免仅前端拦截被绕过 */
+
+    private void requireHomeBannerCover(RecommendationSlot slot, String coverUrl) {
+
+        if (slot != RecommendationSlot.HOME_BANNER) {
+
+            return;
+
+        }
+
+        if (coverUrl == null || coverUrl.isBlank()) {
+
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传或填写轮播图大图");
+
+        }
 
     }
 

@@ -2,9 +2,9 @@ import { BookOpen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { SafeImage } from '@/components/safe-image';
-import { resolveImageSrc } from '@/lib/media';
 import { SectionHeader } from './SectionHeader';
 import type { PublicCourse } from '../types';
+import { getCourseDetailPath } from '@/features/course/utils/routes';
 
 interface PublicCoursesSectionProps {
   courses: PublicCourse[];
@@ -36,19 +36,17 @@ export function PublicCoursesSection({ courses }: PublicCoursesSectionProps) {
 
 function PublicCourseItem({ course }: { course: PublicCourse }) {
   const t = useTranslations('home');
-  const coverSrc = resolveImageSrc(course.coverUrl);
 
   return (
     <div className="bg-white rounded-lg p-6 flex flex-col md:flex-row items-center gap-8 shadow-sm hover:shadow-md transition-all border border-slate-50 group">
       <div className="w-full md:w-[240px] h-[160px] rounded-lg overflow-hidden shrink-0 relative bg-slate-100">
-        {coverSrc ? (
-          <SafeImage
-            src={coverSrc}
-            alt={course.title}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
-          />
-        ) : null}
+        <SafeImage
+          src={course.coverUrl}
+          alt={course.title}
+          fill
+          apiResolved
+          className="object-cover object-top transition-transform group-hover:scale-105"
+        />
       </div>
 
       <div className="flex-1 flex flex-col gap-4 min-w-0 w-full">
@@ -82,7 +80,7 @@ function PublicCourseItem({ course }: { course: PublicCourse }) {
 
       <div className="shrink-0">
         <Link
-          href={`/opencourse/${course.id}.htm`}
+          href={getCourseDetailPath(course.id, 'OPEN_OFFLINE')}
           className="px-6 py-2 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md inline-block"
         >
           {t('publicCourses.viewDetail')}

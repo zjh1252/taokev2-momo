@@ -10,6 +10,7 @@ import com.taoke.user.entity.Institution;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -151,6 +152,16 @@ public interface InstitutionService {
      * @param delta         增量
      */
     void adjustCommentCount(Integer institutionId, int delta);
+
+    /**
+     * 覆盖写入机构评价统计（综合评分 + 已通过评价数）。
+     * <p>由评价模块按已通过评价全量重算后调用；score 为空时按 0 处理。</p>
+     *
+     * @param institutionId 机构 ID
+     * @param score         综合评分
+     * @param commentCount  已通过评价数（不会小于 0）
+     */
+    void updateReviewStats(Integer institutionId, BigDecimal score, int commentCount);
 
     /**
      * 公开下拉/搜索 — 按机构名关键字模糊匹配，仅返回已发布的机构。

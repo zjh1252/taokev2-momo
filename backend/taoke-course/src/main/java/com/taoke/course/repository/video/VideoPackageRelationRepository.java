@@ -36,6 +36,16 @@ public interface VideoPackageRelationRepository extends JpaRepository<VideoPacka
             WHERE r.videoId = v.id AND v.status = 2
               AND r.parentId = :parentId
               AND (:topicId = 0 OR r.topicId = :topicId)
+            ORDER BY r.primary DESC, r.sortOrder ASC, r.videoId ASC
+            """)
+    List<Integer> findPublishedVideoIdsByPackageOrderByPrimary(@Param("parentId") Integer parentId,
+                                                                 @Param("topicId") Integer topicId);
+
+    @Query("""
+            SELECT r.videoId FROM VideoPackageRelation r, Video v
+            WHERE r.videoId = v.id AND v.status = 2
+              AND r.parentId = :parentId
+              AND (:topicId = 0 OR r.topicId = :topicId)
             ORDER BY r.sortOrder ASC, r.videoId ASC
             """)
     List<Integer> findPublishedVideoIdsByPackage(@Param("parentId") Integer parentId,

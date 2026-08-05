@@ -32,6 +32,11 @@ public class TrainerPublicResponse {
     /** 授课姓名（对外展示，可与真实姓名不同） */
     private String teachingName;
     private String avatar;
+    /**
+     * 素材库默认头像（展示头像加载失败时前端回退用）。
+     * <p>旧站 middle 路径常仍留在库中但文件已 404，此时主字段不会走素材库，需此回退。</p>
+     */
+    private String avatarFallback;
     private String title;
     private Integer gender;
 
@@ -47,6 +52,8 @@ public class TrainerPublicResponse {
     private String bio;
     /** 一句话介绍 */
     private String oneLineIntro;
+    /** SEO 自定义描述 */
+    private String seoDescription;
     private String intro;
     private String background;
     /** 部分客户（长文本） */

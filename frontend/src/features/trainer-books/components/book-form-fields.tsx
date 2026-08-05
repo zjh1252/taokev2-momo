@@ -10,6 +10,7 @@ import { isDelegatingRole } from '@/features/binding/lib/delegating-role';
 import type { ManagedTrainerOption } from '@/features/binding/components/trainer-switcher';
 import { getMyTrainerProfileAsForm } from '@/features/role-apply/api/service';
 import { getTrainerDisplayName } from '@/features/trainer/utils/displayName';
+import { getTodayDateValue, Validators } from '@/lib/validation';
 import { resolveImageSrc } from '@/lib/media';
 import type { SaveTrainerBookRequest } from '../api/types';
 import { toast } from 'sonner';
@@ -97,6 +98,15 @@ export function BookFormFields({
     const matched = managedTrainers.find((t) => t.userId === uid);
     onTrainerUserIdChange?.(uid);
     updateField('authorName', matched?.nickname || '');
+  };
+
+  const handlePublishDateChange = (value: string) => {
+    const error = Validators.notFutureDate('出版日期不能晚于今天')(value);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    updateField('publishDate', value);
   };
 
   const uploadCoverFile = async (file: File) => {
@@ -203,8 +213,10 @@ export function BookFormFields({
         <FormField label="出版日期">
           <input
             type="date"
+            placeholder="年 / 月 / 日"
             value={form.publishDate || ''}
-            onChange={(e) => updateField('publishDate', e.target.value)}
+            max={getTodayDateValue()}
+            onChange={(e) => handlePublishDateChange(e.target.value)}
             disabled={disabled}
             className={inputClassName}
           />
@@ -350,4 +362,5 @@ export const BOOK_RULES = {
   title: { required: true, requiredMessage: '请输入书名' },
   authorName: { required: true, requiredMessage: '请填写作者' },
   coverUrl: { required: true, requiredMessage: '请上传封面图' },
+  publishDate: { validator: Validators.notFutureDate('出版日期不能晚于今天') },
 };

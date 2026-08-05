@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { apiGet } from '@/lib/http/client';
 import type { CategoryTreeNode } from '../../types';
@@ -12,9 +12,9 @@ import type { CategoryTreeNode } from '../../types';
  * <ul>
  *   <li>左侧只列分类标题，鼠标 hover 弹出右侧浮层选项面板。</li>
  *   <li>「擅长领域」按二级分类展示：选中一级直接传一级名；
- *       选中二级传 {@code "一级_二级"}；后端按叶子节点搜索。</li>
+ *       选中二级时由列表层写入 SEO field（名唯一则仅二级，重名则一级_二级）。</li>
  *   <li>「擅长行业」单选，点击即替换。</li>
- *   <li>「长驻省市」单选，从 {@code GET /regions/children} 拉取省份列表。</li>
+ *   <li>「常驻城市」单选，从 {@code GET /regions/children} 拉取省份列表。</li>
  *   <li>全部参数均可选可清，点「全部/不限」清除。</li>
  * </ul>
  *
@@ -33,9 +33,9 @@ export interface TrainerFilterValue {
   industryName?: string;
   /** 擅长行业分类 ID */
   industryCategoryId?: number;
-  /** 长驻省市 — 省份名称 */
+  /** 常驻城市 — 省份名称 */
   regionName?: string;
-  /** 长驻省市 — 省份 ID（传给后端筛选） */
+  /** 常驻城市 — 省份 ID（传给后端筛选） */
   provinceId?: number;
   /** 质量承诺 */
   trustedOnly?: boolean;
@@ -52,7 +52,7 @@ interface FilterMeta {
 const FILTER_ITEMS: FilterMeta[] = [
   { key: 'expertise', label: '擅长领域', flyoutWidth: 520 },
   { key: 'industry', label: '擅长行业', flyoutWidth: 520 },
-  { key: 'province', label: '长驻省市', flyoutWidth: 520 },
+  { key: 'province', label: '常驻城市', flyoutWidth: 520 },
 ];
 
 interface RegionItem {
@@ -100,6 +100,8 @@ export function TrainerFilters({
     leaveTimer.current = setTimeout(() => setActiveFilter(null), 80);
   }, []);
 
+  const closeFlyout = () => setActiveFilter(null);
+
   // ---- 擅长领域：追踪 parent + child + 分类 ID ----
   const handleExpertisePick = (parentName?: string, childName?: string, categoryId?: number) => {
     onChange({
@@ -108,23 +110,26 @@ export function TrainerFilters({
       fieldChildName: childName,
       expertiseCategoryId: categoryId,
     });
+    closeFlyout();
   };
 
   // ---- 擅长行业：单选 ----
   const handleIndustryPick = (name?: string, categoryId?: number) => {
     onChange({ ...value, industryName: name, industryCategoryId: categoryId });
+    closeFlyout();
   };
 
-  // ---- 长驻省市：单选 ----
+  // ---- 常驻城市：单选 ----
   const handleProvincePick = (item?: RegionItem) => {
     onChange({ ...value, regionName: item?.name, provinceId: item?.id });
+    closeFlyout();
   };
 
   const activeMeta = FILTER_ITEMS.find((f) => f.key === activeFilter);
 
   return (
-    <div className="w-64 shrink-0 relative" onMouseLeave={handleMouseLeave}>
-      <aside className="bg-white rounded-xl shadow-sm border border-slate-100">
+    <div className="relative min-h-[306px] w-full shrink-0 lg:h-[306px] lg:w-[227px]" onMouseLeave={handleMouseLeave}>
+      <aside className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
         <h2 className="px-4 py-3 text-sm font-bold text-slate-800 border-b border-slate-100">
           讲师筛选条件
         </h2>
@@ -133,12 +138,13 @@ export function TrainerFilters({
           return (
             <div
               key={item.key}
-              className="border-b border-slate-100"
+              className="flex-1 border-b border-slate-100"
               onMouseEnter={() => handleMouseEnter(item.key)}
             >
               <button
                 type="button"
-                className={`w-full flex items-center justify-between p-4 text-left cursor-pointer transition-colors ${
+                onClick={() => setActiveFilter(activeFilter === item.key ? null : item.key)}
+                className={`h-full w-full flex items-center justify-between px-4 text-left cursor-pointer transition-colors ${
                   activeFilter === item.key ? 'bg-slate-50' : 'hover:bg-slate-50'
                 }`}
               >
@@ -162,7 +168,7 @@ export function TrainerFilters({
 
         {/* 质量承诺 */}
         <div
-          className="p-4 flex items-center justify-between"
+          className="flex-1 px-4 flex items-center justify-between"
           onMouseEnter={() => {
             if (leaveTimer.current) { clearTimeout(leaveTimer.current); leaveTimer.current = null; }
             setActiveFilter(null);
@@ -186,14 +192,14 @@ export function TrainerFilters({
       {/* 浮层面板 */}
       {activeFilter && activeMeta && (
         <div
-          className="absolute left-full top-0 min-h-full pl-2 z-50"
+          className="absolute left-0 top-full z-50 w-full pt-2 lg:left-full lg:top-0 lg:min-h-full lg:w-auto lg:pl-2 lg:pt-0"
           onMouseEnter={() => {
             if (leaveTimer.current) { clearTimeout(leaveTimer.current); leaveTimer.current = null; }
           }}
         >
           <div
-            className="bg-white rounded-xl shadow-xl border border-slate-100 p-6 max-h-[70vh] overflow-y-auto"
-            style={{ width: activeMeta.flyoutWidth }}
+            className="max-h-[70vh] w-full overflow-y-auto rounded-xl border border-slate-100 bg-white p-4 shadow-xl lg:w-[var(--flyout-width)] lg:p-6"
+            style={{ '--flyout-width': `${activeMeta.flyoutWidth}px` } as CSSProperties}
           >
             {activeFilter === 'expertise' && (
               <ExpertisePanel
@@ -263,7 +269,7 @@ function ExpertisePanel({
           全部 / 不限
         </button>
       </div>
-      <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
         {tree.map((lvl1) => (
           <button
             key={lvl1.id}
@@ -309,7 +315,7 @@ function SingleSelectPanel({
           {label}
         </button>
       </div>
-      <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
         {tree.map((lvl1) => (
           <button
             key={lvl1.id}
@@ -353,7 +359,7 @@ function ProvincePanel({
           全国
         </button>
       </div>
-      <div className="grid grid-cols-4 gap-x-3 gap-y-3">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
         {provinces.map((p) => (
           <button
             key={p.id}

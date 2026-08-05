@@ -1,12 +1,15 @@
 package com.taoke.course.search;
 
+import com.taoke.common.service.OpsMaterialResolver;
 import com.taoke.common.entity.Category;
 import com.taoke.common.repository.CategoryRepository;
 import com.taoke.common.search.BaseDocument;
 import com.taoke.common.search.DocumentSyncProvider;
 import com.taoke.course.entity.Course;
 import com.taoke.course.enums.CourseStatus;
+import com.taoke.course.enums.CourseType;
 import com.taoke.course.repository.CourseRepository;
+import com.taoke.course.support.LegacyTaokeCourseReader;
 import com.taoke.course.support.OpenCourseExpireSupport;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.entity.Trainer;
@@ -36,6 +39,8 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
     private final CourseRepository courseRepository;
     private final CategoryRepository categoryRepository;
     private final TrainerService trainerService;
+    private final OpsMaterialResolver opsMaterialResolver;
+    private final LegacyTaokeCourseReader legacyTaokeCourseReader;
 
     @Override
     public String getDocType() {
@@ -46,11 +51,10 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
     public List<? extends BaseDocument> fetchUpdatedSince(LocalDateTime since) {
         Specification<Course> spec = (root, query, cb) -> cb.and(
                 cb.greaterThan(root.get("updatedAt"), since),
-                cb.equal(root.get("status"), PUBLISHED)
+                cb.equal(root.get("status"), PUBLISHED),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, java.time.LocalDate.now())
         );
-        List<Course> courses = courseRepository.findAll(spec).stream()
-                .filter(course -> !OpenCourseExpireSupport.shouldHideFromPublic(course))
-                .toList();
+        List<Course> courses = courseRepository.findAll(spec);
         return buildDocuments(courses);
     }
 
@@ -74,12 +78,26 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
 
     @Override
     public List<? extends BaseDocument> fetchAll() {
-        Specification<Course> spec = (root, query, cb) ->
-                cb.equal(root.get("status"), PUBLISHED);
-        List<Course> courses = courseRepository.findAll(spec).stream()
-                .filter(course -> !OpenCourseExpireSupport.shouldHideFromPublic(course))
-                .toList();
+        Specification<Course> spec = indexableSpec();
+        List<Course> courses = courseRepository.findAll(spec);
         return buildDocuments(courses);
+    }
+
+    @Override
+    public List<? extends BaseDocument> fetchPage(int page, int size) {
+        Specification<Course> spec = indexableSpec();
+        var pageable = org.springframework.data.domain.PageRequest.of(
+                page, size, org.springframework.data.domain.Sort.by("id").ascending());
+        List<Course> courses = courseRepository.findAll(spec, pageable).getContent();
+        return buildDocuments(courses);
+    }
+
+    /** 已上架且前台可见（排除到期自动隐藏的线下公开课） */
+    private Specification<Course> indexableSpec() {
+        return (root, query, cb) -> cb.and(
+                cb.equal(root.get("status"), PUBLISHED),
+                OpenCourseExpireSupport.publicVisiblePredicate(root, cb, java.time.LocalDate.now())
+        );
     }
 
     private List<CourseDocument> buildDocuments(List<Course> courses) {
@@ -87,16 +105,33 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
             return List.of();
         }
 
-        // 批量查关联的讲师名称
+        List<Integer> courseIds = courses.stream().map(Course::getId).toList();
+        LegacyTaokeCourseReader.ListEnrichment legacy = legacyTaokeCourseReader.loadListEnrichment(courseIds);
+
+        // 批量查关联的讲师
         Set<Integer> trainerIds = courses.stream()
                 .map(Course::getTrainerId)
                 .filter(id -> id != null && id > 0)
                 .collect(Collectors.toSet());
         Map<Integer, String> trainerNameMap = new HashMap<>();
+        Map<Integer, String> trainerAvatarMap = new HashMap<>();
         if (!trainerIds.isEmpty()) {
-            trainerService.findByIds(trainerIds)
-                    .forEach(t -> trainerNameMap.put(t.getId(), t.getName()));
+            trainerService.findByIds(trainerIds).forEach(t -> {
+                trainerNameMap.put(t.getId(), t.getName());
+                trainerAvatarMap.put(t.getId(), t.getAvatar());
+            });
         }
+
+        Set<Integer> legacyTrainerUserIds = courses.stream()
+                .filter(c -> c.getTrainerId() == null || c.getTrainerId() <= 0
+                        || !trainerNameMap.containsKey(c.getTrainerId()))
+                .map(c -> legacy.lecturerUserIds().get(c.getId()))
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+        Map<Integer, Trainer> legacyTrainerByUserId = legacyTrainerUserIds.isEmpty()
+                ? Map.of()
+                : trainerService.findByUserIds(legacyTrainerUserIds.stream().toList()).stream()
+                    .collect(Collectors.toMap(Trainer::getUserId, t -> t, (a, b) -> a));
 
         // 批量查关联的分类名称
         Set<Integer> categoryIds = new HashSet<>();
@@ -116,15 +151,30 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
 
         // 构建文档
         Map<Integer, String> finalTrainerNameMap = trainerNameMap;
+        Map<Integer, String> finalTrainerAvatarMap = trainerAvatarMap;
         Map<Integer, String> finalCategoryNameMap = categoryNameMap;
+        Map<Integer, String> finalLegacyLecturerNameMap = legacy.lecturerNames();
+        Map<Integer, Integer> finalLegacyLecturerUserIdMap = legacy.lecturerUserIds();
+        Map<Integer, Trainer> finalLegacyTrainerByUserId = legacyTrainerByUserId;
         return courses.stream()
-                .map(c -> toDocument(c, finalTrainerNameMap, finalCategoryNameMap))
+                .map(c -> toDocument(
+                        c,
+                        finalTrainerNameMap,
+                        finalTrainerAvatarMap,
+                        finalCategoryNameMap,
+                        finalLegacyLecturerNameMap,
+                        finalLegacyLecturerUserIdMap,
+                        finalLegacyTrainerByUserId))
                 .toList();
     }
 
     private CourseDocument toDocument(Course course,
                                      Map<Integer, String> trainerNameMap,
-                                     Map<Integer, String> categoryNameMap) {
+                                     Map<Integer, String> trainerAvatarMap,
+                                     Map<Integer, String> categoryNameMap,
+                                     Map<Integer, String> legacyLecturerNameMap,
+                                     Map<Integer, Integer> legacyLecturerUserIdMap,
+                                     Map<Integer, Trainer> legacyTrainerByUserId) {
         CourseDocument doc = new CourseDocument();
         doc.setDocType(DOC_TYPE);
         doc.setId(course.getId());
@@ -133,7 +183,17 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
 
         doc.setTitle(course.getTitle());
         doc.setType(course.getType() != null ? course.getType().name() : null);
-        doc.setCoverUrl(course.getCoverUrl());
+        String categoryName = course.getCategoryId() != null && course.getCategoryId() > 0
+                ? categoryNameMap.get(course.getCategoryId())
+                : null;
+        String trainerAvatar = course.getTrainerId() != null && course.getTrainerId() > 0
+                ? trainerAvatarMap.get(course.getTrainerId())
+                : null;
+        Trainer legacyTrainer = resolveLegacyTrainer(course, legacyLecturerUserIdMap, legacyTrainerByUserId);
+        if (trainerAvatar == null && legacyTrainer != null) {
+            trainerAvatar = legacyTrainer.getAvatar();
+        }
+        doc.setCoverUrl(resolveCoverUrl(course, trainerAvatar, categoryName));
         doc.setIntro(stripHtml(course.getIntro()));
         doc.setAudience(course.getAudience());
         doc.setHighlights(course.getHighlights());
@@ -155,8 +215,18 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
         doc.setIsExpireHide(course.getIsExpireHide());
 
         // 关联字段
+        String trainerName = null;
         if (course.getTrainerId() != null && course.getTrainerId() > 0) {
-            doc.setTrainerName(trainerNameMap.get(course.getTrainerId()));
+            trainerName = trainerNameMap.get(course.getTrainerId());
+        }
+        if ((trainerName == null || trainerName.isBlank()) && legacyTrainer != null) {
+            trainerName = legacyTrainer.getName();
+        }
+        if ((trainerName == null || trainerName.isBlank()) && course.getId() != null) {
+            trainerName = legacyLecturerNameMap.get(course.getId());
+        }
+        if (trainerName != null && !trainerName.isBlank()) {
+            doc.setTrainerName(trainerName.trim());
         }
         if (course.getCategoryId() != null && course.getCategoryId() > 0) {
             doc.setCategoryId(course.getCategoryId());
@@ -169,6 +239,36 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
 
         doc.buildDocId();
         return doc;
+    }
+
+    private Trainer resolveLegacyTrainer(Course course,
+                                         Map<Integer, Integer> legacyLecturerUserIdMap,
+                                         Map<Integer, Trainer> legacyTrainerByUserId) {
+        if (course == null || course.getId() == null || legacyLecturerUserIdMap.isEmpty()) {
+            return null;
+        }
+        Integer userId = legacyLecturerUserIdMap.get(course.getId());
+        return userId == null ? null : legacyTrainerByUserId.get(userId);
+    }
+
+    private String resolveCoverUrl(Course course, String trainerAvatar, String categoryName) {
+        if (course == null) {
+            return "";
+        }
+        String scene = resolveCoverMaterialScene(course.getType());
+        int seed = course.getId() != null ? course.getId() : 0;
+        return opsMaterialResolver.resolveCourseCoverUrl(
+                course.getCoverUrl(), trainerAvatar, categoryName, scene, seed);
+    }
+
+    private static String resolveCoverMaterialScene(CourseType type) {
+        if (type == CourseType.INTERNAL) {
+            return "INTERNAL";
+        }
+        if (type != null && type.isOpen()) {
+            return "OPEN";
+        }
+        return "GENERAL";
     }
 
     /**

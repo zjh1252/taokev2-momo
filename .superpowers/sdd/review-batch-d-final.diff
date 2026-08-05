@@ -1,0 +1,964 @@
+# Review package: d315b81bb84526eea1a41713e4be8ebd65833c3a..HEAD
+
+## Commits
+af40dac6 fix(ui): Win11 缩放下取消强制 1400 宽并适配分类树
+060e7458 fix(admin): 案例/精彩瞬间/著作创建封面必填
+fa6bcdea fix(frontend): 案例/精彩瞬间/机构Logo/著作封面必填
+e493f61b fix(user): 精彩瞬间/著作/机构 Logo 后端必填校验
+0c3b146d perf(course): 允许单城公开课列表走 Redis 缓存
+
+## Files changed
+ .../features/books/components/book-create-form.tsx |  8 ++-
+ .../categories/components/category-form-dialog.tsx |  2 +-
+ .../categories/components/category-tree-table.tsx  |  6 +-
+ .../trainer-cases/components/case-create-form.tsx  |  8 ++-
+ .../components/highlight-create-form.tsx           |  8 ++-
+ .../course/support/PublicCourseListCache.java      | 59 ++++++++++++++++--
+ .../course/support/PublicCourseListCacheTest.java  | 70 ++++++++++++++++++++++
+ .../user/dto/institution/InstitutionRequest.java   |  4 +-
+ .../dto/trainerbook/SaveTrainerBookRequest.java    |  3 +-
+ .../SaveTrainerHighlightRequest.java               |  4 +-
+ frontend/src/app/[locale]/(public)/layout.tsx      |  2 +-
+ .../dashboard/cases/[id]/edit/page.tsx             |  2 +-
+ .../(usercenter)/dashboard/cases/create/page.tsx   |  2 +-
+ .../dashboard/highlights/[id]/edit/page.tsx        |  6 +-
+ .../dashboard/highlights/create/page.tsx           |  6 +-
+ .../role-apply/components/TrainerBooksEditor.tsx   |  7 ++-
+ .../components/role-forms/InstitutionApplyForm.tsx |  3 +-
+ .../features/trainer-case/lib/case-form-rules.ts   |  2 +
+ 18 files changed, 177 insertions(+), 25 deletions(-)
+
+## Diff
+diff --git a/admin-frontend/src/features/books/components/book-create-form.tsx b/admin-frontend/src/features/books/components/book-create-form.tsx
+index a13e7c8a..0df86c44 100644
+--- a/admin-frontend/src/features/books/components/book-create-form.tsx
++++ b/admin-frontend/src/features/books/components/book-create-form.tsx
+@@ -74,25 +74,29 @@ export function BookCreateForm() {
+       authorName: '',
+       publisher: '',
+       publishDate: '',
+       description: '',
+       buyUrl: ''
+     } as FormValues,
+     validators: {
+       onSubmit: formSchema
+     },
+     onSubmit: async ({ value }) => {
++      if (!coverUrl.trim()) {
++        toast.error('请上传封面图');
++        return;
++      }
+       await createMutation.mutateAsync({
+         trainerId: Number(value.trainerId),
+         title: value.title,
+         authorName: value.authorName || undefined,
+-        coverUrl: coverUrl || undefined,
++        coverUrl: coverUrl,
+         publisher: value.publisher || undefined,
+         publishDate: value.publishDate || undefined,
+         description: value.description || undefined,
+         buyUrl: value.buyUrl || undefined
+       });
+     }
+   });
+ 
+   const { FormTextField, FormTextareaField } = useFormFields<FormValues>();
+ 
+@@ -142,21 +146,21 @@ export function BookCreateForm() {
+                         </SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                 </div>
+               )}
+             </form.AppField>
+             <FormTextField name='title' label='书名' required />
+             <FormTextField name='authorName' label='作者名' />
+             <div className='space-y-2'>
+-              <Label>封面</Label>
++              <Label>封面 *</Label>
+               <div className='flex items-start gap-3'>
+                 <div className='relative h-[100px] w-[72px] overflow-hidden rounded border border-dashed border-muted-foreground/30 bg-muted/30'>
+                   <AssetImage
+                     src={coverUrl}
+                     alt='著作封面'
+                     fill
+                     wrapperClassName='h-full w-full'
+                     className='object-cover'
+                     fallback={
+                       <div className='flex h-full w-full items-center justify-center text-muted-foreground text-xs'>
+diff --git a/admin-frontend/src/features/categories/components/category-form-dialog.tsx b/admin-frontend/src/features/categories/components/category-form-dialog.tsx
+index 57f84721..59569832 100644
+--- a/admin-frontend/src/features/categories/components/category-form-dialog.tsx
++++ b/admin-frontend/src/features/categories/components/category-form-dialog.tsx
+@@ -114,21 +114,21 @@ export function CategoryFormDialog({
+         sortOrder: form.sortOrder,
+         isVisible: form.isVisible,
+         description: form.description || undefined
+       };
+       createMut.mutate(payload);
+     }
+   };
+ 
+   return (
+     <Dialog open={open} onOpenChange={onOpenChange}>
+-      <DialogContent className="sm:max-w-[420px]">
++      <DialogContent className="max-w-[min(420px,calc(100vw-2rem))] sm:max-w-[min(420px,calc(100vw-2rem))]">
+         <DialogHeader>
+           <DialogTitle>{isEdit ? '编辑分类' : '新增分类'}</DialogTitle>
+           <DialogDescription>
+             {isEdit ? '修改分类信息' : defaultParentId > 0 ? '添加子分类' : '添加顶级分类'}
+           </DialogDescription>
+         </DialogHeader>
+         <form onSubmit={handleSubmit} className="space-y-4">
+           <div className="space-y-2">
+             <Label>分类名称 *</Label>
+             <Input
+diff --git a/admin-frontend/src/features/categories/components/category-tree-table.tsx b/admin-frontend/src/features/categories/components/category-tree-table.tsx
+index 27e8bd51..9c2f46ba 100644
+--- a/admin-frontend/src/features/categories/components/category-tree-table.tsx
++++ b/admin-frontend/src/features/categories/components/category-tree-table.tsx
+@@ -91,21 +91,22 @@ export function CategoryTreeTable({ categoryType }: Props) {
+             setParentForCreate(0);
+             setCreateOpen(true);
+           }}
+         >
+           <Icons.add className="mr-2 h-4 w-4" />
+           新增分类
+         </Button>
+       </div>
+ 
+       <div className="rounded-lg border">
+-        <Table>
++        <div className="w-full overflow-x-auto">
++          <Table className="min-w-[720px]">
+           <TableHeader>
+             <TableRow>
+               <TableHead className="w-[280px]">分类名称</TableHead>
+               <TableHead className="w-[60px]">层级</TableHead>
+               <TableHead className="w-[60px]">排序</TableHead>
+               <TableHead className="w-[80px]">可见</TableHead>
+               <TableHead>描述</TableHead>
+               <TableHead className="w-[120px]">操作</TableHead>
+             </TableRow>
+           </TableHeader>
+@@ -128,21 +129,22 @@ export function CategoryTreeTable({ categoryType }: Props) {
+                     setParentForCreate(parentId);
+                     setCreateOpen(true);
+                   }}
+                   onToggleVisibility={(id, visible) => {
+                     toggleVisibility.mutate({ id, data: { isVisible: visible ? 1 : 0 } });
+                   }}
+                 />
+               ))
+             )}
+           </TableBody>
+-        </Table>
++          </Table>
++        </div>
+       </div>
+     </>
+   );
+ }
+ 
+ function CategoryRow({
+   node,
+   depth,
+   onEdit,
+   onDelete,
+diff --git a/admin-frontend/src/features/trainer-cases/components/case-create-form.tsx b/admin-frontend/src/features/trainer-cases/components/case-create-form.tsx
+index 3c43a90f..386019a4 100644
+--- a/admin-frontend/src/features/trainer-cases/components/case-create-form.tsx
++++ b/admin-frontend/src/features/trainer-cases/components/case-create-form.tsx
+@@ -102,37 +102,41 @@ export function CaseCreateForm() {
+     validators: {
+       onSubmit: ({ value }) => {
+         const parsed = formSchema.safeParse(value);
+         if (!parsed.success) return parsed.error;
+         if (!region.provinceId || !region.cityId || !region.districtId) {
+           return '请选择完整的培训地点（省/市/区）';
+         }
+       }
+     },
+     onSubmit: async ({ value }) => {
++      if (!coverUrl.trim()) {
++        toast.error('请上传封面图');
++        return;
++      }
+       await mutation.mutateAsync({
+         trainerUserId: Number(value.trainerUserId),
+         payload: {
+           caseTitle: value.caseTitle,
+           enterpriseName: value.enterpriseName,
+           industry: value.industry || undefined,
+           trainingTopic: value.trainingTopic || undefined,
+           trainingEffect: value.trainingEffect || undefined,
+           traineeCount: value.traineeCount ? Number(value.traineeCount) : undefined,
+           provinceId: region.provinceId!,
+           cityId: region.cityId!,
+           districtId: region.districtId!,
+           townId: region.townId,
+           trainingAddress: value.trainingAddress || undefined,
+           trainingDate: value.trainingDate || undefined,
+           description: value.description || undefined,
+-          coverImage: coverUrl || undefined
++          coverImage: coverUrl
+         }
+       });
+     }
+   });
+ 
+   const { FormTextField, FormTextareaField } = useFormFields<FormValues>();
+ 
+   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     e.target.value = '';
+@@ -203,21 +207,21 @@ export function CaseCreateForm() {
+ 
+             <FormTextField name='trainingAddress' label='详细地址' />
+             <div className='grid gap-4 sm:grid-cols-2'>
+               <FormTextField name='trainingDate' label='培训日期' placeholder='YYYY-MM-DD' />
+               <FormTextField name='traineeCount' label='受训人数' />
+             </div>
+             <FormTextareaField name='trainingEffect' label='培训效果' rows={3} />
+             <FormTextareaField name='description' label='描述' rows={4} />
+ 
+             <div className='space-y-2'>
+-              <Label>封面</Label>
++              <Label>封面 *</Label>
+               <div className='flex items-start gap-3'>
+                 <div className='relative h-[100px] w-[160px] overflow-hidden rounded border border-dashed border-muted-foreground/30 bg-muted/30'>
+                   <AssetImage
+                     src={coverUrl}
+                     alt='案例封面'
+                     fill
+                     wrapperClassName='h-full w-full'
+                     className='object-cover'
+                     fallback={
+                       <div className='flex h-full w-full items-center justify-center text-muted-foreground text-xs'>
+diff --git a/admin-frontend/src/features/trainer-highlights/components/highlight-create-form.tsx b/admin-frontend/src/features/trainer-highlights/components/highlight-create-form.tsx
+index 263855bb..a2aff0e9 100644
+--- a/admin-frontend/src/features/trainer-highlights/components/highlight-create-form.tsx
++++ b/admin-frontend/src/features/trainer-highlights/components/highlight-create-form.tsx
+@@ -77,26 +77,30 @@ export function HighlightCreateForm() {
+   const form = useAppForm({
+     defaultValues: {
+       trainerUserId: '',
+       title: '',
+       description: ''
+     } as FormValues,
+     validators: {
+       onSubmit: formSchema
+     },
+     onSubmit: async ({ value }) => {
++      if (!coverUrl.trim()) {
++        toast.error('请上传封面图');
++        return;
++      }
+       await mutation.mutateAsync({
+         trainerUserId: Number(value.trainerUserId),
+         payload: {
+           title: value.title || undefined,
+           description: value.description || undefined,
+-          coverImage: coverUrl || undefined
++          coverImage: coverUrl
+         }
+       });
+     }
+   });
+ 
+   const { FormTextField, FormTextareaField } = useFormFields<FormValues>();
+ 
+   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     e.target.value = '';
+@@ -145,21 +149,21 @@ export function HighlightCreateForm() {
+                     </SelectContent>
+                   </Select>
+                 </div>
+               )}
+             </form.AppField>
+ 
+             <FormTextField name='title' label='标题' />
+             <FormTextareaField name='description' label='描述' rows={4} />
+ 
+             <div className='space-y-2'>
+-              <Label>封面</Label>
++              <Label>封面 *</Label>
+               <div className='flex items-start gap-3'>
+                 <div className='relative h-[100px] w-[160px] overflow-hidden rounded border border-dashed border-muted-foreground/30 bg-muted/30'>
+                   <AssetImage
+                     src={coverUrl}
+                     alt='精彩瞬间封面'
+                     fill
+                     wrapperClassName='h-full w-full'
+                     className='object-cover'
+                     fallback={
+                       <div className='flex h-full w-full items-center justify-center text-muted-foreground text-xs'>
+diff --git a/backend/taoke-course/src/main/java/com/taoke/course/support/PublicCourseListCache.java b/backend/taoke-course/src/main/java/com/taoke/course/support/PublicCourseListCache.java
+index 5cb42a67..f2f35bac 100644
+--- a/backend/taoke-course/src/main/java/com/taoke/course/support/PublicCourseListCache.java
++++ b/backend/taoke-course/src/main/java/com/taoke/course/support/PublicCourseListCache.java
+@@ -29,22 +29,22 @@ import java.util.concurrent.ThreadLocalRandom;
+ @Slf4j
+ @Component
+ @RequiredArgsConstructor
+ public class PublicCourseListCache {
+ 
+     private static final String LIST_KEY_PREFIX = "taoke:course:public:list:";
+     private static final String COUNT_KEY_PREFIX = "taoke:course:public:catcount:";
+     private static final Duration LIST_TTL_BASE = Duration.ofMinutes(60);
+     private static final Duration COUNT_TTL_BASE = Duration.ofMinutes(60);
+ 
+-    /** 首页/频道常见 size */
+-    private static final Set<Integer> CACHEABLE_SIZES = Set.of(15, 30, 36);
++    /** 首页/频道常见 size（含城市综合页 upcoming 块 size=10） */
++    private static final Set<Integer> CACHEABLE_SIZES = Set.of(10, 15, 30, 36);
+     /** 可缓存的 sortBy（空串按 default） */
+     private static final Set<String> CACHEABLE_SORTS = Set.of(
+             "default", "time", "published", "viewCount", "score");
+ 
+     private final StringRedisTemplate stringRedisTemplate;
+     private final ObjectMapper objectMapper;
+ 
+     /**
+      * 无筛选 + 首页/频道默认分页参数时可缓存（内训或公开课）。
+      */
+@@ -56,31 +56,35 @@ public class PublicCourseListCache {
+             return false;
+         }
+         int size = query.getSize() <= 0 ? 15 : query.getSize();
+         if (!CACHEABLE_SIZES.contains(size)) {
+             return false;
+         }
+         String sort = normalizeSort(query.getSortBy());
+         if (!CACHEABLE_SORTS.contains(sort)) {
+             return false;
+         }
++        if (!isCacheableCityIds(query.getCityIds())) {
++            return false;
++        }
++        if (!isCacheableEnrollStatus(query.getEnrollStatus())) {
++            return false;
++        }
+         return query.getInstitutionId() == null
+                 && (query.getCategoryIds() == null || query.getCategoryIds().isEmpty())
+                 && (query.getSubCategoryIds() == null || query.getSubCategoryIds().isEmpty())
+                 && (query.getKeyword() == null || query.getKeyword().isBlank())
+                 && (query.getType() == null || query.getType().isBlank())
+                 && (query.getProvinceIds() == null || query.getProvinceIds().isEmpty())
+-                && (query.getCityIds() == null || query.getCityIds().isEmpty())
+                 && query.getStartTimeFrom() == null
+                 && query.getStartTimeTo() == null
+                 && (query.getTimeQuick() == null || query.getTimeQuick().isBlank())
+-                && (query.getEnrollStatus() == null || query.getEnrollStatus().isBlank())
+                 && query.getPriceMin() == null
+                 && query.getPriceMax() == null
+                 && query.getIsFree() == null
+                 && query.getMinScore() == null
+                 && query.getTrainerIndustryCategoryId() == null
+                 && query.getTrainerProvinceId() == null
+                 && query.getTrainerCityId() == null
+                 && query.getTrainerIsTrusted() == null
+                 && query.getTrainerHasCopyright() == null;
+     }
+@@ -187,26 +191,69 @@ public class PublicCourseListCache {
+             keys.add(LIST_KEY_PREFIX + "internal:p1:s15");
+             stringRedisTemplate.delete(keys);
+         } catch (Exception e) {
+             log.warn("清除公开课程列表缓存失败: {}", e.getMessage());
+         }
+     }
+ 
+     private static String listKey(PublicCourseQuery query) {
+         int page = Math.max(1, query.getPage());
+         int size = query.getSize() <= 0 ? 15 : query.getSize();
+-        return listKey(Boolean.TRUE.equals(query.getIsOpen()), normalizeSort(query.getSortBy()), page, size);
++        return listKey(
++                Boolean.TRUE.equals(query.getIsOpen()),
++                normalizeSort(query.getSortBy()),
++                page,
++                size,
++                cityKeySegment(query.getCityIds()),
++                enrollKeySegment(query.getEnrollStatus()));
+     }
+ 
++    /** evict 无城默认列表时使用，与 {@link #listKey(PublicCourseQuery)} 无城口径一致 */
+     private static String listKey(boolean isOpen, String sort, int page, int size) {
++        return listKey(isOpen, sort, page, size, "c0", "e_");
++    }
++
++    private static String listKey(
++            boolean isOpen, String sort, int page, int size, String citySegment, String enrollSegment) {
+         String channel = isOpen ? "open" : "internal";
+-        return LIST_KEY_PREFIX + channel + ":" + sort + ":p" + page + ":s" + size;
++        return LIST_KEY_PREFIX + channel + ":" + sort + ":p" + page + ":s" + size
++                + ":" + citySegment + ":" + enrollSegment;
++    }
++
++    /** 无城或单城可缓存，多城不缓存 */
++    private static boolean isCacheableCityIds(List<Integer> cityIds) {
++        if (cityIds == null || cityIds.isEmpty()) {
++            return true;
++        }
++        return cityIds.size() == 1;
++    }
++
++    /** 空白或 ENROLLING 可缓存，其它报名状态不缓存 */
++    private static boolean isCacheableEnrollStatus(String enrollStatus) {
++        if (enrollStatus == null || enrollStatus.isBlank()) {
++            return true;
++        }
++        return "ENROLLING".equalsIgnoreCase(enrollStatus.trim());
++    }
++
++    private static String cityKeySegment(List<Integer> cityIds) {
++        if (cityIds == null || cityIds.isEmpty()) {
++            return "c0";
++        }
++        return "c" + cityIds.getFirst();
++    }
++
++    private static String enrollKeySegment(String enrollStatus) {
++        if (enrollStatus == null || enrollStatus.isBlank()) {
++            return "e_";
++        }
++        return "e" + enrollStatus.trim().toUpperCase();
+     }
+ 
+     private static String countKey(boolean isOpen) {
+         return COUNT_KEY_PREFIX + (isOpen ? "open" : "internal");
+     }
+ 
+     private static String normalizeSort(String sortBy) {
+         if (sortBy == null || sortBy.isBlank()) {
+             return "default";
+         }
+diff --git a/backend/taoke-course/src/test/java/com/taoke/course/support/PublicCourseListCacheTest.java b/backend/taoke-course/src/test/java/com/taoke/course/support/PublicCourseListCacheTest.java
+new file mode 100644
+index 00000000..95c76532
+--- /dev/null
++++ b/backend/taoke-course/src/test/java/com/taoke/course/support/PublicCourseListCacheTest.java
+@@ -0,0 +1,70 @@
++package com.taoke.course.support;
++
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.taoke.course.dto.course.PublicCourseQuery;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.extension.ExtendWith;
++import org.mockito.InjectMocks;
++import org.mockito.Mock;
++import org.mockito.junit.jupiter.MockitoExtension;
++import org.springframework.data.redis.core.StringRedisTemplate;
++
++import java.lang.reflect.Method;
++import java.util.List;
++
++import static org.junit.jupiter.api.Assertions.assertFalse;
++import static org.junit.jupiter.api.Assertions.assertNotEquals;
++import static org.junit.jupiter.api.Assertions.assertTrue;
++
++@ExtendWith(MockitoExtension.class)
++class PublicCourseListCacheTest {
++
++    @Mock
++    StringRedisTemplate stringRedisTemplate;
++
++    @Mock
++    ObjectMapper objectMapper;
++
++    @InjectMocks
++    PublicCourseListCache cache;
++
++    private PublicCourseQuery cityUpcoming(int cityId) {
++        PublicCourseQuery q = new PublicCourseQuery();
++        q.setIsOpen(true);
++        q.setPage(1);
++        q.setSize(10);
++        q.setSortBy("time");
++        q.setCityIds(List.of(cityId));
++        q.setEnrollStatus("ENROLLING");
++        return q;
++    }
++
++    @Test
++    void isCacheable_singleCityEnrollingSize10() {
++        assertTrue(cache.isCacheableDefault(cityUpcoming(2)));
++    }
++
++    @Test
++    void isCacheable_rejectsMultiCity() {
++        PublicCourseQuery q = cityUpcoming(2);
++        q.setCityIds(List.of(2, 3));
++        assertFalse(cache.isCacheableDefault(q));
++    }
++
++    @Test
++    void listKey_differsByCity() throws Exception {
++        String shanghaiKey = invokeListKey(cityUpcoming(2));
++        String beijingKey = invokeListKey(cityUpcoming(1));
++        assertNotEquals(shanghaiKey, beijingKey);
++        assertTrue(shanghaiKey.contains(":c2:"));
++        assertTrue(beijingKey.contains(":c1:"));
++        assertTrue(shanghaiKey.contains(":eENROLLING"));
++        assertTrue(beijingKey.contains(":eENROLLING"));
++    }
++
++    private String invokeListKey(PublicCourseQuery query) throws Exception {
++        Method method = PublicCourseListCache.class.getDeclaredMethod("listKey", PublicCourseQuery.class);
++        method.setAccessible(true);
++        return (String) method.invoke(null, query);
++    }
++}
+diff --git a/backend/taoke-user/src/main/java/com/taoke/user/dto/institution/InstitutionRequest.java b/backend/taoke-user/src/main/java/com/taoke/user/dto/institution/InstitutionRequest.java
+index e1a54f5d..c59aa9b2 100644
+--- a/backend/taoke-user/src/main/java/com/taoke/user/dto/institution/InstitutionRequest.java
++++ b/backend/taoke-user/src/main/java/com/taoke/user/dto/institution/InstitutionRequest.java
+@@ -1,27 +1,28 @@
+ package com.taoke.user.dto.institution;
+ 
++import jakarta.validation.constraints.NotBlank;
+ import jakarta.validation.constraints.Pattern;
+ import jakarta.validation.constraints.Size;
+ import lombok.Data;
+ 
+ import java.time.LocalDate;
+ import java.util.List;
+ 
+ /**
+  * 保存机构信息请求 — 培训机构角色申请 / 资料更新统一入参。
+  *
+  * <p>本期新增：法人代表 / 成立时间 / Logo / 行业领域分类 ID 多选 / 我的客户
+  * （已有）/ 是否有场地 / 是否有专家 / 合作协议签署。</p>
+  *
+  * @author Fangxinxin
+- * @date 2026-03-31 16:00
++ * @date 2026-07-29 15:30
+  */
+ @Data
+ public class InstitutionRequest {
+ 
+     @Size(max = 128, message = "机构名称不超过128个字符")
+     private String orgName;
+ 
+     /** 机构类型 */
+     private Integer orgType;
+ 
+@@ -30,20 +31,21 @@ public class InstitutionRequest {
+     private String legalRepresentative;
+ 
+     @Pattern(regexp = "^(\\d{15}|[A-Z\\d]{18})?$", message = "营业执照号需为15位纯数字或18位大写统一社会信用代码")
+     @Size(max = 64, message = "营业执照号不超过64个字符")
+     private String licenseNo;
+ 
+     /** 机构成立日期（YYYY-MM-DD） */
+     private LocalDate establishedAt;
+ 
+     /** 机构 Logo URL */
++    @NotBlank(message = "请上传机构 Logo")
+     @Size(max = 512, message = "Logo URL 不超过512个字符")
+     private String logoUrl;
+ 
+     /** 营业执照附件 URL（图片） */
+     @Size(max = 512, message = "营业执照 URL 不超过512个字符")
+     private String licenseDocUrl;
+ 
+     /** 机构简介（支持富文本） */
+     private String bio;
+ 
+diff --git a/backend/taoke-user/src/main/java/com/taoke/user/dto/trainerbook/SaveTrainerBookRequest.java b/backend/taoke-user/src/main/java/com/taoke/user/dto/trainerbook/SaveTrainerBookRequest.java
+index f65bf26c..7fcc8710 100644
+--- a/backend/taoke-user/src/main/java/com/taoke/user/dto/trainerbook/SaveTrainerBookRequest.java
++++ b/backend/taoke-user/src/main/java/com/taoke/user/dto/trainerbook/SaveTrainerBookRequest.java
+@@ -3,32 +3,33 @@ package com.taoke.user.dto.trainerbook;
+ import jakarta.validation.constraints.NotBlank;
+ import jakarta.validation.constraints.Size;
+ import lombok.Data;
+ 
+ import java.time.LocalDate;
+ 
+ /**
+  * 保存（新增/更新）专家著作请求 DTO
+  *
+  * @author Fangxinxin
+- * @date 2026-04-16 15:30
++ * @date 2026-07-29 15:30
+  */
+ @Data
+ public class SaveTrainerBookRequest {
+ 
+     @NotBlank(message = "书名不能为空")
+     @Size(max = 200, message = "书名长度不超过 200 字符")
+     private String title;
+ 
+     @Size(max = 200, message = "作者名长度不超过 200 字符")
+     private String authorName;
+ 
++    @NotBlank(message = "请上传封面图")
+     @Size(max = 500, message = "封面图 URL 长度不超过 500 字符")
+     private String coverUrl;
+ 
+     @Size(max = 200, message = "出版社长度不超过 200 字符")
+     private String publisher;
+ 
+     private LocalDate publishDate;
+ 
+     @Size(max = 1000, message = "简介长度不超过 1000 字符")
+     private String description;
+diff --git a/backend/taoke-user/src/main/java/com/taoke/user/dto/trainerhighlight/SaveTrainerHighlightRequest.java b/backend/taoke-user/src/main/java/com/taoke/user/dto/trainerhighlight/SaveTrainerHighlightRequest.java
+index 156b7aec..329c3796 100644
+--- a/backend/taoke-user/src/main/java/com/taoke/user/dto/trainerhighlight/SaveTrainerHighlightRequest.java
++++ b/backend/taoke-user/src/main/java/com/taoke/user/dto/trainerhighlight/SaveTrainerHighlightRequest.java
+@@ -1,25 +1,27 @@
+ package com.taoke.user.dto.trainerhighlight;
+ 
++import jakarta.validation.constraints.NotBlank;
+ import jakarta.validation.constraints.Size;
+ import lombok.Data;
+ 
+ /**
+  * 新增/编辑精彩瞬间请求（父记录字段）
+  *
+  * @author Fangxinxin
+- * @date 2026-04-11 16:30
++ * @date 2026-07-29 15:30
+  */
+ @Data
+ public class SaveTrainerHighlightRequest {
+ 
+     @Size(max = 200, message = "标题不能超过200字")
+     private String title;
+ 
+     @Size(max = 500, message = "描述不能超过500字")
+     private String description;
+ 
++    @NotBlank(message = "请上传封面图")
+     @Size(max = 500, message = "封面图URL不能超过500字")
+     private String coverImage;
+ 
+     private Integer sortOrder;
+ }
+diff --git a/frontend/src/app/[locale]/(public)/layout.tsx b/frontend/src/app/[locale]/(public)/layout.tsx
+index 667a473d..4a1cea7c 100644
+--- a/frontend/src/app/[locale]/(public)/layout.tsx
++++ b/frontend/src/app/[locale]/(public)/layout.tsx
+@@ -16,19 +16,19 @@ export default async function PublicLayout({ children }: { children: React.React
+   if (isPxbEmbed) {
+     return (
+       <PxbEmbedProvider enabled>
+         <main className="pxb-embed-main">{children}</main>
+       </PxbEmbedProvider>
+     );
+   }
+ 
+   return (
+     <div className="w-full overflow-x-auto">
+-      <div className="min-w-[1400px]">
++      <div className="min-w-0">
+         <PublicHeader />
+         <main className="flex-1 bg-[var(--page-bg)]">{children}</main>
+         <AppFooter />
+       </div>
+       <FloatingActions />
+     </div>
+   );
+ }
+diff --git a/frontend/src/app/[locale]/(usercenter)/dashboard/cases/[id]/edit/page.tsx b/frontend/src/app/[locale]/(usercenter)/dashboard/cases/[id]/edit/page.tsx
+index ea14bcd1..572e1fa3 100644
+--- a/frontend/src/app/[locale]/(usercenter)/dashboard/cases/[id]/edit/page.tsx
++++ b/frontend/src/app/[locale]/(usercenter)/dashboard/cases/[id]/edit/page.tsx
+@@ -328,21 +328,21 @@ export default function EditCasePage({
+ 
+         <FormField label="描述">
+           <textarea
+             value={form.description || ''}
+             onChange={(e) => updateField('description', e.target.value)}
+             rows={4}
+             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+           />
+         </FormField>
+ 
+-        <FormField label="封面图">
++        <FormField label="封面图" required>
+           <div className="flex items-center gap-4">
+             {form.coverImage ? (
+               <div className="relative w-[160px] h-[100px] rounded-lg overflow-hidden border border-slate-200">
+                 <Image
+                   src={form.coverImage}
+                   alt="封面"
+                   fill
+                   className="object-cover"
+                 />
+                 <button
+diff --git a/frontend/src/app/[locale]/(usercenter)/dashboard/cases/create/page.tsx b/frontend/src/app/[locale]/(usercenter)/dashboard/cases/create/page.tsx
+index 34be627b..5a9a9edd 100644
+--- a/frontend/src/app/[locale]/(usercenter)/dashboard/cases/create/page.tsx
++++ b/frontend/src/app/[locale]/(usercenter)/dashboard/cases/create/page.tsx
+@@ -251,21 +251,21 @@ export default function CreateCasePage() {
+         <FormField label="描述">
+           <textarea
+             value={form.description || ''}
+             onChange={(e) => updateField('description', e.target.value)}
+             rows={4}
+             placeholder="请输入描述"
+             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+           />
+         </FormField>
+ 
+-        <FormField label="封面图">
++        <FormField label="封面图" required>
+           <div className="flex items-center gap-4">
+             {form.coverImage ? (
+               <div className="relative w-[160px] h-[100px] rounded-lg overflow-hidden border border-slate-200">
+                 <Image
+                   src={form.coverImage}
+                   alt="封面"
+                   fill
+                   className="object-cover"
+                 />
+                 <button
+diff --git a/frontend/src/app/[locale]/(usercenter)/dashboard/highlights/[id]/edit/page.tsx b/frontend/src/app/[locale]/(usercenter)/dashboard/highlights/[id]/edit/page.tsx
+index c92c00b5..eb322bed 100644
+--- a/frontend/src/app/[locale]/(usercenter)/dashboard/highlights/[id]/edit/page.tsx
++++ b/frontend/src/app/[locale]/(usercenter)/dashboard/highlights/[id]/edit/page.tsx
+@@ -134,20 +134,24 @@ export default function EditHighlightPage({
+           // 平台层已统一处理错误提示
+           return;
+         }
+       }
+       setFiles((prev) => prev.filter((_, i) => i !== index));
+     },
+     [highlightId],
+   );
+ 
+   const handleSubmit = async () => {
++    if (!form.coverImage?.trim()) {
++      toast.error('请上传封面图');
++      return;
++    }
+     setSubmitting(true);
+     try {
+       await updateHighlight(highlightId, form);
+       toast.success('已更新');
+       router.push(ROUTES.UC_HIGHLIGHTS_MANAGE);
+     } catch {
+       // 平台层已统一处理错误提示
+     } finally {
+       setSubmitting(false);
+     }
+@@ -201,21 +205,21 @@ export default function EditHighlightPage({
+         <FormField label="描述">
+           <textarea
+             value={form.description || ''}
+             onChange={(e) => updateField('description', e.target.value)}
+             rows={3}
+             placeholder="请输入描述"
+             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+           />
+         </FormField>
+ 
+-        <FormField label="封面图">
++        <FormField label="封面图" required>
+           {form.coverImage ? (
+             <div className="relative w-[240px] h-[180px] rounded-lg overflow-hidden border border-slate-200">
+               <Image
+                 src={form.coverImage}
+                 alt="封面"
+                 fill
+                 className="object-cover"
+               />
+               <button
+                 type="button"
+diff --git a/frontend/src/app/[locale]/(usercenter)/dashboard/highlights/create/page.tsx b/frontend/src/app/[locale]/(usercenter)/dashboard/highlights/create/page.tsx
+index b6520c3c..7e11641d 100644
+--- a/frontend/src/app/[locale]/(usercenter)/dashboard/highlights/create/page.tsx
++++ b/frontend/src/app/[locale]/(usercenter)/dashboard/highlights/create/page.tsx
+@@ -57,20 +57,24 @@ export default function CreateHighlightPage() {
+ 
+   const handleRemoveFile = useCallback((_index: number, _file: UploadedFile) => {
+     setFiles((prev) => prev.filter((_, i) => i !== _index));
+   }, []);
+ 
+   const handleSubmit = async () => {
+     if (!valid) {
+       toast.error('请先在顶部选择要代发精彩瞬间的专家');
+       return;
+     }
++    if (!form.coverImage?.trim()) {
++      toast.error('请上传封面图');
++      return;
++    }
+     setSubmitting(true);
+     try {
+       const highlight = await createHighlight(form, trainerUserId);
+ 
+       // 逐个上传文件到子表
+       for (let i = 0; i < files.length; i++) {
+         const f = files[i];
+         await addHighlightFile(highlight.id, {
+           fileType: f.fileType,
+           fileUrl: f.fileUrl,
+@@ -120,21 +124,21 @@ export default function CreateHighlightPage() {
+         <FormField label="描述">
+           <textarea
+             value={form.description || ''}
+             onChange={(e) => updateField('description', e.target.value)}
+             rows={3}
+             placeholder="请输入描述"
+             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+           />
+         </FormField>
+ 
+-        <FormField label="封面图">
++        <FormField label="封面图" required>
+           {form.coverImage ? (
+             <div className="relative w-[240px] h-[180px] rounded-lg overflow-hidden border border-slate-200">
+               <Image
+                 src={form.coverImage}
+                 alt="封面"
+                 fill
+                 className="object-cover"
+               />
+               <button
+                 type="button"
+diff --git a/frontend/src/features/role-apply/components/TrainerBooksEditor.tsx b/frontend/src/features/role-apply/components/TrainerBooksEditor.tsx
+index e17a01f5..ea483d83 100644
+--- a/frontend/src/features/role-apply/components/TrainerBooksEditor.tsx
++++ b/frontend/src/features/role-apply/components/TrainerBooksEditor.tsx
+@@ -6,20 +6,21 @@ import {
+   Dialog,
+   DialogContent,
+   DialogFooter,
+   DialogHeader,
+   DialogTitle,
+ } from '@/components/ui/dialog';
+ import { Input } from '@/components/ui/input';
+ import { Textarea } from '@/components/ui/textarea';
+ import { Label } from '@/components/ui/label';
+ import { Button } from '@/components/ui/button';
++import { toast } from 'sonner';
+ import SingleImageUploader from '@/features/role-apply/components/SingleImageUploader';
+ import { resolveImageSrc } from '@/lib/media';
+ import type { TrainerBookFormItem } from '../api/types';
+ 
+ interface TrainerBooksEditorProps {
+   value: TrainerBookFormItem[];
+   onChange: (next: TrainerBookFormItem[]) => void;
+ }
+ 
+ const EMPTY_BOOK: TrainerBookFormItem = {
+@@ -59,20 +60,24 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
+   };
+ 
+   const remove = (index: number) => {
+     const next = value.slice();
+     next.splice(index, 1);
+     onChange(next);
+   };
+ 
+   const submit = () => {
+     if (!draft.title?.trim()) return;
++    if (!draft.coverUrl?.trim()) {
++      toast.error('请上传封面图');
++      return;
++    }
+     const item: TrainerBookFormItem = {
+       title: draft.title.trim(),
+       authorName: draft.authorName?.trim() || '',
+       coverUrl: draft.coverUrl?.trim() || '',
+       publisher: draft.publisher?.trim() || '',
+       publishDate: draft.publishDate || '',
+       description: draft.description?.trim() || '',
+       buyUrl: draft.buyUrl?.trim() || '',
+     };
+     if (editingIndex == null) {
+@@ -204,21 +209,21 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
+                 <Label htmlFor="book-date">出版日期</Label>
+                 <Input
+                   id="book-date"
+                   type="date"
+                   value={draft.publishDate || ''}
+                   onChange={(e) => setDraft({ ...draft, publishDate: e.target.value })}
+                 />
+               </div>
+             </div>
+             <div className="space-y-1">
+-              <Label>封面图</Label>
++              <Label>封面图 *</Label>
+               <SingleImageUploader
+                 label="著作封面"
+                 value={draft.coverUrl || ''}
+                 onChange={(url) => setDraft({ ...draft, coverUrl: url })}
+               />
+             </div>
+             <div className="space-y-1">
+               <Label htmlFor="book-buy">购买链接</Label>
+               <Input
+                 id="book-buy"
+diff --git a/frontend/src/features/role-apply/components/role-forms/InstitutionApplyForm.tsx b/frontend/src/features/role-apply/components/role-forms/InstitutionApplyForm.tsx
+index 1e4b3409..1fc27820 100644
+--- a/frontend/src/features/role-apply/components/role-forms/InstitutionApplyForm.tsx
++++ b/frontend/src/features/role-apply/components/role-forms/InstitutionApplyForm.tsx
+@@ -114,21 +114,21 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
+           <FormField label="成立时间">
+             <input
+               type="date"
+               value={data.establishedAt || ''}
+               onChange={(e) => update({ establishedAt: e.target.value })}
+               className="form-input"
+             />
+           </FormField>
+ 
+           <div className="md:col-span-2">
+-            <FormField label="公司 Logo">
++            <FormField label="公司 Logo" required>
+               <SingleImageUploader
+                 label="机构 Logo"
+                 value={data.logoUrl || ''}
+                 onChange={(url) => update({ logoUrl: url })}
+               />
+               <p className="mt-1.5 text-xs text-gray-500">
+                 建议上传 1:1 正方形图片，支持 JPG / PNG / JPEG 格式。
+               </p>
+             </FormField>
+           </div>
+@@ -303,20 +303,21 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
+  * 培训机构表单验证规则
+  */
+ export const INSTITUTION_RULES: FormValidationRules<InstitutionFormData> = {
+   orgName: { required: true, requiredMessage: '请输入机构名称' },
+   orgType: { required: true, requiredMessage: '请选择机构类型' },
+   licenseNo: {
+     required: true,
+     requiredMessage: '请输入营业执照号',
+     validator: Validators.businessLicenseNo,
+   },
++  logoUrl: { required: true, requiredMessage: '请上传机构 Logo' },
+   bio: { required: true, requiredMessage: '请输入机构简介' },
+   industryCategoryIds: { required: true, requiredMessage: '请至少选择一个擅长行业' },
+   expertiseCategoryIds: { required: true, requiredMessage: '请至少选择一个擅长领域' },
+   contactName: { required: true, requiredMessage: '请输入联系人姓名' },
+   contactPhone: {
+     required: true,
+     requiredMessage: '请输入联系电话',
+     validator: Validators.phone,
+   },
+   agreementSigned: {
+diff --git a/frontend/src/features/trainer-case/lib/case-form-rules.ts b/frontend/src/features/trainer-case/lib/case-form-rules.ts
+index 42435787..c4f94256 100644
+--- a/frontend/src/features/trainer-case/lib/case-form-rules.ts
++++ b/frontend/src/features/trainer-case/lib/case-form-rules.ts
+@@ -30,11 +30,13 @@ export const CASE_RULES: FormValidationRules<SaveTrainerCaseRequest> = {
+     required: true,
+     requiredMessage: '请选择培训地点（区/县）',
+     validator: positiveIdValidator('请选择培训地点（区/县）'),
+   },
+   traineeCount: {
+     validator: traineeCountValidator,
+   },
+   trainingDate: {
+     validator: Validators.notFutureDate('培训日期不能晚于今天'),
+   },
++  description: { required: true, requiredMessage: '请填写案例描述' },
++  coverImage: { required: true, requiredMessage: '请上传封面图' },
+ };

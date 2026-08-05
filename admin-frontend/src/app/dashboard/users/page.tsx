@@ -5,7 +5,7 @@ import type { SearchParams } from 'nuqs/server';
 import { UserFormSheetTrigger } from '@/features/users/components/user-form-sheet';
 
 export const metadata = {
-  title: '用户管理'
+  title: '个人学员'
 };
 
 type PageProps = {
@@ -19,8 +19,8 @@ export default async function UsersPage(props: PageProps) {
   return (
     <PageContainer
       scrollable={false}
-      pageTitle='平台所有用户管理'
-      pageDescription='查询与管理平台所有用户账号；可按角色筛选查看不同用户类型'
+      pageTitle='个人学员'
+      pageDescription='查询与管理个人学员账号；可按角色筛选查看不同用户类型'
       pageHeaderAction={<UserFormSheetTrigger />}
     >
       <UserListingPage />

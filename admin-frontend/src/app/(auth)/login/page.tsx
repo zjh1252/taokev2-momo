@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Icons } from '@/components/icons';
 import { loginMutation } from '@/features/auth/api/mutations';
 import { ApiError } from '@/lib/api-client';
 import { useAuthOwl } from '../auth-owl-context';
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { setFocusTarget } = useAuthOwl();
 
   const { mutate, isPending } = useMutation({
@@ -72,17 +74,32 @@ export default function LoginPage() {
         </div>
         <div className='space-y-2'>
           <Label htmlFor='password'>密码</Label>
-          <Input
-            id='password'
-            type='password'
-            placeholder='请输入密码'
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onFocus={() => setFocusTarget('password')}
-            onBlur={() => setFocusTarget('none')}
-            autoComplete='current-password'
-            className='h-11 focus-visible:ring-primary/30'
-          />
+          <div className='relative'>
+            <Input
+              id='password'
+              type={showPassword ? 'text' : 'password'}
+              placeholder='请输入密码'
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => setFocusTarget('password')}
+              onBlur={() => setFocusTarget('none')}
+              autoComplete='current-password'
+              className='h-11 pr-10 focus-visible:ring-primary/30'
+            />
+            <button
+              type='button'
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setShowPassword((v) => !v)}
+              className='text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2'
+              aria-label={showPassword ? '隐藏密码' : '显示密码'}
+            >
+              {showPassword ? (
+                <Icons.eyeOff className='size-4' />
+              ) : (
+                <Icons.eye className='size-4' />
+              )}
+            </button>
+          </div>
         </div>
 
         <Button type='submit' className='h-11 w-full text-base' isLoading={isPending}>

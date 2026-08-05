@@ -2,7 +2,12 @@
 
 import { useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getBrowserPathname, replaceBrowserUrl } from '@/lib/sync-list-filter-url';
+import {
+  currentBrowserSearchParams,
+  getBrowserPathname,
+  mergeListUrlParams,
+  replaceBrowserUrl,
+} from '@/lib/sync-list-filter-url';
 
 /**
  * 列表页 keyword 与 URL {@code ?keyword=} 双向同步（配合顶部搜索栏跳转）
@@ -13,11 +18,11 @@ export function useListKeywordUrl() {
 
   const commitKeyword = useCallback(
     (kw: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      const trimmed = kw.trim();
-      if (trimmed) params.set('keyword', trimmed);
-      else params.delete('keyword');
-      params.delete('page');
+      const params = mergeListUrlParams(
+        currentBrowserSearchParams(searchParams),
+        { keyword: kw },
+        1,
+      );
       replaceBrowserUrl(getBrowserPathname(), params);
     },
     [searchParams],

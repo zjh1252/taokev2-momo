@@ -3,12 +3,17 @@ package com.taoke.common.search;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
+import co.elastic.clients.elasticsearch._types.query_dsl.FieldValueFactorModifier;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionBoostMode;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionScoreMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.GetIndexResponse;
@@ -41,6 +46,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SearchIndexService {
 
+    private static final String MANAGED_INDEX_PREFIX = "taokev2";
+    private static final String INDEX_NAME_PATTERN = "^[a-z0-9][a-z0-9._-]*$";
+
     private final ElasticsearchClient esClient;
     private final ElasticsearchProperties properties;
     private final ObjectMapper objectMapper;
@@ -52,6 +60,7 @@ public class SearchIndexService {
      * @return 是否创建成功（索引已存在时返回 false）
      */
     public boolean createIndex(String indexName) {
+        validateManagedIndexName(indexName);
         try {
             if (indexExists(indexName)) {
                 log.info("索引已存在，跳过创建: {}", indexName);
@@ -73,6 +82,7 @@ public class SearchIndexService {
      * 更新已有索引的 mapping（添加新字段，不影响已有字段）。
      */
     public boolean putMapping(String indexName) {
+        validateManagedIndexName(indexName);
         try {
             if (!indexExists(indexName)) {
                 log.info("索引不存在，跳过 mapping 更新: {}", indexName);
@@ -98,6 +108,7 @@ public class SearchIndexService {
      * @param indexName 索引名称
      */
     public void deleteIndex(String indexName) {
+        validateManagedIndexName(indexName);
         if (properties.getIndexName().equals(indexName)) {
             throw new SearchException(ErrorCode.SEARCH_FORBIDDEN, "禁止删除默认索引: " + indexName);
         }
@@ -113,6 +124,7 @@ public class SearchIndexService {
      * 检查索引是否存在
      */
     public boolean indexExists(String indexName) {
+        validateManagedIndexName(indexName);
         try {
             return esClient.indices().exists(e -> e.index(indexName)).value();
         } catch (IOException e) {
@@ -137,6 +149,32 @@ public class SearchIndexService {
     }
 
     /**
+     * 列出索引及基础统计信息，供后台管理页展示。
+     */
+    public List<SearchIndexInfo> listIndexInfos() {
+        String defaultIndex = properties.getIndexName();
+        return listIndices().stream()
+                .sorted()
+                .map(name -> new SearchIndexInfo(name, defaultIndex.equals(name), countDocuments(name)))
+                .toList();
+    }
+
+    /**
+     * 统计指定索引中的文档数量。索引不存在时返回 0，避免管理页因空环境不可用。
+     */
+    public long countDocuments(String indexName) {
+        validateManagedIndexName(indexName);
+        try {
+            return esClient.count(c -> c.index(indexName)).count();
+        } catch (Exception e) {
+            if (isIndexNotFound(e)) {
+                return 0L;
+            }
+            throw new SearchException(ErrorCode.SEARCH_INDEX_ERROR, "统计索引文档数失败: " + indexName, e);
+        }
+    }
+
+    /**
      * 批量写入文档到指定索引
      *
      * @param indexName 目标索引
@@ -148,6 +186,15 @@ public class SearchIndexService {
             return;
         }
 
+        int batchSize = Math.max(1, properties.getReindexBatchSize());
+        for (int from = 0; from < documents.size(); from += batchSize) {
+            int to = Math.min(from + batchSize, documents.size());
+            bulkIndexChunk(indexName, documents.subList(from, to));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void bulkIndexChunk(String indexName, List<? extends BaseDocument> documents) {
         try {
             BulkRequest.Builder bulkBuilder = new BulkRequest.Builder();
             for (BaseDocument doc : documents) {
@@ -368,7 +415,23 @@ public class SearchIndexService {
                     ));
                 }
 
-                s.query(q -> q.bool(boolQuery.build()));
+                BoolQuery builtQuery = boolQuery.build();
+                if (isSmartRecommendRank(request)) {
+                    s.query(q -> q.functionScore(fs -> fs
+                            .query(inner -> inner.bool(builtQuery))
+                            .functions(buildSmartRankFunctions(request.getDocType()))
+                            .scoreMode(FunctionScoreMode.Sum)
+                            .boostMode(resolveSmartBoostMode(request))
+                    ));
+                } else {
+                    s.query(q -> q.bool(builtQuery));
+                    String sortField = resolveExplicitSortField(request);
+                    if (sortField != null) {
+                        s.sort(sort -> sort.field(f -> f.field(sortField).order(SortOrder.Desc).missing("_last")));
+                        s.sort(sort -> sort.score(sc -> sc.order(SortOrder.Desc)));
+                        s.sort(sort -> sort.field(f -> f.field("id").order(SortOrder.Desc).missing("_last")));
+                    }
+                }
 
                 // 高亮：对主要文本字段加 highlight，标签用 <em>
                 if (keyword != null && !keyword.isBlank()) {
@@ -428,6 +491,80 @@ public class SearchIndexService {
         }
     }
 
+    private boolean isSmartRecommendRank(SearchRequest request) {
+        String rankMode = normalizeSearchOption(request.getRankMode());
+        String sortBy = normalizeSearchOption(request.getSortBy());
+        return "smartcs".equals(rankMode)
+                || "smartcs".equals(sortBy)
+                || "smartrecommend".equals(sortBy);
+    }
+
+    private FunctionBoostMode resolveSmartBoostMode(SearchRequest request) {
+        return hasStructuredRecommendationFilter(request)
+                ? FunctionBoostMode.Replace
+                : FunctionBoostMode.Sum;
+    }
+
+    private boolean hasStructuredRecommendationFilter(SearchRequest request) {
+        return request.getCategoryId() != null
+                || request.getSubCategoryId() != null
+                || request.getExpertiseCategoryId() != null;
+    }
+
+    private String resolveExplicitSortField(SearchRequest request) {
+        String sortBy = normalizeSearchOption(request.getSortBy());
+        return switch (sortBy) {
+            case "score", "rating", "star" -> "score";
+            case "viewcount", "popular", "popularity", "hot" -> "viewCount";
+            case "enrollmentcount", "enrollment", "enroll", "sales" -> "enrollmentCount";
+            default -> null;
+        };
+    }
+
+    private String normalizeSearchOption(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toLowerCase().replace("_", "").replace("-", "");
+    }
+
+    private List<FunctionScore> buildSmartRankFunctions(String docType) {
+        boolean trainerOnly = "trainer".equalsIgnoreCase(docType);
+        boolean courseOnly = "course".equalsIgnoreCase(docType);
+        List<FunctionScore> functions = new java.util.ArrayList<>();
+
+        functions.add(fieldValueFactor("score", 3.0, FieldValueFactorModifier.None));
+        functions.add(fieldValueFactor("sortOrder", 0.001, FieldValueFactorModifier.None));
+
+        if (trainerOnly) {
+            functions.add(fieldValueFactor("viewCount", 0.6, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("isRecommended", 3.0, FieldValueFactorModifier.None));
+            functions.add(fieldValueFactor("isSigned", 2.0, FieldValueFactorModifier.None));
+            functions.add(fieldValueFactor("experienceYears", 0.2, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("teachingYears", 0.2, FieldValueFactorModifier.Log1p));
+        } else if (courseOnly) {
+            functions.add(fieldValueFactor("viewCount", 0.6, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("enrollmentCount", 1.0, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("isFeatured", 3.0, FieldValueFactorModifier.None));
+        } else {
+            functions.add(fieldValueFactor("viewCount", 0.6, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("enrollmentCount", 1.0, FieldValueFactorModifier.Log1p));
+            functions.add(fieldValueFactor("isFeatured", 3.0, FieldValueFactorModifier.None));
+            functions.add(fieldValueFactor("isRecommended", 3.0, FieldValueFactorModifier.None));
+            functions.add(fieldValueFactor("isSigned", 2.0, FieldValueFactorModifier.None));
+        }
+
+        return functions;
+    }
+
+    private FunctionScore fieldValueFactor(String field, double factor, FieldValueFactorModifier modifier) {
+        return FunctionScore.of(fn -> fn.fieldValueFactor(fvf -> fvf
+                .field(field)
+                .factor(factor)
+                .modifier(modifier)
+                .missing(0.0)
+        ));
+    }
     private boolean isIndexNotFound(Throwable e) {
         for (Throwable t = e; t != null; t = t.getCause()) {
             if (t instanceof ElasticsearchException ee
@@ -445,6 +582,18 @@ public class SearchIndexService {
      */
     public String getDefaultIndexName() {
         return properties.getIndexName();
+    }
+
+    public void validateManagedIndexName(String indexName) {
+        if (indexName == null || indexName.isBlank()) {
+            throw new SearchException(ErrorCode.PARAM_INVALID, "索引名称不能为空");
+        }
+        if (!indexName.matches(INDEX_NAME_PATTERN)) {
+            throw new SearchException(ErrorCode.PARAM_INVALID, "索引名称只能包含小写字母、数字、点、下划线和短横线");
+        }
+        if (!indexName.startsWith(MANAGED_INDEX_PREFIX)) {
+            throw new SearchException(ErrorCode.PARAM_INVALID, "索引名称必须以 " + MANAGED_INDEX_PREFIX + " 开头");
+        }
     }
 
     /** IK 分词器：索引时最细粒度切分，搜索时智能切分 */
@@ -488,11 +637,19 @@ public class SearchIndexService {
                 .properties("durationDays", p -> p.integer(i -> i))
                 .properties("courseOpenEndDate", p -> p.date(d -> d.format("yyyy-MM-dd||strict_date_optional_time||epoch_millis")))
                 .properties("isExpireHide", p -> p.integer(i -> i))
+                .properties("isFeatured", p -> p.long_(l -> l))
+                .properties("isFree", p -> p.long_(l -> l))
+                .properties("sortOrder", p -> p.long_(l -> l))
+                .properties("viewCount", p -> p.long_(l -> l))
+                .properties("enrollmentCount", p -> p.long_(l -> l))
+                .properties("score", p -> p.float_(f -> f))
                 // 专家过滤字段
                 .properties("provinceId", p -> p.integer(i -> i))
                 .properties("cityId", p -> p.integer(i -> i))
                 .properties("experienceYears", p -> p.integer(i -> i))
                 .properties("teachingYears", p -> p.integer(i -> i))
+                .properties("isSigned", p -> p.long_(l -> l))
+                .properties("isRecommended", p -> p.long_(l -> l))
                 .properties("expertiseCategoryIds", p -> p.integer(i -> i))
         );
     }

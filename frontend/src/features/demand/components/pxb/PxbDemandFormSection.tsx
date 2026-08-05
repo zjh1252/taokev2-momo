@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CategoryTreeNode } from '@/features/trainer/types';
 import { dispatchPxbContentResize } from '@/lib/pxb-embed';
 import { PxbDateInput } from '@/features/course/components/open/pxb/PxbDateInput';
@@ -48,11 +48,12 @@ function minDateStr(): string {
 }
 
 export function PxbDemandFormSection({ kind, expertiseTree, trainerName, trainerId }: Props) {
-  const { isLoggedIn } = usePxbDemandAuth();
+  const { isLoggedIn, phone } = usePxbDemandAuth();
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<{ demandNo: string; contactName: string } | null>(null);
   const [provinces, setProvinces] = useState<RegionItem[]>([]);
   const [cities, setCities] = useState<RegionItem[]>([]);
+  const phonePrefilledRef = useRef(false);
 
   const [title, setTitle] = useState('');
   const [expertiseCategoryId, setExpertiseCategoryId] = useState<number | ''>('');
@@ -73,6 +74,12 @@ export function PxbDemandFormSection({ kind, expertiseTree, trainerName, trainer
   useEffect(() => {
     fetchProvinces().then(setProvinces).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (phonePrefilledRef.current || !phone) return;
+    phonePrefilledRef.current = true;
+    setContactPhone(phone);
+  }, [phone]);
 
   useEffect(() => {
     if (!provinceId) {
@@ -102,10 +109,10 @@ export function PxbDemandFormSection({ kind, expertiseTree, trainerName, trainer
     setContactName('');
     setCompanyName('');
     setCompanyTel('');
-    setContactPhone('');
+    setContactPhone(phone || '');
     setContactEmail('');
     setSuccess(null);
-  }, []);
+  }, [phone]);
 
   const handleTypeChange = (next: PxbDemandCourseKind) => {
     if (next === kind) return;

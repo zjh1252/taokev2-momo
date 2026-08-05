@@ -1,31 +1,109 @@
 'use client';
 
-import { useMemo } from 'react';
-import { LayoutGrid } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Link } from '@/i18n/navigation';
+import { ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { CustomerServiceChatDialog } from '@/components/customer-service-chat-dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import type { CategoryTreeNode } from '@/features/course/api/types';
-import { buildCategoryMenuRows } from '../utils/buildCategoryMenu';
+import { HOME_BANNER_DEFAULTS, DEFAULT_TOPIC_BUTTON_LINK } from '@/features/home/constants/banner-defaults';
+import type { HomeBanner } from '@/features/home/types';
 import { filtersToHtmPath } from '@/features/trainer/utils/url';
+import { Link } from '@/i18n/navigation';
+import { buildCategoryMenuRows } from '../utils/buildCategoryMenu';
 
 interface HeroSectionProps {
   categories: CategoryTreeNode[];
+  banners: HomeBanner[];
 }
 
-/**
- * 首页 Hero — 左侧「全部分类」行级导航（点击直达专家列表筛选）+ 右侧轮播
- */
-export function HeroSection({ categories }: HeroSectionProps) {
-  const t = useTranslations('home');
+const AUTOPLAY_INTERVAL_MS = 5000;
 
-  const menuRows = useMemo(() => buildCategoryMenuRows(categories), [categories]);
-  const heroTitle = t('hero.title');
+const DEFAULT_BANNER: HomeBanner = {
+  id: 'default-2026',
+  imageUrl: HOME_BANNER_DEFAULTS[0].coverUrl,
+  consultButtonImageUrl: HOME_BANNER_DEFAULTS[0].consultButtonImageUrl,
+  topicButtonImageUrl: HOME_BANNER_DEFAULTS[0].topicButtonImageUrl,
+  topicButtonLinkUrl: DEFAULT_TOPIC_BUTTON_LINK
+};
+
+const TOPIC_BUTTON_CLASS =
+  'relative block h-12 w-[128px] cursor-pointer transition-all duration-200 hover:scale-110 hover:brightness-110 hover:drop-shadow-lg active:scale-95 sm:h-16 sm:w-[170px]';
+
+function isExternalLink(url: string) {
+  return /^https?:\/\//i.test(url);
+}
+
+export function HeroSection({ categories, banners }: HeroSectionProps) {
+  const t = useTranslations('home');
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const menuRows = buildCategoryMenuRows(categories);
+  const menuItems = menuRows.flatMap((row) => row.items);
+  const slides = banners.length > 0 ? banners : [DEFAULT_BANNER];
+  const activeBanner = slides[activeIndex] ?? slides[0];
+
+  const showPrev = () => {
+    setActiveIndex((index) => (index - 1 + slides.length) % slides.length);
+  };
+
+  const showNext = () => {
+    setActiveIndex((index) => (index + 1) % slides.length);
+  };
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
+
+    const timer = window.setInterval(() => {
+      setActiveIndex((index) => (index + 1) % slides.length);
+    }, AUTOPLAY_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
+  }, [slides.length]);
 
   return (
-    <section className="grid grid-cols-12 gap-6 h-[480px]">
-      {/* 分类侧栏 */}
-      <div className="col-span-3">
+    <section className="flex flex-col gap-3 lg:grid lg:h-[480px] lg:grid-cols-12 lg:gap-6">
+      <div className="lg:hidden">
+        <Sheet open={categoryOpen} onOpenChange={setCategoryOpen}>
+          <button
+            type="button"
+            onClick={() => setCategoryOpen(true)}
+            className="flex h-11 w-full items-center justify-between rounded-lg border border-slate-100 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm"
+          >
+            <span className="inline-flex items-center gap-2">
+              <LayoutGrid className="size-4 text-primary" />
+              {t('hero.allCategories')}
+            </span>
+            <ChevronRight className="size-4 text-slate-400" />
+          </button>
+          <SheetContent side="bottom" className="max-h-[75vh] gap-0 rounded-t-xl p-0">
+            <SheetHeader className="border-b border-slate-100 px-4 py-3">
+              <SheetTitle>{t('hero.allCategories')}</SheetTitle>
+            </SheetHeader>
+            <div className="grid grid-cols-2 gap-2 overflow-y-auto p-4 text-sm">
+              {menuItems.map((item) => (
+                <Link
+                  key={item.id}
+                  href={filtersToHtmPath({ field: item.fullName })}
+                  onClick={() => setCategoryOpen(false)}
+                  className="rounded-md bg-slate-50 px-3 py-2 text-slate-700 hover:bg-primary/5 hover:text-primary"
+                >
+                  {item.shortLabel}
+                </Link>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      <div className="hidden lg:col-span-3 lg:block">
         <aside className="bg-white rounded-lg shadow-sm flex flex-col border border-slate-100 h-full">
           <div className="flex items-center px-5 py-3 bg-primary/5 text-primary font-bold border-l-4 border-primary shrink-0">
             <LayoutGrid className="size-5 mr-2 shrink-0" />
@@ -53,47 +131,101 @@ export function HeroSection({ categories }: HeroSectionProps) {
         </aside>
       </div>
 
-      {/* 主视觉区域 */}
-      <div className="col-span-9 relative rounded-lg overflow-hidden shadow-sm bg-slate-900 group">
+      <div className="relative h-[260px] overflow-hidden rounded-lg bg-slate-900 shadow-sm group sm:h-[360px] lg:col-span-9 lg:h-auto">
         <Image
-          src="/statics/images/hero-banner.jpg"
-          alt="Hero Banner"
+          src={activeBanner.imageUrl}
+          alt="首页轮播图"
           fill
           sizes="(max-width: 768px) 100vw, 75vw"
-          className="object-cover opacity-70"
+          className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex flex-col justify-center px-12">
-          <span className="text-white/80 font-bold tracking-widest mb-4">
-            {t('hero.tagline')}
-          </span>
-          <h1 className="text-white text-5xl font-black leading-tight mb-6">
-            {heroTitle}
-          </h1>
-          <p className="text-white/80 text-lg max-w-md mb-8">
-            {t('hero.description')}
-          </p>
-          <div className="flex gap-4">
-            <Link
-              href="/contact"
-              className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg"
+
+        <div className="absolute bottom-4 left-4 flex items-center gap-3 sm:bottom-5 sm:left-12 sm:gap-4">
+          <button
+            type="button"
+            aria-label="立即咨询"
+            onClick={() => setChatOpen(true)}
+            className="relative h-12 w-[128px] cursor-pointer transition-all duration-200 hover:scale-110 hover:brightness-110 hover:drop-shadow-lg active:scale-95 sm:h-16 sm:w-[170px]"
+          >
+            <Image
+              src={activeBanner.consultButtonImageUrl}
+              alt="立即咨询"
+              fill
+              sizes="170px"
+              className="object-fill"
+            />
+          </button>
+          {isExternalLink(activeBanner.topicButtonLinkUrl) ? (
+            <a
+              href={activeBanner.topicButtonLinkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="查看专题"
+              className={TOPIC_BUTTON_CLASS}
             >
-              {t('hero.cta')}
-            </Link>
+              <Image
+                src={activeBanner.topicButtonImageUrl}
+                alt="查看专题"
+                fill
+                sizes="170px"
+                className="object-fill"
+              />
+            </a>
+          ) : (
             <Link
-              href="/features"
-              className="bg-white/20 backdrop-blur-md text-white border border-white/30 px-8 py-3 rounded-full font-bold hover:bg-white/30 transition-all"
+              href={activeBanner.topicButtonLinkUrl}
+              aria-label="查看专题"
+              className={TOPIC_BUTTON_CLASS}
             >
-              {t('hero.ctaSecondary')}
+              <Image
+                src={activeBanner.topicButtonImageUrl}
+                alt="查看专题"
+                fill
+                sizes="170px"
+                className="object-fill"
+              />
             </Link>
-          </div>
+          )}
         </div>
-        <div className="absolute bottom-6 right-12 flex gap-2">
-          <div className="w-8 h-1 bg-primary rounded-full" />
-          <div className="w-8 h-1 bg-white/30 rounded-full" />
-          <div className="w-8 h-1 bg-white/30 rounded-full" />
+
+        {slides.length > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="上一张"
+              onClick={showPrev}
+              className="absolute left-4 top-1/2 -translate-y-1/2 grid size-10 place-items-center rounded-full bg-black/30 text-white backdrop-blur hover:bg-black/45 transition-colors"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <button
+              type="button"
+              aria-label="下一张"
+              onClick={showNext}
+              className="absolute right-4 top-1/2 -translate-y-1/2 grid size-10 place-items-center rounded-full bg-black/30 text-white backdrop-blur hover:bg-black/45 transition-colors"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </>
+        )}
+
+        <div className="absolute bottom-4 right-4 flex gap-2 sm:bottom-6 sm:right-12">
+          {slides.map((slide, index) => (
+            <button
+              key={slide.id}
+              type="button"
+              aria-label={`切换到第 ${index + 1} 张`}
+              onClick={() => setActiveIndex(index)}
+              className={`h-1 rounded-full transition-all ${
+                index === activeIndex ? 'w-8 bg-primary' : 'w-8 bg-white/30'
+              }`}
+            />
+          ))}
         </div>
       </div>
+
+      <CustomerServiceChatDialog open={chatOpen} onOpenChange={setChatOpen} />
     </section>
   );
 }

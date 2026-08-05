@@ -44,6 +44,11 @@ function targetLabelFallback(row: AdminTrainingReview): string {
       return row.institutionId != null ? `机构 #${row.institutionId}` : '-';
     case 'CASE':
       return row.caseId != null ? `案例 #${row.caseId}` : '-';
+    case 'VIDEO':
+      return (
+        row.courseTitle?.trim() ||
+        (row.courseId != null ? `录播课 #${row.courseId}` : '-')
+      );
     default:
       return '-';
   }
@@ -51,15 +56,36 @@ function targetLabelFallback(row: AdminTrainingReview): string {
 
 export const columns: ColumnDef<AdminTrainingReview>[] = [
   {
-    accessorKey: 'id',
-    header: 'ID',
-    enableSorting: false
+    id: 'submitterUser',
+    header: '用户ID/用户名',
+    enableSorting: false,
+    cell: ({ row }) => {
+      const { userId, submitterName } = row.original;
+      const label = submitterName?.trim() || `用户 #${userId}`;
+      if (row.original.anonymous) {
+        return (
+          <div className='flex flex-col text-xs'>
+            <span>{userId}</span>
+            <span className='text-muted-foreground'>{label}</span>
+          </div>
+        );
+      }
+      return (
+        <Link
+          href={getAdminUserDetailUrl(userId)}
+          className='text-primary flex flex-col text-xs hover:underline'
+        >
+          <span>{userId}</span>
+          <span>{label}</span>
+        </Link>
+      );
+    }
   },
   {
     id: 'reviewScope',
     accessorKey: 'reviewScope',
     header: ({ column }: { column: Column<AdminTrainingReview, unknown> }) => (
-      <DataTableColumnHeader column={column} title='范围' />
+      <DataTableColumnHeader column={column} title='评价对象' />
     ),
     enableColumnFilter: true,
     cell: ({ cell }) => {
@@ -67,7 +93,7 @@ export const columns: ColumnDef<AdminTrainingReview>[] = [
       return REVIEW_SCOPE_MAP[v] ?? v ?? '-';
     },
     meta: {
-      label: '评价范围',
+      label: '评价对象',
       variant: 'select' as const,
       options: REVIEW_SCOPE_OPTIONS
     }
@@ -163,20 +189,23 @@ export const columns: ColumnDef<AdminTrainingReview>[] = [
     header: '审核人',
     enableColumnFilter: true,
     meta: {
-      label: '审核人 ID',
-      placeholder: '审核人用户 ID...',
+      label: '审核人',
+      placeholder: '审核人用户名...',
       variant: 'text' as const,
       icon: Icons.user
     },
     cell: ({ row }) => {
+      const name = row.original.reviewedByName?.trim();
       const reviewedBy = row.original.reviewedBy;
-      if (!reviewedBy) return '-';
+      if (!reviewedBy && !name) return '-';
+      const label = name || `用户 #${reviewedBy}`;
+      if (!reviewedBy) return label;
       return (
         <Link
           href={getAdminUserDetailUrl(reviewedBy)}
           className='text-primary hover:underline'
         >
-          {reviewedBy}
+          {label}
         </Link>
       );
     }

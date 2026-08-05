@@ -3,15 +3,16 @@
  *
  * <p>URL 格式（无筛选时直接 /trainer）：</p>
  * <pre>
- * /trainer/field=经营战略_战略规划&industry=软件.htm
+ * /trainer/field=战略规划&industry=软件.htm
+ * /trainer/field=经营战略_战略规划&industry=软件.htm  （二级名跨一级重名时）
  * /trainer/field=经营战略&industry=软件&region=上海.htm
  * </pre>
  *
  * <p>规则：</p>
  * <ul>
  *   <li>参数间用 {@code &} 分隔，每个参数格式为 {@code key=value}。</li>
- *   <li>{@code field}（擅长领域）：选中二级分类时值为 {@code 一级_二级}，
- *       选中一级分类时值为 {@code 一级}。仅 field 值内部使用下划线表示层级。</li>
+ *   <li>{@code field}（擅长领域）：选中二级且名唯一时为 {@code 二级}；
+ *       二级重名时为 {@code 一级_二级}；选中一级时为 {@code 一级}。</li>
  *   <li>{@code industry}（擅长行业）：单值。</li>
  *   <li>{@code region}（长驻省市）：单值。</li>
  *   <li>三个参数均非必传，至少有 1 个参数时才出现 .htm 后缀。</li>
@@ -22,7 +23,7 @@
  */
 
 export interface TrainerSlugParams {
-  /** 擅长领域 — "一级_二级" 或 "一级"，传给后端 field 参数 */
+  /** 擅长领域 — 二级名 / "一级_二级" / "一级" */
   field?: string;
   /** 擅长行业 — 单值，传给后端 industry 参数 */
   industry?: string;
@@ -36,7 +37,7 @@ const PARAM_KEYS = ['field', 'industry', 'region'] as const;
 
 /**
  * 将筛选条件转为 .htm URL 路径段（不含 /trainer 前缀）。
- * @returns 如 "field=经营战略_战略规划&industry=软件.htm"，无参数时返回 "/trainer"
+ * @returns 如 "field=战略规划&industry=软件.htm"，无参数时返回 "/trainer"
  */
 export function filtersToHtmPath(params: TrainerSlugParams): string {
   const parts: string[] = [];
@@ -58,8 +59,8 @@ export function filtersToHtmPath(params: TrainerSlugParams): string {
 /**
  * 解析 .htm URL 的 slug 段。
  * @example
- *   parseSlug('field=经营战略_战略规划&industry=软件') → { field: '经营战略_战略规划', industry: '软件' }
- *   parseSlug('field=经营战略&region=上海')            → { field: '经营战略', region: '上海' }
+ *   parseSlug('field=战略规划&industry=软件') → { field: '战略规划', industry: '软件' }
+ *   parseSlug('field=经营战略&region=上海')   → { field: '经营战略', region: '上海' }
  */
 export function parseSlug(slug: string): TrainerSlugParams {
   const params: TrainerSlugParams = {};
@@ -112,21 +113,11 @@ export function parseSlug(slug: string): TrainerSlugParams {
 }
 
 /**
- * 将 slug 参数中的 field 值按 _ 拆分（用于 filter UI 初始回填）。
- * field 格式为 "一级_二级" 或 "一级"，拆分为各级名称数组。
+ * @deprecated 请优先使用 splitFieldForFilter（需分类树）；本函数仅按 `_` 机械拆分。
  */
 export function splitFieldValue(value?: string): string[] {
   if (!value) return [];
   return value.split('_').filter(Boolean);
 }
 
-/**
- * 将 UI 中的名称数组合并为 field 参数值（一级_二级）。
- * 选中一级时传一级名，选中二级时传 "一级_二级"。
- */
-export function joinFieldValue(parentName: string | null, childName: string | null): string {
-  if (parentName && childName) return `${parentName}_${childName}`;
-  if (parentName) return parentName;
-  if (childName) return childName;
-  return '';
-}
+export { canonicalizeTrainerSlugField, joinFieldValue } from './expertise-categories';

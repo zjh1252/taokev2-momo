@@ -19,12 +19,12 @@ interface OrderCardProps {
   onCountdownExpire?: () => void;
 }
 
-const STATUS_COLORS: Record<number, string> = {
-  0: 'text-primary',
-  1: 'text-green-600',
-  2: 'text-slate-400',
-  3: 'text-orange-500',
-  4: 'text-slate-400',
+const STATUS_COLORS: Record<string, string> = {
+  PENDING: 'text-primary',
+  PAID: 'text-green-600',
+  CANCELLED: 'text-slate-400',
+  PAYMENT_EXPIRED: 'text-slate-400',
+  COURSE_EXPIRED: 'text-orange-500',
 };
 
 function formatTime(dateStr: string | null) {
@@ -61,11 +61,22 @@ export function OrderCard({
 
   const watchVideoId =
     firstItem?.productType === 'VIDEO_COURSE' ? firstItem.productId : undefined;
-  const watchHref = watchVideoId ? `/videos/${watchVideoId}/play` : '/dashboard/learning';
+  const watchHref = watchVideoId ? `/video/${watchVideoId}/play` : '/dashboard/learning';
 
-  const isPending = order.status === 0;
-  const isPaid = order.status === 1;
-  const isCancelled = order.status === 2 || order.status === 4;
+  const displayStatus = order.displayStatus;
+  const isPending = displayStatus ? displayStatus === 'PENDING' : order.status === 0;
+  const isPaid = displayStatus ? displayStatus === 'PAID' : order.status === 1;
+  const isPaymentExpired = displayStatus
+    ? displayStatus === 'PAYMENT_EXPIRED'
+    : order.status === 4;
+  const isCourseExpired = displayStatus
+    ? displayStatus === 'COURSE_EXPIRED'
+    : order.status === 1 && accessExpired;
+  const isCancelled = displayStatus
+    ? displayStatus === 'CANCELLED'
+    : order.status === 2 || order.status === 3;
+  const statusLabel = order.displayStatusLabel || order.statusLabel;
+  const statusColor = STATUS_COLORS[displayStatus || ''] || 'text-slate-600';
 
   // 待支付订单倒计时（订单创建后 10 分钟内有效）
   const payRemaining = useOrderCountdown(
@@ -92,8 +103,8 @@ export function OrderCard({
             </>
           )}
         </div>
-        <div className={`font-medium ${STATUS_COLORS[order.status] || 'text-slate-600'}`}>
-          {order.statusLabel}
+        <div className={`font-medium ${statusColor}`}>
+          {statusLabel}
         </div>
       </div>
 
@@ -197,7 +208,7 @@ export function OrderCard({
             )}
 
             {/* ④ 已支付但过了一年有效期：续费一年 */}
-            {isPaid && accessExpired && onRebuy && (
+            {isCourseExpired && onRebuy && (
               <button
                 type="button"
                 onClick={() => onRebuy(order)}
@@ -208,7 +219,7 @@ export function OrderCard({
             )}
 
             {/* ③ 已取消 / 已过期（未支付）：再次购买 */}
-            {isCancelled && onRebuy && (
+            {(isCancelled || isPaymentExpired) && onRebuy && (
               <button
                 type="button"
                 onClick={() => onRebuy(order)}

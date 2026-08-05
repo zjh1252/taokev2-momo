@@ -1,11 +1,11 @@
 import { notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
-import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { SafeImage } from '@/components/safe-image';
 import { Link } from '@/i18n/navigation';
 import { DEFAULT_COURSE_COVER } from '@/lib/media';
 import { getApprovedCaseDetail } from '@/features/trainer/api/service';
 import type { TrainerCase, TrainerCaseFile } from '@/features/trainer-case/api/types';
+import { caseDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,9 +17,9 @@ export async function generateMetadata({ params }: Props) {
   const { caseId } = await params;
   try {
     const c = await getApprovedCaseDetail(Number(caseId));
-    return { title: `${c.caseTitle} - 成功案例 - 淘课网` };
+    return caseDetailMetadata(c, c.trainerName, `/case/${caseId}.htm`);
   } catch {
-    return { title: '成功案例 - 淘课网' };
+    return fallbackDetailMetadata('成功案例', `/case/${caseId}.htm`);
   }
 }
 
@@ -102,14 +102,6 @@ export default async function TrainerCaseDetailPage({ params }: Props) {
 
   return (
     <div className="max-w-[1000px] mx-auto px-6 lg:px-8 py-6 space-y-6">
-      <PageBreadcrumb
-        items={[
-          { label: '培训专家', href: '/trainers' },
-          { label: detail.trainerName || '专家详情', href: `/trainers/${id}` },
-          { label: detail.caseTitle || '成功案例' },
-        ]}
-      />
-
       <article className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         {/* 封面（无封面且无图片附件时不展示，避免固定占位图） */}
         {cover && (

@@ -22,6 +22,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Inte
     /** 统计用户未读通知数 */
     long countByUserIdAndIsRead(Integer userId, Integer isRead);
 
+    /** 是否已存在同类型同关联业务的通知（购买通知去重） */
+    boolean existsByUserIdAndTypeAndRelatedId(Integer userId, String type, String relatedId);
+
     /** 批量标记已读 */
     @Modifying
     @Query("UPDATE Notification n SET n.isRead = 1 WHERE n.userId = :userId AND n.isRead = 0")

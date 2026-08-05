@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { OpenCourseListSection } from '@/features/course/components/open/OpenCourseListSection';
-import { getCityByEnName } from '@/features/city/api/service';
+import { getCityByEnNameCached } from '@/features/city/api/server';
 import { cityChannelPath } from '@/features/city/lib/paths';
 import { resolveCityFilterId } from '@/features/city/lib/filter-city-id';
 import { getCourseList } from '@/features/course/api/service';
@@ -15,14 +15,19 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { city } = await params;
-  const detail = await getCityByEnName(city).catch(() => null);
-  if (!detail) return { title: '城市公开课 - 淘课网' };
-  return openCourseListMetadata({ city: detail.cityName });
+  const detail = await getCityByEnNameCached(city).catch(() => null);
+  if (!detail) {
+    return {
+      title: '城市公开课 - 淘课网',
+      robots: { index: false, follow: false },
+    };
+  }
+  return openCourseListMetadata({ city: detail.cityName }, `/city/${city}/opencourse`);
 }
 
 export default async function CityOpenCourseListPage({ params }: Props) {
   const { city } = await params;
-  const detail = await getCityByEnName(city).catch(() => null);
+  const detail = await getCityByEnNameCached(city).catch(() => null);
   if (!detail) notFound();
 
   const cityIds = [resolveCityFilterId(detail)];
@@ -42,6 +47,8 @@ export default async function CityOpenCourseListPage({ params }: Props) {
       size: 15,
       isOpen: true,
       cityIds,
+      // 列表默认「综合」即可；开课时间排序由用户在筛选栏切换，避免默认进相关子查询
+      sortBy: 'default',
     }).catch(() => ({
       list: [],
       total: 0,
@@ -60,7 +67,7 @@ export default async function CityOpenCourseListPage({ params }: Props) {
           { label: '公开课' },
         ]}
       />
-      <h1 className="text-2xl font-bold text-slate-900">
+      <h1 className="sr-only">
         {openCourseListH1({ city: detail.cityName })}
       </h1>
       <OpenCourseListSection

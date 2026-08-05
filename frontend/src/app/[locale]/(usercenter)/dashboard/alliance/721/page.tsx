@@ -1,132 +1,94 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ROUTES } from '@/config/routes';
+import { useAuth } from '@/lib/auth/auth-context';
+import { ROLE_TRAINER } from '@/lib/auth/constants';
+import { getMyLecturer721Application } from '@/features/alliance-lecturer721/api/service';
+import type { AllianceLecturer721Application } from '@/features/alliance-lecturer721/api/types';
+import { Lecturer721AgreementContent } from '@/features/alliance-lecturer721/components/lecturer721-agreement-content';
+import { Lecturer721ApplyForm } from '@/features/alliance-lecturer721/components/lecturer721-apply-form';
+
 /**
- * 721讲师合作 — 协议文本 + 表单（全部写死）
+ * 721 讲师合作协议与申请页。
  *
  * @author Fangxinxin
- * @date 2026-04-03 13:00
+ * @date 2026-07-14 14:15
  */
 export default function Alliance721Page() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const [application, setApplication] =
+    useState<AllianceLecturer721Application | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  const isActiveTrainer =
+    user?.roles.some((role) => role.role === ROLE_TRAINER && role.status === 1) ??
+    false;
+
+  useEffect(() => {
+    if (authLoading) return;
+    let active = true;
+    getMyLecturer721Application()
+      .then((result) => {
+        if (!active) return;
+        if (result?.status === 1 || result?.status === 2) {
+          router.replace(ROUTES.UC_ALLIANCE_721_PENDING);
+          return;
+        }
+        setApplication(result);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setLoadFailed(true);
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [authLoading, router]);
+
   return (
-    <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
-      <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center">
+    <section className="min-h-[500px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center border-b border-slate-200 bg-slate-50 px-6 py-4">
         <h2 className="font-bold text-gray-800">721讲师合作</h2>
       </div>
 
-      <div className="p-8 max-w-4xl mx-auto flex flex-col items-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8">
-          淘课721讲师合作协议
-        </h1>
-
-        <div className="w-full flex justify-between text-sm font-bold text-gray-800 mb-4 px-4">
-          <span>甲方：</span>
-          <span>乙方：上海淘课企业管理咨询有限公司</span>
+      {authLoading || loading ? (
+        <div className="flex min-h-[440px] items-center justify-center text-sm text-gray-500">
+          正在加载申请状态...
         </div>
-
-        {/* 协议滚动区 */}
-        <div className="w-full border border-gray-300 p-6 text-[13px] text-gray-700 leading-loose h-[320px] overflow-y-auto mb-8 bg-white">
-          <p className="mb-4">
-            根据相关法律法规，甲乙双方就甲方成为淘课合作讲师事宜，在平等、互信的基础上，达成如下合作协议：
-          </p>
-          <p className="font-bold mb-2 mt-4">一、要点</p>
-          <p>1. 乙方为甲方拓展各种形式的推广渠道（统称乙方渠道）。</p>
-          <p>
-            2.
-            甲方到乙方网站注册，发布讲师介绍、课程介绍（含课程知识考题），完善学历、工作经历、授课案例等信息，承诺"质量五包"，提升真实、靠谱的专家形象。
-          </p>
-          <p>
-            3.
-            乙方与甲方沟通，核实甲方所发布的履历、案例等信息。若审核通过，乙方给甲方打上"五包"标签。
-          </p>
-          <p>
-            4.
-            对需要培训721齐全的客户，甲乙双方协力满足客户需求，让客户学员训后切实执行课堂知识。
-          </p>
-          <p className="font-bold mb-2 mt-4">二、期限</p>
-          <p>服务期限3年。</p>
-          <p className="font-bold mb-2 mt-4">三、结算</p>
-          <p>1. 甲方出场授课课酬由双方友好协商确定。</p>
-          <p>2. 对给客户实施721齐全的项目，甲方课酬在原课酬基础增加10%。</p>
-          <p>
-            3.
-            乙方在收到客户全款后10个工作日内与甲方结算课酬。
-          </p>
-          <p className="text-gray-400 mt-4">
-            ... 更多条款请查看完整协议 ...
-          </p>
+      ) : loadFailed ? (
+        <div className="flex min-h-[440px] flex-col items-center justify-center gap-4 text-sm text-gray-500">
+          <p>申请状态加载失败，请稍后重试。</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="cursor-pointer text-primary hover:underline"
+          >
+            重新加载
+          </button>
         </div>
-
-        {/* 表单 */}
-        <div className="w-full max-w-xl">
-          <div className="space-y-4">
-            {[
-              { label: '讲师姓名', required: true },
-              { label: '身份证号', required: true },
-            ].map(({ label, required }) => (
-              <div key={label} className="flex items-center">
-                <span className="w-24 text-right pr-4 text-sm text-gray-700">
-                  {required && (
-                    <span className="text-red-500 mr-1">*</span>
-                  )}
-                  {label}
-                </span>
-                <input
-                  type="text"
-                  placeholder="请输入"
-                  className="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm"
-                />
-              </div>
-            ))}
-            <div className="flex items-center">
-              <span className="w-24 text-right pr-4 text-sm text-gray-700">
-                <span className="text-red-500 mr-1">*</span>合作年限
-              </span>
-              <select className="flex-1 border border-gray-300 px-3 py-1.5 text-sm text-gray-800 bg-white">
-                <option>3年</option>
-                <option>2年</option>
-                <option>1年</option>
-              </select>
-            </div>
-            {[
-              '课酬(元/天)',
-              '地址',
-              '手机号',
-              '微信',
-              'Email',
-              '开户银行',
-              '账号',
-            ].map((label) => (
-              <div key={label} className="flex items-center">
-                <span className="w-24 text-right pr-4 text-sm text-gray-700">
-                  <span className="text-red-500 mr-1">*</span>
-                  {label}
-                </span>
-                <input
-                  type="text"
-                  placeholder="请输入"
-                  className="flex-1 border border-gray-300 px-3 py-1.5 focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] text-sm"
-                />
-              </div>
-            ))}
-            <div className="flex items-start mt-4">
-              <span className="w-24 text-right pr-4 text-sm text-gray-700 pt-2">
-                <span className="text-red-500 mr-1">*</span>签字
-              </span>
-              <div className="flex-1 border border-gray-300 h-32 bg-white" />
-            </div>
-          </div>
-
-          {/* TODO: 接入721讲师合作申请 API */}
-          <div className="mt-8 text-center w-full flex justify-end pl-24">
-            <button
-              type="button"
-              className="w-full bg-[#f44336] hover:bg-[#d32f2f] text-white font-bold text-[15px] py-3 shadow-sm transition-colors"
-            >
-              保存并预览
-            </button>
-          </div>
+      ) : !isActiveTrainer ? (
+        <div className="flex min-h-[440px] flex-col items-center justify-center gap-4 px-6 text-center text-sm text-gray-600">
+          <p>仅已通过的专家可申请 721 讲师合作。</p>
+          <Link
+            href={ROUTES.UC_APPLY}
+            className="rounded bg-[#cc0000] px-6 py-2.5 text-sm font-bold text-white hover:bg-[#b30000]"
+          >
+            去申请专家入驻
+          </Link>
         </div>
-      </div>
+      ) : (
+        <div className="mx-auto flex max-w-4xl flex-col items-center p-8">
+          <Lecturer721AgreementContent />
+          <Lecturer721ApplyForm rejectReason={application?.rejectReason} />
+        </div>
+      )}
     </section>
   );
 }

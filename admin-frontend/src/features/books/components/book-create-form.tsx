@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { Icons } from '@/components/icons';
 import { toast } from 'sonner';
 import * as z from 'zod';
@@ -18,10 +17,11 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { createBook } from '../api/service';
 import { getTrainers } from '@/features/trainers/api/service';
+import { AssetImage } from '@/components/admin/asset-image';
 import { uploadImageFile } from '@/features/materials/api/service';
-import { resolveAssetUrl } from '@/lib/resolve-asset-url';
 
 const formSchema = z.object({
   trainerId: z.string().min(1, '请选择专家'),
@@ -81,11 +81,15 @@ export function BookCreateForm() {
       onSubmit: formSchema
     },
     onSubmit: async ({ value }) => {
+      if (!coverUrl.trim()) {
+        toast.error('请上传封面图');
+        return;
+      }
       await createMutation.mutateAsync({
         trainerId: Number(value.trainerId),
         title: value.title,
         authorName: value.authorName || undefined,
-        coverUrl: coverUrl || undefined,
+        coverUrl: coverUrl,
         publisher: value.publisher || undefined,
         publishDate: value.publishDate || undefined,
         description: value.description || undefined,
@@ -115,8 +119,6 @@ export function BookCreateForm() {
       setCoverUploading(false);
     }
   };
-
-  const coverPreview = coverUrl ? resolveAssetUrl(coverUrl) : '';
 
   return (
     <Card>
@@ -151,48 +153,54 @@ export function BookCreateForm() {
             <FormTextField name='title' label='书名' required />
             <FormTextField name='authorName' label='作者名' />
             <div className='space-y-2'>
-              <Label>封面</Label>
+              <Label>封面 *</Label>
               <div className='flex items-start gap-3'>
                 <div className='relative h-[100px] w-[72px] overflow-hidden rounded border border-dashed border-muted-foreground/30 bg-muted/30'>
-                  {coverPreview ? (
-                    <Image
-                      src={coverPreview}
-                      alt='著作封面'
-                      fill
-                      className='object-cover'
-                      unoptimized
-                    />
-                  ) : (
-                    <div className='flex h-full w-full items-center justify-center text-muted-foreground text-xs'>
-                      暂无封面
-                    </div>
-                  )}
+                  <AssetImage
+                    src={coverUrl}
+                    alt='著作封面'
+                    fill
+                    wrapperClassName='h-full w-full'
+                    className='object-cover'
+                    fallback={
+                      <div className='flex h-full w-full items-center justify-center text-muted-foreground text-xs'>
+                        暂无封面
+                      </div>
+                    }
+                  />
                 </div>
-                <div className='space-y-2'>
-                  <Button
-                    type='button'
-                    variant='outline'
-                    size='sm'
-                    disabled={coverUploading}
-                    onClick={() => coverInputRef.current?.click()}
-                  >
-                    {coverUploading ? (
-                      <Icons.spinner className='mr-1 size-4 animate-spin' />
-                    ) : (
-                      <Icons.upload className='mr-1 size-4' />
-                    )}
-                    上传封面
-                  </Button>
-                  {coverUrl ? (
+                <div className='flex flex-1 flex-col gap-2'>
+                  <Input
+                    placeholder='封面 URL（可直接粘贴图片地址）'
+                    value={coverUrl}
+                    onChange={(e) => setCoverUrl(e.target.value.trim())}
+                  />
+                  <div className='flex flex-wrap gap-2'>
                     <Button
                       type='button'
-                      variant='ghost'
+                      variant='outline'
                       size='sm'
-                      onClick={() => setCoverUrl('')}
+                      disabled={coverUploading}
+                      onClick={() => coverInputRef.current?.click()}
                     >
-                      清除
+                      {coverUploading ? (
+                        <Icons.spinner className='mr-1 size-4 animate-spin' />
+                      ) : (
+                        <Icons.upload className='mr-1 size-4' />
+                      )}
+                      上传封面
                     </Button>
-                  ) : null}
+                    {coverUrl ? (
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => setCoverUrl('')}
+                      >
+                        清除
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
                 <input
                   ref={coverInputRef}
@@ -204,7 +212,7 @@ export function BookCreateForm() {
               </div>
             </div>
             <FormTextField name='publisher' label='出版社' />
-            <FormTextField name='publishDate' label='出版日期' placeholder='YYYY-MM-DD' />
+            <FormTextField name='publishDate' label='出版日期' placeholder='年 / 月 / 日' />
             <FormTextareaField name='description' label='简介' rows={4} />
             <FormTextField name='buyUrl' label='购买链接' />
             <div className='flex gap-2'>

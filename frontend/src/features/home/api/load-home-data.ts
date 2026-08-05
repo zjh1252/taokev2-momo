@@ -1,4 +1,4 @@
-import { getCourseDetail, getCourseList } from '@/features/course/api/service';
+import { getCourseList } from '@/features/course/api/service';
 import type { CourseListItem } from '@/features/course/api/types';
 import {
   formatPlanStartDate,
@@ -20,10 +20,12 @@ import {
 } from '@/features/trainer/api/service';
 import type { TrainerListItem } from '@/features/trainer/types';
 import { isPresentableRecommendedTrainer } from '@/features/trainer/utils/recommended';
-import { toPlainIntroText } from '@/features/trainer/utils/displayTitle';
+import { pickDisplayTitle, toPlainIntroText } from '@/features/trainer/utils/displayTitle';
 import { resolveImageSrc, resolveApiImageSrc } from '@/lib/media';
 import { featuredCases, featuredExperts } from '../data/mock';
-import type { CaseStudy, Expert, InternalCourse, PublicCourse } from '../types';
+import { HOME_BANNER_DEFAULTS } from '../constants/banner-defaults';
+import { isShortExpertBio, textsEssentiallyEqual, clipExpertBio } from '../utils/expertDisplay';
+import type { CaseStudy, Expert, HomeBanner, InternalCourse, PublicCourse } from '../types';
 
 /** 优先选取封面 URL 不重复的课程，避免首页多张卡片显示同一张图 */
 function pickHomeInternalCourses(list: CourseListItem[], count = 6): CourseListItem[] {
@@ -96,23 +98,6 @@ function pickHomeOpenCourses(list: CourseListItem[], count = 3): CourseListItem[
   return picked.slice(0, count);
 }
 
-/** 首页公开课封面与详情页一致：优先详情接口 coverUrl，再 resolveImageSrc */
-async function enrichPublicCourseCovers(courses: PublicCourse[]): Promise<PublicCourse[]> {
-  if (courses.length === 0) return courses;
-
-  const details = await Promise.all(
-    courses.map((course) => getCourseDetail(course.id).catch(() => null))
-  );
-
-  return courses.map((course, index) => {
-    const detailCover = details[index]?.coverUrl?.trim();
-    const slotCover = course.coverUrl?.trim();
-    const raw = detailCover || slotCover || '';
-    const resolved = raw ? resolveImageSrc(raw) : '';
-    return resolved ? { ...course, coverUrl: resolved } : course;
-  });
-}
-
 import { dedupeTags, parseDelimitedTags } from '@/lib/tags';
 
 function parseTags(
@@ -132,6 +117,43 @@ function formatCaseDate(value?: string | null): string | undefined {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
+const FALLBACK_HOME_BANNERS: HomeBanner[] = HOME_BANNER_DEFAULTS.map((item) => ({
+  id: `fallback-${item.position}`,
+  imageUrl: item.coverUrl,
+  consultButtonImageUrl: item.consultButtonImageUrl,
+  topicButtonImageUrl: item.topicButtonImageUrl,
+  topicButtonLinkUrl: item.topicButtonLinkUrl
+}));
+
+export async function loadHomeBanners(): Promise<HomeBanner[]> {
+  try {
+    const items = await getPublicRecommendations(RecommendationSlotCode.HOME_BANNER, { limit: 3 });
+    const banners = items
+      .filter((item) => item.coverUrl || item.resourceCoverUrl)
+      .slice(0, 3)
+      .map((item, index) => {
+        const fallback = HOME_BANNER_DEFAULTS[index] ?? HOME_BANNER_DEFAULTS[0];
+        return {
+          id: `${item.resourceId}-${index}`,
+          imageUrl: resolveApiImageSrc(
+            item.coverUrl || item.resourceCoverUrl || fallback.coverUrl
+          ),
+          consultButtonImageUrl: resolveApiImageSrc(
+            item.consultButtonImageUrl || fallback.consultButtonImageUrl
+          ),
+          topicButtonImageUrl: resolveApiImageSrc(
+            item.topicButtonImageUrl || fallback.topicButtonImageUrl
+          ),
+          topicButtonLinkUrl:
+            item.topicButtonLinkUrl?.trim() || fallback.topicButtonLinkUrl
+        };
+      });
+    return banners.length > 0 ? banners : FALLBACK_HOME_BANNERS;
+  } catch {
+    return FALLBACK_HOME_BANNERS;
+  }
+}
+
 const HOME_EXPERT_TARGET = 4;
 
 function mapTrainerListItemToExpert(
@@ -140,14 +162,17 @@ function mapTrainerListItemToExpert(
   detail?: Awaited<ReturnType<typeof getTrainerDetail>> | null
 ): Expert {
   const tags = parseTags(trainer.expertiseCategories, trainer.expertiseTags);
+  const name = trainer.teachingName || trainer.name;
+  const oneLine = toPlainIntroText(trainer.oneLineIntro || '');
+  const longIntro = clipExpertBio(detail?.intro || detail?.bio || '');
   return {
     id: trainer.id,
-    name: trainer.teachingName || trainer.name,
-    title: toPlainIntroText(trainer.title || ''),
+    name,
+    title: pickDisplayTitle(trainer.title || detail?.title, name) || '',
     avatar: resolveApiImageSrc(trainer.avatar),
     coverImage: resolveApiImageSrc(detail?.backgroundImage || trainer.avatar),
-    bio: toPlainIntroText(detail?.intro || detail?.bio || trainer.oneLineIntro || ''),
-    subtitle: toPlainIntroText(trainer.oneLineIntro || ''),
+    bio: longIntro || oneLine,
+    subtitle: oneLine,
     tags,
     badge: index === 0 ? '首席专家' : undefined
   };
@@ -155,34 +180,48 @@ function mapTrainerListItemToExpert(
 
 async function mapTrainersToExperts(trainers: TrainerListItem[]): Promise<Expert[]> {
   if (trainers.length === 0) return [];
-
-  const details = await Promise.all(
-    trainers.slice(0, 2).map((t) => getTrainerDetail(t.id).catch(() => null))
-  );
-
-  return trainers.map((t, index) => mapTrainerListItemToExpert(t, index, index < 2 ? details[index] : null));
+  return trainers.map((t, index) => mapTrainerListItemToExpert(t, index, null));
 }
 
-/** 运营位优先，不足时用推荐池与公开列表补齐至目标数量 */
-/** 运营位/mock 专家用详情接口补齐真实头像（有自定义用自定义，无则用素材库默认） */
+/** 运营位/mock 专家用详情补齐头像与长简介（短 oneLineIntro 不足以填满主卡） */
 async function enrichExpertsFromApi(experts: Expert[]): Promise<Expert[]> {
   return Promise.all(
     experts.map(async (expert) => {
       if (!expert.id) return expert;
-      try {
-        const detail = await getTrainerDetail(expert.id);
-        const avatarRaw = detail.avatar?.trim();
-        const coverRaw = detail.backgroundImage?.trim() || avatarRaw;
+
+      const needsDetail =
+        !expert.avatar?.trim() ||
+        !expert.coverImage?.trim() ||
+        isShortExpertBio(expert.bio) ||
+        textsEssentiallyEqual(expert.bio, expert.subtitle);
+
+      if (!needsDetail) {
         return {
           ...expert,
-          name: detail.teachingName || detail.name || expert.name,
-          title: toPlainIntroText(detail.title || expert.title),
+          avatar: resolveApiImageSrc(expert.avatar),
+          coverImage: resolveApiImageSrc(expert.coverImage || expert.avatar)
+        };
+      }
+
+      try {
+        const detail = await getTrainerDetail(expert.id);
+        const name = detail.teachingName || detail.name || expert.name;
+        const avatarRaw = detail.avatar?.trim();
+        const coverRaw = detail.backgroundImage?.trim() || avatarRaw;
+        const oneLine = toPlainIntroText(
+          detail.oneLineIntro || expert.subtitle || expert.bio || ''
+        );
+        const longIntro = clipExpertBio(detail.intro || detail.bio || '');
+        return {
+          ...expert,
+          name,
+          title: pickDisplayTitle(detail.title || expert.title, name) || '',
           avatar: avatarRaw ? resolveApiImageSrc(avatarRaw) : resolveApiImageSrc(expert.avatar),
           coverImage: coverRaw
             ? resolveApiImageSrc(coverRaw)
             : resolveApiImageSrc(expert.coverImage || expert.avatar),
-          bio: toPlainIntroText(detail.intro || detail.bio || expert.bio),
-          subtitle: toPlainIntroText(detail.oneLineIntro || expert.subtitle)
+          bio: longIntro || oneLine || toPlainIntroText(expert.bio),
+          subtitle: oneLine || toPlainIntroText(expert.subtitle)
         };
       } catch {
         return {
@@ -331,7 +370,8 @@ async function loadHomeInternalCoursesLegacy(): Promise<InternalCourse[]> {
 export async function loadHomeInternalCourses(): Promise<InternalCourse[]> {
   try {
     const slotItems = await getPublicRecommendations(RecommendationSlotCode.HOME_INNER_COURSE, { limit: 6 });
-    if (slotItems.length >= 6) {
+    // 与公开课一致：运营位有数据即用，避免因不足 6 条回退慢列表（size=36 ≈1.5s）
+    if (slotItems.length > 0) {
       return mapSlotCoursesToInternalCourses(slotItems);
     }
     return await loadHomeInternalCoursesLegacy();
@@ -371,17 +411,18 @@ async function loadHomePublicCoursesLegacy(): Promise<PublicCourse[]> {
 
 export async function loadHomePublicCourses(): Promise<PublicCourse[]> {
   try {
-    const slotItems = await getPublicRecommendations(RecommendationSlotCode.HOME_OPEN_COURSE, { limit: 3 });
+    const slotItems = await getPublicRecommendations(RecommendationSlotCode.HOME_OPEN_COURSE, {
+      limit: 3
+    });
     if (slotItems.length > 0) {
-      const mapped = mapSlotCoursesToPublicCourses(slotItems, (value) =>
+      return mapSlotCoursesToPublicCourses(slotItems, (value) =>
         formatPlanStartDate(value ?? undefined)
       );
-      return enrichPublicCourseCovers(mapped);
     }
-    return enrichPublicCourseCovers(await loadHomePublicCoursesLegacy());
+    return await loadHomePublicCoursesLegacy();
   } catch {
     try {
-      return enrichPublicCourseCovers(await loadHomePublicCoursesLegacy());
+      return await loadHomePublicCoursesLegacy();
     } catch {
       return [];
     }

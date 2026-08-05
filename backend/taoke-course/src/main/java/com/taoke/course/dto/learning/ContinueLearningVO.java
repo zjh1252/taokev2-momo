@@ -17,4 +17,10 @@ public class ContinueLearningVO extends MyVideoLearningVO {
 
     /** 上次学到的章节标题 */
     private String lastChapterTitle;
+
+    /** 录播课一级分类 ID */
+    private Integer categoryId;
+
+    /** 录播课一级分类名称 */
+    private String categoryName;
 }

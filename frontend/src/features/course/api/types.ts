@@ -98,6 +98,10 @@ export interface CourseListItem {
   nextPlanStartDate?: string;
   /** 最近一场开课城市名称（公开课列表展示用） */
   nextPlanCity?: string;
+  /**
+   * 公开课 SEO 路径数字段：优先最近场次 legacy sortOrder，否则 course.id
+   */
+  seoPathId?: number;
 }
 
 /** 创建/编辑课程请求体（对应后端 SaveCourseRequest） */
@@ -126,6 +130,7 @@ export interface SaveCourseRequest {
   price?: number;
   originalPrice?: number;
   keywords?: string;
+  seoDescription?: string;
   isFeatured?: number;
   isFree?: number;
   /** 是否有公开课计划：0=否 1=是 */
@@ -173,6 +178,7 @@ export interface CourseDetail {
   price: number;
   originalPrice: number;
   keywords: string;
+  seoDescription?: string;
   trainerId: number;
   trainerName: string;
   isFeatured: number;
@@ -195,6 +201,8 @@ export interface CourseDetail {
   isExpireHide?: number | null;
   /** 是否已过期（线下公开课且结束日期早于今日） */
   isOverdue?: boolean;
+  /** 对外展示课程编号（纯数字，优先 legacy 场次） */
+  displayCourseNo?: number;
 }
 
 /**
@@ -213,6 +221,9 @@ export interface AiParsedFields {
   /** 关键词，最多 3 个 */
   keywords?: string[];
   audience?: string;
+  highlights?: string;
+  intro?: string;
+  syllabus?: string;
 }
 
 /** AI 解析课程资料接口的响应（对应后端 AiParseMaterialResultVO） */

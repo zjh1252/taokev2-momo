@@ -18,6 +18,7 @@ import com.taoke.user.entity.Institution;
 import com.taoke.user.mapper.InstitutionMapper;
 import com.taoke.user.repository.InstitutionRepository;
 import com.taoke.user.repository.UserRepository;
+import com.taoke.user.support.PublicInstitutionListCache;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -30,6 +31,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,6 +64,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     private final OpsMaterialResolver opsMaterialResolver;
     private final UserRepository userRepository;
     private final RoleApplicationChangeLogService changeLogService;
+    private final PublicInstitutionListCache publicInstitutionListCache;
 
     @Override
     public InstitutionResponse getByUserId(Integer userId) {
@@ -71,7 +75,9 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
     @Override
     @Transactional
     public InstitutionResponse save(Integer userId, InstitutionRequest request) {
-        return institutionMapper.toResponse(saveOrUpdateExtension(userId, request));
+        InstitutionResponse response = institutionMapper.toResponse(saveOrUpdateExtension(userId, request));
+        publicInstitutionListCache.evictPublicListCaches();
+        return response;
     }
 
     @Override
@@ -81,6 +87,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
             throw new BusinessException(ErrorCode.PARAM_INVALID,
                     "请先勾选并同意《淘课网注册培训机构合作协议》");
         }
+        validateApplyLogo(userId, request);
         // 在写数据前先获取旧快照（用于资料重审变更记录）
         Institution oldSnapshot = institutionRepository.findByUserId(userId).orElse(null);
         boolean isReapply = roleApplyService.apply(userId, BusinessRole.Code.INSTITUTION);
@@ -93,6 +100,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                         toFieldMap(oldSnapshot), toFieldMap(newSnapshot), INSTITUTION_FIELD_LABELS);
             }
         }
+        publicInstitutionListCache.evictPublicListCaches();
     }
 
     @Override
@@ -108,6 +116,17 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                                                                  Integer industryCategoryId,
                                                                  Integer provinceId,
                                                                  Integer cityId) {
+        boolean cacheable = publicInstitutionListCache.isCacheableDefault(
+                page, size, keyword, sort, expertiseCategoryId, industryCategoryId,
+                provinceId, cityId);
+        if (cacheable) {
+            PageResponse<InstitutionListItemResponse> cached =
+                    publicInstitutionListCache.getDefaultList(association, sort, page, size);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
         Sort jpaSort = switch (sort != null ? sort : "") {
             case "popularity" -> Sort.by(Sort.Direction.DESC, "viewCount")
                     .and(Sort.by(Sort.Direction.DESC, "id"));
@@ -130,7 +149,12 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         Page<Institution> result = institutionRepository.findAll(spec, pageable);
 
         if (result.isEmpty()) {
-            return PageResponse.of(List.of(), 0, page, size);
+            PageResponse<InstitutionListItemResponse> empty =
+                    PageResponse.of(List.of(), 0, page, size);
+            if (cacheable) {
+                publicInstitutionListCache.putDefaultList(association, sort, page, size, empty);
+            }
+            return empty;
         }
 
         List<Institution> institutions = result.getContent();
@@ -158,12 +182,23 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         fillMissingLogos(institutions, items);
         resolveCategoryDisplayNames(items);
 
-        return PageResponse.of(items, result.getTotalElements(), page, size);
+        PageResponse<InstitutionListItemResponse> response =
+                PageResponse.of(items, result.getTotalElements(), page, size);
+        if (cacheable) {
+            publicInstitutionListCache.putDefaultList(association, sort, page, size, response);
+        }
+        return response;
     }
 
     @Override
     public Map<Integer, Long> countPublicByExpertiseL1(Boolean association) {
-        return toCountMap(institutionRepository.countPublicByExpertiseL1(association));
+        Map<Integer, Long> cached = publicInstitutionListCache.getExpertiseL1Counts(association);
+        if (cached != null) {
+            return cached;
+        }
+        Map<Integer, Long> map = toCountMap(institutionRepository.countPublicByExpertiseL1(association));
+        publicInstitutionListCache.putExpertiseL1Counts(association, map);
+        return map;
     }
 
     @Override
@@ -469,6 +504,17 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         return map;
     }
 
+    /** 机构入驻/重审：请求未带 Logo 时，若库中亦无有效 Logo 则拒绝。 */
+    private void validateApplyLogo(Integer userId, InstitutionRequest request) {
+        if (!isBlankLogo(request.getLogoUrl())) {
+            return;
+        }
+        Institution existing = institutionRepository.findByUserId(userId).orElse(null);
+        if (existing == null || isBlankLogo(existing.getLogoUrl())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "请上传机构 Logo");
+        }
+    }
+
     private static boolean isBlankLogo(String logoUrl) {
         return logoUrl == null || logoUrl.isBlank() || isPlaceholderLogo(logoUrl);
     }
@@ -477,28 +523,9 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         return LegacyAvatarUrls.isPlaceholder(logoUrl);
     }
 
-    /** 老站迁移机构才使用默认头像素材；新注册机构仅保留 Logo 上传 */
-    private boolean allowDefaultInstitutionAvatar(Institution institution) {
-        if (institution == null) {
-            return false;
-        }
-        if (institution.getLegacyRoleId() != null && institution.getLegacyRoleId() > 0) {
-            return true;
-        }
-        if (institution.getUserId() == null) {
-            return false;
-        }
-        return userRepository.findById(institution.getUserId())
-                .map(u -> Integer.valueOf(2).equals(u.getUserSource()))
-                .orElse(false);
-    }
-
     private String resolveInstitutionDisplayLogo(Institution institution, String logoUrl) {
         if (LegacyAvatarUrls.isUsable(logoUrl)) {
             return LegacyAvatarUrls.normalize(logoUrl);
-        }
-        if (!allowDefaultInstitutionAvatar(institution)) {
-            return logoUrl != null ? logoUrl : "";
         }
         int seed = institution.getId() != null ? institution.getId() : 0;
         return opsMaterialResolver.resolveAvatarUrl(logoUrl, "INSTITUTION", true, seed);
@@ -587,6 +614,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
         inst.setAssociation(association);
         institutionRepository.save(inst);
+        publicInstitutionListCache.evictPublicListCaches();
     }
 
     @Override
@@ -596,6 +624,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "机构不存在"));
         inst.setIsRecommended(value != null && value == 1 ? 1 : 0);
         institutionRepository.save(inst);
+        publicInstitutionListCache.evictPublicListCaches();
     }
 
     @Override
@@ -716,6 +745,20 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         });
     }
 
+    @Override
+    @Transactional
+    public void updateReviewStats(Integer institutionId, BigDecimal score, int commentCount) {
+        if (institutionId == null) return;
+        institutionRepository.findById(institutionId).ifPresent(inst -> {
+            BigDecimal nextScore = (score == null ? BigDecimal.ZERO : score)
+                    .setScale(2, RoundingMode.HALF_UP);
+            inst.setScore(nextScore);
+            inst.setCommentCount(Math.max(0, commentCount));
+            institutionRepository.save(inst);
+            publicInstitutionListCache.evictPublicListCaches();
+        });
+    }
+
     private Institution saveOrUpdateExtension(Integer userId, InstitutionRequest request) {
         Institution ent = institutionRepository.findByUserId(userId).orElseGet(() -> {
             Institution e = new Institution();
@@ -733,6 +776,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         if (request.getEstablishedAt() != null) ent.setEstablishedAt(request.getEstablishedAt());
         if (request.getLogoUrl() != null) ent.setLogoUrl(request.getLogoUrl());
         if (request.getBio() != null) ent.setBio(request.getBio());
+        if (request.getSeoDescription() != null) ent.setSeoDescription(request.getSeoDescription());
         if (request.getIndustryCategoryIds() != null) {
             ent.setIndustries(serializeCategoryIds(request.getIndustryCategoryIds()));
         }

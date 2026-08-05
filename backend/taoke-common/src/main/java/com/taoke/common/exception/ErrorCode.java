@@ -75,6 +75,7 @@ public enum ErrorCode {
     COURSE_STATUS_INVALID(400, 30002, "课程当前状态不允许此操作"),
     COURSE_NO_PERMISSION(403, 30003, "无权操作此课程"),
     COURSE_PLAN_REQUIRED(400, 30004, "公开课必须添加至少一条开课计划"),
+    COURSE_ALREADY_RESERVED(400, 30005, "您已预约该课程"),
 
     /* ==================== 订单/支付 400xx ==================== */
     CART_ITEM_EXISTS(400, 40001, "该商品已在购物车中"),
@@ -140,6 +141,8 @@ public enum ErrorCode {
     AI_NOT_ENABLED(503, 90030, "AI 解析能力未启用，请联系管理员配置"),
     AI_CALL_FAILED(503, 90031, "AI 服务调用失败，请稍后重试"),
     AI_PARSE_FAILED(500, 90032, "AI 返回内容解析失败"),
+    OCR_NOT_ENABLED(503, 90033, "OCR 识别能力未启用，请联系管理员配置"),
+    OCR_CALL_FAILED(503, 90034, "OCR 服务调用失败，请稍后重试"),
 
     INTERNAL_ERROR(500, 99999, "系统繁忙，请稍后再试");
 

@@ -11,6 +11,7 @@ import com.taoke.user.api.TrainerHighlightService;
 import com.taoke.user.api.TrainerService;
 import com.taoke.user.api.InstitutionService;
 import com.taoke.user.api.UserService;
+import com.taoke.user.dto.trainerhighlight.SaveTrainerHighlightRequest;
 import com.taoke.user.dto.trainerhighlight.TrainerHighlightResponse;
 import com.taoke.user.entity.Institution;
 import com.taoke.user.entity.Trainer;
@@ -109,6 +110,14 @@ public class AdminTrainerHighlightController {
     @GetMapping("/admin/trainer-highlights/{id}")
     public ApiResponse<TrainerHighlightResponse> detail(@PathVariable Integer id) {
         return ApiResponse.ok(highlightService.adminGetDetail(id));
+    }
+
+    @Operation(summary = "运营代发精彩瞬间")
+    @PostMapping("/admin/trainer-highlights")
+    public ApiResponse<TrainerHighlightResponse> create(
+            @RequestParam Integer trainerUserId,
+            @Valid @RequestBody SaveTrainerHighlightRequest request) {
+        return ApiResponse.ok(highlightService.createHighlight(trainerUserId, request, false));
     }
 
     @Operation(summary = "审核通过")

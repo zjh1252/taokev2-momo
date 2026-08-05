@@ -14,6 +14,10 @@ export interface ApiResponseBody<T> {
   data: T;
 }
 
+export type ServerFetchOptions = RequestInit & {
+  timeoutMs?: number;
+};
+
 /**
  * 服务端 fetch 封装，自动携带 accessToken 并解析后端统一响应。
  * <p>仅用于 Route Handler / Server Component。当后端返回非 2xx 时仍返回业务体，
@@ -22,7 +26,7 @@ export interface ApiResponseBody<T> {
  */
 export async function serverFetch<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: ServerFetchOptions
 ): Promise<ApiResponseBody<T>> {
   const { body } = await serverFetchWithStatus<T>(endpoint, options);
   return body;
@@ -36,14 +40,15 @@ export async function serverFetch<T>(
  */
 export async function serverFetchWithStatus<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: ServerFetchOptions
 ): Promise<{ status: number; body: ApiResponseBody<T> }> {
+  const { timeoutMs = 30_000, ...fetchOptions } = options ?? {};
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('access_token')?.value;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options?.headers as Record<string, string>)
+    ...(fetchOptions.headers as Record<string, string>)
   };
 
   if (accessToken) {
@@ -51,13 +56,13 @@ export async function serverFetchWithStatus<T>(
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30_000); // 30 秒超时
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   let res: Response;
   const backendUrl = getBackendUrl();
   try {
     res = await fetch(`${backendUrl}${endpoint}`, {
-      ...options,
+      ...fetchOptions,
       headers,
       signal: controller.signal
     });
@@ -67,7 +72,7 @@ export async function serverFetchWithStatus<T>(
         status: 504,
         body: {
           code: -1,
-          message: `后端请求超时（>${backendUrl}），请确认 Java 服务已启动并完成编译`,
+          message: `后端请求超时（>${Math.round(timeoutMs / 1000)} 秒，${backendUrl}）`,
           data: undefined as unknown as T
         }
       };

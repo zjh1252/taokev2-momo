@@ -10,7 +10,7 @@ import { getInstitutionDetail } from '@/features/institution/api/service';
 import { buildCourseCategoryNavItems } from '@/lib/channel-category-stats';
 import { getCachedCourseCategoryTree } from '@/lib/cached-categories';
 import { isPxbEmbedOrigin } from '@/lib/pxb-embed';
-import { openCourseListMetadata, openCourseListH1 } from '@/lib/seo';
+import { openCourseListMetadata, pickCanonicalSearchParams, openCourseListH1 } from '@/lib/seo';
 import { normalizeNumberIds, normalizeStringValues } from '@/lib/search-params';
 
 function embedSearchParams(
@@ -68,7 +68,7 @@ export async function generateMetadata({ searchParams }: Props) {
   return openCourseListMetadata({
     city: cityNames[0],
     category: categoryNames[0],
-  });
+  }, '/opencourse', pickCanonicalSearchParams(sp, ['categoryName', 'cityName', 'page']));
 }
 
 export default async function OpenCoursesPage({ searchParams }: Props) {
@@ -132,10 +132,10 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
   });
 
   return (
-    <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
+    <main className="max-w-7xl mx-auto px-4 py-6 min-h-screen flex flex-col gap-6 sm:px-8">
       {/* 面包屑导航 — 公共组件 */}
       <PageBreadcrumb items={[{ label: '公开课' }]} />
-      <h1 className="text-2xl font-bold text-slate-900">{listH1}</h1>
+      <h1 className="sr-only">{listH1}</h1>
 
       <OpenCourseListSection
         initialData={initialData}

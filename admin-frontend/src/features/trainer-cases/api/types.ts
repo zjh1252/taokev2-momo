@@ -106,3 +106,20 @@ export const CASE_STATUS_OPTIONS = [
   { value: '1', label: '审核通过' },
   { value: '2', label: '审核驳回' }
 ];
+
+export type SaveTrainerCasePayload = {
+  caseTitle: string;
+  enterpriseName: string;
+  industry?: string;
+  trainingTopic?: string;
+  trainingEffect?: string;
+  traineeCount?: number;
+  provinceId: number;
+  cityId: number;
+  districtId: number;
+  townId?: number;
+  trainingAddress?: string;
+  trainingDate?: string;
+  description?: string;
+  coverImage?: string;
+};

@@ -35,6 +35,7 @@ export function InstitutionCard({ institution, basePath = '/company' }: Institut
           alt={institution.orgName}
           width={112}
           height={112}
+          apiResolved
           className="max-w-full max-h-full object-contain"
           loading="eager"
           fallback={getInstitutionLogoFallback(institution.orgName)}

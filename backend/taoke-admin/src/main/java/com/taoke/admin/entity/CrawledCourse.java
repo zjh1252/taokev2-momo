@@ -8,6 +8,7 @@ import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * 爬取课程数据中间表实体 — 对应 crawled_courses 表。
@@ -78,6 +79,42 @@ public class CrawledCourse extends BaseEntity {
     @Column(name = "syllabus", columnDefinition = "longtext")
     private String syllabus;
 
+    @Column(name = "syllabus_plain_text", columnDefinition = "longtext")
+    private String syllabusPlainText;
+
+    @Column(name = "syllabus_html", columnDefinition = "longtext")
+    private String syllabusHtml;
+
+    @Column(name = "syllabus_images_json", columnDefinition = "json")
+    private String syllabusImagesJson;
+
+    @Column(name = "syllabus_content_type", length = 16)
+    private String syllabusContentType = "TEXT";
+
+    @Column(name = "site_photos_plain_text", columnDefinition = "longtext")
+    private String sitePhotosPlainText;
+
+    @Column(name = "site_photos_html", columnDefinition = "longtext")
+    private String sitePhotosHtml;
+
+    @Column(name = "site_photos_images_json", columnDefinition = "json")
+    private String sitePhotosImagesJson;
+
+    @Column(name = "site_photos_content_type", length = 16)
+    private String sitePhotosContentType = "TEXT";
+
+    @Column(name = "honor_certificates_plain_text", columnDefinition = "longtext")
+    private String honorCertificatesPlainText;
+
+    @Column(name = "honor_certificates_html", columnDefinition = "longtext")
+    private String honorCertificatesHtml;
+
+    @Column(name = "honor_certificates_images_json", columnDefinition = "json")
+    private String honorCertificatesImagesJson;
+
+    @Column(name = "honor_certificates_content_type", length = 16)
+    private String honorCertificatesContentType = "TEXT";
+
     /** 适用人群 */
     @Column(name = "audience", columnDefinition = "text")
     private String audience;
@@ -141,6 +178,26 @@ public class CrawledCourse extends BaseEntity {
     /** 疑似/确认重复的 courses.id */
     @Column(name = "dedup_course_id")
     private Integer dedupCourseId;
+
+    /** 重复目标类型：COURSE / CRAWLED_COURSE */
+    @Column(name = "dedup_target_type", length = 32)
+    private String dedupTargetType;
+
+    /** 重复目标 ID */
+    @Column(name = "dedup_target_id")
+    private Integer dedupTargetId;
+
+    /** 去重匹配规则 */
+    @Column(name = "dedup_match_type", length = 64)
+    private String dedupMatchType;
+
+    /** 去重匹配分数 */
+    @Column(name = "dedup_score")
+    private Integer dedupScore;
+
+    /** 最近一次去重检查时间 */
+    @Column(name = "dedup_checked_at")
+    private LocalDateTime dedupCheckedAt;
 
     /** 去重判定原因 */
     @Column(name = "dedup_reason", length = 255)

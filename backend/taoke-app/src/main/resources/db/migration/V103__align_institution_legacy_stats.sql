@@ -1,19 +1,29 @@
--- V103：机构数据对齐老站 PHP（tk_member / tk_statistics）
--- 1) legacy_role_id：老站详情 URL 为 /company/{roleid}.htm
--- 2) open_course_count / inner_course_count / view_count 取自 tk_statistics + tk_member.clicknum
--- 3) 同名重复行去重：保留 id=user_id 的 organ 主体行
--- 依赖：老库 taoke 与新库同实例（与 V68/V82 相同）
+-- V103: align institution legacy fields when legacy source tables are available.
 
 ALTER TABLE user_institutions
     ADD COLUMN legacy_role_id INT NOT NULL DEFAULT 0
-        COMMENT '老站 tk_member.roleid（/company/{roleid}.htm）'
+        COMMENT 'legacy tk_member.roleid for /company/{roleid}.htm'
     AFTER user_id;
 
 CREATE INDEX idx_user_institutions_legacy_role_id
     ON user_institutions (legacy_role_id, status, public_list_eligible);
 
--- 回填 legacy_role_id 与统计字段（以 user_id 对齐 tk_member.id）
-UPDATE user_institutions ui
+SET @legacy_member_ok := (
+    SELECT COUNT(*) FROM information_schema.tables
+    WHERE table_schema = 'taoke' AND table_name = 'tk_member'
+);
+SET @legacy_statistics_ok := (
+    SELECT COUNT(*) FROM information_schema.tables
+    WHERE table_schema = 'taoke' AND table_name = 'tk_statistics'
+);
+SET @legacy_comment_company_ok := (
+    SELECT COUNT(*) FROM information_schema.tables
+    WHERE table_schema = 'taoke' AND table_name = 'tk_comment_course_company'
+);
+
+SET @sql := CASE
+    WHEN @legacy_member_ok > 0 AND @legacy_statistics_ok > 0 THEN
+'UPDATE user_institutions ui
     INNER JOIN taoke.tk_member m ON m.id = ui.user_id AND m.groupid = 3
     LEFT JOIN taoke.tk_statistics s ON s.uid = m.id AND s.groupid = 3
 SET ui.legacy_role_id = m.roleid,
@@ -21,10 +31,21 @@ SET ui.legacy_role_id = m.roleid,
     ui.inner_course_count = COALESCE(s.training_num, ui.inner_course_count),
     ui.view_count = GREATEST(ui.view_count, COALESCE(m.clicknum, 0)),
     ui.updated_at = NOW()
-WHERE ui.status = 1;
+WHERE ui.status = 1'
+    WHEN @legacy_member_ok > 0 THEN
+'UPDATE user_institutions ui
+    INNER JOIN taoke.tk_member m ON m.id = ui.user_id AND m.groupid = 3
+SET ui.legacy_role_id = m.roleid,
+    ui.view_count = GREATEST(ui.view_count, COALESCE(m.clicknum, 0)),
+    ui.updated_at = NOW()
+WHERE ui.status = 1'
+    ELSE 'SELECT 1 AS flyway_v103_skip_institution_member_stats'
+END;
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- id=user_id 迁移行若 user_id 未对上，再按 ui.id 补一次
-UPDATE user_institutions ui
+SET @sql := CASE
+    WHEN @legacy_member_ok > 0 AND @legacy_statistics_ok > 0 THEN
+'UPDATE user_institutions ui
     INNER JOIN taoke.tk_member m ON m.id = ui.id AND m.groupid = 3
     LEFT JOIN taoke.tk_statistics s ON s.uid = m.id AND s.groupid = 3
 SET ui.legacy_role_id = IF(ui.legacy_role_id > 0, ui.legacy_role_id, m.roleid),
@@ -34,17 +55,30 @@ SET ui.legacy_role_id = IF(ui.legacy_role_id > 0, ui.legacy_role_id, m.roleid),
     ui.updated_at = NOW()
 WHERE ui.status = 1
   AND ui.id = ui.user_id
-  AND (ui.legacy_role_id = 0 OR ui.open_course_count = 0);
+  AND (ui.legacy_role_id = 0 OR ui.open_course_count = 0)'
+    WHEN @legacy_member_ok > 0 THEN
+'UPDATE user_institutions ui
+    INNER JOIN taoke.tk_member m ON m.id = ui.id AND m.groupid = 3
+SET ui.legacy_role_id = IF(ui.legacy_role_id > 0, ui.legacy_role_id, m.roleid),
+    ui.view_count = GREATEST(ui.view_count, COALESCE(m.clicknum, 0)),
+    ui.updated_at = NOW()
+WHERE ui.status = 1
+  AND ui.id = ui.user_id
+  AND ui.legacy_role_id = 0'
+    ELSE 'SELECT 1 AS flyway_v103_skip_institution_member_stats_by_id'
+END;
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- 合并同名机构评分（comment_course_company 星级 → score）
-UPDATE user_institutions ui
+SET @sql := IF(@legacy_comment_company_ok > 0,
+'UPDATE user_institutions ui
     INNER JOIN taoke.tk_comment_course_company ccc ON ccc.user_id = ui.user_id
 SET ui.score = GREATEST(ui.score, ROUND(COALESCE(ccc.c_all_av, 0), 2)),
     ui.updated_at = NOW()
 WHERE ui.status = 1
-  AND COALESCE(ccc.c_all_av, 0) > 0;
+  AND COALESCE(ccc.c_all_av, 0) > 0',
+'SELECT 1 AS flyway_v103_skip_institution_comment_score');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- 同名重复：仅保留 canonical 行公开展示（优先 id=user_id，其次 view_count、id）
 UPDATE user_institutions ui
     INNER JOIN (
         SELECT org_name,
@@ -64,7 +98,6 @@ SET ui.public_list_eligible = 0,
 WHERE ui.status = 1
   AND ui.public_list_eligible = 1;
 
--- 评价 institution_id 归并到 canonical 行后重算 comment_count
 UPDATE user_institutions ui
     INNER JOIN (
         SELECT org_name,

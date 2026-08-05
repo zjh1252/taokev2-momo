@@ -41,6 +41,24 @@ const FIELD_ANCHORS = {
   intro: 'course-field-intro',
 } as const;
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function plainTextToRichHtml(value?: string) {
+  const lines = value
+    ?.split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines || lines.length === 0) return '';
+  return lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('');
+}
+
 function scrollToCourseField(key: keyof typeof FIELD_ANCHORS) {
   document.getElementById(FIELD_ANCHORS[key])?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -199,6 +217,10 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
       if (!plan.address?.trim()) return `${label}：线下公开课必须填写具体地址`;
     } else if (!plan.onlineUrl?.trim()) {
       return `${label}：线上公开课必须填写直播/回放地址`;
+    } else if (!/^https:\/\/.+/i.test(plan.onlineUrl.trim())) {
+      return `${label}：线上公开课必须填写有效的直播会议链接（以 https:// 开头）`;
+    } else if (!/^https:\/\/meeting\.tencent\.com\/dm\/[A-Za-z0-9]+$/i.test(plan.onlineUrl.trim())) {
+      return `${label}：请填写有效的腾讯会议链接`;
     }
     return null;
   };
@@ -253,12 +275,15 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
       setKeywords(parsed.keywords.slice(0, 3).join('，'));
     }
     if (parsed.audience) setAudience(parsed.audience);
+    if (parsed.highlights) setHighlights(parsed.highlights);
+    if (parsed.intro) setIntro(plainTextToRichHtml(parsed.intro));
+    if (parsed.syllabus) setSyllabus(plainTextToRichHtml(parsed.syllabus));
   };
 
   /**
    * 组装并提交表单。
    *
-   * @param draft true=保存草稿（仅校验标题），false=提交审核（完整校验）
+   * @param draft true=保存草稿（校验标题与封面），false=提交审核（完整校验）
    */
   const submitForm = async (draft: boolean) => {
     const fail = (message: string, anchor?: keyof typeof FIELD_ANCHORS) => {
@@ -270,13 +295,13 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
       fail('请填写课程标题', 'title');
       return;
     }
+    if (!coverUrl.trim()) {
+      fail('请上传课程封面', 'cover');
+      return;
+    }
     if (!draft) {
       if (!categoryId) {
         fail('请选择课程分类', 'category');
-        return;
-      }
-      if (!coverUrl.trim()) {
-        fail('请上传课程封面', 'cover');
         return;
       }
       if (!durationDays || durationDays < 1) {
@@ -769,7 +794,7 @@ function MaterialUploadButton({
   const inputRef = useRef<HTMLInputElement>(null);
   const [parsing, setParsing] = useState(false);
 
-  const accept = '.doc,.docx,.pdf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const accept = '.docx,.pdf,.jpg,.jpeg,.png,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp';
 
   const handleFile = async (file: File) => {
     setParsing(true);

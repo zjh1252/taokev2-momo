@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { buildCanonicalUrl } from './canonical';
 
 /** 剥离 HTML 并压缩空白 */
 export function stripHtml(text: string): string {
@@ -31,6 +32,15 @@ export function truncateDescription(text: string, max = 120): string {
   return `${plain.slice(0, max - 1)}…`;
 }
 
+/** 后台自定义 SEO 描述优先，详情页默认控制在 85 字内。 */
+export function preferSeoDescription(
+  custom?: string | null,
+  template = '淘课网提供企业培训课程、讲师和机构信息，帮助企业快速筛选适合的培训资源。',
+): string {
+  const text = custom?.trim() || template.trim();
+  return truncateDescription(text || template, 85);
+}
+
 /** 拼接关键词，过滤空值 */
 export function joinKeywords(...parts: (string | undefined | null)[]): string {
   return parts
@@ -60,13 +70,30 @@ export interface SeoFields {
   title: string;
   description: string;
   keywords?: string;
+  canonical?: string;
+  canonicalParams?: URLSearchParams;
+  canonicalQueryKeys?: string[];
 }
 
 /** 转为 Next.js Metadata */
-export function toMetadata({ title, description, keywords }: SeoFields): Metadata {
+export function toMetadata({
+  title,
+  description,
+  keywords,
+  canonical,
+  canonicalParams,
+  canonicalQueryKeys,
+}: SeoFields): Metadata {
   return {
     title,
     description: truncateDescription(description),
     ...(keywords ? { keywords } : {}),
+    ...(canonical
+      ? {
+          alternates: {
+            canonical: buildCanonicalUrl(canonical, canonicalParams, canonicalQueryKeys),
+          },
+        }
+      : {}),
   };
 }

@@ -1,3 +1,4 @@
+import { AddLinkButton } from '@/components/admin/add-link-button';
 import PageContainer from '@/components/layout/page-container';
 import TrainerListingPage from '@/features/trainers/components/trainer-listing';
 import { searchParamsCache } from '@/lib/searchparams';
@@ -20,6 +21,9 @@ export default async function TrainersPage(props: PageProps) {
       scrollable={false}
       pageTitle='专家列表'
       pageDescription='查看和管理平台所有专家信息'
+      pageHeaderAction={
+        <AddLinkButton href='/dashboard/trainers/new' label='添加专家' />
+      }
     >
       <TrainerListingPage />
     </PageContainer>

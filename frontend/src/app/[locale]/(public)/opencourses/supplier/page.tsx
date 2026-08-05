@@ -9,9 +9,9 @@ interface Props {
 export async function generateMetadata({ searchParams }: Props) {
   const sp = await searchParams;
   if (isPxbEmbedOrigin(sp.origin)) {
-    return { title: '发布外派培训需求' };
+    return { title: '发布外派培训需求', robots: { index: false, follow: false } };
   }
-  return { title: '发布公开课需求' };
+  return { title: '发布公开课需求', robots: { index: false, follow: false } };
 }
 
 export default async function OpenCourseSupplierPage({ searchParams }: Props) {
