@@ -27,7 +27,22 @@ spring:
       username: ${NACOS_USERNAME:nacos}
       password: ${NACOS_PASSWORD:nacos}
 
-  taoke:
+taoke:
+  legacy-api:
+    signature-keys:
+      pxb: ${LEGACY_SIGNATURE_KEY_PXB:}
+      taoke: ${LEGACY_SIGNATURE_KEY_TAOKE:}
+      shequ: ${LEGACY_SIGNATURE_KEY_SHEQU:}
+      wittrain: ${LEGACY_SIGNATURE_KEY_WITTRAIN:}
+      qa_wittrain: ${LEGACY_SIGNATURE_KEY_QA_WITTRAIN:}
+      ihr_wittrain: ${LEGACY_SIGNATURE_KEY_IHR_WITTRAIN:}
+    signature-urls:
+      wittrain: ${LEGACY_SIGNATURE_URL_WITTRAIN:}
+      qa_wittrain: ${LEGACY_SIGNATURE_URL_QA_WITTRAIN:}
+      ihr_wittrain: ${LEGACY_SIGNATURE_URL_IHR_WITTRAIN:}
+    pxb-outbound:
+      enabled: ${PXB_OUTBOUND_ENABLED:true}
+      base-url: ${PXB_SITE_URL:}
   jwt:
     secret: ${JWT_SECRET:}
   storage:

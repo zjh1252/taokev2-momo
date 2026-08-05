@@ -41,6 +41,7 @@ public class SecurityConfig {
             "/api/*.php",
             "/getData",
             "/getData/**",
+            "/pxb-videos/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
@@ -52,6 +53,8 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
+                // 培训宝 PC iframe 需嵌入 taokevideo 播放页；API 服务不做 clickjacking 防护
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

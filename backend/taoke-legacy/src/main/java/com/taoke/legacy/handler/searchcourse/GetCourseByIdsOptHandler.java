@@ -42,7 +42,7 @@ public class GetCourseByIdsOptHandler implements SearchCourseOptHandler {
 
         int pxbUid = params.getInt(request, "uid", 0);
         int pxbRootId = params.getInt(request, "pxb_root_id", 0);
-        int userId = userResolver.resolveUserId(pxbUid);
+        int userId = userResolver.resolveUserId(request, pxbUid);
         if (userId <= 0) {
             return Map.of();
         }
@@ -55,8 +55,11 @@ public class GetCourseByIdsOptHandler implements SearchCourseOptHandler {
         List<PxbLegacyVideoRow> rows = legacyVideoQueryService.findPublishedVideosByIds(courseIds);
         Map<Integer, PxbLegacyPurchaseInfo> purchases = legacyVideoQueryService.findPurchaseInfoByVideoIds(
                 userId, courseIds, pxbRootId > 0 ? pxbRootId : null);
+        List<Integer> rowIds = rows.stream().map(PxbLegacyVideoRow::getId).toList();
+        Map<Integer, List<Map<String, Object>>> seriesByVideoId =
+                legacyVideoQueryService.findLegacySeriesByVideoIds(rowIds);
 
-        return courseAdapter.toCoursesByIdsResponse(rows, purchases);
+        return courseAdapter.toCoursesByIdsResponse(rows, purchases, seriesByVideoId);
     }
 
     static List<Integer> parseIds(String raw) {

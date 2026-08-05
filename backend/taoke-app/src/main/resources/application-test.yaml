@@ -45,6 +45,9 @@ spring:
       max-request-size: 500MB
 
 taoke:
+  legacy-api:
+    pxb-outbound:
+      base-url: ${PXB_SITE_URL:http://dev.91pxb.com}
   elasticsearch:
     uris: http://10.0.14.20:9200
     username: app_search

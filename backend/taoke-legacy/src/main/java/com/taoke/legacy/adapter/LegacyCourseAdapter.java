@@ -88,8 +88,10 @@ public class LegacyCourseAdapter {
     }
 
     public Map<String, Object> toCoursesByIdsResponse(List<PxbLegacyVideoRow> rows,
-                                                      Map<Integer, PxbLegacyPurchaseInfo> purchases) {
+                                                      Map<Integer, PxbLegacyPurchaseInfo> purchases,
+                                                      Map<Integer, List<Map<String, Object>>> seriesByVideoId) {
         Map<String, Object> courses = new LinkedHashMap<>();
+        boolean attachSeries = seriesByVideoId != null && !seriesByVideoId.isEmpty();
         for (PxbLegacyVideoRow row : rows) {
             Map<String, Object> item = toCourseMap(row, purchases.get(row.getId()), false);
             item.put("url", "vid=" + row.getId() + "&child=0");
@@ -102,6 +104,13 @@ public class LegacyCourseAdapter {
             item.put("package_name", "");
             item.put("buy_status", PxbLegacyVideoQueryServiceImpl.resolveBuyStatus(purchases.get(row.getId())) > 0 ? 1 : 0);
             item.put("is_include_paper", 0);
+            if (attachSeries) {
+                List<Map<String, Object>> series = seriesByVideoId.getOrDefault(row.getId(), List.of());
+                item.put("series", series);
+                if (!series.isEmpty()) {
+                    item.put("types", 1);
+                }
+            }
             courses.put(String.valueOf(row.getId()), item);
         }
         return courses;

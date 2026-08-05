@@ -26,4 +26,6 @@ public interface VideoEnrollmentRepository extends JpaRepository<VideoEnrollment
     long countByOrderIdAndStatus(Integer orderId, Integer status);
 
     List<VideoEnrollment> findByOrderId(Integer orderId);
+
+    List<VideoEnrollment> findByOrderIdIn(List<Integer> orderIds);
 }

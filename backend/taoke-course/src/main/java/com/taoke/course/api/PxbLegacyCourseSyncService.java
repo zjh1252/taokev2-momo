@@ -1,15 +1,12 @@
 package com.taoke.course.api;
 
-import java.util.Map;
+import com.taoke.course.dto.pxb.PxbLegacyCourseSyncCommand;
+import com.taoke.course.dto.pxb.PxbLegacyCourseSyncResult;
 
 /**
- * 培训宝 sync_course：回写老库 tk_courseinfo.pxb_resoure（调研/考试/行动标记）。
+ * 淘课 → 培训宝在线课程入库（add_tt_course.php opt=saveCourses）。
  */
 public interface PxbLegacyCourseSyncService {
 
-    /**
-     * @param coursesPayload 老站 courses JSON：tk_course_id → 资源列表
-     * @return 是否至少更新一条
-     */
-    boolean syncPxbResourceTypes(Map<String, Object> coursesPayload);
+    PxbLegacyCourseSyncResult syncVideosToPxb(PxbLegacyCourseSyncCommand command);
 }

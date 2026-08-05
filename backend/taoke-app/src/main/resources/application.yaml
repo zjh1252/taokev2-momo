@@ -108,8 +108,23 @@ taoke:
   legacy-api:
     enabled: true
     signature-keys:
-      pxb: fn234gyty4542
-      taoke: adfdsrve34243
+      pxb: ${LEGACY_SIGNATURE_KEY_PXB:fn234gyty4542}
+      taoke: ${LEGACY_SIGNATURE_KEY_TAOKE:adfdsrve34243}
+      shequ: ${LEGACY_SIGNATURE_KEY_SHEQU:}
+      wittrain: ${LEGACY_SIGNATURE_KEY_WITTRAIN:}
+      qa_wittrain: ${LEGACY_SIGNATURE_KEY_QA_WITTRAIN:}
+      ihr_wittrain: ${LEGACY_SIGNATURE_KEY_IHR_WITTRAIN:}
+    signature-urls:
+      wittrain: ${LEGACY_SIGNATURE_URL_WITTRAIN:}
+      qa_wittrain: ${LEGACY_SIGNATURE_URL_QA_WITTRAIN:}
+      ihr_wittrain: ${LEGACY_SIGNATURE_URL_IHR_WITTRAIN:}
+    pxb-outbound:
+      enabled: ${PXB_OUTBOUND_ENABLED:true}
+      base-url: ${PXB_SITE_URL:}
+      app-id: ${PXB_OUTBOUND_APP_ID:taoke}
+      api-path: /api/tt_course/add_tt_course.php
+      connect-timeout-ms: 10000
+      read-timeout-ms: 30000
     search-course-timestamp-skew-seconds: 7200
     default-timestamp-skew-seconds: 864000
   # 文件存储 — 图片/视频等均走 OSS（配置对齐老站 tkw/includes/config.video.inc.php）
@@ -171,6 +186,12 @@ taoke:
       enabled: true
       api-url: http://test.scho.com.cn
       secret-key: 1E904D6E91A01D4A5C86EDE8B13370BE
+    zgx:
+      enabled: true
+      cdn-url: https://cdn5-pxb-videos.taoke.com
+      path-prefix: zgx
+      ali-auth-key: xiangdongtest
+      h5-site-url: https://m.taoke.com/
   # 在线支付（支付宝 PC 网站支付 + 微信 Native 扫码）。enabled=false 时仅 MOCK 可用
   payment:
     enabled: false
