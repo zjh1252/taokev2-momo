@@ -48,8 +48,8 @@ export function CustomerServiceChatDialog({
     ? {
         width: '100%',
         maxWidth: '100vw',
-        height: '80svh',
-        maxHeight: '80svh',
+        height: '90vh',
+        maxHeight: '90vh',
         top: 'auto',
         bottom: 0,
         left: 0,
