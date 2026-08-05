@@ -1,8 +1,14 @@
 'use client';
 
 import { Suspense, useState, useCallback, useTransition, useMemo, useEffect, useRef } from 'react';
-import { ArrowUpDown, X, RotateCcw } from 'lucide-react';
+import { ArrowUpDown, X, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { ListPagePagination } from '@/components/list-page-pagination';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { useListPageUrlSync } from '@/hooks/use-list-page-url';
 import { OpenCourseCard } from './OpenCourseCard';
 import { OpenCourseFilters, type OpenCourseFilterValue } from './OpenCourseFilters';
@@ -92,6 +98,7 @@ function OpenCourseListSectionInner({
   // 排序由顶部排序栏唯一控制
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const serverFilterKey = useMemo(
@@ -213,7 +220,7 @@ function OpenCourseListSectionInner({
     [filters, sortKey, institutionId, lockedCityIds],
   );
 
-  const { commitPageChange } = useListPageUrlSync({
+  useListPageUrlSync({
     currentPage,
     onPageFromUrl: (page) => fetchData(page),
   });
@@ -384,9 +391,37 @@ function OpenCourseListSectionInner({
   );
 
   return (
-    <div className="flex flex-col gap-6">
-    <div className="flex gap-6 items-start">
-      <div className="w-[300px] shrink-0 sticky top-[120px] self-start z-30 flex flex-col gap-10">
+    <div className="flex max-w-full flex-col gap-6">
+    <div className="flex flex-col gap-4 lg:flex-row lg:gap-6 lg:items-start">
+      <div className="lg:hidden">
+        <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
+          <button
+            type="button"
+            onClick={() => setMobileFilterOpen(true)}
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm"
+          >
+            <SlidersHorizontal className="size-4" />
+            筛选课程
+          </button>
+          <SheetContent side="bottom" className="max-h-[82vh] gap-0 overflow-y-auto rounded-t-xl p-0">
+            <SheetHeader className="border-b border-slate-100 px-4 py-3">
+              <SheetTitle>筛选课程</SheetTitle>
+            </SheetHeader>
+            <div className="p-4">
+              <OpenCourseFilters
+                categoryTree={categoryTree}
+                value={filters}
+                onChange={(next) => {
+                  handleFilterChange(next);
+                  setMobileFilterOpen(false);
+                }}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      <div className="hidden w-[300px] shrink-0 sticky top-[120px] self-start z-30 flex-col gap-10 lg:flex">
         <OpenCourseFilters
           categoryTree={categoryTree}
           value={filters}
@@ -398,7 +433,7 @@ function OpenCourseListSectionInner({
       <div className="flex-1 flex flex-col gap-4 min-w-0">
         {/* 排序栏 + 已选条件（滚动时冻结） */}
         <div className="sticky top-[120px] z-20 space-y-4 pb-1">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex items-center gap-2">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex items-center gap-2 overflow-x-auto">
           {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.key}
@@ -413,7 +448,7 @@ function OpenCourseListSectionInner({
               <ArrowUpDown className="size-3.5" />
             </button>
           ))}
-          <span className="ml-auto text-sm text-slate-500 pr-2">
+          <span className="ml-auto shrink-0 text-sm text-slate-500 pr-2">
             共 <strong className="text-slate-900">{data.total}</strong> 门课程
           </span>
         </div>

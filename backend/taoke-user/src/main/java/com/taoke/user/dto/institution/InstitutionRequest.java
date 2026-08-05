@@ -47,6 +47,10 @@ public class InstitutionRequest {
     /** 机构简介（支持富文本） */
     private String bio;
 
+    /** SEO 自定义描述 */
+    @Size(max = 255, message = "SEO 描述不超过255个字符")
+    private String seoDescription;
+
     /** 擅长行业 — 一级分类 ID 多选（复用 TRAINER_INDUSTRY 分类树） */
     private List<Integer> industryCategoryIds;
 

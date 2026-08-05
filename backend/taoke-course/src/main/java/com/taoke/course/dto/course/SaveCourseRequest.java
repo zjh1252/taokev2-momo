@@ -1,6 +1,7 @@
 package com.taoke.course.dto.course;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -68,6 +69,10 @@ public class SaveCourseRequest {
 
     /** 关键词，逗号分隔 */
     private String keywords;
+
+    /** SEO 自定义描述 */
+    @Size(max = 255, message = "SEO 描述不超过255个字符")
+    private String seoDescription;
 
     /** 是否主打课程 */
     private Integer isFeatured;

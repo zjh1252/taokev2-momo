@@ -86,7 +86,7 @@ export function SearchBar({ className }: SearchBarProps) {
       ref={formRef}
       onSubmit={handleSubmit}
       className={cn(
-        'flex items-center bg-slate-100 rounded-md overflow-visible p-0.5 border border-slate-200 relative min-w-[360px]',
+        'flex min-w-0 items-center bg-slate-100 rounded-md overflow-visible p-0.5 border border-slate-200 relative w-full sm:min-w-[360px]',
         className,
       )}
     >
@@ -97,7 +97,7 @@ export function SearchBar({ className }: SearchBarProps) {
             setDropdownOpen(!dropdownOpen);
             setSuggestionOpen(false);
           }}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm text-slate-500 border-r border-slate-200 hover:bg-slate-200 hover:text-slate-700 transition-colors rounded-l-md"
+          className="flex items-center gap-1 px-2.5 py-2 text-xs text-slate-500 border-r border-slate-200 hover:bg-slate-200 hover:text-slate-700 transition-colors rounded-l-md sm:gap-1.5 sm:px-4 sm:text-sm"
         >
           {t(currentCategory.i18nKey)}
           <ChevronDown
@@ -129,7 +129,7 @@ export function SearchBar({ className }: SearchBarProps) {
           setSuggestionOpen(Boolean(keyword.trim()));
           setDropdownOpen(false);
         }}
-        className="bg-transparent border-none focus:ring-0 focus:outline-none text-sm w-full min-w-[180px] px-3 py-1"
+        className="min-w-0 bg-transparent border-none focus:ring-0 focus:outline-none text-sm w-full px-2 py-1 sm:px-3"
         placeholder={t('placeholder')}
         type="search"
         enterKeyHint="search"

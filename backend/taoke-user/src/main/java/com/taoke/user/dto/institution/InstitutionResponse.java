@@ -26,6 +26,8 @@ public class InstitutionResponse {
     /** 营业执照附件 URL（图片） */
     private String licenseDocUrl;
     private String bio;
+    /** SEO 自定义描述 */
+    private String seoDescription;
     /** 擅长行业 — 分类 ID 逗号串（前端解析为 number[]） */
     private String industries;
     /** 擅长领域 — 分类 ID 逗号串（前端解析为 number[]） */

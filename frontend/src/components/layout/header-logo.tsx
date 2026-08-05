@@ -15,7 +15,7 @@ export function HeaderLogo() {
         className="size-10 rounded-md object-contain"
         priority
       />
-      <span className="text-2xl font-black tracking-tighter text-slate-900">淘课网</span>
+      <span className="hidden text-xl font-black tracking-tighter text-slate-900 sm:inline md:text-2xl">淘课网</span>
     </Link>
   );
 }

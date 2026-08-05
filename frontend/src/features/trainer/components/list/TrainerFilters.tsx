@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { apiGet } from '@/lib/http/client';
 import type { CategoryTreeNode } from '../../types';
@@ -128,8 +128,8 @@ export function TrainerFilters({
   const activeMeta = FILTER_ITEMS.find((f) => f.key === activeFilter);
 
   return (
-    <div className="w-[227px] h-[306px] shrink-0 relative" onMouseLeave={handleMouseLeave}>
-      <aside className="h-full bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
+    <div className="relative min-h-[306px] w-full shrink-0 lg:h-[306px] lg:w-[227px]" onMouseLeave={handleMouseLeave}>
+      <aside className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
         <h2 className="px-4 py-3 text-sm font-bold text-slate-800 border-b border-slate-100">
           讲师筛选条件
         </h2>
@@ -143,6 +143,7 @@ export function TrainerFilters({
             >
               <button
                 type="button"
+                onClick={() => setActiveFilter(activeFilter === item.key ? null : item.key)}
                 className={`h-full w-full flex items-center justify-between px-4 text-left cursor-pointer transition-colors ${
                   activeFilter === item.key ? 'bg-slate-50' : 'hover:bg-slate-50'
                 }`}
@@ -191,14 +192,14 @@ export function TrainerFilters({
       {/* 浮层面板 */}
       {activeFilter && activeMeta && (
         <div
-          className="absolute left-full top-0 min-h-full pl-2 z-50"
+          className="absolute left-0 top-full z-50 w-full pt-2 lg:left-full lg:top-0 lg:min-h-full lg:w-auto lg:pl-2 lg:pt-0"
           onMouseEnter={() => {
             if (leaveTimer.current) { clearTimeout(leaveTimer.current); leaveTimer.current = null; }
           }}
         >
           <div
-            className="bg-white rounded-xl shadow-xl border border-slate-100 p-6 max-h-[70vh] overflow-y-auto"
-            style={{ width: activeMeta.flyoutWidth }}
+            className="max-h-[70vh] w-full overflow-y-auto rounded-xl border border-slate-100 bg-white p-4 shadow-xl lg:w-[var(--flyout-width)] lg:p-6"
+            style={{ '--flyout-width': `${activeMeta.flyoutWidth}px` } as CSSProperties}
           >
             {activeFilter === 'expertise' && (
               <ExpertisePanel
@@ -268,7 +269,7 @@ function ExpertisePanel({
           全部 / 不限
         </button>
       </div>
-      <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
         {tree.map((lvl1) => (
           <button
             key={lvl1.id}
@@ -314,7 +315,7 @@ function SingleSelectPanel({
           {label}
         </button>
       </div>
-      <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
         {tree.map((lvl1) => (
           <button
             key={lvl1.id}
@@ -358,7 +359,7 @@ function ProvincePanel({
           全国
         </button>
       </div>
-      <div className="grid grid-cols-4 gap-x-3 gap-y-3">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
         {provinces.map((p) => (
           <button
             key={p.id}

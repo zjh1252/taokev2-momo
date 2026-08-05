@@ -89,6 +89,8 @@ export interface TrainerDetail {
   cityName?: string;
   /** 一句话介绍 */
   oneLineIntro?: string;
+  /** SEO 自定义描述 */
+  seoDescription?: string;
   bio?: string;
   intro?: string;
   background?: string;

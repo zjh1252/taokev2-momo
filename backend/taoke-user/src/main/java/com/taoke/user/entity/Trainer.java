@@ -151,6 +151,10 @@ public class Trainer extends BaseEntity {
     @Column(name = "one_line_intro", length = 255)
     private String oneLineIntro;
 
+    /** SEO 自定义描述 */
+    @Column(name = "seo_description", length = 255)
+    private String seoDescription;
+
     /** 详细介绍（富文本，支持美化格式） */
     @Column(name = "intro", columnDefinition = "longtext")
     private String intro;

@@ -6,11 +6,23 @@
 SET @legacy_ok := (
     SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'taoke'
 );
+SET @legacy_authinfo_ok := (
+    SELECT COUNT(*) FROM information_schema.tables
+    WHERE table_schema = 'taoke' AND table_name = 'tk_member_authinfo'
+);
+SET @legacy_education_ok := (
+    SELECT COUNT(*) FROM information_schema.tables
+    WHERE table_schema = 'taoke' AND table_name = 'tk_member_education'
+);
+SET @legacy_work_ok := (
+    SELECT COUNT(*) FROM information_schema.tables
+    WHERE table_schema = 'taoke' AND table_name = 'tk_member_work'
+);
 
 -- ============================================================
 -- 1. 实名认证（type = ID / identity）
 -- ============================================================
-SET @sql := IF(@legacy_ok > 0,
+SET @sql := IF(@legacy_authinfo_ok > 0,
 'UPDATE user_trainers t
 INNER JOIN (
     SELECT ai.uid, MAX(ai.id) AS latest_id
@@ -47,7 +59,7 @@ WHERE t.status = 2',
 'SELECT 1 AS flyway_v131_skip_real_name_backfill');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-SET @sql := IF(@legacy_ok > 0,
+SET @sql := IF(@legacy_authinfo_ok > 0,
 'UPDATE user_trainers t
 SET t.real_name_status = NULL, t.updated_at = NOW()
 WHERE t.real_name_status = 1
@@ -67,7 +79,7 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- ============================================================
 -- 2. 学历认证
 -- ============================================================
-SET @sql := IF(@legacy_ok > 0,
+SET @sql := IF(@legacy_education_ok > 0,
 'UPDATE trainer_educations te
 INNER JOIN user_trainers t ON t.id = te.trainer_id AND t.status = 2
 INNER JOIN taoke.tk_member_education me
@@ -95,7 +107,7 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- ============================================================
 -- 3. 工作认证
 -- ============================================================
-SET @sql := IF(@legacy_ok > 0,
+SET @sql := IF(@legacy_work_ok > 0,
 'UPDATE trainer_work_experiences tw
 INNER JOIN user_trainers t ON t.id = tw.trainer_id AND t.status = 2
 INNER JOIN taoke.tk_member_work mw

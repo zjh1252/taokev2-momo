@@ -146,6 +146,7 @@ export interface VideoDetail {
   /** 封顶价（批量采购优惠价），null/0=不设置 */
   capPrice: number | null;
   keywords: string;
+  seoDescription?: string;
   companyPrice?: number;
   maxPurchaseQty?: number;
   duration: number;
@@ -275,6 +276,7 @@ export interface SaveVideoRequest {
   /** 视频总时长（秒），前端以分钟录入后换算 */
   duration?: number;
   keywords?: string;
+  seoDescription?: string;
   companyPrice?: number;
   maxPurchaseQty?: number;
 }

@@ -48,6 +48,7 @@ public class CourseMapper {
         vo.setPrice(course.getPrice());
         vo.setOriginalPrice(course.getOriginalPrice());
         vo.setKeywords(course.getKeywords());
+        vo.setSeoDescription(course.getSeoDescription());
         vo.setTrainerId(course.getTrainerId());
         vo.setIsFeatured(course.getIsFeatured());
         vo.setIsFree(course.getIsFree());

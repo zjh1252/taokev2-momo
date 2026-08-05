@@ -1,7 +1,14 @@
 'use client';
 
 import { Suspense, useState, useCallback, useTransition, useEffect, useMemo } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import { ListPagePagination } from '@/components/list-page-pagination';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { TrainerFilters, type TrainerFilterValue } from './TrainerFilters';
 import { TrainerCard } from './TrainerCard';
 import { TrainerRecommendedScroller } from './TrainerRecommendedScroller';
@@ -146,6 +153,7 @@ function TrainerListSectionInner({
   const [filters, setFilters] = useState<TrainerFilterValue>(initialFilters);
   const [sort, setSort] = useState<string>('default');
   const [currentPage, setCurrentPage] = useState(initialData.page ?? 1);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   /** SSR 刷新/软导航时同步数据与筛选（底部分类栏跳转、浏览器前进后退等） */
@@ -270,13 +278,42 @@ function TrainerListSectionInner({
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex max-w-full flex-col gap-4">
       {categoryExpertTrainers.length > 0 ? (
         <TrainerCategoryExpertBar items={categoryExpertTrainers} />
       ) : null}
 
-      <section className="flex gap-5 items-start">
-        <div className="shrink-0">
+      <section className="flex flex-col gap-4 lg:flex-row lg:gap-5 lg:items-start">
+        <div className="lg:hidden">
+          <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
+            <button
+              type="button"
+              onClick={() => setMobileFilterOpen(true)}
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm"
+            >
+              <SlidersHorizontal className="size-4" />
+              筛选讲师
+            </button>
+            <SheetContent side="bottom" className="max-h-[82vh] gap-0 overflow-y-auto rounded-t-xl p-0">
+              <SheetHeader className="border-b border-slate-100 px-4 py-3">
+                <SheetTitle>筛选讲师</SheetTitle>
+              </SheetHeader>
+              <div className="p-4">
+                <TrainerFilters
+                  expertiseTree={expertiseTree}
+                  industryTree={industryTree}
+                  value={filters}
+                  onChange={(next) => {
+                    handleFilterChange(next);
+                    setMobileFilterOpen(false);
+                  }}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        <div className="hidden shrink-0 lg:block">
           <TrainerFilters
             expertiseTree={expertiseTree}
             industryTree={industryTree}

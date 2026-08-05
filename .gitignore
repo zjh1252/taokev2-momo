@@ -56,10 +56,40 @@ data-trans/scripts/*
 !data-trans/scripts/_validate_flyway_migration.py
 !data-trans/scripts/run_trainer_fields_backfill.py
 !data-trans/scripts/_audit_video_migration_gaps.py
+!data-trans/scripts/_audit_legacy_new_channel_coverage.py
 !data-trans/scripts/run_video_package_migrate.py
 !data-trans/scripts/run_video_supplier_migrate.py
 !data-trans/scripts/run_video_order_migrate.py
 !data-trans/scripts/run_video_comment_migrate.py
+!data-trans/scripts/run_production_migration.py
+!data-trans/scripts/run_legacy_post_migrate_fixups.py
+!data-trans/scripts/run_legacy_courses_migrate.py
+!data-trans/scripts/run_legacy_course_images_migrate.py
+!data-trans/scripts/run_legacy_course_plans_migrate.py
+!data-trans/scripts/run_legacy_videos_migrate.py
+!data-trans/scripts/run_legacy_video_series_chapters_migrate.py
+!data-trans/scripts/run_legacy_users_migrate.py
+!data-trans/scripts/run_legacy_roles_migrate.py
+!data-trans/scripts/run_legacy_buyers_migrate.py
+!data-trans/scripts/run_legacy_trainers_migrate.py
+!data-trans/scripts/run_legacy_institutions_migrate.py
+!data-trans/scripts/run_legacy_agents_migrate.py
+!data-trans/scripts/run_legacy_trainer_educations_migrate.py
+!data-trans/scripts/run_legacy_trainer_honors_migrate.py
+!data-trans/scripts/run_legacy_trainer_work_experiences_migrate.py
+!data-trans/scripts/run_legacy_trainer_books_migrate.py
+!data-trans/scripts/run_legacy_video_carts_migrate.py
+!data-trans/scripts/run_video_students_backfill.py
+!data-trans/scripts/run_legacy_trainer_cases_migrate.py
+!data-trans/scripts/run_legacy_trainer_lead_messages_migrate.py
+!data-trans/scripts/run_legacy_training_reviews_migrate.py
+!data-trans/scripts/run_legacy_demands_migrate.py
+!data-trans/scripts/run_legacy_org_find_trainer_demands_migrate.py
+!data-trans/scripts/run_legacy_demand_follow_ups_migrate.py
+!data-trans/scripts/run_legacy_course_orders_migrate.py
+!data-trans/scripts/run_legacy_course_enrollments_migrate.py
+!data-trans/scripts/run_legacy_favorites_migrate.py
+!data-trans/scripts/run_legacy_member_provider_migrate.py
 !data-trans/scripts/_audit_video_migration_verify.py
 !data-trans/scripts/_rollback_video_migration.py
 
@@ -70,6 +100,9 @@ data-trans/output/
 data-trans/logs/
 data-trans/backup/
 data-trans/docs/
+!data-trans/docs/
+data-trans/docs/*
+!data-trans/docs/legacy-channel-migration-recovery.md
 
 ### 本地工具脚本（不入库） ###
 scripts/vision.py

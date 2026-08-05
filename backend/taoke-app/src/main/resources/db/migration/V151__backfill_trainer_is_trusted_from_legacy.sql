@@ -4,7 +4,8 @@
 -- 可重复执行（仅补 is_trusted=0 的行）
 
 SET @legacy_ok := (
-    SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'taoke'
+    SELECT COUNT(*) FROM information_schema.tables
+    WHERE table_schema = 'taoke' AND table_name = 'tk_member_auth'
 );
 
 SET @sql := IF(@legacy_ok > 0,

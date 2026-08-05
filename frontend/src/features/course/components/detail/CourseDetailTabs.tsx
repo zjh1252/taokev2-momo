@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Star } from 'lucide-react';
 import { MaterialLinkSection } from '@/components/material-link-section';
 import { useTranslations } from 'next-intl';
+import { resolveRichTextHtml } from '@/lib/rich-text';
 import type { CourseDetail } from '../../api/types';
 import { CoursePlanTable } from './CoursePlanTable';
 import { getPublicReviews } from '@/features/interaction/api/service';
@@ -30,6 +31,7 @@ function CourseRichSection({
 }) {
   const htmlContent = html?.trim();
   const textContent = text?.trim();
+  const resolvedHtml = htmlContent ? resolveRichTextHtml(htmlContent, `${courseTitle}${title}`) : '';
 
   if (!htmlContent && !textContent) return null;
 
@@ -39,10 +41,10 @@ function CourseRichSection({
       <h3 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">
         {courseSectionH3(courseTitle, title)}
       </h3>
-      {htmlContent ? (
+      {resolvedHtml ? (
         <div
           className="prose prose-slate max-w-none text-sm break-words [&_*]:max-w-full [&_img]:h-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto"
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
+          dangerouslySetInnerHTML={{ __html: resolvedHtml }}
         />
       ) : (
         <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words">

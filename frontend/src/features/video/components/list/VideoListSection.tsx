@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useCallback, useTransition, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Search, ArrowUpDown, X } from 'lucide-react';
 import { ListPagePagination } from '@/components/list-page-pagination';
 import { useListPageUrlSync } from '@/hooks/use-list-page-url';
@@ -56,6 +57,22 @@ function resolveTopCategoryId(tree: CategoryTreeNode[], categoryId?: number): nu
   return categoryId;
 }
 
+function findCategoryNameById(tree: CategoryTreeNode[], categoryId?: number): string | undefined {
+  if (!categoryId) return undefined;
+  for (const cat of tree) {
+    if (cat.id === categoryId) return cat.name;
+    const child = cat.children?.find((item) => item.id === categoryId);
+    if (child) return child.name;
+  }
+  return undefined;
+}
+
+function parseOptionalPositiveInt(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const next = Number(value);
+  return Number.isFinite(next) && next > 0 ? next : undefined;
+}
+
 export function VideoListSection(props: VideoListSectionProps) {
   return (
     <Suspense fallback={<div className="min-h-[320px] animate-pulse rounded-xl bg-slate-100" />}>
@@ -74,6 +91,8 @@ function VideoListSectionInner({
   initialSortBy,
   bottomCategoryNav,
 }: VideoListSectionProps) {
+  const searchParams = useSearchParams();
+  const searchParamsText = searchParams.toString();
   const { keyword: keywordFromUrl, commitKeyword } = useListKeywordUrl();
   const [data, setData] = useState(initialData);
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>(initialCategoryId);
@@ -91,9 +110,10 @@ function VideoListSectionInner({
   const initialSortKey = SORT_OPTIONS.find((option) => option.sortBy === initialSortBy)?.key ?? 'default';
   const [sortKey, setSortKey] = useState(initialSortKey);
   const [keyword, setKeyword] = useState(keywordFromUrl);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialData.page ?? 1);
   const [isPending, startTransition] = useTransition();
   const keywordBootstrappedRef = useRef(false);
+  const urlSyncBootstrappedRef = useRef(false);
 
   const serverFilterKey = useMemo(
     () =>
@@ -213,6 +233,50 @@ function VideoListSectionInner({
     });
   }, [keywordFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      if (!urlSyncBootstrappedRef.current) {
+        urlSyncBootstrappedRef.current = true;
+        return;
+      }
+
+      const params = new URLSearchParams(searchParamsText);
+      const nextCategoryId = parseOptionalPositiveInt(params.get('categoryId'));
+      const nextCategoryName =
+        params.get('categoryName') || findCategoryNameById(categoryTree, nextCategoryId);
+      const nextSortBy = params.get('sortBy') || 'default';
+      const nextSortKey =
+        SORT_OPTIONS.find((option) => option.sortBy === nextSortBy)?.key ?? 'default';
+      const nextKeyword = params.get('keyword') ?? '';
+      const nextPage = Math.max(1, Number(params.get('page') || 1) || 1);
+      const nextInstitutionId = parseOptionalPositiveInt(params.get('institutionId'));
+
+      const categorySame = selectedCategory === nextCategoryId;
+      const categoryNameSame = (selectedCategoryName ?? '') === (nextCategoryName ?? '');
+      const sortSame = sortKey === nextSortKey;
+      const keywordSame = keyword === nextKeyword;
+      const pageSame = currentPage === nextPage;
+      const institutionSame = institutionId === nextInstitutionId;
+      if (categorySame && categoryNameSame && sortSame && keywordSame && pageSame && institutionSame) {
+        return;
+      }
+
+      selectedCategoryRef.current = nextCategoryId;
+      setSelectedCategory(nextCategoryId);
+      setSelectedCategoryName(nextCategoryName);
+      setSortKey(nextSortKey);
+      setKeyword(nextKeyword);
+      setInstitutionId(nextInstitutionId);
+      fetchData(
+        nextPage,
+        nextCategoryId,
+        nextSortKey,
+        nextKeyword,
+        nextInstitutionId ?? null,
+      );
+    });
+  }, [searchParamsText]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);
     fetchData(1, selectedCategory, sortKey, keyword, null);
@@ -296,14 +360,14 @@ function VideoListSectionInner({
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100">
         {/* 默认 / 精品录播课 */}
-        <div className="flex border-b border-slate-100 px-4 pt-2">
+        <div className="flex overflow-x-auto border-b border-slate-100 px-2 pt-2 sm:px-4">
           {LIST_MODE_TABS.map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => handleListModeChange(tab.key)}
               className={cn(
-                'px-6 py-3 text-[15px] transition-colors border-b-2 -mb-px',
+                'shrink-0 px-4 py-3 text-[15px] transition-colors border-b-2 -mb-px sm:px-6',
                 listMode === tab.key
                   ? 'font-bold text-primary border-primary'
                   : 'font-medium text-slate-600 border-transparent hover:text-primary',
@@ -367,14 +431,14 @@ function VideoListSectionInner({
             </button>
           ))}
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
             <input
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="搜索录播课..."
-              className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary sm:w-44"
             />
             <button
               type="button"
@@ -394,7 +458,7 @@ function VideoListSectionInner({
       {/* 卡片网格 */}
       <div className={cn('transition-opacity', isPending ? 'opacity-50' : '')}>
         {data.list.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {data.list.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}

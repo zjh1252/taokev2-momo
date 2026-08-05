@@ -179,7 +179,7 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
   });
 
   return (
-    <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
+    <main className="max-w-7xl mx-auto px-4 py-6 min-h-screen flex flex-col gap-6 sm:px-8">
       <PageBreadcrumb items={[{ label: '培训专家' }]} />
       <h1 className="sr-only">{listH1}</h1>
 

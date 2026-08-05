@@ -1,6 +1,7 @@
 'use client';
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 /** 培训宝智能客服嵌入地址（可用 NEXT_PUBLIC_SMARTCS_CHAT_URL 覆盖为本地联调） */
@@ -46,9 +47,9 @@ export function CustomerServiceChatDialog({
   const sizeStyle = isMobile
     ? {
         width: '100%',
-        maxWidth: '100%',
-        height: '90vh',
-        maxHeight: '90vh',
+        maxWidth: '100vw',
+        height: '80svh',
+        maxHeight: '80svh',
         top: 'auto',
         bottom: 0,
         left: 0,
@@ -69,11 +70,27 @@ export function CustomerServiceChatDialog({
       <DialogContent
         className="flex flex-col gap-0 overflow-hidden p-0 sm:!max-w-[880px]"
         style={sizeStyle}
-        showCloseButton
+        showCloseButton={!isMobile}
       >
-        <DialogTitle className="sr-only">培训宝智能客服</DialogTitle>
+        {isMobile ? (
+          <div className="flex h-12 shrink-0 items-center justify-between border-b border-slate-100 bg-white px-4">
+            <DialogTitle className="text-base font-semibold text-slate-900">
+              淘课网客服
+            </DialogTitle>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="inline-flex size-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              aria-label="关闭客服"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
+        ) : (
+          <DialogTitle className="sr-only">培训宝智能客服</DialogTitle>
+        )}
         <iframe
-          title="培训宝智能客服"
+          title="淘课网客服"
           src={CUSTOMER_SERVICE_CHAT_URL}
           className="min-h-0 w-full flex-1 border-0"
           allow="microphone; clipboard-write"

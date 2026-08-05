@@ -27,6 +27,9 @@ public class InstitutionPublicResponse {
     /** 机构简介 */
     private String bio;
 
+    /** SEO 自定义描述 */
+    private String seoDescription;
+
     /** 擅长领域 */
     private String specialties;
 

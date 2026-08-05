@@ -44,6 +44,7 @@ public class CourseDetailVO {
     private BigDecimal price;
     private BigDecimal originalPrice;
     private String keywords;
+    private String seoDescription;
 
     private Integer trainerId;
     private String trainerName;

@@ -776,6 +776,7 @@ public class InstitutionServiceImpl implements com.taoke.user.api.InstitutionSer
         if (request.getEstablishedAt() != null) ent.setEstablishedAt(request.getEstablishedAt());
         if (request.getLogoUrl() != null) ent.setLogoUrl(request.getLogoUrl());
         if (request.getBio() != null) ent.setBio(request.getBio());
+        if (request.getSeoDescription() != null) ent.setSeoDescription(request.getSeoDescription());
         if (request.getIndustryCategoryIds() != null) {
             ent.setIndustries(serializeCategoryIds(request.getIndustryCategoryIds()));
         }

@@ -24,7 +24,7 @@ function TrainerCardRating({ score }: { score: number }) {
   const filledStars = Math.round(displayScore);
 
   return (
-    <div className="absolute right-5 top-5 flex items-center gap-1">
+    <div className="absolute right-4 top-4 flex items-center gap-1 sm:right-5 sm:top-5">
       <div className="flex items-center gap-0.5 text-[#f5a623]">
         {Array.from({ length: 5 }, (_, index) => (
           <Star
@@ -61,7 +61,7 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
         rememberTrainerListPath();
         onCardClick();
       }}
-      className="relative min-h-[190px] bg-white rounded-xl border border-slate-200 p-5 flex flex-col sm:flex-row gap-5 hover:shadow-md transition-all group"
+      className="relative min-h-[190px] max-w-full bg-white rounded-xl border border-slate-200 p-5 flex flex-col sm:flex-row gap-5 hover:shadow-md transition-all group"
     >
       <TrainerCardRating score={trainer.score} />
 
@@ -91,7 +91,7 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
 
       {/* 内容 */}
       <div className="flex-1 min-w-0 flex flex-col justify-between">
-        <div className="pr-24">
+        <div className="sm:pr-24">
           <div className="flex items-baseline gap-3 mb-1">
             <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors">
               {displayName}

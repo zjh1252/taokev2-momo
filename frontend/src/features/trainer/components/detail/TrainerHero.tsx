@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { SafeImage } from '@/components/safe-image';
+import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import {
   Download,
   Heart,
@@ -23,6 +24,7 @@ import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
 import { getTrainerDetailTabHref } from '../../utils/routes';
+import { readTrainerListReturnPath } from '../../utils/list-return';
 import { Link } from '@/i18n/navigation';
 
 interface TrainerHeroProps {
@@ -73,6 +75,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
   const [msgOpen, setMsgOpen] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
+  const [trainerListHref, setTrainerListHref] = useState('/trainer');
   const locationLabel = [trainer.provinceName, trainer.cityName].filter(Boolean).join(' ');
 
   useEffect(() => {
@@ -80,6 +83,10 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
       .then((s) => setFavorited(s.favorited))
       .catch(() => {});
   }, [trainer.userId]);
+
+  useEffect(() => {
+    setTrainerListHref(readTrainerListReturnPath('/trainer'));
+  }, []);
 
   const toggleFavorite = useCallback(async () => {
     setFavLoading(true);
@@ -102,6 +109,16 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
 
   return (
     <section className="relative z-10 mx-auto w-full max-w-[1400px] px-6 pt-6">
+      <div className="mb-3">
+        <PageBreadcrumb
+          showPrefix={false}
+          includeHome={false}
+          items={[
+            { label: '培训专家', href: trainerListHref },
+            { label: displayName },
+          ]}
+        />
+      </div>
       <div className="relative overflow-hidden rounded-t-xl border border-b-0 border-slate-200 bg-white shadow-sm">
         <Image
           src="/statics/images/trainer/hero-taoke-watermark.png"
@@ -211,7 +228,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                 <button
                   type="button"
                   aria-disabled="true"
-                  className="flex h-[34px] w-[92px] items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac]"
+                  className="flex h-[34px] w-[92px] cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac] hover:border-primary/40 hover:text-primary"
                 >
                   <Download className="size-4" />
                   下载简历
@@ -220,7 +237,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                   type="button"
                   disabled={favLoading}
                   onClick={() => requireAuth(toggleFavorite)}
-                  className={`flex h-[34px] w-[82px] items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold ${
+                  className={`flex h-[34px] w-[82px] cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${
                     favorited ? 'border-primary text-primary' : 'text-[#979fac]'
                   }`}
                 >
@@ -229,11 +246,11 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                 </button>
                 <Link
                   href={getTrainerDetailTabHref(trainer.id, 'comments')}
-                  className="flex h-[34px] w-[82px] items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac]"
+                  className="flex h-[34px] w-[82px] cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac] hover:border-primary/40 hover:text-primary"
                 >
                   <Image
                     src="/statics/images/icons/trainer-hero-review.png"
-                    alt=""
+                    alt="评价"
                     width={13}
                     height={13}
                     unoptimized
@@ -244,11 +261,11 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                 <button
                   type="button"
                   aria-disabled="true"
-                  className="flex h-[34px] w-[82px] items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac]"
+                  className="flex h-[34px] w-[82px] cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac] hover:border-primary/40 hover:text-primary"
                 >
                   <Image
                     src="/statics/images/icons/trainer-hero-contact.png"
-                    alt=""
+                    alt="联系专家"
                     width={13}
                     height={13}
                     unoptimized
@@ -281,7 +298,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
               <button
                 type="button"
                 onClick={() => requireAuth(() => setMsgOpen(true))}
-                className="mt-[30px] flex h-[60px] w-full shrink-0 items-center justify-center gap-2.5 rounded-[10px] bg-[#d00000] text-[17px] font-semibold text-white hover:bg-[#be0000]"
+                className="mt-[30px] flex h-[60px] w-full shrink-0 cursor-pointer items-center justify-center gap-2.5 rounded-[10px] bg-[#d00000] text-[17px] font-semibold text-white hover:bg-[#be0000]"
               >
                 <MessageSquare className="size-5" />
                 给专家留言

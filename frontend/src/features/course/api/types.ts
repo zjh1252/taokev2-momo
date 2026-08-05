@@ -130,6 +130,7 @@ export interface SaveCourseRequest {
   price?: number;
   originalPrice?: number;
   keywords?: string;
+  seoDescription?: string;
   isFeatured?: number;
   isFree?: number;
   /** 是否有公开课计划：0=否 1=是 */
@@ -177,6 +178,7 @@ export interface CourseDetail {
   price: number;
   originalPrice: number;
   keywords: string;
+  seoDescription?: string;
   trainerId: number;
   trainerName: string;
   isFeatured: number;

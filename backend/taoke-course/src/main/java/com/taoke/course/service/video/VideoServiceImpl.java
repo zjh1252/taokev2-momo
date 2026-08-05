@@ -960,6 +960,7 @@ public class VideoServiceImpl implements VideoService {
         }
         if (req.getDuration() != null) video.setDuration(req.getDuration());
         if (req.getKeywords() != null) video.setKeywords(req.getKeywords());
+        if (req.getSeoDescription() != null) video.setSeoDescription(req.getSeoDescription());
         if (req.getCompanyPrice() != null) video.setCompanyPrice(req.getCompanyPrice());
         if (req.getMaxPurchaseQty() != null) video.setMaxPurchaseQty(req.getMaxPurchaseQty());
     }

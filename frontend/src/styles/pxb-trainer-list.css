@@ -153,9 +153,14 @@
   padding-right: 10px;
 }
 
-.pxb-trainer-list .pxb-reset-link a {
+.pxb-trainer-list .pxb-reset-link button {
+  appearance: none;
+  border: 0;
+  background: transparent;
   color: #666;
+  cursor: pointer;
   font-size: 12px;
+  padding: 0;
 }
 
 .pxb-trainer-list .pxb-sort-bar {
@@ -355,4 +360,72 @@
 
 .pxb-trainer-list .pxb-pagination strong {
   margin: 0 4px;
+}
+
+@media (max-width: 640px) {
+  .pxb-trainer-list {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .pxb-trainer-list .pxb-search-box {
+    height: auto;
+    line-height: 1.6;
+    padding: 12px;
+  }
+
+  .pxb-trainer-list .pxb-search-box input#keywords {
+    width: min(100%, 220px);
+    max-width: 100%;
+    margin: 6px 6px 6px 0;
+  }
+
+  .pxb-trainer-list .pxb-search-content {
+    padding: 10px 12px;
+  }
+
+  .pxb-trainer-list .pxb-filter-label,
+  .pxb-trainer-list .pxb-filter-value {
+    float: none;
+    width: 100%;
+    padding-left: 0;
+    text-align: left;
+  }
+
+  .pxb-trainer-list .pxb-select-label {
+    display: inline-block;
+    margin: 6px 6px 4px 0;
+  }
+
+  .pxb-trainer-list select.pxb-select {
+    max-width: 100%;
+    margin-bottom: 6px;
+  }
+
+  .pxb-trainer-list .pxb-reset-link {
+    float: none;
+    margin: 8px 0 0;
+    padding-right: 0;
+  }
+
+  .pxb-trainer-list .pxb-trainer-photo,
+  .pxb-trainer-list .pxb-trainer-body,
+  .pxb-trainer-list .pxb-trainer-cell {
+    float: none;
+    width: 100% !important;
+  }
+
+  .pxb-trainer-list .pxb-trainer-photo {
+    margin-bottom: 10px;
+  }
+
+  .pxb-trainer-list .pxb-trainer-meta {
+    text-align: left;
+  }
+
+  .pxb-trainer-list .pxb-trainer-meta > span {
+    display: inline-block;
+    margin: 0 12px 4px 0;
+  }
 }

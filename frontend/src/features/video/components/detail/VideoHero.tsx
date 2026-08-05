@@ -252,7 +252,7 @@ export function VideoHero({ video }: VideoHeroProps) {
               type="button"
               onClick={() => requireAuth(toggleFavorite)}
               disabled={favLoading}
-              className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors disabled:opacity-50 ${
+              className={`ml-auto flex cursor-pointer items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 favorited
                   ? 'border-primary text-primary bg-primary/5'
                   : 'border-white/30 text-white/90 hover:border-white/50 hover:text-white'

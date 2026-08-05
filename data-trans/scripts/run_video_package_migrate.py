@@ -18,22 +18,7 @@ DEFAULT_TARGET_GROUP_TABLE = "video_package_groups"
 DEFAULT_TARGET_RELATION_TABLE = "video_package_relations"
 DEFAULT_TARGET_VIDEO_TABLE = "videos"
 
-LABEL_COLUMNS = (
-    "id",
-    "name",
-    "topic_id",
-    "item_parent",
-    "item_index",
-    "type",
-    "serial_index",
-    "price",
-    "company_price",
-    "disabled",
-    "topic_name",
-    "package_code",
-    "descr",
-    "cover",
-)
+LABEL_COLUMNS = ("id", "name")
 GROUP_COLUMNS = (
     "package_id",
     "topic_id",
@@ -261,24 +246,11 @@ def row_values(row: dict, columns: tuple[str, ...]) -> tuple:
 def label_upsert_sql(table: str) -> str:
     return f"""
         INSERT INTO {quote_ident(table)}
-          (id, name, topic_id, item_parent, item_index, type, serial_index, price, company_price,
-           disabled, topic_name, package_code, descr, cover, created_at, updated_at)
+          (id, name, created_at, updated_at)
         VALUES
-          (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+          (%s, %s, NOW(), NOW())
         ON DUPLICATE KEY UPDATE
           name = VALUES(name),
-          topic_id = VALUES(topic_id),
-          item_parent = VALUES(item_parent),
-          item_index = VALUES(item_index),
-          type = VALUES(type),
-          serial_index = VALUES(serial_index),
-          price = VALUES(price),
-          company_price = VALUES(company_price),
-          disabled = VALUES(disabled),
-          topic_name = VALUES(topic_name),
-          package_code = VALUES(package_code),
-          descr = VALUES(descr),
-          cover = VALUES(cover),
           updated_at = NOW()
     """
 

@@ -79,7 +79,7 @@ export default async function VideosPage({ searchParams }: Props) {
   const listH1 = videoListH1({ category: categoryName });
 
   return (
-    <main className="max-w-7xl mx-auto px-8 py-6 min-h-screen flex flex-col gap-6">
+    <main className="max-w-7xl mx-auto px-4 py-6 min-h-screen flex flex-col gap-6 sm:px-8">
       {/* 面包屑导航 — 公共组件 */}
       <PageBreadcrumb items={[{ label: '录播课' }]} />
       <h1 className="sr-only">{listH1}</h1>

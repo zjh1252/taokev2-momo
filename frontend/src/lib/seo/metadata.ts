@@ -8,6 +8,7 @@ import {
   joinFilterPrefix,
   joinKeywords,
   parseFieldLabel,
+  preferSeoDescription,
   stripHtml,
   toMetadata,
   truncateDescription,
@@ -23,13 +24,30 @@ export type FilterContext = {
   category?: string;
 };
 
+function compactMetaValue(value?: string | null, fallback = '企业管理', max = 18): string {
+  const plain = stripHtml(value ?? '')
+    .split(/[，,。；;、]/)[0]
+    .replace(/\s+/g, '')
+    .trim();
+  if (!plain || /^[\d_\s,，]+$/.test(plain)) return fallback;
+  return plain.length > max ? plain.slice(0, max) : plain;
+}
+
+function firstReadable(fallback: string, ...values: (string | undefined | null)[]): string {
+  for (const value of values) {
+    const compact = compactMetaValue(value, '');
+    if (compact) return compact;
+  }
+  return fallback;
+}
+
 // ─── 首页 ───────────────────────────────────────────────
 
 export function buildHomeMetadata(): SeoFields {
   return {
     title: '淘课网-领先的企业培训采购平台',
     description:
-      '淘课网是一站式企业培训采购平台，汇聚2万+实战讲师、海量内训/公开课、企业培训案例，覆盖人力、营销、生产、领导力等全领域，快速匹配适配您的企业培训方案。',
+      '淘课网汇聚企业培训讲师、培训机构，提供公开课、录播课程、企业定制内训服务，一站式解决企业人才培养需求，查找实战企业管理培训资源。',
     keywords: joinKeywords(
       '企业培训',
       '企业培训采购',
@@ -79,17 +97,14 @@ export function buildTrainerDetailMetadata(trainer: TrainerDetail): SeoFields {
 
   const expertiseNames = trainer.expertiseCategories?.map((c) => c.categoryName) ?? [];
   const industryNames = trainer.industryCategories?.map((c) => c.categoryName) ?? [];
-
-  const descParts = [trainer.goodAt, trainer.title || trainer.oneLineIntro]
-    .map((s) => s?.trim())
-    .filter(Boolean);
+  const field = firstReadable('企业管理', expertiseNames[0], trainer.goodAt, trainer.expertiseTags);
 
   return {
     title: `${name}_${positioning}_淘课网`,
-    description:
-      descParts.length > 0
-        ? `${name}，${positioning}，擅长${descParts.join('、')}，可提供企业管理线下内训、高管专题培训与定制化课程服务。`
-        : `${name}，${positioning}，淘课网认证企业培训讲师，可为企业提供内训课程、公开课授课与培训需求匹配服务。`,
+    description: preferSeoDescription(
+      trainer.seoDescription,
+      `${name}，专注${field}企业培训讲师，拥有实战行业经验，提供公开课、企业内训授课，助力企业员工能力提升，查看讲师课程与授课案例。`,
+    ),
     keywords: joinKeywords(...expertiseNames, ...industryNames),
   };
 }
@@ -141,21 +156,15 @@ export function buildOpenCourseDetailMetadata(
   const plan = plans[planIndex] ?? plans[0];
   const planMeta = formatPlanMeta(plan);
   const titleSuffix = planMeta ? `_${planMeta}` : '';
-
-  const descParts = [
-    course.summary || stripHtml(course.intro).slice(0, 60),
-    planMeta,
-    course.audience,
-  ]
-    .map((s) => s?.trim())
-    .filter(Boolean);
+  const target = compactMetaValue(course.audience, '企业培训学员');
+  const field = firstReadable('企业管理', course.categoryName, course.subCategoryName, course.keywords);
 
   return {
     title: `${course.title}${titleSuffix}_公开课_淘课网`,
-    description:
-      descParts.length > 0
-        ? `《${course.title}》公开课面向企业培训与管理提升场景，涵盖${descParts.join('、')}，支持查看开课安排、费用与报名咨询。`
-        : `《${course.title}》公开课提供企业培训主题内容、开课计划、费用与报名信息，帮助企业培训负责人快速评估课程适配度。`,
+    description: preferSeoDescription(
+      course.seoDescription,
+      `《${course.title}》企业公开课，面向${target}，围绕${field}展开实战教学，线上公开授课，企业可报名参训，学习实用管理技能。`,
+    ),
     keywords: joinKeywords(course.title, course.categoryName, '公开课', '企业培训课程'),
   };
 }
@@ -193,19 +202,15 @@ export function buildInnerCourseListMetadata(filter?: FilterContext): SeoFields 
 // ─── 内训课详情 ─────────────────────────────────────────
 
 export function buildInnerCourseDetailMetadata(course: CourseDetail): SeoFields {
-  const descParts = [
-    course.summary || stripHtml(course.intro).slice(0, 60),
-    course.audience,
-  ]
-    .map((s) => s?.trim())
-    .filter(Boolean);
+  const target = compactMetaValue(course.audience, '企业团队');
+  const field = firstReadable('企业管理', course.categoryName, course.subCategoryName, course.keywords);
 
   return {
     title: `${course.title}_内训课_淘课网`,
-    description:
-      descParts.length > 0
-        ? `《${course.title}》企业内训课围绕${descParts.join('、')}，适合企业按团队现状定制培训方案并匹配实战讲师。`
-        : `《${course.title}》企业内训课提供课程介绍、适用对象与讲师信息，帮助企业按培训目标定制落地方案。`,
+    description: preferSeoDescription(
+      course.seoDescription,
+      `《${course.title}》企业定制内训课程，针对${target}打造${field}实战内容，可上门定制授课，帮助企业解决管理痛点，提升组织能力。`,
+    ),
     keywords: joinKeywords(course.title, course.categoryName, '企业内训', '内训课程'),
   };
 }
@@ -234,17 +239,14 @@ export function buildVideoListMetadata(filter?: FilterContext): SeoFields {
 // ─── 录播课详情 ───────────────────────────────────────────
 
 export function buildVideoDetailMetadata(video: VideoDetail): SeoFields {
-  const intro = stripHtml(video.intro);
-  const descParts = [intro.slice(0, 80), video.keywords, video.categoryName || video.videoTypeLabel]
-    .map((s) => s?.trim())
-    .filter(Boolean);
+  const field = firstReadable('职场技能', video.categoryName, video.keywords, video.videoTypeLabel);
 
   return {
     title: `${video.title}_录播课_在线学习_淘课网`,
-    description:
-      descParts.length > 0
-        ? `《${video.title}》录播课覆盖${descParts.join('、')}，支持在线学习企业培训知识，适合员工自主提升与企业统一采购。`
-        : `《${video.title}》录播课提供在线学习内容、课程目录与购买信息，适合企业员工按需学习管理与岗位技能课程。`,
+    description: preferSeoDescription(
+      video.seoDescription,
+      `《${video.title}》线上录播课程，聚焦${field}，随时随地自主学习，适合企业员工，碎片化学习职场技能，企业可采购用于员工线上培训。`,
+    ),
     keywords: joinKeywords(video.title, video.categoryName, '录播课', '在线课程'),
   };
 }
@@ -275,26 +277,19 @@ export function buildInstitutionListMetadata(filter?: FilterContext): SeoFields 
 // ─── 机构详情 ─────────────────────────────────────────────
 
 export function buildInstitutionDetailMetadata(institution: InstitutionDetail): SeoFields {
-  const courseResource =
-    institution.openCourseCount || institution.innerCourseCount
-      ? `公开课${institution.openCourseCount}门、内训课${institution.innerCourseCount}门`
-      : undefined;
-
-  const descParts = [
+  const field = firstReadable(
+    '企业管理',
     institution.specialties,
     institution.industries,
     institution.bio,
-    courseResource,
-  ]
-    .map((s) => s?.trim())
-    .filter(Boolean);
+  );
 
   return {
     title: `${institution.orgName}_培训机构_淘课网`,
-    description:
-      descParts.length > 0
-        ? `${institution.orgName}是淘课网入驻培训机构，服务方向包含${descParts.join('、')}，可对接企业内训、公开课与长期培训项目。`
-        : `${institution.orgName}是淘课网入驻培训机构，提供企业培训课程、师资团队与定制服务信息，便于企业采购方筛选合作伙伴。`,
+    description: preferSeoDescription(
+      institution.seoDescription,
+      `${institution.orgName}是专业企业培训机构，主营${field}培训服务，汇聚资深实战讲师，提供公开课、企业内训、线上课程一体化企业人才培养解决方案。`,
+    ),
     keywords: joinKeywords(institution.orgName, '培训机构', '企业培训服务商'),
   };
 }

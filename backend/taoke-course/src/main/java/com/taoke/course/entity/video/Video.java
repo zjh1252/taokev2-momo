@@ -103,6 +103,10 @@ public class Video extends BaseEntity {
     @Column(name = "keywords", length = 500)
     private String keywords;
 
+    /** SEO 自定义描述 */
+    @Column(name = "seo_description", length = 255)
+    private String seoDescription;
+
     /** 总时长（秒） */
     @Column(name = "duration", nullable = false)
     private Integer duration = 0;

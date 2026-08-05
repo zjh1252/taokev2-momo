@@ -1,6 +1,7 @@
 package com.taoke.course.dto.video;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -67,6 +68,10 @@ public class SaveVideoRequest {
 
     /** 关键词 */
     private String keywords;
+
+    /** SEO 自定义描述 */
+    @Size(max = 255, message = "SEO 描述不超过255个字符")
+    private String seoDescription;
 
     /** 企业采购封顶价（元）；0 或不设置表示不限 */
     private BigDecimal companyPrice;

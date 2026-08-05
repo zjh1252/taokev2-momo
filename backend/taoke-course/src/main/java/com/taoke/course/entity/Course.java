@@ -104,6 +104,10 @@ public class Course extends BaseEntity {
     @Column(name = "keywords", length = 500)
     private String keywords;
 
+    /** SEO 自定义描述 */
+    @Column(name = "seo_description", length = 255)
+    private String seoDescription;
+
     /** 关联讲师 ID */
     @Column(name = "trainer_id")
     private Integer trainerId = 0;

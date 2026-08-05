@@ -52,6 +52,10 @@ public class Institution extends BaseEntity {
     @Column(name = "bio", columnDefinition = "text")
     private String bio;
 
+    /** SEO 自定义描述 */
+    @Column(name = "seo_description", length = 255)
+    private String seoDescription;
+
     /** 主页配置 */
     @Column(name = "homepage_config", columnDefinition = "json")
     private String homepageConfig;

@@ -1661,6 +1661,7 @@ public class CourseServiceImpl implements CourseService {
         if (req.getPrice() != null) course.setPrice(req.getPrice());
         if (req.getOriginalPrice() != null) course.setOriginalPrice(req.getOriginalPrice());
         if (req.getKeywords() != null) course.setKeywords(req.getKeywords());
+        if (req.getSeoDescription() != null) course.setSeoDescription(req.getSeoDescription());
         if (req.getIsFeatured() != null) course.setIsFeatured(req.getIsFeatured());
         if (req.getIsFree() != null) course.setIsFree(req.getIsFree());
         if (req.getHasPlan() != null) course.setHasPlan(req.getHasPlan());
@@ -1786,6 +1787,7 @@ public class CourseServiceImpl implements CourseService {
                 String trainerAvatar = avatarMap.getOrDefault(trainer.getId(), trainer.getAvatar());
                 vo.setCoverUrl(resolveCoverUrl(course, coverUrlForDisplay, trainerAvatar, vo.getCategoryName()));
             } else {
+                resolveLegacyLecturerName(course.getId()).ifPresent(vo::setTrainerName);
                 vo.setCoverUrl(resolveCoverUrl(course, coverUrlForDisplay, null, vo.getCategoryName()));
             }
         } else {

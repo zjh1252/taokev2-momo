@@ -36,7 +36,7 @@ export function VideoDetailTabs({ video }: VideoDetailTabsProps) {
     router.replace(pathname, { scroll: false });
   };
 
-  const resolvedIntroHtml = resolveRichTextHtml(video.intro ?? '');
+  const resolvedIntroHtml = resolveRichTextHtml(video.intro ?? '', `${video.title}课程介绍`);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">

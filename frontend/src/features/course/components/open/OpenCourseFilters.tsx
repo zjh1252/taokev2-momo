@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
 import { ChevronRight, Check } from 'lucide-react';
 import { apiGet } from '@/lib/http/client';
 import type { CategoryTreeNode } from '../../api/types';
@@ -236,6 +236,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
           >
             <button
               type="button"
+              onClick={() => setActiveFilter(activeFilter === item.key ? null : item.key)}
               className={`w-full flex items-center justify-between p-4 text-left cursor-pointer transition-colors ${
                 activeFilter === item.key ? 'bg-slate-50' : 'hover:bg-slate-50'
               }`}
@@ -255,7 +256,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
 
       {activeFilter && activeMeta && (
         <div
-          className="absolute left-full top-0 min-h-full pl-2 z-50"
+          className="absolute left-0 top-full z-50 w-full pt-2 lg:left-full lg:top-0 lg:min-h-full lg:w-auto lg:pl-2 lg:pt-0"
           onMouseEnter={() => {
             if (leaveTimer.current) {
               clearTimeout(leaveTimer.current);
@@ -264,11 +265,11 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
           }}
         >
           <div
-            className="bg-white rounded-xl shadow-xl border border-slate-100 p-6 max-h-[70vh] overflow-y-auto"
-            style={{ width: activeMeta.flyoutWidth }}
+            className="max-h-[70vh] w-full overflow-y-auto rounded-xl border border-slate-100 bg-white p-4 shadow-xl lg:w-[var(--flyout-width)] lg:p-6"
+            style={{ '--flyout-width': `${activeMeta.flyoutWidth}px` } as CSSProperties}
           >
             {activeFilter === 'category' && (
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
                 {categoryTree.map((cat) => {
                   const checked = (value.categoryIds ?? []).includes(cat.id);
                   return (
@@ -299,7 +300,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
             )}
 
             {activeFilter === 'openCity' && (
-              <div className="grid grid-cols-4 gap-x-3 gap-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-3 text-sm sm:grid-cols-4">
                 {provinces.map((p) => {
                   const checked = (value.provinceIds ?? []).includes(p.id);
                   return (
@@ -352,7 +353,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-800 mb-3">自定义时间段</h4>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <input
                       type="date"
                       placeholder="年 / 月 / 日"
@@ -406,7 +407,7 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-800 mb-3">自定义价格</h4>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <div className="relative w-full">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
                         ¥

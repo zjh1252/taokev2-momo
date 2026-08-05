@@ -67,8 +67,9 @@ class VideoPackageMigrateTest(unittest.TestCase):
         group_sql = module.group_upsert_sql("video_package_groups")
         relation_sql = module.relation_upsert_sql("video_package_relations")
 
-        self.assertIn("cover = VALUES(cover)", label_sql)
-        self.assertIn("topic_id = VALUES(topic_id)", label_sql)
+        self.assertIn("(id, name, created_at, updated_at)", label_sql)
+        self.assertIn("name = VALUES(name)", label_sql)
+        self.assertNotIn("topic_id = VALUES(topic_id)", label_sql)
         self.assertIn("is_open = VALUES(is_open)", group_sql)
         self.assertIn("package_code = VALUES(package_code)", group_sql)
         self.assertIn("parent_id = VALUES(parent_id)", relation_sql)

@@ -72,6 +72,10 @@ public class TrainerRequest {
     @Size(max = 255, message = "一句话介绍不超过255个字符")
     private String oneLineIntro;
 
+    /** SEO 自定义描述 */
+    @Size(max = 255, message = "SEO 描述不超过255个字符")
+    private String seoDescription;
+
     /** 详细介绍（富文本） */
     private String intro;
 

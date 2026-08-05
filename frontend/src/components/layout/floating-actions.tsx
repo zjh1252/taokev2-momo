@@ -52,15 +52,15 @@ export function FloatingActions() {
 
   // 普通按钮 hover：底色加深 + 图标&文字变主色 + 轻微上移
   const itemBase =
-    'group flex flex-col items-center justify-center gap-1 py-3 cursor-pointer transition-all duration-150 hover:bg-primary/5 hover:-translate-y-[1px]';
-  const iconBase = 'size-5 text-slate-600 group-hover:text-primary transition-colors';
-  const labelBase = 'text-[11px] text-slate-600 group-hover:text-primary transition-colors';
+    'group flex flex-col items-center justify-center gap-0.5 py-2 cursor-pointer transition-all duration-150 hover:bg-primary/5 hover:-translate-y-[1px] sm:gap-1 sm:py-3';
+  const iconBase = 'size-4 text-slate-600 group-hover:text-primary transition-colors sm:size-5';
+  const labelBase = 'text-[10px] leading-tight text-slate-600 group-hover:text-primary transition-colors sm:text-[11px]';
 
   return (
     <>
       <aside
         aria-label="quick-actions"
-        className="fixed right-4 bottom-24 z-30 flex flex-col items-stretch w-[72px] rounded-xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-100 overflow-visible"
+        className="fixed right-2 bottom-16 z-30 flex w-[58px] max-w-[calc(100vw-16px)] flex-col items-stretch overflow-visible rounded-xl border border-slate-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:right-4 sm:bottom-24 sm:w-[72px]"
       >
       {/* 回到顶部 — 常驻显示，hover 上抬 */}
       <button
@@ -77,13 +77,13 @@ export function FloatingActions() {
       <div
         className={`group/phone relative ${itemBase} border-b border-slate-100`}
       >
-        <Phone className="size-5 text-slate-600 group-hover/phone:text-primary transition-colors" />
-        <span className="text-[11px] text-slate-600 group-hover/phone:text-primary transition-colors">
+        <Phone className="size-4 text-slate-600 group-hover/phone:text-primary transition-colors sm:size-5" />
+        <span className="text-[10px] leading-tight text-slate-600 group-hover/phone:text-primary transition-colors sm:text-[11px]">
           电话
         </span>
 
         {/* hover 气泡 */}
-        <div className="invisible group-hover/phone:visible absolute right-[calc(100%+10px)] top-1/2 -translate-y-1/2 w-[220px] rounded-xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] border border-slate-100 p-3 flex flex-col items-stretch gap-2">
+        <div className="invisible group-hover/phone:visible absolute right-[calc(100%+8px)] top-1/2 flex w-[min(220px,calc(100vw-86px))] -translate-y-1/2 flex-col items-stretch gap-2 rounded-xl border border-slate-100 bg-white p-3 shadow-[0_8px_24px_rgba(0,0,0,0.12)] sm:right-[calc(100%+10px)]">
           <div className="text-xs text-slate-500">客服电话</div>
           <div className="text-base font-semibold text-slate-900 tracking-wide">
             {SERVICE_PHONE}
@@ -126,10 +126,10 @@ export function FloatingActions() {
         type="button"
         onClick={gotoPublishDemand}
         aria-label="发布需求"
-        className="group flex flex-col items-center justify-center gap-1 py-3 bg-primary/5 hover:bg-primary/15 transition-all duration-150 cursor-pointer hover:-translate-y-[1px]"
+        className="group flex flex-col items-center justify-center gap-0.5 bg-primary/5 py-2 transition-all duration-150 cursor-pointer hover:-translate-y-[1px] hover:bg-primary/15 sm:gap-1 sm:py-3"
       >
-        <MessageSquarePlus className="size-5 text-primary transition-transform group-hover:scale-110" />
-        <span className="text-[11px] font-medium text-primary">发布需求</span>
+        <MessageSquarePlus className="size-4 text-primary transition-transform group-hover:scale-110 sm:size-5" />
+        <span className="text-[10px] font-medium leading-tight text-primary sm:text-[11px]">发布需求</span>
       </button>
       </aside>
       <CustomerServiceChatDialog open={chatOpen} onOpenChange={setChatOpen} />
