@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import RegionCascader, { type RegionValue } from '@/components/region-cascader';
+import { DateInput } from '@/components/ui/date-input';
 import { createDemand, createPublicDemand } from '@/features/demand/api/service';
 import { DemandType, FORMAT_OPTIONS, type CreateDemandRequest } from '@/features/demand/api/types';
 import { Link } from '@/i18n/navigation';
@@ -216,9 +217,7 @@ export function CreateDemandForm({
 
           <fieldset>
             <label className="block text-sm font-medium text-gray-700 mb-1">期望开始时间</label>
-            <input
-              type="date"
-              placeholder="年 / 月 / 日"
+            <DateInput
               value={form.expectedStartDate || ''}
               onChange={(e) => updateField('expectedStartDate', e.target.value || undefined)}
               className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"

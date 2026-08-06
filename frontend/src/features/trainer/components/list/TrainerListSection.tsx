@@ -149,10 +149,29 @@ function TrainerListSectionInner({
     [initialSlugParams, expertiseTree, industryTree],
   );
 
+  const buildListUrl = useCallback(
+    (page: number, f: TrainerFilterValue) => {
+      const slugParams: TrainerSlugParams = {
+        field: filterToFieldParam(f, expertiseTree),
+        industry: f.industryName,
+        region: f.regionName,
+        page: page > 1 ? page : undefined,
+      };
+      return filtersToHtmPath(slugParams);
+    },
+    [expertiseTree],
+  );
+
+  const initialListHref = useMemo(
+    () => buildListUrl(initialData.page ?? 1, initialFilters),
+    [buildListUrl, initialData.page, initialFilters],
+  );
+
   const [data, setData] = useState(initialData);
   const [filters, setFilters] = useState<TrainerFilterValue>(initialFilters);
   const [sort, setSort] = useState<string>('default');
   const [currentPage, setCurrentPage] = useState(initialData.page ?? 1);
+  const [currentListHref, setCurrentListHref] = useState(initialListHref);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -167,8 +186,9 @@ function TrainerListSectionInner({
       setData(initialData);
       setCurrentPage(initialData.page ?? 1);
       setFilters(nextFilters);
+      setCurrentListHref(buildListUrl(initialData.page ?? 1, nextFilters));
     });
-  }, [initialData, initialSlugParams, expertiseTree, industryTree, startTransition]);
+  }, [initialData, initialSlugParams, expertiseTree, industryTree, startTransition, buildListUrl]);
 
   /** 首次加载时，若 URL 带了 slug 查询参数（proxy 重定向），替换地址栏为 .htm SEO URL */
   useEffect(() => {
@@ -218,17 +238,12 @@ function TrainerListSectionInner({
   /** 更新浏览器地址栏（不触发 SSR 导航） */
   const syncUrl = useCallback(
     (page: number, f: TrainerFilterValue) => {
-      const slugParams: TrainerSlugParams = {
-        field: filterToFieldParam(f, expertiseTree),
-        industry: f.industryName,
-        region: f.regionName,
-        page: page > 1 ? page : undefined,
-      };
-      const url = filtersToHtmPath(slugParams);
+      const url = buildListUrl(page, f);
       window.history.replaceState(null, '', url);
       rememberTrainerListPath(url);
+      setCurrentListHref(url);
     },
-    [expertiseTree],
+    [buildListUrl],
   );
 
   const handleFilterChange = useCallback(
@@ -277,10 +292,15 @@ function TrainerListSectionInner({
     [filters, handleFilterChange],
   );
 
+  const trainerDetailReturnPath = currentListHref === '/trainer' ? undefined : currentListHref;
+
   return (
     <div className="flex max-w-full flex-col gap-4">
       {categoryExpertTrainers.length > 0 ? (
-        <TrainerCategoryExpertBar items={categoryExpertTrainers} />
+        <TrainerCategoryExpertBar
+          items={categoryExpertTrainers}
+          listReturnPath={trainerDetailReturnPath}
+        />
       ) : null}
 
       <section className="flex flex-col gap-4 lg:flex-row lg:gap-5 lg:items-start">
@@ -323,7 +343,10 @@ function TrainerListSectionInner({
         </div>
         <div className="flex-1 min-w-0 min-h-0">
           <h2 className="sr-only">热门培训领域</h2>
-          <TrainerRecommendedScroller initialItems={recommendedTrainers} />
+          <TrainerRecommendedScroller
+            initialItems={recommendedTrainers}
+            listReturnPath={trainerDetailReturnPath}
+          />
         </div>
       </section>
 
@@ -345,6 +368,7 @@ function TrainerListSectionInner({
               key={`${currentPage}-${trainer.id}`}
               trainer={trainer}
               priorityImage={index < 6}
+              listReturnPath={trainerDetailReturnPath}
             />
           ))
         ) : (

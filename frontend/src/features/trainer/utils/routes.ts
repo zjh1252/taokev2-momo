@@ -1,3 +1,5 @@
+import { appendTrainerListReturnParam } from './list-return';
+
 /** 专家详情 Tab 在地址栏中的路径段（.htm 前） */
 export const TRAINER_TAB_SLUGS = {
   courses: 'courses',
@@ -54,9 +56,13 @@ export function trainerTabQueryToId(tab: string | null | undefined): TrainerTabI
 }
 
 /** 专家详情页各 Tab 的 SEO 地址（浏览器地址栏） */
-export function getTrainerDetailTabHref(trainerId: number, tab: TrainerTabId = 'home'): string {
-  if (tab === 'home') {
-    return `/trainer/${trainerId}.htm`;
-  }
-  return `/trainer/${trainerId}/${TRAINER_TAB_SLUGS[tab]}.htm`;
+export function getTrainerDetailTabHref(
+  trainerId: number,
+  tab: TrainerTabId = 'home',
+  listReturnPath?: string | null,
+): string {
+  const href = tab === 'home'
+    ? `/trainer/${trainerId}.htm`
+    : `/trainer/${trainerId}/${TRAINER_TAB_SLUGS[tab]}.htm`;
+  return appendTrainerListReturnParam(href, listReturnPath);
 }

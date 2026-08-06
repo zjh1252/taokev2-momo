@@ -9,6 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -383,9 +384,7 @@ export default function ReviewDialog({
 
           <div className="grid gap-1.5">
             <RequiredLabel>开课时间</RequiredLabel>
-            <Input
-              type="date"
-              placeholder="年 / 月 / 日"
+            <DateInput
               max={todayStr()}
               value={trainingDate}
               onChange={(e) => setTrainingDate(e.target.value)}

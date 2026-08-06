@@ -5,9 +5,16 @@ import { SafeImage } from '@/components/safe-image';
 import type { TrainerListItem } from '../../types';
 import { getTrainerDisplayName } from '../../utils/displayName';
 import { pickRecommendedTrainerSubtitle } from '../../utils/displayTitle';
+import { getTrainerDetailTabHref } from '../../utils/routes';
 
 /** 擅长领域筛选时的领域推荐专家（运营配置 3 名 PRIMARY） */
-export function TrainerCategoryExpertBar({ items }: { items: TrainerListItem[] }) {
+export function TrainerCategoryExpertBar({
+  items,
+  listReturnPath,
+}: {
+  items: TrainerListItem[];
+  listReturnPath?: string;
+}) {
   if (items.length === 0) return null;
 
   return (
@@ -20,7 +27,7 @@ export function TrainerCategoryExpertBar({ items }: { items: TrainerListItem[] }
           return (
             <Link
               key={t.id}
-              href={`/trainer/${t.id}.htm`}
+              href={getTrainerDetailTabHref(t.id, 'home', listReturnPath)}
               className="group flex gap-3 rounded-lg bg-white border border-amber-100 p-3 hover:shadow-md transition-shadow"
             >
               <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-slate-100">

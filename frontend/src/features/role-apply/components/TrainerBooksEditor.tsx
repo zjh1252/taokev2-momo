@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { DateInput } from '@/components/ui/date-input';
 import { toast } from 'sonner';
 import SingleImageUploader from '@/features/role-apply/components/SingleImageUploader';
 import { resolveImageSrc } from '@/lib/media';
@@ -207,10 +208,8 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
               </div>
               <div className="space-y-1">
                 <Label htmlFor="book-date">出版日期</Label>
-                <Input
+                <DateInput
                   id="book-date"
-                  type="date"
-                  placeholder="年 / 月 / 日"
                   value={draft.publishDate || ''}
                   onChange={(e) => setDraft({ ...draft, publishDate: e.target.value })}
                 />

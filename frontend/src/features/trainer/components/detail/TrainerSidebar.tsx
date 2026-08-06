@@ -12,6 +12,7 @@ import type {
 import { getRecommendedCourses, getRecommendedTrainers } from '../../api/service';
 import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
+import { getTrainerDetailTabHref } from '../../utils/routes';
 import { getCourseDetailPath, isOpenCourseType } from '@/features/course/utils/routes';
 import { decodeHtmlEntities } from '@/lib/html-entities';
 
@@ -22,6 +23,7 @@ const MAX_INTERNAL_COURSES = 5;
 
 interface TrainerSidebarProps {
   trainer: TrainerDetail;
+  trainerListReturnPath?: string | null;
 }
 
 /**
@@ -37,7 +39,7 @@ interface TrainerSidebarProps {
  * @author Fangxinxin
  * @date 2026-06-09 17:00
  */
-export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
+export function TrainerSidebar({ trainer, trainerListReturnPath }: TrainerSidebarProps) {
   const [allCourses, setAllCourses] = useState<RecommendedCourseItem[]>([]);
   const [trainers, setTrainers] = useState<RecommendedTrainerItem[]>([]);
 
@@ -98,7 +100,7 @@ export function TrainerSidebar({ trainer }: TrainerSidebarProps) {
               return (
                 <Link
                   key={t.id}
-                  href={`/trainer/${t.id}.htm`}
+                  href={getTrainerDetailTabHref(t.id, 'home', trainerListReturnPath)}
                   className="flex items-center gap-3 cursor-pointer group"
                 >
                   <SafeImage

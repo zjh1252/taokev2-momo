@@ -10,11 +10,13 @@ import {
   getTrainerDetailTabHref,
   type TrainerTabId,
 } from '@/features/trainer/utils/routes';
+import { parseTrainerListReturnParam } from '@/features/trainer/utils/list-return';
 
 export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ locale: string; id: string; section: string }>;
+  searchParams: Promise<{ from?: string }>;
 }
 
 export async function generateMetadata({ params }: Props) {
@@ -41,9 +43,11 @@ const OLD_SLUG_REDIRECT: Record<string, TrainerTabId> = {
  * 专家详情子页 — SSR（video / comment / book）
  * <p>地址栏：/trainer/{id}/{section}.htm（courses / cases 有独立目录）</p>
  */
-export default async function TrainerDetailTabPage({ params }: Props) {
+export default async function TrainerDetailTabPage({ params, searchParams }: Props) {
   const { locale, id, section } = await params;
+  const { from } = await searchParams;
   setRequestLocale(locale);
+  const trainerListReturnPath = parseTrainerListReturnParam(from);
 
   const trainerId = Number(id);
   if (isNaN(trainerId)) {
@@ -53,7 +57,7 @@ export default async function TrainerDetailTabPage({ params }: Props) {
   // 旧版单数 slug 重定向到新版复数独立页
   const redirectTab = OLD_SLUG_REDIRECT[section];
   if (redirectTab) {
-    redirect(getTrainerDetailTabHref(trainerId, redirectTab));
+    redirect(getTrainerDetailTabHref(trainerId, redirectTab, trainerListReturnPath));
   }
 
   if (!isTrainerTabSlug(section)) {
@@ -69,6 +73,7 @@ export default async function TrainerDetailTabPage({ params }: Props) {
     <TrainerDetailPageView
       {...data}
       activeTab={trainerTabSlugToId(section)}
+      trainerListReturnPath={trainerListReturnPath}
     />
   );
 }

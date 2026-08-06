@@ -75,7 +75,8 @@ class AdminSearchControllerTest {
         SearchIndexService searchIndexService = new SearchIndexService(
                 esClient,
                 properties,
-                new ObjectMapper()
+                new ObjectMapper(),
+                List.of()
         );
 
         assertThatThrownBy(() -> searchIndexService.createIndex("test"))

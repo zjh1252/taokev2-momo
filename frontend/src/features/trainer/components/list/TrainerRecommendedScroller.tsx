@@ -7,6 +7,7 @@ import { getTopRecommendedTrainers } from '../../api/service';
 import type { TrainerListItem } from '../../types';
 import { pickRecommendedTrainerSubtitle } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
+import { getTrainerDetailTabHref } from '../../utils/routes';
 import {
   TRAINER_RECOMMENDED_CARD_ASPECT,
   TRAINER_RECOMMENDED_CARD_HEIGHT,
@@ -35,8 +36,10 @@ const TRANSITION_MS = 700;
 
 export function TrainerRecommendedScroller({
   initialItems,
+  listReturnPath,
 }: {
   initialItems?: TrainerListItem[];
+  listReturnPath?: string;
 }) {
   const [items, setItems] = useState<TrainerListItem[]>(initialItems ?? []);
   const [page, setPage] = useState(0);
@@ -110,7 +113,7 @@ export function TrainerRecommendedScroller({
           return (
           <Link
             key={`${t.id}-${idx}`}
-            href={`/trainer/${t.id}.htm`}
+            href={getTrainerDetailTabHref(t.id, 'home', listReturnPath)}
             className={`shrink-0 cursor-pointer group/item ${isPageEnd ? '' : 'mr-5'}`}
             style={{ width: TRAINER_RECOMMENDED_CARD_WIDTH }}
           >

@@ -61,6 +61,7 @@ const TABS: TabConfig[] = [
 interface TrainerDetailTabsProps {
   activeTab: TrainerTabId;
   trainer: TrainerDetail;
+  trainerListReturnPath?: string | null;
   coursesTotal: number;
   casesCount: number;
   highlightsCount: number;
@@ -80,6 +81,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export function TrainerDetailTabs({
   activeTab,
   trainer,
+  trainerListReturnPath,
   coursesTotal,
   casesCount,
   highlightsCount,
@@ -105,7 +107,7 @@ export function TrainerDetailTabs({
             return (
               <Link
                 key={tab.id}
-                href={getTrainerDetailTabHref(trainer.id, tab.id)}
+                href={getTrainerDetailTabHref(trainer.id, tab.id, trainerListReturnPath)}
                 className={`flex h-full cursor-pointer items-center gap-1.5 whitespace-nowrap border-b-2 transition-colors ${
                   isActive
                     ? 'border-primary text-primary font-bold'

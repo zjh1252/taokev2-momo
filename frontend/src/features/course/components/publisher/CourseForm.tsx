@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import RichTextEditor from '@/components/rich-text-editor';
 import RegionCascader, { type RegionValue } from '@/components/region-cascader';
+import { DateInput } from '@/components/ui/date-input';
 import { ImageCropperUploader } from '@/components/image-cropper-uploader';
 import { MaterialPickerButton } from '@/features/ops-material/components/MaterialPickerButton';
 import { getCourseCategoryTree } from '@/features/course/api/service';
@@ -424,24 +425,34 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
           </FieldRow>
 
           <FieldRow label="课程时长" required anchorId={FIELD_ANCHORS.duration}>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={1}
-                value={durationDays}
-                onChange={(e) => setDurationDays(Math.max(1, Number(e.target.value) || 1))}
-                className="w-20 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              />
-              <span className="text-sm text-gray-500">天 等于</span>
-              <input
-                type="number"
-                min={1}
-                step={0.5}
-                value={totalHours}
-                onChange={(e) => setTotalHours(Math.max(1, Number(e.target.value) || 1))}
-                className="w-20 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              />
-              <span className="text-sm text-gray-500">小时</span>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500">培训天数</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    value={durationDays}
+                    onChange={(e) => setDurationDays(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-20 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                  <span className="text-sm text-gray-500">天</span>
+                </div>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500">总学时</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    step={0.5}
+                    value={totalHours}
+                    onChange={(e) => setTotalHours(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-20 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                  <span className="text-sm text-gray-500">小时</span>
+                </div>
+              </label>
             </div>
           </FieldRow>
 
@@ -640,11 +651,11 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">开始时间 <span className="text-red-400">*</span></label>
-                          <input type="datetime-local" value={plan.startTime} onChange={(e) => updateDraftPlan(idx, { startTime: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                          <DateInput type="datetime-local" value={plan.startTime} onChange={(e) => updateDraftPlan(idx, { startTime: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">结束时间 <span className="text-red-400">*</span></label>
-                          <input type="datetime-local" value={plan.endTime} onChange={(e) => updateDraftPlan(idx, { endTime: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                          <DateInput type="datetime-local" value={plan.endTime} onChange={(e) => updateDraftPlan(idx, { endTime: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
                         </div>
                         {draftPlanType === 'OPEN_OFFLINE' && (
                           <>

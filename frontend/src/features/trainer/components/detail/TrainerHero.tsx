@@ -24,11 +24,12 @@ import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
 import { getTrainerDetailTabHref } from '../../utils/routes';
-import { readTrainerListReturnPath } from '../../utils/list-return';
+import { readTrainerListReturnPath, rememberTrainerListPath } from '../../utils/list-return';
 import { Link } from '@/i18n/navigation';
 
 interface TrainerHeroProps {
   trainer: TrainerDetail;
+  trainerListReturnPath?: string | null;
 }
 
 function StarRating({ score }: { score: number }) {
@@ -66,7 +67,7 @@ function StatBlock({
   );
 }
 
-export function TrainerHero({ trainer }: TrainerHeroProps) {
+export function TrainerHero({ trainer, trainerListReturnPath }: TrainerHeroProps) {
   const displayName = getTrainerDisplayName(trainer);
   const displayTitle =
     pickDisplayTitle(trainer.title, displayName) ||
@@ -75,7 +76,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
   const [msgOpen, setMsgOpen] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
-  const [trainerListHref, setTrainerListHref] = useState('/trainer');
+  const [trainerListHref, setTrainerListHref] = useState(trainerListReturnPath ?? '/trainer');
   const locationLabel = [trainer.provinceName, trainer.cityName].filter(Boolean).join(' ');
 
   useEffect(() => {
@@ -85,8 +86,13 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
   }, [trainer.userId]);
 
   useEffect(() => {
+    if (trainerListReturnPath) {
+      setTrainerListHref(trainerListReturnPath);
+      rememberTrainerListPath(trainerListReturnPath);
+      return;
+    }
     setTrainerListHref(readTrainerListReturnPath('/trainer'));
-  }, []);
+  }, [trainerListReturnPath]);
 
   const toggleFavorite = useCallback(async () => {
     setFavLoading(true);
@@ -245,7 +251,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                   {favorited ? '已收藏' : '收藏'}
                 </button>
                 <Link
-                  href={getTrainerDetailTabHref(trainer.id, 'comments')}
+                  href={getTrainerDetailTabHref(trainer.id, 'comments', trainerListHref)}
                   className="flex h-[34px] w-[82px] cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac] hover:border-primary/40 hover:text-primary"
                 >
                   <Image

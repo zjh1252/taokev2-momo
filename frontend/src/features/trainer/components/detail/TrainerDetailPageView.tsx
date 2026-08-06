@@ -7,10 +7,12 @@ import { TrainerSidebar } from './TrainerSidebar';
 
 interface TrainerDetailPageViewProps extends TrainerDetailPageData {
   activeTab: TrainerTabId;
+  trainerListReturnPath?: string | null;
 }
 
 export function TrainerDetailPageView({
   activeTab,
+  trainerListReturnPath,
   trainer,
   courses,
   coursesTotal,
@@ -28,11 +30,12 @@ export function TrainerDetailPageView({
         viewCount={trainer.viewCount}
       />
 
-      <TrainerHero trainer={trainer} />
+      <TrainerHero trainer={trainer} trainerListReturnPath={trainerListReturnPath} />
 
       <TrainerDetailTabs
         activeTab={activeTab}
         trainer={trainer}
+        trainerListReturnPath={trainerListReturnPath}
         coursesTotal={coursesTotal}
         casesCount={cases.length}
         highlightsCount={highlights.length}
@@ -55,7 +58,7 @@ export function TrainerDetailPageView({
               books={books}
             />
           </div>
-          <TrainerSidebar trainer={trainer} />
+          <TrainerSidebar trainer={trainer} trainerListReturnPath={trainerListReturnPath} />
         </section>
       </div>
     </>

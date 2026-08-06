@@ -17,6 +17,7 @@ import { CASE_RULES, traineeCountValidator } from '@/features/trainer-case/lib/c
 import { ArrowLeft, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
+import { DateInput } from '@/components/ui/date-input';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
 import { FormField } from '@/components/FormField';
 import RegionCascader, { type RegionValue } from '@/components/region-cascader';
@@ -291,9 +292,7 @@ export default function EditCasePage({
 
         <div className="grid grid-cols-2 gap-4">
           <FormField label="培训日期">
-            <input
-              type="date"
-              placeholder="年 / 月 / 日"
+            <DateInput
               value={form.trainingDate || ''}
               max={getTodayDateValue()}
               onChange={(e) => handleTrainingDateChange(e.target.value)}

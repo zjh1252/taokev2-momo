@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DateInput } from '@/components/ui/date-input';
 import {
   createEducationCert,
   deleteEducationCert,
@@ -252,18 +253,14 @@ function EducationForm({ record, onCancel, onSaved }: FormProps) {
           />
         </Field>
         <Field label="入学日期" required>
-          <input
-            type="date"
-            placeholder="年 / 月 / 日"
+          <DateInput
             className="form-input"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
         </Field>
         <Field label="结束日期">
-          <input
-            type="date"
-            placeholder="年 / 月 / 日"
+          <DateInput
             className="form-input"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}

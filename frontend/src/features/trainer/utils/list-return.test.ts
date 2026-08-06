@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   TRAINER_LIST_RETURN_KEY,
+  appendTrainerListReturnParam,
   isSafeTrainerListPath,
+  parseTrainerListReturnParam,
   readTrainerListReturnPath,
   rememberTrainerListPath,
 } from './list-return';
@@ -65,5 +67,23 @@ describe('trainer list return path', () => {
 
     sessionStorage.setItem(TRAINER_LIST_RETURN_KEY, '/trainer/123.htm');
     expect(readTrainerListReturnPath()).toBe('/trainer');
+  });
+
+  it('encodes a safe list path into trainer detail links and decodes it back', () => {
+    const listPath = '/trainer/field=customer-service&page=2.htm';
+    const href = appendTrainerListReturnParam('/trainer/1001.htm', listPath);
+
+    expect(href).toBe(
+      '/trainer/1001.htm?from=%2Ftrainer%2Ffield%3Dcustomer-service%26page%3D2.htm',
+    );
+    const params = new URLSearchParams(href.split('?')[1]);
+    expect(parseTrainerListReturnParam(params.get('from'))).toBe(listPath);
+  });
+
+  it('does not encode unsafe return paths into trainer detail links', () => {
+    expect(appendTrainerListReturnParam('/trainer/1001.htm', '/trainer/123.htm')).toBe(
+      '/trainer/1001.htm',
+    );
+    expect(parseTrainerListReturnParam('/trainer/123.htm')).toBeNull();
   });
 });

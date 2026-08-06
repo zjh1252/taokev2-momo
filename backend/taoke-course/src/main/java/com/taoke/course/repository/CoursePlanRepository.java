@@ -28,6 +28,8 @@ public interface CoursePlanRepository extends JpaRepository<CoursePlan, Integer>
      */
     Optional<CoursePlan> findFirstBySortOrderOrderByIdAsc(Integer sortOrder);
 
+    List<CoursePlan> findBySortOrderIn(Collection<Integer> sortOrders);
+
     /**
      * 批量查询给定课程列表中 startTime &gt;= 指定时间的开课计划，按时间升序。
      * <p>用于公开课列表展示「最近一场」开课信息（取每课程的第一条即为最近一场）。</p>

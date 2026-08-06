@@ -52,6 +52,7 @@ public class SearchIndexService {
     private final ElasticsearchClient esClient;
     private final ElasticsearchProperties properties;
     private final ObjectMapper objectMapper;
+    private final List<SearchResultEnricher> resultEnrichers;
 
     /**
      * 创建索引（含 mapping 定义）
@@ -462,6 +463,8 @@ public class SearchIndexService {
                         Map<String, Object> source = (Map<String, Object>) hit.source();
                         if (source == null) {
                             source = new java.util.HashMap<>();
+                        } else {
+                            source = new java.util.LinkedHashMap<>(source);
                         }
                         // 将 highlight 片段合并到 _highlight 字段
                         if (hit.highlight() != null && !hit.highlight().isEmpty()) {
@@ -476,6 +479,7 @@ public class SearchIndexService {
                         return source;
                     })
                     .collect(Collectors.toList());
+            enrichResults(list);
 
             return PageResponse.of(list, total, page, size);
         } catch (Exception e) {
@@ -555,6 +559,19 @@ public class SearchIndexService {
         }
 
         return functions;
+    }
+
+    private void enrichResults(List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty() || resultEnrichers == null || resultEnrichers.isEmpty()) {
+            return;
+        }
+        for (SearchResultEnricher enricher : resultEnrichers) {
+            try {
+                enricher.enrich(rows);
+            } catch (Exception e) {
+                log.warn("搜索结果补全失败: enricher={}", enricher.getClass().getSimpleName(), e);
+            }
+        }
     }
 
     private FunctionScore fieldValueFactor(String field, double factor, FieldValueFactorModifier modifier) {

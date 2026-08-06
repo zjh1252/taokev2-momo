@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2, Upload, X } from 'lucide-react';
 import Image from 'next/image';
 import { FormField } from '@/components/FormField';
+import { DateInput } from '@/components/ui/date-input';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import { listManagedTrainers } from '@/features/binding/api/service';
 import { isDelegatingRole } from '@/features/binding/lib/delegating-role';
@@ -211,9 +212,7 @@ export function BookFormFields({
           />
         </FormField>
         <FormField label="出版日期">
-          <input
-            type="date"
-            placeholder="年 / 月 / 日"
+          <DateInput
             value={form.publishDate || ''}
             max={getTodayDateValue()}
             onChange={(e) => handlePublishDateChange(e.target.value)}

@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import Image from 'next/image';
 import Cropper, { type Area } from 'react-easy-crop';
 import { Camera, Loader2, RotateCcw, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { SafeImage } from '@/components/safe-image';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { uploadImage } from '@/features/course/api/publisher-service';
-import { resolveImageSrc } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
 /**
@@ -192,13 +191,12 @@ export function ImageCropperUploader({
         >
           {value ? (
             <>
-              <Image
-                src={resolveImageSrc(value, '')}
+              <SafeImage
+                src={value}
                 alt={label || '已上传'}
                 fill
                 sizes="200px"
                 className="object-cover"
-                unoptimized
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs">
                 <Camera className="size-4 mr-1" />

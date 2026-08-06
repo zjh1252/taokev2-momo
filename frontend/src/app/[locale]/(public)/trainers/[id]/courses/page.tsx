@@ -4,11 +4,13 @@ import { getTrainerDetailPageData } from '@/features/trainer/api/trainer-detail-
 import { TrainerDetailPageView } from '@/features/trainer/components/detail/TrainerDetailPageView';
 import { getTrainerDetailCached } from '@/features/trainer/api/server';
 import { trainerDetailMetadata, fallbackDetailMetadata } from '@/lib/seo';
+import { parseTrainerListReturnParam } from '@/features/trainer/utils/list-return';
 
 export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }
 
 export async function generateMetadata({ params }: Props) {
@@ -25,9 +27,11 @@ export async function generateMetadata({ params }: Props) {
  * 专家主讲课程独立页 — SSR
  * <p>地址栏：/trainer/{id}/courses.htm</p>
  */
-export default async function TrainerCoursesPage({ params }: Props) {
+export default async function TrainerCoursesPage({ params, searchParams }: Props) {
   const { locale, id } = await params;
+  const { from } = await searchParams;
   setRequestLocale(locale);
+  const trainerListReturnPath = parseTrainerListReturnParam(from);
 
   const trainerId = Number(id);
   if (isNaN(trainerId)) {
@@ -39,5 +43,11 @@ export default async function TrainerCoursesPage({ params }: Props) {
     notFound();
   }
 
-  return <TrainerDetailPageView {...data} activeTab="courses" />;
+  return (
+    <TrainerDetailPageView
+      {...data}
+      activeTab="courses"
+      trainerListReturnPath={trainerListReturnPath}
+    />
+  );
 }

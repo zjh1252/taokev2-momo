@@ -7,6 +7,7 @@ import type { InstitutionFormData } from '../../api/types';
 import { FormField } from './FormField';
 import type { FormValidationRules } from '@/lib/validation';
 import { Validators } from '@/lib/validation';
+import { DateInput } from '@/components/ui/date-input';
 import AgreementCheckbox from '../AgreementCheckbox';
 import SingleImageUploader from '../SingleImageUploader';
 import { CategoryMultiSelect } from '../CategoryMultiSelect';
@@ -112,9 +113,7 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
             />
           </FormField>
           <FormField label="成立时间">
-            <input
-              type="date"
-              placeholder="年 / 月 / 日"
+            <DateInput
               value={data.establishedAt || ''}
               onChange={(e) => update({ establishedAt: e.target.value })}
               className="form-input"

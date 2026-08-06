@@ -8,12 +8,13 @@ import {
   getTrainerDetailTabHref,
   trainerTabQueryToId,
 } from '@/features/trainer/utils/routes';
+import { parseTrainerListReturnParam } from '@/features/trainer/utils/list-return';
 
 export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ locale: string; id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; from?: string }>;
 }
 
 export async function generateMetadata({ params }: Props) {
@@ -39,10 +40,11 @@ export default async function TrainerDetailPage({ params, searchParams }: Props)
     notFound();
   }
 
-  const { tab } = await searchParams;
+  const { tab, from } = await searchParams;
+  const trainerListReturnPath = parseTrainerListReturnParam(from);
   const tabId = trainerTabQueryToId(tab);
   if (tabId && tabId !== 'home') {
-    redirect(getTrainerDetailTabHref(trainerId, tabId));
+    redirect(getTrainerDetailTabHref(trainerId, tabId, trainerListReturnPath));
   }
 
   const data = await getTrainerDetailPageData(trainerId);
@@ -50,5 +52,11 @@ export default async function TrainerDetailPage({ params, searchParams }: Props)
     notFound();
   }
 
-  return <TrainerDetailPageView {...data} activeTab="home" />;
+  return (
+    <TrainerDetailPageView
+      {...data}
+      activeTab="home"
+      trainerListReturnPath={trainerListReturnPath}
+    />
+  );
 }
