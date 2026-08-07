@@ -65,6 +65,7 @@ class LegacyUserRoleProfileMigrateTest(unittest.TestCase):
         self.assertEqual(row["avatar_url"], "https://www.taoke.com/attachments/user/middle/30187/30187.jpg")
         self.assertEqual(row["source"], "old")
         self.assertEqual(row["user_source"], 2)
+        self.assertEqual(row["old_user"], 1)
 
     def test_role_row_maps_legacy_group_to_active_business_role(self):
         module = load_script("run_legacy_roles_migrate.py")

@@ -36,6 +36,9 @@ public class UserProfileResponse {
     /** 是否已设置密码 */
     private Boolean hasPassword;
 
+    /** 是否老站迁移账号 */
+    private Boolean oldUser;
+
     /** 用户持有的业务角色列表 */
     private List<RoleInfo> roles;
 

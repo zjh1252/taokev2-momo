@@ -49,6 +49,7 @@ USER_COLUMNS = (
     "created_at",
     "updated_at",
     "user_source",
+    "old_user",
 )
 
 
@@ -214,6 +215,7 @@ def build_user_row(row: dict, uniques: dict[str, set], asset_base_url: str) -> d
         "created_at": created_at,
         "updated_at": updated_at,
         "user_source": 2,
+        "old_user": 1,
     }
 
 
