@@ -375,6 +375,13 @@ export const navGroups: NavGroup[] = [
         icon: 'forms',
         isActive: false,
         items: []
+      },
+      {
+        title: '内训课报名',
+        url: '/dashboard/internal-course-enrollments',
+        icon: 'forms',
+        isActive: false,
+        items: []
       }
     ]
   },
