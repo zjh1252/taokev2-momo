@@ -173,6 +173,23 @@ public class SearchIndexService {
         }
     }
 
+    /** Count one document type in a managed index. */
+    public long countDocuments(String indexName, String docType) {
+        validateManagedIndexName(indexName);
+        try {
+            return esClient.count(c -> c
+                    .index(indexName)
+                    .query(q -> q.term(t -> t.field("docType").value(docType))))
+                    .count();
+        } catch (Exception e) {
+            if (isIndexNotFound(e)) {
+                return 0L;
+            }
+            throw new SearchException(ErrorCode.SEARCH_INDEX_ERROR,
+                    "统计索引文档数失败: " + indexName + "/" + docType, e);
+        }
+    }
+
     /**
      * 批量写入文档到指定索引
      *
@@ -210,11 +227,17 @@ public class SearchIndexService {
 
             BulkResponse response = esClient.bulk(bulkBuilder.build());
             if (response.errors()) {
+                String firstError = null;
                 for (BulkResponseItem item : response.items()) {
                     if (item.error() != null) {
                         log.error("批量写入失败: id={}, error={}", item.id(), item.error().reason());
+                        if (firstError == null) {
+                            firstError = item.id() + ": " + item.error().reason();
+                        }
                     }
                 }
+                throw new SearchException(ErrorCode.SEARCH_DOCUMENT_ERROR,
+                        "批量写入存在失败项: " + firstError);
             } else {
                 log.debug("批量写入成功: index={}, count={}", indexName, documents.size());
             }
@@ -256,11 +279,17 @@ public class SearchIndexService {
 
             BulkResponse response = esClient.bulk(bulkBuilder.build());
             if (response.errors()) {
+                String firstError = null;
                 for (BulkResponseItem item : response.items()) {
                     if (item.error() != null) {
                         log.error("批量删除失败: id={}, error={}", item.id(), item.error().reason());
+                        if (firstError == null) {
+                            firstError = item.id() + ": " + item.error().reason();
+                        }
                     }
                 }
+                throw new SearchException(ErrorCode.SEARCH_DOCUMENT_ERROR,
+                        "批量删除存在失败项: " + firstError);
             } else {
                 log.debug("批量删除成功: index={}, docType={}, count={}", indexName, docType, ids.size());
             }
