@@ -73,7 +73,8 @@ class LegacyCourseMasterMigrateTest(unittest.TestCase):
         self.assertEqual(row["duration_days"], 4)
         self.assertEqual(row["total_hours"], Decimal("28.0"))
         self.assertEqual(row["price"], Decimal("0.00"))
-        self.assertEqual(row["is_free"], 1)
+        self.assertEqual(row["original_price"], Decimal("0.00"))
+        self.assertEqual(row["is_free"], 0)
         self.assertEqual(row["status"], 2)
         self.assertEqual(row["view_count"], 5107)
         self.assertEqual(row["score"], Decimal("3.00"))
@@ -89,6 +90,67 @@ class LegacyCourseMasterMigrateTest(unittest.TestCase):
         )
 
         self.assertEqual(publisher_type, "TRAINER")
+
+    def test_internal_course_with_legacy_price_keeps_amount_and_not_free(self):
+        module = load_script("run_legacy_courses_migrate.py")
+
+        row = module.build_course_row(
+            {
+                "id": 5001,
+                "title": "内训课含价",
+                "cid": "512",
+                "legacy_type": "2",
+                "organid": "30794",
+                "tags": "内训",
+                "states": "1",
+                "isopen": "1",
+                "createtime": "1072713600",
+                "lecturerid": "0",
+                "lecturerid_type": "0",
+                "publisher_groupid": "3",
+                "plan_count": "0",
+                "min_price": "3000",
+                "min_special_price": "2500",
+            },
+            trainer_ids=set(),
+            institution_user_ids={30794},
+            category_lookup={512: 186},
+        )
+
+        self.assertEqual(row["type"], "INTERNAL")
+        self.assertEqual(row["price"], Decimal("2500.00"))
+        self.assertEqual(row["original_price"], Decimal("3000.00"))
+        self.assertEqual(row["is_free"], 0)
+
+    def test_open_course_without_price_is_marked_free(self):
+        module = load_script("run_legacy_courses_migrate.py")
+
+        row = module.build_course_row(
+            {
+                "id": 6001,
+                "title": "公开课无价",
+                "cid": "512",
+                "legacy_type": "1",
+                "organid": "30794",
+                "tags": "公开课",
+                "states": "1",
+                "isopen": "1",
+                "createtime": "1072713600",
+                "lecturerid": "0",
+                "lecturerid_type": "0",
+                "publisher_groupid": "3",
+                "plan_count": "1",
+                "min_price": None,
+                "min_special_price": None,
+            },
+            trainer_ids=set(),
+            institution_user_ids={30794},
+            category_lookup={512: 186},
+        )
+
+        self.assertEqual(row["type"], "OPEN_OFFLINE")
+        self.assertEqual(row["price"], Decimal("0.00"))
+        self.assertEqual(row["is_free"], 1)
 
 
 class ProductionMigrationPipelineTest(unittest.TestCase):

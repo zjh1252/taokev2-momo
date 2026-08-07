@@ -286,6 +286,26 @@ def map_course_category(row: dict, category_lookup: dict[int, int]) -> int:
     return 0
 
 
+def map_course_prices(course_type: str, row: dict) -> tuple[Decimal, Decimal, int]:
+    legacy_price = money_or_none(row.get("min_special_price")) or money_or_none(row.get("min_price"))
+
+    if course_type.startswith("OPEN"):
+        price = legacy_price if legacy_price is not None else Decimal("0.00")
+        original_price = money_or_none(row.get("min_price"), zero_is_none=False) or price
+        is_free = 1 if price <= 0 else 0
+    else:
+        # 内训：有金额保留；无金额 → 待定（price=0, is_free=0）；禁止默认 is_free=1
+        if legacy_price is not None and legacy_price > 0:
+            price = legacy_price
+            original_price = money_or_none(row.get("min_price"), zero_is_none=False) or price
+            is_free = 0
+        else:
+            price = Decimal("0.00")
+            original_price = Decimal("0.00")
+            is_free = 0
+    return price, original_price, is_free
+
+
 def build_course_row(row: dict, trainer_ids: set[int], institution_user_ids: set[int], category_lookup: dict[int, int]) -> dict:
     course_id = int(row["id"])
     course_type = map_course_type(row.get("legacy_type"))
@@ -296,8 +316,7 @@ def build_course_row(row: dict, trainer_ids: set[int], institution_user_ids: set
     updated_at = legacy_datetime(row.get("modified")) or created_at
     status = map_course_status(row)
     has_plan = 1 if course_type.startswith("OPEN") and normalize_int(row.get("plan_count")) > 0 else 0
-    price = money_or_none(row.get("min_special_price")) or money_or_none(row.get("min_price")) or Decimal("0.00")
-    original_price = money_or_none(row.get("min_price"), zero_is_none=False) or price
+    price, original_price, is_free = map_course_prices(course_type, row)
     trainer_id = normalize_int(row.get("lecturerid")) if normalize_int(row.get("lecturerid_type")) == 1 else 0
     if trainer_id not in trainer_ids:
         trainer_id = 0
@@ -326,12 +345,12 @@ def build_course_row(row: dict, trainer_ids: set[int], institution_user_ids: set
         or None,
         "duration_days": days,
         "total_hours": total_hours(row, days),
-        "price": price if course_type.startswith("OPEN") else Decimal("0.00"),
-        "original_price": original_price if course_type.startswith("OPEN") else Decimal("0.00"),
+        "price": price,
+        "original_price": original_price,
         "keywords": clean_required(row.get("tags"), 500),
         "trainer_id": trainer_id,
         "is_featured": 1 if normalize_int(row.get("max_isrecommend")) == 1 else 0,
-        "is_free": 1 if price <= 0 else 0,
+        "is_free": is_free,
         "has_plan": has_plan,
         "status": status,
         "reject_reason": clean_required(row.get("causes"), 500) if status == 3 else "",
