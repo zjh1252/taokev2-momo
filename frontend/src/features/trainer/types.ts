@@ -135,6 +135,8 @@ export interface TrainerListItem {
   /** 是否后台推荐位：0=否，1=是 */
   isRecommended?: number;
   isTrusted: number;
+  /** 是否签约专家：0=否，1=是 */
+  isSigned?: number;
   /** 淘课价（列表） */
   taokePrice?: number;
   /** 已上架课程数 */

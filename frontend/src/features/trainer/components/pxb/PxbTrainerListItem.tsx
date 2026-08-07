@@ -61,7 +61,7 @@ export function PxbTrainerListItem({ trainer }: Props) {
           <a className="pxb-trainer-name" href={href}>
             {displayName}
           </a>
-          {trainer.isTrusted === 1 ? (
+          {trainer.isTrusted === 1 || trainer.isSigned === 1 ? (
             <span className="pxb-trainer-badge" title="信得过讲师">
               信
             </span>

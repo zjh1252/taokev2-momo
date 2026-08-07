@@ -144,7 +144,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                   className="h-full w-full object-cover"
                 />
               </div>
-              {trainer.isTrusted === 1 && (
+              {(trainer.isTrusted === 1 || trainer.isSigned === 1) && (
                 <Image
                   src="/statics/images/icons/trusted-xin.png"
                   alt="值得信"

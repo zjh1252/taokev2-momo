@@ -45,6 +45,9 @@ public class TrainerListItemResponse {
     /** 是否信得过专家 */
     private Integer isTrusted;
 
+    /** 是否签约专家 */
+    private Integer isSigned;
+
     /** 淘课价（列表展示） */
     private java.math.BigDecimal taokePrice;
 

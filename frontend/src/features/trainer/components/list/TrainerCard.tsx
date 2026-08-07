@@ -80,7 +80,7 @@ export function TrainerCard({ trainer, listReturnPath, priorityImage = false }: 
           priority={priorityImage}
           className="w-full h-full object-cover object-[center_top] rounded-sm border-2 border-white shadow-sm"
         />
-        {trainer.isTrusted === 1 && (
+        {(trainer.isTrusted === 1 || trainer.isSigned === 1) && (
           <Image
             src="/statics/images/icons/trusted-xin.png"
             alt="信得过"
