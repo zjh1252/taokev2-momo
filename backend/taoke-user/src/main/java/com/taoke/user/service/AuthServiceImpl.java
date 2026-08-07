@@ -551,12 +551,16 @@ public class AuthServiceImpl implements AuthService {
             if (existing.getUcUid() == null) {
                 existing.setUcUid(result.ucUid());
             }
+            if (Integer.valueOf(2).equals(existing.getUserSource())) {
+                existing.setOldUser(true);
+            }
             return userRepository.save(existing);
         }
 
         User user = new User();
         user.setUcUid(result.ucUid());
         user.setUserSource(2);
+        user.setOldUser(true);
         user.setUsername(username);
         user.setPhone(mobile);
         user.setEmail(email);

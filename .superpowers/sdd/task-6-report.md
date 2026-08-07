@@ -13,3 +13,15 @@
 ## Notes
 - Only `run_legacy_users_migrate.py` INSERTs into `sys_users`; other scripts reference table for FK checks only
 - No explicit `UserServiceImpl` mapping needed — MapStruct handles `oldUser`
+
+---
+
+## Review fix (§79 old_user correctness)
+
+### Changes
+1. **V160 backfill** — `UPDATE sys_users SET old_user = 1 WHERE user_source = 2` (was `uc_uid IS NOT NULL`, which incorrectly flagged new UCenter regs with `user_source=1`). ADD COLUMN unchanged.
+2. **AuthServiceImpl.provisionFromUcenter** — new lazy-provision path sets `user.setOldUser(true)` alongside `user_source=2`; linking path sets `oldUser=true` only when `user_source=2` (never for `user_source=1` new-register accounts).
+
+### Validation / compile
+- Flyway V160 validate: SQL OK; **checksum mismatch** in local DB (1536935480 vs repo 1517908826) — expected after editing an already-applied migration; run Flyway repair in affected envs before deploy.
+- `mvn -pl taoke-user -am compile`: OK
