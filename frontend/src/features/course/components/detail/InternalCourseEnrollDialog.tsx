@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useAuthOptional } from '@/lib/auth/auth-context';
-import { submitOpenCourseEnrollment } from '../../api/service';
+import { submitInternalCourseEnrollment } from '../../api/service';
 import { CourseEnrollFormFields } from './CourseEnrollFormFields';
 import {
   ENROLL_FORM_INITIAL,
@@ -19,21 +19,19 @@ import {
   type EnrollFormData,
 } from './enroll-form';
 
-interface OpenCourseEnrollDialogProps {
+interface InternalCourseEnrollDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   courseId: number;
-  planId: number;
   onSuccess?: () => void;
 }
 
-export function OpenCourseEnrollDialog({
+export function InternalCourseEnrollDialog({
   open,
   onOpenChange,
   courseId,
-  planId,
   onSuccess,
-}: OpenCourseEnrollDialogProps) {
+}: InternalCourseEnrollDialogProps) {
   const { user } = useAuthOptional() ?? { user: null };
   const [form, setForm] = useState<EnrollFormData>(ENROLL_FORM_INITIAL);
   const [submitting, setSubmitting] = useState(false);
@@ -65,14 +63,13 @@ export function OpenCourseEnrollDialog({
     setSubmitting(true);
     setError('');
     try {
-      await submitOpenCourseEnrollment({
+      await submitInternalCourseEnrollment({
         realName: form.realName.trim(),
         companyName: form.companyName.trim(),
         email: form.email.trim(),
         companyPhone: form.companyPhone.trim() || undefined,
         mobile: form.mobile.trim() || undefined,
         courseId,
-        planId,
       });
       toast.success('报名提交成功，顾问稍后将与您联系');
       resetForm();

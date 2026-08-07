@@ -30,6 +30,7 @@ import {
   reserveCourse,
 } from '../../api/service';
 import { CourseReserveSuccessDialog } from './CourseReserveSuccessDialog';
+import { InternalCourseEnrollDialog } from './InternalCourseEnrollDialog';
 import ReviewDialog from '@/features/interaction/components/ReviewDialog';
 import { useAuthGuard } from '@/lib/auth/auth-guard-context';
 
@@ -55,6 +56,7 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
   const [favLoading, setFavLoading] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [consultOpen, setConsultOpen] = useState(false);
+  const [enrollOpen, setEnrollOpen] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<Awaited<ReturnType<typeof getPendingOrderByProduct>>>(null);
   const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
   const [reserved, setReserved] = useState(false);
@@ -266,11 +268,11 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         <>
           <button
             type="button"
-            onClick={() => setConsultOpen(true)}
+            onClick={() => setEnrollOpen(true)}
             className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-md"
           >
             <MessageCircle className="size-4" />
-            联系客服购买
+            立即报名
           </button>
           <button
             type="button"
@@ -390,6 +392,12 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
       />
 
       <CustomerServiceChatDialog open={consultOpen} onOpenChange={setConsultOpen} />
+
+      <InternalCourseEnrollDialog
+        open={enrollOpen}
+        onOpenChange={setEnrollOpen}
+        courseId={course.id}
+      />
 
       <PendingOrderReminderDialog
         open={pendingDialogOpen}

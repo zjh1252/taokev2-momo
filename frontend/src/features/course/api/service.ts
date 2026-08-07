@@ -221,3 +221,18 @@ export async function submitOpenCourseEnrollment(payload: {
   });
   return res.data;
 }
+
+/** 内训课报名提交（登录可选） */
+export async function submitInternalCourseEnrollment(payload: {
+  realName: string;
+  companyName: string;
+  email: string;
+  companyPhone?: string;
+  mobile?: string;
+  courseId: number;
+}): Promise<number> {
+  const res = await apiPost<ApiResponse<number>>('/internal-course-enrollments', payload, {
+    optionalAuth: true,
+  });
+  return res.data;
+}
