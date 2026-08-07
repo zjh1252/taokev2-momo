@@ -2,10 +2,9 @@ package com.taoke.admin.controller;
 
 import com.taoke.admin.dto.AdminTrainerMessageVO;
 import com.taoke.admin.service.AdminTrainerMessageService;
-import com.taoke.common.enums.BusinessRole;
 import com.taoke.common.response.ApiResponse;
 import com.taoke.common.response.PageResponse;
-import com.taoke.common.security.RequireRole;
+import com.taoke.common.security.RequirePermission;
 import com.taoke.common.security.SecurityUtils;
 import com.taoke.course.api.DemandService;
 import com.taoke.course.dto.demand.DemandDetailResponse;
@@ -31,7 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Tag(name = "后台-留言管理")
 @RestController
-@RequireRole(BusinessRole.Code.SUPER_ADMIN)
 @RequiredArgsConstructor
 public class AdminTrainerMessageController {
 
@@ -39,6 +37,7 @@ public class AdminTrainerMessageController {
     private final DemandService demandService;
 
     @Operation(summary = "分页查询留言列表")
+    @RequirePermission("trainer-message:manage")
     @GetMapping("/admin/trainer-messages")
     public ApiResponse<PageResponse<AdminTrainerMessageVO>> list(
             @RequestParam(required = false) Integer status,
@@ -51,12 +50,14 @@ public class AdminTrainerMessageController {
     }
 
     @Operation(summary = "留言详情")
+    @RequirePermission("trainer-message:manage")
     @GetMapping("/admin/trainer-messages/{id}")
     public ApiResponse<AdminTrainerMessageVO> detail(@PathVariable Integer id) {
         return ApiResponse.ok(messageService.detail(id));
     }
 
     @Operation(summary = "标记为已处理")
+    @RequirePermission("trainer-message:manage")
     @PutMapping("/admin/trainer-messages/{id}/process")
     public ApiResponse<Void> markProcessed(@PathVariable Integer id) {
         messageService.markProcessed(id);
@@ -64,6 +65,7 @@ public class AdminTrainerMessageController {
     }
 
     @Operation(summary = "转为培训需求")
+    @RequirePermission("trainer-message:manage")
     @PostMapping("/admin/trainer-messages/{id}/to-demand")
     public ApiResponse<DemandDetailResponse> convertToDemand(@PathVariable Integer id) {
         return ApiResponse.ok(

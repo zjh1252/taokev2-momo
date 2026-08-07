@@ -2,17 +2,11 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import {
   ArrowRight,
-  CalendarDays,
   CheckCircle2,
-  ChevronDown,
-  Flame,
   Map,
-  MapPin,
   Send,
-  ShieldCheck,
   Target,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import type { ActiveCityItem } from '../api/types';
 import { cityChannelPath } from '../lib/paths';
 
@@ -32,13 +26,6 @@ interface CityDisplayItem {
 interface ResolvedCity extends CityDisplayItem {
   courseCount: number;
   href: string;
-}
-
-interface FilterItem {
-  label: string;
-  icon: LucideIcon;
-  active?: boolean;
-  dropdown?: boolean;
 }
 
 const CITY_IMAGE_BASE = '/statics/images/city';
@@ -142,14 +129,6 @@ const SMALL_CITY_ITEMS: CityDisplayItem[] = [
   },
 ];
 
-const FILTER_ITEMS: FilterItem[] = [
-  { label: '热门城市', icon: Flame, active: true },
-  { label: '附近城市', icon: MapPin },
-  { label: '生产管理', icon: Target, dropdown: true },
-  { label: '质量管理', icon: ShieldCheck, dropdown: true },
-  { label: '本月开课', icon: CalendarDays, dropdown: true },
-];
-
 const SERVICE_POINTS = ['专业顾问对接', '精准匹配课程', '快速响应需求'];
 
 /**
@@ -174,49 +153,13 @@ export function CityChannelCard({ cities }: CityChannelCardProps) {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href={cityChannelPath('shanghai')}
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
-          >
-            <MapPin className="size-4" />
-            定位：上海
-            <ChevronDown className="size-4 text-slate-400" />
-          </Link>
-          <Link
-            href="/opencourses"
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
-          >
-            <Map className="size-4" />
-            查看全部城市
-          </Link>
-        </div>
-      </div>
-
-      <div className="mb-7 w-full max-w-full overflow-x-auto overscroll-x-contain border-y border-slate-100 py-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="inline-flex min-w-max overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm">
-          {FILTER_ITEMS.map((item, index) => {
-            const Icon = item.icon;
-
-            return (
-              <button
-                key={item.label}
-                type="button"
-                className={[
-                  'inline-flex h-12 items-center gap-2 px-7 text-sm font-semibold transition-colors',
-                  item.active
-                    ? 'bg-red-50 text-red-600'
-                    : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900',
-                  index > 0 ? 'border-l border-slate-100' : '',
-                ].join(' ')}
-              >
-                <Icon className="size-4" />
-                {item.label}
-                {item.dropdown ? <ChevronDown className="size-4 text-slate-400" /> : null}
-              </button>
-            );
-          })}
-        </div>
+        <Link
+          href="/opencourses"
+          className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
+        >
+          <Map className="size-4" />
+          查看全部城市
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

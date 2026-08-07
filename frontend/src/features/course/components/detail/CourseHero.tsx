@@ -21,7 +21,7 @@ export function CourseHero({ course, pathId }: CourseHeroProps) {
   const coverSrc = course.coverUrl;
   const displayNo = isOpen
     ? resolveOpenCourseDisplayNo(course, pathId)
-    : course.id;
+    : (course.displayCourseNo ?? course.id);
 
   // 公开课：取主排期展示时间/地点
   const primaryPlan = isOpen ? course.plans?.[0] : null;

@@ -42,7 +42,9 @@ export async function getMyTrainerProfile(): Promise<{ id: number; trainerCode?:
  * 获取专家公开详情
  */
 export async function getTrainerDetail(id: number): Promise<TrainerDetail> {
-  const res = await apiGet<ApiResponse<TrainerDetail>>(`/trainers/${id}`);
+  const res = await apiGet<ApiResponse<TrainerDetail>>(`/trainers/${id}`, {
+    skipAuth: true,
+  });
   return res.data;
 }
 
@@ -72,7 +74,7 @@ export async function getTrainerList(
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<TrainerListItem>>>(
     `/trainers${qs ? `?${qs}` : ''}`,
-    init,
+    { ...init, skipAuth: true },
   );
   return res.data;
 }
@@ -115,6 +117,7 @@ export async function getTopRecommendedTrainers(limit = 12): Promise<TrainerList
   const fetchLimit = Math.max(limit * 3, 12);
   const res = await apiGet<ApiResponse<TrainerListItem[]>>(
     `/trainers/recommended?limit=${fetchLimit}`,
+    { skipAuth: true },
   );
   return (res.data || []).filter(isPresentableRecommendedTrainer).slice(0, limit);
 }
@@ -141,6 +144,7 @@ export interface RecentTrainerCase {
 export async function getRecentTrainerCases(limit = 10): Promise<RecentTrainerCase[]> {
   const res = await apiGet<ApiResponse<RecentTrainerCase[]>>(
     `/trainer-cases/recent?limit=${limit}`,
+    { skipAuth: true },
   );
   return res.data;
 }
@@ -156,6 +160,7 @@ export async function getTrainerExpertiseCategoryCounts(): Promise<Record<number
 export async function getCategoryTree(type: string): Promise<CategoryTreeNode[]> {
   const res = await apiGet<ApiResponse<CategoryTreeNode[]>>(
     `/categories/tree?type=${encodeURIComponent(type)}`,
+    { skipAuth: true },
   );
   return res.data;
 }

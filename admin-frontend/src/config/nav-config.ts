@@ -382,6 +382,13 @@ export const navGroups: NavGroup[] = [
         icon: 'forms',
         isActive: false,
         items: []
+      },
+      {
+        title: '专家留言',
+        url: '/dashboard/trainer-messages',
+        icon: 'forms',
+        isActive: false,
+        items: []
       }
     ]
   },

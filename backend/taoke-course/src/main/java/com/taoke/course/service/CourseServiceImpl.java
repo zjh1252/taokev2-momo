@@ -1797,7 +1797,12 @@ public class CourseServiceImpl implements CourseService {
         } else {
             vo.setPlans(List.of());
         }
-        vo.setDisplayCourseNo(resolveDisplayCourseNo(course.getId(), planEntities));
+        if (course.getType() != null && course.getType().isOpen()) {
+            vo.setDisplayCourseNo(resolveDisplayCourseNo(course.getId(), planEntities));
+        } else {
+            // 内训：编号即老站 tk_courseinfo.id（迁移写入 courses.id）
+            vo.setDisplayCourseNo(course.getId());
+        }
 
         // 批量获取分类名称
         Set<Integer> catIds = new HashSet<>();

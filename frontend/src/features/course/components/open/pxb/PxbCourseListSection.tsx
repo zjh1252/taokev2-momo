@@ -190,7 +190,7 @@ function PxbCourseListSectionInner({ config, initialData, categoryTree }: Props)
   }, [urlState]);
 
   useEffect(() => {
-    apiGet<{ data: RegionItem[] }>('/regions/children')
+    apiGet<{ data: RegionItem[] }>('/regions/children', { skipAuth: true })
       .then((res) => setProvinces(res.data || []))
       .catch(() => {});
   }, []);
@@ -205,7 +205,9 @@ function PxbCourseListSectionInner({ config, initialData, categoryTree }: Props)
       setCities([]);
       return;
     }
-    apiGet<{ data: RegionItem[] }>(`/regions/children?parentCode=${province.code}`)
+    apiGet<{ data: RegionItem[] }>(`/regions/children?parentCode=${province.code}`, {
+      skipAuth: true,
+    })
       .then((res) => setCities(res.data || []))
       .catch(() => setCities([]));
   }, [urlState.provinceId, provinces]);
@@ -252,6 +254,86 @@ function PxbCourseListSectionInner({ config, initialData, categoryTree }: Props)
   const resetAll = () => {
     applyState({ page: 1, keyword: '', sortBy: 'default' });
   };
+
+  const selectedFilterChips = useMemo(() => {
+    const chips: { key: string; label: string; clear: Partial<PxbCourseListUrlState> }[] = [];
+    if (urlState.keyword) {
+      chips.push({
+        key: 'keyword',
+        label: `关键词：${urlState.keyword}`,
+        clear: { keyword: '' },
+      });
+    }
+    if (urlState.categoryId) {
+      const cat = categoryTree.find((c) => c.id === urlState.categoryId);
+      const sub = cat?.children?.find((c) => c.id === urlState.subCategoryId);
+      const name = sub?.name ?? cat?.name ?? `#${urlState.categoryId}`;
+      chips.push({
+        key: 'category',
+        label: `分类：${name}`,
+        clear: { categoryId: undefined, subCategoryId: undefined },
+      });
+    }
+    if (urlState.provinceId) {
+      const province = provinces.find((p) => p.id === urlState.provinceId);
+      const city = cities.find((c) => c.id === urlState.cityId);
+      const name = city?.name
+        ? `${province?.name ?? ''} ${city.name}`.trim()
+        : (province?.name ?? `#${urlState.provinceId}`);
+      chips.push({
+        key: 'area',
+        label: `${config.locationLabel}：${name}`,
+        clear: { provinceId: undefined, cityId: undefined },
+      });
+    }
+    if (urlState.timeQuick) {
+      const labels: Record<string, string> = {
+        thisWeek: '本周内',
+        thisMonth: '本月内',
+        nextThreeMonths: '近三个月',
+      };
+      chips.push({
+        key: 'timeQuick',
+        label: `开课时间：${labels[urlState.timeQuick] ?? urlState.timeQuick}`,
+        clear: { timeQuick: undefined },
+      });
+    } else if (urlState.startTimeFrom || urlState.startTimeTo) {
+      chips.push({
+        key: 'timeRange',
+        label: `开课时间：${urlState.startTimeFrom ?? '不限'} ~ ${urlState.startTimeTo ?? '不限'}`,
+        clear: { startTimeFrom: undefined, startTimeTo: undefined },
+      });
+    }
+    if (urlState.pricePreset) {
+      const preset = config.pricePresets.find((p) => p.key === urlState.pricePreset);
+      chips.push({
+        key: 'pricePreset',
+        label: `价格：${preset?.label ?? urlState.pricePreset}`,
+        clear: { pricePreset: undefined, priceMin: undefined, priceMax: undefined },
+      });
+    } else if (urlState.priceMin != null || urlState.priceMax != null) {
+      chips.push({
+        key: 'price',
+        label: `价格：${urlState.priceMin ?? '不限'} - ${urlState.priceMax ?? '不限'}`,
+        clear: { priceMin: undefined, priceMax: undefined, pricePreset: undefined },
+      });
+    }
+    if (urlState.minScore != null) {
+      chips.push({
+        key: 'minScore',
+        label: `评分：≥${urlState.minScore}`,
+        clear: { minScore: undefined },
+      });
+    }
+    if (urlState.enrollStatus) {
+      chips.push({
+        key: 'enrollStatus',
+        label: `报名：${urlState.enrollStatus === 'ENROLLING' ? '报名中' : urlState.enrollStatus}`,
+        clear: { enrollStatus: undefined },
+      });
+    }
+    return chips;
+  }, [urlState, categoryTree, provinces, cities, config.locationLabel, config.pricePresets]);
 
   const handleKeywordSearch = () => {
     if (!keywordInput.trim()) {
@@ -633,6 +715,71 @@ function PxbCourseListSectionInner({ config, initialData, categoryTree }: Props)
           ))}
         </ul>
       </div>
+
+      {selectedFilterChips.length > 0 ? (
+        <div
+          className="pxb-selected-filters"
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 8,
+            margin: '8px 0 12px',
+            padding: '8px 10px',
+            background: '#fff',
+            border: '1px solid #eee',
+            borderRadius: 4,
+          }}
+        >
+          <span style={{ fontSize: 12, color: '#888' }}>已选条件：</span>
+          {selectedFilterChips.map((chip) => (
+            <span
+              key={chip.key}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '2px 8px',
+                fontSize: 12,
+                color: '#c00',
+                background: '#fff5f5',
+                borderRadius: 999,
+              }}
+            >
+              {chip.label}
+              <button
+                type="button"
+                aria-label={`移除 ${chip.label}`}
+                onClick={() => patchState(chip.clear)}
+                style={{
+                  border: 0,
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  color: '#c00',
+                  padding: 0,
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={resetAll}
+            style={{
+              marginLeft: 'auto',
+              border: 0,
+              background: 'transparent',
+              cursor: 'pointer',
+              fontSize: 12,
+              color: '#888',
+            }}
+          >
+            重置
+          </button>
+        </div>
+      ) : null}
 
       <div style={{ opacity: isPending ? 0.6 : 1 }}>
         {data.list.length > 0 ? (

@@ -56,6 +56,7 @@ export async function getVideoList(
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<VideoListItem>>>(
     `/videos${qs ? `?${qs}` : ''}`,
+    { skipAuth: true },
   );
   return res.data;
 }
@@ -64,7 +65,9 @@ export async function getVideoList(
  * 录播课公开详情
  */
 export async function getVideoDetail(id: number): Promise<VideoDetail> {
-  const res = await apiGet<ApiResponse<VideoDetail>>(`/videos/${id}`);
+  const res = await apiGet<ApiResponse<VideoDetail>>(`/videos/${id}`, {
+    skipAuth: true,
+  });
   return res.data;
 }
 

@@ -47,11 +47,14 @@ interface Props {
     provinceId?: string;
     cityId?: string;
     timeQuick?: string;
+    timeQuickLabel?: string;
     startTimeFrom?: string;
     startTimeTo?: string;
     pricePreset?: string;
+    priceLabel?: string;
     priceMin?: string;
     priceMax?: string;
+    isFree?: string;
     minScore?: string;
     enrollStatus?: string;
     sortBy?: string;
@@ -99,6 +102,17 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
   const categoryNames = normalizeStringValues(sp.categoryName);
   const provinceIds = normalizeNumberIds(sp.provinceIds);
   const provinceNames = normalizeStringValues(sp.provinceName);
+  const timeQuick = sp.timeQuick?.trim() || undefined;
+  const timeQuickLabel = sp.timeQuickLabel?.trim() || undefined;
+  const startTimeFrom = sp.startTimeFrom?.trim() || undefined;
+  const startTimeTo = sp.startTimeTo?.trim() || undefined;
+  const priceLabel = sp.priceLabel?.trim() || undefined;
+  const priceMin = sp.priceMin != null && sp.priceMin !== '' ? Number(sp.priceMin) : undefined;
+  const priceMax = sp.priceMax != null && sp.priceMax !== '' ? Number(sp.priceMax) : undefined;
+  const isFree = sp.isFree != null && sp.isFree !== '' ? Number(sp.isFree) : undefined;
+  const validPriceMin = priceMin != null && Number.isFinite(priceMin) ? priceMin : undefined;
+  const validPriceMax = priceMax != null && Number.isFinite(priceMax) ? priceMax : undefined;
+  const validIsFree = isFree != null && Number.isFinite(isFree) ? isFree : undefined;
 
   const categoryNavPromise = categoryTreePromise
     .then((tree) => buildCourseCategoryNavItems(tree, true, '/opencourse'))
@@ -113,6 +127,12 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
       cityIds: cityIds.length > 0 ? cityIds : undefined,
       categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
       provinceIds: provinceIds.length > 0 ? provinceIds : undefined,
+      timeQuick,
+      startTimeFrom,
+      startTimeTo,
+      priceMin: validPriceMin,
+      priceMax: validPriceMax,
+      isFree: validIsFree,
     }).catch(() => ({
       list: [],
       total: 0,
@@ -148,6 +168,14 @@ export default async function OpenCoursesPage({ searchParams }: Props) {
         initialCategoryNames={categoryNames.length > 0 ? categoryNames : undefined}
         initialProvinceIds={provinceIds.length > 0 ? provinceIds : undefined}
         initialProvinceNames={provinceNames.length > 0 ? provinceNames : undefined}
+        initialTimeQuick={timeQuick}
+        initialTimeQuickLabel={timeQuickLabel}
+        initialStartTimeFrom={startTimeFrom}
+        initialStartTimeTo={startTimeTo}
+        initialPriceLabel={priceLabel}
+        initialPriceMin={validPriceMin}
+        initialPriceMax={validPriceMax}
+        initialIsFree={validIsFree}
         bottomCategoryNav={{
           title: '公开课课程分类',
           countUnit: '门',

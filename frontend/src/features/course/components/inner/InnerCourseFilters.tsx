@@ -56,7 +56,7 @@ interface RegionItem {
 }
 
 async function fetchProvinces(): Promise<RegionItem[]> {
-  const res = await apiGet<{ data: RegionItem[] }>('/regions/children');
+  const res = await apiGet<{ data: RegionItem[] }>('/regions/children', { skipAuth: true });
   return res.data || [];
 }
 

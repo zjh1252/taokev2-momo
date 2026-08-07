@@ -149,7 +149,12 @@ export async function apiClient<T>(
   const { silent, skipAuth, optionalAuth, ...fetchInit } = init || {};
   const url = endpoint.startsWith('http') ? endpoint : `${getApiBaseUrl()}${endpoint}`;
 
-  const mergedHeaders = buildHeaders(fetchInit, !!skipAuth, !!optionalAuth);
+  // RSC 无 localStorage：不能按「未登录」中止请求，否则公开列表/推荐位会被
+  // page 层 .catch(() => 空数据) 吞掉，页面显示「共 0 条」。由后端决定是否 401。
+  const effectiveOptionalAuth =
+    !!optionalAuth || (typeof window === 'undefined' && !skipAuth);
+
+  const mergedHeaders = buildHeaders(fetchInit, !!skipAuth, effectiveOptionalAuth);
   if (!mergedHeaders) {
     handleAuthRequired(silent);
   }

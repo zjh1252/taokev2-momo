@@ -20,10 +20,17 @@ import type { ChannelCategoryNavItem } from '@/components/layout/channel-categor
 import { parseCourseCategoryIdFromHref } from '@/lib/parse-category-nav-href';
 import { getBrowserPathname, navigateToSeoPath, replaceBrowserUrl, setPageParam } from '@/lib/sync-list-filter-url';
 import {
+  appendOpenCourseTimePriceParams,
   hasOpenCourseBrowserFilter,
   openCourseBrowserDiffersFromSsr,
   readOpenCourseFiltersFromBrowser,
 } from './open-course-list-url';
+
+const TIME_QUICK_LABELS: Record<string, string> = {
+  thisWeek: '本周内',
+  thisMonth: '本月内',
+  nextThreeMonths: '近三个月',
+};
 
 interface OpenCourseListSectionProps {
   initialData: PageResponse<CourseListItem>;
@@ -43,6 +50,15 @@ interface OpenCourseListSectionProps {
   /** 来自 URL 的初始开课省份筛选 */
   initialProvinceIds?: number[];
   initialProvinceNames?: string[];
+  /** 来自 URL 的开课时间 / 价格筛选 */
+  initialTimeQuick?: string;
+  initialTimeQuickLabel?: string;
+  initialStartTimeFrom?: string;
+  initialStartTimeTo?: string;
+  initialPriceLabel?: string;
+  initialPriceMin?: number;
+  initialPriceMax?: number;
+  initialIsFree?: number;
   bottomCategoryNav?: {
     title: string;
     countUnit: string;
@@ -86,6 +102,14 @@ function OpenCourseListSectionInner({
   initialCategoryNames,
   initialProvinceIds,
   initialProvinceNames,
+  initialTimeQuick,
+  initialTimeQuickLabel,
+  initialStartTimeFrom,
+  initialStartTimeTo,
+  initialPriceLabel,
+  initialPriceMin,
+  initialPriceMax,
+  initialIsFree,
   bottomCategoryNav,
 }: OpenCourseListSectionProps) {
   const [data, setData] = useState(initialData);
@@ -94,6 +118,15 @@ function OpenCourseListSectionInner({
     categoryNames: initialCategoryNames,
     provinceIds: initialProvinceIds,
     provinceNames: initialProvinceNames,
+    timeQuick: initialTimeQuick,
+    timeQuickLabel: initialTimeQuickLabel
+      ?? (initialTimeQuick ? TIME_QUICK_LABELS[initialTimeQuick] : undefined),
+    startTimeFrom: initialStartTimeFrom,
+    startTimeTo: initialStartTimeTo,
+    priceLabel: initialPriceLabel,
+    priceMin: initialPriceMin,
+    priceMax: initialPriceMax,
+    isFree: initialIsFree,
   }));
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
   /** 锁定城市 IDs：来自城市频道页跳转，存在时随每次查询一起送给后端 */
@@ -117,8 +150,25 @@ function OpenCourseListSectionInner({
         provinceIds: initialProvinceIds ?? [],
         institutionId: initialInstitutionId ?? null,
         cityIds: initialCityIds ?? [],
+        timeQuick: initialTimeQuick ?? null,
+        startTimeFrom: initialStartTimeFrom ?? null,
+        startTimeTo: initialStartTimeTo ?? null,
+        priceMin: initialPriceMin ?? null,
+        priceMax: initialPriceMax ?? null,
+        isFree: initialIsFree ?? null,
       }),
-    [initialCategoryIds, initialProvinceIds, initialInstitutionId, initialCityIds],
+    [
+      initialCategoryIds,
+      initialProvinceIds,
+      initialInstitutionId,
+      initialCityIds,
+      initialTimeQuick,
+      initialStartTimeFrom,
+      initialStartTimeTo,
+      initialPriceMin,
+      initialPriceMax,
+      initialIsFree,
+    ],
   );
   const serverFilterKeyRef = useRef(serverFilterKey);
 
@@ -136,7 +186,13 @@ function OpenCourseListSectionInner({
       !(initialCategoryIds?.length)
       && !(initialProvinceIds?.length)
       && initialInstitutionId == null
-      && !(initialCityIds?.length);
+      && !(initialCityIds?.length)
+      && !initialTimeQuick
+      && !initialStartTimeFrom
+      && !initialStartTimeTo
+      && initialPriceMin == null
+      && initialPriceMax == null
+      && initialIsFree == null;
     if (hasOpenCourseBrowserFilter(browser) && ssrEmpty) {
       serverFilterKeyRef.current = serverFilterKey;
       return;
@@ -152,6 +208,15 @@ function OpenCourseListSectionInner({
         categoryNames: initialCategoryNames,
         provinceIds: initialProvinceIds,
         provinceNames: initialProvinceNames,
+        timeQuick: initialTimeQuick,
+        timeQuickLabel: initialTimeQuickLabel
+          ?? (initialTimeQuick ? TIME_QUICK_LABELS[initialTimeQuick] : undefined),
+        startTimeFrom: initialStartTimeFrom,
+        startTimeTo: initialStartTimeTo,
+        priceLabel: initialPriceLabel,
+        priceMin: initialPriceMin,
+        priceMax: initialPriceMax,
+        isFree: initialIsFree,
       });
       setInstitutionId(initialInstitutionId);
       setLockedCityIds(
@@ -168,6 +233,14 @@ function OpenCourseListSectionInner({
     initialCategoryNames,
     initialProvinceIds,
     initialProvinceNames,
+    initialTimeQuick,
+    initialTimeQuickLabel,
+    initialStartTimeFrom,
+    initialStartTimeTo,
+    initialPriceLabel,
+    initialPriceMin,
+    initialPriceMax,
+    initialIsFree,
     initialInstitutionId,
     initialCityIds,
     initialCityNames,
@@ -203,6 +276,7 @@ function OpenCourseListSectionInner({
         const name = f.provinceNames?.[idx];
         if (name) params.append('provinceName', name);
       });
+      appendOpenCourseTimePriceParams(params, f);
       setPageParam(params, page);
       replaceBrowserUrl(getBrowserPathname(), params);
     },
@@ -290,6 +364,12 @@ function OpenCourseListSectionInner({
         institutionId: initialInstitutionId,
         cityIds: initialCityIds,
         page: initialData.page ?? 1,
+        timeQuick: initialTimeQuick,
+        startTimeFrom: initialStartTimeFrom,
+        startTimeTo: initialStartTimeTo,
+        priceMin: initialPriceMin,
+        priceMax: initialPriceMax,
+        isFree: initialIsFree,
       })
     ) {
       restoredFromBrowserRef.current = true;
@@ -423,10 +503,10 @@ function OpenCourseListSectionInner({
         });
       });
     }
-    if (filters.timeQuick && filters.timeQuickLabel) {
+    if (filters.timeQuick) {
       chips.push({
         key: 'timeQuick',
-        label: `开课时间：${filters.timeQuickLabel}`,
+        label: `开课时间：${filters.timeQuickLabel ?? TIME_QUICK_LABELS[filters.timeQuick] ?? filters.timeQuick}`,
         onRemove: () => ({ ...filters, timeQuick: undefined, timeQuickLabel: undefined }),
       });
     }
@@ -439,9 +519,11 @@ function OpenCourseListSectionInner({
       });
     }
     if (filters.priceLabel || filters.priceMin !== undefined || filters.priceMax !== undefined || filters.isFree) {
-      const label = filters.priceLabel
-        ? filters.priceLabel
-        : `${filters.priceMin ?? '不限'} - ${filters.priceMax ?? '不限'}`;
+      const label = filters.isFree === 1
+        ? '免费'
+        : filters.priceLabel
+          ? filters.priceLabel
+          : `${filters.priceMin ?? '不限'} - ${filters.priceMax ?? '不限'}`;
       chips.push({
         key: 'price',
         label: `价格：${label}`,

@@ -7,7 +7,9 @@ import type { ActiveCityItem, CityChannelDetail, CityChannelHome } from './types
  * <p>用于首页底部「城市频道」卡片；接口失败时调用方应自行 fallback 到空数组。</p>
  */
 export async function getActiveCities(limit = 18): Promise<ActiveCityItem[]> {
-  const res = await apiGet<ApiResponse<ActiveCityItem[]>>(`/cities/active?limit=${limit}`);
+  const res = await apiGet<ApiResponse<ActiveCityItem[]>>(`/cities/active?limit=${limit}`, {
+    skipAuth: true,
+  });
   return res.data ?? [];
 }
 
@@ -18,6 +20,7 @@ export async function getActiveCities(limit = 18): Promise<ActiveCityItem[]> {
 export async function getCityByEnName(enName: string): Promise<CityChannelDetail | null> {
   const res = await apiGet<ApiResponse<CityChannelDetail | null>>(
     `/cities/${encodeURIComponent(enName)}`,
+    { skipAuth: true },
   );
   return res.data ?? null;
 }
@@ -29,6 +32,7 @@ export async function getCityByEnName(enName: string): Promise<CityChannelDetail
 export async function getCityHome(enName: string): Promise<CityChannelHome | null> {
   const res = await apiGet<ApiResponse<CityChannelHome | null>>(
     `/cities/${encodeURIComponent(enName)}/home`,
+    { skipAuth: true },
   );
   return res.data ?? null;
 }

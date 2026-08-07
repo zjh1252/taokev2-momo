@@ -112,6 +112,7 @@ export async function getCourseList(
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<CourseListItem>>>(
     `/courses${qs ? `?${qs}` : ''}`,
+    { skipAuth: true },
   );
   return res.data;
 }
@@ -190,6 +191,7 @@ export async function notifyOrderPurchase(orderNo: string): Promise<void> {
 export async function getCourseCategoryTree(): Promise<CategoryTreeNode[]> {
   const res = await apiGet<ApiResponse<CategoryTreeNode[]>>(
     `/categories/tree?type=COURSE_CATEGORY`,
+    { skipAuth: true },
   );
   return res.data;
 }
@@ -202,6 +204,7 @@ export async function getCategoryTree(
 ): Promise<CategoryTreeNode[]> {
   const res = await apiGet<ApiResponse<CategoryTreeNode[]>>(
     `/categories/tree?type=${type}`,
+    { skipAuth: true },
   );
   return res.data;
 }

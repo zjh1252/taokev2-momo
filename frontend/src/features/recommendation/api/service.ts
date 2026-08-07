@@ -21,7 +21,7 @@ export async function getPublicRecommendations(
 
   const res = await apiGet<ApiResponse<PublicRecommendedItem[]>>(
     `/recommendations/public?${query.toString()}`,
-    { silent: true }
+    { silent: true, skipAuth: true }
   );
   return res.data ?? [];
 }
@@ -31,7 +31,7 @@ export async function getPublicRecommendationSlotConfig(
 ): Promise<RecommendationSlotConfig> {
   const res = await apiGet<ApiResponse<RecommendationSlotConfig>>(
     `/recommendations/public/config?slotCode=${encodeURIComponent(slotCode)}`,
-    { silent: true }
+    { silent: true, skipAuth: true }
   );
   return res.data ?? { slotCode, lockMain: true, lockMiddle: true };
 }

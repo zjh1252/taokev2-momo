@@ -14,7 +14,7 @@ import {
   loadHomeInternalCourses,
   loadHomePublicCourses,
 } from '@/features/home/api/load-home-data';
-import { getCategoryTree } from '@/features/course/api/service';
+import { getCachedTrainerExpertiseTree } from '@/lib/cached-categories';
 import { getActiveCitiesCached } from '@/features/city/api/server';
 import { CityChannelCard } from '@/features/city/components/CityChannelCard';
 
@@ -24,11 +24,13 @@ export async function generateMetadata() {
 
 /**
  * 首页 — SSR，推荐专家/案例/课程等区块接入后端 API（v3test），接口失败时课程区块为空（不再回退 mock）
+ * <p>分类树必须走 serverApiGet（{@code getCachedTrainerExpertiseTree}），
+ * 不可用客户端 {@code apiGet}：RSC 无 localStorage token，会被当成未登录抛错后 catch 成空数组，侧栏「课程分类」空白。</p>
  */
 export default async function HomePage() {
   const [expertiseCategories, activeCities, banners, experts, cases, internalCourses, publicCourses] =
     await Promise.all([
-      getCategoryTree('TRAINER_EXPERTISE').catch(() => []),
+      getCachedTrainerExpertiseTree(),
       getActiveCitiesCached(18).catch(() => []),
       loadHomeBanners(),
       loadHomeExperts(),

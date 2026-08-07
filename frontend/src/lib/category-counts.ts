@@ -19,6 +19,9 @@ export async function fetchCategoryCountMap(endpoint: string): Promise<Record<nu
   const res =
     typeof window === 'undefined'
       ? await serverApiGet<ApiResponse<Record<string, number>>>(endpoint)
-      : await apiGet<ApiResponse<Record<string, number>>>(endpoint, { silent: true });
+      : await apiGet<ApiResponse<Record<string, number>>>(endpoint, {
+          silent: true,
+          skipAuth: true,
+        });
   return parseCategoryCountMap(res.data);
 }

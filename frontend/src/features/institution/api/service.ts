@@ -75,6 +75,7 @@ export async function getInstitutionList(
   const qs = query.toString();
   const res = await apiGet<ApiResponse<PageResponse<InstitutionListItem>>>(
     `/institutions${qs ? `?${qs}` : ''}`,
+    { skipAuth: true },
   );
   return res.data;
 }
@@ -95,7 +96,9 @@ export async function getInstitutionExpertiseCategoryCounts(
  * 获取机构公开详情
  */
 export async function getInstitutionDetail(id: number): Promise<InstitutionDetail> {
-  const res = await apiGet<ApiResponse<InstitutionDetail>>(`/institutions/${id}`);
+  const res = await apiGet<ApiResponse<InstitutionDetail>>(`/institutions/${id}`, {
+    skipAuth: true,
+  });
   return res.data;
 }
 
@@ -113,6 +116,7 @@ export async function getInstitutionCourses(
   const qs = new URLSearchParams({ type, page: String(page), size: String(size) });
   const res = await apiGet<ApiResponse<PageResponse<CourseListItem>>>(
     `/institutions/${institutionId}/courses?${qs}`,
+    { skipAuth: true },
   );
   return res.data;
 }
@@ -128,6 +132,7 @@ export async function getInstitutionVideos(
   const qs = new URLSearchParams({ page: String(page), size: String(size) });
   const res = await apiGet<ApiResponse<PageResponse<VideoListItem>>>(
     `/institutions/${institutionId}/videos?${qs}`,
+    { skipAuth: true },
   );
   return res.data;
 }
@@ -140,6 +145,7 @@ export async function getInstitutionSidebarOpenCourses(
 ): Promise<CourseListItem[]> {
   const res = await apiGet<ApiResponse<CourseListItem[]>>(
     `/institutions/${institutionId}/sidebar/open-courses`,
+    { skipAuth: true },
   );
   return res.data;
 }
@@ -152,6 +158,7 @@ export async function getInstitutionSidebarVideos(
 ): Promise<VideoListItem[]> {
   const res = await apiGet<ApiResponse<VideoListItem[]>>(
     `/institutions/${institutionId}/sidebar/videos`,
+    { skipAuth: true },
   );
   return res.data;
 }
@@ -160,7 +167,9 @@ export async function getInstitutionSidebarVideos(
  * 全平台热门公开课（最多 5 条）
  */
 export async function getHotOpenCourses(): Promise<CourseListItem[]> {
-  const res = await apiGet<ApiResponse<CourseListItem[]>>('/opencourses/hot');
+  const res = await apiGet<ApiResponse<CourseListItem[]>>('/opencourses/hot', {
+    skipAuth: true,
+  });
   return res.data;
 }
 
@@ -175,6 +184,7 @@ export async function getInstitutionRecommendations(
   if (association != null) query.set('association', String(association));
   const res = await apiGet<ApiResponse<InstitutionListItem[]>>(
     `/institutions/recommendations?${query}`,
+    { skipAuth: true },
   );
   return res.data;
 }
