@@ -26,6 +26,8 @@ export interface AuthUser {
   avatarUrl: string | null;
   phone: string;
   studyTags: string | null;
+  /** 是否老站迁移账号 */
+  oldUser?: boolean;
   roles: RoleInfo[];
 }
 
@@ -67,6 +69,7 @@ function toAuthUser(profile: UserProfileResponse): AuthUser {
       : null,
     phone: profile.phone,
     studyTags: profile.studyTags || null,
+    oldUser: profile.oldUser === true,
     roles: profile.roles,
   };
 }

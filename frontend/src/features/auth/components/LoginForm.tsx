@@ -24,7 +24,6 @@ const CODE_LENGTH = 6;
 const COUNTDOWN_SECONDS = 60;
 const USERNAME_MIN = 4;
 const USERNAME_MAX = 32;
-const PASSWORD_MIN = 6;
 const PASSWORD_MAX = 32;
 const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
 // dev 默认开启 mock 验证码自动填充；用真实短信(pxb)联调时可设 NEXT_PUBLIC_MOCK_SMS=false 关闭
@@ -75,8 +74,7 @@ export function LoginForm() {
     USERNAME_REGEX.test(username) &&
     username.length >= USERNAME_MIN &&
     username.length <= USERNAME_MAX &&
-    password.length >= PASSWORD_MIN &&
-    password.length <= PASSWORD_MAX &&
+    password.length > 0 &&
     agreed &&
     !submitting;
 

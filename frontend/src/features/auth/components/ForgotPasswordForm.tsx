@@ -99,6 +99,9 @@ export function ForgotPasswordForm() {
       <div className="mb-8">
         <h2 className="font-heading font-bold text-2xl mb-2">{t('title')}</h2>
         <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
+        <p className="text-muted-foreground text-xs mt-2">
+          新密码需设置 6-32 位字符。历史迁移账号原有密码仍可正常登录。
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

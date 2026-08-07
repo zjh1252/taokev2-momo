@@ -7,6 +7,7 @@ import { ROUTES } from '@/config/routes';
 import { storage } from '@/lib/storage';
 import { TOKEN_KEY } from '@/lib/auth/constants';
 import { changePassword } from '@/features/user-center/api/service';
+import { useAuth } from '@/lib/auth/auth-context';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import { Input } from '@/components/ui/input';
  * @date 2026-04-16 10:00
  */
 export default function AccountPasswordPage() {
+  const { user } = useAuth();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -70,6 +72,11 @@ export default function AccountPasswordPage() {
         <div className="text-sm text-gray-500 mt-2">
           为了账户安全，请定期修改密码。如未设置过密码（如手机号一键注册），旧密码可留空。
         </div>
+        {user?.oldUser && (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            您是历史迁移账号，原有密码可正常登录；修改密码时，请设置6‑32位字符的新密码。
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 max-w-md">

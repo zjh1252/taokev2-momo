@@ -33,6 +33,8 @@ export interface UserProfileResponse {
   lastLoginAt: string | null;
   createdAt: string;
   hasPassword: boolean;
+  /** 是否老站迁移账号 */
+  oldUser?: boolean;
   roles: RoleInfo[];
 }
 

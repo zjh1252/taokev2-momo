@@ -2,7 +2,6 @@ package com.taoke.user.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -19,7 +18,6 @@ public class UsernameLoginRequest {
     private String username;
 
     @NotBlank(message = "密码不能为空")
-    @Size(min = 6, max = 32, message = "密码长度应为 6-32 位")
     private String password;
 
     /** 滑块验证通过后的一次性令牌（密码错误 1 次后必填） */
