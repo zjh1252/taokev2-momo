@@ -63,6 +63,7 @@ data-trans/scripts/*
 !data-trans/scripts/run_video_comment_migrate.py
 !data-trans/scripts/run_production_migration.py
 !data-trans/scripts/run_legacy_post_migrate_fixups.py
+!data-trans/scripts/fixup_internal_course_price_pending.py
 !data-trans/scripts/run_legacy_courses_migrate.py
 !data-trans/scripts/run_legacy_course_images_migrate.py
 !data-trans/scripts/run_legacy_course_plans_migrate.py
