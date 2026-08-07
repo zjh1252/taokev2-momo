@@ -12,6 +12,7 @@ import SingleImageUploader from '../SingleImageUploader';
 import { CategoryMultiSelect } from '../CategoryMultiSelect';
 import { useProfilePrefill } from '../../hooks/useProfilePrefill';
 import { getMyInstitutionProfileAsForm } from '../../api/service';
+import { DateInput } from '@/components/shared/date-input';
 
 const ORG_TYPE_OPTIONS = [
   { value: 1, label: '综合培训机构' },
@@ -112,11 +113,9 @@ export function InstitutionApplyForm({ data, onChange }: InstitutionApplyFormPro
             />
           </FormField>
           <FormField label="成立时间">
-            <input
-              type="date"
-              placeholder="年 / 月 / 日"
+            <DateInput
               value={data.establishedAt || ''}
-              onChange={(e) => update({ establishedAt: e.target.value })}
+              onChange={(v) => update({ establishedAt: v })}
               className="form-input"
             />
           </FormField>

@@ -48,6 +48,9 @@ type TrainersPageProps = {
     origin?: string;
     page?: string;
     slug?: string;
+    field?: string;
+    industry?: string;
+    region?: string;
     keyword?: string;
     expertiseCategoryId?: string;
     industryCategoryId?: string;
@@ -107,7 +110,20 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
     new URLSearchParams(sp.page != null ? `page=${sp.page}` : ''),
   );
 
-  const slugParams = parseSlug(sp.slug || '');
+  // .htm SEO slug 优先；无 slug 时兼容 ?page=&field=&industry=&region=
+  const slugParams = {
+    ...parseSlug(
+      [
+        sp.field ? `field=${sp.field}` : '',
+        sp.industry ? `industry=${sp.industry}` : '',
+        sp.region ? `region=${sp.region}` : '',
+        sp.page != null ? `page=${sp.page}` : '',
+      ]
+        .filter(Boolean)
+        .join('&'),
+    ),
+    ...parseSlug(sp.slug || ''),
+  };
   // .htm SEO URL 把 page 写在 slug 里（/trainer/page=2.htm），优先于 ?page=
   const listPage = slugParams.page ?? page;
 
@@ -179,7 +195,7 @@ export default async function TrainersPage({ searchParams }: TrainersPageProps) 
   });
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-6 min-h-screen flex flex-col gap-6 sm:px-8">
+    <main className="mx-auto flex min-h-screen w-full min-w-0 max-w-7xl flex-col gap-6 overflow-x-clip px-4 py-6 sm:px-8">
       <PageBreadcrumb items={[{ label: '培训专家' }]} />
       <h1 className="sr-only">{listH1}</h1>
 

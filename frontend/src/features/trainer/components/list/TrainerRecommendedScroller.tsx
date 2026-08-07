@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link } from '@/i18n/navigation';
 import { SafeImage } from '@/components/safe-image';
 import { getTopRecommendedTrainers } from '../../api/service';
@@ -20,32 +20,53 @@ import {
  *
  * <p>展示规则（与老站 tkw/ 对齐）：</p>
  * <ul>
- *   <li>单卡固定 227×306，宽高比不可变；四人一组时只加宽容器，不压缩单卡。</li>
- *   <li>每 5 秒整体向左步进一组（一组 = 4 张），到末尾无缝回到第 1 组；hover 暂停。</li>
- *   <li>图片底部叠加渐变与「名字 + 一句话介绍」（与老站一致，非短头衔优先）。</li>
+ *   <li>桌面：单卡固定 227×306；四人一组时只加宽容器，不压缩单卡。</li>
+ *   <li>移动端：每屏 1 卡、宽度跟随容器，避免固定宽撑开页面横向滚动。</li>
+ *   <li>每 5 秒整体向左步进一组，到末尾无缝回到第 1 组；hover 暂停。</li>
  * </ul>
  *
  * @author Fangxinxin
  * @date 2026-04-22 21:10
  */
 
-const CARDS_PER_PAGE = TRAINER_RECOMMENDED_CARDS_PER_PAGE;
 const STEP_INTERVAL = 5000;
 const TRANSITION_MS = 700;
+const LG_MQ = '(min-width: 1024px)';
+
+function subscribeLg(onStoreChange: () => void) {
+  const mq = window.matchMedia(LG_MQ);
+  mq.addEventListener('change', onStoreChange);
+  return () => mq.removeEventListener('change', onStoreChange);
+}
+
+function getLgCardsPerPage() {
+  return window.matchMedia(LG_MQ).matches
+    ? TRAINER_RECOMMENDED_CARDS_PER_PAGE
+    : 1;
+}
+
+/** SSR 按移动端 1 卡，避免首屏固定宽撑破视口 */
+function getServerCardsPerPage() {
+  return 1;
+}
 
 export function TrainerRecommendedScroller({
   initialItems,
 }: {
   initialItems?: TrainerListItem[];
 }) {
+  const cardsPerPage = useSyncExternalStore(
+    subscribeLg,
+    getLgCardsPerPage,
+    getServerCardsPerPage,
+  );
   const [items, setItems] = useState<TrainerListItem[]>(initialItems ?? []);
   const [page, setPage] = useState(0);
   const [enableAnim, setEnableAnim] = useState(true);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    // SSR 返回数据不足一页（4 张）时，客户端补取一次
-    if (initialItems && initialItems.length >= CARDS_PER_PAGE) return;
+    if (initialItems && initialItems.length >= TRAINER_RECOMMENDED_CARDS_PER_PAGE) return;
     let mounted = true;
     getTopRecommendedTrainers(12)
       .then((list) => mounted && setItems(list))
@@ -55,8 +76,12 @@ export function TrainerRecommendedScroller({
     };
   }, [initialItems]);
 
+  useEffect(() => {
+    setPage(0);
+  }, [cardsPerPage]);
+
   const total = items.length;
-  const totalPages = Math.ceil(total / CARDS_PER_PAGE);
+  const totalPages = Math.ceil(total / cardsPerPage);
   const enableStep = totalPages > 1;
 
   useEffect(() => {
@@ -68,7 +93,6 @@ export function TrainerRecommendedScroller({
     return () => clearInterval(id);
   }, [enableStep, paused]);
 
-  // 走完末尾"补帧"那一组后，瞬时跳回 0（无缝循环）
   useEffect(() => {
     if (!enableStep || page < totalPages) return;
     const t = setTimeout(() => {
@@ -83,21 +107,22 @@ export function TrainerRecommendedScroller({
 
   if (total === 0) return null;
 
-  // 末尾补一组首屏内容用于无缝衔接
-  const loopItems = enableStep ? [...items, ...items.slice(0, CARDS_PER_PAGE)] : items;
+  const loopItems = enableStep ? [...items, ...items.slice(0, cardsPerPage)] : items;
+  const isMobileSingle = cardsPerPage === 1;
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-xl"
+      className="relative w-full min-w-0 max-w-full overflow-hidden rounded-xl"
       style={{
-        height: TRAINER_RECOMMENDED_CARD_HEIGHT,
-        maxWidth: TRAINER_RECOMMENDED_SCROLLER_MAX_WIDTH,
+        height: isMobileSingle ? undefined : TRAINER_RECOMMENDED_CARD_HEIGHT,
+        aspectRatio: isMobileSingle ? TRAINER_RECOMMENDED_CARD_ASPECT : undefined,
+        maxWidth: isMobileSingle ? '100%' : TRAINER_RECOMMENDED_SCROLLER_MAX_WIDTH,
       }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
       <div
-        className="flex h-full"
+        className="flex h-full min-w-0"
         style={{
           transform: `translateX(-${page * 100}%)`,
           transition: enableAnim ? `transform ${TRANSITION_MS}ms ease-in-out` : 'none',
@@ -106,39 +131,49 @@ export function TrainerRecommendedScroller({
         {loopItems.map((t, idx) => {
           const displayName = getTrainerDisplayName(t);
           const subtitle = pickRecommendedTrainerSubtitle(t.title, t.oneLineIntro, displayName);
-          const isPageEnd = idx % CARDS_PER_PAGE === CARDS_PER_PAGE - 1;
+          const isPageEnd = idx % cardsPerPage === cardsPerPage - 1;
           return (
-          <Link
-            key={`${t.id}-${idx}`}
-            href={`/trainer/${t.id}.htm`}
-            className={`shrink-0 cursor-pointer group/item ${isPageEnd ? '' : 'mr-5'}`}
-            style={{ width: TRAINER_RECOMMENDED_CARD_WIDTH }}
-          >
-            <div
-              className="relative overflow-hidden rounded-md bg-slate-100"
-              style={{
-                width: TRAINER_RECOMMENDED_CARD_WIDTH,
-                height: TRAINER_RECOMMENDED_CARD_HEIGHT,
-                aspectRatio: TRAINER_RECOMMENDED_CARD_ASPECT,
-              }}
+            <Link
+              key={`${t.id}-${idx}`}
+              href={`/trainer/${t.id}.htm`}
+              className={`min-w-0 shrink-0 cursor-pointer group/item ${
+                isMobileSingle ? 'w-full' : ''
+              } ${!isMobileSingle && !isPageEnd ? 'mr-5' : ''}`}
+              style={
+                isMobileSingle
+                  ? undefined
+                  : { width: TRAINER_RECOMMENDED_CARD_WIDTH }
+              }
             >
-              <SafeImage
-                src={t.avatar}
-                fallback={t.avatarFallback || undefined}
-                alt={displayName}
-                fill
-                apiResolved
-                sizes="(max-width: 1024px) 25vw, 227px"
-                className="object-cover object-[center_top] transition-transform duration-500 group-hover/item:scale-[1.04]"
-              />
-              <div className="absolute inset-x-0 bottom-0 px-4 pt-12 pb-3 bg-gradient-to-t from-black/80 via-black/45 to-transparent text-white">
-                <h4 className="text-[15px] font-semibold mb-0.5 line-clamp-1">{displayName}</h4>
-                {subtitle ? (
-                  <p className="text-[12px] opacity-90 line-clamp-2 leading-snug">{subtitle}</p>
-                ) : null}
+              <div
+                className="relative h-full w-full overflow-hidden rounded-md bg-slate-100"
+                style={
+                  isMobileSingle
+                    ? undefined
+                    : {
+                        width: TRAINER_RECOMMENDED_CARD_WIDTH,
+                        height: TRAINER_RECOMMENDED_CARD_HEIGHT,
+                        aspectRatio: TRAINER_RECOMMENDED_CARD_ASPECT,
+                      }
+                }
+              >
+                <SafeImage
+                  src={t.avatar}
+                  fallback={t.avatarFallback || undefined}
+                  alt={displayName}
+                  fill
+                  apiResolved
+                  sizes="(max-width: 1024px) 100vw, 227px"
+                  className="object-cover object-[center_top] transition-transform duration-500 group-hover/item:scale-[1.04]"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-4 pb-3 pt-12 text-white">
+                  <h4 className="mb-0.5 line-clamp-1 text-[15px] font-semibold">{displayName}</h4>
+                  {subtitle ? (
+                    <p className="line-clamp-2 text-[12px] leading-snug opacity-90">{subtitle}</p>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
           );
         })}
       </div>

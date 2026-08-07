@@ -56,6 +56,14 @@ public class DemandDetailResponse {
     private Integer provinceId;
     private Integer cityId;
     private Integer districtId;
+    /** 省份名称 */
+    private String provinceName;
+    /** 城市名称 */
+    private String cityName;
+    /** 区/县名称 */
+    private String districtName;
+    /** 培训地区展示文案（省市区拼接） */
+    private String trainingRegion;
     private Integer status;
     private String statusLabel;
     private LocalDateTime createdAt;

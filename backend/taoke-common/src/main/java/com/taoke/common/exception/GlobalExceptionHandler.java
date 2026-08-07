@@ -9,12 +9,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import jakarta.persistence.PersistenceException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -144,14 +147,28 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * JPA/持久化异常 — 避免一律落到「系统繁忙」，便于前后端定位
+     */
+    @ExceptionHandler({PersistenceException.class, JpaSystemException.class})
+    public ResponseEntity<ApiResponse<Void>> handlePersistence(RuntimeException e) {
+        log.error("持久化异常: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(ErrorCode.PARAM_INVALID.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.PARAM_INVALID.getCode(), "课程数据保存失败，请检查开课计划等字段后重试"));
+    }
+
+    /**
      * 兜底 — 未预料的异常
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleAll(Exception e) {
         log.error("未处理异常: {}", e.getMessage(), e);
+        String hint = e.getClass().getSimpleName();
         return ResponseEntity
                 .status(ErrorCode.INTERNAL_ERROR.getHttpStatus())
-                .body(ApiResponse.error(ErrorCode.INTERNAL_ERROR));
+                .body(ApiResponse.error(
+                        ErrorCode.INTERNAL_ERROR.getCode(),
+                        "系统繁忙，请稍后再试（" + hint + "）"));
     }
 
 }

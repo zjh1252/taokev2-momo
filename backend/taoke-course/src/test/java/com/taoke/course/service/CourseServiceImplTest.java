@@ -79,6 +79,39 @@ class CourseServiceImplTest {
     }
 
     @Test
+    void withdrawFromReviewMovesPendingToDraft() {
+        Course course = new Course();
+        course.setId(1);
+        course.setPublisherId(10);
+        course.setPublisherType("TRAINER");
+        course.setStatus(CourseStatus.PENDING.getValue());
+        when(courseRepository.findById(1)).thenReturn(Optional.of(course));
+        when(courseRepository.save(any(Course.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.withdrawFromReview(1, 10);
+
+        assertEquals(CourseStatus.DRAFT.getValue(), course.getStatus());
+        verify(courseRepository).save(course);
+    }
+
+    @Test
+    void withdrawFromReviewRejectsNonPending() {
+        Course course = new Course();
+        course.setId(1);
+        course.setPublisherId(10);
+        course.setPublisherType("TRAINER");
+        course.setStatus(CourseStatus.DRAFT.getValue());
+        when(courseRepository.findById(1)).thenReturn(Optional.of(course));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> service.withdrawFromReview(1, 10));
+
+        assertEquals("仅待审核状态的课程可撤回", exception.getMessage());
+        verify(courseRepository, never()).save(course);
+    }
+
+    @Test
     void getPublicDetail_resolvesPublishedCourseByLegacyPlanSortOrder() {
         when(courseRepository.findById(438103)).thenReturn(Optional.empty());
 

@@ -193,8 +193,8 @@ export function CityChannelCard({ cities }: CityChannelCardProps) {
         </div>
       </div>
 
-      <div className="mb-7 overflow-x-auto border-y border-slate-100 py-4">
-        <div className="flex min-w-max overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm">
+      <div className="mb-7 w-full max-w-full overflow-x-auto overscroll-x-contain border-y border-slate-100 py-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="inline-flex min-w-max overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm">
           {FILTER_ITEMS.map((item, index) => {
             const Icon = item.icon;
 

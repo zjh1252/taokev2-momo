@@ -59,7 +59,11 @@ export function buildPxbTrainerListSearchParams(state: PxbTrainerListUrlState): 
 
 export function replacePxbTrainerListUrl(state: PxbTrainerListUrlState) {
   const qs = buildPxbTrainerListSearchParams(state).toString();
-  window.history.replaceState(null, '', `/trainer?${qs}`);
+  const target = qs ? `/trainer?${qs}` : '/trainer';
+  const current = `${window.location.pathname}${window.location.search}`;
+  if (current === target) return;
+  // 保留 Next history.state，避免 iframe/详情返回后筛选丢失
+  window.history.replaceState(window.history.state, '', target);
 }
 
 export function pxbTrainerListParams(state: PxbTrainerListUrlState): TrainerListParams {

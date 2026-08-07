@@ -9,6 +9,26 @@ import { createDemand, createPublicDemand } from '@/features/demand/api/service'
 import { DemandType, FORMAT_OPTIONS, type CreateDemandRequest } from '@/features/demand/api/types';
 import { Link } from '@/i18n/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
+import { DateInput } from '@/components/shared/date-input';
+import { Validators } from '@/lib/validation';
+
+const MOBILE_RE = /^1[3-9]\d{9}$/;
+
+function validateCreateDemandForm(form: CreateDemandRequest): string | null {
+  if (!form.trainingTopic?.trim()) {
+    return '请填写培训主题';
+  }
+  if (!form.contactName?.trim()) {
+    return '请填写联系人姓名';
+  }
+  if (!form.contactPhone?.trim()) {
+    return '请填写联系电话';
+  }
+  if (!MOBILE_RE.test(form.contactPhone.trim())) {
+    return Validators.phone(form.contactPhone.trim()) || '手机号格式不正确';
+  }
+  return null;
+}
 
 type CreateDemandFormProps = {
   mode: 'auth' | 'public';
@@ -86,12 +106,9 @@ export function CreateDemandForm({
   };
 
   const handleSubmit = async () => {
-    if (!form.trainingTopic?.trim() && !form.title?.trim()) {
-      toast.error('请填写培训主题或需求标题');
-      return;
-    }
-    if (mode === 'public' && !form.contactPhone?.trim()) {
-      toast.error('请填写联系电话，便于客服与您联系');
+    const error = validateCreateDemandForm(form);
+    if (error) {
+      toast.error(error);
       return;
     }
     setSubmitting(true);
@@ -154,7 +171,9 @@ export function CreateDemandForm({
           )}
 
           <fieldset>
-            <label className="block text-sm font-medium text-gray-700 mb-1">联系人</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              联系人 <span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               value={form.contactName || ''}
@@ -166,7 +185,7 @@ export function CreateDemandForm({
 
           <fieldset>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              联系电话 {mode === 'public' && <span className="text-red-500">*</span>}
+              联系电话 <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
@@ -216,11 +235,9 @@ export function CreateDemandForm({
 
           <fieldset>
             <label className="block text-sm font-medium text-gray-700 mb-1">期望开始时间</label>
-            <input
-              type="date"
-              placeholder="年 / 月 / 日"
+            <DateInput
               value={form.expectedStartDate || ''}
-              onChange={(e) => updateField('expectedStartDate', e.target.value || undefined)}
+              onChange={(v) => updateField('expectedStartDate', v || undefined)}
               className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             />
           </fieldset>
@@ -249,6 +266,7 @@ export function CreateDemandForm({
               <label className="block text-sm font-medium text-gray-700 mb-1">培训地区</label>
               <RegionCascader
                 maxLevel={3}
+                requireDistrict
                 value={{
                   provinceId: form.provinceId,
                   cityId: form.cityId,

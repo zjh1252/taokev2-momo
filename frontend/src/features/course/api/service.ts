@@ -135,7 +135,10 @@ export async function getCourseCategoryCounts(
 
 /** 课程公开详情 */
 export async function getCourseDetail(id: number): Promise<CourseDetail> {
-  const res = await apiGet<ApiResponse<CourseDetail>>(`/courses/${id}`);
+  const res = await apiGet<ApiResponse<CourseDetail>>(`/courses/${id}`, {
+    skipAuth: true,
+    silent: true,
+  });
   return res.data;
 }
 
@@ -200,5 +203,21 @@ export async function getCategoryTree(
   const res = await apiGet<ApiResponse<CategoryTreeNode[]>>(
     `/categories/tree?type=${type}`,
   );
+  return res.data;
+}
+
+/** 公开课报名提交（登录可选） */
+export async function submitOpenCourseEnrollment(payload: {
+  realName: string;
+  companyName: string;
+  email: string;
+  companyPhone?: string;
+  mobile?: string;
+  courseId: number;
+  planId: number;
+}): Promise<number> {
+  const res = await apiPost<ApiResponse<number>>('/open-course-enrollments', payload, {
+    optionalAuth: true,
+  });
   return res.data;
 }

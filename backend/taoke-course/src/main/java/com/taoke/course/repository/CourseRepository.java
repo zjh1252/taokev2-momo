@@ -51,29 +51,41 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
 
     /** 已上架课程按一级分类批量计数（不含开课城市过滤） */
     @Query(value = """
-            SELECT sc.id AS category_id, COUNT(DISTINCT c.id) AS cnt
+            SELECT sc.id AS category_id, COALESCE(course_counts.cnt, 0) AS cnt
             FROM sys_categories sc
-            LEFT JOIN sys_categories sc2 ON sc2.parent_id = sc.id AND sc2.type = 'COURSE_CATEGORY'
-            LEFT JOIN courses c ON c.status = 2
-                AND (
-                    (:openOnly = 1 AND c.type IN ('OPEN_OFFLINE', 'OPEN_ONLINE'))
-                    OR (:openOnly = 0 AND c.type = 'INTERNAL')
-                )
-                AND (
-                    c.category_id = sc.id
-                    OR c.sub_category_id = sc.id
-                    OR c.sub_category_id = sc2.id
-                )
-                AND NOT (
-                    c.type = 'OPEN_OFFLINE'
-                    AND c.is_expire_hide = 1
-                    AND c.course_open_end_date IS NOT NULL
-                    AND c.course_open_end_date < CURDATE()
-                )
+            LEFT JOIN (
+                SELECT assigned.root_id, COUNT(DISTINCT assigned.course_id) AS cnt
+                FROM (
+                    SELECT c.id AS course_id,
+                           CASE WHEN category.level = 1 THEN category.id ELSE category.parent_id END AS root_id
+                    FROM courses c
+                    INNER JOIN sys_categories category
+                        ON category.id = c.category_id AND category.type = 'COURSE_CATEGORY'
+                    WHERE c.status = 2
+                      AND ((:openOnly = 1 AND c.type IN ('OPEN_OFFLINE', 'OPEN_ONLINE'))
+                           OR (:openOnly = 0 AND c.type = 'INTERNAL'))
+                      AND NOT (c.type = 'OPEN_OFFLINE' AND c.is_expire_hide = 1
+                               AND c.course_open_end_date IS NOT NULL
+                               AND c.course_open_end_date < CURDATE())
+                    UNION ALL
+                    SELECT c.id AS course_id,
+                           CASE WHEN category.level = 1 THEN category.id ELSE category.parent_id END AS root_id
+                    FROM courses c
+                    INNER JOIN sys_categories category
+                        ON category.id = c.sub_category_id AND category.type = 'COURSE_CATEGORY'
+                    WHERE c.status = 2
+                      AND ((:openOnly = 1 AND c.type IN ('OPEN_OFFLINE', 'OPEN_ONLINE'))
+                           OR (:openOnly = 0 AND c.type = 'INTERNAL'))
+                      AND NOT (c.type = 'OPEN_OFFLINE' AND c.is_expire_hide = 1
+                               AND c.course_open_end_date IS NOT NULL
+                               AND c.course_open_end_date < CURDATE())
+                ) assigned
+                WHERE assigned.root_id IS NOT NULL
+                GROUP BY assigned.root_id
+            ) course_counts ON course_counts.root_id = sc.id
             WHERE sc.type = 'COURSE_CATEGORY'
               AND sc.level = 1
               AND sc.is_visible = 1
-            GROUP BY sc.id
             """, nativeQuery = true)
     List<Object[]> countPublishedByCategoryL1(@Param("openOnly") int openOnly);
 
@@ -102,6 +114,119 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
             GROUP BY sc.id
             """, nativeQuery = true)
     List<Object[]> countPublishedOpenByCategoryL1AndCityIds(@Param("cityIds") Collection<Integer> cityIds);
+
+    /** Published courses grouped by visible level-two category. */
+    @Query(value = """
+            SELECT sc.id AS category_id, COALESCE(course_counts.cnt, 0) AS cnt
+            FROM sys_categories sc
+            LEFT JOIN (
+                SELECT assigned.category_id, COUNT(DISTINCT assigned.course_id) AS cnt
+                FROM (
+                    SELECT c.id AS course_id, c.category_id
+                    FROM courses c
+                    WHERE c.status = 2
+                      AND ((:openOnly = 1 AND c.type IN ('OPEN_OFFLINE', 'OPEN_ONLINE'))
+                           OR (:openOnly = 0 AND c.type = 'INTERNAL'))
+                      AND NOT (c.type = 'OPEN_OFFLINE' AND c.is_expire_hide = 1
+                               AND c.course_open_end_date IS NOT NULL
+                               AND c.course_open_end_date < CURDATE())
+                    UNION ALL
+                    SELECT c.id AS course_id, c.sub_category_id AS category_id
+                    FROM courses c
+                    WHERE c.status = 2
+                      AND ((:openOnly = 1 AND c.type IN ('OPEN_OFFLINE', 'OPEN_ONLINE'))
+                           OR (:openOnly = 0 AND c.type = 'INTERNAL'))
+                      AND NOT (c.type = 'OPEN_OFFLINE' AND c.is_expire_hide = 1
+                               AND c.course_open_end_date IS NOT NULL
+                               AND c.course_open_end_date < CURDATE())
+                ) assigned
+                WHERE assigned.category_id IS NOT NULL
+                GROUP BY assigned.category_id
+            ) course_counts ON course_counts.category_id = sc.id
+            WHERE sc.type = 'COURSE_CATEGORY'
+              AND sc.level = 2
+              AND sc.is_visible = 1
+            """, nativeQuery = true)
+    List<Object[]> countPublishedByCategoryL2(@Param("openOnly") int openOnly);
+
+    /** Published open courses grouped by level-two category and filtered by teaching city. */
+    @Query(value = """
+            SELECT sc.id AS category_id, COUNT(DISTINCT c.id) AS cnt
+            FROM sys_categories sc
+            LEFT JOIN courses c ON c.status = 2
+                AND c.type IN ('OPEN_OFFLINE', 'OPEN_ONLINE')
+                AND (c.category_id = sc.id OR c.sub_category_id = sc.id)
+                AND NOT (
+                    c.type = 'OPEN_OFFLINE'
+                    AND c.is_expire_hide = 1
+                    AND c.course_open_end_date IS NOT NULL
+                    AND c.course_open_end_date < CURDATE()
+                )
+            INNER JOIN course_plans cp ON cp.course_id = c.id AND cp.city_id IN (:cityIds)
+            WHERE sc.type = 'COURSE_CATEGORY'
+              AND sc.level = 2
+              AND sc.is_visible = 1
+            GROUP BY sc.id
+            """, nativeQuery = true)
+    List<Object[]> countPublishedOpenByCategoryL2AndCityIds(@Param("cityIds") Collection<Integer> cityIds);
+
+    @Query(value = """
+            SELECT cp.province_id, COUNT(DISTINCT c.id)
+            FROM courses c
+            INNER JOIN course_plans cp ON cp.course_id = c.id
+            WHERE c.status = 2
+              AND c.type = :courseType
+              AND cp.province_id > 0
+              AND cp.start_time >= CURRENT_TIMESTAMP
+              AND (:categoryId IS NULL OR c.category_id = :categoryId)
+              AND (:subCategoryId IS NULL OR c.sub_category_id = :subCategoryId)
+              AND (:isFree IS NULL OR c.is_free = :isFree)
+              AND (:minPrice IS NULL OR c.price >= :minPrice)
+              AND (:maxPrice IS NULL OR c.price <= :maxPrice)
+              AND (:startFrom IS NULL OR cp.start_time >= :startFrom)
+              AND (:startTo IS NULL OR cp.start_time <= :startTo)
+            GROUP BY cp.province_id
+            ORDER BY COUNT(DISTINCT c.id) DESC, cp.province_id ASC
+            """, nativeQuery = true)
+    List<Object[]> countFuturePlanProvinces(
+            @Param("courseType") String courseType,
+            @Param("categoryId") Integer categoryId,
+            @Param("subCategoryId") Integer subCategoryId,
+            @Param("isFree") Integer isFree,
+            @Param("minPrice") java.math.BigDecimal minPrice,
+            @Param("maxPrice") java.math.BigDecimal maxPrice,
+            @Param("startFrom") LocalDateTime startFrom,
+            @Param("startTo") LocalDateTime startTo);
+
+    @Query(value = """
+            SELECT cp.city_id, COUNT(DISTINCT c.id)
+            FROM courses c
+            INNER JOIN course_plans cp ON cp.course_id = c.id
+            WHERE c.status = 2
+              AND c.type = :courseType
+              AND cp.city_id > 0
+              AND cp.start_time >= CURRENT_TIMESTAMP
+              AND (:provinceId IS NULL OR cp.province_id = :provinceId)
+              AND (:categoryId IS NULL OR c.category_id = :categoryId)
+              AND (:subCategoryId IS NULL OR c.sub_category_id = :subCategoryId)
+              AND (:isFree IS NULL OR c.is_free = :isFree)
+              AND (:minPrice IS NULL OR c.price >= :minPrice)
+              AND (:maxPrice IS NULL OR c.price <= :maxPrice)
+              AND (:startFrom IS NULL OR cp.start_time >= :startFrom)
+              AND (:startTo IS NULL OR cp.start_time <= :startTo)
+            GROUP BY cp.city_id
+            ORDER BY COUNT(DISTINCT c.id) DESC, cp.city_id ASC
+            """, nativeQuery = true)
+    List<Object[]> countFuturePlanCities(
+            @Param("courseType") String courseType,
+            @Param("provinceId") Integer provinceId,
+            @Param("categoryId") Integer categoryId,
+            @Param("subCategoryId") Integer subCategoryId,
+            @Param("isFree") Integer isFree,
+            @Param("minPrice") java.math.BigDecimal minPrice,
+            @Param("maxPrice") java.math.BigDecimal maxPrice,
+            @Param("startFrom") LocalDateTime startFrom,
+            @Param("startTo") LocalDateTime startTo);
 
     /** 已上架线下公开课：到期且开启自动隐藏（定时任务日志用） */
     @Query("""

@@ -8,9 +8,11 @@ import { useBumpedViewCount } from '@/hooks/use-bumped-view-count';
 import type { TrainerListItem } from '../../types';
 import { pickDisplayTitle, plainIntroOrUndefined } from '../../utils/displayTitle';
 import { getTrainerDisplayName } from '../../utils/displayName';
-import { rememberTrainerListPath } from '../../utils/list-return';
+import { rememberTrainerListPath, rememberTrainerListScroll } from '../../utils/list-return';
 interface TrainerCardProps {
   trainer: TrainerListItem;
+  /** 进入详情前写入的列表返回路径（含筛选 SEO URL） */
+  listReturnPath?: string;
   /** 首屏前若干张优先加载，避免翻页后 16 张同时请求 */
   priorityImage?: boolean;
 }
@@ -44,7 +46,7 @@ function TrainerCardRating({ score }: { score: number }) {
   );
 }
 
-export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps) {
+export function TrainerCard({ trainer, listReturnPath, priorityImage = false }: TrainerCardProps) {
   const { viewCount, onCardClick } = useBumpedViewCount(trainer.viewCount, 'trainer', trainer.id);
   const displayName = getTrainerDisplayName(trainer);
   const displayTitle = pickDisplayTitle(trainer.title, displayName)
@@ -58,7 +60,8 @@ export function TrainerCard({ trainer, priorityImage = false }: TrainerCardProps
     <Link
       href={`/trainer/${trainer.id}.htm`}
       onClick={() => {
-        rememberTrainerListPath();
+        rememberTrainerListPath(listReturnPath);
+        rememberTrainerListScroll();
         onCardClick();
       }}
       className="relative min-h-[190px] max-w-full bg-white rounded-xl border border-slate-200 p-5 flex flex-col sm:flex-row gap-5 hover:shadow-md transition-all group"

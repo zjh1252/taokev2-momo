@@ -167,6 +167,11 @@ export interface DemandDetail {
   provinceId: number | null;
   cityId: number | null;
   districtId: number | null;
+  provinceName?: string | null;
+  cityName?: string | null;
+  districtName?: string | null;
+  /** 培训地区展示文案（省市区拼接） */
+  trainingRegion?: string | null;
   status: number;
   statusLabel: string;
   createdAt: string;

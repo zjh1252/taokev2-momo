@@ -253,19 +253,19 @@ export default function EditHighlightPage({
         <div className="flex gap-3 pt-4">
           <button
             type="button"
+            onClick={handleSaveDraft}
+            disabled={submitting}
+            className="border border-slate-200 text-gray-700 text-sm px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            {submitting ? '保存中...' : '保存草稿'}
+          </button>
+          <button
+            type="button"
             onClick={handleSubmit}
             disabled={submitting}
             className="bg-primary text-white text-sm px-6 py-2.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {submitting ? '提交中...' : '保存修改'}
-          </button>
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            disabled={submitting}
-            className="border border-primary text-primary text-sm px-6 py-2.5 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
-          >
-            保存草稿
           </button>
           <Link
             href={ROUTES.UC_HIGHLIGHTS_MANAGE}

@@ -25,13 +25,13 @@ export function AiMatchBanner() {
   };
 
   return (
-    <section className="rounded-none bg-gradient-to-r from-primary via-primary/95 to-primary/45 px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-red-500/10">
-      <div className="flex items-center gap-5 min-w-0">
-        <div className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-white/20">
-          <Brain className="size-8 text-white" />
+    <section className="flex flex-col items-stretch justify-between gap-4 rounded-none bg-gradient-to-r from-primary via-primary/95 to-primary/45 px-4 py-5 shadow-xl shadow-red-500/10 sm:px-8 sm:py-6 md:flex-row md:items-center md:gap-6">
+      <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-white/20 sm:size-14">
+          <Brain className="size-7 text-white sm:size-8" />
         </div>
         <div className="flex min-w-0 flex-col justify-center gap-1 text-left">
-          <h2 className="text-xl font-bold leading-tight text-white">
+          <h2 className="text-lg font-bold leading-tight text-white sm:text-xl">
             {t('aiMatch.title')}
           </h2>
           <p className="text-sm leading-tight text-white/80">
@@ -40,22 +40,22 @@ export function AiMatchBanner() {
         </div>
       </div>
 
-      <div className="flex h-14 w-full shrink-0 items-center gap-3 md:w-auto">
+      <div className="grid w-full min-w-0 shrink-0 grid-cols-2 gap-2 sm:flex sm:h-14 sm:items-center sm:gap-3 md:w-auto">
         <button
           type="button"
           onClick={() => setChatOpen(true)}
-          className="flex h-14 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-bold text-primary shadow-md transition-all hover:bg-slate-50 md:flex-none"
+          className="flex h-12 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-white px-2 text-xs font-bold text-primary shadow-md transition-all hover:bg-slate-50 sm:h-14 sm:flex-1 sm:gap-2 sm:px-6 sm:text-sm md:flex-none"
         >
-          <Headphones className="size-5 shrink-0" />
-          <span className="leading-none">{t('aiMatch.ctaService')}</span>
+          <Headphones className="size-4 shrink-0 sm:size-5" />
+          <span className="truncate leading-none">{t('aiMatch.ctaService')}</span>
         </button>
         <button
           type="button"
           onClick={gotoPublishDemand}
-          className="flex h-14 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-8 text-sm font-bold text-white shadow-md shadow-black/25 transition-all hover:bg-primary/90 md:flex-none"
+          className="flex h-12 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-primary px-2 text-xs font-bold text-white shadow-md shadow-black/25 transition-all hover:bg-primary/90 sm:h-14 sm:flex-1 sm:gap-2 sm:px-8 sm:text-sm md:flex-none"
         >
-          <Sparkles className="size-5 shrink-0" />
-          <span className="leading-none">{t('aiMatch.ctaPublish')}</span>
+          <Sparkles className="size-4 shrink-0 sm:size-5" />
+          <span className="truncate leading-none">{t('aiMatch.ctaPublish')}</span>
         </button>
       </div>
 

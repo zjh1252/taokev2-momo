@@ -141,6 +141,15 @@ export default function DemandDetailPage(props: PageProps) {
     return `最高${detail.budgetMax!.toLocaleString()}元`;
   };
 
+  const formatTrainingRegion = () => {
+    if (detail.format === 'ONLINE') return '无';
+    if (detail.trainingRegion?.trim()) return detail.trainingRegion.trim();
+    const joined = [detail.provinceName, detail.cityName, detail.districtName]
+      .filter(Boolean)
+      .join(' ');
+    return joined || '—';
+  };
+
   return (
     <PageContainer
       scrollable
@@ -197,6 +206,10 @@ export default function DemandDetailPage(props: PageProps) {
                 <span>{detail.formatLabel}</span>
               </div>
             )}
+            <div>
+              <span className='text-muted-foreground'>培训地区：</span>
+              <span>{formatTrainingRegion()}</span>
+            </div>
             {detail.expectedStartDate && (
               <div>
                 <span className='text-muted-foreground'>期望开始：</span>

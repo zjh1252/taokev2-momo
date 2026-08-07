@@ -28,6 +28,8 @@ public class DemandListResponse {
     private BigDecimal budgetMin;
     private BigDecimal budgetMax;
     private String format;
+    /** 培训形式中文标签 */
+    private String formatLabel;
     /** 培训类型：PUBLIC=公开课, INTERNAL=内训课 */
     private String courseType;
     private Integer traineeCount;
@@ -35,6 +37,15 @@ public class DemandListResponse {
 
     /** 提交人用户 ID（管理端使用） */
     private Integer userId;
+
+    /** 省份 ID */
+    private Integer provinceId;
+    /** 城市 ID */
+    private Integer cityId;
+    /** 区/县 ID */
+    private Integer districtId;
+    /** 培训地区展示文案（省市区拼接） */
+    private String trainingRegion;
 
     public static DemandListResponse from(Demand d) {
         DemandListResponse r = new DemandListResponse();
@@ -53,10 +64,20 @@ public class DemandListResponse {
         r.setBudgetMin(d.getBudgetMin());
         r.setBudgetMax(d.getBudgetMax());
         r.setFormat(d.getFormat());
+        if (d.getFormat() != null) {
+            try {
+                r.setFormatLabel(com.taoke.course.enums.DemandFormat.valueOf(d.getFormat()).getLabel());
+            } catch (Exception ignored) {
+                r.setFormatLabel(d.getFormat());
+            }
+        }
         r.setCourseType(d.getCourseType());
         r.setTraineeCount(d.getTraineeCount());
         r.setCreatedAt(d.getCreatedAt());
         r.setUserId(d.getUserId());
+        r.setProvinceId(d.getProvinceId());
+        r.setCityId(d.getCityId());
+        r.setDistrictId(d.getDistrictId());
         return r;
     }
 }

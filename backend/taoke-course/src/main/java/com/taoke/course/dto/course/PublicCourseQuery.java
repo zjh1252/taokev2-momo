@@ -100,8 +100,8 @@ public class PublicCourseQuery {
     /**
      * 报名状态过滤：
      * <ul>
-     *   <li>ENROLLING：存在 startTime &gt;= 当前时间的开课计划（可报名）</li>
-     *   <li>ENDED：所有开课计划 startTime 均 &lt; 当前时间（已开始/已结束）</li>
+     *   <li>ENROLLING：存在 endTime &gt;= 当前时间的开课计划（仍可报名，含已开课未结束）</li>
+     *   <li>ENDED：所有开课计划 endTime 均 &lt; 当前时间（已结束）</li>
      * </ul>
      */
     private String enrollStatus;

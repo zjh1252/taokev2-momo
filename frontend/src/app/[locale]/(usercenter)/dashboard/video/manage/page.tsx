@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
+import { SafeImage } from '@/components/safe-image';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -285,7 +285,7 @@ function VideoManageCard({
       {/* 封面 */}
       <div className="w-[160px] h-[100px] rounded-lg overflow-hidden bg-slate-100 shrink-0 relative">
         {video.coverUrl ? (
-          <Image
+          <SafeImage
             src={video.coverUrl}
             alt={video.title}
             width={160}

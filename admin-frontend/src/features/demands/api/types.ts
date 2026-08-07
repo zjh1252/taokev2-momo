@@ -10,9 +10,15 @@ export type AdminDemandListItem = {
   budgetMin: number | null;
   budgetMax: number | null;
   format: string | null;
+  formatLabel?: string | null;
   traineeCount: number | null;
   createdAt: string;
   userId: number | null;
+  provinceId?: number | null;
+  cityId?: number | null;
+  districtId?: number | null;
+  /** 培训地区展示文案（省市区拼接） */
+  trainingRegion?: string | null;
 };
 
 export type DemandFollowUp = {
@@ -53,6 +59,11 @@ export type AdminDemandDetail = {
   provinceId: number | null;
   cityId: number | null;
   districtId: number | null;
+  provinceName?: string | null;
+  cityName?: string | null;
+  districtName?: string | null;
+  /** 培训地区展示文案（省市区拼接） */
+  trainingRegion?: string | null;
   status: number;
   statusLabel: string;
   createdAt: string;

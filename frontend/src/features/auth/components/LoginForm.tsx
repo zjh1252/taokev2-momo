@@ -5,9 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Loader2, Bug, Copy, Check, User, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { storage } from '@/lib/storage';
 import { useAuth } from '@/lib/auth/auth-context';
-import { TOKEN_KEY } from '@/lib/auth/constants';
+import { setAuthTokens } from '@/lib/auth/token';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import { sendCode, smsLogin, getMockCode, usernameLogin } from '../api/service';
@@ -116,11 +115,11 @@ export function LoginForm() {
 
   const finishLogin = useCallback(
     async (token: { accessToken: string; refreshToken: string; expiresIn: number; tokenType: string; newUser?: boolean }) => {
-      storage.set(TOKEN_KEY, {
+      setAuthTokens({
         accessToken: token.accessToken,
         refreshToken: token.refreshToken,
         expiresIn: token.expiresIn,
-        tokenType: token.tokenType,
+        tokenType: token.tokenType || 'Bearer',
       });
       await refreshUser();
       if (token.newUser === true) {

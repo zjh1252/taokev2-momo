@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -88,12 +89,10 @@ public class SearchIndexService {
                 log.info("索引不存在，跳过 mapping 更新: {}", indexName);
                 return false;
             }
-            // 将 TypeMapping 序列化为 JSON 再通过 withJson 发送
-            String mappingJson = objectMapper.writeValueAsString(buildMapping());
-            log.debug("putMapping json: {}", mappingJson);
+            TypeMapping mapping = buildMapping();
             esClient.indices().putMapping(pm -> pm
                     .index(indexName)
-                    .withJson(new java.io.StringReader(mappingJson))
+                    .properties(mapping.properties())
             );
             log.info("更新索引 mapping: {}", indexName);
             return true;
@@ -288,6 +287,7 @@ public class SearchIndexService {
             int page = request.getPage() != null ? request.getPage() : 1;
             int size = request.getSize() != null ? request.getSize() : 20;
             int from = (page - 1) * size;
+            LocalDateTime effectiveNow = LocalDateTime.now();
 
             @SuppressWarnings("rawtypes")
             SearchResponse<Map> response = esClient.search(s -> {
@@ -415,6 +415,58 @@ public class SearchIndexService {
                     ));
                 }
 
+                if (request.getIsFree() != null) {
+                    boolQuery.filter(f -> f.term(t -> t
+                            .field("isFree")
+                            .value(request.getIsFree())
+                    ));
+                }
+
+                if (hasPlanFilter(request)) {
+                    boolQuery.filter(f -> f.nested(n -> n
+                            .path("plans")
+                            .query(q -> q.bool(planQuery -> {
+                                if (request.getPlanProvinceId() != null) {
+                                    planQuery.filter(pf -> pf.term(t -> t
+                                            .field("plans.provinceId")
+                                            .value(request.getPlanProvinceId())));
+                                }
+                                if (request.getPlanCityId() != null) {
+                                    planQuery.filter(pf -> pf.term(t -> t
+                                            .field("plans.cityId")
+                                            .value(request.getPlanCityId())));
+                                }
+                                // 招生中：场次结束时间 >= 服务器时间（与详情页规则一致）
+                                if (isEnrolling(request)) {
+                                    planQuery.filter(pf -> pf.range(r -> r.date(d -> d
+                                            .field("plans.endTime")
+                                            .gte(effectiveNow.toString()))));
+                                }
+                                // 开课时间窗仍按开始时间筛选（与筛选项语义一致）
+                                if (request.getPlanStartFrom() != null
+                                        || request.getPlanStartTo() != null) {
+                                    planQuery.filter(pf -> pf.range(r -> r.date(d -> {
+                                        d.field("plans.startTime");
+                                        if (request.getPlanStartFrom() != null) {
+                                            d.gte(request.getPlanStartFrom().toString());
+                                        }
+                                        if (request.getPlanStartTo() != null) {
+                                            d.lte(request.getPlanStartTo().toString());
+                                        }
+                                        return d;
+                                    })));
+                                }
+                                return planQuery;
+                            }))));
+                }
+
+                if (request.getIndustryCategoryId() != null) {
+                    boolQuery.filter(f -> f.term(t -> t
+                            .field("industryCategoryIds")
+                            .value(request.getIndustryCategoryId())
+                    ));
+                }
+
                 BoolQuery builtQuery = boolQuery.build();
                 if (isSmartRecommendRank(request)) {
                     s.query(q -> q.functionScore(fs -> fs
@@ -500,15 +552,19 @@ public class SearchIndexService {
     }
 
     private FunctionBoostMode resolveSmartBoostMode(SearchRequest request) {
-        return hasStructuredRecommendationFilter(request)
-                ? FunctionBoostMode.Replace
-                : FunctionBoostMode.Sum;
+        return FunctionBoostMode.Sum;
     }
 
-    private boolean hasStructuredRecommendationFilter(SearchRequest request) {
-        return request.getCategoryId() != null
-                || request.getSubCategoryId() != null
-                || request.getExpertiseCategoryId() != null;
+    private boolean hasPlanFilter(SearchRequest request) {
+        return request.getPlanProvinceId() != null
+                || request.getPlanCityId() != null
+                || request.getPlanStartFrom() != null
+                || request.getPlanStartTo() != null
+                || isEnrolling(request);
+    }
+
+    private boolean isEnrolling(SearchRequest request) {
+        return "ENROLLING".equalsIgnoreCase(request.getEnrollStatus());
     }
 
     private String resolveExplicitSortField(SearchRequest request) {
@@ -643,6 +699,12 @@ public class SearchIndexService {
                 .properties("viewCount", p -> p.long_(l -> l))
                 .properties("enrollmentCount", p -> p.long_(l -> l))
                 .properties("score", p -> p.float_(f -> f))
+                .properties("plans", p -> p.nested(n -> n
+                        .properties("planId", np -> np.integer(i -> i))
+                        .properties("provinceId", np -> np.integer(i -> i))
+                        .properties("cityId", np -> np.integer(i -> i))
+                        .properties("startTime", np -> np.date(d -> d.format("yyyy-MM-dd'T'HH:mm:ss||strict_date_optional_time||epoch_millis")))
+                        .properties("endTime", np -> np.date(d -> d.format("yyyy-MM-dd'T'HH:mm:ss||strict_date_optional_time||epoch_millis")))))
                 // 专家过滤字段
                 .properties("provinceId", p -> p.integer(i -> i))
                 .properties("cityId", p -> p.integer(i -> i))
@@ -651,6 +713,7 @@ public class SearchIndexService {
                 .properties("isSigned", p -> p.long_(l -> l))
                 .properties("isRecommended", p -> p.long_(l -> l))
                 .properties("expertiseCategoryIds", p -> p.integer(i -> i))
+                .properties("industryCategoryIds", p -> p.integer(i -> i))
         );
     }
 }

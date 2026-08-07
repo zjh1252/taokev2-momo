@@ -110,6 +110,7 @@ public class CourseServiceImpl implements CourseService {
         course = courseRepository.save(course);
         savePlans(course.getId(), type, request.getPlans());
         syncOpenEndDateFromPlans(course.getId(), type);
+        touchCourseForSearchSync(course.getId());
 
         return assembleDetail(course);
     }
@@ -143,6 +144,7 @@ public class CourseServiceImpl implements CourseService {
         coursePlanRepository.deleteByCourseId(courseId);
         savePlans(courseId, type, request.getPlans());
         syncOpenEndDateFromPlans(courseId, type);
+        touchCourseForSearchSync(courseId);
 
         return assembleDetail(course);
     }
@@ -167,6 +169,17 @@ public class CourseServiceImpl implements CourseService {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "公开课必须添加至少一条开课计划后才能提交审核");
         }
         course.setStatus(CourseStatus.PENDING.getValue());
+        courseRepository.save(course);
+    }
+
+    @Transactional
+    @Override
+    public void withdrawFromReview(Integer courseId, Integer publisherId) {
+        Course course = getOwnedCourse(courseId, publisherId);
+        if (course.getStatus() != CourseStatus.PENDING.getValue()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅待审核状态的课程可撤回");
+        }
+        course.setStatus(CourseStatus.DRAFT.getValue());
         courseRepository.save(course);
     }
 
@@ -487,8 +500,9 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public Map<Integer, Long> countPublicByCategoryL1(boolean isOpen, List<Integer> cityIds) {
-        boolean cacheable = cityIds == null || cityIds.isEmpty();
+    public Map<Integer, Long> countPublicByCategoryL1(
+            boolean isOpen, List<Integer> cityIds, boolean includeChildren) {
+        boolean cacheable = !includeChildren && (cityIds == null || cityIds.isEmpty());
         if (cacheable) {
             Map<Integer, Long> cached = publicCourseListCache.getCategoryL1Counts(isOpen);
             if (cached != null) {
@@ -509,10 +523,28 @@ public class CourseServiceImpl implements CourseService {
             long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
             map.put(((Number) row[0]).intValue(), count);
         }
+        if (includeChildren) {
+            List<Object[]> childRows;
+            if (isOpen && cityIds != null && !cityIds.isEmpty()) {
+                childRows = courseRepository.countPublishedOpenByCategoryL2AndCityIds(cityIds);
+            } else {
+                childRows = courseRepository.countPublishedByCategoryL2(isOpen ? 1 : 0);
+            }
+            mergeCounts(map, childRows);
+        }
         if (cacheable) {
             publicCourseListCache.putCategoryL1Counts(isOpen, map);
         }
         return map;
+    }
+
+    private static void mergeCounts(Map<Integer, Long> target, List<Object[]> rows) {
+        for (Object[] row : rows) {
+            if (row[0] != null) {
+                target.put(((Number) row[0]).intValue(),
+                        row[1] != null ? ((Number) row[1]).longValue() : 0L);
+            }
+        }
     }
 
     /**
@@ -598,10 +630,11 @@ public class CourseServiceImpl implements CourseService {
             ps.add(cb.lessThanOrEqualTo(root.get("startTime"), toTs));
         }
         if ("ENROLLING".equalsIgnoreCase(enrollStatus)) {
-            ps.add(cb.greaterThanOrEqualTo(root.get("startTime"), now));
+            // 招生中：服务器时间 <= 场次结束时间（含已开课未结束）
+            ps.add(cb.greaterThanOrEqualTo(root.get("endTime"), now));
         }
         if ("ENDED".equalsIgnoreCase(enrollStatus)) {
-            ps.add(cb.lessThan(root.get("startTime"), now));
+            ps.add(cb.lessThan(root.get("endTime"), now));
         }
         if (restrictCourseIds != null && !restrictCourseIds.isEmpty()) {
             ps.add(root.get("courseId").in(restrictCourseIds));
@@ -1683,6 +1716,11 @@ public class CourseServiceImpl implements CourseService {
         int sortOrder = 0;
         for (CoursePlanDTO dto : plans) {
             CoursePlan plan = courseMapper.toPlanEntity(dto);
+            if (plan == null) {
+                continue;
+            }
+            // 整体替换计划：强制插入新行，忽略前端回传的旧计划 id
+            plan.setId(null);
             plan.setCourseId(courseId);
             plan.setSortOrder(dto.getSortOrder() != null ? dto.getSortOrder() : sortOrder++);
 
@@ -1823,6 +1861,7 @@ public class CourseServiceImpl implements CourseService {
         vo.setCourseOpenEndDate(course.getCourseOpenEndDate());
         vo.setIsExpireHide(course.getIsExpireHide());
         vo.setIsOverdue(OpenCourseExpireSupport.isOverdue(course));
+        vo.setServerTime(LocalDateTime.now());
 
         return vo;
     }
@@ -2088,6 +2127,51 @@ public class CourseServiceImpl implements CourseService {
             course.setIsExpireHide(1);
         }
         courseRepository.save(course);
+    }
+
+    @Override
+    public CoursePlanFacetResponse getPublicPlanLocationFacets(CoursePlanFacetRequest request) {
+        String courseType = CourseType.OPEN_ONLINE.name().equalsIgnoreCase(request.getCourseType())
+                ? CourseType.OPEN_ONLINE.name()
+                : CourseType.OPEN_OFFLINE.name();
+        List<CoursePlanFacetResponse.Bucket> provinces = toFacetBuckets(
+                courseRepository.countFuturePlanProvinces(
+                        courseType,
+                        request.getCategoryId(),
+                        request.getSubCategoryId(),
+                        request.getIsFree(),
+                        request.getMinPrice(),
+                        request.getMaxPrice(),
+                        request.getPlanStartFrom(),
+                        request.getPlanStartTo()));
+        List<CoursePlanFacetResponse.Bucket> cities = toFacetBuckets(
+                courseRepository.countFuturePlanCities(
+                        courseType,
+                        request.getProvinceId(),
+                        request.getCategoryId(),
+                        request.getSubCategoryId(),
+                        request.getIsFree(),
+                        request.getMinPrice(),
+                        request.getMaxPrice(),
+                        request.getPlanStartFrom(),
+                        request.getPlanStartTo()));
+        return new CoursePlanFacetResponse(provinces, cities);
+    }
+
+    private static List<CoursePlanFacetResponse.Bucket> toFacetBuckets(List<Object[]> rows) {
+        return rows.stream()
+                .filter(row -> row[0] != null)
+                .map(row -> new CoursePlanFacetResponse.Bucket(
+                        ((Number) row[0]).intValue(),
+                        row[1] == null ? 0L : ((Number) row[1]).longValue()))
+                .toList();
+    }
+
+    private void touchCourseForSearchSync(Integer courseId) {
+        courseRepository.findById(courseId).ifPresent(course -> {
+            course.setUpdatedAt(LocalDateTime.now());
+            courseRepository.save(course);
+        });
     }
 
     @Transactional

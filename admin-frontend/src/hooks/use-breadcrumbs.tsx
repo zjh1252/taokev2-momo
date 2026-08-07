@@ -33,6 +33,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   assistants: '专家助理',
   'enterprise-buyers': '企业采购方',
   demands: '需求管理',
+  'open-course-enrollments': '公开课报名',
   orders: '订单管理',
   notifications: '通知管理',
   'notification-templates': '通知模板管理',
@@ -231,6 +232,13 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
   '/dashboard/demands': [
     { title: 'Dashboard', link: '/dashboard' },
     { title: '需求管理', link: '/dashboard/demands' }
+  ],
+
+  // 公开课报名
+  '/dashboard/open-course-enrollments': [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: '平台运营管理', link: '#' },
+    { title: '公开课报名', link: '/dashboard/open-course-enrollments' }
   ],
 
   // 订单管理

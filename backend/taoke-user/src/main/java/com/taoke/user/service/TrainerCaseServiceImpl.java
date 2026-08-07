@@ -364,7 +364,8 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
             if (req.getProvinceId() != null) entity.setProvinceId(req.getProvinceId());
             if (req.getCityId() != null) entity.setCityId(req.getCityId());
             if (req.getDistrictId() != null) entity.setDistrictId(req.getDistrictId());
-            if (req.getTownId() != null) entity.setTownId(req.getTownId());
+            // 培训地点仅保存到区，街道不再采集（草稿保存时同步清空）
+            entity.setTownId(null);
             if (req.getTrainingAddress() != null) entity.setTrainingAddress(req.getTrainingAddress());
             if (req.getTrainingDate() != null) entity.setTrainingDate(req.getTrainingDate());
             if (req.getTrainingEndDate() != null) entity.setTrainingEndDate(req.getTrainingEndDate());
@@ -383,7 +384,8 @@ public class TrainerCaseServiceImpl implements TrainerCaseService {
         entity.setProvinceId(req.getProvinceId());
         entity.setCityId(req.getCityId());
         entity.setDistrictId(req.getDistrictId());
-        entity.setTownId(req.getTownId());
+        // 培训地点仅保存到区，街道不再采集
+        entity.setTownId(null);
         entity.setTrainingAddress(req.getTrainingAddress());
         entity.setTrainingDate(req.getTrainingDate());
         entity.setTrainingEndDate(req.getTrainingEndDate());

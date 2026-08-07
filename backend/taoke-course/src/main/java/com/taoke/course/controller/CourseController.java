@@ -133,6 +133,15 @@ public class CourseController {
         return ApiResponse.ok();
     }
 
+    @Operation(summary = "撤回审核（待审核→草稿）")
+    @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
+    @PutMapping("/courses/{id}/withdraw")
+    public ApiResponse<Void> withdraw(@PathVariable Integer id) {
+        Integer userId = SecurityUtils.getRequiredUserId();
+        courseService.withdrawFromReview(id, userId);
+        return ApiResponse.ok();
+    }
+
     @Operation(summary = "下架课程")
     @RequireRole({BusinessRole.Code.TRAINER, BusinessRole.Code.AGENT, BusinessRole.Code.ASSISTANT, BusinessRole.Code.INSTITUTION, BusinessRole.Code.INSTITUTION_EMPLOYEE, BusinessRole.Code.ENTERPRISE_AGENT})
     @PutMapping("/courses/{id}/unpublish")

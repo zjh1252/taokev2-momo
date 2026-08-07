@@ -73,6 +73,36 @@ function parseOptionalPositiveInt(value: string | null): number | undefined {
   return Number.isFinite(next) && next > 0 ? next : undefined;
 }
 
+/** 从浏览器地址栏读取录播课列表筛选（replaceState 后 Next searchParams 可能不同步） */
+function readVideoListFiltersFromBrowser(categoryTree: CategoryTreeNode[]) {
+  if (typeof window === 'undefined') {
+    return {
+      categoryId: undefined as number | undefined,
+      categoryName: undefined as string | undefined,
+      sortBy: 'default',
+      sortKey: 'default',
+      keyword: '',
+      page: 1,
+      institutionId: undefined as number | undefined,
+    };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const categoryId = parseOptionalPositiveInt(params.get('categoryId'));
+  const categoryName =
+    params.get('categoryName') || findCategoryNameById(categoryTree, categoryId) || undefined;
+  const sortBy = params.get('sortBy') || 'default';
+  const sortKey = SORT_OPTIONS.find((option) => option.sortBy === sortBy)?.key ?? 'default';
+  return {
+    categoryId,
+    categoryName,
+    sortBy,
+    sortKey,
+    keyword: params.get('keyword') ?? '',
+    page: Math.max(1, Number(params.get('page') || 1) || 1),
+    institutionId: parseOptionalPositiveInt(params.get('institutionId')),
+  };
+}
+
 export function VideoListSection(props: VideoListSectionProps) {
   return (
     <Suspense fallback={<div className="min-h-[320px] animate-pulse rounded-xl bg-slate-100" />}>
@@ -133,11 +163,27 @@ function VideoListSectionInner({
     listModeRef.current = listMode;
   }, [listMode]);
 
+  /**
+   * SSR 入参变化时同步。
+   * 详情页浏览器返回后，地址栏可能仍有筛选而 SSR 为空——交由下方 URL/popstate 恢复，此处勿强行清空。
+   */
   useEffect(() => {
     if (serverFilterKeyRef.current === serverFilterKey) {
       return;
     }
     serverFilterKeyRef.current = serverFilterKey;
+
+    const browser = readVideoListFiltersFromBrowser(categoryTree);
+    const browserHasFilter =
+      browser.categoryId != null
+      || browser.institutionId != null
+      || Boolean(browser.keyword);
+    const ssrEmpty =
+      initialCategoryId == null && initialInstitutionId == null;
+    if (browserHasFilter && ssrEmpty) {
+      return;
+    }
+
     startTransition(() => {
       setData(initialData);
       setCurrentPage(initialData.page ?? 1);
@@ -152,6 +198,7 @@ function VideoListSectionInner({
     initialCategoryId,
     initialCategoryName,
     initialInstitutionId,
+    categoryTree,
     startTransition,
   ]);
 
@@ -171,10 +218,13 @@ function VideoListSectionInner({
       if (sortByValue && sortByValue !== 'default') {
         params.set('sortBy', sortByValue);
       }
+      if (keyword) {
+        params.set('keyword', keyword);
+      }
       setPageParam(params, page);
       replaceBrowserUrl(getBrowserPathname(), params);
     },
-    [institutionId, sortKey],
+    [institutionId, sortKey, keyword],
   );
 
   const fetchData = useCallback(
@@ -215,6 +265,24 @@ function VideoListSectionInner({
     [sortKey, keyword, institutionId],
   );
 
+  const applyBrowserFilters = useCallback(() => {
+    const browser = readVideoListFiltersFromBrowser(categoryTree);
+    selectedCategoryRef.current = browser.categoryId;
+    setSelectedCategory(browser.categoryId);
+    setSelectedCategoryName(browser.categoryName);
+    setSortKey(browser.sortKey);
+    setKeyword(browser.keyword);
+    setInstitutionId(browser.institutionId);
+    setCurrentPage(browser.page);
+    fetchData(
+      browser.page,
+      browser.categoryId,
+      browser.sortKey,
+      browser.keyword,
+      browser.institutionId ?? null,
+    );
+  }, [categoryTree, fetchData]);
+
   const { commitPageChange } = useListPageUrlSync({
     currentPage,
     onPageFromUrl: (page) => fetchData(page, selectedCategoryRef.current),
@@ -233,23 +301,48 @@ function VideoListSectionInner({
     });
   }, [keywordFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** Next searchParams 变化时同步；首屏若地址栏已有筛选也要恢复（详情返回） */
   useEffect(() => {
     void Promise.resolve().then(() => {
-      if (!urlSyncBootstrappedRef.current) {
-        urlSyncBootstrappedRef.current = true;
-        return;
-      }
-
+      const browser = readVideoListFiltersFromBrowser(categoryTree);
       const params = new URLSearchParams(searchParamsText);
-      const nextCategoryId = parseOptionalPositiveInt(params.get('categoryId'));
+      const nextCategoryId =
+        parseOptionalPositiveInt(params.get('categoryId')) ?? browser.categoryId;
       const nextCategoryName =
-        params.get('categoryName') || findCategoryNameById(categoryTree, nextCategoryId);
-      const nextSortBy = params.get('sortBy') || 'default';
+        params.get('categoryName')
+        || browser.categoryName
+        || findCategoryNameById(categoryTree, nextCategoryId);
+      const nextSortBy = params.get('sortBy') || browser.sortBy || 'default';
       const nextSortKey =
         SORT_OPTIONS.find((option) => option.sortBy === nextSortBy)?.key ?? 'default';
-      const nextKeyword = params.get('keyword') ?? '';
-      const nextPage = Math.max(1, Number(params.get('page') || 1) || 1);
-      const nextInstitutionId = parseOptionalPositiveInt(params.get('institutionId'));
+      const nextKeyword = params.has('keyword')
+        ? (params.get('keyword') ?? '')
+        : browser.keyword;
+      const nextPage = params.get('page')
+        ? Math.max(1, Number(params.get('page') || 1) || 1)
+        : browser.page;
+      const nextInstitutionId =
+        parseOptionalPositiveInt(params.get('institutionId')) ?? browser.institutionId;
+
+      if (!urlSyncBootstrappedRef.current) {
+        urlSyncBootstrappedRef.current = true;
+        // 首屏：仅当地址栏比 SSR 初始值更「有筛选」时才覆盖（浏览器后退场景）
+        const browserHasFilter =
+          nextCategoryId != null
+          || nextInstitutionId != null
+          || Boolean(nextKeyword)
+          || nextSortKey !== 'default'
+          || nextPage > 1;
+        const differsFromSsr =
+          nextCategoryId !== initialCategoryId
+          || nextInstitutionId !== initialInstitutionId
+          || nextKeyword !== keywordFromUrl
+          || nextSortKey !== initialSortKey
+          || nextPage !== (initialData.page ?? 1);
+        if (!(browserHasFilter && differsFromSsr)) {
+          return;
+        }
+      }
 
       const categorySame = selectedCategory === nextCategoryId;
       const categoryNameSame = (selectedCategoryName ?? '') === (nextCategoryName ?? '');
@@ -276,6 +369,15 @@ function VideoListSectionInner({
       );
     });
   }, [searchParamsText]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** 浏览器前进/后退：直接读地址栏恢复分类等筛选 */
+  useEffect(() => {
+    const onPopState = () => {
+      applyBrowserFilters();
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [applyBrowserFilters]);
 
   const handleClearInstitution = useCallback(() => {
     setInstitutionId(undefined);

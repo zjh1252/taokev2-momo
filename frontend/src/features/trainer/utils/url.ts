@@ -57,6 +57,28 @@ export function filtersToHtmPath(params: TrainerSlugParams): string {
 }
 
 /**
+ * 从浏览器 pathname 解析专家列表筛选参数。
+ * 兼容 `/trainer`、`/trainer/field=xxx.htm`、以及带 locale 前缀的路径。
+ */
+export function parseTrainerListPathname(pathname: string): TrainerSlugParams {
+  if (!pathname) return {};
+  const normalized = pathname.replace(/^\/(zh-CN|en)(?=\/)/, '');
+  if (normalized === '/trainer' || normalized.startsWith('/trainer?')) return {};
+  const match = normalized.match(/^\/trainer\/(.+?)\.htm\/?$/);
+  if (!match) return {};
+  let slug = match[1];
+  try {
+    // pathname 可能已解码；若仍含 %XX 则再解一次
+    if (/%[0-9A-Fa-f]{2}/.test(slug)) {
+      slug = decodeURIComponent(slug);
+    }
+  } catch {
+    // keep raw
+  }
+  return parseSlug(slug);
+}
+
+/**
  * 解析 .htm URL 的 slug 段。
  * @example
  *   parseSlug('field=战略规划&industry=软件') → { field: '战略规划', industry: '软件' }

@@ -5,6 +5,7 @@ import com.taoke.common.exception.BusinessException;
 import com.taoke.common.exception.ErrorCode;
 import com.taoke.common.response.PageResponse;
 import com.taoke.common.events.course.DemandStatusChangedEvent;
+import com.taoke.common.service.RegionService;
 import com.taoke.course.api.DemandService;
 import com.taoke.course.dto.demand.*;
 import com.taoke.course.entity.demand.Demand;
@@ -28,7 +29,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 培训需求服务实现
@@ -48,6 +53,7 @@ public class DemandServiceImpl implements DemandService {
     private final EventPublisher eventPublisher;
     private final CaptchaTokenStore captchaTokenStore;
     private final CaptchaProperties captchaProperties;
+    private final RegionService regionService;
 
     // ==================== C 端操作 ====================
 
@@ -278,7 +284,9 @@ public class DemandServiceImpl implements DemandService {
         String kw = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
         String dt = (demandType != null && !demandType.isBlank()) ? demandType : null;
         Page<Demand> result = demandRepository.adminSearch(status, dt, kw, PageRequest.of(page - 1, size));
-        return PageResponse.of(result, DemandListResponse::from);
+        List<DemandListResponse> list = result.getContent().stream().map(DemandListResponse::from).toList();
+        enrichListTrainingRegion(list);
+        return PageResponse.of(list, result.getTotalElements(), page, size);
     }
 
     @Override
@@ -351,9 +359,75 @@ public class DemandServiceImpl implements DemandService {
 
     private DemandDetailResponse buildDetail(Demand demand) {
         DemandDetailResponse detail = DemandDetailResponse.from(demand);
+        enrichDetailTrainingRegion(detail);
         List<DemandFollowUp> followUps = followUpRepository.findByDemandIdOrderByCreatedAtDesc(demand.getId());
         detail.setFollowUps(followUps.stream().map(DemandFollowUpResponse::from).toList());
         return detail;
+    }
+
+    private void enrichDetailTrainingRegion(DemandDetailResponse detail) {
+        Set<Integer> regionIds = collectRegionIds(detail.getProvinceId(), detail.getCityId(), detail.getDistrictId());
+        Map<Integer, String> names = regionIds.isEmpty() ? Map.of() : regionService.getNamesByIds(regionIds);
+        String provinceName = nameOf(detail.getProvinceId(), names);
+        String cityName = nameOf(detail.getCityId(), names);
+        String districtName = nameOf(detail.getDistrictId(), names);
+        detail.setProvinceName(provinceName);
+        detail.setCityName(cityName);
+        detail.setDistrictName(districtName);
+        detail.setTrainingRegion(joinRegionNames(provinceName, cityName, districtName));
+    }
+
+    private void enrichListTrainingRegion(List<DemandListResponse> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        Set<Integer> regionIds = new HashSet<>();
+        for (DemandListResponse item : list) {
+            regionIds.addAll(collectRegionIds(item.getProvinceId(), item.getCityId(), item.getDistrictId()));
+        }
+        Map<Integer, String> names = regionIds.isEmpty() ? Map.of() : regionService.getNamesByIds(regionIds);
+        for (DemandListResponse item : list) {
+            item.setTrainingRegion(joinRegionNames(
+                    nameOf(item.getProvinceId(), names),
+                    nameOf(item.getCityId(), names),
+                    nameOf(item.getDistrictId(), names)));
+        }
+    }
+
+    private static Set<Integer> collectRegionIds(Integer provinceId, Integer cityId, Integer districtId) {
+        Set<Integer> regionIds = new HashSet<>();
+        if (provinceId != null && provinceId > 0) {
+            regionIds.add(provinceId);
+        }
+        if (cityId != null && cityId > 0) {
+            regionIds.add(cityId);
+        }
+        if (districtId != null && districtId > 0) {
+            regionIds.add(districtId);
+        }
+        return regionIds;
+    }
+
+    private static String nameOf(Integer id, Map<Integer, String> names) {
+        if (id == null || id <= 0) {
+            return null;
+        }
+        String name = names.get(id);
+        return (name == null || name.isBlank()) ? null : name;
+    }
+
+    private static String joinRegionNames(String provinceName, String cityName, String districtName) {
+        List<String> parts = new ArrayList<>(3);
+        if (provinceName != null) {
+            parts.add(provinceName);
+        }
+        if (cityName != null && !cityName.equals(provinceName)) {
+            parts.add(cityName);
+        }
+        if (districtName != null && !districtName.equals(cityName)) {
+            parts.add(districtName);
+        }
+        return parts.isEmpty() ? null : String.join(" ", parts);
     }
 
     private void publishStatusChanged(Demand demand, int oldStatus, int newStatus) {

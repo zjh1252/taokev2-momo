@@ -3,20 +3,24 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
-import { createCase, addCaseFile } from '@/features/trainer-case/api/service';
+import { createCase, createCaseDraft, addCaseFile } from '@/features/trainer-case/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerCaseRequest } from '@/features/trainer-case/api/types';
 import { validateForm, getFirstError, getTodayDateValue, Validators } from '@/lib/validation';
-import { CASE_RULES, traineeCountValidator } from '@/features/trainer-case/lib/case-form-rules';
+import {
+  buildCaseRules,
+  traineeCountValidator,
+} from '@/features/trainer-case/lib/case-form-rules';
 import { ArrowLeft, Upload } from 'lucide-react';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
 import { FormField } from '@/components/FormField';
 import RegionCascader, { type RegionValue } from '@/components/region-cascader';
+import { SafeImage } from '@/components/safe-image';
 import { toast } from 'sonner';
 import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
 import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
+import { DateInput } from '@/components/shared/date-input';
 
 export default function CreateCasePage() {
   const router = useRouter();
@@ -38,6 +42,7 @@ export default function CreateCasePage() {
     townId: undefined,
     trainingAddress: '',
     trainingDate: '',
+    trainingEndDate: '',
     description: '',
     coverImage: '',
   });
@@ -55,7 +60,27 @@ export default function CreateCasePage() {
       toast.error(error);
       return;
     }
-    updateField('trainingDate', value);
+    setForm((prev) => {
+      const next = { ...prev, trainingDate: value };
+      // 开始日期晚于已选结束日期时，清空结束日期避免非法区间
+      if (value && prev.trainingEndDate && prev.trainingEndDate < value) {
+        next.trainingEndDate = '';
+      }
+      return next;
+    });
+  };
+
+  const handleTrainingEndDateChange = (value: string) => {
+    const futureError = Validators.notFutureDate('培训结束日期不能晚于今天')(value);
+    if (futureError) {
+      toast.error(futureError);
+      return;
+    }
+    if (form.trainingDate && value && value < form.trainingDate) {
+      toast.error('培训结束日期不能早于培训开始日期');
+      return;
+    }
+    updateField('trainingEndDate', value);
   };
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,7 +110,7 @@ export default function CreateCasePage() {
       toast.error('请先在顶部选择要代发案例的专家');
       return;
     }
-    const validation = validateForm(form as SaveTrainerCaseRequest, CASE_RULES);
+    const validation = validateForm(form as SaveTrainerCaseRequest, buildCaseRules(form));
     if (!validation.valid) {
       const firstError = getFirstError(validation.errors);
       toast.error(firstError || '请完善必填信息');
@@ -94,7 +119,10 @@ export default function CreateCasePage() {
 
     setSubmitting(true);
     try {
-      const created = await createCase(form as SaveTrainerCaseRequest, trainerUserId);
+      const created = await createCase(
+        { ...(form as SaveTrainerCaseRequest), townId: undefined },
+        trainerUserId,
+      );
 
       // 逐个上传附件到子表
       for (let i = 0; i < files.length; i++) {
@@ -110,6 +138,84 @@ export default function CreateCasePage() {
       }
 
       toast.success('案例已创建');
+      router.push(
+        trainerUserId
+          ? `${ROUTES.UC_CASES_MANAGE}?trainerUserId=${trainerUserId}`
+          : ROUTES.UC_CASES_MANAGE,
+      );
+    } catch {
+      // 平台层已统一处理错误提示
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /** 保存草稿：不做完整必填校验，仅基础格式校验 */
+  const handleSaveDraft = async () => {
+    if (!valid) {
+      toast.error('请先在顶部选择要代发案例的专家');
+      return;
+    }
+    const countErr = traineeCountValidator(form.traineeCount);
+    if (countErr) {
+      toast.error(countErr);
+      return;
+    }
+    if (form.trainingDate) {
+      const dateErr = Validators.notFutureDate('培训日期不能晚于今天')(form.trainingDate);
+      if (dateErr) {
+        toast.error(dateErr);
+        return;
+      }
+    }
+    if (form.trainingEndDate) {
+      const endErr =
+        Validators.notFutureDate('培训结束日期不能晚于今天')(form.trainingEndDate) ||
+        (form.trainingDate && form.trainingEndDate < form.trainingDate
+          ? '培训结束日期不能早于培训开始日期'
+          : undefined);
+      if (endErr) {
+        toast.error(endErr);
+        return;
+      }
+    }
+
+    setSubmitting(true);
+    try {
+      const created = await createCaseDraft(
+        {
+          caseTitle: form.caseTitle || '',
+          enterpriseName: form.enterpriseName || '',
+          industry: form.industry,
+          trainingTopic: form.trainingTopic,
+          trainingEffect: form.trainingEffect,
+          traineeCount: form.traineeCount,
+          provinceId: form.provinceId,
+          cityId: form.cityId,
+          districtId: form.districtId,
+          townId: undefined,
+          trainingAddress: form.trainingAddress,
+          trainingDate: form.trainingDate || undefined,
+          trainingEndDate: form.trainingEndDate || undefined,
+          description: form.description,
+          coverImage: form.coverImage,
+        } as SaveTrainerCaseRequest,
+        trainerUserId,
+      );
+
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        await addCaseFile(created.id, {
+          fileType: f.fileType,
+          fileUrl: f.fileUrl,
+          thumbnailUrl: f.thumbnailUrl || '',
+          title: f.title || '',
+          fileSize: f.fileSize,
+          sortOrder: i,
+        }, trainerUserId);
+      }
+
+      toast.success('草稿已保存');
       router.push(
         trainerUserId
           ? `${ROUTES.UC_CASES_MANAGE}?trainerUserId=${trainerUserId}`
@@ -182,7 +288,6 @@ export default function CreateCasePage() {
               provinceId: form.provinceId,
               cityId: form.cityId,
               districtId: form.districtId,
-              townId: form.townId,
             }}
             onChange={(v: RegionValue) =>
               setForm((prev) => ({
@@ -190,11 +295,12 @@ export default function CreateCasePage() {
                 provinceId: v.provinceId,
                 cityId: v.cityId,
                 districtId: v.districtId,
-                townId: v.townId,
+                // 业务仅保存到区，不再采集街道
+                townId: undefined,
               }))
             }
-            maxLevel={4}
-            requireDistrict={false}
+            maxLevel={3}
+            requireDistrict
           />
         </FormField>
 
@@ -210,16 +316,26 @@ export default function CreateCasePage() {
         </FormField>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="培训日期">
-            <input
-              type="date"
-              placeholder="年 / 月 / 日"
+          <FormField label="培训日期" required>
+            <DateInput
               value={form.trainingDate || ''}
               max={getTodayDateValue()}
-              onChange={(e) => handleTrainingDateChange(e.target.value)}
+              onChange={handleTrainingDateChange}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </FormField>
+          <FormField label="培训结束日期" required>
+            <DateInput
+              value={form.trainingEndDate || ''}
+              min={form.trainingDate || undefined}
+              max={getTodayDateValue()}
+              onChange={handleTrainingEndDateChange}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+          </FormField>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <FormField label="受训人数">
             <input
               type="number"
@@ -263,7 +379,7 @@ export default function CreateCasePage() {
           <div className="flex items-center gap-4">
             {form.coverImage ? (
               <div className="relative w-[160px] h-[100px] rounded-lg overflow-hidden border border-slate-200">
-                <Image
+                <SafeImage
                   src={form.coverImage}
                   alt="封面"
                   fill
@@ -304,6 +420,14 @@ export default function CreateCasePage() {
         </FormField>
 
         <div className="flex gap-3 pt-4">
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={submitting}
+            className="border border-slate-200 text-gray-700 text-sm px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            {submitting ? '保存中...' : '保存草稿'}
+          </button>
           <button
             type="button"
             onClick={handleSubmit}

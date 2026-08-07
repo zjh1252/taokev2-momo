@@ -125,7 +125,8 @@ export function CaseCreateForm() {
           provinceId: region.provinceId!,
           cityId: region.cityId!,
           districtId: region.districtId!,
-          townId: region.townId,
+          // 业务仅保存到区，不再采集街道
+          townId: undefined,
           trainingAddress: value.trainingAddress || undefined,
           trainingDate: value.trainingDate || undefined,
           description: value.description || undefined,
@@ -199,7 +200,7 @@ export function CaseCreateForm() {
               <Label>培训地点 *</Label>
               <RegionCascader
                 requireDistrict
-                maxLevel={4}
+                maxLevel={3}
                 value={region}
                 onChange={setRegion}
               />

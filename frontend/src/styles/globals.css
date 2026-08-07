@@ -132,16 +132,19 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
   html {
     @apply font-sans;
+    width: 100%;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
+  body {
+    @apply bg-background text-foreground;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+  /* 全站：媒体默认不撑破视口，避免横向滚动 */
   img,
   video,
   iframe {

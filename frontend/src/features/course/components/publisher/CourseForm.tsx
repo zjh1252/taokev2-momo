@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isBlankHtml } from '@/lib/seo/helpers';
+import { DateTimeLocalInput } from '@/components/shared/date-time-local-input';
 
 const FIELD_ANCHORS = {
   title: 'course-field-title',
@@ -353,7 +354,8 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
       isFeatured,
       hasPlan,
       keywords: keywords.trim() || undefined,
-      plans: hasPlan ? plans : undefined,
+      // 后端整体替换计划：提交时去掉计划 id，避免二次编辑带旧主键触发保存失败
+      plans: hasPlan ? plans.map(({ id: _planId, ...rest }) => rest) : undefined,
     };
     await onSubmit(data);
   };
@@ -365,6 +367,11 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
 
   // 后端仅允许「草稿/驳回」状态的课程保存为草稿；新建时始终可存草稿
   const canSaveDraft = !initialData || initialData.status === 0 || initialData.status === 3;
+  const isPendingEdit = initialData?.status === 1;
+  const primarySubmitLabel = initialData
+    ? (isPendingEdit ? '保存' : '保存并提交审核')
+    : '提交发布';
+
 
   return (
     <>
@@ -432,7 +439,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
                 onChange={(e) => setDurationDays(Math.max(1, Number(e.target.value) || 1))}
                 className="w-20 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
-              <span className="text-sm text-gray-500">天 等于</span>
+              <span className="text-sm text-gray-500">天</span>
               <input
                 type="number"
                 min={1}
@@ -554,7 +561,7 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
           )}
           <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 bg-primary text-white px-8 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60">
             {submitting && <div className="animate-spin rounded-full size-4 border-2 border-white border-t-transparent" />}
-            {initialData ? '保存并提交审核' : '提交发布'}
+            {primarySubmitLabel}
           </button>
         </div>
       </form>
@@ -640,17 +647,27 @@ export default function CourseForm({ initialData, onSubmit, submitting }: Course
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">开始时间 <span className="text-red-400">*</span></label>
-                          <input type="datetime-local" value={plan.startTime} onChange={(e) => updateDraftPlan(idx, { startTime: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                          <DateTimeLocalInput
+                            value={plan.startTime}
+                            onChange={(v) => updateDraftPlan(idx, { startTime: v })}
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">结束时间 <span className="text-red-400">*</span></label>
-                          <input type="datetime-local" value={plan.endTime} onChange={(e) => updateDraftPlan(idx, { endTime: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                          <DateTimeLocalInput
+                            value={plan.endTime}
+                            onChange={(v) => updateDraftPlan(idx, { endTime: v })}
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          />
                         </div>
                         {draftPlanType === 'OPEN_OFFLINE' && (
                           <>
                             <div className="col-span-2">
-                              <label className="block text-xs text-gray-500 mb-1">省/市/区 <span className="text-red-400">*</span></label>
+                              <label className="block text-xs text-gray-500 mb-1">培训地点 <span className="text-red-400">*</span></label>
                               <RegionCascader
+                                maxLevel={3}
+                                requireDistrict
                                 value={{
                                   provinceId: plan.provinceId || undefined,
                                   cityId: plan.cityId || undefined,

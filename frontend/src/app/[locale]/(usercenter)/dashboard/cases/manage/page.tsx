@@ -168,9 +168,9 @@ export default function ManageCasesPage() {
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确定删除？</AlertDialogTitle>
+            <AlertDialogTitle>确定要删除该案例吗？</AlertDialogTitle>
             <AlertDialogDescription>
-              此操作不可恢复，案例及其所有附件将被永久删除。
+              删除后数据不可恢复。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -202,8 +202,12 @@ function CaseCard({
 }) {
   const statusLabel = CaseStatusLabelMap[item.status] || '未知';
   const badgeStyle = STATUS_BADGE_STYLES[item.status] || 'bg-slate-100 text-slate-600';
+  const isDraft = item.status === CaseStatus.DRAFT;
   const isPending = item.status === CaseStatus.PENDING;
+  const isApproved = item.status === CaseStatus.APPROVED;
   const isRejected = item.status === CaseStatus.REJECTED;
+  // 草稿 / 待审核 / 已通过 / 已驳回：展示编辑、删除
+  const showActions = isDraft || isPending || isApproved || isRejected;
 
   return (
     <div className="border border-slate-200 rounded-lg p-4 flex gap-4 hover:shadow-md transition-shadow">
@@ -232,8 +236,8 @@ function CaseCard({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 shrink-0 justify-center">
-        {(isPending || isRejected) && (
+      {showActions ? (
+        <div className="flex flex-col gap-2 shrink-0 justify-center">
           <Link
             href={trainerUserId
               ? `/dashboard/cases/${item.id}/edit?trainerUserId=${trainerUserId}`
@@ -243,8 +247,6 @@ function CaseCard({
             <Edit className="size-3.5" />
             编辑
           </Link>
-        )}
-        {(isPending || isRejected) && (
           <button
             type="button"
             onClick={() => onDelete(item.id)}
@@ -253,8 +255,8 @@ function CaseCard({
             <Trash2 className="size-3.5" />
             删除
           </button>
-        )}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

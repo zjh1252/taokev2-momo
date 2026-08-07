@@ -230,7 +230,12 @@ const NAV_ENTRIES: NavEntry[] = [
  * @author Fangxinxin
  * @date 2026-04-03 10:00
  */
-export function UserCenterSidebar() {
+export function UserCenterSidebar({
+  onNavigate,
+}: {
+  /** 移动端抽屉内点击后关闭 Sheet */
+  onNavigate?: () => void;
+} = {}) {
   const pathname = usePathname();
   const { activeRole } = useAuth();
 
@@ -337,8 +342,8 @@ export function UserCenterSidebar() {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <aside className="w-full md:w-[220px] shrink-0">
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden sticky top-[80px]">
+    <aside className="w-full min-w-0 lg:w-[220px] lg:shrink-0">
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm lg:sticky lg:top-[80px]">
         <nav className="flex flex-col py-2">
           {visibleEntries.map((entry) => {
             if (entry.kind === 'item') {
@@ -350,10 +355,11 @@ export function UserCenterSidebar() {
                 <Link
                   key={entry.href + entry.label}
                   href={entry.href}
+                  onClick={onNavigate}
                   className={cn(
-                    'flex items-center gap-3 px-6 py-3.5 text-gray-600 hover:bg-slate-100 hover:text-primary transition-colors border-l-4 border-transparent',
+                    'flex items-center gap-3 border-l-4 border-transparent px-6 py-3.5 text-gray-600 transition-colors hover:bg-slate-100 hover:text-primary',
                     isActive(entry.href) &&
-                      'bg-red-50/50 text-primary font-bold !border-l-primary',
+                      'bg-red-50/50 font-bold text-primary !border-l-primary',
                   )}
                 >
                   {entry.icon}
@@ -437,6 +443,7 @@ export function UserCenterSidebar() {
                                   <Link
                                     key={sc.href}
                                     href={sc.href}
+                                    onClick={onNavigate}
                                     className={cn(
                                       'pl-[72px] pr-6 py-2 text-[12px] text-gray-500 hover:text-primary hover:bg-slate-100 transition-colors border-l-4 border-transparent',
                                       isActive(sc.href) &&
@@ -456,6 +463,7 @@ export function UserCenterSidebar() {
                         <Link
                           key={child.href}
                           href={child.href}
+                          onClick={onNavigate}
                           className={cn(
                             'pl-[52px] pr-6 py-2.5 text-[13px] text-gray-500 hover:text-primary hover:bg-slate-100 transition-colors border-l-4 border-transparent',
                             isActive(child.href) &&

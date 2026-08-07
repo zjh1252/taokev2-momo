@@ -44,4 +44,17 @@ public interface TrainerExpertiseCategoryRepository extends JpaRepository<Traine
             GROUP BY l1.id
             """, nativeQuery = true)
     List<Object[]> countPublishedTrainersByExpertiseL1();
+
+    /** Approved trainers grouped by visible managed level-two expertise category. */
+    @Query(value = """
+            SELECT c.id AS category_id, COUNT(DISTINCT t.id) AS cnt
+            FROM sys_categories c
+            LEFT JOIN trainer_expertise_categories tec ON tec.category_id = c.id
+            LEFT JOIN user_trainers t ON t.id = tec.trainer_id AND t.status = 2
+            WHERE c.type = 'TRAINER_EXPERTISE'
+              AND c.level = 2
+              AND c.is_visible = 1
+            GROUP BY c.id
+            """, nativeQuery = true)
+    List<Object[]> countPublishedTrainersByExpertiseL2();
 }

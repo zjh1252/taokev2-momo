@@ -5,9 +5,10 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import type { CoursePlan } from '../../api/types';
 import { getCourseEnrollmentStatus } from '../../api/service';
-import { isPlanEnrolling } from '../../utils/display';
+import { isPlanEnrolling, serverTimeToMs } from '../../utils/display';
 import { getOpenCoursePlanSeoPath, getPlanDisplayNo } from '../../utils/open-course-seo';
 import { formatPlanCode } from '../../utils/plan-code';
+import { OpenCourseEnrollDialog } from './OpenCourseEnrollDialog';
 
 interface CoursePlanTableProps {
   plans: CoursePlan[];
@@ -16,12 +17,14 @@ interface CoursePlanTableProps {
   activePlanCode?: string;
   /** 自定义表格标题 */
   title?: string;
-  /** 仅展示未开课的场次（「近期开课计划」） */
+  /** 仅展示仍可报名的场次（「近期开课计划」） */
   upcomingOnly?: boolean;
   /** 课程整体已过期时，场次状态一律展示为已结束 */
   courseOverdue?: boolean;
   /** 外部传入已购买状态；不传则自行查询 */
   purchased?: boolean;
+  /** 服务器当前时间（详情接口 serverTime），用于报名状态判定 */
+  serverTime?: string | null;
 }
 
 export function CoursePlanTable({
@@ -32,10 +35,14 @@ export function CoursePlanTable({
   upcomingOnly = false,
   courseOverdue = false,
   purchased: purchasedProp,
+  serverTime,
 }: CoursePlanTableProps) {
   const t = useTranslations('course.plan');
   const [purchasedInner, setPurchasedInner] = useState(false);
   const purchased = purchasedProp ?? purchasedInner;
+  const nowMs = serverTimeToMs(serverTime);
+  const [enrollPlanId, setEnrollPlanId] = useState<number | null>(null);
+  const [enrollOpen, setEnrollOpen] = useState(false);
 
   useEffect(() => {
     if (purchasedProp !== undefined) return;
@@ -81,10 +88,10 @@ export function CoursePlanTable({
       return ta - tb;
     });
 
-  // upcomingOnly 时优先展示未开课的场次；全部已结束时回退到最近的历史场次
+  // upcomingOnly：优先展示仍可报名的场次；全部已结束时回退到最近的历史场次
   let visiblePlans = allPlans;
   if (upcomingOnly) {
-    const upcoming = allPlans.filter(({ plan }) => isPlanEnrolling(plan));
+    const upcoming = allPlans.filter(({ plan }) => isPlanEnrolling(plan, nowMs));
     visiblePlans = upcoming.length > 0 ? upcoming : allPlans;
   }
 
@@ -108,7 +115,7 @@ export function CoursePlanTable({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {visiblePlans.map(({ plan, index, displayNo, href }) => {
-              const enrolling = !courseOverdue && isPlanEnrolling(plan);
+              const enrolling = !courseOverdue && isPlanEnrolling(plan, nowMs);
               return (
                 <tr key={plan.id || index} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3">
@@ -137,13 +144,21 @@ export function CoursePlanTable({
                   <td className="px-4 py-3">
                     {purchased ? (
                       <span className="text-slate-500 text-sm font-medium">{t('purchased')}</span>
-                    ) : enrolling ? (
-                      <Link
-                        href={href}
+                    ) : enrolling && plan.id ? (
+                      <button
+                        type="button"
+                        data-testid="open-course-enroll-btn"
                         className="text-primary hover:underline text-sm font-medium"
+                        onClick={() => {
+                          if (typeof window !== 'undefined') {
+                            (window as unknown as { __oceClicked?: boolean }).__oceClicked = true;
+                          }
+                          setEnrollPlanId(plan.id);
+                          setEnrollOpen(true);
+                        }}
                       >
                         {t('enroll')}
-                      </Link>
+                      </button>
                     ) : (
                       <span className="text-slate-400 text-sm">—</span>
                     )}
@@ -154,6 +169,18 @@ export function CoursePlanTable({
           </tbody>
         </table>
       </div>
+
+      {enrollPlanId != null ? (
+        <OpenCourseEnrollDialog
+          open={enrollOpen}
+          onOpenChange={(open) => {
+            setEnrollOpen(open);
+            if (!open) setEnrollPlanId(null);
+          }}
+          courseId={courseId}
+          planId={enrollPlanId}
+        />
+      ) : null}
     </section>
   );
 }

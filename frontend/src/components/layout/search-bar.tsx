@@ -86,7 +86,7 @@ export function SearchBar({ className }: SearchBarProps) {
       ref={formRef}
       onSubmit={handleSubmit}
       className={cn(
-        'flex min-w-0 items-center bg-slate-100 rounded-md overflow-visible p-0.5 border border-slate-200 relative w-full sm:min-w-[360px]',
+        'flex min-w-0 items-center bg-slate-100 rounded-md overflow-visible p-0.5 border border-slate-200 relative w-full',
         className,
       )}
     >

@@ -5,6 +5,8 @@ import { DayPicker } from 'react-day-picker';
 import { zhCN } from 'react-day-picker/locale';
 import 'react-day-picker/style.css';
 
+import { DATE_PLACEHOLDER } from '@/components/shared/date-input';
+
 function formatDateValue(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -29,7 +31,7 @@ interface Props {
   placeholder?: string;
 }
 
-export function PxbDateInput({ id, value, onChange, min, max, placeholder = '年 / 月 / 日' }: Props) {
+export function PxbDateInput({ id, value, onChange, min, max, placeholder = DATE_PLACEHOLDER }: Props) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Date | undefined>(() => parseDateValue(value));
   const rootRef = useRef<HTMLDivElement>(null);

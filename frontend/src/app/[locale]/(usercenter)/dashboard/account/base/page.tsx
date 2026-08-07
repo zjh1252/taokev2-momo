@@ -9,7 +9,8 @@ import { TOKEN_KEY } from '@/lib/auth/constants';
 import { updateProfile } from '@/features/user-center/api/service';
 import { useRealNameLock } from '@/features/user-center/hooks/useRealNameLock';
 import { MaterialPickerButton } from '@/features/ops-material/components/MaterialPickerButton';
-import { resolveImageSrc } from '@/lib/media';
+import { SafeImage } from '@/components/safe-image';
+import { getUserInitials } from '@/components/user-avatar';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
@@ -21,13 +22,14 @@ function getAuthToken(): string {
 async function uploadAvatar(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
-  const resp = await fetch(`${API_BASE_URL}/uploads/images`, {
+  const resp = await fetch(`${API_BASE_URL}/uploads/avatars`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${getAuthToken()}` },
     body: formData,
   });
   if (!resp.ok) throw new Error('上传失败');
   const json = await resp.json() as { data: { url: string } };
+  if (!json.data?.url) throw new Error('上传成功但未返回图片地址');
   return json.data.url;
 }
 
@@ -40,15 +42,30 @@ export default function AccountBasePage() {
   const [phone] = useState(user?.phone || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
   const [savingProfile, setSavingProfile] = useState(false);
-
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  // 用户信息异步加载后同步到表单（避免首屏 user 为空导致头像一直空白）
+  useEffect(() => {
+    if (!user) return;
+    setNickname(user.nickname || '');
+    setRealName(user.realName || '');
+    setAvatarUrl(user.avatarUrl || '');
+  }, [user]);
 
   useEffect(() => {
     if (realNameLocked && certRealName) {
       setRealName(certRealName);
     }
   }, [realNameLocked, certRealName]);
+
+  const persistAvatar = async (url: string) => {
+    const token = getAuthToken();
+    if (!token) throw new Error('未登录');
+    await updateProfile(token, { avatarUrl: url });
+    setAvatarUrl(url);
+    await refreshUser();
+  };
 
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,13 +74,29 @@ export default function AccountBasePage() {
     setUploadingAvatar(true);
     try {
       const url = await uploadAvatar(file);
-      setAvatarUrl(url);
+      await persistAvatar(url);
       toast.success('头像上传成功');
     } catch {
       toast.error('头像上传失败，请重试');
     } finally {
       setUploadingAvatar(false);
       if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
+
+  const handleMaterialSelect = async (url: string) => {
+    if (!url?.trim()) {
+      toast.error('素材地址无效');
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      await persistAvatar(url.trim());
+      toast.success('头像已更新');
+    } catch {
+      toast.error('头像保存失败，请重试');
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -83,6 +116,9 @@ export default function AccountBasePage() {
     }
   };
 
+  const showAvatarImage = Boolean(avatarUrl?.trim());
+  const initials = getUserInitials(nickname || user?.nickname || '?');
+
   return (
     <section className="bg-white rounded-lg shadow-sm border border-slate-200 min-h-[500px] p-6">
       <div className="flex items-start justify-between">
@@ -96,19 +132,20 @@ export default function AccountBasePage() {
         {/* 头像上传 */}
         <div className="flex flex-col items-center">
           <div className="relative group">
-            <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={resolveImageSrc(avatarUrl, '')}
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-100 border border-slate-200 relative flex items-center justify-center">
+              <span className="text-2xl font-bold text-slate-400" aria-hidden={showAvatarImage}>
+                {initials}
+              </span>
+              {showAvatarImage ? (
+                <SafeImage
+                  src={avatarUrl}
                   alt="头像"
-                  className="w-full h-full object-cover"
+                  width={96}
+                  height={96}
+                  className="absolute inset-0 z-10 size-full object-cover"
+                  fallback=""
                 />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-400">
-                  <span className="text-2xl font-bold">{user?.nickname?.[0] || '?'}</span>
-                </div>
-              )}
+              ) : null}
             </div>
             <button
               type="button"
@@ -128,7 +165,9 @@ export default function AccountBasePage() {
             materialType="AVATAR"
             scene="TRAINER"
             className="mt-2"
-            onSelect={(url) => setAvatarUrl(url)}
+            onSelect={(url) => {
+              void handleMaterialSelect(url);
+            }}
           />
           <input
             ref={avatarInputRef}
@@ -183,7 +222,6 @@ export default function AccountBasePage() {
           {savingProfile ? '保存中...' : '保存基础信息'}
         </button>
       </div>
-
     </section>
   );
 }

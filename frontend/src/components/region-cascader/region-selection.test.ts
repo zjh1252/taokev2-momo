@@ -57,4 +57,43 @@ describe('hydrateRegionSelection', () => {
     expect(result.cities).toEqual([city]);
     expect(result.districts).toEqual([district]);
   });
+
+  it('ignores saved townId when maxLevel is 3 (no street level)', async () => {
+    const districtWithTowns: RegionItem = {
+      ...district,
+      hasChildren: true,
+    };
+    const town: RegionItem = {
+      id: 1111,
+      code: '110101001',
+      name: 'Town',
+      level: 4,
+      hasChildren: false,
+    };
+    const calls: string[] = [];
+    const loadChildren = async (parentCode?: string) => {
+      calls.push(parentCode || '');
+      if (parentCode === province.code) return [city];
+      if (parentCode === city.code) return [districtWithTowns];
+      if (parentCode === districtWithTowns.code) return [town];
+      return [];
+    };
+
+    const result = await hydrateRegionSelection(
+      {
+        provinceId: province.id,
+        cityId: city.id,
+        districtId: districtWithTowns.id,
+        townId: town.id,
+      },
+      [province],
+      loadChildren,
+      3,
+    );
+
+    expect(calls).toEqual([province.code, city.code]);
+    expect(result.selectedTown).toBeNull();
+    expect(result.towns).toEqual([]);
+    expect(result.selectedDistrict).toEqual(districtWithTowns);
+  });
 });

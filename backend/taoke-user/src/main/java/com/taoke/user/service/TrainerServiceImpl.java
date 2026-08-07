@@ -203,20 +203,36 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     @Override
-    public Map<Integer, Long> countPublicByExpertiseL1() {
-        Map<Integer, Long> cached = publicTrainerListCache.getExpertiseL1Counts();
-        if (cached != null) {
-            return cached;
-        }
-        Map<Integer, Long> map = new HashMap<>();
-        for (Object[] row : expertiseCategoryRepository.countPublishedTrainersByExpertiseL1()) {
-            if (row[0] == null) {
-                continue;
+    public Map<Integer, Long> countPublicByExpertiseL1(boolean includeChildren) {
+        if (!includeChildren) {
+            Map<Integer, Long> cached = publicTrainerListCache.getExpertiseL1Counts();
+            if (cached != null) {
+                return cached;
             }
-            long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
-            map.put(((Number) row[0]).intValue(), count);
         }
-        publicTrainerListCache.putExpertiseL1Counts(map);
+        Map<Integer, Long> map = toCountMap(
+                expertiseCategoryRepository.countPublishedTrainersByExpertiseL1());
+        if (includeChildren) {
+            map.putAll(toCountMap(expertiseCategoryRepository.countPublishedTrainersByExpertiseL2()));
+        } else {
+            publicTrainerListCache.putExpertiseL1Counts(map);
+        }
+        return map;
+    }
+
+    @Override
+    public Map<Integer, Long> countPublicByIndustry() {
+        return toCountMap(industryCategoryRepository.countPublishedTrainersByIndustry());
+    }
+
+    private static Map<Integer, Long> toCountMap(List<Object[]> rows) {
+        Map<Integer, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            if (row[0] != null) {
+                map.put(((Number) row[0]).intValue(),
+                        row[1] != null ? ((Number) row[1]).longValue() : 0L);
+            }
+        }
         return map;
     }
 

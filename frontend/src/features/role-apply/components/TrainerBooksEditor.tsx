@@ -15,8 +15,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import SingleImageUploader from '@/features/role-apply/components/SingleImageUploader';
-import { resolveImageSrc } from '@/lib/media';
+import { SafeImage } from '@/components/safe-image';
 import type { TrainerBookFormItem } from '../api/types';
+import { DateInput } from '@/components/shared/date-input';
 
 interface TrainerBooksEditorProps {
   value: TrainerBookFormItem[];
@@ -113,13 +114,13 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
                 key={`${idx}-${book.title}`}
                 className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-3 transition-colors hover:border-primary/40"
               >
-                <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-100">
+                <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-100">
                   {book.coverUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={resolveImageSrc(book.coverUrl, '')}
+                    <SafeImage
+                      src={book.coverUrl}
                       alt={book.title}
-                      className="size-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   ) : (
                     <BookOpen className="size-5 text-gray-400" />
@@ -207,12 +208,11 @@ export function TrainerBooksEditor({ value, onChange }: TrainerBooksEditorProps)
               </div>
               <div className="space-y-1">
                 <Label htmlFor="book-date">出版日期</Label>
-                <Input
+                <DateInput
                   id="book-date"
-                  type="date"
-                  placeholder="年 / 月 / 日"
                   value={draft.publishDate || ''}
-                  onChange={(e) => setDraft({ ...draft, publishDate: e.target.value })}
+                  onChange={(v) => setDraft({ ...draft, publishDate: v })}
+                  className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none md:text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 />
               </div>
             </div>

@@ -13,6 +13,7 @@ import {
 import { CertProgressBar } from '@/features/user-center/components/cert-progress-bar';
 import { CertFileUploader } from '@/features/user-center/components/cert-file-uploader';
 import { CertStatusBadge } from '@/features/user-center/components/cert-status-badge';
+import { DateInput } from '@/components/shared/date-input';
 
 /**
  * 经纪人「工作认证」页 — 多记录列表 + 新增/编辑表单 + 单条进度。
@@ -226,21 +227,17 @@ function WorkForm({ record, onCancel, onSaved }: FormProps) {
           />
         </Field>
         <Field label="起始时间" required>
-          <input
-            type="date"
-            placeholder="年 / 月 / 日"
+          <DateInput
             className="form-input"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={setStartDate}
           />
         </Field>
         <Field label="结束时间">
-          <input
-            type="date"
-            placeholder="年 / 月 / 日"
+          <DateInput
             className="form-input"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={setEndDate}
           />
         </Field>
         <label className="text-sm md:col-span-2 block">

@@ -6,7 +6,7 @@ import {
   resolveExpertiseCategoryId,
   splitFieldForFilter,
 } from './expertise-categories';
-import { canonicalizeTrainerSlugField, filtersToHtmPath } from './url';
+import { canonicalizeTrainerSlugField, filtersToHtmPath, parseTrainerListPathname } from './url';
 
 const tree: CategoryTreeNode[] = [
   {
@@ -129,5 +129,30 @@ describe('canonicalizeTrainerSlugField', () => {
     expect(filtersToHtmPath({ field: '高管领导力', industry: '软件' })).toBe(
       `/trainer/field=${encodeURIComponent('高管领导力')}&industry=${encodeURIComponent('软件')}.htm`,
     );
+  });
+});
+
+describe('parseTrainerListPathname', () => {
+  it('parses empty list path', () => {
+    expect(parseTrainerListPathname('/trainer')).toEqual({});
+  });
+
+  it('parses field/industry/region/page from .htm path', () => {
+    expect(
+      parseTrainerListPathname(
+        `/trainer/field=${encodeURIComponent('客户服务')}&industry=${encodeURIComponent('软件')}&region=${encodeURIComponent('上海')}&page=2.htm`,
+      ),
+    ).toEqual({
+      field: '客户服务',
+      industry: '软件',
+      region: '上海',
+      page: 2,
+    });
+  });
+
+  it('accepts already-decoded pathname and locale prefix', () => {
+    expect(parseTrainerListPathname('/zh-CN/trainer/field=客户服务.htm')).toEqual({
+      field: '客户服务',
+    });
   });
 });

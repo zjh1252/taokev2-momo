@@ -57,6 +57,9 @@ public class TrainerDocument extends BaseDocument {
     /** 关联的擅长领域分类 ID 列表（多对多，用于 terms 筛选） */
     private List<Integer> expertiseCategoryIds;
 
+    /** Industry category IDs used by exact trainer search filters. */
+    private List<Integer> industryCategoryIds;
+
     /** 关联的擅长领域分类名称（多对多，用于全文检索匹配） */
     private List<String> expertiseCategoryNames;
 

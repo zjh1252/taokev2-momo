@@ -1,6 +1,15 @@
 import type { Metadata } from 'next';
 import { buildCanonicalUrl } from './canonical';
 
+/** SEO description 中文长度下限（阻断验收） */
+export const SEO_DESCRIPTION_MIN = 60;
+/** SEO description 中文长度上限（阻断验收） */
+export const SEO_DESCRIPTION_MAX = 85;
+
+/** 空字段 / 过短文案时的友好兜底（须 ≥60 字，禁止输出空 description） */
+export const SEO_DESCRIPTION_FALLBACK =
+  '淘课网提供企业培训课程、讲师和机构信息，帮助企业快速筛选适合的培训资源，一站式解决企业人才培养与采购需求，查找实战企业管理培训。';
+
 /** 剥离 HTML 并压缩空白 */
 export function stripHtml(text: string): string {
   return text.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
@@ -23,22 +32,43 @@ export function isBlankHtml(html?: string | null): boolean {
 }
 
 /**
- * 将描述截断到 SEO 规范区间（默认 80-120 字）。
- * 不足 80 字时原样返回；超出 120 字时截断并加省略号。
+ * 将描述截断到 SEO 上限（默认 85 字）。
+ * 超出时截断并加省略号。
  */
-export function truncateDescription(text: string, max = 120): string {
+export function truncateDescription(
+  text: string,
+  max = SEO_DESCRIPTION_MAX,
+): string {
   const plain = stripHtml(text);
   if (plain.length <= max) return plain;
   return `${plain.slice(0, max - 1)}…`;
 }
 
-/** 后台自定义 SEO 描述优先，详情页默认控制在 85 字内。 */
+/**
+ * 规范化 description：禁止空值，控制在 60–85 字。
+ * 不足 60 字时追加友好兜底后再截断。
+ */
+export function normalizeSeoDescription(text?: string | null): string {
+  let plain = stripHtml(text ?? '').trim();
+  if (!plain) {
+    plain = SEO_DESCRIPTION_FALLBACK;
+  }
+  if (plain.length < SEO_DESCRIPTION_MIN) {
+    const joiner = plain.endsWith('。') || plain.endsWith('.') ? '' : '。';
+    plain = `${plain}${joiner}${SEO_DESCRIPTION_FALLBACK}`;
+  }
+  return truncateDescription(plain, SEO_DESCRIPTION_MAX);
+}
+
+/**
+ * 后台自定义 SEO 描述优先，否则使用模板；最终走 60–85 字规范化。
+ */
 export function preferSeoDescription(
   custom?: string | null,
-  template = '淘课网提供企业培训课程、讲师和机构信息，帮助企业快速筛选适合的培训资源。',
+  template = SEO_DESCRIPTION_FALLBACK,
 ): string {
-  const text = custom?.trim() || template.trim();
-  return truncateDescription(text || template, 85);
+  const text = custom?.trim() || template.trim() || SEO_DESCRIPTION_FALLBACK;
+  return normalizeSeoDescription(text);
 }
 
 /** 拼接关键词，过滤空值 */
@@ -86,7 +116,7 @@ export function toMetadata({
 }: SeoFields): Metadata {
   return {
     title,
-    description: truncateDescription(description),
+    description: normalizeSeoDescription(description),
     ...(keywords ? { keywords } : {}),
     ...(canonical
       ? {

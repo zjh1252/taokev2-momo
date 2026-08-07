@@ -1,6 +1,7 @@
 package com.taoke.common.search;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -56,5 +57,20 @@ public interface DocumentSyncProvider {
             return List.of();
         }
         return all.subList(from, Math.min(from + size, all.size()));
+    }
+
+    /**
+     * Fetch the next deterministic reindex batch after a committed business ID.
+     * Large providers should override this with a keyset query.
+     */
+    default List<? extends BaseDocument> fetchAfterId(int lastId, int size) {
+        if (size <= 0) {
+            return List.of();
+        }
+        return fetchAll().stream()
+                .filter(document -> document.getId() != null && document.getId() > lastId)
+                .sorted(Comparator.comparing(BaseDocument::getId))
+                .limit(size)
+                .toList();
     }
 }

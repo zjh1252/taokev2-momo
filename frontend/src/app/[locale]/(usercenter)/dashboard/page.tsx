@@ -295,51 +295,51 @@ export default function DashboardPage() {
 
           {/* 右半：工具与资源 */}
           <div className="flex flex-col justify-center gap-5">
-            <div className="flex items-center gap-4">
-              <div className="w-16 text-gray-500 font-medium text-sm text-right shrink-0">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <div className="w-auto shrink-0 text-left text-sm font-medium text-gray-500 sm:w-16 sm:text-right">
                 找好资源
               </div>
-              <div className="flex-1 flex gap-3">
+              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:gap-3">
                 <a
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
                     setChatOpen(true);
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded border border-slate-200 py-2.5 text-sm text-gray-600 transition-all hover:border-red-200 hover:bg-red-50/30 hover:text-primary"
                 >
-                  <Brain className="size-[18px]" /> AI智能选课
+                  <Brain className="size-[18px] shrink-0" /> AI智能选课
                 </a>
                 <Link
                   href={industryHotVideoHref}
                   onClick={handleIndustryHotVideoClick}
-                  className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded border border-slate-200 py-2.5 text-sm text-gray-600 transition-all hover:border-red-200 hover:bg-red-50/30 hover:text-primary"
                 >
-                  <Flame className="size-[18px]" /> 行业热点课
+                  <Flame className="size-[18px] shrink-0" /> 行业热点课
                 </Link>
               </div>
             </div>
-            <div className="w-full h-[1px] bg-slate-100" />
-            <div className="flex items-center gap-4">
-              <div className="w-16 text-gray-500 font-medium text-sm text-right shrink-0">
+            <div className="h-px w-full bg-slate-100" />
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <div className="w-auto shrink-0 text-left text-sm font-medium text-gray-500 sm:w-16 sm:text-right">
                 用好工具
               </div>
-              <div className="flex-1 flex gap-3">
+              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:gap-3">
                 <a
                   href="https://www.91pxb.com/?mod=marketing&do=intro"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded border border-slate-200 py-2.5 text-sm text-gray-600 transition-all hover:border-red-200 hover:bg-red-50/30 hover:text-primary"
                 >
-                  <Wrench className="size-[18px]" /> 培训宝
+                  <Wrench className="size-[18px] shrink-0" /> 培训宝
                 </a>
                 <a
                   href="https://www.91mbt.com/home/#/download"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex-1 flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-slate-200 py-2.5 rounded hover:text-primary hover:border-red-200 hover:bg-red-50/30 transition-all"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded border border-slate-200 py-2.5 text-sm text-gray-600 transition-all hover:border-red-200 hover:bg-red-50/30 hover:text-primary"
                 >
-                  <Target className="size-[18px]" /> 目标通
+                  <Target className="size-[18px] shrink-0" /> 目标通
                 </a>
               </div>
             </div>

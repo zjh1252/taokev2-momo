@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { Editor, Toolbar } from '@wangeditor-next/editor-for-react';
 import type { IDomEditor, IEditorConfig, IToolbarConfig } from '@wangeditor-next/editor';
 import '@wangeditor-next/editor/dist/css/style.css';
-import { storage } from '@/lib/storage';
-import { TOKEN_KEY } from '@/lib/auth/constants';
+import { authHeaders, getAccessToken } from '@/lib/auth/token';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
@@ -16,11 +15,6 @@ interface RichTextEditorInnerProps {
   /** 编辑器最小高度，默认 300 */
   minHeight?: number;
   disabled?: boolean;
-}
-
-function getAccessToken(): string {
-  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
-  return tokenData?.accessToken || '';
 }
 
 /**
@@ -64,9 +58,10 @@ export default function RichTextEditorInner({
           const formData = new FormData();
           formData.append('file', file);
           try {
+            if (!getAccessToken()) return;
             const resp = await fetch(`${API_BASE_URL}/uploads/images`, {
               method: 'POST',
-              headers: { Authorization: `Bearer ${getAccessToken()}` },
+              headers: authHeaders(),
               body: formData,
             });
             const json = await resp.json();

@@ -12,6 +12,8 @@ export function buildVideoParams(filters: VideoFilters): URLSearchParams {
   if (filters.limit) params.set('limit', String(filters.limit));
   if (filters.search) params.set('search', filters.search);
   if (filters.status) params.set('status', filters.status);
+  if (filters.sortBy) params.set('sortBy', filters.sortBy);
+  if (filters.sortDirection) params.set('sortDirection', filters.sortDirection);
   return params;
 }
 

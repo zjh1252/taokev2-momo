@@ -91,6 +91,16 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         return buildDocuments(trainers);
     }
 
+    @Override
+    public List<? extends BaseDocument> fetchAfterId(int lastId, int size) {
+        Specification<Trainer> spec = (root, query, cb) -> cb.and(
+                cb.equal(root.get("status"), APPROVED),
+                cb.greaterThan(root.get("id"), lastId));
+        var pageable = org.springframework.data.domain.PageRequest.of(
+                0, size, org.springframework.data.domain.Sort.by("id").ascending());
+        return buildDocuments(trainerRepository.findAll(spec, pageable).getContent());
+    }
+
     private List<TrainerDocument> buildDocuments(List<Trainer> trainers) {
         if (trainers.isEmpty()) {
             return List.of();
@@ -211,6 +221,7 @@ public class TrainerDocumentProvider implements DocumentSyncProvider {
         }
 
         doc.setExpertiseCategoryIds(expertiseCategoryIds);
+        doc.setIndustryCategoryIds(industryCategoryIds);
         doc.setExpertiseCategoryNames(expertiseCategoryIds.stream()
                 .map(catNameMap::get)
                 .filter(Objects::nonNull)

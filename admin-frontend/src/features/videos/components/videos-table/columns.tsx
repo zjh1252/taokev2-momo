@@ -63,12 +63,14 @@ export const columns: ColumnDef<AdminVideo>[] = [
       variant: 'text' as const,
       icon: Icons.text
     },
-    enableColumnFilter: true
+    enableColumnFilter: true,
+    enableSorting: false
   },
   {
     accessorKey: 'categoryName',
     header: '分类',
-    cell: ({ cell }) => cell.getValue<string>() || '-'
+    cell: ({ cell }) => cell.getValue<string>() || '-',
+    enableSorting: false
   },
   {
     id: 'publisher',
@@ -87,23 +89,27 @@ export const columns: ColumnDef<AdminVideo>[] = [
         ENTERPRISE_AGENT: '专家经纪公司'
       };
       return typeLabel[type] || type || '-';
-    }
+    },
+    enableSorting: false
   },
   {
     accessorKey: 'teacherName',
     header: '所属专家',
-    cell: ({ cell }) => cell.getValue<string>() || '-'
+    cell: ({ cell }) => cell.getValue<string>() || '-',
+    enableSorting: false
   },
   {
     id: 'videoType',
     accessorKey: 'videoType',
     header: '视频类型',
-    cell: ({ row }) => VIDEO_TYPE_MAP[row.original.videoType] || row.original.videoTypeLabel || '-'
+    cell: ({ row }) => VIDEO_TYPE_MAP[row.original.videoType] || row.original.videoTypeLabel || '-',
+    enableSorting: false
   },
   {
     accessorKey: 'duration',
     header: '时长',
-    cell: ({ row }) => formatDuration(row.original.duration)
+    cell: ({ row }) => formatDuration(row.original.duration),
+    enableSorting: false
   },
   {
     accessorKey: 'price',
@@ -112,13 +118,15 @@ export const columns: ColumnDef<AdminVideo>[] = [
       if (row.original.isFree === 1) return <Badge variant='outline'>免费</Badge>;
       const p = row.original.price;
       return p > 0 ? `¥${Number(p).toLocaleString()}` : '-';
-    }
+    },
+    enableSorting: false
   },
   {
     id: 'status',
     accessorKey: 'status',
     header: '状态',
     enableColumnFilter: true,
+    enableSorting: false,
     cell: ({ cell }) => {
       const status = cell.getValue<number>();
       return (
@@ -136,6 +144,7 @@ export const columns: ColumnDef<AdminVideo>[] = [
   {
     id: 'stickyPriority',
     header: '操作',
+    enableSorting: false,
     cell: ({ row }) => (
       <CellStickyPriority
         videoId={row.original.id}
@@ -147,19 +156,25 @@ export const columns: ColumnDef<AdminVideo>[] = [
   {
     accessorKey: 'studentCount',
     header: '学习人数',
-    cell: ({ cell }) => cell.getValue<number>()?.toLocaleString() ?? '0'
+    cell: ({ cell }) => cell.getValue<number>()?.toLocaleString() ?? '0',
+    enableSorting: false
   },
   {
+    id: 'createdAt',
     accessorKey: 'createdAt',
-    header: '创建时间',
+    header: ({ column }: { column: Column<AdminVideo, unknown> }) => (
+      <DataTableColumnHeader column={column} title='创建时间' />
+    ),
     cell: ({ cell }) => {
       const val = cell.getValue<string>();
       if (!val) return '-';
       return new Date(val).toLocaleDateString('zh-CN');
-    }
+    },
+    enableSorting: true
   },
   {
     id: 'actions',
+    enableSorting: false,
     cell: ({ row }) => <CellAction data={row.original} />
   }
 ];

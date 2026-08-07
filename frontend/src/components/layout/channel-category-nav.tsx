@@ -35,9 +35,9 @@ export function ChannelCategoryNav({
     'text-slate-600 hover:text-primary transition-colors flex items-center justify-between gap-2 group w-full text-left';
 
   return (
-    <section className="bg-slate-100/50 rounded-xl p-8 border border-slate-100">
-      <h2 className="text-xl font-bold text-slate-800 mb-6">{title}</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-y-4 gap-x-6 text-sm">
+    <section className="max-w-full overflow-x-clip rounded-xl border border-slate-100 bg-slate-100/50 p-4 sm:p-8">
+      <h2 className="mb-4 text-lg font-bold text-slate-800 sm:mb-6 sm:text-xl">{title}</h2>
+      <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2 sm:gap-x-6 sm:gap-y-4 md:grid-cols-3 lg:grid-cols-5">
         {items.map((item) =>
           onItemClick ? (
             <button

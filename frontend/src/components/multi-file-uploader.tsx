@@ -2,8 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { Upload, X, Play, ImageIcon, Film, Loader2 } from 'lucide-react';
-import { storage } from '@/lib/storage';
-import { TOKEN_KEY } from '@/lib/auth/constants';
+import { authHeaders, getAccessToken } from '@/lib/auth/token';
 
 export interface UploadedFile {
   /** 后端文件记录 ID（已有文件才有） */
@@ -28,18 +27,16 @@ interface MultiFileUploaderProps {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
-function getAuthToken(): string {
-  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
-  return tokenData?.accessToken || '';
-}
-
 async function uploadFile(file: File, isVideo: boolean): Promise<string> {
+  if (!getAccessToken()) {
+    throw new Error('登录已过期，请重新登录');
+  }
   const formData = new FormData();
   formData.append('file', file);
   const endpoint = isVideo ? '/uploads/videos' : '/uploads/images';
   const resp = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${getAuthToken()}` },
+    headers: authHeaders(),
     body: formData,
   });
   if (!resp.ok) throw new Error('上传失败');

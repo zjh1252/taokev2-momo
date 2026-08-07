@@ -69,6 +69,11 @@ public class TrainerBookServiceImpl implements TrainerBookService {
         Trainer trainer = requireTrainer(userId);
         TrainerBook b = requireMyBook(trainer.getId(), bookId);
         applyRequest(b, request);
+        // 编辑后重新进入待审核（含已通过著作）
+        b.setStatus(0);
+        b.setRejectReason("");
+        b.setReviewerId(null);
+        b.setReviewedAt(null);
         bookRepository.save(b);
         return TrainerBookResponse.from(b);
     }

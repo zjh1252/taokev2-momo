@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
@@ -8,6 +9,8 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { NotificationBell } from '@/features/notification/components/NotificationBell';
 import { CartBadge } from '@/features/cart/components/CartBadge';
 import { SearchBar } from '@/components/layout/search-bar';
+import { MobileSiteNavDrawer } from '@/components/layout/mobile-site-nav-drawer';
+import { HeaderNavLinks } from '@/components/layout/header-nav-links';
 
 /** 集团产品矩阵（与 public TopNavBar 保持一致） */
 const GROUP_LINKS = [
@@ -17,17 +20,6 @@ const GROUP_LINKS = [
   { label: 'AI 导师', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/mentor/604996/list' },
   { label: '智能创导', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/extraction/604996' },
   { label: 'AI 陪练', href: 'https://a23880.91pxb.com/pc_elearning/#/ai/training_partner/604996/list' },
-] as const;
-
-/** 主导航链接（与 AppHeader 同步） */
-const NAV_LINKS = [
-  { label: '首页', href: ROUTES.HOME },
-  { label: '专家', href: ROUTES.TRAINERS },
-  { label: '公开课', href: ROUTES.PUBLIC_COURSES },
-  { label: '内训课', href: ROUTES.INTERNAL_COURSES },
-  { label: '录播课', href: ROUTES.ONLINE_COURSES },
-  { label: '机构', href: ROUTES.INSTITUTIONS },
-  { label: '培协', href: ROUTES.ASSOCIATIONS },
 ] as const;
 
 /** 当前激活角色 code → 中文展示名 */
@@ -46,15 +38,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 /**
- * 用户中心 Header — 与 (public) 的 TopNavBar + AppHeader 视觉一致，
- * 但保留白色系背景（不再使用红色主题），与 public 的两栏布局对齐：
- * <ul>
- *   <li>上栏：集团站点 + 用户认证区域（含购物车/通知/角色后缀）</li>
- *   <li>下栏：Logo + 主导航 + 搜索栏（突出当前所在「用户中心」入口）</li>
- * </ul>
- *
- * <p>「代码直接拷贝即可，但颜色估计要使用之前的白色系」— 此文件保留独立结构，
- * 不引用 public TopNavBar / AppHeader，便于后续白色系微调。</p>
+ * 用户中心 Header — 与 public 视觉对齐；移动端汉堡抽屉 + Logo + 搜索，无永久横向菜单
  *
  * @author Fangxinxin
  * @date 2026-05-21 10:00
@@ -65,18 +49,17 @@ export function UserCenterHeader() {
 
   return (
     <>
-      {/* ===== 顶部辅助导航（集团矩阵 + 用户认证） ===== */}
-      <div className="w-full bg-slate-50 border-b border-slate-100 text-xs py-1.5 px-8 z-50 sticky top-0">
-        <div className="max-w-7xl w-full mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 text-slate-500">
+      <div className="sticky top-0 z-50 w-full max-w-full overflow-x-clip border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-xs sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-7xl min-w-0 items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto overscroll-x-contain text-slate-500 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {GROUP_LINKS.map((link, i) => (
-              <span key={link.label} className="flex items-center gap-3">
+              <span key={link.label} className="flex shrink-0 items-center gap-3">
                 {i > 0 && <span className="text-slate-300">|</span>}
                 <a
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-primary transition-colors"
+                  className="whitespace-nowrap transition-colors hover:text-primary"
                 >
                   {link.label}
                 </a>
@@ -84,42 +67,40 @@ export function UserCenterHeader() {
             ))}
           </div>
 
-          <div className="flex items-center gap-3 text-slate-500">
+          <div className="flex shrink-0 items-center gap-2 text-slate-500 sm:gap-3">
             {user && (
               <>
                 <CartBadge />
-                <span className="text-slate-300">|</span>
+                <span className="hidden text-slate-300 sm:inline">|</span>
                 <NotificationBell />
-                <span className="text-slate-300">|</span>
+                <span className="hidden text-slate-300 sm:inline">|</span>
               </>
             )}
-            {/* 用户区域：头像 + 昵称（含角色后缀）+ 用户中心 + 我的主页 + 退出 */}
             {user ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Link
                   href={ROUTES.DASHBOARD}
-                  className="group flex items-center gap-1.5 min-w-0 hover:text-primary transition-colors"
+                  className="group flex min-w-0 items-center gap-1.5 transition-colors hover:text-primary"
                 >
                   <UserAvatar src={user.avatarUrl} name={user.nickname} size={22} />
-                  <span className="text-slate-700 font-medium max-w-[160px] truncate group-hover:text-primary">
+                  <span className="hidden max-w-[120px] truncate font-medium text-slate-700 group-hover:text-primary sm:inline md:max-w-[160px]">
                     {user.nickname}
-                    {roleSuffix && <span className="text-slate-500 ml-1">{roleSuffix}</span>}
+                    {roleSuffix && <span className="ml-1 text-slate-500">{roleSuffix}</span>}
                   </span>
                 </Link>
-                <span className="text-slate-300">|</span>
-                {/* 当前页是用户中心，链接保留但加粗下划线突显「正在所在」位置 */}
+                <span className="hidden text-slate-300 md:inline">|</span>
                 <Link
                   href={ROUTES.DASHBOARD}
-                  className="text-primary font-bold border-b border-primary pb-0.5"
+                  className="hidden border-b border-primary pb-0.5 font-bold text-primary md:inline"
                 >
                   用户中心
                 </Link>
                 {publicHomeHref && (
                   <>
-                    <span className="text-slate-300">|</span>
+                    <span className="hidden text-slate-300 lg:inline">|</span>
                     <Link
                       href={publicHomeHref}
-                      className="hover:text-primary transition-colors"
+                      className="hidden transition-colors hover:text-primary lg:inline"
                     >
                       个人主页
                     </Link>
@@ -129,18 +110,18 @@ export function UserCenterHeader() {
                 <button
                   type="button"
                   onClick={logout}
-                  className="hover:text-primary transition-colors cursor-pointer"
+                  className="cursor-pointer transition-colors hover:text-primary"
                 >
                   退出
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <Link href={ROUTES.LOGIN} className="hover:text-primary transition-colors">
+                <Link href={ROUTES.LOGIN} className="transition-colors hover:text-primary">
                   登录
                 </Link>
                 <span className="text-slate-300">|</span>
-                <Link href={ROUTES.REGISTER} className="hover:text-primary transition-colors">
+                <Link href={ROUTES.REGISTER} className="transition-colors hover:text-primary">
                   注册
                 </Link>
               </div>
@@ -149,39 +130,33 @@ export function UserCenterHeader() {
         </div>
       </div>
 
-      {/* ===== 主导航栏（Logo + 导航 + 搜索） ===== */}
-      <nav className="h-[80px] w-full bg-white/90 backdrop-blur-md sticky top-[29px] z-40 shadow-sm px-8 flex flex-col justify-center transition-all duration-300">
-        <div className="max-w-7xl w-full mx-auto flex items-center justify-between h-full">
-          <div className="flex items-center gap-6 shrink-0">
-            <Link href={ROUTES.HOME} className="flex items-center gap-2">
-              <Image
-                src="/statics/images/taoke-new-logo.jpg"
-                alt="淘课网 Logo"
-                width={40}
-                height={40}
-                className="size-10 rounded-md object-contain"
-                priority
-              />
-              <span className="text-2xl font-black tracking-tighter text-slate-900">
-                淘课网
-              </span>
-            </Link>
-          </div>
+      <nav className="sticky top-[29px] z-40 flex min-h-[64px] w-full max-w-full flex-col justify-center bg-white/90 px-3 py-2 shadow-sm backdrop-blur-md transition-all duration-300 sm:px-6 lg:h-[80px] lg:px-8 lg:py-0">
+        <div className="mx-auto flex h-full w-full max-w-7xl min-w-0 items-center gap-2 sm:gap-4">
+          <MobileSiteNavDrawer />
+          <Link href={ROUTES.HOME} className="flex shrink-0 items-center gap-2">
+            <Image
+              src="/statics/images/taoke-new-logo.jpg"
+              alt="淘课网 Logo"
+              width={40}
+              height={40}
+              className="size-9 rounded-md object-contain sm:size-10"
+              priority
+            />
+            <span className="hidden text-2xl font-black tracking-tighter text-slate-900 sm:inline">
+              淘课网
+            </span>
+          </Link>
 
-          <div className="hidden lg:flex items-center gap-8 shrink-0">
-            {NAV_LINKS.map(({ label, href }) => (
-              <Link
-                key={href}
-                href={href}
-                className="text-slate-600 font-medium hover:text-primary transition-colors text-[15px]"
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
+          <HeaderNavLinks />
 
-          <div className="flex items-center ml-4 flex-1 max-w-md justify-end">
-            <SearchBar />
+          <div className="ml-auto flex min-w-0 flex-1 items-center justify-end lg:max-w-md">
+            <Suspense
+              fallback={
+                <div className="h-[38px] w-full max-w-[420px] animate-pulse rounded-md border border-slate-200 bg-slate-100" />
+              }
+            >
+              <SearchBar className="w-full max-w-[min(100%,420px)]" />
+            </Suspense>
           </div>
         </div>
       </nav>

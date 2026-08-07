@@ -30,6 +30,7 @@ function compactMetaValue(value?: string | null, fallback = '企业管理', max 
     .replace(/\s+/g, '')
     .trim();
   if (!plain || /^[\d_\s,，]+$/.test(plain)) return fallback;
+  if (/^(其它|其他|未知|未分类|暂无|无|null|undefined)$/i.test(plain)) return fallback;
   return plain.length > max ? plain.slice(0, max) : plain;
 }
 
@@ -92,7 +93,7 @@ export function buildTrainerListMetadata(filter?: FilterContext): SeoFields {
 // ─── 专家详情 ───────────────────────────────────────────
 
 export function buildTrainerDetailMetadata(trainer: TrainerDetail): SeoFields {
-  const name = getTrainerDisplayName(trainer);
+  const name = firstReadable('培训讲师', getTrainerDisplayName(trainer), trainer.name);
   const positioning = trainer.oneLineIntro?.trim() || trainer.title?.trim() || '培训专家';
 
   const expertiseNames = trainer.expertiseCategories?.map((c) => c.categoryName) ?? [];
@@ -156,6 +157,7 @@ export function buildOpenCourseDetailMetadata(
   const plan = plans[planIndex] ?? plans[0];
   const planMeta = formatPlanMeta(plan);
   const titleSuffix = planMeta ? `_${planMeta}` : '';
+  const courseName = firstReadable('企业公开课', course.title);
   const target = compactMetaValue(course.audience, '企业培训学员');
   const field = firstReadable('企业管理', course.categoryName, course.subCategoryName, course.keywords);
 
@@ -163,7 +165,7 @@ export function buildOpenCourseDetailMetadata(
     title: `${course.title}${titleSuffix}_公开课_淘课网`,
     description: preferSeoDescription(
       course.seoDescription,
-      `《${course.title}》企业公开课，面向${target}，围绕${field}展开实战教学，线上公开授课，企业可报名参训，学习实用管理技能。`,
+      `《${courseName}》企业公开课，面向${target}，围绕${field}展开实战教学，线上公开授课，企业可报名参训，学习实用管理技能。`,
     ),
     keywords: joinKeywords(course.title, course.categoryName, '公开课', '企业培训课程'),
   };
@@ -202,6 +204,7 @@ export function buildInnerCourseListMetadata(filter?: FilterContext): SeoFields 
 // ─── 内训课详情 ─────────────────────────────────────────
 
 export function buildInnerCourseDetailMetadata(course: CourseDetail): SeoFields {
+  const courseName = firstReadable('企业内训课', course.title);
   const target = compactMetaValue(course.audience, '企业团队');
   const field = firstReadable('企业管理', course.categoryName, course.subCategoryName, course.keywords);
 
@@ -209,7 +212,7 @@ export function buildInnerCourseDetailMetadata(course: CourseDetail): SeoFields 
     title: `${course.title}_内训课_淘课网`,
     description: preferSeoDescription(
       course.seoDescription,
-      `《${course.title}》企业定制内训课程，针对${target}打造${field}实战内容，可上门定制授课，帮助企业解决管理痛点，提升组织能力。`,
+      `《${courseName}》企业定制内训课程，针对${target}打造${field}实战内容，可上门定制授课，帮助企业解决管理痛点，提升组织能力。`,
     ),
     keywords: joinKeywords(course.title, course.categoryName, '企业内训', '内训课程'),
   };
@@ -239,13 +242,25 @@ export function buildVideoListMetadata(filter?: FilterContext): SeoFields {
 // ─── 录播课详情 ───────────────────────────────────────────
 
 export function buildVideoDetailMetadata(video: VideoDetail): SeoFields {
-  const field = firstReadable('职场技能', video.categoryName, video.keywords, video.videoTypeLabel);
+  const courseName = firstReadable('线上录播课', video.title);
+  const field = firstReadable('职场技能', video.categoryName, video.subCategoryName);
+  // target：面向人群；避开「多节视频」等课型标签与 SEO 堆砌词
+  const keywordHint = video.keywords?.split(/[,，、]/)[0]?.trim();
+  const typeLabel = video.videoTypeLabel?.trim();
+  const typeAsAudience =
+    typeLabel && !/视频|录播|在线|课程|节/.test(typeLabel) ? typeLabel : null;
+  const target = firstReadable(
+    '企业员工',
+    typeAsAudience,
+    video.subCategoryName,
+    keywordHint && keywordHint.length <= 12 ? keywordHint : null,
+  );
 
   return {
     title: `${video.title}_录播课_在线学习_淘课网`,
     description: preferSeoDescription(
       video.seoDescription,
-      `《${video.title}》线上录播课程，聚焦${field}，随时随地自主学习，适合企业员工，碎片化学习职场技能，企业可采购用于员工线上培训。`,
+      `《${courseName}》线上录播课程，聚焦${field}，随时随地自主学习，适合${target}，碎片化学习职场技能，企业可采购用于员工线上培训。`,
     ),
     keywords: joinKeywords(video.title, video.categoryName, '录播课', '在线课程'),
   };
@@ -277,6 +292,7 @@ export function buildInstitutionListMetadata(filter?: FilterContext): SeoFields 
 // ─── 机构详情 ─────────────────────────────────────────────
 
 export function buildInstitutionDetailMetadata(institution: InstitutionDetail): SeoFields {
+  const name = firstReadable('培训机构', institution.orgName);
   const field = firstReadable(
     '企业管理',
     institution.specialties,
@@ -288,7 +304,7 @@ export function buildInstitutionDetailMetadata(institution: InstitutionDetail): 
     title: `${institution.orgName}_培训机构_淘课网`,
     description: preferSeoDescription(
       institution.seoDescription,
-      `${institution.orgName}是专业企业培训机构，主营${field}培训服务，汇聚资深实战讲师，提供公开课、企业内训、线上课程一体化企业人才培养解决方案。`,
+      `${name}是专业企业培训机构，主营${field}培训服务，汇聚资深实战讲师，提供公开课、企业内训、线上课程一体化企业人才培养解决方案。`,
     ),
     keywords: joinKeywords(institution.orgName, '培训机构', '企业培训服务商'),
   };

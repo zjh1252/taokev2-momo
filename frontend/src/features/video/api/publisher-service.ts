@@ -1,6 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/http/client';
-import { storage } from '@/lib/storage';
-import { TOKEN_KEY } from '@/lib/auth/constants';
+import { apiGet, apiPost, apiPut, apiDelete, authHeaders, getAccessToken } from '@/lib/http/client';
 import type {
   ApiResponse,
   PageResponse,
@@ -16,11 +14,6 @@ import type {
 /**
  * 录播课发布者 API（需登录）— 对应后端 VideoController / VideoSeriesController / VideoChapterController
  */
-
-function authHeaders() {
-  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
-  return { Authorization: `Bearer ${tokenData?.accessToken || ''}` };
-}
 
 export interface MyVideoListParams {
   status?: number;
@@ -181,7 +174,7 @@ export async function uploadImage(
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
   const resp = await fetch(`${API_BASE_URL}/uploads/images`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${storage.get<{ accessToken?: string }>(TOKEN_KEY)?.accessToken || ''}` },
+    headers: authHeaders(),
     body: formData,
   });
   if (!resp.ok) throw new Error('上传失败');
@@ -224,7 +217,10 @@ export function uploadVideoFile(
   const formData = new FormData();
   formData.append('file', file);
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-  const token = storage.get<{ accessToken?: string }>(TOKEN_KEY)?.accessToken || '';
+  const token = getAccessToken();
+  if (!token) {
+    return Promise.reject(new Error('登录已过期，请重新登录'));
+  }
 
   return new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();

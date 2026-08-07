@@ -25,7 +25,7 @@ export type TrainerCase = {
   cityId: number | null;
   /** 培训地点 - 区/县 ID */
   districtId: number | null;
-  /** 培训地点 - 镇/街道 ID（选填） */
+  /** 培训地点 - 镇/街道 ID（已废弃，业务仅保存到区；历史数据兼容只读） */
   townId: number | null;
   /** 培训地点 - 详细地址 */
   trainingAddress: string | null;
@@ -79,11 +79,14 @@ export type SaveTrainerCaseRequest = {
   cityId: number;
   /** 培训地点 - 区/县 ID（必填） */
   districtId: number;
-  /** 培训地点 - 镇/街道 ID（选填） */
+  /** 培训地点 - 镇/街道 ID（已废弃，提交时不再采集） */
   townId?: number;
   /** 培训地点 - 详细地址（选填） */
   trainingAddress?: string;
+  /** 培训开始日期 */
   trainingDate?: string;
+  /** 培训结束日期 */
+  trainingEndDate?: string;
   description?: string;
   coverImage?: string;
   sortOrder?: number;

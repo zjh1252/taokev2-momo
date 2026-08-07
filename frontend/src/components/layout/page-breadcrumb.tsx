@@ -26,11 +26,14 @@ function BreadcrumbSeparator({ className }: { className?: string }) {
  * <ul>
  *   <li>label：显示文案，必填</li>
  *   <li>href：可点击跳转目标。不传则该项视为「当前页」，纯文本展示，加深色</li>
+ *   <li>hardNav：true 时用原生 &lt;a&gt; 整页跳转（SEO .htm 需走 proxy rewrite）</li>
  * </ul>
  */
 export type BreadcrumbItem = {
   label: string;
   href?: string;
+  /** 使用整页导航，确保 middleware/proxy 重写生效 */
+  hardNav?: boolean;
 };
 
 type PageBreadcrumbProps = {
@@ -89,9 +92,15 @@ export function PageBreadcrumb({
         return (
           <span key={`${item.label}-${idx}`} className="flex items-center gap-2">
             {item.href && !isLast ? (
-              <Link href={item.href} className="hover:text-primary transition-colors">
-                {item.label}
-              </Link>
+              item.hardNav ? (
+                <a href={item.href} className="hover:text-primary transition-colors">
+                  {item.label}
+                </a>
+              ) : (
+                <Link href={item.href} className="hover:text-primary transition-colors">
+                  {item.label}
+                </Link>
+              )
             ) : (
               <span className="text-slate-800 font-medium">{item.label}</span>
             )}

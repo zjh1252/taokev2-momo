@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 课程 ES 文档 — 索引到 ES 的课程数据结构。
@@ -58,4 +59,14 @@ public class CourseDocument extends BaseDocument {
     private Integer subCategoryId;
     private String subCategoryName;
     private String trainerName;
+    private List<PlanDocument> plans;
+
+    @Data
+    public static class PlanDocument {
+        private Integer planId;
+        private Integer provinceId;
+        private Integer cityId;
+        private LocalDateTime startTime;
+        private LocalDateTime endTime;
+    }
 }

@@ -1,6 +1,7 @@
 package com.taoke.course.dto.demand;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -23,6 +24,7 @@ public class CreateDemandRequest {
     private String title;
 
     /** 培训主题 */
+    @NotBlank(message = "请填写培训主题")
     private String trainingTopic;
 
     /** 培训人数 */
@@ -56,9 +58,12 @@ public class CreateDemandRequest {
     private Integer sourceCourseId;
 
     /** 联系人 */
+    @NotBlank(message = "请填写联系人姓名")
     private String contactName;
 
     /** 联系电话（手机） */
+    @NotBlank(message = "请填写联系电话")
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String contactPhone;
 
     /** 公司名称 */

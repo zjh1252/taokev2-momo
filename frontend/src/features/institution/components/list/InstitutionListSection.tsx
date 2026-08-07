@@ -1,10 +1,16 @@
 'use client';
 
 import { Suspense, useState, useCallback, useTransition, useEffect, useRef } from 'react';
-import { ArrowUpDown, TrendingUp } from 'lucide-react';
+import { ArrowUpDown, TrendingUp, SlidersHorizontal } from 'lucide-react';
 import { ListPagePagination } from '@/components/list-page-pagination';
 import { useListPageUrlSync } from '@/hooks/use-list-page-url';
 import { useListKeywordUrl } from '@/hooks/use-list-keyword-url';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { InstitutionCard } from './InstitutionCard';
 import { SafeImage } from '@/components/safe-image';
 import { getInstitutionLogoFallback } from '../../utils/logo';
@@ -72,6 +78,7 @@ function InstitutionListSectionInner({
   );
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const keywordBootstrappedRef = useRef(false);
 
@@ -195,20 +202,55 @@ function InstitutionListSectionInner({
       : [];
 
   return (
-    <div className="flex flex-col gap-6">
-    <div className="flex gap-6 items-start">
-      <InstitutionSidebar
-        keyword={keyword}
-        onKeywordChange={setKeyword}
-        onSearch={handleSearch}
-        categoryItems={categoryItems}
-        activeCategoryId={expertiseCategoryId}
-        basePath={basePath}
-        categoryTitle={categoryTitle}
-        association={association}
-      />
+    <div className="flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-clip">
+    <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+      <div className="lg:hidden">
+        <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
+          <button
+            type="button"
+            onClick={() => setMobileFilterOpen(true)}
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm"
+          >
+            <SlidersHorizontal className="size-4" />
+            筛选机构
+          </button>
+          <SheetContent side="bottom" className="max-h-[82vh] gap-0 overflow-y-auto rounded-t-xl p-0">
+            <SheetHeader className="border-b border-slate-100 px-4 py-3">
+              <SheetTitle>筛选机构</SheetTitle>
+            </SheetHeader>
+            <div className="p-4">
+              <InstitutionSidebar
+                keyword={keyword}
+                onKeywordChange={setKeyword}
+                onSearch={(kw) => {
+                  handleSearch(kw);
+                  setMobileFilterOpen(false);
+                }}
+                categoryItems={categoryItems}
+                activeCategoryId={expertiseCategoryId}
+                basePath={basePath}
+                categoryTitle={categoryTitle}
+                association={association}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
 
-      <div className="flex-1 flex flex-col gap-6">
+      <div className="hidden shrink-0 lg:block">
+        <InstitutionSidebar
+          keyword={keyword}
+          onKeywordChange={setKeyword}
+          onSearch={handleSearch}
+          categoryItems={categoryItems}
+          activeCategoryId={expertiseCategoryId}
+          basePath={basePath}
+          categoryTitle={categoryTitle}
+          association={association}
+        />
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col gap-6">
         {/* 金牌推荐区（仅首页且有推荐时展示） */}
         {currentPage === 1 && displayRecommends.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-amber-200 overflow-hidden">

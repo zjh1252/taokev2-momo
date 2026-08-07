@@ -35,7 +35,7 @@ export function InstitutionSidebar({
   };
 
   return (
-    <aside className="w-[260px] shrink-0 flex flex-col gap-5">
+    <aside className="flex w-full min-w-0 shrink-0 flex-col gap-5 lg:w-[260px]">
       {/* 搜索区 */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="bg-slate-50 border-b border-slate-100 px-4 py-3 flex items-center justify-center">

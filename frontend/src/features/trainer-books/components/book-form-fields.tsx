@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, Upload, X } from 'lucide-react';
-import Image from 'next/image';
 import { FormField } from '@/components/FormField';
+import { SafeImage } from '@/components/safe-image';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import { listManagedTrainers } from '@/features/binding/api/service';
 import { isDelegatingRole } from '@/features/binding/lib/delegating-role';
@@ -11,9 +11,9 @@ import type { ManagedTrainerOption } from '@/features/binding/components/trainer
 import { getMyTrainerProfileAsForm } from '@/features/role-apply/api/service';
 import { getTrainerDisplayName } from '@/features/trainer/utils/displayName';
 import { getTodayDateValue, Validators } from '@/lib/validation';
-import { resolveImageSrc } from '@/lib/media';
 import type { SaveTrainerBookRequest } from '../api/types';
 import { toast } from 'sonner';
+import { DateInput } from '@/components/shared/date-input';
 
 const inputClassName =
   'w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:bg-slate-50';
@@ -211,12 +211,10 @@ export function BookFormFields({
           />
         </FormField>
         <FormField label="出版日期">
-          <input
-            type="date"
-            placeholder="年 / 月 / 日"
+          <DateInput
             value={form.publishDate || ''}
             max={getTodayDateValue()}
-            onChange={(e) => handlePublishDateChange(e.target.value)}
+            onChange={handlePublishDateChange}
             disabled={disabled}
             className={inputClassName}
           />
@@ -277,7 +275,6 @@ function BookCoverField({
   onPaste,
 }: BookCoverFieldProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const previewSrc = value ? resolveImageSrc(value, '') : '';
 
   return (
     <div
@@ -327,9 +324,9 @@ function BookCoverField({
         />
       </div>
 
-      {previewSrc ? (
+      {value ? (
         <div className="relative w-[100px] h-[140px] rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-          <Image src={previewSrc} alt="封面预览" fill className="object-cover" unoptimized />
+          <SafeImage src={value} alt="封面预览" fill className="object-cover" />
         </div>
       ) : (
         <label

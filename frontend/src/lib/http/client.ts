@@ -1,13 +1,14 @@
 import { toast } from 'sonner';
-import { storage } from '@/lib/storage';
-import { TOKEN_KEY } from '@/lib/auth/constants';
+import {
+  authHeaders,
+  clearAuthTokens,
+  getAccessToken,
+  isValidAccessToken,
+  parseBearerToken,
+  redirectToLogin,
+} from '@/lib/auth/token';
+import { ROUTES } from '@/config/routes';
 import { getApiBaseUrl } from '@/lib/env/client';
-
-/** 从 localStorage 读取 accessToken，供请求自动附带 Authorization */
-function getStoredAccessToken(): string | null {
-  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
-  return tokenData?.accessToken ?? null;
-}
 
 /**
  * API 异常类，携带 HTTP 状态码和业务错误码
@@ -26,10 +27,11 @@ export class ApiException extends Error {
   }
 }
 
-/** 扩展选项：silent 为 true 时不弹 toast；skipAuth 为 true 时不附带 Authorization */
+/** 扩展选项：silent 为 true 时不弹 toast；skipAuth 为 true 时不附带 Authorization；optionalAuth 有 token 则附带，无 token 也允许请求 */
 export interface ApiRequestOptions extends RequestInit {
   silent?: boolean;
   skipAuth?: boolean;
+  optionalAuth?: boolean;
 }
 
 /**
@@ -71,26 +73,85 @@ async function extractError(response: Response, status: number): Promise<{ code?
 }
 
 /**
+ * 合并请求头并注入合法 Authorization。
+ * <p>
+ * 调用方若传入非法 Authorization（空 Bearer、Bearer no-cache 等）会被剥离；
+ * 以 localStorage 中的合法 token 为准重新写入。无合法 token 且非 skipAuth 时返回 null，
+ * 由调用方中止请求并跳转登录。
+ * </p>
+ */
+function buildHeaders(
+  init: RequestInit | undefined,
+  skipAuth: boolean,
+  optionalAuth = false,
+): Headers | null {
+  const mergedHeaders = new Headers(init?.headers ?? {});
+  if (!mergedHeaders.has('Content-Type') && !(init?.body instanceof FormData)) {
+    mergedHeaders.set('Content-Type', 'application/json');
+  }
+
+  if (skipAuth) {
+    mergedHeaders.delete('Authorization');
+    return mergedHeaders;
+  }
+
+  // 剥掉调用方误塞的非法 Authorization（如 Bearer no-cache）
+  const existingRaw = mergedHeaders.get('Authorization');
+  if (existingRaw && !parseBearerToken(existingRaw)) {
+    mergedHeaders.delete('Authorization');
+  }
+
+  const token = getAccessToken();
+  if (token) {
+    mergedHeaders.set('Authorization', `Bearer ${token}`);
+    return mergedHeaders;
+  }
+
+  // 存储无 token：若调用方带来了合法 Authorization 可沿用；否则中止
+  if (parseBearerToken(mergedHeaders.get('Authorization'))) {
+    return mergedHeaders;
+  }
+
+  // 可选登录：无 token 也允许继续请求
+  if (optionalAuth) {
+    mergedHeaders.delete('Authorization');
+    return mergedHeaders;
+  }
+
+  return null;
+}
+
+function handleAuthRequired(silent?: boolean): never {
+  if (typeof window !== 'undefined') {
+    if (!silent) {
+      toast.error('登录已过期，请重新登录');
+    }
+    clearAuthTokens();
+    const path = window.location.pathname.replace(/^\/(zh|en)(?=\/|$)/, '') || '/';
+    if (path !== ROUTES.LOGIN && path !== ROUTES.REGISTER) {
+      redirectToLogin();
+    }
+  }
+  throw new ApiException(401, undefined, '登录已过期，请重新登录');
+}
+
+/**
  * 通用 API 客户端
  * <p>
  * 自动解析响应、弹出错误 toast（可通过 silent 选项关闭）。
- * 收到 401 时自动清除本地 token 并静默处理，不弹 toast。
+ * 收到 401 或本地无合法 token 时清除凭证并跳转登录，禁止把非法值塞进 Authorization。
  * </p>
  */
 export async function apiClient<T>(
   endpoint: string,
   init?: ApiRequestOptions,
 ): Promise<T> {
-    const { silent, skipAuth, ...fetchInit } = init || {};
+  const { silent, skipAuth, optionalAuth, ...fetchInit } = init || {};
   const url = endpoint.startsWith('http') ? endpoint : `${getApiBaseUrl()}${endpoint}`;
 
-  const token = skipAuth ? null : getStoredAccessToken();
-  const mergedHeaders = new Headers(fetchInit.headers ?? {});
-  if (!mergedHeaders.has('Content-Type')) {
-    mergedHeaders.set('Content-Type', 'application/json');
-  }
-  if (token && !mergedHeaders.has('Authorization')) {
-    mergedHeaders.set('Authorization', `Bearer ${token}`);
+  const mergedHeaders = buildHeaders(fetchInit, !!skipAuth, !!optionalAuth);
+  if (!mergedHeaders) {
+    handleAuthRequired(silent);
   }
 
   let response: Response;
@@ -111,9 +172,19 @@ export async function apiClient<T>(
   if (!response.ok) {
     const { code, message } = await extractError(response, response.status);
 
-    // 401 统一静默处理：清除过期 token，不弹 toast
+    // 401：清除脏/过期 token；非 skipAuth / optionalAuth 时跳转登录
     if (response.status === 401 && typeof window !== 'undefined') {
-      storage.remove(TOKEN_KEY);
+      clearAuthTokens();
+      if (!skipAuth && !optionalAuth) {
+        if (!silent) {
+          toast.error(message || '登录已过期，请重新登录');
+        }
+        // 已在登录页则不再跳转，避免死循环刷新
+        const path = window.location.pathname.replace(/^\/(zh|en)(?=\/|$)/, '') || '/';
+        if (path !== ROUTES.LOGIN && path !== ROUTES.REGISTER) {
+          redirectToLogin();
+        }
+      }
       throw new ApiException(response.status, code, message);
     }
 
@@ -138,3 +209,6 @@ export const apiPut = <T>(endpoint: string, data?: unknown, init?: ApiRequestOpt
 
 export const apiDelete = <T>(endpoint: string, init?: ApiRequestOptions) =>
   apiClient<T>(endpoint, { ...init, method: 'DELETE' });
+
+/** 供仍手写 fetch 的上传等场景复用 */
+export { authHeaders, getAccessToken, isValidAccessToken };

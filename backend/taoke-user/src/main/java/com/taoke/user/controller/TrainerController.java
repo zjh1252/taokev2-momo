@@ -83,8 +83,16 @@ public class TrainerController {
     @Public
     @Operation(summary = "专家擅长领域一级分类批量计数（底部分类导航）")
     @GetMapping("/trainers/expertise-category-counts")
-    public ApiResponse<java.util.Map<Integer, Long>> expertiseCategoryCounts() {
-        return ApiResponse.ok(trainerService.countPublicByExpertiseL1());
+    public ApiResponse<java.util.Map<Integer, Long>> expertiseCategoryCounts(
+            @RequestParam(defaultValue = "false") boolean includeChildren) {
+        return ApiResponse.ok(trainerService.countPublicByExpertiseL1(includeChildren));
+    }
+
+    @Public
+    @Operation(summary = "Approved trainer counts by industry category")
+    @GetMapping("/trainers/industry-category-counts")
+    public ApiResponse<java.util.Map<Integer, Long>> industryCategoryCounts() {
+        return ApiResponse.ok(trainerService.countPublicByIndustry());
     }
 
     @Public

@@ -22,4 +22,10 @@ public class AdminVideoQuery {
 
     /** 按状态过滤：0=草稿，1=待审核，2=已上架，3=驳回，4=已下架 */
     private Integer status;
+
+    /** 排序字段，仅支持 createdAt（默认） */
+    private String sortBy;
+
+    /** 排序方向：ASC / DESC（默认 DESC） */
+    private String sortDirection;
 }

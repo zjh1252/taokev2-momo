@@ -2,6 +2,7 @@ package com.taoke.common.util;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -34,5 +35,15 @@ class LegacyAvatarUrlsTest {
         assertFalse(LegacyAvatarUrls.isUsableCourseCover(
                 "https://www.taoke.com/attachments/user/middle/00/1.jpg"));
         assertFalse(LegacyAvatarUrls.isUsableCourseCover("/statics/images/taoke-new-logo.jpg"));
+    }
+
+    @Test
+    void normalizeRewritesLocalUploadPrefixToPxbCdn() {
+        assertEquals(
+                "https://cdn5-pxb-videos.taoke.com/taoke/upload/images/202608/a.png",
+                LegacyAvatarUrls.normalize("/uploads/taoke/upload/images/202608/a.png"));
+        assertEquals(
+                "https://cdn5-pxb-videos.taoke.com/taoke/upload/images/202608/a.png",
+                LegacyAvatarUrls.normalize("/taoke/upload/images/202608/a.png"));
     }
 }

@@ -60,7 +60,7 @@ export function FloatingActions() {
     <>
       <aside
         aria-label="quick-actions"
-        className="fixed right-2 bottom-16 z-30 flex w-[58px] max-w-[calc(100vw-16px)] flex-col items-stretch overflow-visible rounded-xl border border-slate-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:right-4 sm:bottom-24 sm:w-[72px]"
+        className="fixed right-[max(0.5rem,env(safe-area-inset-right))] bottom-16 z-30 flex w-[58px] max-w-[calc(100%-1rem)] flex-col items-stretch overflow-hidden rounded-xl border border-slate-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:right-4 sm:bottom-24 sm:w-[72px] sm:overflow-visible"
       >
       {/* 回到顶部 — 常驻显示，hover 上抬 */}
       <button

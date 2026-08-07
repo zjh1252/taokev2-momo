@@ -114,7 +114,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
           showPrefix={false}
           includeHome={false}
           items={[
-            { label: '培训专家', href: trainerListHref },
+            { label: '培训专家', href: trainerListHref, hardNav: true },
             { label: displayName },
           ]}
         />
@@ -122,7 +122,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
       <div className="relative overflow-hidden rounded-t-xl border border-b-0 border-slate-200 bg-white shadow-sm">
         <Image
           src="/statics/images/trainer/hero-taoke-watermark.png"
-          alt=""
+          alt="淘课网"
           width={680}
           height={243}
           unoptimized
@@ -228,25 +228,28 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                 <button
                   type="button"
                   aria-disabled="true"
-                  className="flex h-[34px] w-[92px] cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac] hover:border-primary/40 hover:text-primary"
+                  style={{ cursor: 'pointer' }}
+                  className="flex h-[34px] w-[92px] !cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac] hover:border-primary/40 hover:text-primary"
                 >
-                  <Download className="size-4" />
+                  <Download className="pointer-events-none size-4" />
                   下载简历
                 </button>
                 <button
                   type="button"
                   disabled={favLoading}
                   onClick={() => requireAuth(toggleFavorite)}
-                  className={`flex h-[34px] w-[82px] cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${
+                  style={{ cursor: favLoading ? 'not-allowed' : 'pointer' }}
+                  className={`flex h-[34px] w-[82px] items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${
                     favorited ? 'border-primary text-primary' : 'text-[#979fac]'
-                  }`}
+                  } ${favLoading ? '' : '!cursor-pointer'}`}
                 >
-                  <Heart className={`size-4 ${favorited ? 'fill-primary text-primary' : ''}`} />
+                  <Heart className={`pointer-events-none size-4 ${favorited ? 'fill-primary text-primary' : ''}`} />
                   {favorited ? '已收藏' : '收藏'}
                 </button>
                 <Link
                   href={getTrainerDetailTabHref(trainer.id, 'comments')}
-                  className="flex h-[34px] w-[82px] cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac] hover:border-primary/40 hover:text-primary"
+                  style={{ cursor: 'pointer' }}
+                  className="flex h-[34px] w-[82px] !cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac] hover:border-primary/40 hover:text-primary"
                 >
                   <Image
                     src="/statics/images/icons/trainer-hero-review.png"
@@ -254,14 +257,15 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                     width={13}
                     height={13}
                     unoptimized
-                    className="size-[13px] object-contain"
+                    className="pointer-events-none size-[13px] object-contain"
                   />
                   评价
                 </Link>
                 <button
                   type="button"
                   aria-disabled="true"
-                  className="flex h-[34px] w-[82px] cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac] hover:border-primary/40 hover:text-primary"
+                  style={{ cursor: 'pointer' }}
+                  className="flex h-[34px] w-[82px] !cursor-pointer items-center justify-center gap-1.5 rounded border border-[#bfc5cf] bg-[#f6f8fc] text-[15px] font-semibold text-[#979fac] hover:border-primary/40 hover:text-primary"
                 >
                   <Image
                     src="/statics/images/icons/trainer-hero-contact.png"
@@ -269,7 +273,7 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
                     width={13}
                     height={13}
                     unoptimized
-                    className="size-[13px] object-contain"
+                    className="pointer-events-none size-[13px] object-contain"
                   />
                   联系
                 </button>
@@ -298,9 +302,10 @@ export function TrainerHero({ trainer }: TrainerHeroProps) {
               <button
                 type="button"
                 onClick={() => requireAuth(() => setMsgOpen(true))}
-                className="mt-[30px] flex h-[60px] w-full shrink-0 cursor-pointer items-center justify-center gap-2.5 rounded-[10px] bg-[#d00000] text-[17px] font-semibold text-white hover:bg-[#be0000]"
+                style={{ cursor: 'pointer' }}
+                className="mt-[30px] flex h-[60px] w-full shrink-0 !cursor-pointer items-center justify-center gap-2.5 rounded-[10px] bg-[#d00000] text-[17px] font-semibold text-white hover:bg-[#be0000]"
               >
-                <MessageSquare className="size-5" />
+                <MessageSquare className="pointer-events-none size-5" />
                 给专家留言
               </button>
             </div>

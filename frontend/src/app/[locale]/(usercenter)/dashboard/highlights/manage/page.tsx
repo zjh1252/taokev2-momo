@@ -24,7 +24,7 @@ import {
   Play,
   ImageIcon,
 } from 'lucide-react';
-import Image from 'next/image';
+import { SafeImage } from '@/components/safe-image';
 import { cn } from '@/lib/utils';
 import { MediaGallery, type MediaGalleryItem } from '@/components/media-gallery';
 import {
@@ -180,6 +180,7 @@ export default function ManageHighlightsPage() {
               <HighlightCard
                 key={item.id}
                 item={item}
+                trainerUserId={trainerUserId}
                 onDelete={(id) => setDeleteId(id)}
                 onPreview={(idx) => openGallery(item, idx)}
               />
@@ -192,9 +193,9 @@ export default function ManageHighlightsPage() {
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确定删除？</AlertDialogTitle>
+            <AlertDialogTitle>确定要删除该精彩瞬间吗？</AlertDialogTitle>
             <AlertDialogDescription>
-              此操作不可恢复，精彩瞬间及其所有文件将被永久删除。
+              删除后数据不可恢复。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -225,21 +226,30 @@ export default function ManageHighlightsPage() {
 
 function HighlightCard({
   item,
+  trainerUserId,
   onDelete,
   onPreview,
 }: {
   item: TrainerHighlight;
+  trainerUserId?: number;
   onDelete: (id: number) => void;
   onPreview: (index?: number) => void;
 }) {
   const statusLabel = HighlightStatusLabelMap[item.status] || '未知';
   const badgeStyle = STATUS_BADGE_STYLES[item.status] || 'bg-slate-100 text-slate-600';
+  const isDraft = item.status === HighlightStatus.DRAFT;
   const isPending = item.status === HighlightStatus.PENDING;
+  const isApproved = item.status === HighlightStatus.APPROVED;
   const isRejected = item.status === HighlightStatus.REJECTED;
+  // 草稿 / 待审核 / 已通过 / 已驳回：统一展示编辑、删除
+  const showActions = isDraft || isPending || isApproved || isRejected;
 
   const coverUrl = item.coverImage || item.files?.[0]?.thumbnailUrl || item.files?.[0]?.fileUrl;
   const fileCount = item.files?.length || 0;
   const hasVideo = item.files?.some((f) => f.fileType === 2);
+  const editHref = trainerUserId
+    ? `/dashboard/highlights/${item.id}/edit?trainerUserId=${trainerUserId}`
+    : `/dashboard/highlights/${item.id}/edit`;
 
   return (
     <div className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow group/card">
@@ -249,7 +259,7 @@ function HighlightCard({
         onClick={() => onPreview(0)}
       >
         {coverUrl ? (
-          <Image
+          <SafeImage
             src={coverUrl}
             alt={item.title || '精彩瞬间'}
             fill
@@ -293,10 +303,10 @@ function HighlightCard({
           </div>
         )}
 
-        {(isPending || isRejected) && (
+        {showActions ? (
           <div className="flex gap-2 mt-2">
             <Link
-              href={`/dashboard/highlights/${item.id}/edit`}
+              href={editHref}
               className="flex-1 inline-flex items-center justify-center gap-1 text-xs py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
             >
               <Edit className="size-3" />
@@ -311,7 +321,7 @@ function HighlightCard({
               删除
             </button>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

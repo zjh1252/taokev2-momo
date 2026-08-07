@@ -21,7 +21,7 @@ import {
   AlertCircle,
   BookOpen,
 } from 'lucide-react';
-import Image from 'next/image';
+import { SafeImage } from '@/components/safe-image';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { validateForm, getFirstError } from '@/lib/validation';
@@ -215,9 +215,9 @@ export default function ManageBooksPage() {
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确定删除？</AlertDialogTitle>
+            <AlertDialogTitle>确定要删除该著作吗？</AlertDialogTitle>
             <AlertDialogDescription>
-              此操作不可恢复，该著作将被永久删除。
+              删除后数据不可恢复。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -273,14 +273,16 @@ function BookCard({
   const statusLabel = BookStatusLabelMap[item.status] || '未知';
   const badgeStyle = STATUS_BADGE_STYLES[item.status] || 'bg-slate-100 text-slate-600';
   const isPending = item.status === BookStatus.PENDING;
+  const isApproved = item.status === BookStatus.APPROVED;
   const isRejected = item.status === BookStatus.REJECTED;
-  const canEdit = isPending || isRejected;
+  // 待审核 / 已通过 / 已驳回：展示编辑、删除（样式统一）
+  const showActions = isPending || isApproved || isRejected;
 
   return (
     <div className="border border-slate-200 rounded-lg p-4 flex gap-4 hover:shadow-md transition-shadow">
-      <div className="size-16 shrink-0 rounded overflow-hidden bg-slate-100 flex items-center justify-center">
+      <div className="relative size-16 shrink-0 rounded overflow-hidden bg-slate-100 flex items-center justify-center">
         {item.coverUrl ? (
-          <Image src={item.coverUrl} alt={item.title} width={64} height={64} className="object-cover size-full" />
+          <SafeImage src={item.coverUrl} alt={item.title} fill className="object-cover" />
         ) : (
           <BookOpen className="size-6 text-gray-300" />
         )}
@@ -308,8 +310,8 @@ function BookCard({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 shrink-0 justify-center">
-        {canEdit && (
+      {showActions ? (
+        <div className="flex flex-col gap-2 shrink-0 justify-center">
           <button
             type="button"
             onClick={() => onEdit(item)}
@@ -318,8 +320,6 @@ function BookCard({
             <Edit className="size-3.5" />
             编辑
           </button>
-        )}
-        {canEdit && (
           <button
             type="button"
             onClick={() => onDelete(item.id)}
@@ -328,8 +328,8 @@ function BookCard({
             <Trash2 className="size-3.5" />
             删除
           </button>
-        )}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

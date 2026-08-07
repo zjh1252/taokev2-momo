@@ -3,8 +3,10 @@ package com.taoke.common.search;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -73,6 +75,30 @@ public class SearchRequest {
     private BigDecimal maxPrice;
 
     @Parameter(
+            description = "Course free state: 1 for free, 0 for paid. Only applies to course documents.",
+            example = "0")
+    private Integer isFree;
+
+    @Parameter(description = "Public course plan province ID.", example = "310000")
+    private Integer planProvinceId;
+
+    @Parameter(description = "Public course plan city ID.", example = "310100")
+    private Integer planCityId;
+
+    @Parameter(description = "Inclusive lower bound for a public course plan start time.")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    private LocalDateTime planStartFrom;
+
+    @Parameter(description = "Inclusive upper bound for a public course plan start time.")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    private LocalDateTime planStartTo;
+
+    @Parameter(
+            description = "Public course enrollment state. ENROLLING requires a future plan.",
+            schema = @Schema(allowableValues = {"ENROLLING", "ALL"}, example = "ENROLLING"))
+    private String enrollStatus;
+
+    @Parameter(
             description = "授课天数精确匹配，常用于过滤「1 天」「2 天」等典型课程时长。",
             example = "2")
     private Integer durationDays;
@@ -96,6 +122,11 @@ public class SearchRequest {
             description = "专家擅长领域分类 ID，匹配专家文档中的 `expertiseCategoryIds` 数组任一元素。",
             example = "21")
     private Integer expertiseCategoryId;
+
+    @Parameter(
+            description = "Trainer industry category ID matched against industryCategoryIds.",
+            example = "158")
+    private Integer industryCategoryId;
 
     @Parameter(
             description = "Sort option: smart_recommend/smartcs for blended recommendation, score for rating, viewCount for popularity, enrollmentCount for enrollments, default or empty for ES relevance.",

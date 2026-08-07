@@ -92,7 +92,7 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         h.setDuration(0);
         h.setFileSize(0L);
         h.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
-        h.setStatus(draft ? 1 : 0);
+        h.setStatus(draft ? STATUS_DRAFT : 0);
         h.setViewCount(0);
         highlightRepository.save(h);
 
@@ -120,9 +120,11 @@ public class TrainerHighlightServiceImpl implements TrainerHighlightService {
         if (request.getCoverImage() != null) h.setCoverImage(request.getCoverImage());
         if (request.getSortOrder() != null) h.setSortOrder(request.getSortOrder());
 
-        // 修改后重新进入待审核（draft 模式不进入审核）
-        h.setStatus(draft ? 1 : 0);
-        h.setRejectReason(null);
+        // 修改后重新进入待审核（draft 模式保持草稿）
+        h.setStatus(draft ? STATUS_DRAFT : 0);
+        h.setRejectReason("");
+        h.setReviewerId(null);
+        h.setReviewedAt(null);
         highlightRepository.save(h);
 
         return toResponseWithFiles(h);

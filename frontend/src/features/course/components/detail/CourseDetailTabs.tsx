@@ -108,6 +108,7 @@ export function CourseDetailTabs({
                 title={planTableTitle}
                 upcomingOnly={!planTableTitle}
                 courseOverdue={Boolean(course.isOverdue)}
+                serverTime={course.serverTime}
               />
             )}
 

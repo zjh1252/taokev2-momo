@@ -6,6 +6,8 @@ import com.taoke.common.security.Public;
 import com.taoke.course.api.CourseService;
 import com.taoke.course.dto.course.CourseDetailVO;
 import com.taoke.course.dto.course.CourseListItemVO;
+import com.taoke.course.dto.course.CoursePlanFacetRequest;
+import com.taoke.course.dto.course.CoursePlanFacetResponse;
 import com.taoke.course.dto.course.PublicCourseQuery;
 import com.taoke.course.dto.course.RecommendedCourseVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,8 +44,17 @@ public class PublicCourseController {
     @GetMapping("/courses/category-counts")
     public ApiResponse<java.util.Map<Integer, Long>> categoryCounts(
             @RequestParam(defaultValue = "true") boolean isOpen,
-            @RequestParam(required = false) List<Integer> cityIds) {
-        return ApiResponse.ok(courseService.countPublicByCategoryL1(isOpen, cityIds));
+            @RequestParam(required = false) List<Integer> cityIds,
+            @RequestParam(defaultValue = "false") boolean includeChildren) {
+        return ApiResponse.ok(courseService.countPublicByCategoryL1(isOpen, cityIds, includeChildren));
+    }
+
+    @Public
+    @Operation(summary = "Future public course plan location facets")
+    @GetMapping("/courses/plan-location-facets")
+    public ApiResponse<CoursePlanFacetResponse> planLocationFacets(
+            @ParameterObject CoursePlanFacetRequest request) {
+        return ApiResponse.ok(courseService.getPublicPlanLocationFacets(request));
     }
 
     @Public

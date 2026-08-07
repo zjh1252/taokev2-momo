@@ -5,15 +5,16 @@ import { useRouter } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
 import {
   createHighlight,
+  createHighlightDraft,
   addHighlightFile,
 } from '@/features/trainer-highlight/api/service';
 import { uploadImage } from '@/features/course/api/publisher-service';
 import type { SaveTrainerHighlightRequest } from '@/features/trainer-highlight/api/types';
 import { ArrowLeft, Upload } from 'lucide-react';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MultiFileUploader, type UploadedFile } from '@/components/multi-file-uploader';
 import { FormField } from '@/components/FormField';
+import { SafeImage } from '@/components/safe-image';
 import { toast } from 'sonner';
 import { usePublishingTarget } from '@/features/binding/components/publishing-target-banner';
 import { BoundPublisherGuard } from '@/features/binding/components/BoundPublisherGuard';
@@ -94,6 +95,48 @@ export default function CreateHighlightPage() {
     }
   };
 
+  /** 保存草稿：不做完整必填校验 */
+  const handleSaveDraft = async () => {
+    if (!valid) {
+      toast.error('请先在顶部选择要代发精彩瞬间的专家');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const highlight = await createHighlightDraft(
+        {
+          title: form.title || '',
+          description: form.description || '',
+          coverImage: form.coverImage || '',
+        },
+        trainerUserId,
+      );
+
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        await addHighlightFile(highlight.id, {
+          fileType: f.fileType,
+          fileUrl: f.fileUrl,
+          thumbnailUrl: f.thumbnailUrl || '',
+          title: f.title || '',
+          fileSize: f.fileSize,
+          sortOrder: i,
+        }, trainerUserId);
+      }
+
+      toast.success('草稿已保存');
+      router.push(
+        trainerUserId
+          ? `${ROUTES.UC_HIGHLIGHTS_MANAGE}?trainerUserId=${trainerUserId}`
+          : ROUTES.UC_HIGHLIGHTS_MANAGE,
+      );
+    } catch {
+      // 平台层已统一处理错误提示
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <section className="space-y-4">
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-4 flex items-center gap-3">
@@ -130,7 +173,7 @@ export default function CreateHighlightPage() {
         <FormField label="封面图">
           {form.coverImage ? (
             <div className="relative w-[240px] h-[180px] rounded-lg overflow-hidden border border-slate-200">
-              <Image
+              <SafeImage
                 src={form.coverImage}
                 alt="封面"
                 fill
@@ -170,6 +213,14 @@ export default function CreateHighlightPage() {
         </FormField>
 
         <div className="flex gap-3 pt-4">
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={submitting}
+            className="border border-slate-200 text-gray-700 text-sm px-6 py-2.5 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            {submitting ? '保存中...' : '保存草稿'}
+          </button>
           <button
             type="button"
             onClick={handleSubmit}

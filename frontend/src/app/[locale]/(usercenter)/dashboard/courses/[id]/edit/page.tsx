@@ -44,7 +44,9 @@ export default function EditCoursePage({
       toast.success(
         data.draft
           ? '草稿已保存，可在「管理课程-草稿」中继续编辑'
-          : '已保存并提交审核，请等待平台审核',
+          : course?.status === 1
+            ? '已保存，课程仍在待审核中'
+            : '已保存并提交审核，请等待平台审核',
       );
       router.push(ROUTES.UC_COURSES_MANAGE);
     } catch (err) {

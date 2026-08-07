@@ -54,7 +54,10 @@ public interface TrainerService {
      *
      * @return key=一级分类 ID，value=专家数
      */
-    java.util.Map<Integer, Long> countPublicByExpertiseL1();
+    java.util.Map<Integer, Long> countPublicByExpertiseL1(boolean includeChildren);
+
+    /** Approved trainers grouped by managed industry category. */
+    java.util.Map<Integer, Long> countPublicByIndustry();
 
     /**
      * 按专家 ID 查询公开档案（不含报价敏感字段）

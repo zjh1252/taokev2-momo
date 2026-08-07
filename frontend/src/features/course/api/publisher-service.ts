@@ -1,6 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/http/client';
-import { storage } from '@/lib/storage';
-import { TOKEN_KEY } from '@/lib/auth/constants';
+import { apiGet, apiPost, apiPut, apiDelete, authHeaders } from '@/lib/http/client';
 import type {
   ApiResponse,
   PageResponse,
@@ -16,11 +14,6 @@ import type {
  * @author Fangxinxin
  * @date 2026-04-07 10:30
  */
-
-function authHeaders() {
-  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
-  return { Authorization: `Bearer ${tokenData?.accessToken || ''}` };
-}
 
 export interface MyCourseListParams {
   status?: number;
@@ -98,6 +91,13 @@ export async function submitCourse(id: number): Promise<void> {
   });
 }
 
+/** 撤回审核（待审核 → 草稿） */
+export async function withdrawCourse(id: number): Promise<void> {
+  await apiPut<ApiResponse<void>>(`/courses/${id}/withdraw`, undefined, {
+    headers: authHeaders(),
+  });
+}
+
 /** 下架课程 */
 export async function unpublishCourse(id: number): Promise<void> {
   await apiPut<ApiResponse<void>>(`/courses/${id}/unpublish`, undefined, {
@@ -131,7 +131,7 @@ export async function uploadImage(
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
   const resp = await fetch(`${API_BASE_URL}/uploads/images`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${storage.get<{ accessToken?: string }>(TOKEN_KEY)?.accessToken || ''}` },
+    headers: authHeaders(),
     body: formData,
   });
   if (!resp.ok) throw new Error('上传失败');
@@ -150,9 +150,7 @@ export async function uploadCourseMaterial(file: File): Promise<string> {
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
   const resp = await fetch(`${API_BASE_URL}/uploads/files`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${storage.get<{ accessToken?: string }>(TOKEN_KEY)?.accessToken || ''}`,
-    },
+    headers: authHeaders(),
     body: formData,
   });
   if (!resp.ok) throw new Error('上传失败');

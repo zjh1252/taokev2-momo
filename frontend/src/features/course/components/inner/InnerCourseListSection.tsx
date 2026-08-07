@@ -1,9 +1,15 @@
 'use client';
 
 import { Suspense, useState, useCallback, useTransition, useMemo, useEffect, useRef } from 'react';
-import { ArrowUpDown, X } from 'lucide-react';
+import { ArrowUpDown, X, SlidersHorizontal } from 'lucide-react';
 import { ListPagePagination } from '@/components/list-page-pagination';
 import { useListPageUrlSync } from '@/hooks/use-list-page-url';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { InnerCourseCard } from './InnerCourseCard';
 import { InnerCourseFilters, type InnerCourseFilterValue } from './InnerCourseFilters';
 import { CourseListPromoSidebar } from '../CourseListPromoSidebar';
@@ -84,6 +90,7 @@ function InnerCourseListSectionInner({
   const [institutionId, setInstitutionId] = useState<number | undefined>(initialInstitutionId);
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const serverFilterKey = useMemo(
@@ -254,9 +261,37 @@ function InnerCourseListSectionInner({
   );
 
   return (
-    <div className="flex flex-col gap-6">
-    <div className="flex gap-6 items-start">
-      <div className="w-[300px] shrink-0 sticky top-[120px] self-start z-30 flex flex-col gap-10">
+    <div className="flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-clip">
+    <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+      <div className="lg:hidden">
+        <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
+          <button
+            type="button"
+            onClick={() => setMobileFilterOpen(true)}
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm"
+          >
+            <SlidersHorizontal className="size-4" />
+            筛选课程
+          </button>
+          <SheetContent side="bottom" className="max-h-[82vh] gap-0 overflow-y-auto rounded-t-xl p-0">
+            <SheetHeader className="border-b border-slate-100 px-4 py-3">
+              <SheetTitle>筛选课程</SheetTitle>
+            </SheetHeader>
+            <div className="p-4">
+              <InnerCourseFilters
+                categoryTree={categoryTree}
+                value={filters}
+                onChange={(next) => {
+                  handleFilterChange(next);
+                  setMobileFilterOpen(false);
+                }}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      <div className="hidden w-[300px] shrink-0 sticky top-[120px] z-30 flex-col gap-10 self-start lg:flex">
         <InnerCourseFilters
           categoryTree={categoryTree}
           value={filters}
@@ -265,7 +300,7 @@ function InnerCourseListSectionInner({
         <CourseListPromoSidebar variant="inner" />
       </div>
 
-      <div className="flex-1 flex flex-col gap-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
         {(institutionId && initialInstitutionName) || filterChips.length > 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-3 flex flex-wrap items-center gap-2 text-sm">
             <span className="text-slate-500">当前筛选：</span>

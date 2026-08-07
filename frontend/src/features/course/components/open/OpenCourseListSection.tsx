@@ -19,6 +19,11 @@ import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-
 import type { ChannelCategoryNavItem } from '@/components/layout/channel-category-nav';
 import { parseCourseCategoryIdFromHref } from '@/lib/parse-category-nav-href';
 import { getBrowserPathname, navigateToSeoPath, replaceBrowserUrl, setPageParam } from '@/lib/sync-list-filter-url';
+import {
+  hasOpenCourseBrowserFilter,
+  openCourseBrowserDiffersFromSsr,
+  readOpenCourseFiltersFromBrowser,
+} from './open-course-list-url';
 
 interface OpenCourseListSectionProps {
   initialData: PageResponse<CourseListItem>;
@@ -95,11 +100,15 @@ function OpenCourseListSectionInner({
   const [lockedCityIds, setLockedCityIds] = useState<number[] | undefined>(
     initialCityIds && initialCityIds.length > 0 ? initialCityIds : undefined,
   );
+  const [lockedCityNames, setLockedCityNames] = useState<string[] | undefined>(
+    initialCityNames && initialCityNames.length > 0 ? initialCityNames : undefined,
+  );
   // 排序由顶部排序栏唯一控制
   const [sortKey, setSortKey] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const restoredFromBrowserRef = useRef(false);
 
   const serverFilterKey = useMemo(
     () =>
@@ -113,12 +122,28 @@ function OpenCourseListSectionInner({
   );
   const serverFilterKeyRef = useRef(serverFilterKey);
 
-  /** SSR 导航（带 categoryIds 等查询参数）时同步列表与筛选，避免 client fetch 后被无参 SSR 覆盖 */
+  /**
+   * SSR 导航（带 categoryIds 等查询参数）时同步列表与筛选。
+   * 详情页浏览器返回后：地址栏可能仍有筛选而 SSR 为空——交由下方 URL/popstate 恢复，勿用空 SSR 覆盖。
+   */
   useEffect(() => {
     if (serverFilterKeyRef.current === serverFilterKey) {
       return;
     }
+
+    const browser = readOpenCourseFiltersFromBrowser();
+    const ssrEmpty =
+      !(initialCategoryIds?.length)
+      && !(initialProvinceIds?.length)
+      && initialInstitutionId == null
+      && !(initialCityIds?.length);
+    if (hasOpenCourseBrowserFilter(browser) && ssrEmpty) {
+      serverFilterKeyRef.current = serverFilterKey;
+      return;
+    }
+
     serverFilterKeyRef.current = serverFilterKey;
+    restoredFromBrowserRef.current = false;
     startTransition(() => {
       setData(initialData);
       setCurrentPage(initialData.page ?? 1);
@@ -132,6 +157,9 @@ function OpenCourseListSectionInner({
       setLockedCityIds(
         initialCityIds && initialCityIds.length > 0 ? initialCityIds : undefined,
       );
+      setLockedCityNames(
+        initialCityNames && initialCityNames.length > 0 ? initialCityNames : undefined,
+      );
     });
   }, [
     serverFilterKey,
@@ -142,19 +170,26 @@ function OpenCourseListSectionInner({
     initialProvinceNames,
     initialInstitutionId,
     initialCityIds,
+    initialCityNames,
     startTransition,
   ]);
 
   const syncUrl = useCallback(
-    (page: number, f: OpenCourseFilterValue) => {
+    (
+      page: number,
+      f: OpenCourseFilterValue,
+      nextInstitutionId = institutionId,
+      nextLockedCityIds = lockedCityIds,
+      nextLockedCityNames = lockedCityNames,
+    ) => {
       const params = new URLSearchParams();
-      if (institutionId) {
-        params.set('institutionId', String(institutionId));
+      if (nextInstitutionId) {
+        params.set('institutionId', String(nextInstitutionId));
       }
-      if (lockedCityIds?.length) {
-        lockedCityIds.forEach((id, idx) => {
+      if (nextLockedCityIds?.length) {
+        nextLockedCityIds.forEach((id, idx) => {
           params.append('cityIds', String(id));
-          const name = initialCityNames?.[idx];
+          const name = nextLockedCityNames?.[idx];
           if (name) params.append('cityName', name);
         });
       }
@@ -171,7 +206,7 @@ function OpenCourseListSectionInner({
       setPageParam(params, page);
       replaceBrowserUrl(getBrowserPathname(), params);
     },
-    [institutionId, lockedCityIds, initialCityNames],
+    [institutionId, lockedCityIds, lockedCityNames],
   );
 
   const fetchData = useCallback(
@@ -180,6 +215,7 @@ function OpenCourseListSectionInner({
       newFilters?: OpenCourseFilterValue,
       overrideSortKey?: string,
       overrideInstitutionId?: number | null,
+      overrideLockedCityIds?: number[] | null,
     ) => {
       const f = newFilters ?? filters;
       const sort = overrideSortKey ?? sortKey;
@@ -189,6 +225,12 @@ function OpenCourseListSectionInner({
           : overrideInstitutionId !== undefined
             ? overrideInstitutionId
             : institutionId;
+      const cityIds =
+        overrideLockedCityIds === null
+          ? undefined
+          : overrideLockedCityIds !== undefined
+            ? overrideLockedCityIds
+            : lockedCityIds;
       const sortByValue = SORT_OPTIONS.find((o) => o.key === sort)?.sortBy ?? 'default';
       const effectiveSortBy = sortByValue !== 'default' ? sortByValue : undefined;
 
@@ -202,7 +244,7 @@ function OpenCourseListSectionInner({
             sortBy: effectiveSortBy,
             institutionId: instId,
             provinceIds: f.provinceIds,
-            cityIds: lockedCityIds,
+            cityIds,
             timeQuick: f.timeQuick,
             startTimeFrom: f.startTimeFrom,
             startTimeTo: f.startTimeTo,
@@ -220,6 +262,56 @@ function OpenCourseListSectionInner({
     [filters, sortKey, institutionId, lockedCityIds],
   );
 
+  const applyBrowserFilters = useCallback(() => {
+    const browser = readOpenCourseFiltersFromBrowser();
+    restoredFromBrowserRef.current = hasOpenCourseBrowserFilter(browser);
+    setFilters(browser.filters);
+    setInstitutionId(browser.institutionId);
+    setLockedCityIds(browser.lockedCityIds);
+    setLockedCityNames(browser.lockedCityNames);
+    setCurrentPage(browser.page);
+    fetchData(
+      browser.page,
+      browser.filters,
+      undefined,
+      browser.institutionId ?? null,
+      browser.lockedCityIds ?? null,
+    );
+  }, [fetchData]);
+
+  /** 挂载 / 浏览器后退：以地址栏为准恢复筛选（详情返回后 SSR 常为空） */
+  useEffect(() => {
+    const browser = readOpenCourseFiltersFromBrowser();
+    if (
+      hasOpenCourseBrowserFilter(browser)
+      && openCourseBrowserDiffersFromSsr(browser, {
+        categoryIds: initialCategoryIds,
+        provinceIds: initialProvinceIds,
+        institutionId: initialInstitutionId,
+        cityIds: initialCityIds,
+        page: initialData.page ?? 1,
+      })
+    ) {
+      restoredFromBrowserRef.current = true;
+      applyBrowserFilters();
+    }
+
+    const onPopState = () => {
+      applyBrowserFilters();
+    };
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) applyBrowserFilters();
+    };
+    window.addEventListener('popstate', onPopState);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+    // 仅挂载时绑定
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useListPageUrlSync({
     currentPage,
     onPageFromUrl: (page) => fetchData(page),
@@ -234,6 +326,7 @@ function OpenCourseListSectionInner({
   /** 清除锁定城市，跳回不带 cityIds 的 /opencourse */
   const handleClearCity = useCallback(() => {
     setLockedCityIds(undefined);
+    setLockedCityNames(undefined);
     navigateToSeoPath('/opencourse');
   }, []);
 
@@ -277,7 +370,7 @@ function OpenCourseListSectionInner({
     // 锁定城市 chips（从城市频道页跳转而来）
     if (lockedCityIds && lockedCityIds.length > 0) {
       lockedCityIds.forEach((id, idx) => {
-        const name = initialCityNames?.[idx] ?? `#${id}`;
+        const name = lockedCityNames?.[idx] ?? `#${id}`;
         chips.push({
           key: `locked-city-${id}`,
           label: `开课城市：${name}`,
@@ -362,7 +455,7 @@ function OpenCourseListSectionInner({
       });
     }
     return chips;
-  }, [filters, institutionId, initialInstitutionName, lockedCityIds, initialCityNames]);
+  }, [filters, institutionId, initialInstitutionName, lockedCityIds, lockedCityNames]);
 
   const handleRemoveChip = (chip: ActiveChip) => {
     if (chip.key === 'institution') {
@@ -433,14 +526,14 @@ function OpenCourseListSectionInner({
       <div className="flex-1 flex flex-col gap-4 min-w-0">
         {/* 排序栏 + 已选条件（滚动时冻结） */}
         <div className="sticky top-[120px] z-20 space-y-4 pb-1">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex items-center gap-2 overflow-x-auto">
+        <div className="flex flex-wrap items-center gap-2 overflow-x-auto rounded-xl border border-slate-100 bg-white p-2 shadow-sm">
           {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.key}
               onClick={() => handleSortChange(opt.key)}
-              className={`px-6 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-1 cursor-pointer ${
+              className={`inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg px-4 py-2 text-sm transition-colors sm:px-6 ${
                 sortKey === opt.key
-                  ? 'font-bold text-primary bg-primary/5'
+                  ? 'bg-primary/5 font-bold text-primary'
                   : 'font-medium text-slate-600 hover:bg-slate-50 hover:text-primary'
               }`}
             >
@@ -448,7 +541,7 @@ function OpenCourseListSectionInner({
               <ArrowUpDown className="size-3.5" />
             </button>
           ))}
-          <span className="ml-auto shrink-0 text-sm text-slate-500 pr-2">
+          <span className="ml-auto shrink-0 pr-1 text-sm text-slate-500 sm:pr-2">
             共 <strong className="text-slate-900">{data.total}</strong> 门课程
           </span>
         </div>

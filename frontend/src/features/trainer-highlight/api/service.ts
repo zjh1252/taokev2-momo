@@ -1,6 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/http/client';
-import { storage } from '@/lib/storage';
-import { TOKEN_KEY } from '@/lib/auth/constants';
+import { apiGet, apiPost, apiPut, apiDelete, authHeaders } from '@/lib/http/client';
 import type {
   ApiResponse,
   TrainerHighlight,
@@ -17,11 +15,6 @@ import type {
 export async function getTrainerHighlights(trainerId: number): Promise<TrainerHighlight[]> {
   const res = await apiGet<ApiResponse<TrainerHighlight[]>>(`/trainers/${trainerId}/highlights`);
   return res.data ?? [];
-}
-
-function authHeaders() {
-  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
-  return { Authorization: `Bearer ${tokenData?.accessToken || ''}` };
 }
 
 function buildQs(trainerUserId?: number) {

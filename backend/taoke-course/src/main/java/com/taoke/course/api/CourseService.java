@@ -3,6 +3,8 @@ package com.taoke.course.api;
 import com.taoke.common.response.PageResponse;
 import com.taoke.course.dto.course.CourseDetailVO;
 import com.taoke.course.dto.course.CourseListItemVO;
+import com.taoke.course.dto.course.CoursePlanFacetRequest;
+import com.taoke.course.dto.course.CoursePlanFacetResponse;
 import com.taoke.course.dto.course.PublicCourseQuery;
 import com.taoke.course.dto.course.RecommendedCourseVO;
 import com.taoke.course.dto.course.SaveCourseRequest;
@@ -50,6 +52,11 @@ public interface CourseService {
     void submitForReview(Integer courseId, Integer publisherId);
 
     /**
+     * 撤回审核（待审核 → 草稿）
+     */
+    void withdrawFromReview(Integer courseId, Integer publisherId);
+
+    /**
      * 发布者下架自己的课程
      */
     void unpublish(Integer courseId, Integer publisherId);
@@ -91,7 +98,7 @@ public interface CourseService {
      *   <li>分类 / 类型 / 公开课开关 / 关键词 / 机构</li>
      *   <li>开课计划维度：开课省/市、开课时间范围（或 timeQuick 快捷段）</li>
      *   <li>价格维度：priceMin / priceMax / isFree</li>
-     *   <li>报名状态：ENROLLING（存在未来开课计划） / ENDED（无未来开课计划）</li>
+     *   <li>报名状态：ENROLLING（存在未结束开课计划） / ENDED（全部场次已结束）</li>
      *   <li>排序方式 + 分页</li>
      * </ul>
      */
@@ -104,7 +111,10 @@ public interface CourseService {
      * @param cityIds  可选；传入时仅统计在这些城市有开课计划的公开课
      * @return key=一级分类 ID，value=课程数
      */
-    java.util.Map<Integer, Long> countPublicByCategoryL1(boolean isOpen, List<Integer> cityIds);
+    java.util.Map<Integer, Long> countPublicByCategoryL1(
+            boolean isOpen, List<Integer> cityIds, boolean includeChildren);
+
+    CoursePlanFacetResponse getPublicPlanLocationFacets(CoursePlanFacetRequest request);
 
     /**
      * 专家详情页推荐课程

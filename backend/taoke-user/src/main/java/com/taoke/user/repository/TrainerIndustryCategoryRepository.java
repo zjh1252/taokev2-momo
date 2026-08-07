@@ -29,4 +29,16 @@ public interface TrainerIndustryCategoryRepository extends JpaRepository<Trainer
 
     /** 检查是否有专家关联了该分类 */
     boolean existsByCategoryId(Integer categoryId);
+
+    /** Approved trainers grouped by visible managed industry category. */
+    @Query(value = """
+            SELECT c.id AS category_id, COUNT(DISTINCT t.id) AS cnt
+            FROM sys_categories c
+            LEFT JOIN trainer_industry_categories tic ON tic.category_id = c.id
+            LEFT JOIN user_trainers t ON t.id = tic.trainer_id AND t.status = 2
+            WHERE c.type = 'TRAINER_INDUSTRY'
+              AND c.is_visible = 1
+            GROUP BY c.id
+            """, nativeQuery = true)
+    List<Object[]> countPublishedTrainersByIndustry();
 }

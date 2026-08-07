@@ -203,6 +203,8 @@ export interface CourseDetail {
   isOverdue?: boolean;
   /** 对外展示课程编号（纯数字，优先 legacy 场次） */
   displayCourseNo?: number;
+  /** 服务器当前时间（Asia/Shanghai），用于开课计划报名状态判定 */
+  serverTime?: string;
 }
 
 /**

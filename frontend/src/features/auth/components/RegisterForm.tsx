@@ -7,9 +7,8 @@ import { ArrowRight, Lock, Loader2, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
-import { storage } from '@/lib/storage';
 import { useAuth } from '@/lib/auth/auth-context';
-import { TOKEN_KEY } from '@/lib/auth/constants';
+import { setAuthTokens } from '@/lib/auth/token';
 import { markNewUserPending } from '@/features/role-apply/hooks/useRoleApplyState';
 import { sendCode, register, getMockCode } from '../api/service';
 import { withCaptcha } from '@/lib/captcha';
@@ -93,11 +92,11 @@ export function RegisterForm() {
     try {
       const res = await register({ phone, code, password });
       const token = res.data;
-      storage.set(TOKEN_KEY, {
+      setAuthTokens({
         accessToken: token.accessToken,
         refreshToken: token.refreshToken,
         expiresIn: token.expiresIn,
-        tokenType: token.tokenType,
+        tokenType: token.tokenType || 'Bearer',
       });
       await refreshUser();
       if (token.newUser === true) {

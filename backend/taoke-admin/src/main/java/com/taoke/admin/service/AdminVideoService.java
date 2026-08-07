@@ -36,7 +36,7 @@ public class AdminVideoService {
      */
     public PageResponse<VideoListItemVO> listVideos(AdminVideoQuery query) {
         return videoService.listForAdmin(query.getStatus(), query.getKeyword(),
-                query.getPage(), query.getSize());
+                query.getPage(), query.getSize(), query.getSortBy(), query.getSortDirection());
     }
 
     /**

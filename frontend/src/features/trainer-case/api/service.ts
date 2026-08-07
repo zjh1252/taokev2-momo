@@ -1,16 +1,9 @@
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/http/client';
-import { storage } from '@/lib/storage';
-import { TOKEN_KEY } from '@/lib/auth/constants';
+import { apiGet, apiPost, apiPut, apiDelete, authHeaders } from '@/lib/http/client';
 import type { ApiResponse, TrainerCase, TrainerCaseFile, SaveTrainerCaseRequest } from './types';
 
 /**
  * 专家案例 API — 自服务接口（需登录）
  */
-
-function authHeaders() {
-  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
-  return { Authorization: `Bearer ${tokenData?.accessToken || ''}` };
-}
 
 function buildQs(trainerUserId?: number) {
   return trainerUserId ? `?trainerUserId=${trainerUserId}` : '';

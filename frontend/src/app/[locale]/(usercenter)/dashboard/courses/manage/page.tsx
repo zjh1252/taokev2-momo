@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
+import { SafeImage } from '@/components/safe-image';
 import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { ROUTES } from '@/config/routes';
@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import {
   getMyCourses,
   submitCourse,
+  withdrawCourse,
   unpublishCourse,
   deleteCourse,
   type MyCourseListParams,
@@ -28,6 +29,7 @@ import {
   Trash2,
   Send,
   EyeOff,
+  Undo2,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
@@ -36,7 +38,16 @@ import {
   CalendarClock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { resolveImageSrc } from '@/lib/media';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const STATUS_TABS: { label: string; value: number | undefined }[] = [
   { label: '全部', value: undefined },
@@ -79,6 +90,8 @@ export default function ManageCoursesPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [trainerUserId, setTrainerUserId] = useState<number | undefined>(undefined);
+  const [withdrawId, setWithdrawId] = useState<number | null>(null);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -126,6 +139,20 @@ export default function ManageCoursesPage() {
       fetchCourses();
     } catch {
       alert('提交审核失败');
+    }
+  };
+
+  const handleConfirmWithdraw = async () => {
+    if (withdrawId == null) return;
+    setWithdrawing(true);
+    try {
+      await withdrawCourse(withdrawId);
+      setWithdrawId(null);
+      fetchCourses();
+    } catch {
+      alert('撤回失败');
+    } finally {
+      setWithdrawing(false);
     }
   };
 
@@ -239,6 +266,7 @@ export default function ManageCoursesPage() {
                 key={course.id}
                 course={course}
                 onSubmit={handleSubmit}
+                onWithdraw={(id) => setWithdrawId(id)}
                 onUnpublish={handleUnpublish}
                 onDelete={handleDelete}
               />
@@ -271,6 +299,28 @@ export default function ManageCoursesPage() {
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={withdrawId !== null}
+        onOpenChange={(open) => {
+          if (!open && !withdrawing) setWithdrawId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认撤回该课程审核申请？</AlertDialogTitle>
+            <AlertDialogDescription>
+              撤回后课程将回到草稿状态。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={withdrawing}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmWithdraw} disabled={withdrawing}>
+              {withdrawing ? '撤回中...' : '确认撤回'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
@@ -278,11 +328,13 @@ export default function ManageCoursesPage() {
 function CourseCard({
   course,
   onSubmit,
+  onWithdraw,
   onUnpublish,
   onDelete,
 }: {
   course: CourseListItem;
   onSubmit: (id: number) => void;
+  onWithdraw: (id: number) => void;
   onUnpublish: (id: number) => void;
   onDelete: (id: number) => void;
 }) {
@@ -298,13 +350,13 @@ function CourseCard({
       {/* 封面 */}
       <div className="w-[160px] h-[100px] rounded-lg overflow-hidden bg-slate-100 shrink-0">
         {course.coverUrl ? (
-          <Image
-            src={resolveImageSrc(course.coverUrl, '/statics/images/taoke-new-logo.jpg')}
+          <SafeImage
+            src={course.coverUrl}
             alt={course.title}
             width={160}
             height={100}
             className="w-full h-full object-cover"
-            unoptimized
+            fallback="/statics/images/taoke-new-logo.jpg"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-300">
@@ -360,20 +412,31 @@ function CourseCard({
         </div>
       </div>
 
-      {/* 操作按钮 */}
-      <div className="flex flex-col gap-2 shrink-0 justify-center">
-        {/* 编辑：除「待审核」外的所有状态都允许编辑；后端 update 时若原状态为
-            PUBLISHED/UNPUBLISHED 等会自动回到 PENDING 走重新审核 */}
-        {!isPending && (
-          <Link
-            href={`/dashboard/courses/${course.id}/edit`}
-            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
-            title={isPublished ? '编辑后将回到待审核状态' : undefined}
-          >
-            <Edit className="size-3.5" />
-            编辑
-          </Link>
+      {/* 操作按钮：待审核横向【编辑】【撤回】；其余状态纵向保持原样 */}
+      <div
+        className={cn(
+          'flex shrink-0 justify-center gap-2',
+          isPending ? 'flex-row items-start' : 'flex-col',
         )}
+      >
+        <Link
+          href={`/dashboard/courses/${course.id}/edit`}
+          className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-slate-200 text-gray-600 hover:bg-slate-50 transition-colors"
+          title={isPublished ? '编辑后将回到待审核状态' : undefined}
+        >
+          <Edit className="size-3.5" />
+          编辑
+        </Link>
+        {isPending ? (
+          <button
+            type="button"
+            onClick={() => onWithdraw(course.id)}
+            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded border border-amber-300 text-amber-600 hover:bg-amber-50 transition-colors"
+          >
+            <Undo2 className="size-3.5" />
+            撤回
+          </button>
+        ) : null}
         {(isDraft || isRejected) && (
           <button
             type="button"

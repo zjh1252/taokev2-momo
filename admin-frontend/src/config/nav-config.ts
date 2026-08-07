@@ -368,6 +368,13 @@ export const navGroups: NavGroup[] = [
             url: '/dashboard/footer/contact'
           }
         ]
+      },
+      {
+        title: '公开课报名',
+        url: '/dashboard/open-course-enrollments',
+        icon: 'forms',
+        isActive: false,
+        items: []
       }
     ]
   },

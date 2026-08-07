@@ -8,10 +8,14 @@ export async function GET(request: NextRequest) {
   const size = searchParams.get('limit') ?? '10';
   const search = searchParams.get('search') ?? '';
   const status = searchParams.get('status') ?? '';
+  const sortBy = searchParams.get('sortBy') ?? '';
+  const sortDirection = searchParams.get('sortDirection') ?? '';
 
   const params = new URLSearchParams({ page, size });
   if (search) params.set('keyword', search);
   if (status) params.set('status', status);
+  if (sortBy) params.set('sortBy', sortBy);
+  if (sortDirection) params.set('sortDirection', sortDirection);
 
   const result = await serverFetch<unknown>(
     `/admin/videos?${params.toString()}`

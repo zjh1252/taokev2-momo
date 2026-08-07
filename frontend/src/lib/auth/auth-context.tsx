@@ -9,7 +9,8 @@ import {
   type ReactNode,
 } from 'react';
 import { storage } from '@/lib/storage';
-import { TOKEN_KEY, ROLE_TRAINER, ROLE_INSTITUTION } from './constants';
+import { ROLE_TRAINER, ROLE_INSTITUTION } from './constants';
+import { clearAuthTokens, getAccessToken } from './token';
 import { resolveImageSrc } from '@/lib/media';
 import { getMyProfile } from '@/features/user/api/service';
 import { getMyTrainerProfile } from '@/features/trainer/api/service';
@@ -54,12 +55,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-/** 从存储中读取 accessToken */
-function getAccessToken(): string | null {
-  const tokenData = storage.get<{ accessToken?: string }>(TOKEN_KEY);
-  return tokenData?.accessToken ?? null;
-}
 
 /** 从后端 UserProfileResponse 映射为前端 AuthUser */
 function toAuthUser(profile: UserProfileResponse): AuthUser {
@@ -155,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch {
-      storage.remove(TOKEN_KEY);
+      clearAuthTokens();
       setUser(null);
       setTrainerPublicHomeHref(null);
       setInstitutionPublicHomeHref(null);
@@ -175,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUser]);
 
   const logout = useCallback(() => {
-    storage.remove(TOKEN_KEY);
+    clearAuthTokens();
     setUser(null);
     setTrainerPublicHomeHref(null);
     setInstitutionPublicHomeHref(null);
@@ -213,4 +208,9 @@ export function useAuth(): AuthContextValue {
     throw new Error('useAuth 必须在 AuthProvider 内部使用');
   }
   return ctx;
+}
+
+/** 可选认证（弹窗等场景，无 Provider 时不抛错） */
+export function useAuthOptional(): AuthContextValue | null {
+  return useContext(AuthContext);
 }

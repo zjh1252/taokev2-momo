@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect, type CSSProperties } from 're
 import { ChevronRight, Check } from 'lucide-react';
 import { apiGet } from '@/lib/http/client';
 import type { CategoryTreeNode } from '../../api/types';
+import { DateInput } from '@/components/shared/date-input';
 
 /**
  * 公开课列表 — 左侧多维筛选侧栏。
@@ -354,19 +355,15 @@ export function OpenCourseFilters({ categoryTree, value, onChange }: OpenCourseF
                 <div>
                   <h4 className="text-sm font-bold text-slate-800 mb-3">自定义时间段</h4>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <input
-                      type="date"
-                      placeholder="年 / 月 / 日"
+                    <DateInput
                       value={customStart}
-                      onChange={(e) => setCustomStart(e.target.value)}
+                      onChange={setCustomStart}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 px-3 focus:ring-primary focus:border-primary outline-none transition-all text-slate-600 cursor-pointer"
                     />
                     <span className="text-slate-400 shrink-0">-</span>
-                    <input
-                      type="date"
-                      placeholder="年 / 月 / 日"
+                    <DateInput
                       value={customEnd}
-                      onChange={(e) => setCustomEnd(e.target.value)}
+                      onChange={setCustomEnd}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs py-2 px-3 focus:ring-primary focus:border-primary outline-none transition-all text-slate-600 cursor-pointer"
                     />
                   </div>

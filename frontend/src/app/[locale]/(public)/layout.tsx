@@ -22,13 +22,15 @@ export default async function PublicLayout({ children }: { children: React.React
   }
 
   return (
-    <div className="w-full overflow-x-auto">
-      <div className="min-w-0">
+    <>
+      {/* 不用 100vw：含滚动条/刘海时会比 100% 更宽，本身会制造横向滚动 */}
+      <div className="w-full max-w-full min-w-0 overflow-x-clip">
         <PublicHeader />
-        <main className="flex-1 bg-[var(--page-bg)]">{children}</main>
+        <main className="min-w-0 flex-1 bg-[var(--page-bg)]">{children}</main>
         <AppFooter />
       </div>
+      {/* 悬浮条置于裁剪容器外，避免 fixed + overflow 在 iOS 上异常扩宽 */}
       <FloatingActions />
-    </div>
+    </>
   );
 }

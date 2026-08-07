@@ -6,9 +6,11 @@ import com.taoke.common.repository.CategoryRepository;
 import com.taoke.common.search.BaseDocument;
 import com.taoke.common.search.DocumentSyncProvider;
 import com.taoke.course.entity.Course;
+import com.taoke.course.entity.CoursePlan;
 import com.taoke.course.enums.CourseStatus;
 import com.taoke.course.enums.CourseType;
 import com.taoke.course.repository.CourseRepository;
+import com.taoke.course.repository.CoursePlanRepository;
 import com.taoke.course.support.LegacyTaokeCourseReader;
 import com.taoke.course.support.OpenCourseExpireSupport;
 import com.taoke.user.api.TrainerService;
@@ -37,6 +39,7 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
     private static final int PUBLISHED = CourseStatus.PUBLISHED.getValue();
 
     private final CourseRepository courseRepository;
+    private final CoursePlanRepository coursePlanRepository;
     private final CategoryRepository categoryRepository;
     private final TrainerService trainerService;
     private final OpsMaterialResolver opsMaterialResolver;
@@ -92,6 +95,15 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
         return buildDocuments(courses);
     }
 
+    @Override
+    public List<? extends BaseDocument> fetchAfterId(int lastId, int size) {
+        Specification<Course> spec = indexableSpec().and(
+                (root, query, cb) -> cb.greaterThan(root.get("id"), lastId));
+        var pageable = org.springframework.data.domain.PageRequest.of(
+                0, size, org.springframework.data.domain.Sort.by("id").ascending());
+        return buildDocuments(courseRepository.findAll(spec, pageable).getContent());
+    }
+
     /** 已上架且前台可见（排除到期自动隐藏的线下公开课） */
     private Specification<Course> indexableSpec() {
         return (root, query, cb) -> cb.and(
@@ -107,6 +119,11 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
 
         List<Integer> courseIds = courses.stream().map(Course::getId).toList();
         LegacyTaokeCourseReader.ListEnrichment legacy = legacyTaokeCourseReader.loadListEnrichment(courseIds);
+        Map<Integer, List<CourseDocument.PlanDocument>> plansByCourseId = coursePlanRepository
+                .findByCourseIdInOrderByStartTimeAsc(courseIds).stream()
+                .collect(Collectors.groupingBy(
+                        CoursePlan::getCourseId,
+                        Collectors.mapping(this::toPlanDocument, Collectors.toList())));
 
         // 批量查关联的讲师
         Set<Integer> trainerIds = courses.stream()
@@ -164,7 +181,8 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
                         finalCategoryNameMap,
                         finalLegacyLecturerNameMap,
                         finalLegacyLecturerUserIdMap,
-                        finalLegacyTrainerByUserId))
+                        finalLegacyTrainerByUserId,
+                        plansByCourseId.getOrDefault(c.getId(), List.of())))
                 .toList();
     }
 
@@ -174,7 +192,8 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
                                      Map<Integer, String> categoryNameMap,
                                      Map<Integer, String> legacyLecturerNameMap,
                                      Map<Integer, Integer> legacyLecturerUserIdMap,
-                                     Map<Integer, Trainer> legacyTrainerByUserId) {
+                                     Map<Integer, Trainer> legacyTrainerByUserId,
+                                     List<CourseDocument.PlanDocument> plans) {
         CourseDocument doc = new CourseDocument();
         doc.setDocType(DOC_TYPE);
         doc.setId(course.getId());
@@ -213,6 +232,7 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
         doc.setPublishedAt(course.getPublishedAt());
         doc.setCourseOpenEndDate(course.getCourseOpenEndDate());
         doc.setIsExpireHide(course.getIsExpireHide());
+        doc.setPlans(plans);
 
         // 关联字段
         String trainerName = null;
@@ -239,6 +259,16 @@ public class CourseDocumentProvider implements DocumentSyncProvider {
 
         doc.buildDocId();
         return doc;
+    }
+
+    private CourseDocument.PlanDocument toPlanDocument(CoursePlan plan) {
+        CourseDocument.PlanDocument document = new CourseDocument.PlanDocument();
+        document.setPlanId(plan.getId());
+        document.setProvinceId(plan.getProvinceId());
+        document.setCityId(plan.getCityId());
+        document.setStartTime(plan.getStartTime());
+        document.setEndTime(plan.getEndTime());
+        return document;
     }
 
     private Trainer resolveLegacyTrainer(Course course,

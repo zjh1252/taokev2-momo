@@ -81,4 +81,9 @@ public class CourseDetailVO {
      * 对外展示的课程编号（纯数字）：优先开课场次 legacy {@code sort_order}，否则 {@code courses.id}。
      */
     private Integer displayCourseNo;
+
+    /**
+     * 服务器当前时间（Asia/Shanghai），供前端开课计划报名状态判定，避免依赖用户本机时钟。
+     */
+    private LocalDateTime serverTime;
 }

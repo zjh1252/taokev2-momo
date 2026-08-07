@@ -250,14 +250,9 @@ function resolveImageSrcRaw(
     return resolvePxbUploadPath(value.slice('/uploads'.length));
   }
   if (value.startsWith('/uploads/')) {
-    // emergency local 模式遗留路径
-    if (isLocalDevApi()) return value;
-    try {
-      const base = (getCdnBaseUrl() || getApiBaseUrl()).replace(/\/$/, '');
-      return `${base}${value}`;
-    } catch {
-      return value;
-    }
+    // emergency local / 历史相对路径：生产由 nginx alias /uploads → 磁盘，必须保持同源相对路径。
+    // 勿拼 CDN（cdn5 上无 /uploads/images 这类路径，会 404）。
+    return value;
   }
 
   // /statics 本地占位与站点静态资源；迁移讲师图已在 tryResolveLegacyStaticAssetUrl 处理

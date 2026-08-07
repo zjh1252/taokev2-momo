@@ -5,17 +5,34 @@ import { videoKeys } from '../api/queries';
 import { getVideosFromServer } from '../api/server-service';
 import { VideosTable } from './videos-table';
 
+function parseSortFromSearchParam(sortRaw: string | null) {
+  if (!sortRaw) return {};
+  try {
+    const parsed = JSON.parse(sortRaw) as { id: string; desc: boolean }[];
+    const sortItem = parsed?.[0];
+    if (!sortItem || sortItem.id !== 'createdAt') return {};
+    return {
+      sortBy: 'createdAt',
+      sortDirection: sortItem.desc ? 'DESC' : 'ASC'
+    };
+  } catch {
+    return {};
+  }
+}
+
 export default async function VideoListingPage() {
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('name');
   const pageLimit = searchParamsCache.get('perPage');
   const status = searchParamsCache.get('status');
+  const sortRaw = searchParamsCache.get('sort');
 
   const filters = {
     page,
     limit: pageLimit,
     ...(search && { search }),
-    ...(status && { status })
+    ...(status && { status }),
+    ...parseSortFromSearchParam(sortRaw)
   };
 
   const queryClient = getQueryClient();

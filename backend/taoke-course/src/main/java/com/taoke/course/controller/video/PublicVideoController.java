@@ -54,10 +54,14 @@ public class PublicVideoController {
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) Integer institutionId,
             @RequestParam(required = false) Integer isFeatured,
+            @RequestParam(required = false) Integer isFree,
+            @RequestParam(required = false) java.math.BigDecimal minPrice,
+            @RequestParam(required = false) java.math.BigDecimal maxPrice,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "15") int size) {
         return ApiResponse.ok(videoService.listPublic(
-                categoryId, subCategoryId, keyword, sortBy, institutionId, isFeatured, page, size,
+                categoryId, subCategoryId, keyword, sortBy, institutionId, isFeatured,
+                isFree, minPrice, maxPrice, page, size,
                 SecurityUtils.getCurrentUserId()));
     }
 

@@ -188,6 +188,11 @@ export function TrainerApplyForm({ data, onChange }: TrainerApplyFormProps) {
                       <img
                         src={avatarSrc}
                         alt="头像"
+                        referrerPolicy={
+                          avatarSrc.startsWith('http://') || avatarSrc.startsWith('https://')
+                            ? 'no-referrer'
+                            : undefined
+                        }
                         className="w-full h-full object-cover"
                       />
                     ) : (

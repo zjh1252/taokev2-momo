@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useCallback, useTransition, useEffect, useMemo } from 'react';
+import { Suspense, useState, useCallback, useTransition, useEffect, useMemo, useRef } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { ListPagePagination } from '@/components/list-page-pagination';
 import {
@@ -9,6 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { replaceBrowserHistoryUrl } from '@/lib/sync-list-filter-url';
 import { TrainerFilters, type TrainerFilterValue } from './TrainerFilters';
 import { TrainerCard } from './TrainerCard';
 import { TrainerRecommendedScroller } from './TrainerRecommendedScroller';
@@ -18,10 +19,24 @@ import { TrainerSortBar } from './TrainerSortBar';
 import { getTrainerList, type RecentTrainerCase } from '../../api/service';
 import { filtersToHtmPath, joinFieldValue, type TrainerSlugParams } from '../../utils/url';
 import { splitFieldForFilter } from '../../utils/expertise-categories';
-import { rememberTrainerListPath } from '../../utils/list-return';
+import {
+  consumeTrainerListScroll,
+  hasTrainerSlugState,
+  readTrainerListSlugFromBrowser,
+  rememberTrainerListPath,
+} from '../../utils/list-return';
 import type { TrainerListItem, CategoryTreeNode, PageResponse } from '../../types';
 import { ListBottomCategoryNav } from '@/components/layout/list-bottom-category-nav';
 import type { ChannelCategoryNavItem } from '@/components/layout/channel-category-nav';
+
+function slugParamsEqual(a: TrainerSlugParams, b: TrainerSlugParams): boolean {
+  return (
+    (a.field || undefined) === (b.field || undefined)
+    && (a.industry || undefined) === (b.industry || undefined)
+    && (a.region || undefined) === (b.region || undefined)
+    && (a.page || 1) === (b.page || 1)
+  );
+}
 
 interface TrainerListSectionProps {
   initialData: PageResponse<TrainerListItem>;
@@ -152,36 +167,28 @@ function TrainerListSectionInner({
   const [data, setData] = useState(initialData);
   const [filters, setFilters] = useState<TrainerFilterValue>(initialFilters);
   const [sort, setSort] = useState<string>('default');
-  const [currentPage, setCurrentPage] = useState(initialData.page ?? 1);
+  const [currentPage, setCurrentPage] = useState(initialSlugParams?.page ?? initialData.page ?? 1);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const sortRef = useRef(sort);
+  const pendingScrollRef = useRef<number | null>(null);
+  const serverSlugKeyRef = useRef(JSON.stringify(initialSlugParams || {}));
+  const restoredFromBrowserRef = useRef(false);
 
-  /** SSR 刷新/软导航时同步数据与筛选（底部分类栏跳转、浏览器前进后退等） */
   useEffect(() => {
-    const nextFilters = enrichFilterFromTree(
-      slugToFilter(initialSlugParams || {}, expertiseTree),
-      expertiseTree,
-      industryTree,
-    );
-    startTransition(() => {
-      setData(initialData);
-      setCurrentPage(initialData.page ?? 1);
-      setFilters(nextFilters);
-    });
-  }, [initialData, initialSlugParams, expertiseTree, industryTree, startTransition]);
+    sortRef.current = sort;
+  }, [sort]);
 
-  /** 首次加载时，若 URL 带了 slug 查询参数（proxy 重定向），替换地址栏为 .htm SEO URL */
-  useEffect(() => {
-    if (initialSlugParams && Object.keys(initialSlugParams).length > 0) {
-      syncUrl(initialData.page ?? 1, initialFilters);
-    } else {
-      rememberTrainerListPath();
-    }
-    // 评分回填等后端变更后，客户端再拉一次避免 SSR/软导航残留旧分
-    fetchData(initialData.page ?? 1, initialFilters, 'default');
-    // 仅执行一次（mount 时）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  /** 当前列表 SEO 路径（供卡片点击写入返回地址） */
+  const listReturnPath = useMemo(() => {
+    const slugParams: TrainerSlugParams = {
+      field: filterToFieldParam(filters, expertiseTree),
+      industry: filters.industryName,
+      region: filters.regionName,
+      page: currentPage > 1 ? currentPage : undefined,
+    };
+    return filtersToHtmPath(slugParams);
+  }, [filters, expertiseTree, currentPage]);
 
   /** 拉取数据 */
   const fetchData = useCallback(
@@ -215,7 +222,7 @@ function TrainerListSectionInner({
     [expertiseTree, industryTree, lockedCityId],
   );
 
-  /** 更新浏览器地址栏（不触发 SSR 导航） */
+  /** 更新浏览器地址栏（保留 history.state，避免详情返回后丢页码/筛选） */
   const syncUrl = useCallback(
     (page: number, f: TrainerFilterValue) => {
       const slugParams: TrainerSlugParams = {
@@ -225,17 +232,151 @@ function TrainerListSectionInner({
         page: page > 1 ? page : undefined,
       };
       const url = filtersToHtmPath(slugParams);
-      window.history.replaceState(null, '', url);
+      try {
+        replaceBrowserHistoryUrl(url);
+      } catch (err) {
+        // history.state 偶发不可 clone 时，降级为 null state，仍必须写入 URL
+        console.warn('[trainer-list] replaceState with history.state failed, fallback', err);
+        const current = `${window.location.pathname}${window.location.search}`;
+        if (current !== url) {
+          window.history.replaceState(null, '', url);
+        }
+      }
+      // 若仍未写入（极端环境），最后再试一次
+      if (`${window.location.pathname}${window.location.search}` !== url) {
+        window.history.replaceState(null, '', url);
+      }
       rememberTrainerListPath(url);
     },
     [expertiseTree],
   );
+
+  /** 按 URL slug 恢复筛选（浏览器后退 / 详情返回后 remount） */
+  const applySlugParams = useCallback(
+    (slugParams: TrainerSlugParams, opts?: { fetch?: boolean; replaceData?: PageResponse<TrainerListItem> }) => {
+      const nextFilters = enrichFilterFromTree(
+        slugToFilter(slugParams, expertiseTree),
+        expertiseTree,
+        industryTree,
+      );
+      const page = slugParams.page && slugParams.page > 0 ? slugParams.page : 1;
+      setFilters(nextFilters);
+      setCurrentPage(page);
+      rememberTrainerListPath(filtersToHtmPath(slugParams));
+      if (opts?.replaceData) {
+        setData(opts.replaceData);
+      } else if (opts?.fetch !== false) {
+        fetchData(page, nextFilters, sortRef.current);
+      }
+    },
+    [expertiseTree, industryTree, fetchData],
+  );
+
+  /**
+   * SSR 导航（带 slug）时同步列表。
+   * 详情页浏览器返回后：地址栏/session 可能仍有筛选而 SSR 为空——以浏览器为准，勿用空 SSR 覆盖。
+   */
+  useEffect(() => {
+    const serverKey = JSON.stringify(initialSlugParams || {});
+    const browserSlug = readTrainerListSlugFromBrowser();
+    const ssrSlug = initialSlugParams || {};
+
+    if (hasTrainerSlugState(browserSlug) && !slugParamsEqual(browserSlug, ssrSlug)) {
+      restoredFromBrowserRef.current = true;
+      applySlugParams(browserSlug);
+      serverSlugKeyRef.current = serverKey;
+      return;
+    }
+
+    if (serverSlugKeyRef.current === serverKey && restoredFromBrowserRef.current) {
+      return;
+    }
+    serverSlugKeyRef.current = serverKey;
+    restoredFromBrowserRef.current = false;
+
+    startTransition(() => {
+      setData(initialData);
+      setCurrentPage(ssrSlug.page ?? initialData.page ?? 1);
+      setFilters(
+        enrichFilterFromTree(
+          slugToFilter(ssrSlug, expertiseTree),
+          expertiseTree,
+          industryTree,
+        ),
+      );
+    });
+  }, [initialData, initialSlugParams, expertiseTree, industryTree, applySlugParams, startTransition]);
+
+  /** 首次加载：规范化 SEO URL，恢复滚动，并监听浏览器前进/后退 */
+  useEffect(() => {
+    const browserSlug = readTrainerListSlugFromBrowser();
+    const ssrSlug = initialSlugParams || {};
+    pendingScrollRef.current = consumeTrainerListScroll();
+
+    if (hasTrainerSlugState(browserSlug)) {
+      syncUrl(browserSlug.page ?? 1, enrichFilterFromTree(
+        slugToFilter(browserSlug, expertiseTree),
+        expertiseTree,
+        industryTree,
+      ));
+      if (!slugParamsEqual(browserSlug, ssrSlug)) {
+        restoredFromBrowserRef.current = true;
+        applySlugParams(browserSlug);
+      } else {
+        rememberTrainerListPath(filtersToHtmPath(browserSlug));
+        // SSR 已按 URL 出数时仍对齐一次，避免 hydration 后状态漂移
+        if ((browserSlug.page ?? 1) !== (initialData.page ?? 1)) {
+          applySlugParams(browserSlug);
+        }
+      }
+    } else if (hasTrainerSlugState(ssrSlug)) {
+      syncUrl(ssrSlug.page ?? initialData.page ?? 1, initialFilters);
+    } else {
+      rememberTrainerListPath('/trainer');
+    }
+
+    const restoreFromLocation = () => {
+      const next = readTrainerListSlugFromBrowser();
+      restoredFromBrowserRef.current = hasTrainerSlugState(next);
+      applySlugParams(next);
+    };
+
+    const onPopState = () => {
+      restoreFromLocation();
+    };
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) restoreFromLocation();
+    };
+
+    window.addEventListener('popstate', onPopState);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+    // 仅挂载时绑定
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** 详情返回：列表页码对齐且加载结束后再恢复滚动位置 */
+  useEffect(() => {
+    const y = pendingScrollRef.current;
+    if (y == null || isPending) return;
+    const expectedPage = readTrainerListSlugFromBrowser().page ?? 1;
+    if (currentPage !== expectedPage) return;
+    pendingScrollRef.current = null;
+    const id = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: y, behavior: 'auto' });
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [data, currentPage, isPending]);
 
   const handleFilterChange = useCallback(
     (next: TrainerFilterValue) => {
       setFilters(next);
       syncUrl(1, next);
       fetchData(1, next, sort);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     },
     [fetchData, syncUrl, sort],
   );
@@ -245,6 +386,7 @@ function TrainerListSectionInner({
     setFilters(empty);
     syncUrl(1, empty);
     fetchData(1, empty, sort);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [fetchData, syncUrl, sort]);
 
   const handleSortChange = useCallback(
@@ -252,6 +394,7 @@ function TrainerListSectionInner({
       setSort(s);
       syncUrl(1, filters);
       fetchData(1, filters, s);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     },
     [fetchData, syncUrl, filters],
   );
@@ -278,12 +421,12 @@ function TrainerListSectionInner({
   );
 
   return (
-    <div className="flex max-w-full flex-col gap-4">
+    <div className="flex w-full min-w-0 max-w-full flex-col gap-4 overflow-x-clip">
       {categoryExpertTrainers.length > 0 ? (
         <TrainerCategoryExpertBar items={categoryExpertTrainers} />
       ) : null}
 
-      <section className="flex flex-col gap-4 lg:flex-row lg:gap-5 lg:items-start">
+      <section className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-5">
         <div className="lg:hidden">
           <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
             <button
@@ -344,6 +487,7 @@ function TrainerListSectionInner({
             <TrainerCard
               key={`${currentPage}-${trainer.id}`}
               trainer={trainer}
+              listReturnPath={listReturnPath}
               priorityImage={index < 6}
             />
           ))

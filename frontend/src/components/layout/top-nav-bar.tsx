@@ -23,18 +23,18 @@ const GROUP_LINKS = [
  */
 export function TopNavBar() {
   return (
-    <div className="w-full bg-slate-50 border-b border-slate-100 text-xs py-1.5 px-8 z-50 sticky top-0">
-      <div className="max-w-7xl w-full mx-auto flex items-center justify-between">
-        {/* 左侧：集团站点 */}
-        <div className="flex items-center gap-3 text-slate-500">
+    <div className="sticky top-0 z-50 w-full max-w-full overflow-x-clip border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-xs sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl min-w-0 items-center justify-between gap-2">
+        {/* 左侧：集团站点（窄屏内部横滚，不撑开整页） */}
+        <div className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto overscroll-x-contain text-slate-500 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {GROUP_LINKS.map((link, i) => (
-            <span key={link.label} className="flex items-center gap-3">
+            <span key={link.label} className="flex shrink-0 items-center gap-3">
               {i > 0 && <span className="text-slate-300">|</span>}
               <a
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-primary transition-colors"
+                className="whitespace-nowrap transition-colors hover:text-primary"
               >
                 {link.label}
               </a>
@@ -42,7 +42,9 @@ export function TopNavBar() {
           ))}
         </div>
 
-        <HeaderUserActions />
+        <div className="shrink-0">
+          <HeaderUserActions />
+        </div>
       </div>
     </div>
   );

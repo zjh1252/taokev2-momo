@@ -128,7 +128,7 @@ public class CourseMapper {
         }
 
         CoursePlan plan = new CoursePlan();
-        plan.setId(dto.getId());
+        // 不回写 dto.id：update 时会先删后插，带旧主键会触发 Hibernate 持久化异常（前端表现为「系统繁忙」）
         plan.setStartTime(dto.getStartTime());
         plan.setEndTime(dto.getEndTime());
         plan.setProvinceId(dto.getProvinceId());

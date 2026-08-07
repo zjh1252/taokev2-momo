@@ -112,6 +112,10 @@ public final class LegacyAvatarUrls {
         if (value.startsWith("taoke/upload/")) {
             return "https://cdn5-pxb-videos.taoke.com/" + value;
         }
+        // 历史 local 模式误写为 /uploads/taoke/upload/...，实际对象在 PXB CDN
+        if (value.startsWith("/uploads/taoke/upload/")) {
+            return "https://cdn5-pxb-videos.taoke.com" + value.substring("/uploads".length());
+        }
         if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/uploads/")
                 || value.startsWith("/statics/")) {
             return value;

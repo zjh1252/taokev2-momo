@@ -38,6 +38,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -281,13 +282,17 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     public PageResponse<VideoListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
-                                                     String keyword, String sortBy,
-                                                     Integer institutionId,
-                                                     Integer isFeatured,
-                                                     int page, int size, Integer viewerUserId) {
+                                                      String keyword, String sortBy,
+                                                      Integer institutionId,
+                                                      Integer isFeatured,
+                                                      Integer isFree,
+                                                      BigDecimal minPrice,
+                                                      BigDecimal maxPrice,
+                                                      int page, int size, Integer viewerUserId) {
         boolean cacheable = publicVideoListCache.isCacheableDefault(
                 categoryId, subCategoryId, keyword, sortBy, institutionId, isFeatured,
-                page, size, viewerUserId);
+                page, size, viewerUserId)
+                && isFree == null && minPrice == null && maxPrice == null;
         if (cacheable) {
             PageResponse<VideoListItemVO> cached = publicVideoListCache.getDefaultList(sortBy, page, size);
             if (cached != null) {
@@ -341,6 +346,15 @@ public class VideoServiceImpl implements VideoService {
             }
             if (isFeatured != null && isFeatured == 1) {
                 predicates.add(cb.equal(root.get("isFeatured"), 1));
+            }
+            if (isFree != null) {
+                predicates.add(cb.equal(root.get("isFree"), isFree));
+            }
+            if (minPrice != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("price"), minPrice));
+            }
+            if (maxPrice != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("price"), maxPrice));
             }
             return predicates.isEmpty()
                     ? cb.conjunction()
@@ -590,7 +604,8 @@ public class VideoServiceImpl implements VideoService {
     }
 
     @Override
-    public PageResponse<VideoListItemVO> listForAdmin(Integer status, String keyword, int page, int size) {
+    public PageResponse<VideoListItemVO> listForAdmin(Integer status, String keyword, int page, int size,
+                                                      String sortBy, String sortDirection) {
         Specification<Video> spec = (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (status != null) {
@@ -606,8 +621,7 @@ public class VideoServiceImpl implements VideoService {
             return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(Predicate[]::new));
         };
 
-        Sort sort = Sort.by(Sort.Direction.DESC, "teacherName")
-                .and(Sort.by(Sort.Direction.DESC, "id"));
+        Sort sort = buildAdminListSort(sortBy, sortDirection);
         PageRequest pageable = PageRequest.of(page - 1, size, sort);
         Page<Video> videoPage = videoRepository.findAll(spec, pageable);
 
@@ -620,6 +634,21 @@ public class VideoServiceImpl implements VideoService {
                 .toList();
         enrichPublisherNames(items);
         return PageResponse.of(items, videoPage.getTotalElements(), page, size);
+    }
+
+    /** 后台列表排序：默认创建时间倒序，同时间按 id 倒序稳定分页 */
+    private Sort buildAdminListSort(String sortBy, String sortDirection) {
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        String field = "createdAt";
+        if (sortBy != null && !sortBy.isBlank()) {
+            String normalized = sortBy.trim().replace("_", "").replace("-", "").toLowerCase(Locale.ROOT);
+            if ("createdat".equals(normalized) || "createtime".equals(normalized)) {
+                field = "createdAt";
+            }
+        }
+        return Sort.by(direction, field).and(Sort.by(Sort.Direction.DESC, "id"));
     }
 
     @Override

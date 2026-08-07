@@ -78,10 +78,22 @@ public interface VideoService {
      * @param sortBy        排序方式：default/price/score/time/viewCount/studentCount/smartcs/smart_recommend
      * @param institutionId 机构 ID，传入后仅返回 publisherType=INSTITUTION AND publisherId=institution.userId 的录播课；机构不存在返回空页
      */
+    default PageResponse<VideoListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
+                                                     String keyword, String sortBy,
+                                                     Integer institutionId,
+                                                     Integer isFeatured,
+                                                     int page, int size, Integer viewerUserId) {
+        return listPublic(categoryId, subCategoryId, keyword, sortBy, institutionId, isFeatured,
+                null, null, null, page, size, viewerUserId);
+    }
+
     PageResponse<VideoListItemVO> listPublic(Integer categoryId, Integer subCategoryId,
                                               String keyword, String sortBy,
                                               Integer institutionId,
                                               Integer isFeatured,
+                                              Integer isFree,
+                                              java.math.BigDecimal minPrice,
+                                              java.math.BigDecimal maxPrice,
                                               int page, int size, Integer viewerUserId);
 
     /**
@@ -117,8 +129,12 @@ public interface VideoService {
 
     /**
      * 后台分页查询录播课列表
+     *
+     * @param sortBy        排序字段，仅支持 createdAt（默认）
+     * @param sortDirection ASC / DESC（默认 DESC）
      */
-    PageResponse<VideoListItemVO> listForAdmin(Integer status, String keyword, int page, int size);
+    PageResponse<VideoListItemVO> listForAdmin(Integer status, String keyword, int page, int size,
+                                               String sortBy, String sortDirection);
 
     /**
      * 后台按发布者用户 ID 查询录播课（专家详情资源区使用，最多 {@code limit} 条）

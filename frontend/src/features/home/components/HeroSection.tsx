@@ -69,20 +69,32 @@ export function HeroSection({ categories, banners }: HeroSectionProps) {
   }, [slides.length]);
 
   return (
-    <section className="flex flex-col gap-3 lg:grid lg:h-[480px] lg:grid-cols-12 lg:gap-6">
-      <div className="lg:hidden">
-        <Sheet open={categoryOpen} onOpenChange={setCategoryOpen}>
+    <section className="flex w-full min-w-0 flex-col gap-3 overflow-x-hidden lg:grid lg:h-[480px] lg:grid-cols-12 lg:gap-6">
+      {/* 移动端：顶部横向分类 + 收起式全部分类弹窗，避免 PC 侧栏常驻造成横向溢出 */}
+      <div className="flex min-w-0 flex-col gap-2 lg:hidden">
+        <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
             onClick={() => setCategoryOpen(true)}
-            className="flex h-11 w-full items-center justify-between rounded-lg border border-slate-100 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 text-xs font-semibold text-primary"
           >
-            <span className="inline-flex items-center gap-2">
-              <LayoutGrid className="size-4 text-primary" />
-              {t('hero.allCategories')}
-            </span>
-            <ChevronRight className="size-4 text-slate-400" />
+            <LayoutGrid className="size-3.5 shrink-0" />
+            {t('hero.allCategories')}
           </button>
+          <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto overscroll-x-contain pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {menuItems.map((item) => (
+              <Link
+                key={item.id}
+                href={filtersToHtmPath({ field: item.fullName })}
+                className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-slate-100"
+              >
+                {item.shortLabel}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <Sheet open={categoryOpen} onOpenChange={setCategoryOpen}>
           <SheetContent side="bottom" className="max-h-[75vh] gap-0 rounded-t-xl p-0">
             <SheetHeader className="border-b border-slate-100 px-4 py-3">
               <SheetTitle>{t('hero.allCategories')}</SheetTitle>
@@ -103,14 +115,14 @@ export function HeroSection({ categories, banners }: HeroSectionProps) {
         </Sheet>
       </div>
 
-      <div className="hidden lg:col-span-3 lg:block">
-        <aside className="bg-white rounded-lg shadow-sm flex flex-col border border-slate-100 h-full">
-          <div className="flex items-center px-5 py-3 bg-primary/5 text-primary font-bold border-l-4 border-primary shrink-0">
-            <LayoutGrid className="size-5 mr-2 shrink-0" />
+      <div className="hidden min-w-0 lg:col-span-3 lg:block">
+        <aside className="flex h-full min-w-0 flex-col overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
+          <div className="flex shrink-0 items-center border-l-4 border-primary bg-primary/5 px-5 py-3 font-bold text-primary">
+            <LayoutGrid className="mr-2 size-5 shrink-0" />
             <h2 className="text-[15px]">{t('hero.allCategories')}</h2>
           </div>
 
-          <nav className="flex-1 overflow-y-auto py-1 flex flex-col justify-evenly">
+          <nav className="flex flex-1 flex-col justify-evenly overflow-y-auto py-1">
             {menuRows.map((row) => (
               <div
                 key={row.rowIndex}
@@ -120,7 +132,7 @@ export function HeroSection({ categories, banners }: HeroSectionProps) {
                   <Link
                     key={item.id}
                     href={filtersToHtmPath({ field: item.fullName })}
-                    className="whitespace-nowrap text-left text-slate-800 hover:bg-primary hover:text-white rounded-sm px-2 py-1 transition-colors"
+                    className="whitespace-nowrap rounded-sm px-2 py-1 text-left text-slate-800 transition-colors hover:bg-primary hover:text-white"
                   >
                     {item.shortLabel}
                   </Link>
@@ -131,7 +143,7 @@ export function HeroSection({ categories, banners }: HeroSectionProps) {
         </aside>
       </div>
 
-      <div className="relative h-[260px] overflow-hidden rounded-lg bg-slate-900 shadow-sm group sm:h-[360px] lg:col-span-9 lg:h-auto">
+      <div className="relative h-[260px] min-w-0 overflow-hidden rounded-lg bg-slate-900 shadow-sm group sm:h-[360px] lg:col-span-9 lg:h-auto">
         <Image
           src={activeBanner.imageUrl}
           alt="首页轮播图"

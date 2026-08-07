@@ -21,6 +21,7 @@ import {
   getFirstError,
   type FormValidationRules,
 } from '@/lib/validation';
+import { DateInput } from '@/components/shared/date-input';
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -383,12 +384,11 @@ export default function ReviewDialog({
 
           <div className="grid gap-1.5">
             <RequiredLabel>开课时间</RequiredLabel>
-            <Input
-              type="date"
-              placeholder="年 / 月 / 日"
+            <DateInput
               max={todayStr()}
               value={trainingDate}
-              onChange={(e) => setTrainingDate(e.target.value)}
+              onChange={setTrainingDate}
+              className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none md:text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
             />
           </div>
 
