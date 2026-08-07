@@ -30,6 +30,12 @@ function formatTrainerLocation(course: CourseListItem): string {
   return parts.length > 0 ? parts.join(' ') : '-';
 }
 
+function formatReferencePrice(course: CourseListItem): string {
+  if (course.isFree === 1) return '免费';
+  if (course.price > 0) return `¥${course.price.toLocaleString()}`;
+  return '待定';
+}
+
 /** 与「专家常驻地：」等最长标签同宽，保证各行取值左对齐 */
 const FIELD_LABEL_CLASS = 'text-slate-400 shrink-0 w-[4.5rem]';
 
@@ -103,6 +109,10 @@ export function InnerCourseCard({ course }: InnerCourseCardProps) {
               <div className="flex items-center gap-1 min-w-0">
                 <span className={FIELD_LABEL_CLASS}>课程分类：</span>
                 <span className="text-slate-700 truncate">{course.categoryName || '-'}</span>
+              </div>
+              <div className="flex items-center gap-1 min-w-0">
+                <span className={FIELD_LABEL_CLASS}>参考价：</span>
+                <span className="text-slate-700">{formatReferencePrice(course)}</span>
               </div>
             </div>
             <div className="flex items-start gap-1 mt-1.5 text-xs min-w-0">

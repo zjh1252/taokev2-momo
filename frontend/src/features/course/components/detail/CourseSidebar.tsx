@@ -215,8 +215,26 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
     }
   };
 
+  const internalPriceLabel =
+    course.isFree === 1 ? '免费' : course.price > 0 ? `¥${course.price.toLocaleString()}` : '待定';
+
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 sticky top-[120px] space-y-4">
+      {/* 内训课显示参考价 */}
+      {isInternal && (
+        <div className="text-center pb-4 border-b border-slate-100">
+          <p className="text-sm text-slate-500 mb-1">培训参考价</p>
+          <p className="text-3xl font-bold text-red-500">
+            {internalPriceLabel}
+            {course.isFree !== 1 && course.price > 0 && course.originalPrice > course.price && (
+              <span className="text-base text-slate-400 line-through ml-2">
+                ¥{course.originalPrice.toLocaleString()}
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+
       {/* 公开课显示价格 */}
       {isOpen && course.price > 0 && (
         <div className="text-center pb-4 border-b border-slate-100">
