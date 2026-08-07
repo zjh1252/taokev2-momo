@@ -51,4 +51,4 @@
 
 ## Commit
 
-（见下方 git commit hash）
+`63a7ae81` — feat(admin): 内训课报名管理端薄编排与 Excel 导出
